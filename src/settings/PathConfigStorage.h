@@ -14,7 +14,7 @@ class SliceDataStorage; // forward decl for SliceDataStorage
 /*!
  * A class to represent all configurations for all features types of printed lines in a meshgroup.
  */
-class PathConfigs
+class PathConfigStorage
 {
 public:
     class MeshPathConfigs
@@ -45,7 +45,7 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigs(const SliceDataStorage& storage, int layer_nr, coord_t layer_thickness);
+    PathConfigStorage(const SliceDataStorage& storage, int layer_nr, coord_t layer_thickness);
 };
 
 }; // namespace cura

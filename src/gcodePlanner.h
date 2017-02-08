@@ -16,7 +16,7 @@
 #include "FanSpeedLayerTime.h"
 #include "SpaceFillType.h"
 #include "GCodePathConfig.h"
-#include "settings/PathConfigs.h"
+#include "settings/PathConfigStorage.h"
 
 #include "utils/optional.h"
 
@@ -232,7 +232,7 @@ private:
     const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
 public:
-    const PathConfigs configs_storage; //!< The line configs for this layer for each feature type
+    const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
 
 private:
     int layer_nr; //!< The layer number of this layer plan

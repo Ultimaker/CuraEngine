@@ -1,5 +1,5 @@
 /** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
-#include "PathConfigs.h"
+#include "PathConfigStorage.h"
 
 #include "settings.h" // MAX_INFILL_COMBINE
 #include "../sliceDataStorage.h" // SliceDataStorage
@@ -8,7 +8,7 @@
 namespace cura
 {
 
-PathConfigs::MeshPathConfigs::MeshPathConfigs()
+PathConfigStorage::MeshPathConfigs::MeshPathConfigs()
 : inset0_config(PrintFeatureType::OuterWall)
 , insetX_config(PrintFeatureType::InnerWall)
 , skin_config(PrintFeatureType::Skin)
@@ -21,7 +21,7 @@ PathConfigs::MeshPathConfigs::MeshPathConfigs()
     }
 }
 
-PathConfigs::PathConfigs(const SliceDataStorage& storage, int layer_nr, coord_t layer_thickness)
+PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_nr, coord_t layer_thickness)
 : raft_base_config(PrintFeatureType::SupportInterface)
 , raft_interface_config(PrintFeatureType::Support)
 , raft_surface_config(PrintFeatureType::SupportInterface)

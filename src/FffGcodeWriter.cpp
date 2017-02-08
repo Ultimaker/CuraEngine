@@ -506,7 +506,7 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(const SliceDataStorage&
                 unsigned int mesh_order_idx = (mesh_iterator_idx + mesh_order_idx_starting_mesh) % mesh_order.size();
                 unsigned int mesh_idx = mesh_order[mesh_order_idx];
                 const SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
-                const PathConfigs::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
+                const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
                     addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer, layer_nr);
@@ -666,7 +666,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
 {
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
@@ -698,7 +698,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     addMeshOpenPolyLinesToGCode(storage, mesh, mesh_config, gcode_layer, layer_nr);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
 {
     const SliceLayer* layer = &mesh->layers[layer_nr];
     
@@ -717,7 +717,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage
     
 }
 
-void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
 {
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
@@ -782,7 +782,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     }
 }
 
-void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr) const
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
@@ -844,7 +844,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     if (infill_line_distance > 0)
@@ -875,7 +875,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, const Sl
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
     if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
     {
@@ -936,7 +936,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, const S
     }
 }
 
-void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
+void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
@@ -996,7 +996,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, const SliceMeshSto
 }
 
 
-void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
+void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const unsigned int skin_line_width = mesh_config.skin_config.getLineWidth();
