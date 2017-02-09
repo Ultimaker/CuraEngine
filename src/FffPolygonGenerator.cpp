@@ -346,7 +346,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     
     // walls
-    int processed_layer_count = 0;
+    unsigned int processed_layer_count = 0;
 #pragma omp parallel for default(none) shared(mesh_layer_count, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
     for(unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
