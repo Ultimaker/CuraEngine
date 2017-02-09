@@ -32,17 +32,6 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-#pragma omp parallel
-    {
-#pragma omp master
-        {
-#ifdef _OPENMP
-            log("OpenMP enabled, number of threads used: %u\n", omp_get_num_threads());
-#else
-            log("OpenMP disabled\n");
-#endif
-        }
-    }
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
         return false;
