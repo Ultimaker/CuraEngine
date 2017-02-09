@@ -3,7 +3,6 @@
 #include "layerPart.h"
 #include "settings/settings.h"
 #include "progress/Progress.h"
-#include "multithreadOpenMP.h"
 
 #include "utils/SVG.h" // debug output
 
