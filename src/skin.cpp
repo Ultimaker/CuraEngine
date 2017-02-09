@@ -113,26 +113,26 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
             }
         }
 
-        int anchor_skin_expand_distance = mesh.getSettingInMicrons("anchor_skin_expand_distance");
+        int expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
         
-        if (anchor_skin_expand_distance > 0)
+        if (expand_skins_expand_distance > 0)
         {
-            int anchor_skin_shrink_distance = mesh.getSettingInMicrons("anchor_skin_shrink_distance");
+            int expand_skins_shrink_distance = mesh.getSettingInMicrons("expand_skins_shrink_distance");
 
-            // skin areas are to be enlarged by anchor_skin_distance but before they are expanded
+            // skin areas are to be enlarged by expand_distance but before they are expanded
             // the skin areas are shrunk by shrink_distance so that very narrow regions of skin
             // (often caused by the model's surface having a steep incline) are removed first
 
-            anchor_skin_expand_distance += anchor_skin_shrink_distance; // increase the expansion distance to compensate for the shrinkage
+            expand_skins_expand_distance += expand_skins_shrink_distance; // increase the expansion distance to compensate for the shrinkage
 
-            if (mesh.getSettingBoolean("anchor_upper_skin_in_infill"))
+            if (mesh.getSettingBoolean("expand_upper_skins"))
             {
-                upskin = upskin.offset(-anchor_skin_shrink_distance).offset(anchor_skin_expand_distance).intersection(virgin_upskin);
+                upskin = upskin.offset(-expand_skins_shrink_distance).offset(expand_skins_expand_distance).intersection(virgin_upskin);
             }
 
-            if (mesh.getSettingBoolean("anchor_lower_skin_in_infill"))
+            if (mesh.getSettingBoolean("expand_lower_skins"))
             {
-                downskin = downskin.offset(-anchor_skin_shrink_distance).offset(anchor_skin_expand_distance).intersection(virgin_upskin);
+                downskin = downskin.offset(-expand_skins_shrink_distance).offset(expand_skins_expand_distance).intersection(virgin_upskin);
             }
         }
 
