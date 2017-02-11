@@ -96,6 +96,7 @@ private:
     Point3 currentPosition;
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
+    double current_travel_acceleration; //!< The current acceleration in the XY direction used for travel moves if different from current_acceleration (in mm/s^2)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
     double current_max_z_feedrate; //!< The current max z speed
 

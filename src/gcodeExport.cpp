@@ -28,6 +28,7 @@ GCodeExport::GCodeExport()
 
     currentSpeed = 1;
     current_acceleration = -1;
+    current_travel_acceleration = -1;
     current_jerk = -1;
     current_max_z_feedrate = -1;
 
@@ -877,23 +878,39 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 
 void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
 {
-    if (current_acceleration != acceleration)
+    if (getFlavor() == EGCodeFlavor::REPETIER)
     {
-        if (getFlavor() == EGCodeFlavor::REPETIER)
+        int m_code = 0;
+        if (for_travel_moves)
         {
-            int m_code = 201;  // set print acceleration
-            if (for_travel_moves)
+            if (current_travel_acceleration != acceleration)
             {
-                m_code =  202;   // set travel acceleration
+                m_code = 202;   // set travel acceleration
+                current_travel_acceleration = acceleration;
             }
-            *output_stream << "M" << m_code << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
         }
         else
         {
-            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
+            if (current_acceleration != acceleration)
+            {
+                m_code = 201;  // set print acceleration
+                current_acceleration = acceleration;
+            }
         }
-        current_acceleration = acceleration;
-        estimateCalculator.setAcceleration(acceleration);
+        if (m_code != 0)
+        {
+            *output_stream << "M" << m_code << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
+            estimateCalculator.setAcceleration(acceleration);
+        }
+    }
+    else
+    {
+        if (current_acceleration != acceleration)
+        {
+            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
+            current_acceleration = acceleration;
+            estimateCalculator.setAcceleration(acceleration);
+        }
     }
 }
 
