@@ -731,7 +731,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                gcode.writeAcceleration(path.config->getAcceleration());
+                gcode.writeAcceleration(path.config->getAcceleration(), path.config->isTravelPath());
             }
             if (jerk_enabled)
             {

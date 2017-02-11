@@ -316,7 +316,7 @@ public:
     /*!
      * Write the command for setting the acceleration to a specific value
      */
-    void writeAcceleration(double acceleration);
+    void writeAcceleration(double acceleration, bool for_travel_moves = false);
 
     /*!
      * Write the command for setting the jerk to a specific value

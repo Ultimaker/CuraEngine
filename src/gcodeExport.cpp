@@ -875,7 +875,7 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
-void GCodeExport::writeAcceleration(double acceleration)
+void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
 {
     if (current_acceleration != acceleration)
     {
