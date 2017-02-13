@@ -12,7 +12,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     int spaghetti_max_layer_count = std::max(1, static_cast<int>(mesh.getSettingInMicrons("spaghetti_max_height") / layer_height));
     // TODO: account for the initial layer height
 
-    coord_t filling_area_inset = 200; // TODO: mnake setting!
+    coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
     
     if (mesh.getSettingInAngleDegrees("spaghetti_max_infill_angle") >= 90)
     {
