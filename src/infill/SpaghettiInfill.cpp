@@ -7,6 +7,7 @@ namespace cura {
 void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 {
     coord_t layer_height = mesh.getSettingInMicrons("layer_height");
+    coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
     double layer_height_mm = INT2MM(layer_height);
     int spaghetti_max_layer_count = std::max(1, static_cast<int>(mesh.getSettingInMicrons("spaghetti_max_height") / layer_height));
     // TODO: account for the initial layer height
@@ -50,7 +51,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
                 || pillar.last_layer_added < static_cast<int>(layer_idx)
             )
             {
-                pillar.addToTopSliceLayerPart(layer_height_mm, filling_area_inset);
+                pillar.addToTopSliceLayerPart(layer_height_mm, filling_area_inset, line_width);
                 auto to_be_erased = it;
                 ++it;
                 pillar_base.erase(to_be_erased);
@@ -64,14 +65,11 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     // handle unfinished pillars
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
     {
-        it->addToTopSliceLayerPart(layer_height_mm, filling_area_inset);
+        it->addToTopSliceLayerPart(layer_height_mm, filling_area_inset, line_width);
     }
 }
 
-// TODO
-#define NOZZLE_SIZE 400
-
-void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset)
+void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset, coord_t line_width)
 {
     SliceLayerPart& slice_layer_part = *top_slice_layer_part;
     double volume = total_area_mm2 * layer_height_mm;
@@ -90,10 +88,10 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(double layer_height_m
         }
         filling_area = PolygonsPart();
         PolygonRef poly = filling_area.newPoly();
-        poly.emplace_back(inside + Point(-NOZZLE_SIZE / 2, NOZZLE_SIZE / 2));
-        poly.emplace_back(inside + Point(NOZZLE_SIZE / 2, NOZZLE_SIZE / 2));
-        poly.emplace_back(inside + Point(NOZZLE_SIZE / 2, -NOZZLE_SIZE / 2));
-        poly.emplace_back(inside + Point(-NOZZLE_SIZE / 2, -NOZZLE_SIZE / 2));
+        poly.emplace_back(inside + Point(-line_width / 2 - 10, line_width / 2 + 10));
+        poly.emplace_back(inside + Point(line_width / 2 + 10, line_width / 2 + 10));
+        poly.emplace_back(inside + Point(line_width / 2 + 10, -line_width / 2 - 10));
+        poly.emplace_back(inside + Point(-line_width / 2 - 10, -line_width / 2 - 10));
     }
     slice_layer_part.spaghetti_infill_volumes.emplace_back(top_part, volume);
 }

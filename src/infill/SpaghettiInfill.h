@@ -45,8 +45,10 @@ protected:
 
         /*!
          * TODO
+         * 
+         * \param line_width The line width used to generate an area just large enough for infill lines to be generated, when the infill area would otherwise be too small to get infill
          */
-        void addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset);
+        void addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset, coord_t line_width);
     };
 private:
     /*!
