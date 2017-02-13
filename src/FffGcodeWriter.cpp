@@ -920,7 +920,7 @@ void FffGcodeWriter::processInfill(GCodePlanner& gcode_layer, SliceMeshStorage* 
             Polygons infill_polygons;
 
             const PolygonsPart& area = filling_area.first;
-            const double total_volume = filling_area.second;
+            const double total_volume = filling_area.second * getSettingAsRatio("spaghetti_flow");
             assert(total_volume > 0.0);
 
             Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift);
