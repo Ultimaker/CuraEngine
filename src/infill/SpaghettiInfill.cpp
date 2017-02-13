@@ -18,7 +18,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     {
         return; // infill cannot be combined into pillars
     }
-    coord_t connection_inset_dist = tan(mesh.getSettingInAngleRadians("spaghetti_max_infill_angle")) * layer_height;
+    coord_t connection_inset_dist = tan(mesh.getSettingInAngleRadians("spaghetti_max_infill_angle")) * layer_height; // Horizontal component of the spaghetti_max_infill_angle
 
     std::list<SpaghettiInfill::InfillPillar> pillar_base;
     size_t min_layer = mesh.getSettingAsCount("bottom_layers") + 1;
@@ -96,7 +96,7 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(double layer_height_m
     slice_layer_part.spaghetti_infill_volumes.emplace_back(top_part, volume);
 }
 
-bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
+bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part) const
 {
     Polygons insetted = infill_part.offset(-connection_inset_dist);
     if (insetted.intersection(top_part).size() > 0)
@@ -109,7 +109,7 @@ bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
     }
 }
 
-SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist)
+SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist)
 {
     std::list<SpaghettiInfill::InfillPillar>::iterator ret = pillar_base.end();
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
