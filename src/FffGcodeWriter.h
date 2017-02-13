@@ -351,6 +351,19 @@ private:
     void processInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle); 
 
     /*!
+     * Add spaghetti infill for a given part in a layer plan.
+     * 
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param infill_line_distance The distance between the infill lines
+     * \param infill_overlap The distance by which the infill overlaps with the wall insets.
+     * \param fillAngle The angle in the XY plane at which the infill is generated.
+     */
+    void processSpaghettiInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle); 
+
+    /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
      * 
      * \param gcodeLayer The initial planning of the gcode of the layer.

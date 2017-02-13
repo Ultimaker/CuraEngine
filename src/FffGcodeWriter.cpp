@@ -898,21 +898,25 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
             
 void FffGcodeWriter::processInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
-    if (!mesh->getSettingBoolean("spaghetti_infill_enabled"))
+    if (mesh->getSettingBoolean("spaghetti_infill_enabled"))
+    {
+        processSpaghettiInfill(gcode_layer, mesh,  part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
+    else
     {
         processMultiLayerInfill(gcode_layer, mesh,  part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
         processSingleLayerInfill(gcode_layer, mesh,  part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
-    else
-    {
+}
+
+void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
+{
         GCodePathConfig& config = mesh->infill_config[0];
         const EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
         const unsigned int infill_line_width = config.getLineWidth();
-        const unsigned int infill_line_distance = infill_line_width * 2; // TODO: make configurable?
         const int64_t z = layer_nr * getSettingInMicrons("layer_height");
         const int64_t infill_shift = 0;
         const int64_t outline_offset = 0;
-        infill_overlap = 0;
 
         for (std::pair<PolygonsPart, double>& filling_area : part.spaghetti_infill_volumes)
         {
@@ -956,7 +960,6 @@ void FffGcodeWriter::processInfill(GCodePlanner& gcode_layer, SliceMeshStorage* 
                 gcode_layer.addExtrusionMove(middle + Point(0,10), &config, SpaceFillType::Lines, flow_ratio);
             }
         }
-    }
 }
 
 void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
