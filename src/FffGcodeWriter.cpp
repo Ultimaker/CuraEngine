@@ -911,55 +911,55 @@ void FffGcodeWriter::processInfill(GCodePlanner& gcode_layer, SliceMeshStorage* 
 
 void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
-        GCodePathConfig& config = mesh->infill_config[0];
-        const EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
-        const unsigned int infill_line_width = config.getLineWidth();
-        const int64_t z = layer_nr * getSettingInMicrons("layer_height");
-        const int64_t infill_shift = 0;
-        const int64_t outline_offset = 0;
+    GCodePathConfig& config = mesh->infill_config[0];
+    const EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
+    const unsigned int infill_line_width = config.getLineWidth();
+    const int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const int64_t infill_shift = 0;
+    const int64_t outline_offset = 0;
 
-        for (std::pair<PolygonsPart, double>& filling_area : part.spaghetti_infill_volumes)
+    for (std::pair<PolygonsPart, double>& filling_area : part.spaghetti_infill_volumes)
+    {
+        Polygons infill_lines;
+        Polygons infill_polygons;
+
+        const PolygonsPart& area = filling_area.first;
+        const double total_volume = filling_area.second * getSettingAsRatio("spaghetti_flow");
+        assert(total_volume > 0.0);
+
+        Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift);
+        infill_comp.generate(infill_polygons, infill_lines, mesh);
+
+        const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();
+        if (total_length > 0)
         {
-            Polygons infill_lines;
-            Polygons infill_polygons;
+            const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
+            const float flow_ratio = total_volume / normal_volume;
+            assert(flow_ratio >= 0.9);
 
-            const PolygonsPart& area = filling_area.first;
-            const double total_volume = filling_area.second * getSettingAsRatio("spaghetti_flow");
-            assert(total_volume > 0.0);
-
-            Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift);
-            infill_comp.generate(infill_polygons, infill_lines, mesh);
-
-            const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();
-            if (total_length > 0)
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
+            if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
             {
-                const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
-                const float flow_ratio = total_volume / normal_volume;
-                assert(flow_ratio >= 0.9);
-
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
-                if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
-                {
-                    gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-                }
-                else
-                {
-                    gcode_layer.addLinesByOptimizer(infill_lines, &config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
-                }
+                gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"), flow_ratio);
             }
             else
             {
-                Point middle = const_cast<PolygonsPart&>(area).outerPolygon().centerOfMass();
-                if (!area.inside(middle))
-                {
-                    PolygonUtils::ensureInsideOrOutside(area, middle, infill_line_width / 2);
-                }
-                const double normal_volume = INT2MM(INT2MM(10 * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
-                const float flow_ratio = total_volume / normal_volume;
-                gcode_layer.addTravel(middle);
-                gcode_layer.addExtrusionMove(middle + Point(0,10), &config, SpaceFillType::Lines, flow_ratio);
+                gcode_layer.addLinesByOptimizer(infill_lines, &config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
             }
         }
+        else
+        {
+            Point middle = const_cast<PolygonsPart&>(area).outerPolygon().centerOfMass();
+            if (!area.inside(middle))
+            {
+                PolygonUtils::ensureInsideOrOutside(area, middle, infill_line_width / 2);
+            }
+            const double normal_volume = INT2MM(INT2MM(10 * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
+            const float flow_ratio = total_volume / normal_volume;
+            gcode_layer.addTravel(middle);
+            gcode_layer.addExtrusionMove(middle + Point(0,10), &config, SpaceFillType::Lines, flow_ratio);
+        }
+    }
 }
 
 void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
