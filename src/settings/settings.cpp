@@ -93,13 +93,15 @@ void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirt
 
 std::string SettingsBase::getSettingString(std::string key) const
 {
-    if (setting_values.find(key) != setting_values.end())
+    auto value_it = setting_values.find(key);
+    if (value_it != setting_values.end())
     {
-        return setting_values.at(key);
+        return value_it->second;
     }
-    if (setting_inherit_base.find(key) != setting_inherit_base.end())
+    auto inherit_override_it = setting_inherit_base.find(key);
+    if (inherit_override_it != setting_inherit_base.end())
     {
-        return setting_inherit_base.at(key)->getSettingString(key);
+        return inherit_override_it->second->getSettingString(key);
     }
     if (parent)
     {
