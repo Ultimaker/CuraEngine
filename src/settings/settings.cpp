@@ -428,7 +428,7 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
     return FillPerimeterGapMode::NOWHERE;
 }
 
-CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
+CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "off")
@@ -446,7 +446,7 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
     return CombingMode::ALL;
 }
 
-SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key)
+SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "xy_overrides_z")
