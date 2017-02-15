@@ -930,7 +930,10 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
         const double total_volume = filling_area.second * getSettingAsRatio("spaghetti_flow");
         assert(total_volume > 0.0);
 
-        Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift);
+        Polygons* perimeter_gaps_output = nullptr;
+        const bool connected_zigzags = true;
+        const bool use_endpieces = false;
+        Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces);
         infill_comp.generate(infill_polygons, infill_lines, mesh);
 
         const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();
