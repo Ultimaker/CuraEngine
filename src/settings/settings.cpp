@@ -106,8 +106,8 @@ std::string SettingsBase::getSettingString(std::string key) const
         return parent->getSettingString(key);
     }
 
-    const_cast<SettingsBase&>(*this).setting_values[key] = "";
-    cura::logWarning("Unregistered setting %s\n", key.c_str());
+    cura::logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
+    std::exit(-1);
     return "";
 }
 
