@@ -20,7 +20,9 @@
 
 #include "settings/SettingsToGV.h"
 
-#include <omp.h> // omp_get_num_threads
+#ifdef _OPENMP
+    #include <omp.h> // omp_get_num_threads
+#endif
 
 namespace cura
 {

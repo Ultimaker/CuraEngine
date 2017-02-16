@@ -2,7 +2,10 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
-#include <omp.h>
+
+#ifdef _OPENMP
+    #include <omp.h>"
+#endif
 
 #include "utils/math.h"
 #include "utils/algorithm.h"
