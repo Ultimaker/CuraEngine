@@ -68,16 +68,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     gcode.writeLayerCountComment(total_layers);
 
-    bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
-    if (has_raft)
-    {
-        processRaft(storage, total_layers);
-        // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
-        for (int layer_nr = -Raft::getFillerLayerCount(storage); layer_nr < 0; layer_nr++)
-        {
-            planner_state = processLayer(storage, layer_nr, total_layers);
-        }
-    }
 
     { // calculate the mesh order for each extruder
         int extruder_count = storage.meshgroup->getExtruderCount();
@@ -88,7 +78,16 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
 
-    for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
+    int process_layer_starting_layer_nr = 0;
+    bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
+    if (has_raft)
+    {
+        processRaft(storage, total_layers);
+        // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
+        process_layer_starting_layer_nr = -Raft::getFillerLayerCount(storage);
+    }
+
+    for (int layer_nr = process_layer_starting_layer_nr; layer_nr < static_cast<int>(total_layers); layer_nr++)
     {
         planner_state = processLayer(storage, layer_nr, total_layers);
     }
