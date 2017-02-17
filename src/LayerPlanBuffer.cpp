@@ -332,7 +332,7 @@ void LayerPlanBuffer::insertTempCommands()
 
     std::vector<ExtruderPlan*> extruder_plans;
     extruder_plans.reserve(buffer.size() * 2);
-    for (GCodePlanner* layer_plan : buffer)
+    for (LayerPlan* layer_plan : buffer)
     {
         for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
         {
@@ -342,7 +342,7 @@ void LayerPlanBuffer::insertTempCommands()
 
 
     // insert commands for all extruder plans on this layer
-    GCodePlanner& layer_plan = *buffer.back();
+    LayerPlan& layer_plan = *buffer.back();
     for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
         unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;

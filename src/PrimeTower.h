@@ -16,7 +16,7 @@ namespace cura
 
     
 class SliceDataStorage;
-class GCodePlanner;
+class LayerPlan;
 class GCodeExport;
 
 /*!
@@ -87,7 +87,7 @@ public:
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const;
+    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -136,7 +136,7 @@ private:
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(GCodePlanner& gcode_layer, const int layer_nr, const int extruder) const;
+    void addToGcode_denseInfill(LayerPlan& gcode_layer, const int layer_nr, const int extruder) const;
 
     /*!
      * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower.
@@ -146,7 +146,7 @@ private:
      * \param layer_nr The layer number of the \p gcode_layer
      * \param extruder_nr The current extruder
      */
-    void preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr, const int extruder_nr) const;
+    void preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const;
 };
 
 

@@ -94,7 +94,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const
+void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const
 {
     if (!enabled)
     {
@@ -135,7 +135,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     gcodeLayer.setPrimeTowerIsPlanned();
 }
 
-void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcode_layer, const int layer_nr, const int extruder_nr) const
+void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
 {
     const ExtrusionMoves& pattern = patterns_per_extruder[extruder_nr][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
@@ -225,7 +225,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
 }
 
-void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr, const int extruder_nr) const
+void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
 {
     int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];

@@ -13,7 +13,7 @@ namespace cura
  */
 class GCodePathConfig
 {
-    friend class GCodePlannerTest;
+    friend class LayerPlanTest;
 public:
     /*!
      * A simple wrapper class for all derivatives of position which are used when printing a line

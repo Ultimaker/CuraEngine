@@ -56,7 +56,7 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* GCodePlanner::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
@@ -74,14 +74,14 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(const GCodePathConfig* config, 
     return ret;
 }
 
-void GCodePlanner::forceNewPathStart()
+void LayerPlan::forceNewPathStart()
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0)
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , layer_nr(layer_nr)
@@ -110,19 +110,19 @@ GCodePlanner::GCodePlanner(const SliceDataStorage& storage, int layer_nr, int z,
         comb = nullptr;
 }
 
-GCodePlanner::~GCodePlanner()
+LayerPlan::~LayerPlan()
 {
     if (comb)
         delete comb;
 }
 
-SettingsBaseVirtual* GCodePlanner::getLastPlannedExtruderTrainSettings()
+SettingsBaseVirtual* LayerPlan::getLastPlannedExtruderTrainSettings()
 {
     return last_planned_extruder_setting_base;
 }
 
 
-Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
+Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
 {
     if (combing_mode == CombingMode::OFF)
     {
@@ -165,12 +165,12 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     }
 }
 
-void GCodePlanner::setIsInside(bool _is_inside)
+void LayerPlan::setIsInside(bool _is_inside)
 {
     is_inside = _is_inside;
 }
 
-bool GCodePlanner::setExtruder(int extruder)
+bool LayerPlan::setExtruder(int extruder)
 {
     if (extruder == getExtruder())
     {
@@ -223,7 +223,7 @@ bool GCodePlanner::setExtruder(int extruder)
     return true;
 }
 
-void GCodePlanner::moveInsideCombBoundary(int distance)
+void LayerPlan::moveInsideCombBoundary(int distance)
 {
     int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
@@ -241,7 +241,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
     }
 }
 
-GCodePath& GCodePlanner::addTravel(Point p)
+GCodePath& LayerPlan::addTravel(Point p)
 {
     GCodePath* path = nullptr;
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
@@ -332,7 +332,7 @@ GCodePath& GCodePlanner::addTravel(Point p)
     return ret;
 }
 
-GCodePath& GCodePlanner::addTravel_simple(Point p, GCodePath* path)
+GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
@@ -343,7 +343,7 @@ GCodePath& GCodePlanner::addTravel_simple(Point p, GCodePath* path)
     return *path;
 }
 
-void GCodePlanner::planPrime()
+void LayerPlan::planPrime()
 {
     forceNewPathStart();
     GCodePath& prime_travel = addTravel_simple(lastPosition + Point(0, 100));
@@ -352,13 +352,13 @@ void GCodePlanner::planPrime()
     forceNewPathStart();
 }
 
-void GCodePlanner::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
     lastPosition = p;
 }
 
-void GCodePlanner::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
+void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
 {
     Point p0 = polygon[start_idx];
     addTravel(p0);
@@ -406,7 +406,7 @@ void GCodePlanner::addPolygon(ConstPolygonRef polygon, int start_idx, const GCod
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize)
 {
     if (polygons.size() == 0)
     {
@@ -423,7 +423,7 @@ void GCodePlanner::addPolygonsByOptimizer(const Polygons& polygons, const GCodeP
         addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
     }
 }
-void GCodePlanner::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
+void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
 {
     LineOrderOptimizer orderOptimizer(lastPosition);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
@@ -615,7 +615,7 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     }
 }
 
-TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
+TimeMaterialEstimates LayerPlan::computeNaiveTimeEstimates()
 {
     TimeMaterialEstimates ret;
     for (ExtruderPlan& extruder_plan : extruder_plans)
@@ -625,7 +625,7 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
     return ret;
 }
 
-void GCodePlanner::processFanSpeedAndMinimalLayerTime()
+void LayerPlan::processFanSpeedAndMinimalLayerTime()
 {
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
@@ -637,7 +637,7 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 
 
 
-void GCodePlanner::writeGCode(GCodeExport& gcode)
+void LayerPlan::writeGCode(GCodeExport& gcode)
 {
     CommandSocket::setLayerForSend(layer_nr);
     CommandSocket::setSendCurrentPosition( gcode.getPositionXY() );
@@ -878,7 +878,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     gcode.updateTotalPrintTime();
 }
 
-void GCodePlanner::overrideFanSpeeds(double speed)
+void LayerPlan::overrideFanSpeeds(double speed)
 {
     for (ExtruderPlan& extruder_plan : extruder_plans)
     {
@@ -887,7 +887,7 @@ void GCodePlanner::overrideFanSpeeds(double speed)
 }
 
 
-bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx)
+bool LayerPlan::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx)
 {
     std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
@@ -913,7 +913,7 @@ bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int ext
     }
 }
     
-bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
+bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
     if (coasting_volume <= 0) 
     { 

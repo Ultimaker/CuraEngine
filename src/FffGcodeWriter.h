@@ -40,7 +40,7 @@ private:
     int max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
     /*
-     * Buffer for all layer plans (of type GCodePlanner)
+     * Buffer for all layer plans (of type LayerPlan)
      * 
      * The layer plans are buffered so that we can start heating up a nozzle several layers before it needs to be used.
      * Another reason is to perform Auto Temperature.
@@ -75,7 +75,7 @@ private:
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
 
-    GCodePlanner::PlanningState planner_state;
+    LayerPlan::PlanningState planner_state;
 
 public:
     FffGcodeWriter(SettingsBase* settings_)
@@ -220,7 +220,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    GCodePlanner& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
+    LayerPlan& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
 
     /*!
      * Whether the extruders need to be primed separately just before they are used.
@@ -235,7 +235,7 @@ private:
      * \param layer_plan The initial planning of the g-code of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void ensureAllExtrudersArePrimed(const SliceDataStorage& storage, GCodePlanner& layer_plan, const int layer_nr) const;
+    void ensureAllExtrudersArePrimed(const SliceDataStorage& storage, LayerPlan& layer_plan, const int layer_nr) const;
 
     /*!
      * Add the skirt or the brim to the layer plan \p gcodeLayer.
@@ -245,7 +245,7 @@ private:
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
     
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
@@ -254,7 +254,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processOozeShield(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr) const;
+    void processOozeShield(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int layer_nr) const;
     
     /*!
      * Adds the draft protection screen to the layer plan \p gcodeLayer.
@@ -263,7 +263,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processDraftShield(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr) const;
+    void processDraftShield(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int layer_nr) const;
 
     /*!
      * Calculate in which order to plan the extruders
@@ -293,7 +293,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, GCodePlanner& gcodeLayer, int layer_nr) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer, int layer_nr) const;
     
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -305,7 +305,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const;
+    void addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
@@ -317,7 +317,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const;
+    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
@@ -330,7 +330,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr) const;
+    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
@@ -344,7 +344,7 @@ private:
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    void processMultiLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
     
     /*!
      * Add normal sparse infill for a given part in a layer.
@@ -357,7 +357,7 @@ private:
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    void processSingleLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
     
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -369,7 +369,7 @@ private:
      * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
      * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      */
-    void processInsets(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
+    void processInsets(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
     
     
     /*!
@@ -386,7 +386,7 @@ private:
      * \param skin_overlap The distance by which the skin overlaps with the wall insets and the distance by which the perimeter gaps overlap with adjacent print features.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
+    void processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.
@@ -395,7 +395,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \return whether any support was added to the layer plan
      */
-    bool addSupportToGCode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int extruder_nr) const;
+    bool addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr, int extruder_nr) const;
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
@@ -403,7 +403,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \return whether any support infill was added to the layer plan
      */
-    bool addSupportInfillToGCode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr) const;
+    bool addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
     /*!
      * Add the support skins to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
@@ -411,7 +411,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \return whether any support skin was added to the layer plan
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr) const;
+    bool addSupportRoofsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
     
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
@@ -423,7 +423,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \param extruder_nr The extruder to which to switch
      */
-    void setExtruder_addPrime(const SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr) const;
+    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const;
     
     /*!
      * Add the prime tower gcode for the current layer.
@@ -432,7 +432,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \param prev_extruder The current extruder with which we last printed.
      */
-    void addPrimeTower(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder) const;
+    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr, int prev_extruder) const;
     
     /*!
      * Add the end gcode and set all temperatures to zero.

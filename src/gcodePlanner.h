@@ -25,7 +25,7 @@ namespace cura
 
 class SliceDataStorage;
 
-class GCodePlanner; // forward declaration so that ExtruderPlan can be a friend
+class LayerPlan; // forward declaration so that ExtruderPlan can be a friend
 class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
 
 /*!
@@ -35,7 +35,7 @@ class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a frie
  */
 class ExtruderPlan
 {
-    friend class GCodePlanner; // TODO: GCodePlanner still does a lot which should actually be handled in this class.
+    friend class LayerPlan; // TODO: LayerPlan still does a lot which should actually be handled in this class.
     friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
@@ -203,23 +203,23 @@ protected:
 class LayerPlanBuffer; // forward declaration to prevent circular dependency
 
 /*! 
- * The GCodePlanner class stores multiple moves that are planned.
+ * The LayerPlan class stores multiple moves that are planned.
  * 
  * 
  * It facilitates the combing to keep the head inside the print.
  * It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
  * 
- * A GCodePlanner is also knows as a 'layer plan'.
+ * A LayerPlan is also knows as a 'layer plan'.
  * 
  */
-class GCodePlanner : public NoCopy
+class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
-    friend class GCodePlannerTest;
+    friend class LayerPlanTest;
 public:
     /*!
      * The state which is passed along between layer plans.
-     * This is what a \ref GCodePlanner delivers to further computation in \ref FffGcodeWriter
+     * This is what a \ref LayerPlan delivers to further computation in \ref FffGcodeWriter
      * This is the state which is currently planned, not which is written to gcode.
      */
     struct PlanningState
@@ -262,22 +262,22 @@ private:
 private:
     /*!
      * Either create a new path with the given config or return the last path if it already had that config.
-     * If GCodePlanner::forceNewPathStart has been called a new path will always be returned.
+     * If LayerPlan::forceNewPathStart has been called a new path will always be returned.
      * 
      * \param config The config used for the path returned
      * \param space_fill_type The type of space filling which this path employs
      * \param flow (optional) A ratio for the extrusion speed
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
-     * \return A path with the given config which is now the last path in GCodePlanner::paths
+     * \return A path with the given config which is now the last path in LayerPlan::paths
      */
     GCodePath* getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
 
 public:
     /*!
-     * Force GCodePlanner::getLatestPathWithConfig to return a new path.
+     * Force LayerPlan::getLatestPathWithConfig to return a new path.
      * 
      * This function is introduced because in some cases 
-     * GCodePlanner::getLatestPathWithConfig is called consecutively with the same config pointer, 
+     * LayerPlan::getLatestPathWithConfig is called consecutively with the same config pointer, 
      * though the content of the config has changed.
      * 
      * Example cases: 
@@ -293,8 +293,8 @@ public:
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    GCodePlanner(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
-    ~GCodePlanner();
+    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    ~LayerPlan();
 
     void overrideFanSpeeds(double speed);
     /*!
@@ -492,7 +492,7 @@ public:
      * 
      * \param gcode The gcode to write the planned paths to
      * \param extruder_plan_idx The index of the current extruder plan
-     * \param path_idx The index into GCodePlanner::paths for the next path to be written to GCode.
+     * \param path_idx The index into LayerPlan::paths for the next path to be written to GCode.
      * \param layerThickness The height of the current layer.
      * \param coasting_volume The volume otherwise leaked during a normal move.
      * \param coasting_speed The speed at which to move during move-coasting.

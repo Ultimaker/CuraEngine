@@ -17,7 +17,7 @@ namespace cura
 {
 
 /*!
- * Class for buffering multiple layer plans (\ref GCodePlanner) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
+ * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
  * 
  * This class handles where to insert temperature commands for:
  * - initial layer temperature
@@ -42,7 +42,7 @@ class LayerPlanBuffer : SettingsMessenger
 
     std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
 public:
-    std::list<GCodePlanner*> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
+    std::list<LayerPlan*> buffer; //!< The buffer containing several layer plans (LayerPlan) before writing them to gcode.
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
@@ -58,7 +58,7 @@ public:
     /*!
      * Push a new layer plan into the buffer
      */
-    void push(GCodePlanner& layer_plan)
+    void push(LayerPlan& layer_plan)
     {
         buffer.push_back(&layer_plan);
     }
@@ -70,7 +70,7 @@ public:
      * Pop out the earliest layer in the buffer if the buffer size is exceeded
      * \return A nullptr or the popped gcode_layer
      */
-    GCodePlanner* processBuffer()
+    LayerPlan* processBuffer()
     {
         if (buffer.size() > 0)
         {
@@ -78,7 +78,7 @@ public:
         }
         if (buffer.size() > buffer_size)
         {
-            GCodePlanner* ret = buffer.front();
+            LayerPlan* ret = buffer.front();
             if (CommandSocket::isInstantiated())
             {
                 CommandSocket::getInstance()->flushGcode();
@@ -90,7 +90,7 @@ public:
     }
     
     /*!
-     * Write all remaining layer plans (GCodePlanner) to gcode and empty the buffer.
+     * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
     void flush();
 
