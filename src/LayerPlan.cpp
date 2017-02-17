@@ -775,11 +775,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
-                    gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                    gcode.writeTravel(path.points[point_idx], speed);
                     if (point_idx == path.points.size() - 1)
                     {
                         gcode.setZ(z); // go down to extrusion level when we spiralized before on this layer
-                        gcode.writeMove(gcode.getPositionXY(), speed, path.getExtrusionMM3perMM());
+                        gcode.writeTravel(gcode.getPositionXY(), speed);
                     }
                 }
                 continue;
@@ -808,7 +808,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     )
                     {
                         sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth());
-                        gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
+                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
                         path_idx += 2;
                     }
                     else 
@@ -816,7 +816,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
                             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                            gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                         }
                     }
                 }
@@ -849,7 +849,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(z + layer_thickness * length / totalLength);
                         sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                        gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                     }
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
@@ -865,9 +865,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
                 // or do it anyway when we switch extruder in-place
                 gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-                gcode.writeMove(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder].getSpeed(), 0);
+                gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder].getSpeed());
                 // TODO: is this safe?! wouldn't the head move into the sides then?!
-                gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), configs_storage.travel_config_per_extruder[extruder].getSpeed(), 0);
+                gcode.writeTravel(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), configs_storage.travel_config_per_extruder[extruder].getSpeed());
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
@@ -1009,16 +1009,16 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
         }
         sendLineTo(path.config->type, start, path.getLineWidth());
-        gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
+        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM());
     }
 
     // write coasting path
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
+        gcode.writeTravel(path.points[point_idx], coasting_speed * path.config->getSpeed());
     }
 
     gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));

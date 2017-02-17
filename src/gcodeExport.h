@@ -93,7 +93,7 @@ private:
     std::string new_line;
 
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
-    Point3 currentPosition;
+    Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
@@ -104,9 +104,9 @@ private:
     /*!
      * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
      * 
-     * \see GCodeExport::writeMove(Point, double, double)
+     * \see GCodeExport::writeExtrusion(Point, double, double)
      * 
-     * \note After GCodeExport::writeMove(Point, double, double) has been called currentPosition.z coincides with this value
+     * \note After GCodeExport::writeExtrusion(Point, double, double) has been called currentPosition.z coincides with this value
      */
     int current_layer_z;
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
@@ -250,17 +250,99 @@ public:
     void resetExtrusionValue();
     
     void writeDelay(double timeAmount);
-    
-    void writeMove(Point p, double speed, double extrusion_mm3_per_mm);
-    
-    void writeMove(Point3 p, double speed, double extrusion_mm3_per_mm);
-private:
-    void writeMove(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
+
     /*!
-     * The writeMove when flavor == BFB
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     * 
+     * \param p location to go to
+     * \param speed movement speed
+     */
+    void writeTravel(Point p, double speed);
+
+    /*!
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     * 
+     * \param p location to go to
+     * \param speed movement speed
+     */
+    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm);
+
+    /*!
+     * Go to a X/Y location with the z-hopped Z value
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     * 
+     * \param p location to go to
+     * \param speed movement speed
+     */
+    void writeTravel(Point3 p, double speed);
+
+    /*!
+     * Go to a X/Y location with the extrusion Z
+     * Perform un-z-hop
+     * Perform unretraction
+     * 
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     * 
+     * \param p location to go to
+     * \param speed movement speed
+     */
+    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm);
+private:
+    /*!
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     * 
+     * \param x build plate x
+     * \param y build plate y
+     * \param z build plate z
+     * \param speed movement speed
+     */
+    void writeTravel(int x, int y, int z, double speed);
+
+    /*!
+     * Perform un-z-hop
+     * Perform unretract
+     * Write extrusion move
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     * 
+     * \param x build plate x
+     * \param y build plate y
+     * \param z build plate z
+     * \param speed movement speed
+     * \param extrusion_mm3_per_mm flow
+     */
+    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
+
+    /*!
+     * Write the F, X, Y, Z and E value (if they are not different from the last)
+     * 
+     * convenience function called from writeExtrusion and writeTravel
+     * 
+     * This function also applies the gcode offset by calling \ref GCodeExport::getGcodePos
+     * This function updates the \ref GCodeExport::total_bounding_box
+     * It estimates the time in \ref GCodeExport::estimateCalculator
+     * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
+     */
+    void writeFXYZE(double speed, int x, int y, int z, double e);
+
+    /*!
+     * The writeTravel and/or writeExtrusion when flavor == BFB
+     * \param x build plate x
+     * \param y build plate y
+     * \param z build plate z
+     * \param speed movement speed
+     * \param extrusion_mm3_per_mm flow
      */
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
 public:
+    /*!
+     * Get ready for extrusion moves:
+     * - unretract (G11 or G1 E.)
+     * - prime poop (G1 E)
+     * 
+     * It estimates the time in \ref GCodeExport::estimateCalculator
+     * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
+     */
+    void writeUnretractionAndPrime();
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
     /*!

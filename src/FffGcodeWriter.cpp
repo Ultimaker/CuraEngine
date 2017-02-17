@@ -273,9 +273,9 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
 
     gcode.setZ(max_object_height + 5000);
-    gcode.writeMove(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
+    gcode.writeTravel(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
     planner_state.last_position = Point(storage.model_min.x, storage.model_min.y);
-    gcode.writeMove(planner_state.last_position, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
+    gcode.writeTravel(planner_state.last_position, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
 }
     
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int total_layers)
