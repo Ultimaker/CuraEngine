@@ -218,9 +218,9 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param total_layers The total number of layers.
-     * \return The planning state after planning the layer
+     * \return The layer plans
      */
-    GCodePlanner::PlanningState processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
+    GCodePlanner& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
 
     /*!
      * Whether the extruders need to be primed separately just before they are used.

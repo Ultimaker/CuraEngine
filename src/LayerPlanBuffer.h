@@ -42,7 +42,7 @@ class LayerPlanBuffer : SettingsMessenger
 
     std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
 public:
-    std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
+    std::list<GCodePlanner*> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
@@ -54,29 +54,39 @@ public:
     {
         preheat_config.setConfig(settings);
     }
-    
+
     /*!
-     * Place a new layer plan (GcodePlanner) by constructing it with the given arguments.
-     * Pop back the oldest layer plan is it exceeds the buffer size and write it to gcode.
+     * Push a new layer plan into the buffer
      */
-    template<typename... Args>
-    GCodePlanner& emplace_back(Args&&... constructor_args)
+    void push(GCodePlanner& layer_plan)
+    {
+        buffer.push_back(&layer_plan);
+    }
+
+    /*!
+     * Process all layers in the buffer
+     * This inserts the temperature commands to start warming for a given layer in earlier layers
+     * 
+     * Pop out the earliest layer in the buffer if the buffer size is exceeded
+     * \return A nullptr or the popped gcode_layer
+     */
+    GCodePlanner* processBuffer()
     {
         if (buffer.size() > 0)
         {
             insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
         }
-        buffer.emplace_back(constructor_args...);
         if (buffer.size() > buffer_size)
         {
-            buffer.front().writeGCode(gcode);
+            GCodePlanner* ret = buffer.front();
             if (CommandSocket::isInstantiated())
             {
                 CommandSocket::getInstance()->flushGcode();
             }
             buffer.pop_front();
+            return ret;
         }
-        return buffer.back();
+        return nullptr;
     }
     
     /*!

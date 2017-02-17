@@ -68,7 +68,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     gcode.writeLayerCountComment(total_layers);
 
-
     { // calculate the mesh order for each extruder
         int extruder_count = storage.meshgroup->getExtruderCount();
         mesh_order_per_extruder.reserve(extruder_count);
@@ -89,7 +88,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     for (int layer_nr = process_layer_starting_layer_nr; layer_nr < static_cast<int>(total_layers); layer_nr++)
     {
-        planner_state = processLayer(storage, layer_nr, total_layers);
+        GCodePlanner& gcode_layer = processLayer(storage, layer_nr, total_layers);
+        layer_plan_buffer.push(gcode_layer);
+        planner_state = gcode_layer.getPlanningState();
+        GCodePlanner* to_be_written = layer_plan_buffer.processBuffer();
+        if (to_be_written)
+        {
+            to_be_written->writeGCode(gcode);
+            delete to_be_written;
+        }
     }
     
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
@@ -296,7 +303,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = *new GCodePlanner(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -320,10 +327,17 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
             ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
         }
 
-        planner_state = gcode_layer.getPlanningState();
-
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
+
+        layer_plan_buffer.push(gcode_layer);
+        planner_state = gcode_layer.getPlanningState();
+        GCodePlanner* to_be_written = layer_plan_buffer.processBuffer();
+        if (to_be_written)
+        {
+            to_be_written->writeGCode(gcode);
+            delete to_be_written;
+        }
     }
 
     { // raft interface layer
@@ -331,7 +345,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = *new GCodePlanner(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -348,10 +362,17 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
-        planner_state = gcode_layer.getPlanningState();
-
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_interface_fan_speed"));
+
+        layer_plan_buffer.push(gcode_layer);
+        planner_state = gcode_layer.getPlanningState();
+        GCodePlanner* to_be_written = layer_plan_buffer.processBuffer();
+        if (to_be_written)
+        {
+            to_be_written->writeGCode(gcode);
+            delete to_be_written;
+        }
     }
     
     int layer_height = train->getSettingInMicrons("raft_surface_thickness");
@@ -361,7 +382,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
         const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = *new GCodePlanner(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
@@ -376,14 +397,21 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, &gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 
-        planner_state = gcode_layer.getPlanningState();
-        
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_surface_fan_speed"));
+
+        layer_plan_buffer.push(gcode_layer);
+        planner_state = gcode_layer.getPlanningState();
+        GCodePlanner* to_be_written = layer_plan_buffer.processBuffer();
+        if (to_be_written)
+        {
+            to_be_written->writeGCode(gcode);
+            delete to_be_written;
+        }
     }
 }
 
-GCodePlanner::PlanningState FffGcodeWriter::processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const
+GCodePlanner& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const
 {
     Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, layer_nr) + 1, total_layers);
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
@@ -442,8 +470,7 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(const SliceDataStorage&
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
 
-    LayerPlanBuffer& _layer_plan_buffer = *const_cast<LayerPlanBuffer*>(&layer_plan_buffer); // TODO: resolve const_cast!
-    GCodePlanner& gcode_layer = _layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, planner_state, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
+    GCodePlanner& gcode_layer = *new GCodePlanner(storage, layer_nr, z, layer_thickness, planner_state, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
@@ -532,12 +559,7 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(const SliceDataStorage&
 
     gcode_layer.processFanSpeedAndMinimalLayerTime();
 
-    GCodePlanner::PlanningState planner_state {
-            gcode_layer.getLastPosition()
-            , gcode_layer.getExtruder()
-            , gcode_layer.getIsInsideMesh()
-        };
-    return planner_state;
+    return gcode_layer;
 }
 
 bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer() const

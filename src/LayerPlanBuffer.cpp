@@ -17,7 +17,7 @@ void LayerPlanBuffer::flush()
     }
     while (!buffer.empty())
     {
-        buffer.front().writeGCode(gcode);
+        buffer.front()->writeGCode(gcode);
         if (CommandSocket::isInstantiated())
         {
             CommandSocket::getInstance()->flushGcode();
@@ -324,7 +324,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
+    if (buffer.back()->extruder_plans.size() == 0 || (buffer.back()->extruder_plans.size() == 1 && buffer.back()->extruder_plans[0].paths.size() == 0))
     { // disregard empty layer
         buffer.pop_back();
         return;
@@ -332,9 +332,9 @@ void LayerPlanBuffer::insertTempCommands()
 
     std::vector<ExtruderPlan*> extruder_plans;
     extruder_plans.reserve(buffer.size() * 2);
-    for (GCodePlanner& layer_plan : buffer)
+    for (GCodePlanner* layer_plan : buffer)
     {
-        for (ExtruderPlan& extr_plan : layer_plan.extruder_plans)
+        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
         {
             extruder_plans.push_back(&extr_plan);
         }
@@ -342,7 +342,7 @@ void LayerPlanBuffer::insertTempCommands()
 
 
     // insert commands for all extruder plans on this layer
-    GCodePlanner& layer_plan = buffer.back();
+    GCodePlanner& layer_plan = *buffer.back();
     for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
         unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
