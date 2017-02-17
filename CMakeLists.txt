@@ -66,10 +66,9 @@ set(engine_SRCS # Except main.cpp.
     src/FffProcessor.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
-    src/gcodePlanner.cpp
     src/infill.cpp
-    src/WallsComputation.cpp
     src/layerPart.cpp
+    src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp

@@ -1,6 +1,6 @@
 /** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #include <cstring>
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
 #include "utils/polygonUtils.h"
@@ -402,7 +402,7 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
     else 
     {
-        logWarning("WARNING: line added as polygon! (gcodePlanner)\n");
+        logWarning("WARNING: line added as polygon! (LayerPlan)\n");
     }
 }
 

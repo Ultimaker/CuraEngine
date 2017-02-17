@@ -3,7 +3,7 @@
 
 #include "utils/intpoint.h"
 #include "gcodeExport.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "GCodePathConfig.h"
 
 namespace cura

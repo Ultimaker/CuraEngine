@@ -5,7 +5,7 @@
 #include "ExtruderTrain.h"
 #include "sliceDataStorage.h"
 #include "gcodeExport.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "infill.h"
 #include "PrintFeature.h"
 

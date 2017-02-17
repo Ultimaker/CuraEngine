@@ -1,6 +1,6 @@
 /** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
-#ifndef GCODE_PLANNER_H
-#define GCODE_PLANNER_H
+#ifndef LAYER_PLAN_H
+#define LAYER_PLAN_H
 
 #include <vector>
 
@@ -517,4 +517,4 @@ public:
 
 }//namespace cura
 
-#endif//GCODE_PLANNER_H
+#endif // LAYER_PLAN_H

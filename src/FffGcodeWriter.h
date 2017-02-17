@@ -12,7 +12,7 @@
 #include "infill.h"
 #include "bridge.h"
 #include "pathOrderOptimizer.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "gcodeExport.h"
 #include "commandSocket.h"
 #include "PrimeTower.h"

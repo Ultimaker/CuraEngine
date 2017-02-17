@@ -8,7 +8,7 @@
 #include "commandSocket.h"
 
 #include "gcodeExport.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "MeshGroup.h"
 
 #include "Preheat.h"
