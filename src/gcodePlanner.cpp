@@ -409,15 +409,23 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
     {
         return;
     }
-    PathOrderOptimizer orderOptimizer(lastPosition, z_seam_pos, z_seam_type);
-    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    if (spiralize)
     {
-        orderOptimizer.addPolygon(polygons[poly_idx]);
+        // only interested in the outer perimeter
+        addPolygon(polygons[0], 0, config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
     }
-    orderOptimizer.optimize();
-    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    else
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
+        PathOrderOptimizer orderOptimizer(lastPosition, z_seam_pos, z_seam_type);
+        for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+        {
+            orderOptimizer.addPolygon(polygons[poly_idx]);
+        }
+        orderOptimizer.optimize();
+        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        {
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
+        }
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
