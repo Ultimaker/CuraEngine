@@ -83,6 +83,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+        extruder_attr[extruder_nr].use_temp = train->getSettingBoolean("machine_nozzle_temp_enabled");
 
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
@@ -213,6 +214,11 @@ void GCodeExport::setOutputStream(std::ostream* stream)
 {
     output_stream = stream;
     *output_stream << std::fixed;
+}
+
+bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const
+{
+    return extruder_attr[extruder_nr].use_temp;
 }
 
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
@@ -840,11 +846,13 @@ void GCodeExport::writeFanCommand(double speed)
 
 void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool wait)
 {
-    if (!wait && extruder_attr[extruder].currentTemperature == temperature)
+    if (!extruder_attr[extruder].use_temp)
+    {
         return;
+    }
 
-    if (flavor == EGCodeFlavor::ULTIGCODE)
-    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+    if (!wait && extruder_attr[extruder].currentTemperature == temperature)
+    {
         return;
     }
 
