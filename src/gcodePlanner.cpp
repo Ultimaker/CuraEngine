@@ -372,7 +372,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
-        if (wall_0_wipe_dist > 0)
+        if (wall_0_wipe_dist > 0 && !spiralize)
         { // apply outer wall wipe
             p0 = polygon[start_idx];
             int distance_traversed = 0;
