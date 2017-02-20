@@ -4,7 +4,7 @@
 #include <map> // multimap (ordered map allowing duplicate keys)
 
 #ifdef _OPENMP
-    #include <omp.h>"
+    #include <omp.h>
 #endif
 
 #include "utils/math.h"
