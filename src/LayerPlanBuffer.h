@@ -42,7 +42,13 @@ class LayerPlanBuffer : SettingsMessenger
 
     std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
 public:
-    std::list<LayerPlan*> buffer; //!< The buffer containing several layer plans (LayerPlan) before writing them to gcode.
+    /*!
+     * The buffer containing several layer plans (LayerPlan) before writing them to gcode.
+     * 
+     * The front is the lowest/oldest layer.
+     * The back is the highest/newest layer.
+     */
+    std::list<LayerPlan*> buffer;
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
@@ -72,6 +78,10 @@ public:
      */
     LayerPlan* processBuffer()
     {
+        if (buffer.size() >= 2)
+        {
+            addConnectingTravelMove();
+        }
         if (buffer.size() > 0)
         {
             insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
@@ -95,6 +105,11 @@ public:
     void flush();
 
 private:
+    /*!
+     * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
+     */
+    void addConnectingTravelMove();
+
     /*!
      * Insert the preheat command for @p extruder into @p extruder_plan_before
      * 
