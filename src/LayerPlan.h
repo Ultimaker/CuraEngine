@@ -240,9 +240,11 @@ private:
     int z; 
     
     int layer_thickness;
-    
+
+    std::vector<Point> z_seam_pos_per_extruder; //!< The starting position of a layer for each extruder
+
     Point start_position;
-    Point lastPosition;
+    std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
     bool has_prime_tower_planned;
 
@@ -319,14 +321,15 @@ public:
     PlanningState getPlanningState() const
     {
         PlanningState ret;
-        ret.last_position = lastPosition;
+        assert(last_planned_position && "The last position must have been filled in at the end of the layer!");
+        ret.last_position = *last_planned_position;
         ret.is_inside_mesh_layer_part = was_inside;
         return ret;
     }
 
     Point getLastPosition() const
     {
-        return lastPosition;
+        return last_planned_position.value_or(z_seam_pos_per_extruder[getExtruder()]);
     }
 
     /*!
@@ -384,6 +387,9 @@ public:
     /*!
      * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
      * avoiding obstacles and comb along the boundary of parts.
+     * 
+     * \warning For the first travel move in a layer this will result in a bogous travel move with no combing and no retraction
+     * This travel move needs to be fixed afterwards
      * 
      * \param p The point to travel to
      */

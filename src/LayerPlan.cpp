@@ -88,8 +88,6 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , z(z)
 , layer_thickness(layer_thickness)
-, start_position(last_planned_state.last_position)
-, lastPosition(last_planned_state.last_position)
 , has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
@@ -107,7 +105,15 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
         comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
     else
+    {
         comb = nullptr;
+    }
+    for (unsigned int extruder_nr = 0; extruder_nr < (unsigned int)storage.meshgroup->getExtruderCount(); extruder_nr++)
+    {
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+        z_seam_pos_per_extruder.emplace_back(train->getSettingInMicrons("z_seam_x"), train->getSettingInMicrons("z_seam_y"));
+    }
+    start_position = z_seam_pos_per_extruder[current_extruder];
 }
 
 LayerPlan::~LayerPlan()
@@ -183,7 +189,7 @@ bool LayerPlan::setExtruder(int extruder)
         Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
         if (!end_pos_absolute)
         {
-            end_pos += lastPosition;
+            end_pos += getLastPosition();
         }
         else 
         {
@@ -198,7 +204,7 @@ bool LayerPlan::setExtruder(int extruder)
     }
     else 
     {
-        extruder_plans.emplace_back(extruder, lastPosition, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
+        extruder_plans.emplace_back(extruder, getLastPosition(), layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
         assert((int)extruder_plans.size() <= storage.meshgroup->getExtruderCount() && "Never use the same extruder twice on one layer!");
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
@@ -211,14 +217,14 @@ bool LayerPlan::setExtruder(int extruder)
         Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
         if (!start_pos_absolute)
         {
-            start_pos += lastPosition;
+            start_pos += getLastPosition();
         }
         else 
         {
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
-        lastPosition = start_pos;
+        last_planned_position = start_pos;
     }
     return true;
 }
@@ -227,7 +233,7 @@ void LayerPlan::moveInsideCombBoundary(int distance)
 {
     int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
-    Point p = lastPosition; // copy, since we are going to move p
+    Point p = getLastPosition(); // copy, since we are going to move p
     if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
@@ -256,14 +262,14 @@ GCodePath& LayerPlan::addTravel(Point p)
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
-    if (comb != nullptr && !bypass_combing && lastPosition != no_point)
+    if (comb != nullptr && !bypass_combing && last_planned_position)
     {
         const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
 
         CombPaths combPaths;
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
         bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
-        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
+        combed = comb->calc(*last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -287,7 +293,7 @@ GCodePath& LayerPlan::addTravel(Point p)
                 if (combPaths.size() == 1)
                 {
                     CombPath path = combPaths[0];
-                    if (combPaths.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == lastPosition && path[1] == p)
+                    if (combPaths.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == *last_planned_position && path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }
@@ -307,14 +313,14 @@ GCodePath& LayerPlan::addTravel(Point p)
                 {
                     path->points.push_back(combPoint);
                 }
-                lastPosition = combPath.back();
+                last_planned_position = combPath.back();
             }
         }
     }
     
-    if (!combed) {
+    if (!combed && last_planned_position) {
         // no combing? always retract!
-        if (!shorterThen(lastPosition - p, retraction_config.retraction_min_travel_distance))
+        if (!shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
@@ -339,14 +345,14 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
         path = getLatestPathWithConfig(&configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
     }
     path->points.push_back(p);
-    lastPosition = p;
+    last_planned_position = p;
     return *path;
 }
 
 void LayerPlan::planPrime()
 {
     forceNewPathStart();
-    GCodePath& prime_travel = addTravel_simple(lastPosition + Point(0, 100));
+    GCodePath& prime_travel = addTravel_simple(getLastPosition() + Point(0, 100));
     prime_travel.retract = false;
     prime_travel.perform_prime = true;
     forceNewPathStart();
@@ -355,7 +361,7 @@ void LayerPlan::planPrime()
 void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
-    lastPosition = p;
+    last_planned_position = p;
 }
 
 void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
@@ -412,7 +418,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         return;
     }
-    PathOrderOptimizer orderOptimizer(lastPosition, z_seam_pos, z_seam_type);
+    PathOrderOptimizer orderOptimizer(getLastPosition(), z_seam_pos, z_seam_type);
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
@@ -425,7 +431,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 }
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
 {
-    LineOrderOptimizer orderOptimizer(lastPosition);
+    LineOrderOptimizer orderOptimizer(getLastPosition());
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
