@@ -76,6 +76,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
         }
     }
+    calculateExtruderOrderPerLayer(storage);
 
     int process_layer_starting_layer_nr = 0;
     bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
@@ -487,11 +488,16 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
     }
 
-    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
-    int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    unsigned int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
+    unsigned int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
-    std::vector<int> extruder_order = calculateExtruderOrder(storage, gcode_layer.getExtruder());
-    for (int extruder_nr : extruder_order)
+    assert(extruder_order_per_layer_negative_layers.size() + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
+    const std::vector<unsigned int>& extruder_order =
+        (layer_nr < 0)?
+        extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr]
+        :
+        extruder_order_per_layer[layer_nr];
+    for (unsigned int extruder_nr : extruder_order)
     {
         if (include_helper_parts
             && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_skin_extruder_nr))
@@ -543,6 +549,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
                 }
             }
         }
+        // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
+        // If this is not performed, the next layer might get two extruder switches...
+        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
     }
 
     if (layer_nr == 0 && getExtrudersNeedPrimeDuringFirstLayer())
@@ -645,20 +654,50 @@ void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPl
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &gcode_layer.configs_storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
 }
 
-std::vector<int> FffGcodeWriter::calculateExtruderOrder(const SliceDataStorage& storage, int current_extruder) const
+void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& storage)
 {
-    int extruder_count = storage.getSettingAsCount("machine_extruder_count");
-    std::vector<int> ret;
-    ret.push_back(current_extruder);
-    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    unsigned int last_extruder;
+    // set the initial extruder of this meshgroup
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
+    { // first meshgroup
+        last_extruder = getStartExtruder(storage);
+    }
+    else
     {
-        if (extruder_nr == current_extruder)
+        last_extruder = gcode.getExtruderNr();
+    }
+    for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < 0; layer_nr++)
+    {
+        extruder_order_per_layer_negative_layers.push_back(calculateExtruderOrder(storage, last_extruder, layer_nr));
+        last_extruder = extruder_order_per_layer_negative_layers.back().back();
+    }
+    for (unsigned int layer_nr = 0; layer_nr < storage.print_layer_count; layer_nr++)
+    {
+        extruder_order_per_layer.push_back(calculateExtruderOrder(storage, last_extruder, layer_nr));
+        last_extruder = extruder_order_per_layer.back().back();
+    }
+}
+
+std::vector<unsigned int> FffGcodeWriter::calculateExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
+{
+    unsigned int extruder_count = storage.getSettingAsCount("machine_extruder_count");
+    assert(static_cast<int>(extruder_count) > 0);
+    std::vector<unsigned int> ret;
+    ret.push_back(start_extruder);
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed(layer_nr);
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        if (extruder_nr == start_extruder)
         { // skip the current extruder, it's the one we started out planning
+            continue;
+        }
+        if (!extruder_is_used[extruder_nr])
+        {
             continue;
         }
         ret.push_back(extruder_nr);
     }
-    assert(ret.size() == (size_t)extruder_count && "All extruders must be planned, even if later it appears one wasn't used.");
+    assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");
     return ret;
 }
 
