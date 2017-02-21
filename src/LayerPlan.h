@@ -236,6 +236,12 @@ private:
 
     bool has_prime_tower_planned;
 
+    /*!
+     * Whether the skirt or brim polygons have been processed into planned paths
+     * for each extruder train.
+     */
+    bool skirt_brim_is_processed[MAX_EXTRUDERS];
+
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
     int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
@@ -327,6 +333,16 @@ public:
     void setPrimeTowerIsPlanned()
     {
         has_prime_tower_planned = true;
+    }
+
+    bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const
+    {
+        return skirt_brim_is_processed[extruder_nr];
+    }
+
+    void setSkirtBrimIsPlanned(unsigned int extruder_nr)
+    {
+        skirt_brim_is_processed[extruder_nr] = true;
     }
 
     /*!

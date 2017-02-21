@@ -33,11 +33,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetraction(storage);
 
-    for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
-    { //Skirt and brim.
-        skirt_brim_is_processed[extruder] = false;
-    }
-
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
     
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
@@ -581,12 +576,12 @@ void FffGcodeWriter::ensureAllExtrudersArePrimed(const SliceDataStorage& storage
 
 void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr) const
 {
-    if (skirt_brim_is_processed[extruder_nr])
+    if (gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
     {
         return;
     }
     const Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
-    const_cast<bool&>(skirt_brim_is_processed[extruder_nr]) = true; // TODO: resolve const cast!
+    gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
     if (skirt_brim.size() == 0)
     {
         return;
@@ -1373,7 +1368,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         }
 
         assert(extruder_prime_is_planned[extruder_nr] && "extruders should be primed before they are used!");
-        if (layer_nr == 0 && !skirt_brim_is_processed[extruder_nr])
+        if (layer_nr == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }

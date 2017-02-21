@@ -60,12 +60,6 @@ private:
     std::ofstream output_file;
 
     /*!
-     * Whether the skirt or brim polygons have been processed into planned paths
-     * for each extruder train.
-     */
-    bool skirt_brim_is_processed[MAX_EXTRUDERS];
-
-    /*!
      * For each raft/filler layer, the extruders to be used in that layer in the order in which they are going to be used.
      * The first number is the first raft layer. Indexing is shifted compared to normal negative layer numbers for raft/filler layers.
      */
@@ -239,7 +233,10 @@ private:
     void ensureAllExtrudersArePrimed(const SliceDataStorage& storage, LayerPlan& layer_plan, const int layer_nr) const;
 
     /*!
-     * Add the skirt or the brim to the layer plan \p gcodeLayer.
+     * Add the skirt or the brim to the layer plan \p gcodeLayer if it hasn't already been added yet.
+     * 
+     * This function should be called for only one layer;
+     * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      * 
      * \param Storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the g-code of the layer.
@@ -247,7 +244,7 @@ private:
      * brim.
      */
     void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
-    
+
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
      * 
