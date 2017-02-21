@@ -216,17 +216,6 @@ class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
     friend class LayerPlanTest;
-public:
-    /*!
-     * The state which is passed along between layer plans.
-     * This is what a \ref LayerPlan delivers to further computation in \ref FffGcodeWriter
-     * This is the state which is currently planned, not which is written to gcode.
-     */
-    struct PlanningState
-    {
-        Point last_position; //!< The position of the head before planning the next layer
-        bool is_inside_mesh_layer_part; //!< Whether the last position was inside a layer part (used in combing)
-    };
 private:
     const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
@@ -241,9 +230,8 @@ private:
     
     int layer_thickness;
 
-    std::vector<Point> z_seam_pos_per_extruder; //!< The starting position of a layer for each extruder
+    std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
 
-    Point start_position;
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
     bool has_prime_tower_planned;
@@ -295,7 +283,7 @@ public:
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~LayerPlan();
 
     void overrideFanSpeeds(double speed);
@@ -318,18 +306,9 @@ public:
         return layer_nr;
     }
 
-    PlanningState getPlanningState() const
-    {
-        PlanningState ret;
-        assert(last_planned_position && "The last position must have been filled in at the end of the layer!");
-        ret.last_position = *last_planned_position;
-        ret.is_inside_mesh_layer_part = was_inside;
-        return ret;
-    }
-
     Point getLastPosition() const
     {
-        return last_planned_position.value_or(z_seam_pos_per_extruder[getExtruder()]);
+        return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
     }
 
     /*!

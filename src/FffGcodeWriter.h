@@ -82,18 +82,12 @@ private:
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
-
-    LayerPlan::PlanningState planner_state;
-
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
     , max_object_height(0)
     , layer_plan_buffer(this, gcode)
     , extruder_prime_is_planned {} // initialize all values in array with [false]
-    , planner_state{ no_point
-                    , false
-                    }
     {
     }
 

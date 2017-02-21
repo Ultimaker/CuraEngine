@@ -81,7 +81,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
         layer_plan_buffer.push(gcode_layer);
-        planner_state = gcode_layer.getPlanningState();
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
         if (to_be_written)
         {
@@ -265,8 +264,8 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 
     gcode.setZ(max_object_height + 5000);
     gcode.writeTravel(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
-    planner_state.last_position = Point(storage.model_min.x, storage.model_min.y);
-    gcode.writeTravel(planner_state.last_position, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
+    Point start_pos(storage.model_min.x, storage.model_min.y);
+    gcode.writeTravel(start_pos, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
 }
     
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int total_layers)
@@ -294,7 +293,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -322,7 +321,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
 
         layer_plan_buffer.push(gcode_layer);
-        planner_state = gcode_layer.getPlanningState();
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
         if (to_be_written)
         {
@@ -336,7 +334,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -357,7 +355,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_interface_fan_speed"));
 
         layer_plan_buffer.push(gcode_layer);
-        planner_state = gcode_layer.getPlanningState();
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
         if (to_be_written)
         {
@@ -373,7 +370,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
         const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
@@ -392,7 +389,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_surface_fan_speed"));
 
         layer_plan_buffer.push(gcode_layer);
-        planner_state = gcode_layer.getPlanningState();
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
         if (to_be_written)
         {
@@ -467,7 +463,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         :
         extruder_order_per_layer[layer_nr];
 
-    LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, planner_state, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
+    LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
@@ -489,6 +485,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
 
     for (unsigned int extruder_nr : extruder_order)
     {
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
         if (include_helper_parts
             && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_skin_extruder_nr))
         {
@@ -500,11 +497,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
             const std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
             unsigned int mesh_order_idx_starting_mesh = 0;
             { // calculate mesh_order_idx_starting_mesh
-                Point layer_start_position = planner_state.last_position;
-                if (storage.getSettingBoolean("start_layers_at_same_position"))
-                {
-                    layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
-                }
+                Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
                 coord_t best_dist2 = std::numeric_limits<coord_t>::max();
                 for (unsigned int mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); mesh_order_idx++)
                 {
@@ -804,16 +797,14 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
             return;
         }
     }
+    unsigned int extruder_nr = mesh->getSettingAsIndex("extruder_nr");
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
-    Point layer_start_position = planner_state.last_position;
-    if (storage.getSettingBoolean("start_layers_at_same_position"))
-    {
-        layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
-    }
+    Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_pos, z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {

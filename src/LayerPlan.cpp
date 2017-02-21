@@ -81,7 +81,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , layer_nr(layer_nr)
@@ -95,10 +95,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     int current_extruder = start_extruder;
-    extruder_plans.reserve(storage.meshgroup->getExtruderCount());
-    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
     comb = nullptr;
-    was_inside = last_planned_state.is_inside_mesh_layer_part;
+    was_inside = true; // not used, because the first travel move is boguous
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
@@ -111,9 +109,11 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     for (unsigned int extruder_nr = 0; extruder_nr < (unsigned int)storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-        z_seam_pos_per_extruder.emplace_back(train->getSettingInMicrons("z_seam_x"), train->getSettingInMicrons("z_seam_y"));
+        layer_start_pos_per_extruder.emplace_back(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     }
-    start_position = z_seam_pos_per_extruder[current_extruder];
+    Point start_position = layer_start_pos_per_extruder[current_extruder];
+    extruder_plans.reserve(storage.meshgroup->getExtruderCount());
+    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
 }
 
 LayerPlan::~LayerPlan()
