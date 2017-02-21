@@ -225,7 +225,6 @@ public:
     struct PlanningState
     {
         Point last_position; //!< The position of the head before planning the next layer
-        int current_extruder; //!< The extruder train in use before planning the next layer
         bool is_inside_mesh_layer_part; //!< Whether the last position was inside a layer part (used in combing)
     };
 private:
@@ -287,13 +286,14 @@ public:
 
     /*!
      * 
+     * \param start_extruder The extruder with which this layer plan starts
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~LayerPlan();
 
     void overrideFanSpeeds(double speed);
@@ -320,7 +320,6 @@ public:
     {
         PlanningState ret;
         ret.last_position = lastPosition;
-        ret.current_extruder = getExtruder();
         ret.is_inside_mesh_layer_part = was_inside;
         return ret;
     }

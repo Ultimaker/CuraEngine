@@ -81,7 +81,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , layer_nr(layer_nr)
@@ -91,12 +91,12 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , start_position(last_planned_state.last_position)
 , lastPosition(last_planned_state.last_position)
 , has_prime_tower_planned(false)
-, last_extruder_previous_layer(last_planned_state.current_extruder)
-, last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(last_planned_state.current_extruder))
+, last_extruder_previous_layer(start_extruder)
+, last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
-    int current_extruder = last_planned_state.current_extruder;
+    int current_extruder = start_extruder;
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
     comb = nullptr;

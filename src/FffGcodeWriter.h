@@ -92,7 +92,6 @@ public:
     , layer_plan_buffer(this, gcode)
     , extruder_prime_is_planned {} // initialize all values in array with [false]
     , planner_state{ no_point
-                    , 0 // changed somewhere early in FffGcodeWriter::writeGCode
                     , false
                     }
     {

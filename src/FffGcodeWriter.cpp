@@ -22,16 +22,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.setInitialTemps(*storage.meshgroup, getStartExtruder(storage));
     }
 
-    // set the initial extruder of this meshgroup
-    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
-    { // first meshgroup
-        planner_state.current_extruder = getStartExtruder(storage);
-    }
-    else
-    {
-        planner_state.current_extruder = gcode.getExtruderNr();
-    }
-
     if (CommandSocket::isInstantiated())
     {
         CommandSocket::getInstance()->beginGCode();
@@ -304,7 +294,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -346,7 +336,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -383,7 +373,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
         const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, planner_state, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
@@ -470,8 +460,14 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
+    assert(extruder_order_per_layer_negative_layers.size() + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
+    const std::vector<unsigned int>& extruder_order =
+        (layer_nr < 0)?
+        extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr]
+        :
+        extruder_order_per_layer[layer_nr];
 
-    LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, planner_state, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
+    LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, planner_state, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
@@ -491,12 +487,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     unsigned int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     unsigned int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
-    assert(extruder_order_per_layer_negative_layers.size() + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
-    const std::vector<unsigned int>& extruder_order =
-        (layer_nr < 0)?
-        extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr]
-        :
-        extruder_order_per_layer[layer_nr];
     for (unsigned int extruder_nr : extruder_order)
     {
         if (include_helper_parts
