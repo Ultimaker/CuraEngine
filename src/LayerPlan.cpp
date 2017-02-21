@@ -254,10 +254,10 @@ void LayerPlan::moveInsideCombBoundary(int distance)
 
 GCodePath& LayerPlan::addTravel(Point p)
 {
-    GCodePath* path = nullptr;
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
-    
+    GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
+
     bool combed = false;
 
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
@@ -297,8 +297,8 @@ GCodePath& LayerPlan::addTravel(Point p)
                 }
                 if (combPaths.size() == 1)
                 {
-                    CombPath path = combPaths[0];
-                    if (combPaths.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == *last_planned_position && path[1] == p)
+                    CombPath comb_path = combPaths[0];
+                    if (combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }
@@ -311,7 +311,6 @@ GCodePath& LayerPlan::addTravel(Point p)
                 {
                     continue;
                 }
-                path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
                 path->retract = retract;
                 // don't perform a z-hop
                 for (Point& combPoint : combPath)
@@ -332,7 +331,6 @@ GCodePath& LayerPlan::addTravel(Point p)
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
             }
-            path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
             path->retract = true;
             path->perform_z_hop = perform_z_hops;
         }
