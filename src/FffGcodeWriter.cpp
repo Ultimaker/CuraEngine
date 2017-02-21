@@ -1,5 +1,6 @@
 
 #include <list>
+#include <limits> // numeric_limits
 
 #include "utils/math.h"
 #include "FffGcodeWriter.h"
@@ -241,7 +242,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
         gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
-        extruder_prime_is_planned[start_extruder_nr] = true;
+        extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min(); // set to most negative number so that layer processing never primes this extruder any more.
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
     }
@@ -306,11 +307,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         Infill infill_comp(EFillMethod::LINES, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
-
-        if (getExtrudersNeedPrimeDuringFirstLayer())
-        {
-            ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
-        }
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
@@ -532,11 +528,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
     }
 
-    if (layer_nr == 0 && getExtrudersNeedPrimeDuringFirstLayer())
-    {
-        ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
-    }
-
     if (include_helper_parts)
     { // add prime tower if it hasn't already been added
         // print the prime tower if it hasn't been printed yet
@@ -557,20 +548,6 @@ bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer() const
             return true;
         default:
             return false; // TODO: change this once priming for other firmware types is implemented
-    }
-}
-
-void FffGcodeWriter::ensureAllExtrudersArePrimed(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr) const
-{
-    // Add prime for all extruders which haven't primed yet.
-
-    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
-    {
-        if (extruder_is_used[extruder_nr] && !extruder_prime_is_planned[extruder_nr])
-        { // prime before the current gcode layer plan is written to gcode
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-        }
     }
 }
 
@@ -644,15 +621,12 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     {
         last_extruder = gcode.getExtruderNr();
     }
-    for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < 0; layer_nr++)
+    for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<int>(storage.print_layer_count); layer_nr++)
     {
-        extruder_order_per_layer_negative_layers.push_back(calculateExtruderOrder(storage, last_extruder, layer_nr));
-        last_extruder = extruder_order_per_layer_negative_layers.back().back();
-    }
-    for (unsigned int layer_nr = 0; layer_nr < storage.print_layer_count; layer_nr++)
-    {
-        extruder_order_per_layer.push_back(calculateExtruderOrder(storage, last_extruder, layer_nr));
-        last_extruder = extruder_order_per_layer.back().back();
+        std::vector<std::vector<unsigned int>>& extruder_order_per_layer_here = (layer_nr < 0)? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
+        extruder_order_per_layer_here.push_back(calculateExtruderOrder(storage, last_extruder, layer_nr));
+        last_extruder = extruder_order_per_layer_here.back().back();
+        extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
     }
 }
 
@@ -663,6 +637,18 @@ std::vector<unsigned int> FffGcodeWriter::calculateExtruderOrder(const SliceData
     std::vector<unsigned int> ret;
     ret.push_back(start_extruder);
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed(layer_nr);
+    if (getExtrudersNeedPrimeDuringFirstLayer())
+    {
+        if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
+            || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0)
+            )
+        {
+            for (unsigned int used_idx = 0; used_idx < extruder_is_used.size(); used_idx++)
+            {
+                extruder_is_used[used_idx] = true;
+            }
+        }
+    }
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if (extruder_nr == start_extruder)
@@ -1353,7 +1339,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     
     if (extruder_changed)
     {
-        if (!const_cast<bool&>(extruder_prime_is_planned[extruder_nr])) // TODO: const cast!
+        if (extruder_prime_layer_nr[extruder_nr] == layer_nr)
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
@@ -1363,11 +1349,8 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
 
             gcode_layer.planPrime();
-
-            const_cast<bool&>(extruder_prime_is_planned[extruder_nr]) = true; // TODO: const cast!
         }
 
-        assert(extruder_prime_is_planned[extruder_nr] && "extruders should be primed before they are used!");
         if (layer_nr == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);

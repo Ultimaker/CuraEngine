@@ -70,9 +70,14 @@ private:
     std::vector<std::vector<unsigned int>> mesh_order_per_extruder; //!< For each extruder, the cyclic order of the meshes (the first element is not the starting element per se)
 
     /*!
-     * For each extruder whether priming has already been planned
+     * For each extruder on which layer the prime will be planned,
+     * or a large negative number if it's already planned outside of \ref FffGcodeWriter::processLayer
+     * 
+     * Depending on whether we need to prime on the first layer, or anywhere in the print,
+     * the layer numbers are all zero (or less in case of raft)
+     * or they are the first layer at which the extruder is needed
      */
-    bool extruder_prime_is_planned[MAX_EXTRUDERS];
+    int extruder_prime_layer_nr[MAX_EXTRUDERS];
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
@@ -81,8 +86,11 @@ public:
     : SettingsMessenger(settings_)
     , max_object_height(0)
     , layer_plan_buffer(this, gcode)
-    , extruder_prime_is_planned {} // initialize all values in array with [false]
     {
+        for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+        { // initialize all as max layer_nr, so that they get updated to the lowest layer on which they are used.
+            extruder_prime_layer_nr[extruder_nr] = std::numeric_limits<int>::max();
+        }
     }
 
     /*!
@@ -272,6 +280,8 @@ private:
      * 
      * \note At the planning stage we only have information on areas, not how those are filled.
      * If an area is too small to be filled with anything it will still get specified as being used with the extruder for that area.
+     * 
+     * Computes \ref FffGcodeWriter::extruder_prime_layer_nr, \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
      * 
      * \param[in] storage where the slice data is stored.
      */
