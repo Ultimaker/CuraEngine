@@ -67,7 +67,7 @@ private:
 
     std::vector<std::vector<unsigned int>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
 
-    std::vector<std::vector<unsigned int>> mesh_order_per_extruder; //!< For each extruder, the cyclic order of the meshes (the first element is not the starting element per se)
+    std::vector<std::vector<unsigned int>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
     /*!
      * For each extruder on which layer the prime will be planned,
@@ -305,7 +305,7 @@ private:
      * 
      * \param[in] storage where the slice data is stored.
      * \param extruder_nr The extruder for which to determine the order
-     * \return A vector of pairs of extruder numbers coupled with the mesh indices ordered on print order for that extruder.
+     * \return A vector of mesh indices ordered on print order for that extruder.
      */
     std::vector<unsigned int> calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const;
 

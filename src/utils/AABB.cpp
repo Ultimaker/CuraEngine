@@ -30,6 +30,11 @@ AABB::AABB(ConstPolygonRef poly)
     calculate(poly);
 }
 
+Point AABB::getMiddle() const
+{
+    return (min + max) / 2;
+}
+
 void AABB::calculate(const Polygons& polys)
 {
     min = Point(POINT_MAX, POINT_MAX);

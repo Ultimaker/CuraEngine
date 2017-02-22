@@ -26,6 +26,11 @@ public:
     void calculate(ConstPolygonRef poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
 
     /*!
+     * Get the middle of the bounding box
+     */
+    Point getMiddle() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      * 
      * In the boundary case false is returned.

@@ -476,7 +476,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
 
     for (unsigned int extruder_nr : extruder_order)
     {
-        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
         if (include_helper_parts
             && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_skin_extruder_nr))
         {
@@ -486,31 +485,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         if (layer_nr >= 0)
         {
             const std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
-            unsigned int mesh_order_idx_starting_mesh = 0;
-            { // calculate mesh_order_idx_starting_mesh
-                Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
-                coord_t best_dist2 = std::numeric_limits<coord_t>::max();
-                for (unsigned int mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); mesh_order_idx++)
-                {
-                    const unsigned int mesh_idx = mesh_order[mesh_order_idx];
-                    const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                    for (const SliceLayerPart& part : mesh.layers[layer_nr].parts)
-                    {
-                        const Point middle = (part.boundaryBox.min + part.boundaryBox.max) / 2;
-                        const coord_t dist2 = vSize2(middle - layer_start_position);
-                        if (dist2 < best_dist2)
-                        {
-                            best_dist2 = dist2;
-                            mesh_order_idx_starting_mesh = mesh_order_idx;
-                        }
-                    }
-                }
-            }
-
-            for (unsigned int mesh_iterator_idx = 0; mesh_iterator_idx < mesh_order.size(); mesh_iterator_idx++)
+            for (unsigned int mesh_idx : mesh_order)
             {
-                unsigned int mesh_order_idx = (mesh_iterator_idx + mesh_order_idx_starting_mesh) % mesh_order.size();
-                unsigned int mesh_idx = mesh_order[mesh_order_idx];
                 const SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
                 const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
@@ -680,12 +656,37 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
         }
     }
     std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
+    std::list<unsigned int>::iterator starting_mesh_it = mesh_indices_order.end();
+    { // calculate starting_mesh_it
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+        const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
+        coord_t best_dist2 = std::numeric_limits<coord_t>::max();
+        for (std::list<unsigned int>::iterator mesh_it = mesh_indices_order.begin(); mesh_it != mesh_indices_order.end(); ++mesh_it)
+        {
+            const unsigned int mesh_idx = *mesh_it;
+            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            const Point3 middle3 = mesh.getAABB().getMiddle();
+            const Point middle(middle3.x, middle3.y);
+            const coord_t dist2 = vSize2(middle - layer_start_position);
+            if (dist2 < best_dist2)
+            {
+                best_dist2 = dist2;
+                starting_mesh_it = mesh_it;
+            }
+        }
+    }
     std::vector<unsigned int> ret;
-    ret.reserve(mesh_indices_order.size());
-    for (unsigned int mesh_order_idx : mesh_indices_order)
+    ret.resize(mesh_indices_order.size());
+    for (unsigned int mesh_order_nr = 0; mesh_order_nr < ret.size(); mesh_order_nr++)
     {
+        if (starting_mesh_it == mesh_indices_order.end())
+        {
+            starting_mesh_it = mesh_indices_order.begin();
+        }
+        unsigned int mesh_order_idx = *starting_mesh_it;
         const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
-        ret.push_back(mesh_idx);
+        ret[mesh_order_nr] = mesh_idx;
+        ++starting_mesh_it;
     }
     return ret;
 }
