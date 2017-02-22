@@ -1,21 +1,21 @@
 //Copyright (c) 2015 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef GCODEPLANNERTEST_H
-#define GCODEPLANNERTEST_H
+#ifndef LAYER_PLAN_TEST_H
+#define LAYER_PLAN_TEST_H
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "../src/gcodePlanner.h"
+#include "../src/LayerPlan.h"
 #include "../src/sliceDataStorage.h"
 
 namespace cura
 {
 
-class GCodePlannerTest : public CppUnit::TestFixture
+class LayerPlanTest : public CppUnit::TestFixture
 {
-    CPPUNIT_TEST_SUITE(GCodePlannerTest);
+    CPPUNIT_TEST_SUITE(LayerPlanTest);
     CPPUNIT_TEST(computeNaiveTimeEstimatesRetractionTest);
     CPPUNIT_TEST_SUITE_END();
     
@@ -23,7 +23,7 @@ public:
     /*!
      * \brief Sets up the test suite to prepare for testing.
      * 
-     * This creates an instance of <em>gcodePlanner</em>, ready for filling with
+     * This creates an instance of <em>LayerPlan</em>, ready for filling with
      * data.
      */
     void setUp();
@@ -31,7 +31,7 @@ public:
     /*!
      * \brief Tears down the test suite when testing is done.
      * 
-     * This destroys the <em>gcodePlanner</em> instance.
+     * This destroys the <em>LayerPlan</em> instance.
      */
     void tearDown();
     
@@ -39,19 +39,20 @@ public:
     void computeNaiveTimeEstimatesRetractionTest();
     
 private:
+    GCodePathConfig* line_config;
     /*!
-     * \brief The instance of gcodePlanner that can be used for testing.
+     * \brief The instance of LayerPlan that can be used for testing.
      * 
      * This instance is re-created for each test. Between tests it will be
      * <em>nullptr</em>.
      */
-    GCodePlanner* gCodePlanner;
+    LayerPlan* layer_plan;
     
     /*!
-     * \brief Slice data storage to construct the <em>GCodePlanner</em> with.
+     * \brief Slice data storage to construct the <em>LayerPlan</em> with.
      * 
      * It also holds configurations for the paths to add to the
-     * <em>GCodePlanner</em>.
+     * <em>LayerPlan</em>.
      */
     SliceDataStorage* storage;
     
@@ -72,5 +73,5 @@ private:
 
 }
 
-#endif // GCODEPLANNERTEST_H
+#endif // LAYER_PLAN_TEST_H
 
