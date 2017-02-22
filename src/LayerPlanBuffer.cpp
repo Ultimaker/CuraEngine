@@ -51,6 +51,22 @@ void LayerPlanBuffer::addConnectingTravelMove()
     prev_layer->addTravel(destination);
 }
 
+void LayerPlanBuffer::processFanSpeedLayerTime()
+{
+    auto newest_layer_it = --buffer.end();
+    Point starting_position(0, 0);
+    if (buffer.size() >= 2)
+    {
+        auto prev_layer_it = newest_layer_it;
+        prev_layer_it--;
+        const LayerPlan* prev_layer = *prev_layer_it;
+        starting_position = prev_layer->getLastPosition();
+    }
+    LayerPlan* newest_layer = *newest_layer_it;
+    newest_layer->processFanSpeedAndMinimalLayerTime(starting_position);
+}
+
+
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
 {
     double acc_time = 0.0;

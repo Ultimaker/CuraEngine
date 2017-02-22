@@ -158,8 +158,13 @@ public:
      */
     double getFanSpeed();
 protected:
-
-    Point start_position; //!< The position the print head was at at the start of this extruder plan
+    /*!
+     * The position the print head was at at the start of this extruder plan
+     * 
+     * \warning This position is only correct after intitialization for all but the first extruder plan in a layer.
+     * This is because when we plan a layer we don't know where the previous layer ended.
+     */
+    Point start_position;
 
     int layer_nr; //!< The layer number at which we are currently printing.
     bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
@@ -503,8 +508,10 @@ public:
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
+     * 
+     * \param starting_position The position of the print head when the first extruder plan of this layer starts
      */
-    void processFanSpeedAndMinimalLayerTime();
+    void processFanSpeedAndMinimalLayerTime(Point starting_position);
     
     /*!
      * Add a travel move to the layer plan to move inside the current layer part by a given distance away from the outline.

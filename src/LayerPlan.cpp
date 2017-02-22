@@ -634,8 +634,9 @@ TimeMaterialEstimates LayerPlan::computeNaiveTimeEstimates()
     return ret;
 }
 
-void LayerPlan::processFanSpeedAndMinimalLayerTime()
+void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 {
+    extruder_plans[0].start_position = starting_position;
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];

@@ -316,8 +316,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
-        gcode_layer.processFanSpeedAndMinimalLayerTime();
-
         layer_plan_buffer.push(gcode_layer);
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
         if (to_be_written)
@@ -358,8 +356,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
-        gcode_layer.processFanSpeedAndMinimalLayerTime();
-
         layer_plan_buffer.push(gcode_layer);
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
         if (to_be_written)
@@ -399,8 +395,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         Infill infill_comp(EFillMethod::ZIG_ZAG, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, &gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
-
-        gcode_layer.processFanSpeedAndMinimalLayerTime();
 
         layer_plan_buffer.push(gcode_layer);
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
@@ -533,8 +527,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
         addPrimeTower(storage, gcode_layer, layer_nr, prev_extruder);
     }
-
-    gcode_layer.processFanSpeedAndMinimalLayerTime();
 
     return gcode_layer;
 }

@@ -78,6 +78,7 @@ public:
      */
     LayerPlan* processBuffer()
     {
+        processFanSpeedLayerTime();
         if (buffer.size() >= 2)
         {
             addConnectingTravelMove();
@@ -109,6 +110,11 @@ private:
      * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
      */
     void addConnectingTravelMove();
+
+    /*!
+     * Apply fan speed and correct extrusion flow for minimal layer time settings.
+     */
+    void processFanSpeedLayerTime();
 
     /*!
      * Insert the preheat command for @p extruder into @p extruder_plan_before
