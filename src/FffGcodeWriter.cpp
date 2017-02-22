@@ -284,12 +284,20 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
     
     { // raft base layer
-        
         int layer_nr = initial_raft_layer_nr;
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+
+        std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_base = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
+        for (FanSpeedLayerTimeSettings& fsml : fan_speed_layer_time_settings_per_extruder_raft_base)
+        {
+            double regular_fan_speed = train->getSettingInPercentage("raft_base_fan_speed");
+            fsml.cool_fan_speed_min = regular_fan_speed;
+            fsml.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
+        }
+
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -309,7 +317,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
-        gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
 
         layer_plan_buffer.push(gcode_layer);
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
@@ -325,7 +332,16 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+
+        std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_interface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
+        for (FanSpeedLayerTimeSettings& fsml : fan_speed_layer_time_settings_per_extruder_raft_interface)
+        {
+            double regular_fan_speed = train->getSettingInPercentage("raft_interface_fan_speed");
+            fsml.cool_fan_speed_min = regular_fan_speed;
+            fsml.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
+        }
+
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -343,7 +359,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
-        gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_interface_fan_speed"));
 
         layer_plan_buffer.push(gcode_layer);
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
@@ -361,7 +376,16 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
         const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+
+        std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_surface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
+        for (FanSpeedLayerTimeSettings& fsml : fan_speed_layer_time_settings_per_extruder_raft_surface)
+        {
+            double regular_fan_speed = train->getSettingInPercentage("raft_surface_fan_speed");
+            fsml.cool_fan_speed_min = regular_fan_speed;
+            fsml.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
+        }
+
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
@@ -377,7 +401,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         gcode_layer.addLinesByOptimizer(raft_lines, &gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
-        gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_surface_fan_speed"));
 
         layer_plan_buffer.push(gcode_layer);
         LayerPlan* to_be_written = layer_plan_buffer.processBuffer();

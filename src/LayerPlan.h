@@ -252,7 +252,7 @@ private:
     Comb* comb;
 
 
-    const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder;
+    const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
     
 private:
     /*!
