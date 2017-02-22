@@ -8,6 +8,7 @@
 #include "progress/Progress.h"
 #include "wallOverlap.h"
 #include "utils/orderOptimizer.h"
+#include "GcodeLayerThreader.h"
 
 namespace cura
 {
