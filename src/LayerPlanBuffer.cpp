@@ -34,8 +34,7 @@ void LayerPlanBuffer::addConnectingTravelMove()
     Point destination;
     {
         const LayerPlan* newest_layer = *newest_layer_it;
-        LayerPlan* prev_layer = *prev_layer_it;
-        assert(newest_layer->extruder_plans.front().extruder == prev_layer->extruder_plans.back().extruder);
+        assert(newest_layer->extruder_plans.front().extruder == (*prev_layer_it)->extruder_plans.back().extruder);
         const ExtruderPlan& extruder_plan_above = newest_layer->extruder_plans.front();
         if (extruder_plan_above.paths.size() == 0)
         {
