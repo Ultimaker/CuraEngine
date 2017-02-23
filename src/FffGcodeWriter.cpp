@@ -998,6 +998,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
+        static Polygons last_outer_wall;
         bool spiralize = false;
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
@@ -1005,11 +1006,15 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 spiralize = true;
             }
+            else
+            {
+                last_outer_wall.clear();
+            }
             if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist, spiralize);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
             }
         }
         int processed_inset_number = -1;
@@ -1022,16 +1027,31 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             }
             if (processed_inset_number == 0)
             {
-                if (!compensate_overlap_0)
+                if (spiralize)
+                {
+                    // this code assumes that processInsets() is called in order of increasing layer_nr as it needs the outer wall polygons
+                    // for both the current and last layers of the part being spiralized.
+                    Polygons outer_wall = part.insets[0];
+                    if (!last_outer_wall.size())
+                    {
+                        last_outer_wall.add(outer_wall[0]);
+                    }
+                    // output a wall slice that is interpolated between the last and current walls
+                    gcode_layer.spiralizeWallSlice(&mesh->inset0_config, outer_wall[0], last_outer_wall[0]);
+                    // the current wall becomes the last wall for the next layer
+                    last_outer_wall.clear();
+                    last_outer_wall.add(outer_wall[0]);
+                }
+                else if (!compensate_overlap_0)
                 {
                     WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"));
                 }
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"));
                 }
             }
             else
