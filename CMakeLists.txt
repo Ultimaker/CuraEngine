@@ -49,6 +49,7 @@ if (ENABLE_OPENMP)
     FIND_PACKAGE( OpenMP )
     if( OPENMP_FOUND )
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+        add_definitions(-DENABLE_OPENMP)
     endif()
 endif()
 

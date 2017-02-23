@@ -1,3 +1,4 @@
+/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef GCODE_LAYER_THREADER_H
 #define GCODE_LAYER_THREADER_H
 
@@ -10,6 +11,8 @@
 #include "utils/optional.h"
 #include "utils/Lock.h"
 
+namespace cura
+{
 
 /*!
  * Producer Consumer construct for when:
@@ -204,5 +207,7 @@ private:
     int active_task_count = 0; //!< Number of items active in this system.
 
 };
+
+} // namespace cura
 
 #endif // GCODE_LAYER_THREADER_H
