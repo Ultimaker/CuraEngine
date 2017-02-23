@@ -63,13 +63,13 @@ public:
     {
         #pragma omp parallel
         {
-#ifdef ENABLE_OPENMP
+#ifdef _OPENMP
             #pragma omp master
             #pragma omp critical
             {
                 log("Multithreading GcodeLayerThreader with %i threads.\n", omp_get_num_threads());
             }
-#endif // ENABLE_OPENMP
+#endif // _OPENMP
             while (true)
             {
                 if (finished())
