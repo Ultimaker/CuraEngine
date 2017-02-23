@@ -74,24 +74,43 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         process_layer_starting_layer_nr = -Raft::getFillerLayerCount(storage);
     }
 
-    for (int layer_nr = process_layer_starting_layer_nr; layer_nr < static_cast<int>(total_layers); layer_nr++)
-    {
-        LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
-        layer_plan_buffer.push(gcode_layer);
-        LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
-        if (to_be_written)
+
+    const std::function<LayerPlan* (int)>& produce_item =
+        [&storage, total_layers, this](int layer_nr)
         {
-            to_be_written->writeGCode(gcode);
-            delete to_be_written;
-        }
-    }
-    
+            LayerPlan& gcode_layer =processLayer(storage, layer_nr, total_layers);
+            return &gcode_layer;
+        };
+    const std::function<void (LayerPlan*)>& consume_item =
+        [this](LayerPlan* gcode_layer)
+        {
+            layer_plan_buffer.push(*gcode_layer);
+            LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
+            if (to_be_written)
+            {
+                to_be_written->writeGCode(gcode);
+                delete to_be_written;
+            }
+        };
+    const unsigned int max_task_count = 20; // TODO: hardcoded value
+    GcodeLayerThreader<LayerPlan> threader(
+        process_layer_starting_layer_nr
+        , static_cast<int>(total_layers)
+        , produce_item
+        , consume_item
+        , max_task_count
+    );
+
+    // process all layers, process buffer for preheating and minimal layer time etc, write layers to gcode:
+    threader.run();
+
+    layer_plan_buffer.flush();
+
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     max_object_height = std::max(max_object_height, storage.model_max.z);
 
-    layer_plan_buffer.flush();
 
     constexpr bool force = true;
     gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
