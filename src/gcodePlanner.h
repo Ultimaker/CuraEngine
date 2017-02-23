@@ -419,6 +419,17 @@ public:
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
     /*!
+     * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
+     *
+     * At the start of the wall slice, the points are closest to \p last_wall and at the end of the polygon, the points are closest to \p wall.
+     *
+     * \param config The config with which to print the lines
+     * \param wall The wall polygon to be printed
+     * \param last_wall The last wall polygon that was printed
+     */
+    void spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall);
+
+    /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
      * and store them in each ExtruderPlan and each GCodePath.
      * 

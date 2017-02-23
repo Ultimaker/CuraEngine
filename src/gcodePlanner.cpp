@@ -448,6 +448,36 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     }
 }
 
+void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall)
+{
+    const int n_points = wall.size();
+    const Point start_position = lastPosition;
+    // The spiral has to continue on from where the last layer finished. The trick is finding the right starting point in the wall polygon.
+    // What we're looking for is a point that either exactly matches the end point of the last wall or a point that lies in the right direction (i.e. it follows the curve).
+    const int wall_point_closest_to_start_position = PolygonUtils::findClosest(start_position, wall).point_idx;
+    // FIXME - this works for some examples but is hardly robust, a better algorithm is required here.
+    const int start_idx = (vSize(wall[wall_point_closest_to_start_position] - start_position) < 20) ? wall_point_closest_to_start_position + 1 : wall_point_closest_to_start_position + 2;
+    Polygons last_wall_polygons;
+    last_wall_polygons.add(last_wall);
+    const int max_dist = MM2INT(config->getLineWidth() * 5);
+    for (int i = 0; i <= n_points; ++i)
+    {
+        // p is a point from the current wall polygon
+        const Point& p = wall[(start_idx + i) % n_points];
+        // last_p is p shifted onto last_wall
+        Point last_p(p);
+        if (last_wall.inside(last_p, false))
+        {
+            PolygonUtils::moveOutside(last_wall_polygons, last_p, 0, max_dist);
+        }
+        else if(!last_wall.inside(last_p, true))
+        {
+            PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist);
+        }
+        // now interpolate between last_p and p depending on how far we have progressed along wall
+        addExtrusionMove(Point(last_p + (p - last_p) * static_cast<double>(i) / n_points), config, SpaceFillType::Polygons, 1.0, true);
+    }
+}
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
