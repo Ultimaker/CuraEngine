@@ -60,10 +60,12 @@ public:
     {
         #pragma omp parallel
         {
+#ifdef ENABLE_OPENMP
             #pragma omp master
             #pragma omp critical
-#ifdef ENABLE_OPENMP
-            log("Multithreading GcodeLayerThreader with %i threads.\n", omp_get_num_threads());
+            {
+                log("Multithreading GcodeLayerThreader with %i threads.\n", omp_get_num_threads());
+            }
 #endif // ENABLE_OPENMP
             while (true)
             {
@@ -88,8 +90,9 @@ private:
         #pragma omp critical
         {
             produced[item_idx] = produced_item;
-            if (!to_be_consumed_item_idx && item_idx == last_consumed_idx + 1) // TODO: did lijkt dubbel op
+            if (item_idx == last_consumed_idx + 1 && last_consumed_idx + 1 < end_item_argument_index)
             {
+                assert(!to_be_consumed_item_idx && "the just produced item shouldn't be consumable already!");
                 to_be_consumed_item_idx = item_idx;
             }
         }
@@ -108,11 +111,13 @@ private:
         {
             assert(item_idx == last_consumed_idx + 1);
             last_consumed_idx = item_idx;
-            if (produced[last_consumed_idx + 1])
+            if (produced[last_consumed_idx + 1] && last_consumed_idx + 1 < end_item_argument_index)
             {
+                assert(!to_be_consumed_item_idx && "The next produced item shouldn't already be noted as being consumable because of the lock!");
                 to_be_consumed_item_idx = last_consumed_idx + 1;
             }
             active_task_count--;
+            assert(active_task_count >= 0);
         }
     }
 
@@ -182,7 +187,7 @@ private:
     const int end_item_argument_index; //!< The end index with which \ref GcodeLayerThreader::produce_item will not be called any more
     const unsigned int item_count; //!< The number of items to produce and consume
 
-    const unsigned int max_task_count; //!< The maximum amount of items active in the system
+    const int max_task_count; //!< The maximum amount of items active in the system
 
     const std::function<T* (int)>& produce_item; //!< The function to produce an item
     const std::function<void (T*)>& consume_item; //!< The function to consume an item
