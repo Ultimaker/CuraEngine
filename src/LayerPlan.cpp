@@ -603,7 +603,8 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
         fan_speed = fsml.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
     }
     /*
-    Supposing no influence of minimal layer time; i.e. layer time > min layer time fan speed min:
+    Supposing no influence of minimal layer time;
+    i.e. layer time > min layer time fan speed min:
 
               max..   fan 'full' on layer
                    |  :
