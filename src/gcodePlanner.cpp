@@ -450,20 +450,65 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
 
 void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall)
 {
+    // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
+
     const int n_points = wall.size();
-    const Point start_position = lastPosition;
-    // The spiral has to continue on from where the last layer finished. The trick is finding the right starting point in the wall polygon.
-    // What we're looking for is a point that either exactly matches the end point of the last wall or a point that lies in the right direction (i.e. it follows the curve).
-    const int wall_point_closest_to_start_position = PolygonUtils::findClosest(start_position, wall).point_idx;
-    // FIXME - this works for some examples but is hardly robust, a better algorithm is required here.
-    const int start_idx = (vSize(wall[wall_point_closest_to_start_position] - start_position) < 20) ? wall_point_closest_to_start_position + 1 : wall_point_closest_to_start_position + 2;
+
+    static int last_wall_seam_vertex_idx = -1; // the seam vertex of the last spiralized layer processed
+    static int last_layer_nr = 0;
+
+    if (layer_nr < last_layer_nr)
+    {
+        // slicing has restarted
+        last_wall_seam_vertex_idx = -1;
+    }
+
+    // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
+    // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
+
+    int seam_vertex_idx = PolygonUtils::findClosest((last_wall_seam_vertex_idx < 0) ? lastPosition : last_wall[last_wall_seam_vertex_idx], wall).point_idx;
+
+    if (last_wall_seam_vertex_idx >= 0)
+    {
+        // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
+        // and if it is we move forward
+
+        // get the inward normal of the last layer seam vertex
+        Point last_wall_seam_vertex = last_wall[last_wall_seam_vertex_idx];
+        Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, last_wall_seam_vertex_idx);
+
+        // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+        Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+
+        // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+        const int first_seam_vertex_idx = seam_vertex_idx;
+        float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+        //std::cerr << layer_nr << ": angle = " << a * 180/M_PI << "\n";
+
+        while (a > M_PI)
+        {
+            // the vertex was on the right of the vector so move the seam vertex on
+            seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+            a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            //std::cerr << "new angle = " << a * 180/M_PI << "\n";
+
+            if (seam_vertex_idx == first_seam_vertex_idx)
+            {
+                // this shouldn't happen!
+                break;
+            }
+        }
+    }
+
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
     const int max_dist = MM2INT(config->getLineWidth() * 5);
-    for (int i = 0; i <= n_points; ++i)
+    // extrude to the points following the seam vertex
+    // the last point is the seam vertex as the polygon is a loop
+    for (int i = 1; i <= n_points; ++i)
     {
         // p is a point from the current wall polygon
-        const Point& p = wall[(start_idx + i) % n_points];
+        const Point& p = wall[(seam_vertex_idx + i) % n_points];
         // last_p is p shifted onto last_wall
         Point last_p(p);
         if (last_wall.inside(last_p, false))
@@ -475,8 +520,17 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
             PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist);
         }
         // now interpolate between last_p and p depending on how far we have progressed along wall
+#if 0
+        if(i == n_points)
+            addTravel_simple(p);
+        else
+#endif
         addExtrusionMove(Point(last_p + (p - last_p) * static_cast<double>(i) / n_points), config, SpaceFillType::Polygons, 1.0, true);
     }
+
+    // remember the seam vertex so we can do it all again for the next layer
+    last_wall_seam_vertex_idx = seam_vertex_idx;
+    last_layer_nr = layer_nr;
 }
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
