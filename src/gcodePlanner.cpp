@@ -448,20 +448,11 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     }
 }
 
-void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall)
+int GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, int last_wall_seam_vertex_idx)
 {
     // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
 
     const int n_points = wall.size();
-
-    static int last_wall_seam_vertex_idx = -1; // the seam vertex of the last spiralized layer processed
-    static int last_layer_nr = 0;
-
-    if (layer_nr < last_layer_nr)
-    {
-        // slicing has restarted
-        last_wall_seam_vertex_idx = -1;
-    }
 
     // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
     // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
@@ -528,9 +519,8 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
         addExtrusionMove(Point(last_p + (p - last_p) * static_cast<double>(i) / n_points), config, SpaceFillType::Polygons, 1.0, true);
     }
 
-    // remember the seam vertex so we can do it all again for the next layer
-    last_wall_seam_vertex_idx = seam_vertex_idx;
-    last_layer_nr = layer_nr;
+    // return the seam vertex so we can do it all again for the next layer
+    return seam_vertex_idx;
 }
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
