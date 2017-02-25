@@ -1006,7 +1006,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 spiralize = true;
             }
-            else if (layer_nr == 0)
+            if (layer_nr == 0)
             {
                 last_wall_seam_vertex_idx = -1;
             }
