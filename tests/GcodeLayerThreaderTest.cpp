@@ -94,10 +94,6 @@ void GcodeLayerThreaderTest::test(int avg_computation_time, int layer_count, int
                 buffer.pop_front();
                 consume_item(layer);
             }
-            else
-            {
-                return -1;
-            }
         };
     GcodeLayerThreader<LayerPlan> threader(starting_layer_nr, layer_count + starting_layer_nr, produce_item, zip_item, max_task_count);
     
