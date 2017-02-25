@@ -244,16 +244,29 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
     }
 
-    std::vector<Polygons> basic_overhang_per_layer;
+    std::vector<Polygons> xy_disallowed_per_layer;
     std::vector<Polygons> full_overhang_per_layer;
-    basic_overhang_per_layer.resize(support_layer_count);
+    xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
-#pragma omp parallel for default(none) shared(basic_overhang_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer) schedule(dynamic)
+#pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
     for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
-        basic_overhang_per_layer[layer_idx] = basic_and_full_overhang.first;
         full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
+
+        Polygons basic_overhang = basic_and_full_overhang.first;
+        Polygons outlines = storage.getLayerOutlines(layer_idx, false);
+        if (use_support_xy_distance_overhang)
+        {
+            Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
+            Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+
+            xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
+        }
+        else
+        {
+            xy_disallowed_per_layer[layer_idx] = outlines.offset(supportXYDistance);
+        }
     }
 
     int overhang_points_pos = overhang_points.size() - 1;
@@ -302,21 +315,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         // inset using X/Y distance
         if (supportLayer_this.size() > 0)
         {
-            Polygons& basic_overhang = basic_overhang_per_layer[layer_idx]; // basic overhang on this layer
-            Polygons outlines = storage.getLayerOutlines(layer_idx, false);
-
-            if (use_support_xy_distance_overhang)
-            {
-                Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
-                Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
-
-                Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
-                supportLayer_this = supportLayer_this.difference(xy_disallowed);
-            }
-            else
-            {
-                supportLayer_this = supportLayer_this.difference(outlines.offset(supportXYDistance));
-            }
+            supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
 
         supportAreas[layer_idx] = supportLayer_this;
