@@ -1010,7 +1010,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 last_wall_seam_vertex_idx = -1;
             }
-            if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
+            if (spiralize && static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers"))
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
