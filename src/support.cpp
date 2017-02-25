@@ -7,6 +7,10 @@
 #include <deque>
 #include <cmath> // round
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif // _OPENMP
+
 #include "support.h"
 
 #include "utils/math.h"
@@ -240,10 +244,16 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
     }
 
-    std::deque<std::pair<Polygons, Polygons>> basic_and_full_overhang_above;
-    for (unsigned int layer_idx = support_layer_count - 1; layer_idx != support_layer_count - 1 - layerZdistanceTop ; layer_idx--)
+    std::vector<Polygons> basic_overhang_per_layer;
+    std::vector<Polygons> full_overhang_per_layer;
+    basic_overhang_per_layer.resize(support_layer_count);
+    full_overhang_per_layer.resize(support_layer_count);
+#pragma omp parallel for default(none) shared(basic_overhang_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer) schedule(dynamic)
+    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
     {
-        basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
+        std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
+        basic_overhang_per_layer[layer_idx] = basic_and_full_overhang.first;
+        full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
     }
 
     int overhang_points_pos = overhang_points.size() - 1;
@@ -252,16 +262,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
-        basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
-        
-        Polygons overhang;
-        {
-            // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
-            overhang = basic_and_full_overhang_above.back().second;
-            basic_and_full_overhang_above.pop_back();
-        }
-
-        Polygons& supportLayer_this = overhang; 
+        Polygons supportLayer_this = full_overhang_per_layer[layer_idx + layerZdistanceTop];;
 
         if (extension_offset)
         {
@@ -298,7 +299,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         // inset using X/Y distance
         if (supportLayer_this.size() > 0)
         {
-            Polygons& basic_overhang = basic_and_full_overhang_above.front().first; // basic overhang on this layer
+            Polygons& basic_overhang = basic_overhang_per_layer[layer_idx]; // basic overhang on this layer
             Polygons outlines = storage.getLayerOutlines(layer_idx, false);
 
             if (use_support_xy_distance_overhang)
