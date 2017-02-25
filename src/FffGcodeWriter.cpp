@@ -1002,7 +1002,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
         bool spiralize = false;
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
-            if (static_cast<int>(layer_nr) >= mesh->getSettingAsCount("bottom_layers"))
+            if (part.insets.size() > 0 && static_cast<int>(layer_nr) >= mesh->getSettingAsCount("bottom_layers"))
             {
                 spiralize = true;
             }
