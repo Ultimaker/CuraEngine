@@ -364,7 +364,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         // this is performed after the main support generation loop above, because it affects the joining of polygons
         // if this would be performed in the main loop then some support would not have been generated under the overhangs and consequently no support is generated for that,
         // meaning almost no support would be generated in some cases which definitely need support.
-        for (size_t layer_idx = 0; layer_idx < storage.support.supportLayers.size() && layer_idx < support_layer_count - (layerZdistanceTop - 1); layer_idx++)
+        const int max_checking_layer_idx = std::min(static_cast<int>(storage.support.supportLayers.size())
+                                                  , static_cast<int>(support_layer_count - (layerZdistanceTop - 1)));
+        const size_t max_checking_idx_size_t = std::max(0, max_checking_layer_idx);
+#pragma omp parallel for default(none) shared(supportAreas, support_layer_count, storage) schedule(dynamic)
+        for (size_t layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
         {
             supportAreas[layer_idx] = supportAreas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layerZdistanceTop - 1, false));
         }
