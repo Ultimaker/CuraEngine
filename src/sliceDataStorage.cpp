@@ -207,7 +207,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             {
                 const SliceLayer& layer = mesh.layers[layer_nr];
                 layer.getSecondOrInnermostWalls(total);
-                if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make getSetting const? make settings.setting_values mapping mutable??
+                if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
                 }

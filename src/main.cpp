@@ -20,6 +20,10 @@
 
 #include "settings/SettingsToGV.h"
 
+#ifdef _OPENMP
+    #include <omp.h> // omp_get_num_threads
+#endif
+
 namespace cura
 {
     
@@ -328,7 +332,19 @@ int main(int argc, char **argv)
         print_usage();
         exit(1);
     }
-    
+
+#pragma omp parallel
+    {
+#pragma omp master
+        {
+#ifdef _OPENMP
+            log("OpenMP multithreading enabled, likely number of threads to be used: %u\n", omp_get_num_threads());
+#else
+            log("OpenMP multithreading disabled\n");
+#endif
+        }
+    }
+
     if (stringcasecompare(argv[1], "connect") == 0)
     {
         connect(argc, argv);
