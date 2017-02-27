@@ -796,13 +796,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
     { // don't switch extruder if there's nothing to print
         bool empty = true;
-        const bool use_walls = mesh->getSettingAsCount("wall_line_count") > 0;
         for (SliceLayerPart& part : layer->parts)
         {
-            if (
-                (use_walls && part.insets.size() > 0)
-                || (!use_walls && (part.getOwnInfillArea().size() > 0 || part.skin_parts.size() > 0))
-                )
+            if (part.isUsed(*mesh))
             {
                 empty = false;
                 break;
