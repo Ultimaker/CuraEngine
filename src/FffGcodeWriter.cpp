@@ -941,7 +941,7 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
         {
             const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
             const float flow_ratio = total_volume / normal_volume;
-            assert(flow_ratio >= 0.9);
+            assert(flow_ratio / getSettingAsRatio("spaghetti_flow") >= 0.9);
 
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
