@@ -57,7 +57,8 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         }
 
         Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
-        Polygons virgin_upskin = Polygons(upskin);
+        // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
+        Polygons original_outline = Polygons(upskin);
         Polygons downskin = (downSkinCount == 0) ? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
 
@@ -132,25 +133,26 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         
         if (expand_skins_expand_distance > 0)
         {
-            int expand_skins_shrink_distance = mesh.getSettingInMicrons("expand_skins_shrink_distance");
+            int min_skin_width_for_expansion = mesh.getSettingInMicrons("min_skin_width_for_expansion");
 
-            // skin areas are to be enlarged by expand_distance but before they are expanded
-            // the skin areas are shrunk by shrink_distance so that very narrow regions of skin
+            // skin areas are to be enlarged by expand_skins_expand_distance but before they are expanded
+            // the skin areas are shrunk by min_skin_width_for_expansion so that very narrow regions of skin
             // (often caused by the model's surface having a steep incline) are removed first
 
-            expand_skins_expand_distance += expand_skins_shrink_distance; // increase the expansion distance to compensate for the shrinkage
+            expand_skins_expand_distance += min_skin_width_for_expansion; // increase the expansion distance to compensate for the shrinkage
 
             if (mesh.getSettingBoolean("expand_upper_skins"))
             {
-                upskin = upskin.offset(-expand_skins_shrink_distance).offset(expand_skins_expand_distance).intersection(virgin_upskin);
+                upskin = upskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance).unionPolygons(upskin).intersection(original_outline);
             }
 
             if (mesh.getSettingBoolean("expand_lower_skins"))
             {
-                downskin = downskin.offset(-expand_skins_shrink_distance).offset(expand_skins_expand_distance).intersection(virgin_upskin);
+                downskin = downskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
             }
         }
 
+        // now combine the resized upskin and downskin
         Polygons skin = upskin.unionPolygons(downskin);
 
         skin.removeSmallAreas(MIN_AREA_SIZE);
