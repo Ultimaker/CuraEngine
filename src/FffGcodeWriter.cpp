@@ -306,7 +306,10 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     gcode.writeFanCommand(0);
 
     bool wait = true;
-    gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+    if (storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
+    {
+        gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+    }
 
     gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
@@ -1009,7 +1012,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), wall_0_wipe_dist);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist, spiralize);
             }
         }
         int processed_inset_number = -1;

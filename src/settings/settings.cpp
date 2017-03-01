@@ -93,21 +93,23 @@ void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirt
 
 std::string SettingsBase::getSettingString(std::string key) const
 {
-    if (setting_values.find(key) != setting_values.end())
+    auto value_it = setting_values.find(key);
+    if (value_it != setting_values.end())
     {
-        return setting_values.at(key);
+        return value_it->second;
     }
-    if (setting_inherit_base.find(key) != setting_inherit_base.end())
+    auto inherit_override_it = setting_inherit_base.find(key);
+    if (inherit_override_it != setting_inherit_base.end())
     {
-        return setting_inherit_base.at(key)->getSettingString(key);
+        return inherit_override_it->second->getSettingString(key);
     }
     if (parent)
     {
         return parent->getSettingString(key);
     }
 
-    const_cast<SettingsBase&>(*this).setting_values[key] = "";
-    cura::logWarning("Unregistered setting %s\n", key.c_str());
+    cura::logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
+    std::exit(-1);
     return "";
 }
 
@@ -426,7 +428,7 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
     return FillPerimeterGapMode::NOWHERE;
 }
 
-CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
+CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "off")
@@ -444,7 +446,7 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
     return CombingMode::ALL;
 }
 
-SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key)
+SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "xy_overrides_z")
