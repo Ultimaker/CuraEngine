@@ -87,8 +87,6 @@ void SliceMeshStorage::findLayerSeamsForSpiralize()
     layer_seam_vertex_indices.clear();
     layer_seam_vertex_indices.push_back(0); // got to start somewhere
 
-    std::cerr << "findLayerSeamsForSpiralize() n_layers = " << layers.size() << "\n";
-
     for (unsigned layer_nr = 1; layer_nr < layers.size(); ++layer_nr)
     {
         const SliceLayer& layer = layers[layer_nr];
@@ -122,7 +120,7 @@ void SliceMeshStorage::findLayerSeamsForSpiralize()
         // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
         const int first_seam_vertex_idx = seam_vertex_idx;
         float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
-        std::cerr << layer_nr << ": n_points= " << n_points << ", angle = " << a * 180/M_PI << "\n";
+        //std::cerr << layer_nr << ": n_points= " << n_points << ", angle = " << a * 180/M_PI << "\n";
 
         while (a > M_PI)
         {
@@ -140,9 +138,8 @@ void SliceMeshStorage::findLayerSeamsForSpiralize()
 
         // store result for use when spiralizing
         layer_seam_vertex_indices.push_back(seam_vertex_idx);
-        std::cerr << "layer " << layer_nr << ": " << seam_vertex_idx << "\n";
+        //std::cerr << "layer " << layer_nr << ": " << seam_vertex_idx << "\n";
     }
-    std::cerr << "Finished findLayerSeamsForSpiralize()\n";
 }
 
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
