@@ -91,8 +91,17 @@ void SliceMeshStorage::findLayerSeamsForSpiralize()
 
     for (unsigned layer_nr = 1; layer_nr < layers.size(); ++layer_nr)
     {
-        ConstPolygonRef last_wall = layers[layer_nr - 1].parts[0].insets[0][0];
-        ConstPolygonRef wall = layers[layer_nr].parts[0].insets[0][0];
+        const SliceLayer& layer = layers[layer_nr];
+        const SliceLayer& last_layer = layers[layer_nr - 1];
+
+        if (layer.parts.size() < 1 || layer.parts[0].insets.size() < 1 || last_layer.parts.size() < 1 || last_layer.parts[0].insets.size() < 1)
+        {
+            // either this layer or the last has no parts (or a part has no insets) so just duplicate the index calculated for the last layer
+            layer_seam_vertex_indices.push_back(layer_seam_vertex_indices[layer_nr - 1]);
+            continue;
+        }
+        ConstPolygonRef last_wall = last_layer.parts[0].insets[0][0];
+        ConstPolygonRef wall = layer.parts[0].insets[0][0];
         const int n_points = wall.size();
         Point last_wall_seam_vertex = last_wall[layer_seam_vertex_indices[layer_nr - 1]];
 
