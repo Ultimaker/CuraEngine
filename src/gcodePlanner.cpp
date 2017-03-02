@@ -644,7 +644,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     
     gcode.writeLayerComment(layer_nr);
 
-    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage))
+    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature") != 0)
     {
         bool wait = false;
         gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature"), wait);
