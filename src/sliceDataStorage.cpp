@@ -80,6 +80,62 @@ SliceMeshStorage::~SliceMeshStorage()
     }
 }
 
+void SliceMeshStorage::findLayerSeamsForSpiralize()
+{
+    // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
+
+    layer_seam_vertex_indices.clear();
+    layer_seam_vertex_indices.push_back(0); // got to start somewhere
+
+    std::cerr << "findLayerSeamsForSpiralize() n_layers = " << layers.size() << "\n";
+
+    for (unsigned layer_nr = 1; layer_nr < layers.size(); ++layer_nr)
+    {
+        ConstPolygonRef last_wall = layers[layer_nr - 1].parts[0].insets[0][0];
+        ConstPolygonRef wall = layers[layer_nr].parts[0].insets[0][0];
+        const int n_points = wall.size();
+        Point last_wall_seam_vertex = last_wall[layer_seam_vertex_indices[layer_nr - 1]];
+
+        // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
+        // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
+
+        int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
+
+        // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
+        // and if it is we move forward
+
+        // get the inward normal of the last layer seam vertex
+        Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, layer_seam_vertex_indices[layer_nr - 1]);
+
+        // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+        Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+
+        // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+        const int first_seam_vertex_idx = seam_vertex_idx;
+        float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+        std::cerr << layer_nr << ": n_points= " << n_points << ", angle = " << a * 180/M_PI << "\n";
+
+        while (a > M_PI)
+        {
+            // the vertex was on the right of the vector so move the seam vertex on
+            seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+            a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            //std::cerr << "new angle = " << a * 180/M_PI << "\n";
+
+            if (seam_vertex_idx == first_seam_vertex_idx)
+            {
+                // this shouldn't happen!
+                break;
+            }
+        }
+
+        // store result for use when spiralizing
+        layer_seam_vertex_indices.push_back(seam_vertex_idx);
+        std::cerr << "layer " << layer_nr << ": " << seam_vertex_idx << "\n";
+    }
+    std::cerr << "Finished findLayerSeamsForSpiralize()\n";
+}
+
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
 {
     std::vector<RetractionConfig> ret;

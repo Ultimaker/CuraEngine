@@ -155,6 +155,8 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
+    std::vector<int> layer_seam_vertex_indices; //!< the vertex index of the seam vertex in each layer (only used for spiralization)
+
     SubDivCube* base_subdiv_cube;
 
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
@@ -166,6 +168,8 @@ public:
     }
 
     virtual ~SliceMeshStorage();
+
+    void findLayerSeamsForSpiralize();
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
