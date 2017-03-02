@@ -23,6 +23,11 @@ struct AABB3D
     AABB3D();
 
     /*!
+     * Get the middle of the bounding box
+     */
+    Point3 getMiddle() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      * 
      * In the boundary case false is returned.

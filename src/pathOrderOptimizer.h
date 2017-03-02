@@ -20,7 +20,7 @@ public:
     EZSeamType type;
     Point startPoint; //!< A location near the prefered start location
     Point z_seam_pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
-    std::vector<PolygonRef> polygons; //!< the parts of the layer (in arbitrary order)
+    std::vector<ConstPolygonRef> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
 
@@ -33,10 +33,15 @@ public:
 
     void addPolygon(PolygonRef polygon)
     {
-        this->polygons.push_back(polygon);
+        this->polygons.emplace_back(polygon);
     }
 
-    void addPolygons(Polygons& polygons)
+    void addPolygon(ConstPolygonRef polygon)
+    {
+        this->polygons.emplace_back(polygon);
+    }
+
+    void addPolygons(const Polygons& polygons)
     {
         for(unsigned int i=0;i<polygons.size(); i++)
             this->polygons.push_back(polygons[i]);
@@ -66,7 +71,7 @@ class LineOrderOptimizer
 {
 public:
     Point startPoint; //!< The location of the nozzle before starting to print the current layer
-    std::vector<PolygonRef> polygons; //!< the parts of the layer (in arbitrary order)
+    std::vector<ConstPolygonRef> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
 
@@ -76,6 +81,11 @@ public:
     }
 
     void addPolygon(PolygonRef polygon)
+    {
+        this->polygons.push_back(polygon);
+    }
+
+    void addPolygon(ConstPolygonRef polygon)
     {
         this->polygons.push_back(polygon);
     }

@@ -8,10 +8,9 @@
 #include "utils/NoCopy.h"
 #include "utils/AABB.h"
 #include "mesh.h"
-#include "gcodePlanner.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
-#include "GCodePathConfig.h"
+#include "gcodeExport.h" // CoastingConfig
 
 namespace cura 
 {
@@ -138,7 +137,11 @@ public:
 
     std::vector<SupportLayer> supportLayers;
 
-    SupportStorage() : generated(false), layer_nr_max_filled_layer(-1) { }
+    SupportStorage()
+    : generated(false)
+    , layer_nr_max_filled_layer(-1)
+    {
+    }
     ~SupportStorage(){ supportLayers.clear(); }
 };
 /******************/
@@ -152,27 +155,14 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
-    GCodePathConfig inset0_config;
-    GCodePathConfig insetX_config;
-    GCodePathConfig skin_config;
-    GCodePathConfig perimeter_gap_config;
-    std::vector<GCodePathConfig> infill_config;
-
     SubDivCube* base_subdiv_cube;
 
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
     : SettingsMessenger(settings)
     , layer_nr_max_filled_layer(0)
-    , inset0_config(PrintFeatureType::OuterWall)
-    , insetX_config(PrintFeatureType::InnerWall)
-    , skin_config(PrintFeatureType::Skin)
-    , perimeter_gap_config(PrintFeatureType::Skin)
     , base_subdiv_cube(nullptr)
     {
         layers.resize(slice_layer_count);
-        infill_config.reserve(MAX_INFILL_COMBINE);
-        for(int n=0; n<MAX_INFILL_COMBINE; n++)
-            infill_config.emplace_back(PrintFeatureType::Infill);
     }
 
     virtual ~SliceMeshStorage();
@@ -191,17 +181,7 @@ public:
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
-    std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
-
-    std::vector<GCodePathConfig> skirt_brim_config; //!< Configuration for skirt and brim per extruder.
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
-
-    GCodePathConfig raft_base_config;
-    GCodePathConfig raft_interface_config;
-    GCodePathConfig raft_surface_config;
-
-    GCodePathConfig support_config;
-    GCodePathConfig support_skin_config; //!< The config to use to print the dense roofs and bottoms of support
 
     SupportStorage support;
 
@@ -216,21 +196,6 @@ public:
 
     std::vector<Polygons> oozeShield;        //oozeShield per layer
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
-
-    /*!
-     * Construct the initial retraction_config_per_extruder
-     */
-    std::vector<RetractionConfig> initializeRetractionConfigs();
-
-    /*!
-     * Construct the initial travel_config_per_extruder
-     */
-    std::vector<GCodePathConfig> initializeTravelConfigs();
-
-    /*!
-     * Construct the initial skirt & brim configurations for each extruder.
-     */
-    std::vector<GCodePathConfig> initializeSkirtBrimConfigs();
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
@@ -281,6 +246,12 @@ public:
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
     std::vector<bool> getExtrudersUsed(int layer_nr) const;
+
+private:
+    /*!
+     * Construct the retraction_config_per_extruder
+     */
+    std::vector<RetractionConfig> initializeRetractionConfigs();
 };
 
 }//namespace cura

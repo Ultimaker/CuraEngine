@@ -17,15 +17,54 @@ void LayerPlanBuffer::flush()
     }
     while (!buffer.empty())
     {
-        buffer.front().writeGCode(gcode);
+        buffer.front()->writeGCode(gcode);
         if (CommandSocket::isInstantiated())
         {
             CommandSocket::getInstance()->flushGcode();
         }
         buffer.pop_front();
     }
-    
 }
+
+void LayerPlanBuffer::addConnectingTravelMove()
+{
+    auto newest_layer_it = --buffer.end();
+    auto prev_layer_it = newest_layer_it;
+    prev_layer_it--;
+    Point destination;
+    {
+        const LayerPlan* newest_layer = *newest_layer_it;
+        assert(newest_layer->extruder_plans.front().extruder == (*prev_layer_it)->extruder_plans.back().extruder);
+        const ExtruderPlan& extruder_plan_above = newest_layer->extruder_plans.front();
+        if (extruder_plan_above.paths.size() == 0)
+        {
+            logWarning("There are empty layers (or layers with empty extruder plans) in the print! Temperature control and cross layer travel moves might suffer.\n");
+            return;
+        }
+        const GCodePath& path_above = extruder_plan_above.paths[0];
+        assert(path_above.points.size() == 1 && "The first move planned should have been a boguous direct travel move");
+        Point first_location_new_layer = path_above.points[0];
+        destination = first_location_new_layer;
+    }
+    LayerPlan* prev_layer = *prev_layer_it;
+    prev_layer->addTravel(destination);
+}
+
+void LayerPlanBuffer::processFanSpeedLayerTime()
+{
+    auto newest_layer_it = --buffer.end();
+    Point starting_position(0, 0);
+    if (buffer.size() >= 2)
+    {
+        auto prev_layer_it = newest_layer_it;
+        prev_layer_it--;
+        const LayerPlan* prev_layer = *prev_layer_it;
+        starting_position = prev_layer->getLastPosition();
+    }
+    LayerPlan* newest_layer = *newest_layer_it;
+    newest_layer->processFanSpeedAndMinimalLayerTime(starting_position);
+}
+
 
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
 {
@@ -324,7 +363,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
+    if (buffer.back()->extruder_plans.size() == 0 || (buffer.back()->extruder_plans.size() == 1 && buffer.back()->extruder_plans[0].paths.size() == 0))
     { // disregard empty layer
         buffer.pop_back();
         return;
@@ -332,9 +371,9 @@ void LayerPlanBuffer::insertTempCommands()
 
     std::vector<ExtruderPlan*> extruder_plans;
     extruder_plans.reserve(buffer.size() * 2);
-    for (GCodePlanner& layer_plan : buffer)
+    for (LayerPlan* layer_plan : buffer)
     {
-        for (ExtruderPlan& extr_plan : layer_plan.extruder_plans)
+        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
         {
             extruder_plans.push_back(&extr_plan);
         }
@@ -342,7 +381,7 @@ void LayerPlanBuffer::insertTempCommands()
 
 
     // insert commands for all extruder plans on this layer
-    GCodePlanner& layer_plan = buffer.back();
+    LayerPlan& layer_plan = *buffer.back();
     for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
         unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;

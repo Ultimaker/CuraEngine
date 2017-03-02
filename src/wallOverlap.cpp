@@ -18,7 +18,7 @@ WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int line_widt
 }
 
 
-float WallOverlapComputation::getFlow(Point& from, Point& to)
+float WallOverlapComputation::getFlow(const Point& from, const Point& to)
 {
     using Point2LinkIt = PolygonProximityLinker::Point2Link::iterator;
 
