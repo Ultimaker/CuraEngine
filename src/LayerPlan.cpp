@@ -460,6 +460,39 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
+void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
+{
+    addTravel_simple((last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx]);
+
+    const int n_points = wall.size();
+    Polygons last_wall_polygons;
+    last_wall_polygons.add(last_wall);
+    const int max_dist = MM2INT(config->getLineWidth() * 5);
+    // extrude to the points following the seam vertex
+    // the last point is the seam vertex as the polygon is a loop
+    for (int i = 1; i <= n_points; ++i)
+    {
+        // p is a point from the current wall polygon
+        const Point& p = wall[(seam_vertex_idx + i) % n_points];
+        // last_p is p shifted onto last_wall
+        Point last_p(p);
+        if (last_wall.inside(last_p, false))
+        {
+            PolygonUtils::moveOutside(last_wall_polygons, last_p, 0, max_dist);
+        }
+        else if(!last_wall.inside(last_p, true))
+        {
+            PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist);
+        }
+        // now interpolate between last_p and p depending on how far we have progressed along wall
+#if 0
+        if(i == n_points)
+        addTravel_simple(p);
+        else
+#endif
+        addExtrusionMove(Point(last_p + (p - last_p) * static_cast<double>(i) / n_points), config, SpaceFillType::Polygons, 1.0, true);
+    }
+}
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
