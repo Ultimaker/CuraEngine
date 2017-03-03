@@ -425,11 +425,12 @@ public:
      *
      * \param config The config with which to print the lines
      * \param wall The wall polygon to be spiralized
-     * \param last_wall The last wall polygon that was spiralized
-     * \param last_wall_seam_vertex_idx The index of the seam vertex of the last spiralized layer processed (-1 if this is the first layer to be spiralized)
-     * \return The index of the seam vertex in the wall polygon just processed
+     * \param last_wall The wall polygon that was spiralized below the current polygon (or \p wall if this is the first spiralized layer)
+     * \param seam_vertex_idx The index of this wall slice's seam vertex
+     * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
      */
-    int spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, int last_wall_seam_vertex_idx);
+    void spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
+
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
