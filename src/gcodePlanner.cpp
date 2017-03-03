@@ -494,15 +494,28 @@ int GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, P
         }
     }
 
+    float total_length = 0.0;
+    Point p0 = origin;
+    for (int index = 1; index <= n_points; ++index)
+    {
+        const Point& p1 = wall[(seam_vertex_idx + index) % n_points];
+        total_length += vSizeMM(p1 - p0);
+        p0 = p1;
+    }
+
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
     const int max_dist = MM2INT(config->getLineWidth() * 5);
     // extrude to the points following the seam vertex
     // the last point is the seam vertex as the polygon is a loop
-    for (int i = 1; i <= n_points; ++i)
+    p0 = origin;
+    float wall_length = 0.0;
+    for (int index = 1; index <= n_points; ++index)
     {
         // p is a point from the current wall polygon
-        const Point& p = wall[(seam_vertex_idx + i) % n_points];
+        const Point& p = wall[(seam_vertex_idx + index) % n_points];
+        wall_length += vSizeMM(p - p0);
+        p0 = p;
         // last_p is p shifted onto last_wall
         Point last_p(p);
         if (last_wall.inside(last_p, false))
@@ -515,11 +528,11 @@ int GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, P
         }
         // now interpolate between last_p and p depending on how far we have progressed along wall
 #if 0
-        if(i == n_points)
+        if(index == n_points)
             addTravel_simple(p);
         else
 #endif
-        addExtrusionMove(Point(last_p + (p - last_p) * static_cast<double>(i) / n_points), config, SpaceFillType::Polygons, 1.0, true);
+        addExtrusionMove(last_p + (p - last_p) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
     }
 
     // return the seam vertex so we can do it all again for the next layer
