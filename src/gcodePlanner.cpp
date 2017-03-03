@@ -299,12 +299,7 @@ GCodePath& GCodePlanner::addTravel(Point p, bool always_retract)
                 }
                 path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
                 path->retract = retract;
-                if (always_retract)
-                {
-                    // do a z-hop (if generally enabled)
-                    // not sure yet if this is a good or a bad thing to do
-                    path->perform_z_hop = perform_z_hops;
-                }
+                // don't perform a z-hop
                 for (Point& combPoint : combPath)
                 {
                     path->points.push_back(combPoint);
