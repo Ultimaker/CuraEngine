@@ -454,10 +454,13 @@ int GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, P
 
     const int n_points = wall.size();
 
-    // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
-    // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
+    // origin is where we start from
+    const Point origin = (last_wall_seam_vertex_idx < 0) ? lastPosition : last_wall[last_wall_seam_vertex_idx];
 
-    int seam_vertex_idx = PolygonUtils::findClosest((last_wall_seam_vertex_idx < 0) ? lastPosition : last_wall[last_wall_seam_vertex_idx], wall).point_idx;
+    // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
+    // initially we choose the vertex that is closest to the origin which will be the seam vertex in the last spiralized layer processed
+
+    int seam_vertex_idx = PolygonUtils::findClosest(origin, wall).point_idx;
 
     if (last_wall_seam_vertex_idx >= 0)
     {
