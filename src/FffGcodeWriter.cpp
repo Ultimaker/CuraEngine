@@ -54,7 +54,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
         if (getSettingBoolean("magic_spiralize"))
         {
-            mesh.findLayerSeamsForSpiralize();
+            findLayerSeamsForSpiralize(mesh);
         }
     }
     
@@ -119,6 +119,77 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     constexpr bool force = true;
     gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
+}
+
+void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
+{
+    // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
+
+    if (mesh.layers.size() > 0)
+    {
+        if(mesh.layers[0].parts.size() > 0 && mesh.layers[0].parts[0].insets.size() > 0)
+        {
+            // use the vertex closest to Point(0, 0) for the first layer
+            // Doing this, we give the user some degree of control as to where the seam will be.
+            // By moving the model on the bed they can move the start position of the seam and
+            // this could be useful if the spiralization has a problem with a particular seam position
+            mesh.layers[0].seam_vertex_index = PolygonUtils::findClosest(Point(0, 0), mesh.layers[0].parts[0].insets[0][0]).point_idx;
+        }
+
+        for (unsigned layer_nr = 1; layer_nr < mesh.layers.size(); ++layer_nr)
+        {
+            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& last_layer = mesh.layers[layer_nr - 1];
+
+            if (layer.parts.size() < 1 || layer.parts[0].insets.size() < 1 || last_layer.parts.size() < 1 || last_layer.parts[0].insets.size() < 1)
+            {
+                // either this layer or the last has no parts (or a part has no insets) so just duplicate the index calculated for the last layer
+                layer.seam_vertex_index = last_layer.seam_vertex_index;
+                continue;
+            }
+            ConstPolygonRef last_wall = last_layer.parts[0].insets[0][0];
+            ConstPolygonRef wall = layer.parts[0].insets[0][0];
+            const int n_points = wall.size();
+            Point last_wall_seam_vertex = last_wall[last_layer.seam_vertex_index];
+
+            // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
+            // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
+
+            int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
+
+            // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
+            // and if it is we move forward
+
+            // get the inward normal of the last layer seam vertex
+            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, last_layer.seam_vertex_index);
+
+            // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+
+            // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+            const int first_seam_vertex_idx = seam_vertex_idx;
+            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            //std::cerr << layer_nr << ": n_points= " << n_points << ", angle = " << a * 180/M_PI << "\n";
+
+            while (a > M_PI)
+            {
+                // the vertex was on the right of the vector so move the seam vertex on
+                seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+                //std::cerr << "new angle = " << a * 180/M_PI << "\n";
+
+                if (seam_vertex_idx == first_seam_vertex_idx)
+                {
+                    // this shouldn't happen!
+                    break;
+                }
+            }
+
+            // store result for use when spiralizing
+            mesh.layers[layer_nr].seam_vertex_index = seam_vertex_idx;
+            //std::cerr << "layer " << layer_nr << ": " << seam_vertex_idx << "\n";
+        }
+    }
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
@@ -1028,8 +1099,8 @@ void FffGcodeWriter::processInsets(LayerPlan& gcode_layer, const SliceMeshStorag
             const ConstPolygonRef& outer_wall = mesh->layers[layer_nr].parts[0].insets[0][0]; // current layer outer wall outline
             const ConstPolygonRef& last_outer_wall = (layer_nr == 0) ? outer_wall : mesh->layers[layer_nr - 1].parts[0].insets[0][0]; // last layer outer wall outline
             // output a wall slice that is interpolated between the last and current walls
-            const int seam_vertex_idx = mesh->layer_seam_vertex_indices[layer_nr]; // current layer seam vertex index
-            const int last_seam_vertex_idx = (layer_nr == 0) ? -1 : mesh->layer_seam_vertex_indices[layer_nr - 1]; // last layer seam vertex index
+            const int seam_vertex_idx = mesh->layers[layer_nr].seam_vertex_index; // current layer seam vertex index
+            const int last_seam_vertex_idx = (layer_nr == 0) ? -1 : mesh->layers[layer_nr - 1].seam_vertex_index; // last layer seam vertex index
             gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, outer_wall, last_outer_wall, seam_vertex_idx, last_seam_vertex_idx);
         }
         else

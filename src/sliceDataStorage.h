@@ -86,6 +86,7 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    int seam_vertex_index; //!< the index of the layer's seam vertex (only used for spiralization)
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -155,8 +156,6 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
-    std::vector<int> layer_seam_vertex_indices; //!< the vertex index of the seam vertex in each layer (only used for spiralization)
-
     SubDivCube* base_subdiv_cube;
 
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
@@ -168,8 +167,6 @@ public:
     }
 
     virtual ~SliceMeshStorage();
-
-    void findLayerSeamsForSpiralize();
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy

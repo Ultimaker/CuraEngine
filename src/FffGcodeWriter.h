@@ -464,6 +464,12 @@ private:
      * Add the end gcode and set all temperatures to zero.
      */
     void finalize();
+
+    /*!
+     * Calculate for each layer in the mesh the index of the vertex that is considered to be the seam
+     * \param mesh The mesh containing the layers to be spiralized
+     */
+    void findLayerSeamsForSpiralize(SliceMeshStorage& mesh);
 };
 
 }//namespace cura
