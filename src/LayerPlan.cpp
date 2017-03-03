@@ -462,18 +462,40 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
 
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
 {
-    addTravel_simple((last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx]);
+    const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    addTravel_simple(origin);
 
     const int n_points = wall.size();
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
     const int max_dist = MM2INT(config->getLineWidth() * 5);
+
+    double total_length = 0.0; // determine the length of the complete wall
+    Point p0 = origin;
+    for (int index = 1; index <= n_points; ++index)
+    {
+        const Point& p1 = wall[(seam_vertex_idx + index) % n_points];
+        total_length += vSizeMM(p1 - p0);
+        p0 = p1;
+    }
+
+    if (total_length == 0.0)
+    {
+        // nothing to do
+        return;
+    }
+
     // extrude to the points following the seam vertex
     // the last point is the seam vertex as the polygon is a loop
-    for (int i = 1; i <= n_points; ++i)
+    double wall_length = 0.0;
+    p0 = origin;
+    for (int index = 1; index <= n_points; ++index)
     {
         // p is a point from the current wall polygon
-        const Point& p = wall[(seam_vertex_idx + i) % n_points];
+        const Point& p = wall[(seam_vertex_idx + index) % n_points];
+        wall_length += vSizeMM(p - p0);
+        p0 = p;
+
         // last_p is p shifted onto last_wall
         Point last_p(p);
         if (last_wall.inside(last_p, false))
@@ -486,11 +508,11 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRe
         }
         // now interpolate between last_p and p depending on how far we have progressed along wall
 #if 0
-        if(i == n_points)
-        addTravel_simple(p);
+        if(index == n_points)
+            addTravel_simple(p);
         else
 #endif
-        addExtrusionMove(Point(last_p + (p - last_p) * static_cast<double>(i) / n_points), config, SpaceFillType::Polygons, 1.0, true);
+        addExtrusionMove(last_p + (p - last_p) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
     }
 }
 
