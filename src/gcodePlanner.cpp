@@ -311,7 +311,7 @@ GCodePath& GCodePlanner::addTravel(Point p, bool always_retract)
     
     if (!combed) {
         // no combing? always retract!
-        if (!shorterThen(lastPosition - p, retraction_config.retraction_min_travel_distance))
+        if (always_retract || !shorterThen(lastPosition - p, retraction_config.retraction_min_travel_distance))
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
