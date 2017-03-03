@@ -456,7 +456,7 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
     const int n_points = wall.size();
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
-    const int max_dist = MM2INT(config->getLineWidth() * 5);
+    const int max_dist2 = config->getLineWidth() * config->getLineWidth();
 
     double total_length = 0.0; // determine the length of the complete wall
     Point p0 = origin;
@@ -488,11 +488,11 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
         Point last_p(p);
         if (last_wall.inside(last_p, false))
         {
-            PolygonUtils::moveOutside(last_wall_polygons, last_p, 0, max_dist);
+            PolygonUtils::moveOutside(last_wall_polygons, last_p, 0, max_dist2);
         }
         else if(!last_wall.inside(last_p, true))
         {
-            PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist);
+            PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist2);
         }
         // now interpolate between last_p and p depending on how far we have progressed along wall
 #if 0
