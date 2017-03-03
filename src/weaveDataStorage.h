@@ -6,7 +6,7 @@
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "mesh.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "MeshGroup.h"
 
 

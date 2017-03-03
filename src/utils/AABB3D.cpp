@@ -13,6 +13,12 @@ AABB3D::AABB3D()
 {
 }
 
+Point3 AABB3D::getMiddle() const
+{
+    return (min + max) / 2;
+}
+
+
 bool AABB3D::hit(const AABB3D& other) const
 {
     if (   max.x < other.min.x

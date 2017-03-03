@@ -7,8 +7,14 @@
 NUL
 *.gcode
 
+## Directories used for other stuff
+Trash/*
+output/*
+callgrind/*
+
 ## Building result.
 build/*
+debug_build/*
 *.pyc
 *.exe
 *.a

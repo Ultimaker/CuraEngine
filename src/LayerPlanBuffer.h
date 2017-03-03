@@ -8,7 +8,7 @@
 #include "commandSocket.h"
 
 #include "gcodeExport.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "MeshGroup.h"
 
 #include "Preheat.h"
@@ -17,7 +17,7 @@ namespace cura
 {
 
 /*!
- * Class for buffering multiple layer plans (\ref GCodePlanner) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
+ * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
  * 
  * This class handles where to insert temperature commands for:
  * - initial layer temperature
@@ -42,7 +42,13 @@ class LayerPlanBuffer : SettingsMessenger
 
     std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
 public:
-    std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
+    /*!
+     * The buffer containing several layer plans (LayerPlan) before writing them to gcode.
+     * 
+     * The front is the lowest/oldest layer.
+     * The back is the highest/newest layer.
+     */
+    std::list<LayerPlan*> buffer;
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
@@ -54,37 +60,62 @@ public:
     {
         preheat_config.setConfig(settings);
     }
-    
+
     /*!
-     * Place a new layer plan (GcodePlanner) by constructing it with the given arguments.
-     * Pop back the oldest layer plan is it exceeds the buffer size and write it to gcode.
+     * Push a new layer plan into the buffer
      */
-    template<typename... Args>
-    GCodePlanner& emplace_back(Args&&... constructor_args)
+    void push(LayerPlan& layer_plan)
     {
+        buffer.push_back(&layer_plan);
+    }
+
+    /*!
+     * Process all layers in the buffer
+     * This inserts the temperature commands to start warming for a given layer in earlier layers
+     * 
+     * Pop out the earliest layer in the buffer if the buffer size is exceeded
+     * \return A nullptr or the popped gcode_layer
+     */
+    LayerPlan* processBuffer()
+    {
+        processFanSpeedLayerTime();
+        if (buffer.size() >= 2)
+        {
+            addConnectingTravelMove();
+        }
         if (buffer.size() > 0)
         {
             insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
         }
-        buffer.emplace_back(constructor_args...);
         if (buffer.size() > buffer_size)
         {
-            buffer.front().writeGCode(gcode);
+            LayerPlan* ret = buffer.front();
             if (CommandSocket::isInstantiated())
             {
                 CommandSocket::getInstance()->flushGcode();
             }
             buffer.pop_front();
+            return ret;
         }
-        return buffer.back();
+        return nullptr;
     }
     
     /*!
-     * Write all remaining layer plans (GCodePlanner) to gcode and empty the buffer.
+     * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
     void flush();
 
 private:
+    /*!
+     * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
+     */
+    void addConnectingTravelMove();
+
+    /*!
+     * Apply fan speed and correct extrusion flow for minimal layer time settings.
+     */
+    void processFanSpeedLayerTime();
+
     /*!
      * Insert the preheat command for @p extruder into @p extruder_plan_before
      * 
