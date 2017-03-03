@@ -1072,25 +1072,49 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
+        SliceLayer &wall_layer = mesh->layers[layer_nr];
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
-            if (part.insets.size() > 0 && static_cast<int>(layer_nr) >= mesh->getSettingAsCount("bottom_layers"))
+            if (wall_layer.parts.size() == 0 || part.insets.size() == 0)
+            {
+                // nothing to do
+                return;
+            }
+            const unsigned bottom_layers = mesh->getSettingAsCount("bottom_layers");
+            if (layer_nr >= bottom_layers)
             {
                 spiralize = true;
             }
-            if (spiralize && static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
+            if (spiralize && layer_nr == bottom_layers)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
             }
-        }        // only spiralize the first part in the mesh
-        if (spiralize && &mesh->layers[layer_nr].parts[0] == &part)
+        }
+        // only spiralize the first part in the mesh, other parts won't be printed
+        if (spiralize && &wall_layer.parts[0] == &part)
         {
-            const PolygonRef& outer_wall = mesh->layers[layer_nr].parts[0].insets[0][0]; // current layer outer wall outline
-            const PolygonRef& last_outer_wall = (layer_nr == 0) ? outer_wall : mesh->layers[layer_nr - 1].parts[0].insets[0][0]; // last layer outer wall outline
+            std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
+            if(wall_insets.size() == 0 || wall_insets[0].size() == 0)
+            {
+                // wall doesn't have usable outline
+                return;
+            }
+            std::vector<Polygons>* last_wall_insets = &wall_insets; // default to current wall outline
+            if (layer_nr > 0)
+            {
+                SliceLayer &last_wall_layer = mesh->layers[layer_nr - 1];
+                if (last_wall_layer.parts.size() > 0 && last_wall_layer.parts[0].insets.size() > 0 && last_wall_layer.parts[0].insets[0].size() > 0)
+                {
+                    // use the last wall outline
+                    last_wall_insets = &last_wall_layer.parts[0].insets;
+                }
+            }
+            const PolygonRef& outer_wall = wall_insets[0][0]; // current layer outer wall outline
+            const PolygonRef& last_outer_wall = (*last_wall_insets)[0][0]; // last layer outer wall outline
             // output a wall slice that is interpolated between the last and current walls
-            const int seam_vertex_idx = mesh->layers[layer_nr].seam_vertex_index; // current layer seam vertex index
+            const int seam_vertex_idx = wall_layer.seam_vertex_index; // current layer seam vertex index
             const int last_seam_vertex_idx = (layer_nr == 0) ? -1 : mesh->layers[layer_nr - 1].seam_vertex_index; // last layer seam vertex index
             gcode_layer.spiralizeWallSlice(&mesh->inset0_config, outer_wall, last_outer_wall, seam_vertex_idx, last_seam_vertex_idx);
         }
