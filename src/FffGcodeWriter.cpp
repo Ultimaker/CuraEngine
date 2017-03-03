@@ -159,14 +159,12 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
             // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
             const int first_seam_vertex_idx = seam_vertex_idx;
             float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
-            //std::cerr << layer_nr << ": n_points= " << n_points << ", angle = " << a * 180/M_PI << "\n";
 
             while (a > M_PI)
             {
                 // the vertex was on the right of the vector so move the seam vertex on
                 seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
                 a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
-                //std::cerr << "new angle = " << a * 180/M_PI << "\n";
 
                 if (seam_vertex_idx == first_seam_vertex_idx)
                 {
@@ -177,7 +175,6 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
 
             // store result for use when spiralizing
             mesh.layers[layer_nr].seam_vertex_index = seam_vertex_idx;
-            //std::cerr << "layer " << layer_nr << ": " << seam_vertex_idx << "\n";
         }
     }
 }

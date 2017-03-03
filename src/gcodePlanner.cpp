@@ -495,11 +495,6 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
             PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist2);
         }
         // now interpolate between last_p and p depending on how far we have progressed along wall
-#if 0
-        if(index == n_points)
-            addTravel_simple(p);
-        else
-#endif
         addExtrusionMove(last_p + (p - last_p) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
     }
 }
