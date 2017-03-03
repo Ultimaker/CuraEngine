@@ -168,6 +168,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
 
                 if (seam_vertex_idx == first_seam_vertex_idx)
                 {
+                    logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d", layer_nr);
                     // this shouldn't happen!
                     break;
                 }
