@@ -456,7 +456,7 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
     const int n_points = wall.size();
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
-    const int max_dist2 = config->getLineWidth() * config->getLineWidth();
+    const int max_dist2 = config->getLineWidth() * config->getLineWidth() * 4; // (2 * lineWidth)^2;
 
     double total_length = 0.0; // determine the length of the complete wall
     Point p0 = origin;
