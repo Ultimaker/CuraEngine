@@ -117,16 +117,24 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
 
     if (mesh.layers.size() > 0)
     {
-        if(mesh.layers[0].parts.size() > 0 && mesh.layers[0].parts[0].insets.size() > 0)
+        unsigned layer_nr = 0;
+        // set the seam vertex index to 0 for bottom layers that have no parts or insets
+        while (layer_nr < mesh.layers.size() && (mesh.layers[layer_nr].parts.size() == 0 || mesh.layers[layer_nr].parts[0].insets.size() == 0))
         {
-            // use the vertex closest to Point(0, 0) for the first layer
+            mesh.layers[layer_nr++].seam_vertex_index = 0;
+        }
+
+        if (layer_nr < mesh.layers.size())
+        {
+            // use the vertex closest to Point(0, 0) for the first layer that has a part with insets
             // Doing this, we give the user some degree of control as to where the seam will be.
             // By moving the model on the bed they can move the start position of the seam and
             // this could be useful if the spiralization has a problem with a particular seam position
-            mesh.layers[0].seam_vertex_index = PolygonUtils::findClosest(Point(0, 0), mesh.layers[0].parts[0].insets[0][0]).point_idx;
+            mesh.layers[layer_nr].seam_vertex_index = PolygonUtils::findClosest(Point(0, 0), mesh.layers[layer_nr].parts[0].insets[0][0]).point_idx;
+            ++layer_nr;
         }
 
-        for (unsigned layer_nr = 1; layer_nr < mesh.layers.size(); ++layer_nr)
+        for (; layer_nr < mesh.layers.size(); layer_nr++)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
             const SliceLayer& last_layer = mesh.layers[layer_nr - 1];
@@ -1099,7 +1107,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
         if (spiralize && &wall_layer.parts[0] == &part)
         {
             std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
-            if(wall_insets.size() == 0 || wall_insets[0].size() == 0)
+            if (wall_insets.size() == 0 || wall_insets[0].size() == 0)
             {
                 // wall doesn't have usable outline
                 return;
