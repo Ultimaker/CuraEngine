@@ -460,9 +460,9 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
 
     double total_length = 0.0; // determine the length of the complete wall
     Point p0 = origin;
-    for (int index = 1; index <= n_points; ++index)
+    for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
-        const Point& p1 = wall[(seam_vertex_idx + index) % n_points];
+        const Point& p1 = wall[(seam_vertex_idx + wall_point_idx) % n_points];
         total_length += vSizeMM(p1 - p0);
         p0 = p1;
     }
@@ -477,25 +477,26 @@ void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, 
     // the last point is the seam vertex as the polygon is a loop
     double wall_length = 0.0;
     p0 = origin;
-    for (int index = 1; index <= n_points; ++index)
+    for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
         // p is a point from the current wall polygon
-        const Point& p = wall[(seam_vertex_idx + index) % n_points];
+        const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
         wall_length += vSizeMM(p - p0);
         p0 = p;
 
-        // last_p is p shifted onto last_wall
-        Point last_p(p);
-        if (last_wall.inside(last_p, false))
+        // now find the point on the last wall that is closest to p
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+        // if we found a point and it's not further away than max_dist2, use it
+        if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
         {
-            PolygonUtils::moveOutside(last_wall_polygons, last_p, 0, max_dist2);
+            // interpolate between cpp.location and p depending on how far we have progressed along wall
+            addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
         }
-        else if(!last_wall.inside(last_p, true))
+        else
         {
-            PolygonUtils::moveInside(last_wall_polygons, last_p, 0, max_dist2);
+            // no point in the last wall was found close enough to the current wall point so don't interpolate
+            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
         }
-        // now interpolate between last_p and p depending on how far we have progressed along wall
-        addExtrusionMove(last_p + (p - last_p) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
     }
 }
 
