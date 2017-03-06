@@ -348,13 +348,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
-        layer_plan_buffer.push(gcode_layer);
-        LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
-        if (to_be_written)
-        {
-            to_be_written->writeGCode(gcode);
-            delete to_be_written;
-        }
+        layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
     { // raft interface layer
@@ -388,13 +382,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
-        layer_plan_buffer.push(gcode_layer);
-        LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
-        if (to_be_written)
-        {
-            to_be_written->writeGCode(gcode);
-            delete to_be_written;
-        }
+        layer_plan_buffer.handle(gcode_layer, gcode);
     }
     
     int layer_height = train->getSettingInMicrons("raft_surface_thickness");
@@ -428,13 +416,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, &gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 
-        layer_plan_buffer.push(gcode_layer);
-        LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
-        if (to_be_written)
-        {
-            to_be_written->writeGCode(gcode);
-            delete to_be_written;
-        }
+        layer_plan_buffer.handle(gcode_layer, gcode);
     }
 }
 

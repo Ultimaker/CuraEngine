@@ -70,6 +70,15 @@ public:
     }
 
     /*!
+     * Push a new layer onto the buffer and handle the buffer.
+     * Write a layer to gcode if it is popped out of the buffer.
+     * 
+     * \param layer_plan The layer to handle
+     * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
+     */
+    void handle(LayerPlan& layer_plan, GCodeExport& gcode);
+
+    /*!
      * Process all layers in the buffer
      * This inserts the temperature commands to start warming for a given layer in earlier layers
      * 

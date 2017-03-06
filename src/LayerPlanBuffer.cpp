@@ -9,6 +9,18 @@ namespace cura {
 
 
 
+void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
+{
+    push(layer_plan);
+    LayerPlan* to_be_written = processBuffer();
+    if (to_be_written)
+    {
+        to_be_written->writeGCode(gcode);
+        delete to_be_written;
+    }
+}
+
+
 void LayerPlanBuffer::flush()
 {
     if (buffer.size() > 0)
