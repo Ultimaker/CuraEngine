@@ -10,6 +10,8 @@
 #include "utils/orderOptimizer.h"
 #include "GcodeLayerThreader.h"
 
+#define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
+
 namespace cura
 {
 
@@ -88,7 +90,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     const std::function<LayerPlan* (int)>& produce_item =
         [&storage, total_layers, this](int layer_nr)
         {
-            LayerPlan& gcode_layer =processLayer(storage, layer_nr, total_layers);
+            LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
             return &gcode_layer;
         };
     const std::function<void (LayerPlan*)>& consume_item =
@@ -102,7 +104,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
                 delete to_be_written;
             }
         };
-    const unsigned int max_task_count = 20; // TODO: hardcoded value
+    const unsigned int max_task_count = OMP_MAX_ACTIVE_LAYERS_PROCESSED;
     GcodeLayerThreader<LayerPlan> threader(
         process_layer_starting_layer_nr
         , static_cast<int>(total_layers)
