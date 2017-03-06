@@ -107,7 +107,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
 {
     int extruder_count = storage.meshgroup->getExtruderCount();
     travel_config_per_extruder.reserve(extruder_count);
-    skirt_brim_config.reserve(extruder_count);
+    skirt_brim_config_per_extruder.reserve(extruder_count);
     prime_tower_config_per_extruder.reserve(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -119,7 +119,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
                 , 0.0
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMillimetersPerSecond("acceleration_travel"), train->getSettingInMillimetersPerSecond("jerk_travel")}
             );
-        skirt_brim_config.emplace_back(
+        skirt_brim_config_per_extruder.emplace_back(
                 PrintFeatureType::SkirtBrim
                 , train->getSettingInMicrons("skirt_brim_line_width")
                 , layer_thickness

@@ -41,7 +41,7 @@ public:
     GCodePathConfig raft_surface_config;
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
-    std::vector<GCodePathConfig> skirt_brim_config; //!< Configuration for skirt and brim per extruder.
+    std::vector<GCodePathConfig> skirt_brim_config_per_extruder; //!< Configuration for skirt and brim per extruder.
     std::vector<GCodePathConfig> prime_tower_config_per_extruder; //!< Configuration for the prime tower per extruder.
 
     GCodePathConfig support_infill_config; //!< The config used to print the normal support, rather than the support interface
