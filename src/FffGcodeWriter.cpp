@@ -13,6 +13,16 @@
 namespace cura
 {
 
+FffGcodeWriter::FffGcodeWriter(SettingsBase* settings_)
+: SettingsMessenger(settings_)
+, max_object_height(0)
+, layer_plan_buffer(this, gcode)
+{
+    for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+    { // initialize all as max layer_nr, so that they get updated to the lowest layer on which they are used.
+        extruder_prime_layer_nr[extruder_nr] = std::numeric_limits<int>::max();
+    }
+}
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
