@@ -289,7 +289,7 @@ private:
      * \param current_extruder The current extruder with which we last printed
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<unsigned int> calculateExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const;
+    std::vector<unsigned int> calculateLayerExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder

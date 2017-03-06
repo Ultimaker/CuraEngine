@@ -629,13 +629,13 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<int>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<unsigned int>>& extruder_order_per_layer_here = (layer_nr < 0)? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
-        extruder_order_per_layer_here.push_back(calculateExtruderOrder(storage, last_extruder, layer_nr));
+        extruder_order_per_layer_here.push_back(calculateLayerExtruderOrder(storage, last_extruder, layer_nr));
         last_extruder = extruder_order_per_layer_here.back().back();
         extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
     }
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
+std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
 {
     unsigned int extruder_count = storage.getSettingAsCount("machine_extruder_count");
     assert(static_cast<int>(extruder_count) > 0);
