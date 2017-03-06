@@ -67,7 +67,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         total_layers = std::max(total_layers, mesh.layers.size());
-        if (getSettingBoolean("magic_spiralize"))
+        if (mesh.getSettingBoolean("magic_spiralize"))
         {
             findLayerSeamsForSpiralize(mesh);
         }
