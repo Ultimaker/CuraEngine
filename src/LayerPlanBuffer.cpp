@@ -81,13 +81,13 @@ void LayerPlanBuffer::addConnectingTravelMove()
     {
         const LayerPlan* newest_layer = *newest_layer_it;
         assert(newest_layer->extruder_plans.front().extruder == (*prev_layer_it)->extruder_plans.back().extruder);
-        const ExtruderPlan& extruder_plan_above = newest_layer->extruder_plans.front();
-        if (extruder_plan_above.paths.size() == 0)
+        const ExtruderPlan& extruder_plan_above_prev_layer = newest_layer->extruder_plans.front();
+        if (extruder_plan_above_prev_layer.paths.size() == 0)
         {
             logWarning("There are empty layers (or layers with empty extruder plans) in the print! Temperature control and cross layer travel moves might suffer.\n");
             return;
         }
-        const GCodePath& path_above = extruder_plan_above.paths[0];
+        const GCodePath& path_above = extruder_plan_above_prev_layer.paths[0];
         assert(path_above.points.size() == 1 && "The first move planned should have been a boguous direct travel move");
         Point first_location_new_layer = path_above.points[0];
         destination = first_location_new_layer;
