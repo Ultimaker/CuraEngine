@@ -448,6 +448,57 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     }
 }
 
+void GCodePlanner::spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
+{
+    const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    addTravel_simple(origin);
+
+    const int n_points = wall.size();
+    Polygons last_wall_polygons;
+    last_wall_polygons.add(last_wall);
+    const int max_dist2 = config->getLineWidth() * config->getLineWidth() * 4; // (2 * lineWidth)^2;
+
+    double total_length = 0.0; // determine the length of the complete wall
+    Point p0 = origin;
+    for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
+    {
+        const Point& p1 = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        total_length += vSizeMM(p1 - p0);
+        p0 = p1;
+    }
+
+    if (total_length == 0.0)
+    {
+        // nothing to do
+        return;
+    }
+
+    // extrude to the points following the seam vertex
+    // the last point is the seam vertex as the polygon is a loop
+    double wall_length = 0.0;
+    p0 = origin;
+    for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
+    {
+        // p is a point from the current wall polygon
+        const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        wall_length += vSizeMM(p - p0);
+        p0 = p;
+
+        // now find the point on the last wall that is closest to p
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+        // if we found a point and it's not further away than max_dist2, use it
+        if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+        {
+            // interpolate between cpp.location and p depending on how far we have progressed along wall
+            addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+        }
+        else
+        {
+            // no point in the last wall was found close enough to the current wall point so don't interpolate
+            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+        }
+    }
+}
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
@@ -731,7 +782,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                gcode.writeAcceleration(path.config->getAcceleration());
+                gcode.writeAcceleration(path.config->getAcceleration(), path.config->isTravelPath());
             }
             if (jerk_enabled)
             {

@@ -422,6 +422,20 @@ public:
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
     /*!
+     * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
+     *
+     * At the start of the wall slice, the points are closest to \p last_wall and at the end of the polygon, the points are closest to \p wall.
+     *
+     * \param config The config with which to print the lines
+     * \param wall The wall polygon to be spiralized
+     * \param last_wall The wall polygon that was spiralized below the current polygon (or \p wall if this is the first spiralized layer)
+     * \param seam_vertex_idx The index of this wall slice's seam vertex
+     * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
+     */
+    void spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
+
+
+    /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
      * and store them in each ExtruderPlan and each GCodePath.
      * 

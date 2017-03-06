@@ -87,6 +87,7 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    int seam_vertex_index; //!< the index of the layer's seam vertex (only used for spiralization)
 
     /*!
      * Get the all outlines of all layer parts in this layer.
