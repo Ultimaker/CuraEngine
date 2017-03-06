@@ -41,6 +41,7 @@ private:
         Point3 prime_pos; //!< The location this nozzle is primed before printing
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
+        bool use_temp; //!< Whether to insert temperature commands for this extruder
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
@@ -177,6 +178,8 @@ public:
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
+
+    bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< Returns whether the extruder with the given index is used up until the current meshgroup
 

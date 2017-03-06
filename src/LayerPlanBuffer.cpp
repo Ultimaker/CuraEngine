@@ -91,6 +91,10 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
 
 void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp)
 {
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
     // time_before_extruder_plan_end is halved, so that at the layer change the temperature will be half way betewen the two requested temperatures
     constexpr bool during_printing = true;
     double time_before_extruder_plan_end = 0.5 * preheat_config.getTimeToGoFromTempToTemp(extruder, prev_extruder_plan.printing_temperature, required_temp, during_printing);
@@ -121,7 +125,11 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
-    int extruder = extruder_plan.extruder;
+    const int extruder = extruder_plan.extruder;
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
     double initial_print_temp = extruder_plan.initial_printing_temperature;
     
     Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(extruder_plans, extruder_plan_idx);
@@ -188,8 +196,12 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
 
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
-    unsigned int extruder = extruder_plan.extruder;
-    double print_temp = extruder_plan.printing_temperature;
+    const unsigned int extruder = extruder_plan.extruder;
+    const double print_temp = extruder_plan.printing_temperature;
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
 
     double heated_pre_travel_time = 0;
     if (preheat_config.getInitialPrintTemp(extruder) != 0)
@@ -213,7 +225,11 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx)
 {
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
-    int extruder = last_extruder_plan.extruder;
+    const int extruder = last_extruder_plan.extruder;
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
 
     double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
     if (final_print_temp == 0)
