@@ -565,12 +565,12 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
 
 void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time)
 {
-    const FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
+    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
     totalPrintTime = estimates.getTotalTime();
     if (force_minimal_layer_time)
     {
-        forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
+        forceMinimalLayerTime(fan_speed_layer_time_settings.cool_min_layer_time, fan_speed_layer_time_settings.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
     }
 
     /*
@@ -588,19 +588,19 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
 
     */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    fan_speed = fsml.cool_fan_speed_min;
+    fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
     double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
-    if (force_minimal_layer_time && totalLayerTime < fsml.cool_min_layer_time)
+    if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
     {
-        fan_speed = fsml.cool_fan_speed_max;
+        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max;
     }
-    else if (force_minimal_layer_time && totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
+    else if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
     { 
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        double fan_speed_diff = fsml.cool_fan_speed_max - fsml.cool_fan_speed_min;
-        double layer_time_diff = fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time;
-        double fraction_of_slope = (totalLayerTime - fsml.cool_min_layer_time) / layer_time_diff;
-        fan_speed = fsml.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
+        double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_layer_time_settings.cool_fan_speed_min;
+        double layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - fan_speed_layer_time_settings.cool_min_layer_time;
+        double fraction_of_slope = (totalLayerTime - fan_speed_layer_time_settings.cool_min_layer_time) / layer_time_diff;
+        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
     }
     /*
     Supposing no influence of minimal layer time;
@@ -618,10 +618,10 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
                      layer nr >
 
     */
-    if (layer_nr < fsml.cool_fan_full_layer)
+    if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer)
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fan_speed = fsml.cool_fan_speed_0 + (fan_speed - fsml.cool_fan_speed_0) * std::max(0, layer_nr) / fsml.cool_fan_full_layer;
+        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(0, layer_nr) / fan_speed_layer_time_settings.cool_fan_full_layer;
     }
 }
 
