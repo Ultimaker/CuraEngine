@@ -56,18 +56,12 @@ public:
     , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
     
-    void setPreheatConfig(MeshGroup& settings)
-    {
-        preheat_config.setConfig(settings);
-    }
+    void setPreheatConfig(MeshGroup& settings);
 
     /*!
      * Push a new layer plan into the buffer
      */
-    void push(LayerPlan& layer_plan)
-    {
-        buffer.push_back(&layer_plan);
-    }
+    void push(LayerPlan& layer_plan);
 
     /*!
      * Push a new layer onto the buffer and handle the buffer.
@@ -85,30 +79,8 @@ public:
      * Pop out the earliest layer in the buffer if the buffer size is exceeded
      * \return A nullptr or the popped gcode_layer
      */
-    LayerPlan* processBuffer()
-    {
-        processFanSpeedLayerTime();
-        if (buffer.size() >= 2)
-        {
-            addConnectingTravelMove();
-        }
-        if (buffer.size() > 0)
-        {
-            insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
-        }
-        if (buffer.size() > buffer_size)
-        {
-            LayerPlan* ret = buffer.front();
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->flushGcode();
-            }
-            buffer.pop_front();
-            return ret;
-        }
-        return nullptr;
-    }
-    
+    LayerPlan* processBuffer();
+
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */

@@ -9,6 +9,17 @@ namespace cura {
 
 
 
+
+void LayerPlanBuffer::setPreheatConfig(MeshGroup& settings)
+{
+    preheat_config.setConfig(settings);
+}
+
+void LayerPlanBuffer::push(LayerPlan& layer_plan)
+{
+    buffer.push_back(&layer_plan);
+}
+
 void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 {
     push(layer_plan);
@@ -20,6 +31,29 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
     }
 }
 
+LayerPlan* LayerPlanBuffer::processBuffer()
+{
+    processFanSpeedLayerTime();
+    if (buffer.size() >= 2)
+    {
+        addConnectingTravelMove();
+    }
+    if (buffer.size() > 0)
+    {
+        insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
+    }
+    if (buffer.size() > buffer_size)
+    {
+        LayerPlan* ret = buffer.front();
+        if (CommandSocket::isInstantiated())
+        {
+            CommandSocket::getInstance()->flushGcode();
+        }
+        buffer.pop_front();
+        return ret;
+    }
+    return nullptr;
+}
 
 void LayerPlanBuffer::flush()
 {
