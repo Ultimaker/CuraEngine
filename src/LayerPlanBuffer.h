@@ -74,7 +74,9 @@ public:
 
     /*!
      * Process all layers in the buffer
-     * This inserts the temperature commands to start warming for a given layer in earlier layers
+     * This inserts the temperature commands to start warming for a given layer in earlier layers;
+     * the fan speeds and layer time settings of the most recently pushed layer are processed;
+     * the correctly combing travel move between the last added layer and the layer before is added.
      * 
      * Pop out the earliest layer in the buffer if the buffer size is exceeded
      * \return A nullptr or the popped gcode_layer
