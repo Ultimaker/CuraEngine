@@ -139,7 +139,7 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    BACK
+    USER_SPECIFIED
 };
 
 enum class ESurfaceMode

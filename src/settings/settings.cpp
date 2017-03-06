@@ -398,7 +398,7 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key) const
     if (value == "shortest")
         return EZSeamType::SHORTEST;
     if (value == "back")
-        return EZSeamType::BACK;
+        return EZSeamType::USER_SPECIFIED;
     return EZSeamType::SHORTEST;
 }
 
