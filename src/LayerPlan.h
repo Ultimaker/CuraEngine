@@ -56,9 +56,8 @@ public:
      * \warning Doesn't set the required temperature yet.
      * 
      * \param extruder The extruder number for which this object is a plan.
-     * \param start_position The position the head is when this extruder plan starts
      */
-    ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
+    ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments
@@ -112,8 +111,9 @@ public:
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
      * 
      * \param force_minimal_layer_time Whether we should apply speed changes and perhaps a head lift in order to meet the minimal layer time
+     * \param starting_position The position the head was before starting this extruder plan
      */
-    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time);
+    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position);
 
     /*!
      * Set the extrude speed factor. This is used for printing slower than normal.
@@ -157,15 +157,8 @@ public:
      * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
      */
     double getFanSpeed();
-protected:
-    /*!
-     * The position the print head was at at the start of this extruder plan
-     * 
-     * \warning This position is only correct after intitialization for all but the first extruder plan in a layer.
-     * This is because when we plan a layer we don't know where the previous layer ended.
-     */
-    Point start_position;
 
+protected:
     int layer_nr; //!< The layer number at which we are currently printing.
     bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
 
@@ -200,9 +193,10 @@ protected:
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
      * and store them in each ExtruderPlan and each GCodePath.
      * 
+     * \param starting_position The position the head was in before starting this layer
      * \return the total estimates of this layer
      */
-    TimeMaterialEstimates computeNaiveTimeEstimates();
+    TimeMaterialEstimates computeNaiveTimeEstimates(Point starting_position);
 };
 
 class LayerPlanBuffer; // forward declaration to prevent circular dependency
@@ -220,7 +214,6 @@ class LayerPlanBuffer; // forward declaration to prevent circular dependency
 class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
-    friend class LayerPlanTest;
 private:
     const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
@@ -462,16 +455,6 @@ public:
      */
     void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
-    /*!
-     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
-     * and store them in each ExtruderPlan and each GCodePath.
-     * 
-     * \warning This function recomputes values which are already computed if you've called processFanSpeedAndMinimalLayerTime
-     * 
-     * \return the total estimates of this layer
-     */
-    TimeMaterialEstimates computeNaiveTimeEstimates();
-    
     /*!
      * Write the planned paths to gcode
      * 

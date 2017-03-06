@@ -126,7 +126,6 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
-    LayerPlanTest
     GcodeLayerThreaderTest
 )
 set(engine_TEST_INFILL

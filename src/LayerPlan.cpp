@@ -10,12 +10,11 @@
 namespace cura {
 
 
-ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
+ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , heated_pre_travel_time(0)
 , initial_printing_temperature(-1)
 , printing_temperature(-1)
-, start_position(start_position)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
 , layer_thickness(layer_thickness)
@@ -111,9 +110,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
         layer_start_pos_per_extruder.emplace_back(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     }
-    Point start_position = layer_start_pos_per_extruder[current_extruder];
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
-    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
+    extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
 
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { //Skirt and brim.
@@ -209,7 +207,7 @@ bool LayerPlan::setExtruder(int extruder)
     }
     else 
     {
-        extruder_plans.emplace_back(extruder, getLastPosition(), layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
+        extruder_plans.emplace_back(extruder, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
         assert((int)extruder_plans.size() <= storage.meshgroup->getExtruderCount() && "Never use the same extruder twice on one layer!");
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
@@ -506,10 +504,10 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         this->totalPrintTime = (extrudeTime * inv_factor) + travelTime;
     }
 }
-TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
+TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
 {
     TimeMaterialEstimates ret;
-    Point p0 = start_position;
+    Point p0 = starting_position;
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     for (GCodePath& path : paths)
@@ -563,10 +561,10 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
     return estimates;
 }
 
-void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time)
+void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position)
 {
     const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings;
-    TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
+    TimeMaterialEstimates estimates = computeNaiveTimeEstimates(starting_position);
     totalPrintTime = estimates.getTotalTime();
     if (force_minimal_layer_time)
     {
@@ -625,24 +623,14 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     }
 }
 
-TimeMaterialEstimates LayerPlan::computeNaiveTimeEstimates()
-{
-    TimeMaterialEstimates ret;
-    for (ExtruderPlan& extruder_plan : extruder_plans)
-    {
-        ret += extruder_plan.computeNaiveTimeEstimates();
-    }
-    return ret;
-}
-
 void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 {
-    extruder_plans[0].start_position = starting_position;
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
         bool force_minimal_layer_time = extr_plan_idx == extruder_plans.size() - 1;
-        extruder_plan.processFanSpeedAndMinimalLayerTime(force_minimal_layer_time);
+        extruder_plan.processFanSpeedAndMinimalLayerTime(force_minimal_layer_time, starting_position);
+        starting_position = extruder_plan.paths.back().points.back();
     }
 }
 
