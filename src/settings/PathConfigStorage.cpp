@@ -105,7 +105,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_interface")}
         )
 {
-    int extruder_count = storage.meshgroup->getExtruderCount();
+    const int extruder_count = storage.meshgroup->getExtruderCount();
     travel_config_per_extruder.reserve(extruder_count);
     skirt_brim_config_per_extruder.reserve(extruder_count);
     prime_tower_config_per_extruder.reserve(extruder_count);
@@ -141,7 +141,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
         mesh_configs.emplace_back(mesh_storage, layer_thickness);
     }
 
-    int initial_speedup_layer_count = storage.getSettingAsCount("speed_slowdown_layers");
+    const int initial_speedup_layer_count = storage.getSettingAsCount("speed_slowdown_layers");
     if (layer_nr < initial_speedup_layer_count)
     {
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
@@ -166,11 +166,11 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
     { // support
         if (layer_nr < initial_speedup_layer_count)
         {
-            int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr <= 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
+            const int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr <= 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
             GCodePathConfig::SpeedDerivatives& first_layer_config_infill = global_first_layer_config_per_extruder[extruder_nr_support_infill];
             support_infill_config.smoothSpeed(first_layer_config_infill, std::max(0, layer_nr), initial_speedup_layer_count);
 
-            int extruder_nr_support_interface = storage.getSettingAsIndex("support_interface_extruder_nr");
+            const int extruder_nr_support_interface = storage.getSettingAsIndex("support_interface_extruder_nr");
             GCodePathConfig::SpeedDerivatives& first_layer_config_interface = global_first_layer_config_per_extruder[extruder_nr_support_interface];
             support_interface_config.smoothSpeed(first_layer_config_interface, std::max(0, layer_nr), initial_speedup_layer_count);
         }
