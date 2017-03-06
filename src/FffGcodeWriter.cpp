@@ -126,10 +126,9 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
 
         if (layer_nr < mesh.layers.size())
         {
-            // use the vertex closest to the seam position for the first layer that has a part with insets
-            // Doing this, we give the user some degree of control as to where the seam will be.
-            // By moving the model on the bed they can move the start position of the seam and
-            // this could be useful if the spiralization has a problem with a particular seam position
+            // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
+            // in the first layer that has a part with insets. This allows the user to alter the seam start location which
+            // could be useful if the spiralization has a problem with a particular seam path.
             Point seam_pos(0, 0);
             if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
             {
