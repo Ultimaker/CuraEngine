@@ -685,7 +685,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
         }
     }
     std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
-    std::list<unsigned int>::iterator starting_mesh_it = mesh_indices_order.end();
+    std::list<unsigned int>::iterator starting_mesh_idx_it = mesh_indices_order.end();
     { // calculate starting_mesh_it
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
         const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
@@ -700,7 +700,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
             if (dist2 < best_dist2)
             {
                 best_dist2 = dist2;
-                starting_mesh_it = mesh_it;
+                starting_mesh_idx_it = mesh_it;
             }
         }
     }
@@ -708,14 +708,14 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
     ret.resize(mesh_indices_order.size());
     for (unsigned int mesh_order_nr = 0; mesh_order_nr < ret.size(); mesh_order_nr++)
     {
-        if (starting_mesh_it == mesh_indices_order.end())
+        if (starting_mesh_idx_it == mesh_indices_order.end())
         {
-            starting_mesh_it = mesh_indices_order.begin();
+            starting_mesh_idx_it = mesh_indices_order.begin();
         }
-        unsigned int mesh_order_idx = *starting_mesh_it;
+        unsigned int mesh_order_idx = *starting_mesh_idx_it;
         const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
         ret[mesh_order_nr] = mesh_idx;
-        ++starting_mesh_it;
+        ++starting_mesh_idx_it;
     }
     return ret;
 }
