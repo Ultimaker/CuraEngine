@@ -44,17 +44,7 @@ public:
         const std::function<T* (int)>& produce_item,
         const std::function<void (T*)>& consume_item,
         const unsigned int max_task_count
-    )
-    : start_item_argument_index(start_item_argument_index)
-    , end_item_argument_index(end_item_argument_index)
-    , item_count(end_item_argument_index - start_item_argument_index)
-    , max_task_count(max_task_count)
-    , produce_item(produce_item)
-    , consume_item(consume_item)
-    , last_produced_argument_index(start_item_argument_index - 1)
-    {
-        produced.resize(item_count, nullptr);
-    }
+    );
 
     /*!
      * Produce all items and consume them.
@@ -110,6 +100,25 @@ private:
     int active_task_count = 0; //!< Number of items active in this system.
 
 };
+
+template <typename T>
+GcodeLayerThreader<T>::GcodeLayerThreader(
+    int start_item_argument_index,
+    int end_item_argument_index,
+    const std::function<T* (int)>& produce_item,
+    const std::function<void (T*)>& consume_item,
+    const unsigned int max_task_count
+)
+: start_item_argument_index(start_item_argument_index)
+, end_item_argument_index(end_item_argument_index)
+, item_count(end_item_argument_index - start_item_argument_index)
+, max_task_count(max_task_count)
+, produce_item(produce_item)
+, consume_item(consume_item)
+, last_produced_argument_index(start_item_argument_index - 1)
+{
+    produced.resize(item_count, nullptr);
+}
 
 template <typename T>
 void GcodeLayerThreader<T>::run()
