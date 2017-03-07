@@ -55,8 +55,6 @@ public:
 
     bool operator==(ConstPolygonRef& other) const =delete;
 
-// needed in std::optional<ConstPolygonRef>
-//     ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete;
     ConstPolygonRef& operator=(const ConstPolygonRef& other)
     {
         path = other.path;
