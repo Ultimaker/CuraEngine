@@ -7,6 +7,10 @@
 #include <deque>
 #include <cmath> // round
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif // _OPENMP
+
 #include "support.h"
 
 #include "utils/math.h"
@@ -240,10 +244,29 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
     }
 
-    std::deque<std::pair<Polygons, Polygons>> basic_and_full_overhang_above;
-    for (unsigned int layer_idx = support_layer_count - 1; layer_idx != support_layer_count - 1 - layerZdistanceTop ; layer_idx--)
+    std::vector<Polygons> xy_disallowed_per_layer;
+    std::vector<Polygons> full_overhang_per_layer;
+    xy_disallowed_per_layer.resize(support_layer_count);
+    full_overhang_per_layer.resize(support_layer_count);
+#pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
+    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
     {
-        basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
+        std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
+        full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
+
+        Polygons basic_overhang = basic_and_full_overhang.first;
+        Polygons outlines = storage.getLayerOutlines(layer_idx, false);
+        if (use_support_xy_distance_overhang)
+        {
+            Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
+            Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+
+            xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
+        }
+        else
+        {
+            xy_disallowed_per_layer[layer_idx] = outlines.offset(supportXYDistance);
+        }
     }
 
     int overhang_points_pos = overhang_points.size() - 1;
@@ -252,16 +275,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
-        basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
-        
-        Polygons overhang;
-        {
-            // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
-            overhang = basic_and_full_overhang_above.back().second;
-            basic_and_full_overhang_above.pop_back();
-        }
-
-        Polygons& supportLayer_this = overhang; 
+        Polygons supportLayer_this = full_overhang_per_layer[layer_idx + layerZdistanceTop];;
 
         if (extension_offset)
         {
@@ -281,7 +295,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
-        supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+        if (storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
+        { // handle support mesh
+            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+        }
 
         // move up from model
         if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
@@ -298,21 +315,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         // inset using X/Y distance
         if (supportLayer_this.size() > 0)
         {
-            Polygons& basic_overhang = basic_and_full_overhang_above.front().first; // basic overhang on this layer
-            Polygons outlines = storage.getLayerOutlines(layer_idx, false);
-
-            if (use_support_xy_distance_overhang)
-            {
-                Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
-                Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
-
-                Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
-                supportLayer_this = supportLayer_this.difference(xy_disallowed);
-            }
-            else
-            {
-                supportLayer_this = supportLayer_this.difference(outlines.offset(supportXYDistance));
-            }
+            supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
 
         supportAreas[layer_idx] = supportLayer_this;
@@ -360,7 +363,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         // this is performed after the main support generation loop above, because it affects the joining of polygons
         // if this would be performed in the main loop then some support would not have been generated under the overhangs and consequently no support is generated for that,
         // meaning almost no support would be generated in some cases which definitely need support.
-        for (size_t layer_idx = 0; layer_idx < storage.support.supportLayers.size() && layer_idx < support_layer_count - (layerZdistanceTop - 1); layer_idx++)
+        const int max_checking_layer_idx = std::min(static_cast<int>(storage.support.supportLayers.size())
+                                                  , static_cast<int>(support_layer_count - (layerZdistanceTop - 1)));
+        const size_t max_checking_idx_size_t = std::max(0, max_checking_layer_idx);
+#pragma omp parallel for default(none) shared(supportAreas, support_layer_count, storage) schedule(dynamic)
+        for (size_t layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
         {
             supportAreas[layer_idx] = supportAreas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layerZdistanceTop - 1, false));
         }
