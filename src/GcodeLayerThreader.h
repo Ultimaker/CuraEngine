@@ -142,7 +142,7 @@ void GcodeLayerThreader<T>::produce(int item_argument_index)
     #pragma omp critical
     {
         produced[item_idx] = produced_item;
-        if (item_idx == last_consumed_idx + 1 && last_consumed_idx + 1 < end_item_argument_index)
+        if (item_idx == last_consumed_idx + 1 && item_idx < end_item_argument_index)
         {
             assert(!to_be_consumed_item_idx && "the just produced item shouldn't be consumable already!");
             to_be_consumed_item_idx = item_idx;
