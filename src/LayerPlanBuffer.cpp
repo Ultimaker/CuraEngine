@@ -33,6 +33,10 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 
 LayerPlan* LayerPlanBuffer::processBuffer()
 {
+    if (buffer.empty())
+    {
+        return nullptr;
+    }
     processFanSpeedLayerTime();
     if (buffer.size() >= 2)
     {
@@ -91,7 +95,11 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
 void LayerPlanBuffer::processFanSpeedLayerTime()
 {
+    assert(buffer.size() > 0);
     auto newest_layer_it = --buffer.end();
+    // Assume the print head is homed at the start of a meshgroup.
+    // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second meshgroup.
+    // It's not that bad, though. They are naive estimates any way.
     Point starting_position(0, 0);
     if (buffer.size() >= 2)
     {

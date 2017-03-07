@@ -98,7 +98,7 @@ private:
     void addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer);
 
     /*!
-     * Apply fan speed and correct extrusion flow for minimal layer time settings.
+     * Apply fan speed and correct extrusion flow for minimal layer time settings of the last layer plan in the buffer.
      */
     void processFanSpeedLayerTime();
 
