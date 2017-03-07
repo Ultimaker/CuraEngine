@@ -91,8 +91,11 @@ public:
 private:
     /*!
      * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
+     * 
+     * \param prev_layer The layer before the just added layer, to which to add the combing travel move.
+     * \param newest_layer The newly added layer, with a non-combing travel move as first path.
      */
-    void addConnectingTravelMove();
+    void addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer);
 
     /*!
      * Apply fan speed and correct extrusion flow for minimal layer time settings.
