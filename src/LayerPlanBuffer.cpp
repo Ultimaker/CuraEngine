@@ -40,7 +40,7 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     processFanSpeedLayerTime();
     if (buffer.size() >= 2)
     {
-        addConnectingTravelMove(*----buffer.end(), *--buffer.end());
+        addConnectingTravelMove(*--(--buffer.end()), *--buffer.end());
     }
     if (buffer.size() > 0)
     {
