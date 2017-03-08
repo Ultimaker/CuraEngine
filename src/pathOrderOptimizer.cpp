@@ -92,10 +92,10 @@ int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
 {
     switch (type)
     {
-        case EZSeamType::BACK:      return getClosestPointInPolygon(z_seam_pos, poly_idx); 
-        case EZSeamType::RANDOM:    return getRandomPointInPolygon(poly_idx); 
-        case EZSeamType::SHORTEST:  return getClosestPointInPolygon(prev_point, poly_idx);
-        default:                    return getClosestPointInPolygon(prev_point, poly_idx);
+        case EZSeamType::USER_SPECIFIED:    return getClosestPointInPolygon(z_seam_pos, poly_idx);
+        case EZSeamType::RANDOM:            return getRandomPointInPolygon(poly_idx);
+        case EZSeamType::SHORTEST:          return getClosestPointInPolygon(prev_point, poly_idx);
+        default:                            return getClosestPointInPolygon(prev_point, poly_idx);
     }
 }
 

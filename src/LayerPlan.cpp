@@ -250,11 +250,16 @@ void LayerPlan::moveInsideCombBoundary(int distance)
     }
 }
 
-GCodePath& LayerPlan::addTravel(Point p)
+GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
+
     GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
+    if (always_retract)
+    {
+        path->retract = true;
+    }
 
     bool combed = false;
 
@@ -275,7 +280,7 @@ GCodePath& LayerPlan::addTravel(Point p)
         combed = comb->calc(*last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
-            bool retract = combPaths.size() > 1;
+            bool retract = always_retract || combPaths.size() > 1;
             if (!retract)
             { // check whether we want to retract
                 if (combPaths.throughAir)
@@ -322,7 +327,7 @@ GCodePath& LayerPlan::addTravel(Point p)
     
     if (!combed && last_planned_position) {
         // no combing? always retract!
-        if (!shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+        if (always_retract || !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
@@ -365,10 +370,10 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFi
     last_planned_position = p;
 }
 
-void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
+void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, bool always_retract)
 {
     Point p0 = polygon[start_idx];
-    addTravel(p0);
+    addTravel(p0, always_retract);
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
@@ -413,7 +418,7 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize, bool always_retract)
 {
     if (polygons.size() == 0)
     {
@@ -427,7 +432,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
+        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, always_retract);
     }
 }
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
@@ -458,6 +463,57 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
+void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
+{
+    const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    addTravel_simple(origin);
+
+    const int n_points = wall.size();
+    Polygons last_wall_polygons;
+    last_wall_polygons.add(last_wall);
+    const int max_dist2 = config->getLineWidth() * config->getLineWidth() * 4; // (2 * lineWidth)^2;
+
+    double total_length = 0.0; // determine the length of the complete wall
+    Point p0 = origin;
+    for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
+    {
+        const Point& p1 = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        total_length += vSizeMM(p1 - p0);
+        p0 = p1;
+    }
+
+    if (total_length == 0.0)
+    {
+        // nothing to do
+        return;
+    }
+
+    // extrude to the points following the seam vertex
+    // the last point is the seam vertex as the polygon is a loop
+    double wall_length = 0.0;
+    p0 = origin;
+    for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
+    {
+        // p is a point from the current wall polygon
+        const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        wall_length += vSizeMM(p - p0);
+        p0 = p;
+
+        // now find the point on the last wall that is closest to p
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+        // if we found a point and it's not further away than max_dist2, use it
+        if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+        {
+            // interpolate between cpp.location and p depending on how far we have progressed along wall
+            addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+        }
+        else
+        {
+            // no point in the last wall was found close enough to the current wall point so don't interpolate
+            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+        }
+    }
+}
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
@@ -646,7 +702,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     
     gcode.writeLayerComment(layer_nr);
 
-    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage))
+    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature") != 0)
     {
         bool wait = false;
         gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature"), wait);
@@ -733,7 +789,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                gcode.writeAcceleration(path.config->getAcceleration());
+                gcode.writeAcceleration(path.config->getAcceleration(), path.config->isTravelPath());
             }
             if (jerk_enabled)
             {

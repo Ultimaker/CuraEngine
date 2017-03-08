@@ -63,6 +63,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         total_layers = std::max(total_layers, mesh.layers.size());
+        if (mesh.getSettingBoolean("magic_spiralize"))
+        {
+            findLayerSeamsForSpiralize(mesh);
+        }
     }
     
     gcode.writeLayerCountComment(total_layers);
@@ -126,6 +130,87 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     constexpr bool force = true;
     gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
+}
+
+void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
+{
+    // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
+
+    if (mesh.layers.size() > 0)
+    {
+        unsigned layer_nr = 0;
+        // set the seam vertex index to 0 for bottom layers that have no parts or insets
+        while (layer_nr < mesh.layers.size() && (mesh.layers[layer_nr].parts.size() == 0 || mesh.layers[layer_nr].parts[0].insets.size() == 0))
+        {
+            mesh.layers[layer_nr++].seam_vertex_index = 0;
+        }
+
+        if (layer_nr < mesh.layers.size())
+        {
+            // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
+            // in the first layer that has a part with insets. This allows the user to alter the seam start location which
+            // could be useful if the spiralization has a problem with a particular seam path.
+            Point seam_pos(0, 0);
+            if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
+            {
+                seam_pos = Point(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
+            }
+            mesh.layers[layer_nr].seam_vertex_index = PolygonUtils::findClosest(seam_pos, mesh.layers[layer_nr].parts[0].insets[0][0]).point_idx;
+            ++layer_nr;
+        }
+
+        for (; layer_nr < mesh.layers.size(); layer_nr++)
+        {
+            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& last_layer = mesh.layers[layer_nr - 1];
+
+            if (layer.parts.size() < 1 || layer.parts[0].insets.size() < 1 || last_layer.parts.size() < 1 || last_layer.parts[0].insets.size() < 1)
+            {
+                // either this layer or the last has no parts (or a part has no insets) so just duplicate the index calculated for the last layer
+                layer.seam_vertex_index = last_layer.seam_vertex_index;
+                continue;
+            }
+            PolygonRef last_wall = last_layer.parts[0].insets[0][0];
+            PolygonRef wall = layer.parts[0].insets[0][0];
+            const int n_points = wall.size();
+            Point last_wall_seam_vertex = last_wall[last_layer.seam_vertex_index];
+
+            // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
+            // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
+
+            int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
+
+            // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
+            // and if it is we move forward
+
+            // get the inward normal of the last layer seam vertex
+            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, last_layer.seam_vertex_index);
+
+            // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+
+            // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+            const int first_seam_vertex_idx = seam_vertex_idx;
+            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+
+            while (a > M_PI)
+            {
+                // the vertex was on the right of the vector so move the seam vertex on
+                seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+
+                if (seam_vertex_idx == first_seam_vertex_idx)
+                {
+                    logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d", layer_nr);
+                    // this shouldn't happen!
+                    break;
+                }
+            }
+
+            // store result for use when spiralizing
+            mesh.layers[layer_nr].seam_vertex_index = seam_vertex_idx;
+        }
+    }
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
@@ -285,7 +370,10 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeFanCommand(0);
 
     bool wait = true;
-    gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+    if (storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
+    {
+        gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+    }
 
     gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
@@ -823,6 +911,33 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     }
     part_order_optimizer.optimize();
 
+    if (mesh->infill_angles.size() == 0)
+    {
+        mesh->infill_angles = mesh->getSettingAsIntegerList("infill_angles");
+        if (mesh->infill_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh->infill_angles.push_back(45); // all infill patterns use 45 degrees
+            EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
+            if (infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG)
+            {
+                // lines and zig zag patterns default to also using 135 degrees
+                mesh->infill_angles.push_back(135);
+            }
+        }
+    }
+
+    if (mesh->skin_angles.size() == 0)
+    {
+        mesh->skin_angles = mesh->getSettingAsIntegerList("skin_angles");
+        if (mesh->skin_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh->skin_angles.push_back(45);
+            mesh->skin_angles.push_back(135);
+        }
+    }
+
     for (int part_idx : part_order_optimizer.polyOrder)
     {
         const SliceLayerPart& part = layer->parts[part_idx];
@@ -838,15 +953,11 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
-    EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-    int infill_angle = 45;
-    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
+    int infill_angle = 45; // original default, this will get updated to an element from mesh->infill_angles
+    if (mesh->infill_angles.size() > 0)
     {
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
-        if ((layer_nr / combined_infill_layers) & 1)
-        { // switch every [combined_infill_layers] layers
-            infill_angle += 90;
-        }
+        infill_angle = mesh->infill_angles.at((layer_nr / combined_infill_layers) % mesh->infill_angles.size());
     }
     
     int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
@@ -870,13 +981,10 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         processSingleLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
-    EFillMethod skin_pattern = (layer_nr == 0)?
-        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-        mesh->getSettingAsFillMethod("top_bottom_pattern");
     int skin_angle = 45;
-    if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
+    if (mesh->skin_angles.size() > 0)
     {
-        skin_angle += 90; // should coincide with infill_angle (if both skin and infill are lines) so that the first top layer is orthogonal to the last infill layer
+        skin_angle = mesh->skin_angles.at(layer_nr % mesh->skin_angles.size());
     }
     if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
         skin_angle -= 45;
@@ -992,55 +1100,92 @@ void FffGcodeWriter::processInsets(LayerPlan& gcode_layer, const SliceMeshStorag
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
+    bool retract_before_outer_wall = mesh->getSettingBoolean("travel_retract_before_outer_wall");
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
+        SliceLayer &wall_layer = mesh->layers[layer_nr];
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
-            if (static_cast<int>(layer_nr) >= mesh->getSettingAsCount("bottom_layers"))
+            if (wall_layer.parts.size() == 0 || part.insets.size() == 0)
+            {
+                // nothing to do
+                return;
+            }
+            const unsigned bottom_layers = mesh->getSettingAsCount("bottom_layers");
+            if (layer_nr >= bottom_layers)
             {
                 spiralize = true;
             }
-            if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
+            if (spiralize && layer_nr == bottom_layers)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.insetX_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist, spiralize);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
             }
         }
-        int processed_inset_number = -1;
-        for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+        // only spiralize the first part in the mesh, other parts won't be printed
+        if (spiralize && &wall_layer.parts[0] == &part)
         {
-            processed_inset_number = inset_number;
-            if (mesh->getSettingBoolean("outer_inset_first"))
+            std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
+            if (wall_insets.size() == 0 || wall_insets[0].size() == 0)
             {
-                processed_inset_number = part.insets.size() - 1 - inset_number;
+                // wall doesn't have usable outline
+                return;
             }
-            if (processed_inset_number == 0)
+            std::vector<Polygons>* last_wall_insets = &wall_insets; // default to current wall outline
+            if (layer_nr > 0)
             {
-                if (!compensate_overlap_0)
+                SliceLayer &last_wall_layer = mesh->layers[layer_nr - 1];
+                if (last_wall_layer.parts.size() > 0 && last_wall_layer.parts[0].insets.size() > 0 && last_wall_layer.parts[0].insets[0].size() > 0)
                 {
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    // use the last wall outline
+                    last_wall_insets = &last_wall_layer.parts[0].insets;
+                }
+            }
+            const PolygonRef& outer_wall = wall_insets[0][0]; // current layer outer wall outline
+            const PolygonRef& last_outer_wall = (*last_wall_insets)[0][0]; // last layer outer wall outline
+            // output a wall slice that is interpolated between the last and current walls
+            const int seam_vertex_idx = wall_layer.seam_vertex_index; // current layer seam vertex index
+            const int last_seam_vertex_idx = (layer_nr == 0) ? -1 : mesh->layers[layer_nr - 1].seam_vertex_index; // last layer seam vertex index
+            gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, outer_wall, last_outer_wall, seam_vertex_idx, last_seam_vertex_idx);
+        }
+        else
+        {
+            int processed_inset_number = -1;
+            for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+            {
+                processed_inset_number = inset_number;
+                if (mesh->getSettingBoolean("outer_inset_first"))
+                {
+                    processed_inset_number = part.insets.size() - 1 - inset_number;
+                }
+                if (processed_inset_number == 0)
+                {
+                    if (!compensate_overlap_0)
+                    {
+                        WallOverlapComputation* wall_overlap_computation(nullptr);
+                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), false, retract_before_outer_wall);
+                    }
+                    else
+                    {
+                        Polygons outer_wall = part.insets[0];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), false, retract_before_outer_wall);
+                    }
                 }
                 else
                 {
-                    Polygons outer_wall = part.insets[0];
-                    WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
-                }
-            }
-            else
-            {
-                if (!compensate_overlap_x)
-                {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
-                }
-                else
-                {
-                    Polygons outer_wall = part.insets[processed_inset_number];
-                    WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.insetX_config, &wall_overlap_computation);
+                    if (!compensate_overlap_x)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
+                    }
+                    else
+                    {
+                        Polygons outer_wall = part.insets[processed_inset_number];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.insetX_config, &wall_overlap_computation);
+                    }
                 }
             }
         }

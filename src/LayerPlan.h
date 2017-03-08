@@ -385,8 +385,9 @@ public:
      * This travel move needs to be fixed afterwards
      * 
      * \param p The point to travel to
+     * \param always_retract Whether to force a retraction to occur when travelling to this point.
      */
-    GCodePath& addTravel(Point p);
+    GCodePath& addTravel(Point p, bool always_retract = false);
     
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -424,8 +425,9 @@ public:
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
+     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false);
+    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, bool always_retract = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -443,8 +445,9 @@ public:
      * \param z_seam_pos The location near where to start each part in case \p z_seam_type is 'back'
      * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
+     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -454,6 +457,20 @@ public:
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      */
     void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
+
+    /*!
+     * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
+     *
+     * At the start of the wall slice, the points are closest to \p last_wall and at the end of the polygon, the points are closest to \p wall.
+     *
+     * \param config The config with which to print the lines
+     * \param wall The wall polygon to be spiralized
+     * \param last_wall The wall polygon that was spiralized below the current polygon (or \p wall if this is the first spiralized layer)
+     * \param seam_vertex_idx The index of this wall slice's seam vertex
+     * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
+     */
+    void spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
+
 
     /*!
      * Write the planned paths to gcode

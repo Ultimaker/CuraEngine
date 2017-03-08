@@ -41,6 +41,7 @@ private:
         Point3 prime_pos; //!< The location this nozzle is primed before printing
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
+        bool use_temp; //!< Whether to insert temperature commands for this extruder
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
@@ -96,6 +97,7 @@ private:
     Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
+    double current_travel_acceleration; //!< The current acceleration in the XY direction used for travel moves if different from current_acceleration (in mm/s^2) (Only used for Repetier flavor)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
     double current_max_z_feedrate; //!< The current max z speed
 
@@ -176,6 +178,8 @@ public:
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
+
+    bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< Returns whether the extruder with the given index is used up until the current meshgroup
 
@@ -398,7 +402,7 @@ public:
     /*!
      * Write the command for setting the acceleration to a specific value
      */
-    void writeAcceleration(double acceleration);
+    void writeAcceleration(double acceleration, bool for_travel_moves = false);
 
     /*!
      * Write the command for setting the jerk to a specific value

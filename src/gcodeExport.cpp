@@ -28,6 +28,7 @@ GCodeExport::GCodeExport()
 
     currentSpeed = 1;
     current_acceleration = -1;
+    current_travel_acceleration = -1;
     current_jerk = -1;
     current_max_z_feedrate = -1;
 
@@ -83,6 +84,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+        extruder_attr[extruder_nr].use_temp = train->getSettingBoolean("machine_nozzle_temp_enabled");
 
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
@@ -213,6 +215,11 @@ void GCodeExport::setOutputStream(std::ostream* stream)
 {
     output_stream = stream;
     *output_stream << std::fixed;
+}
+
+bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const
+{
+    return extruder_attr[extruder_nr].use_temp;
 }
 
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
@@ -882,11 +889,13 @@ void GCodeExport::writeFanCommand(double speed)
 
 void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool wait)
 {
-    if (!wait && extruder_attr[extruder].currentTemperature == temperature)
+    if (!extruder_attr[extruder].use_temp)
+    {
         return;
+    }
 
-    if (flavor == EGCodeFlavor::ULTIGCODE)
-    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+    if (!wait && extruder_attr[extruder].currentTemperature == temperature)
+    {
         return;
     }
 
@@ -917,13 +926,41 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
-void GCodeExport::writeAcceleration(double acceleration)
+void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
 {
-    if (current_acceleration != acceleration)
+    if (getFlavor() == EGCodeFlavor::REPETIER)
     {
-        *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
-        current_acceleration = acceleration;
-        estimateCalculator.setAcceleration(acceleration);
+        int m_code = 0;
+        if (for_travel_moves)
+        {
+            if (current_travel_acceleration != acceleration)
+            {
+                m_code = 202;   // set travel acceleration
+                current_travel_acceleration = acceleration;
+            }
+        }
+        else
+        {
+            if (current_acceleration != acceleration)
+            {
+                m_code = 201;  // set print acceleration
+                current_acceleration = acceleration;
+            }
+        }
+        if (m_code != 0)
+        {
+            *output_stream << "M" << m_code << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
+            estimateCalculator.setAcceleration(acceleration);
+        }
+    }
+    else
+    {
+        if (current_acceleration != acceleration)
+        {
+            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
+            current_acceleration = acceleration;
+            estimateCalculator.setAcceleration(acceleration);
+        }
     }
 }
 
