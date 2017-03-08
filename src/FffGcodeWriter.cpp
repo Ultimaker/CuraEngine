@@ -705,7 +705,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
         }
     }
     std::vector<unsigned int> ret;
-    ret.resize(mesh_indices_order.size());
+    ret.reserve(mesh_indices_order.size());
     for (unsigned int mesh_order_nr = 0; mesh_order_nr < ret.size(); mesh_order_nr++)
     {
         if (starting_mesh_idx_it == mesh_indices_order.end())
@@ -714,7 +714,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
         }
         unsigned int mesh_order_idx = *starting_mesh_idx_it;
         const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
-        ret[mesh_order_nr] = mesh_idx;
+        ret.push_back(mesh_idx);
         ++starting_mesh_idx_it;
     }
     return ret;
