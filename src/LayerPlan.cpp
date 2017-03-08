@@ -629,7 +629,10 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
         ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
         bool force_minimal_layer_time = extr_plan_idx == extruder_plans.size() - 1;
         extruder_plan.processFanSpeedAndMinimalLayerTime(force_minimal_layer_time, starting_position);
-        starting_position = extruder_plan.paths.back().points.back();
+        if (!extruder_plan.paths.empty() && !extruder_plan.paths.back().points.empty())
+        {
+            starting_position = extruder_plan.paths.back().points.back();
+        }
     }
 }
 
