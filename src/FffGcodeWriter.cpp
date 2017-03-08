@@ -170,8 +170,8 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
                 layer.seam_vertex_index = last_layer.seam_vertex_index;
                 continue;
             }
-            PolygonRef last_wall = last_layer.parts[0].insets[0][0];
-            PolygonRef wall = layer.parts[0].insets[0][0];
+            ConstPolygonRef last_wall = last_layer.parts[0].insets[0][0];
+            ConstPolygonRef wall = layer.parts[0].insets[0][0];
             const int n_points = wall.size();
             Point last_wall_seam_vertex = last_wall[last_layer.seam_vertex_index];
 
@@ -1104,7 +1104,7 @@ void FffGcodeWriter::processInsets(LayerPlan& gcode_layer, const SliceMeshStorag
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
-        SliceLayer &wall_layer = mesh->layers[layer_nr];
+        const SliceLayer& wall_layer = mesh->layers[layer_nr];
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
             if (wall_layer.parts.size() == 0 || part.insets.size() == 0)
@@ -1127,24 +1127,24 @@ void FffGcodeWriter::processInsets(LayerPlan& gcode_layer, const SliceMeshStorag
         // only spiralize the first part in the mesh, other parts won't be printed
         if (spiralize && &wall_layer.parts[0] == &part)
         {
-            std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
+            const std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
             if (wall_insets.size() == 0 || wall_insets[0].size() == 0)
             {
                 // wall doesn't have usable outline
                 return;
             }
-            std::vector<Polygons>* last_wall_insets = &wall_insets; // default to current wall outline
+            const std::vector<Polygons>* last_wall_insets = &wall_insets; // default to current wall outline
             if (layer_nr > 0)
             {
-                SliceLayer &last_wall_layer = mesh->layers[layer_nr - 1];
+                const SliceLayer& last_wall_layer = mesh->layers[layer_nr - 1];
                 if (last_wall_layer.parts.size() > 0 && last_wall_layer.parts[0].insets.size() > 0 && last_wall_layer.parts[0].insets[0].size() > 0)
                 {
                     // use the last wall outline
                     last_wall_insets = &last_wall_layer.parts[0].insets;
                 }
             }
-            const PolygonRef& outer_wall = wall_insets[0][0]; // current layer outer wall outline
-            const PolygonRef& last_outer_wall = (*last_wall_insets)[0][0]; // last layer outer wall outline
+            ConstPolygonRef outer_wall = wall_insets[0][0]; // current layer outer wall outline
+            ConstPolygonRef last_outer_wall = (*last_wall_insets)[0][0]; // last layer outer wall outline
             // output a wall slice that is interpolated between the last and current walls
             const int seam_vertex_idx = wall_layer.seam_vertex_index; // current layer seam vertex index
             const int last_seam_vertex_idx = (layer_nr == 0) ? -1 : mesh->layers[layer_nr - 1].seam_vertex_index; // last layer seam vertex index

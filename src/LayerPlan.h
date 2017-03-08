@@ -469,7 +469,7 @@ public:
      * \param seam_vertex_idx The index of this wall slice's seam vertex
      * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
      */
-    void spiralizeWallSlice(GCodePathConfig* config, PolygonRef wall, PolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
+    void spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
 
 
     /*!
