@@ -240,10 +240,15 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
 
 GCodePath& GCodePlanner::addTravel(Point p, bool always_retract)
 {
-    GCodePath* path = nullptr;
     GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
     RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
-    
+
+    GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
+    if (always_retract)
+    {
+        path->retract = true;
+    }
+
     bool combed = false;
 
     SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
@@ -297,7 +302,6 @@ GCodePath& GCodePlanner::addTravel(Point p, bool always_retract)
                 {
                     continue;
                 }
-                path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
                 path->retract = retract;
                 // don't perform a z-hop
                 for (Point& combPoint : combPath)
@@ -318,7 +322,6 @@ GCodePath& GCodePlanner::addTravel(Point p, bool always_retract)
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
             }
-            path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
             path->retract = true;
             path->perform_z_hop = perform_z_hops;
         }
