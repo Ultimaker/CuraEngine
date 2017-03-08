@@ -179,6 +179,15 @@ private:
     unsigned int getStartExtruder(const SliceDataStorage& storage);
 
     /*!
+     * Set the infill angles and skin angles in the SliceDataStorage.
+     * 
+     * These lists of angles are cycled through to get the infill angle of a specific layer.
+     * 
+     * \param mesh The mesh for which to determine the infill and skin angles.
+     */
+    void setInfillAndSkinAngles(SliceMeshStorage& mesh);
+
+    /*!
      * Set temperatures and perform initial priming.
      * 
      * Write a stub header if CuraEngine is in command line tool mode. (Cause writing the header afterwards would entail moving all gcode down.)

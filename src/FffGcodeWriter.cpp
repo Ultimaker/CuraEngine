@@ -67,6 +67,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             findLayerSeamsForSpiralize(mesh);
         }
+
+        setInfillAndSkinAngles(mesh);
     }
     
     gcode.writeLayerCountComment(total_layers);
@@ -296,6 +298,38 @@ unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     assert(start_extruder_nr >= 0 && start_extruder_nr < storage.meshgroup->getExtruderCount() && "start_extruder_nr must be a valid extruder");
     return start_extruder_nr;
 }
+
+void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
+{
+    if (mesh.infill_angles.size() == 0)
+    {
+        mesh.infill_angles = mesh.getSettingAsIntegerList("infill_angles");
+        if (mesh.infill_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh.infill_angles.push_back(45); // all infill patterns use 45 degrees
+            EFillMethod infill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
+            if (infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG)
+            {
+                // lines and zig zag patterns default to also using 135 degrees
+                mesh.infill_angles.push_back(135);
+            }
+        }
+    }
+
+    if (mesh.skin_angles.size() == 0)
+    {
+        mesh.skin_angles = mesh.getSettingAsIntegerList("skin_angles");
+        if (mesh.skin_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh.skin_angles.push_back(45);
+            mesh.skin_angles.push_back(135);
+        }
+    }
+}
+
+
 
 void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
 {
@@ -910,33 +944,6 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
     }
     part_order_optimizer.optimize();
-
-    if (mesh->infill_angles.size() == 0)
-    {
-        mesh->infill_angles = mesh->getSettingAsIntegerList("infill_angles");
-        if (mesh->infill_angles.size() == 0)
-        {
-            // user has not specified any infill angles so use defaults
-            mesh->infill_angles.push_back(45); // all infill patterns use 45 degrees
-            EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-            if (infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG)
-            {
-                // lines and zig zag patterns default to also using 135 degrees
-                mesh->infill_angles.push_back(135);
-            }
-        }
-    }
-
-    if (mesh->skin_angles.size() == 0)
-    {
-        mesh->skin_angles = mesh->getSettingAsIntegerList("skin_angles");
-        if (mesh->skin_angles.size() == 0)
-        {
-            // user has not specified any infill angles so use defaults
-            mesh->skin_angles.push_back(45);
-            mesh->skin_angles.push_back(135);
-        }
-    }
 
     for (int part_idx : part_order_optimizer.polyOrder)
     {
