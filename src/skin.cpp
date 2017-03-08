@@ -143,12 +143,28 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
 
             if (mesh.getSettingBoolean("expand_upper_skins"))
             {
-                upskin = upskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance).unionPolygons(upskin).intersection(original_outline);
+                Polygons expanded_upskin = upskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance);
+                if (mesh.getSettingBoolean("only_grow_skin"))
+                {
+                    upskin = expanded_upskin.unionPolygons(upskin).intersection(original_outline);
+                }
+                else
+                {
+                    upskin = expanded_upskin.intersection(original_outline);
+                }
             }
 
             if (mesh.getSettingBoolean("expand_lower_skins"))
             {
-                downskin = downskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
+                Polygons expanded_downskin = downskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance);
+                if (mesh.getSettingBoolean("only_grow_skin"))
+                {
+                    downskin = expanded_downskin.unionPolygons(downskin).intersection(original_outline);
+                }
+                else
+                {
+                    downskin = expanded_downskin.intersection(original_outline);
+                }
             }
         }
 
