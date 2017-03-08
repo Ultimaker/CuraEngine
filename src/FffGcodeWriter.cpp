@@ -1104,7 +1104,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
-    bool retract_before_outer_wall = mesh->getSettingBoolean("combing_retract_before_outer_wall");
+    bool retract_before_outer_wall = mesh->getSettingBoolean("travel_retract_before_outer_wall");
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
