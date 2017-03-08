@@ -899,12 +899,12 @@ void FffGcodeWriter::processInfill(GCodePlanner& gcode_layer, SliceMeshStorage* 
 {
     if (mesh->getSettingBoolean("spaghetti_infill_enabled"))
     {
-        processSpaghettiInfill(gcode_layer, mesh,  part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSpaghettiInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
     else
     {
-        processMultiLayerInfill(gcode_layer, mesh,  part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        processSingleLayerInfill(gcode_layer, mesh,  part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 }
 
