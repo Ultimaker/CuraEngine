@@ -100,8 +100,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             return &gcode_layer;
         };
     const std::function<void (LayerPlan*)>& consume_item =
-        [this](LayerPlan* gcode_layer)
+        [this, total_layers](LayerPlan* gcode_layer)
         {
+            Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
             layer_plan_buffer.push(*gcode_layer);
             LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
             if (to_be_written)
@@ -544,7 +545,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int t
 
 LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const
 {
-    Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, layer_nr) + 1, total_layers);
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
 
     int layer_thickness = getSettingInMicrons("layer_height");
