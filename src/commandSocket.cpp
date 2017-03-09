@@ -629,8 +629,6 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 void CommandSocket::sendLayerData()
 {
 #ifdef ARCUS
-#endif
-#ifdef ARCUS
     auto& data = private_data->sliced_layers;
 
     data.sliced_objects++;
