@@ -828,7 +828,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
     }
     std::vector<unsigned int> ret;
     ret.reserve(mesh_indices_order.size());
-    for (unsigned int mesh_order_nr = 0; mesh_order_nr < ret.size(); mesh_order_nr++)
+    for (unsigned int mesh_order_nr = 0; mesh_order_nr < mesh_indices_order.size(); mesh_order_nr++)
     {
         if (starting_mesh_idx_it == mesh_indices_order.end())
         {
