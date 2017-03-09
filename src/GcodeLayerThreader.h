@@ -126,11 +126,7 @@ void GcodeLayerThreader<T>::run()
     #pragma omp parallel
     {
 #ifdef _OPENMP
-        #pragma omp master
-        #pragma omp critical
-        {
-            log("Multithreading GcodeLayerThreader with %i threads.\n", omp_get_num_threads());
-        }
+        log("Multithreading GcodeLayerThreader with %i threads.\n", omp_get_num_threads());
 #endif // _OPENMP
         while (true)
         {
