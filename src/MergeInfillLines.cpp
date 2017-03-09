@@ -35,7 +35,7 @@ bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)
             GCodePath& move_path = paths[path_idx];
             for(unsigned int point_idx = 0; point_idx < move_path.points.size() - 1; point_idx++)
             {
-                gcode.writeExtrusion(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor(), move_path.getExtrusionMM3perMM());
+                gcode.writeTravel(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor());
             }
             gcode.writeTravel(prev_middle, travelConfig.getSpeed());
             GCodePath& last_path = paths[path_idx + 3];
