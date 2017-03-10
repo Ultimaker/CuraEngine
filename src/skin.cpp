@@ -133,22 +133,22 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         
         if (expand_skins_expand_distance > 0)
         {
-            int min_skin_width_for_expansion = mesh.getSettingInMicrons("min_skin_width_for_expansion");
+            int pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
 
             // skin areas are to be enlarged by expand_skins_expand_distance but before they are expanded
             // the skin areas are shrunk by min_skin_width_for_expansion so that very narrow regions of skin
             // (often caused by the model's surface having a steep incline) are removed first
 
-            expand_skins_expand_distance += min_skin_width_for_expansion; // increase the expansion distance to compensate for the shrinkage
+            expand_skins_expand_distance += pre_shrink; // increase the expansion distance to compensate for the shrinkage
 
             if (mesh.getSettingBoolean("expand_upper_skins"))
             {
-                upskin = upskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance).unionPolygons(upskin).intersection(original_outline);
+                upskin = upskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(upskin).intersection(original_outline);
             }
 
             if (mesh.getSettingBoolean("expand_lower_skins"))
             {
-                downskin = downskin.offset(-min_skin_width_for_expansion).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
+                downskin = downskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
             }
         }
 
