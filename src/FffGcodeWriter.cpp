@@ -763,16 +763,20 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<unsigned int> ret;
     ret.push_back(start_extruder);
-    std::vector<bool> extruder_is_used = storage.getExtrudersUsed(layer_nr);
+    std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
+    std::vector<bool> extruder_is_used_overall = storage.getExtrudersUsed();
     if (getExtrudersNeedPrimeDuringFirstLayer())
     {
         if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
             || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0)
             )
         {
-            for (unsigned int used_idx = 0; used_idx < extruder_is_used.size(); used_idx++)
+            for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
             {
-                extruder_is_used[used_idx] = true;
+                if (extruder_is_used_overall[used_idx])
+                {
+                    extruder_is_used_on_this_layer[used_idx] = true;
+                }
             }
         }
     }
@@ -782,7 +786,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
         { // skip the current extruder, it's the one we started out planning
             continue;
         }
-        if (!extruder_is_used[extruder_nr])
+        if (!extruder_is_used_on_this_layer[extruder_nr])
         {
             continue;
         }
