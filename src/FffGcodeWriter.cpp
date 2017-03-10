@@ -89,7 +89,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         processRaft(storage, total_layers);
         // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
-        process_layer_starting_layer_nr = -Raft::getFillerLayerCount(storage);
+        // only process the filler layers if there is anything to print in them.
+        for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
+        {
+            if (extruder_is_used_in_filler_layers)
+            {
+                process_layer_starting_layer_nr = -Raft::getFillerLayerCount(storage);
+                break;
+            }
+        }
     }
 
 
