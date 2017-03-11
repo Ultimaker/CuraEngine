@@ -266,6 +266,14 @@ GCodePath& GCodePlanner::addTravel(Point p, bool always_retract)
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
         bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
         combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
+
+        // if the distance was so short that no comb paths were generated but we are demanding
+        // a retraction, set combed to false again so that a non-combed retract move is generated below
+        if (always_retract && combed && combPaths.size() == 0)
+        {
+            combed = false;
+        }
+
         if (combed)
         {
             bool retract = always_retract || combPaths.size() > 1;
