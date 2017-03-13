@@ -353,6 +353,10 @@ private:
     /*!
      * Add spaghetti infill for a given part in a layer plan.
      * 
+     * Move over the infill region with a zigzag pattern and
+     * extrude as much material as needed for the current part
+     * and all parts below which should be filled withthis spaghetti.
+     * 
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode

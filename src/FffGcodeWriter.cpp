@@ -917,24 +917,28 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
 
+    // For each part on this layer which is used to fill that part and parts below:
     for (std::pair<PolygonsPart, double>& filling_area : part.spaghetti_infill_volumes)
     {
         Polygons infill_lines;
         Polygons infill_polygons;
 
-        const PolygonsPart& area = filling_area.first;
-        const double total_volume = filling_area.second * getSettingAsRatio("spaghetti_flow");
+        const PolygonsPart& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
+        const double total_volume = filling_area.second * getSettingAsRatio("spaghetti_flow"); // volume to be extruded
         assert(total_volume > 0.0);
 
+        // generate zigzag print head paths
         Polygons* perimeter_gaps_output = nullptr;
         const bool connected_zigzags = true;
         const bool use_endpieces = false;
         Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces);
         infill_comp.generate(infill_polygons, infill_lines, mesh);
 
+        // add paths to plan with a higher flow ratio in order to extrude the required amount.
         const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();
         if (total_length > 0)
-        {
+        { // zigzag path generation actually generated paths
+            // calculate the normal volume extruded when using the layer height and line width to calculate extrusion
             const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
             const float flow_ratio = total_volume / normal_volume;
             assert(flow_ratio / getSettingAsRatio("spaghetti_flow") >= 0.9);
@@ -950,16 +954,19 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
             }
         }
         else
-        {
+        { // zigzag path generation couldn't generate paths, probably because the area was too small
+            // generate small path near the middle of the filling area
+            // note that we need a path with positive length because that is currently the only way to insert an extrusion in a layer plan
+            constexpr int path_length = 10;
             Point middle = const_cast<PolygonsPart&>(area).outerPolygon().centerOfMass();
             if (!area.inside(middle))
             {
                 PolygonUtils::ensureInsideOrOutside(area, middle, infill_line_width / 2);
             }
-            const double normal_volume = INT2MM(INT2MM(10 * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
+            const double normal_volume = INT2MM(INT2MM(path_length * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
             const float flow_ratio = total_volume / normal_volume;
             gcode_layer.addTravel(middle);
-            gcode_layer.addExtrusionMove(middle + Point(0,10), &config, SpaceFillType::Lines, flow_ratio);
+            gcode_layer.addExtrusionMove(middle + Point(0, path_length), &config, SpaceFillType::Lines, flow_ratio);
         }
     }
 }
