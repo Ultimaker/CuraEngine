@@ -360,6 +360,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
                 initial_print_temp = prev_extruder_plan.initial_printing_temperature;
             }
         }
+        assert(time_window != 0.0);
         weighted_average_print_temp /= time_window;
         time_window -= heated_pre_travel_time + heated_post_travel_time;
         assert(heated_pre_travel_time != -1 && "heated_pre_travel_time must have been computed; there must have been an extruder plan!");

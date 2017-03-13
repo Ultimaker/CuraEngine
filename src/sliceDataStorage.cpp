@@ -364,9 +364,13 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
                 continue;
             }
             const SliceLayer& layer = mesh.layers[layer_nr];
-            if (layer.parts.size() > 0)
+            for (const SliceLayerPart& part : layer.parts)
             {
-                ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+                if (part.isUsed(mesh))
+                {
+                    ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+                    break;
+                }
             }
         }
     }
