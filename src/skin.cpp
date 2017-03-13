@@ -57,6 +57,8 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         }
 
         Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
+        // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
+        Polygons original_outline = Polygons(upskin);
         Polygons downskin = (downSkinCount == 0) ? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
 
@@ -126,9 +128,33 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
         }
+
+        int expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
         
+        if (expand_skins_expand_distance > 0)
+        {
+            int pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
+
+            // skin areas are to be enlarged by expand_skins_expand_distance but before they are expanded
+            // the skin areas are shrunk by pre_shrink so that very narrow regions of skin
+            // (often caused by the model's surface having a steep incline) are removed first
+
+            expand_skins_expand_distance += pre_shrink; // increase the expansion distance to compensate for the shrinkage
+
+            if (mesh.getSettingBoolean("expand_upper_skins"))
+            {
+                upskin = upskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(upskin).intersection(original_outline);
+            }
+
+            if (mesh.getSettingBoolean("expand_lower_skins"))
+            {
+                downskin = downskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
+            }
+        }
+
+        // now combine the resized upskin and downskin
         Polygons skin = upskin.unionPolygons(downskin);
-        
+
         skin.removeSmallAreas(MIN_AREA_SIZE);
         
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())

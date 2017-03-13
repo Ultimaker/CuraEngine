@@ -80,7 +80,7 @@ public:
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param mesh The mesh for which to geenrate infill (should only be used for non-helper objects)
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, SliceMeshStorage* mesh = nullptr);
+    void generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
@@ -148,8 +148,8 @@ private:
      * \param[out] result The resulting lines
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
-    void generateCubicSubDivInfill(Polygons& result, SliceMeshStorage& mesh);
-    
+    void generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage& mesh);
+
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
      * \param result (output) The resulting lines

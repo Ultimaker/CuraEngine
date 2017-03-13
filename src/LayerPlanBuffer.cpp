@@ -9,6 +9,56 @@ namespace cura {
 
 
 
+
+void LayerPlanBuffer::setPreheatConfig(MeshGroup& settings)
+{
+    preheat_config.setConfig(settings);
+}
+
+void LayerPlanBuffer::push(LayerPlan& layer_plan)
+{
+    buffer.push_back(&layer_plan);
+}
+
+void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
+{
+    push(layer_plan);
+    LayerPlan* to_be_written = processBuffer();
+    if (to_be_written)
+    {
+        to_be_written->writeGCode(gcode);
+        delete to_be_written;
+    }
+}
+
+LayerPlan* LayerPlanBuffer::processBuffer()
+{
+    if (buffer.empty())
+    {
+        return nullptr;
+    }
+    processFanSpeedLayerTime();
+    if (buffer.size() >= 2)
+    {
+        addConnectingTravelMove(*--(--buffer.end()), *--buffer.end());
+    }
+    if (buffer.size() > 0)
+    {
+        insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
+    }
+    if (buffer.size() > buffer_size)
+    {
+        LayerPlan* ret = buffer.front();
+        if (CommandSocket::isInstantiated())
+        {
+            CommandSocket::getInstance()->flushGcode();
+        }
+        buffer.pop_front();
+        return ret;
+    }
+    return nullptr;
+}
+
 void LayerPlanBuffer::flush()
 {
     if (buffer.size() > 0)
@@ -17,15 +67,51 @@ void LayerPlanBuffer::flush()
     }
     while (!buffer.empty())
     {
-        buffer.front().writeGCode(gcode);
+        buffer.front()->writeGCode(gcode);
         if (CommandSocket::isInstantiated())
         {
             CommandSocket::getInstance()->flushGcode();
         }
         buffer.pop_front();
     }
-    
 }
+
+void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
+{
+    assert(newest_layer->extruder_plans.front().extruder == prev_layer->extruder_plans.back().extruder);
+    const ExtruderPlan& extruder_plan_above_prev_layer = newest_layer->extruder_plans.front();
+    if (extruder_plan_above_prev_layer.paths.size() == 0)
+    {
+        logWarning("There are empty layers (or layers with empty extruder plans) in the print! Temperature control and cross layer travel moves might suffer.\n");
+        return;
+    }
+    const GCodePath& path_above = extruder_plan_above_prev_layer.paths[0];
+    assert(path_above.points.size() == 1 && "The first move planned should have been a boguous direct travel move");
+
+    Point first_location_new_layer = path_above.points[0];
+
+    prev_layer->addTravel(first_location_new_layer);
+}
+
+void LayerPlanBuffer::processFanSpeedLayerTime()
+{
+    assert(buffer.size() > 0);
+    auto newest_layer_it = --buffer.end();
+    // Assume the print head is homed at the start of a meshgroup.
+    // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second meshgroup.
+    // It's not that bad, though. They are naive estimates any way.
+    Point starting_position(0, 0);
+    if (buffer.size() >= 2)
+    {
+        auto prev_layer_it = newest_layer_it;
+        prev_layer_it--;
+        const LayerPlan* prev_layer = *prev_layer_it;
+        starting_position = prev_layer->getLastPosition();
+    }
+    LayerPlan* newest_layer = *newest_layer_it;
+    newest_layer->processFanSpeedAndMinimalLayerTime(starting_position);
+}
+
 
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
 {
@@ -91,6 +177,10 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
 
 void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp)
 {
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
     // time_before_extruder_plan_end is halved, so that at the layer change the temperature will be half way betewen the two requested temperatures
     constexpr bool during_printing = true;
     double time_before_extruder_plan_end = 0.5 * preheat_config.getTimeToGoFromTempToTemp(extruder, prev_extruder_plan.printing_temperature, required_temp, during_printing);
@@ -121,7 +211,11 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
-    int extruder = extruder_plan.extruder;
+    const int extruder = extruder_plan.extruder;
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
     double initial_print_temp = extruder_plan.initial_printing_temperature;
     
     Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(extruder_plans, extruder_plan_idx);
@@ -188,8 +282,12 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
 
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
-    unsigned int extruder = extruder_plan.extruder;
-    double print_temp = extruder_plan.printing_temperature;
+    const unsigned int extruder = extruder_plan.extruder;
+    const double print_temp = extruder_plan.printing_temperature;
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
 
     double heated_pre_travel_time = 0;
     if (preheat_config.getInitialPrintTemp(extruder) != 0)
@@ -213,7 +311,11 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx)
 {
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
-    int extruder = last_extruder_plan.extruder;
+    const int extruder = last_extruder_plan.extruder;
+    if (!gcode.getExtruderUsesTemp(extruder))
+    {
+        return;
+    }
 
     double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
     if (final_print_temp == 0)
@@ -324,7 +426,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
+    if (buffer.back()->extruder_plans.size() == 0 || (buffer.back()->extruder_plans.size() == 1 && buffer.back()->extruder_plans[0].paths.size() == 0))
     { // disregard empty layer
         buffer.pop_back();
         return;
@@ -332,9 +434,9 @@ void LayerPlanBuffer::insertTempCommands()
 
     std::vector<ExtruderPlan*> extruder_plans;
     extruder_plans.reserve(buffer.size() * 2);
-    for (GCodePlanner& layer_plan : buffer)
+    for (LayerPlan* layer_plan : buffer)
     {
-        for (ExtruderPlan& extr_plan : layer_plan.extruder_plans)
+        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
         {
             extruder_plans.push_back(&extr_plan);
         }
@@ -342,7 +444,7 @@ void LayerPlanBuffer::insertTempCommands()
 
 
     // insert commands for all extruder plans on this layer
-    GCodePlanner& layer_plan = buffer.back();
+    LayerPlan& layer_plan = *buffer.back();
     for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
         unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
