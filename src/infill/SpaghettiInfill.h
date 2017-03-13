@@ -36,7 +36,7 @@ protected:
     {
         SliceLayerPart* top_slice_layer_part = nullptr; //!< A reference to the slice_layer_part from which the top part is generated
         PolygonsPart top_part; //!< The top area of this pillar
-        double total_area_mm2; //!< The total volume of the pillar divided by the layer height
+        double total_volume_mm3; //!< The total volume of the pillar
         coord_t connection_inset_dist; //!< Horizontal component of the spaghetti_max_infill_angle: the distance insetted corresponding to the maximum angle which can be filled by spaghetti infill.
         int layer_count; //!< The height of the pillar in numer of layers
         int last_layer_added = -1; //!< The last layer from which areas got added to this pillar
@@ -46,10 +46,11 @@ protected:
          * 
          * \param _top_part The area which is the base and the top of the new pillar
          * \param connection_inset_dist Horizontal component of the spaghetti_max_infill_angle
+         * \param layer_height_mm The layer height (in mm) of the layer which contains the \p _top_part
          */
-        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist)
+        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, double layer_height_mm)
         : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
-        , total_area_mm2(INT2MM(INT2MM(top_part.area())))
+        , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * layer_height_mm)
         , connection_inset_dist(connection_inset_dist)
         , layer_count(1)
         {
@@ -86,8 +87,9 @@ private:
      * \param infill_part The area to add to the base
      * \param pillar_base The collection of pillars used up till the current layer
      * \param connection_inset_dist The distance insetted corresponding to the maximum angle which can be filled by spaghetti infill
+     * \param layer_height_mm The layer height of the added area (in mm)
      */
-    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist);
+    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, double layer_height_mm);
 };
 
 }//namespace cura

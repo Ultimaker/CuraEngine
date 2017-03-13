@@ -338,7 +338,7 @@ private:
     void addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr);
 
     /*!
-     * Add sparse infill for a given part in a layer plan.
+     * Add infill for a given part in a layer plan.
      * 
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
