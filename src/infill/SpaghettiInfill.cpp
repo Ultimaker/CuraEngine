@@ -49,21 +49,21 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 
 
         // handle finished pillars
-        for (auto it = pillar_base.begin(); it != pillar_base.end();)
+        for (auto pillar_it = pillar_base.begin(); pillar_it != pillar_base.end();)
         {
-            InfillPillar& pillar = *it;
+            InfillPillar& pillar = *pillar_it;
             if (current_z - pillar.bottom_z >= spaghetti_max_height
                 || pillar.last_layer_added < static_cast<int>(layer_idx)
             )
             {
                 pillar.addToTopSliceLayerPart(filling_area_inset, line_width);
-                auto to_be_erased = it;
-                ++it;
+                auto to_be_erased = pillar_it;
+                ++pillar_it;
                 pillar_base.erase(to_be_erased);
             }
             else
             {
-                ++it;
+                ++pillar_it;
             }
         }
     }
