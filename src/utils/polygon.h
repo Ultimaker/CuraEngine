@@ -859,9 +859,9 @@ public:
         return ret;
     }
 
-    int64_t polygonLength() const
+    coord_t polygonLength() const
     {
-        int64_t length = 0;
+        coord_t length = 0;
         for(unsigned int i=0; i<paths.size(); i++)
         {
             Point p0 = paths[i][paths[i].size()-1];
@@ -875,7 +875,7 @@ public:
         return length;
     }
 
-    int64_t polyLineLength() const;
+    coord_t polyLineLength() const;
     
     Point min() const
     {

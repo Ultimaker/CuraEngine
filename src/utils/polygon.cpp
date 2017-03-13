@@ -190,9 +190,9 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
-int64_t Polygons::polyLineLength() const
+coord_t Polygons::polyLineLength() const
 {
-    int64_t length = 0;
+    coord_t length = 0;
     for (unsigned int poly_idx = 0; poly_idx < paths.size(); poly_idx++)
     {
         Point p0 = paths[poly_idx][0];
