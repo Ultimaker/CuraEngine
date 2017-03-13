@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <omp.h>
+#ifdef _OPENMP
+    #include <omp.h>
+#endif // _OPENMP
 #include "logoutput.h"
 
 namespace cura {
