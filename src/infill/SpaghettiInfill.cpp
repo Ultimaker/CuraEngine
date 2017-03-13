@@ -87,10 +87,8 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_
     {
         AABB aabb(top_part);
         Point inside = (aabb.min + aabb.max) / 2;
-        if (!top_part.inside(inside))
-        {
-            inside = top_part[0][0];
-        }
+        PolygonUtils::moveInside(top_part, inside);
+
         filling_area = PolygonsPart();
         PolygonRef poly = filling_area.newPoly();
         poly.emplace_back(inside + Point(-line_width / 2 - 10, line_width / 2 + 10));
