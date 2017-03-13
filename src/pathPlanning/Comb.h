@@ -48,7 +48,7 @@ private:
         Point in_or_mid; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
         Point out; //!< The point on the outside boundary
         PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
-        std::optional<PolygonRef> dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        std::optional<ConstPolygonRef> dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
         const Polygons& boundary_inside; //!< The inside boundary as in \ref Comb::boundary_inside
         const LocToLineGrid* inside_loc_to_line; //!< The loc to line grid \ref Comb::inside_loc_to_line
 
@@ -97,11 +97,11 @@ private:
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, const PolygonRef from, Point estimated_start, Point estimated_end, Comb& comber);
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, ConstPolygonRef from, Point estimated_start, Point estimated_end, Comb& comber);
     };
 
 
-    SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
+    const SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
     const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
@@ -115,8 +115,8 @@ private:
 
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
-    Polygons& boundary_inside; //!< The boundary within which to comb.
-    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    Polygons boundary_inside; //!< The boundary within which to comb. (Will be reordered by the partsView_inside)
+    const PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
     LocToLineGrid* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
@@ -153,7 +153,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
 
     ~Comb();
 

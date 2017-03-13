@@ -17,7 +17,7 @@ int Infill::computeScanSegmentIdx(int x, int line_width)
     return x / line_width;
 }
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -144,7 +144,7 @@ void Infill::generateTriangleInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle + 120, 0);
 }
 
-void Infill::generateCubicSubDivInfill(Polygons& result, SliceMeshStorage& mesh)
+void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage& mesh)
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);

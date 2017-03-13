@@ -66,10 +66,9 @@ set(engine_SRCS # Except main.cpp.
     src/FffProcessor.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
-    src/gcodePlanner.cpp
     src/infill.cpp
-    src/WallsComputation.cpp
     src/layerPart.cpp
+    src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
@@ -106,6 +105,7 @@ set(engine_SRCS # Except main.cpp.
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
 
+    src/settings/PathConfigStorage.cpp
     src/settings/SettingConfig.cpp
     src/settings/SettingContainer.cpp
     src/settings/SettingRegistry.cpp
@@ -125,9 +125,6 @@ set(engine_SRCS # Except main.cpp.
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
-set(engine_TEST
-    GCodePlannerTest
-)
 set(engine_TEST_INFILL
 )
 set(engine_TEST_UTILS

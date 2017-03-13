@@ -19,7 +19,7 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
         new_speed = std::min(speed * speed_mod, speed_equalize_flow_max);
     }
     sendLineTo(last_path.config->type, to, last_path.getLineWidth());
-    gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
+    gcode.writeExtrusion(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
 }
     
 bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)
@@ -35,9 +35,9 @@ bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)
             GCodePath& move_path = paths[path_idx];
             for(unsigned int point_idx = 0; point_idx < move_path.points.size() - 1; point_idx++)
             {
-                gcode.writeMove(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor(), move_path.getExtrusionMM3perMM());
+                gcode.writeTravel(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor());
             }
-            gcode.writeMove(prev_middle, travelConfig.getSpeed(), 0);
+            gcode.writeTravel(prev_middle, travelConfig.getSpeed());
             GCodePath& last_path = paths[path_idx + 3];
             
             writeCompensatedMove(last_middle, last_path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor(), last_path, line_width);
@@ -217,12 +217,12 @@ void MergeInfillLines::merge(Point& from, Point& p0, Point& p1)
                 if (newLen > 0)
                 {
                     if (oldLen > 0)
-                        gcode.writeMove(newPoint, speed * oldLen / newLen, path->getExtrusionMM3perMM() * newLen / oldLen);
+                        gcode.writeExtrusion(newPoint, speed * oldLen / newLen, path->getExtrusionMM3perMM() * newLen / oldLen);
                     else 
-                        gcode.writeMove(newPoint, speed, path->getExtrusionMM3perMM());
+                        gcode.writeExtrusion(newPoint, speed, path->getExtrusionMM3perMM());
                 }
             }
-            gcode.writeMove(paths[path_idx_last-1].points[0], speed, path->getExtrusionMM3perMM());
+            gcode.writeExtrusion(paths[path_idx_last-1].points[0], speed, path->getExtrusionMM3perMM());
             path_idx = path_idx_last - 1;
             continue;
         }
