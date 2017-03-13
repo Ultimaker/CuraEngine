@@ -32,8 +32,9 @@ public:
     static void generateSpaghettiInfill(SliceMeshStorage& mesh);
 
 protected:
-    struct InfillPillar
+    class InfillPillar
     {
+    public:
         SliceLayerPart* top_slice_layer_part = nullptr; //!< A reference to the slice_layer_part from which the top part is generated
         PolygonsPart top_part; //!< The top area of this pillar
         double total_volume_mm3; //!< The total volume of the pillar

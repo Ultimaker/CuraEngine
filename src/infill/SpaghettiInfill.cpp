@@ -19,14 +19,13 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 
     std::list<SpaghettiInfill::InfillPillar> pillar_base;
     coord_t current_z = 0;
-    coord_t layer_height = mesh.getSettingInMicrons("layer_height_0"); // will get overwritten in loop below
 
     size_t max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
     for (size_t layer_idx = 0; layer_idx <= max_layer; layer_idx++) //Skip every few layers, but extrude more.
     {
         const coord_t layer_height = (layer_idx == 0)? mesh.getSettingInMicrons("layer_height_0") : mesh.getSettingInMicrons("layer_height");
         current_z += layer_height;
-        if (layer_idx < mesh.getSettingAsCount("bottom_layers"))
+        if (static_cast<int>(layer_idx) < mesh.getSettingAsCount("bottom_layers"))
         { // nothing to add to pillar base
             continue;
         }
