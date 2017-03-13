@@ -6,7 +6,6 @@ namespace cura {
 
 void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 {
-    const coord_t iconic_layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
     coord_t spaghetti_max_height = mesh.getSettingInMicrons("spaghetti_max_height");
 
@@ -16,7 +15,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     {
         return; // infill cannot be combined into pillars
     }
-    coord_t connection_inset_dist = tan(mesh.getSettingInAngleRadians("spaghetti_max_infill_angle")) * iconic_layer_height; // Horizontal component of the spaghetti_max_infill_angle
+    coord_t connection_inset_dist = tan(mesh.getSettingInAngleRadians("spaghetti_max_infill_angle")) * mesh.getSettingInMicrons("layer_height"); // Horizontal component of the spaghetti_max_infill_angle
 
     std::list<SpaghettiInfill::InfillPillar> pillar_base;
     coord_t current_z = 0;
