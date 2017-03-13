@@ -20,13 +20,11 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     std::list<SpaghettiInfill::InfillPillar> pillar_base;
     coord_t current_z = 0;
     coord_t layer_height = mesh.getSettingInMicrons("layer_height_0"); // will get overwritten in loop below
-    double layer_height_mm = MM2INT(layer_height); // will get overwritten in loop below
 
     size_t max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
     for (size_t layer_idx = 0; layer_idx <= max_layer; layer_idx++) //Skip every few layers, but extrude more.
     {
         const coord_t layer_height = (layer_idx == 0)? mesh.getSettingInMicrons("layer_height_0") : mesh.getSettingInMicrons("layer_height");
-        const double layer_height_mm = MM2INT(layer_height);
         current_z += layer_height;
         if (layer_idx < mesh.getSettingAsCount("bottom_layers"))
         { // nothing to add to pillar base
@@ -43,7 +41,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
             for (PolygonsPart& infill_part : part_infill_parts)
             {
                 coord_t bottom_z = current_z - layer_height;
-                SpaghettiInfill::InfillPillar& pillar = addPartToPillarBase(infill_part, pillar_base, connection_inset_dist, layer_height_mm, bottom_z);
+                SpaghettiInfill::InfillPillar& pillar = addPartToPillarBase(infill_part, pillar_base, connection_inset_dist, layer_height, bottom_z);
                 pillar.top_slice_layer_part = &slice_layer_part;
                 pillar.last_layer_added = layer_idx;
             }
@@ -58,7 +56,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
                 || pillar.last_layer_added < static_cast<int>(layer_idx)
             )
             {
-                pillar.addToTopSliceLayerPart(layer_height_mm, filling_area_inset, line_width);
+                pillar.addToTopSliceLayerPart(filling_area_inset, line_width);
                 auto to_be_erased = it;
                 ++it;
                 pillar_base.erase(to_be_erased);
@@ -72,11 +70,11 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     // handle unfinished pillars
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
     {
-        it->addToTopSliceLayerPart(layer_height_mm, filling_area_inset, line_width);
+        it->addToTopSliceLayerPart(filling_area_inset, line_width);
     }
 }
 
-void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset, coord_t line_width)
+void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
 {
     SliceLayerPart& slice_layer_part = *top_slice_layer_part;
     double volume = total_volume_mm3;
@@ -116,7 +114,7 @@ bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
     }
 }
 
-SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist, double layer_height_mm, coord_t bottom_z)
+SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist, int layer_height, coord_t bottom_z)
 {
     std::list<SpaghettiInfill::InfillPillar>::iterator ret = pillar_base.end();
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
@@ -124,7 +122,7 @@ SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const Polygo
         InfillPillar& pillar = *it;
         if (pillar.isConnected(infill_part))
         {
-            pillar.total_volume_mm3 += INT2MM(INT2MM(infill_part.area())) * layer_height_mm;
+            pillar.total_volume_mm3 += INT2MM(INT2MM(infill_part.area())) * INT2MM(layer_height);
             pillar.top_part = infill_part;
             if (ret != pillar_base.end())
             { // connecting two pillars of the layer below via one area on this layer
@@ -136,7 +134,7 @@ SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const Polygo
     }
     if (ret == pillar_base.end())
     { // couldn't connect to any existing pillar
-        pillar_base.emplace_back(infill_part, connection_inset_dist, layer_height_mm, bottom_z);
+        pillar_base.emplace_back(infill_part, connection_inset_dist, layer_height, bottom_z);
         return pillar_base.back();
     }
     return *ret;

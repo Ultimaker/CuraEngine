@@ -46,12 +46,12 @@ protected:
          * 
          * \param _top_part The area which is the base and the top of the new pillar
          * \param connection_inset_dist Horizontal component of the spaghetti_max_infill_angle
-         * \param layer_height_mm The layer height (in mm) of the layer which contains the \p _top_part
+         * \param layer_height The layer height of the layer which contains the \p _top_part
          * \param bottom_z The z coordinate of the bottom of layer which contains \p _top_part
          */
-        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, double layer_height_mm, coord_t bottom_z)
+        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, int layer_height, coord_t bottom_z)
         : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
-        , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * layer_height_mm)
+        , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
         , connection_inset_dist(connection_inset_dist)
         , bottom_z(bottom_z)
         {
@@ -72,11 +72,10 @@ protected:
          * 
          * Note that the filling area is different from the infill area, because the spaghetti can curl toward the sides.
          * 
-         * \param layer_height_mm The layer height in millimeters
          * \param filling_area_inset The inset from the boundary of the walls to get from the infill area to the filling area
          * \param line_width The line width used to generate an area just large enough for infill lines to be generated, when the infill area would otherwise be too small to get infill
          */
-        void addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset, coord_t line_width);
+        void addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width);
     };
 private:
     /*!
@@ -88,10 +87,10 @@ private:
      * \param infill_part The area to add to the base
      * \param pillar_base The collection of pillars used up till the current layer
      * \param connection_inset_dist The distance insetted corresponding to the maximum angle which can be filled by spaghetti infill
-     * \param layer_height_mm The layer height of the added area (in mm)
+     * \param layer_height The layer height of the added area
      * \param bottom_z The z coordinate of the bottom of the layer which contains the \p infill_part
      */
-    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, double layer_height_mm, coord_t bottom_z);
+    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, int layer_height, coord_t bottom_z);
 };
 
 }//namespace cura
