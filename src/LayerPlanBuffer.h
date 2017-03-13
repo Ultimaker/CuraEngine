@@ -8,7 +8,7 @@
 #include "commandSocket.h"
 
 #include "gcodeExport.h"
-#include "gcodePlanner.h"
+#include "LayerPlan.h"
 #include "MeshGroup.h"
 
 #include "Preheat.h"
@@ -17,7 +17,7 @@ namespace cura
 {
 
 /*!
- * Class for buffering multiple layer plans (\ref GCodePlanner) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
+ * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
  * 
  * This class handles where to insert temperature commands for:
  * - initial layer temperature
@@ -41,50 +41,67 @@ class LayerPlanBuffer : SettingsMessenger
     static constexpr const double extra_preheat_time = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
     std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
+
+    /*!
+     * The buffer containing several layer plans (LayerPlan) before writing them to gcode.
+     * 
+     * The front is the lowest/oldest layer.
+     * The back is the highest/newest layer.
+     */
+    std::list<LayerPlan*> buffer;
 public:
-    std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
-    
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
     , gcode(gcode)
     , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
     
-    void setPreheatConfig(MeshGroup& settings)
-    {
-        preheat_config.setConfig(settings);
-    }
-    
+    void setPreheatConfig(MeshGroup& settings);
+
     /*!
-     * Place a new layer plan (GcodePlanner) by constructing it with the given arguments.
-     * Pop back the oldest layer plan is it exceeds the buffer size and write it to gcode.
+     * Push a new layer plan into the buffer
      */
-    template<typename... Args>
-    GCodePlanner& emplace_back(Args&&... constructor_args)
-    {
-        if (buffer.size() > 0)
-        {
-            insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
-        }
-        buffer.emplace_back(constructor_args...);
-        if (buffer.size() > buffer_size)
-        {
-            buffer.front().writeGCode(gcode);
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->flushGcode();
-            }
-            buffer.pop_front();
-        }
-        return buffer.back();
-    }
-    
+    void push(LayerPlan& layer_plan);
+
     /*!
-     * Write all remaining layer plans (GCodePlanner) to gcode and empty the buffer.
+     * Push a new layer onto the buffer and handle the buffer.
+     * Write a layer to gcode if it is popped out of the buffer.
+     * 
+     * \param layer_plan The layer to handle
+     * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
+     */
+    void handle(LayerPlan& layer_plan, GCodeExport& gcode);
+
+    /*!
+     * Process all layers in the buffer
+     * This inserts the temperature commands to start warming for a given layer in earlier layers;
+     * the fan speeds and layer time settings of the most recently pushed layer are processed;
+     * the correctly combing travel move between the last added layer and the layer before is added.
+     * 
+     * Pop out the earliest layer in the buffer if the buffer size is exceeded
+     * \return A nullptr or the popped gcode_layer
+     */
+    LayerPlan* processBuffer();
+
+    /*!
+     * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
     void flush();
 
 private:
+    /*!
+     * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
+     * 
+     * \param prev_layer The layer before the just added layer, to which to add the combing travel move.
+     * \param newest_layer The newly added layer, with a non-combing travel move as first path.
+     */
+    void addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer);
+
+    /*!
+     * Apply fan speed and correct extrusion flow for minimal layer time settings of the last layer plan in the buffer.
+     */
+    void processFanSpeedLayerTime();
+
     /*!
      * Insert the preheat command for @p extruder into @p extruder_plan_before
      * 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <omp.h>
 #include "logoutput.h"
 
 namespace cura {
@@ -21,31 +22,40 @@ void enableProgressLogging()
 
 void logError(const char* fmt, ...)
 {
-    va_list args;
-    va_start(args, fmt);
-    fprintf(stderr, "[ERROR] ");
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
+    #pragma omp critical
+    {
+        va_list args;
+        va_start(args, fmt);
+        fprintf(stderr, "[ERROR] ");
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fflush(stderr);
+    }
 }
 
 void logWarning(const char* fmt, ...)
 {
-    va_list args;
-    va_start(args, fmt);
-    fprintf(stderr, "[WARNING] ");
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
+    #pragma omp critical
+    {
+        va_list args;
+        va_start(args, fmt);
+        fprintf(stderr, "[WARNING] ");
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fflush(stderr);
+    }
 }
 
 void logAlways(const char* fmt, ...)
 {
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
+    #pragma omp critical
+    {
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fflush(stderr);
+    }
 }
 
 void log(const char* fmt, ...)
@@ -53,11 +63,14 @@ void log(const char* fmt, ...)
     if (verbose_level < 1)
         return;
 
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
+    #pragma omp critical
+    {
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fflush(stderr);
+    }
 }
 
 void logDebug(const char* fmt, ...)
@@ -66,12 +79,15 @@ void logDebug(const char* fmt, ...)
     {
         return;
     }
-    va_list args;
-    va_start(args, fmt);
-    fprintf(stderr, "[DEBUG] ");
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
+    #pragma omp critical
+    {
+        va_list args;
+        va_start(args, fmt);
+        fprintf(stderr, "[DEBUG] ");
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fflush(stderr);
+    }
 }
 
 void logProgress(const char* type, int value, int maxValue, float percent)
@@ -79,8 +95,11 @@ void logProgress(const char* type, int value, int maxValue, float percent)
     if (!progressLogging)
         return;
 
-    fprintf(stderr, "Progress:%s:%i:%i \t%f%%\n", type, value, maxValue, percent);
-    fflush(stderr);
+    #pragma omp critical
+    {
+        fprintf(stderr, "Progress:%s:%i:%i \t%f%%\n", type, value, maxValue, percent);
+        fflush(stderr);
+    }
 }
 
 }//namespace cura

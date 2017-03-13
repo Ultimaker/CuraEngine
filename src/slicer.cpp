@@ -216,7 +216,7 @@ SlicerLayer::findPossibleStitches(
     //   insert the starts of the polylines).
     for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
     {
-        const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+        ConstPolygonRef polyline_0 = open_polylines[polyline_0_idx];
 
         if (polyline_0.size() < 1) continue;
 
@@ -231,7 +231,7 @@ SlicerLayer::findPossibleStitches(
     {
         for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
         {
-            const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+            ConstPolygonRef polyline_0 = open_polylines[polyline_0_idx];
 
             if (polyline_0.size() < 1) continue;
 
@@ -245,7 +245,7 @@ SlicerLayer::findPossibleStitches(
     // search for nearby end points
     for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
     {
-        const PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+        ConstPolygonRef polyline_1 = open_polylines[polyline_1_idx];
 
         if (polyline_1.size() < 1) continue;
 

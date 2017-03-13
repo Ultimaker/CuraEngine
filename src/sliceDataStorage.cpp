@@ -35,7 +35,7 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     {
         if (external_polys_only)
         {
-            result.add(const_cast<SliceLayerPart&>(part).outline.outerPolygon()); // TODO: make a const version of outerPolygon()
+            result.add(part.outline.outerPolygon());
         }
         else 
         {
@@ -57,12 +57,12 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
     {
         // we want the 2nd inner walls
         if (part.insets.size() >= 2) {
-            layer_walls.add(const_cast<SliceLayerPart&>(part).insets[1]); // TODO const cast!
+            layer_walls.add(part.insets[1]);
             continue;
         }
         // but we'll also take the inner wall if the 2nd doesn't exist
         if (part.insets.size() == 1) {
-            layer_walls.add(const_cast<SliceLayerPart&>(part).insets[0]); // TODO const cast!
+            layer_walls.add(part.insets[0]);
             continue;
         }
         // offset_from_outlines was so large that it completely destroyed our isle,
@@ -87,38 +87,11 @@ std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
     return ret;
 }
 
-std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
-{
-    std::vector<GCodePathConfig> ret;
-    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-    {
-        travel_config_per_extruder.emplace_back(PrintFeatureType::MoveCombing);
-    }
-    return ret;
-}
-
-std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtBrimConfigs()
-{
-    std::vector<GCodePathConfig> ret;
-    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-    {
-        skirt_brim_config.emplace_back(PrintFeatureType::SkirtBrim);
-    }
-    return ret;
-}
-
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     print_layer_count(0),
     retraction_config_per_extruder(initializeRetractionConfigs()),
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
-    travel_config_per_extruder(initializeTravelConfigs()),
-    skirt_brim_config(initializeSkirtBrimConfigs()),
-    raft_base_config(PrintFeatureType::SupportInterface),
-    raft_interface_config(PrintFeatureType::Support),
-    raft_surface_config(PrintFeatureType::SupportInterface),
-    support_config(PrintFeatureType::Support),
-    support_skin_config(PrintFeatureType::SupportInterface),
     max_print_height_second_to_last_extruder(-1),
     primeTower(*this)
 {
@@ -163,7 +136,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
                 }
                 const SliceLayer& layer = mesh.layers[layer_nr];
                 layer.getOutlines(total, external_polys_only);
-                if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
+                if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
                 }
