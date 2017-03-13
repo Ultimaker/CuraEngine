@@ -556,6 +556,19 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
 #endif //ASSERT_INSANE_OUTPUT
 
+    if (isinf(extrusion_mm3_per_mm))
+    {
+        logError("Extrusion rate is infinite!");
+        assert(false && "Infinite extrusion move!");
+        std::exit(1);
+    }
+    if (isnan(extrusion_mm3_per_mm))
+    {
+        logError("Extrusion rate is not a number!");
+        assert(false && "NaN extrusion move!");
+        std::exit(1);
+    }
+
     if (extrusion_mm3_per_mm < 0)
         logWarning("Warning! Negative extrusion move!");
 

@@ -916,7 +916,7 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
     const int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
-    const coord_t layer_height = (layer_nr == 0)? mesh->getSettingInMillimeters("layer_height_0") : mesh->getSettingInMillimeters("layer_height");
+    const double layer_height_mm = (layer_nr == 0)? mesh->getSettingInMillimeters("layer_height_0") : mesh->getSettingInMillimeters("layer_height");
 
     // For each part on this layer which is used to fill that part and parts below:
     for (std::pair<PolygonsPart, double>& filling_area : part.spaghetti_infill_volumes)
@@ -940,9 +940,11 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
         if (total_length > 0)
         { // zigzag path generation actually generated paths
             // calculate the normal volume extruded when using the layer height and line width to calculate extrusion
-            const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * layer_height;
+            const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * layer_height_mm;
+            assert(normal_volume > 0.0);
             const float flow_ratio = total_volume / normal_volume;
             assert(flow_ratio / getSettingAsRatio("spaghetti_flow") >= 0.9);
+            assert(!isnan(flow_ratio) && !isinf(flow_ratio));
 
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
@@ -964,7 +966,7 @@ void FffGcodeWriter::processSpaghettiInfill(GCodePlanner& gcode_layer, SliceMesh
             {
                 PolygonUtils::ensureInsideOrOutside(area, middle, infill_line_width / 2);
             }
-            const double normal_volume = INT2MM(INT2MM(path_length * infill_line_width)) * mesh->getSettingInMillimeters("layer_height");
+            const double normal_volume = INT2MM(INT2MM(path_length * infill_line_width)) * layer_height_mm;
             const float flow_ratio = total_volume / normal_volume;
             gcode_layer.addTravel(middle);
             gcode_layer.addExtrusionMove(middle + Point(0, path_length), &config, SpaceFillType::Lines, flow_ratio);
