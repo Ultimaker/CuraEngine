@@ -5,7 +5,7 @@
 
 #ifdef _OPENMP
     #include <omp.h>
-#endif
+#endif // _OPENMP
 
 #include "utils/math.h"
 #include "utils/algorithm.h"

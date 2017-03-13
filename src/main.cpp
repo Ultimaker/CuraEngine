@@ -22,7 +22,7 @@
 
 #ifdef _OPENMP
     #include <omp.h> // omp_get_num_threads
-#endif
+#endif // _OPENMP
 
 namespace cura
 {
