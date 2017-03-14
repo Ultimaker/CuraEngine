@@ -740,10 +740,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
             }
 
-            // prime extruder if it hadn't been used yet
-            gcode.writePrimeTrain(storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
-            gcode.writeRetraction(retraction_config);
-
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
                 constexpr bool wait = false;
