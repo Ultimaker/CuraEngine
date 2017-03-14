@@ -358,7 +358,8 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 void LayerPlan::planPrime()
 {
     forceNewPathStart();
-    GCodePath& prime_travel = addTravel_simple(getLastPosition() + Point(0, 100));
+    constexpr float prime_poop_wipe_length = 2.0;
+    GCodePath& prime_travel = addTravel_simple(getLastPosition() + Point(0, MM2INT(prime_poop_wipe_length)));
     prime_travel.retract = false;
     prime_travel.perform_prime = true;
     forceNewPathStart();
@@ -738,10 +739,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 constexpr bool wait = true;
                 gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
             }
-
-            // prime extruder if it hadn't been used yet
-            gcode.writePrimeTrain(storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
-            gcode.writeRetraction(retraction_config);
 
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
