@@ -23,6 +23,7 @@ void Mold::process(Slicer& slicer, coord_t layer_height, double angle, coord_t w
             mold_outline_above = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width));
             layer.polygons = mold_outline_above.difference(model_outlines);
         }
+        layer.openPolylines.clear();
     }
 
 }
