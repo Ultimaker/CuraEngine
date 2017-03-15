@@ -358,7 +358,7 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 void LayerPlan::planPrime()
 {
     forceNewPathStart();
-    constexpr float prime_poop_wipe_length = 2.0;
+    constexpr float prime_poop_wipe_length = 10.0;
     GCodePath& prime_travel = addTravel_simple(getLastPosition() + Point(0, MM2INT(prime_poop_wipe_length)));
     prime_travel.retract = false;
     prime_travel.perform_prime = true;
