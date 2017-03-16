@@ -208,6 +208,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     const unsigned int layerZdistanceTop = std::max(0U, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
     const unsigned int layerZdistanceBottom = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness));
+    const unsigned int bottom_stair_step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1;
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
@@ -302,19 +303,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         // move up from model
-        if (layer_idx >= layerZdistanceBottom && (layerZdistanceBottom > 0 || support_bottom_stair_step_height > layerThickness))
-        {
-            int bottom_layer_nr = layer_idx - layerZdistanceBottom;
-            Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
-
-            int step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1;
-            int step_bottom_layer_nr = (bottom_layer_nr / step_layer_count) * step_layer_count;
-            Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
-
-            Polygons allowed_step_width = supportLayer_this.intersection(bottom_outline).offset(support_bottom_stair_step_width);
-            Polygons to_be_removed = step_bottom_outline.intersection(allowed_step_width);
-            supportLayer_this = supportLayer_this.difference(to_be_removed);
-        }
+        handleBottom(storage, supportLayer_this, layer_idx, layerZdistanceBottom, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
 
         supportLayer_last = supportLayer_this;
@@ -392,6 +381,27 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     }
 
     storage.support.generated = true;
+}
+
+void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& supportLayer_this, const int layer_idx, const int layerZdistanceBottom, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+{
+    if (layer_idx < layerZdistanceBottom)
+    {
+        return;
+    }
+    if (layerZdistanceBottom <= 0 && bottom_stair_step_layer_count <= 0)
+    {
+        return;
+    }
+    int bottom_layer_nr = layer_idx - layerZdistanceBottom;
+    Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
+
+    int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
+    Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+
+    Polygons allowed_step_width = supportLayer_this.intersection(bottom_outline).offset(support_bottom_stair_step_width);
+    Polygons to_be_removed = step_bottom_outline.intersection(allowed_step_width);
+    supportLayer_this = supportLayer_this.difference(to_be_removed);
 }
 
 

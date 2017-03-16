@@ -57,6 +57,23 @@ private:
     static Polygons join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
 
     /*!
+     * Move the support up from model (cut away polygons to ensure bottom z distance)
+     * and apply stair step transformation.
+     * 
+     * If the bottom stairs defined only by the step height are too wide,
+     * the top half of the step will be as wide as the stair step width
+     * and the bottom half will follow the model.
+     * 
+     * \param storage Where to get model outlines from
+     * \param[in,out] supportLayer_this The support areas before and after this function
+     * \param layer_idx The layer number of the support layer we are processing
+     * \param layerZdistanceBottom The number of layers between the bottom of support and the top of the model on which support rests
+     * \param bottom_stair_step_layer_count The max height (in nr of layers) of the support bottom stairs
+     * \param support_bottom_stair_step_width The max width of the support bottom stairs
+     */
+    static void handleBottom(const SliceDataStorage& storage, Polygons& supportLayer_this, const int layer_idx, const int layerZdistanceBottom, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
+
+    /*!
      * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).
      * \param storage input layer outline information
      * \param overhang_points stores overhang_points along with the layer index at which the overhang point occurs
