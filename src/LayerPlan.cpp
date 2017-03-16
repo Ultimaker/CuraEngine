@@ -256,7 +256,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
 
     GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-    if (always_retract && (!last_planned_position || !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    if (always_retract && (!last_planned_position || !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance)))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
