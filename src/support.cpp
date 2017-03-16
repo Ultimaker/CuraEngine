@@ -596,8 +596,8 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height"))); //Resolution of generating support bottoms above model.
     const coord_t interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
 
-    const unsigned int n_scans = std::max(1u, (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
-    const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(n_scans)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+    const unsigned int scan_count = std::max(1u, (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
+    const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
@@ -631,8 +631,8 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height"))); //Resolution of generating support roof below model.
     const coord_t interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
 
-    const unsigned int n_scans = std::max(1u, (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
-    const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(n_scans)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+    const unsigned int scan_count = std::max(1u, (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
+    const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < support_layers.size() - roof_layer_count - z_distance_top; layer_idx++)
