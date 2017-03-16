@@ -419,7 +419,7 @@ void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& suppor
 //                                                    support
 // ############################################################################     ┐
 // AAAAAxxxxxxxxxxxxx                                                               │
-// CCCCCCCCCCCCCCCCCC##########################################################     │
+// CCCCCCCCCCCCCCCCCC##########################################################     │           >>>>>>>>>   result only applies stair step to first layer(s) of what woud normally be the stair step
 //      ^^--..__                                                                    │
 //              ^^--..__#######################################################     ├> stair step height
 // ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺  ^^--..__                                                    │
