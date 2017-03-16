@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
@@ -36,9 +39,30 @@ private:
      * 
      * \param storage Output storage: support area + support skin area output
      * \param mesh The mesh to generate support skins for.
-     * \param layer_count The number of layers in this mesh group.
      */
-    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_count);
+    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+
+    /*!
+     * Generate support bottom areas for a given mesh.
+     *
+     * The areas are put in the slice data storage.
+     *
+     * \param storage Where to find the previously generated support areas and
+     * where to output the new support bottom areas.
+     * \param mesh The mesh to generate support for.
+     */
+    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+
+    /*!
+     * Generate support roof areas for a given mesh.
+     *
+     * The areas are put in the slice data storage.
+     *
+     * \param storage Where to find the previously generated support areas and
+     * where to output the new support roof areas.
+     * \param mesh The mesh to generate support roof for.
+     */
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.

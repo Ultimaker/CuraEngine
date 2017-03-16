@@ -1,5 +1,5 @@
 //Copyright (C) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -129,7 +129,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
         if (mesh.getSettingBoolean("support_interface_enable"))
         {
-            generateSupportInterface(storage, mesh, layer_count);
+            generateSupportInterface(storage, mesh);
         }
     }
 }
@@ -609,58 +609,78 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_count)
+void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh)
 {
-    const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
-    const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));
-    const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
-    const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
+    generateSupportRoof(storage, mesh);
+    generateSupportBottom(storage, mesh);
+}
 
-    const int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height")));
-    const int interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
-
-    std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
-    for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
+void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+{
+    const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support bottom.
+    if (bottom_layer_count <= 0)
     {
-        SupportLayer& layer = supportLayers[layer_idx];
+        return;
+    }
+    const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height")); //Number of layers between support bottom and model.
+    const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height"))); //Resolution of generating support bottoms above model.
+    const coord_t interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
 
-        const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
+    const unsigned int n_scans = std::max(1u, (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
+    const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(n_scans)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+
+    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
+    {
+        SupportLayer& layer = support_layers[layer_idx];
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
-        if (top_layer_idx_above >= supportLayers.size())
+        //Find out what parts of the model are below the support, so where support bottom must be placed.
+        Polygons model;
+        for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
         {
-            continue;
+            const Polygons outlines_below = mesh.layers[std::round(layer_idx_below)].getOutlines();
+            model = model.unionPolygons(outlines_below);
         }
-        Polygons roofs;
-        if (roof_layer_count > 0)
+        Polygons bottoms = layer.supportAreas.intersection(model);
+        bottoms = bottoms.offset(interface_line_width).intersection(layer.supportAreas); //Expand support bottom a bit so that we're sure it's not too thin to be printed.
+        bottoms.removeSmallAreas(1.0);
+        bottoms = bottoms.difference(layer.support_roof);
+        layer.support_bottom.add(bottoms);
+        layer.supportAreas = layer.supportAreas.difference(layer.support_bottom);
+    }
+}
+
+void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+{
+    const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support roof.
+    if (roof_layer_count <= 0)
+    {
+        return;
+    }
+    const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height")); //Number of layers between support roof and model.
+    const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height"))); //Resolution of generating support roof below model.
+    const coord_t interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
+
+    const unsigned int n_scans = std::max(1u, (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
+    const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(n_scans)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+
+    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    for (unsigned int layer_idx = 0; layer_idx < support_layers.size() - roof_layer_count - z_distance_top; layer_idx++)
+    {
+        SupportLayer& layer = support_layers[layer_idx];
+        const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top; //Maximum layer of the model that generates support roof.
+        //Find out what parts of the model are above the support, so where support roof must be placed.
+        Polygons model;
+        for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
         {
-            Polygons model;
-            const unsigned int n_scans = std::max(1u, (roof_layer_count - 1) / skip_layer_count);
-            const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(n_scans));
-            for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
-            {
-                const Polygons outlines_above = mesh.layers[std::round(layer_idx_above)].getOutlines();
-                model = model.unionPolygons(outlines_above);
-            }
-            roofs = layer.supportAreas.intersection(model);
+            const Polygons outlines_above = mesh.layers[std::round(layer_idx_above)].getOutlines();
+            model = model.unionPolygons(outlines_above);
         }
-        Polygons bottoms;
-        if (bottom_layer_count > 0)
-        {
-            Polygons model;
-            const unsigned int n_scans = std::max(1u, (bottom_layer_count - 1) / skip_layer_count);
-            const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(n_scans));
-            for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
-            {
-                const Polygons outlines_below = mesh.layers[std::round(layer_idx_below)].getOutlines();
-                model = model.unionPolygons(outlines_below);
-            }
-            bottoms = layer.supportAreas.intersection(model);
-        }
-        // expand skin a bit so that we're sure it's not too thin to be printed.
-        Polygons skin = roofs.unionPolygons(bottoms).offset(interface_line_width).intersection(layer.supportAreas);
-        skin.removeSmallAreas(1.0);
-        layer.skin.add(skin);
-        layer.supportAreas = layer.supportAreas.difference(layer.skin);
+        Polygons roofs = layer.supportAreas.intersection(model);
+        roofs = roofs.offset(interface_line_width).intersection(layer.supportAreas); //Expand support roof a bit so that we're sure it's not too thin to be printed.
+        roofs.removeSmallAreas(1.0);
+        layer.support_roof.add(roofs);
+        layer.supportAreas = layer.supportAreas.difference(layer.support_roof);
     }
 }
 
