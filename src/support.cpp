@@ -129,7 +129,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
         if (mesh.getSettingBoolean("support_interface_enable"))
         {
-            generateSupportInterface(storage, mesh);
+            generateSupportRoof(storage, mesh);
+            generateSupportBottom(storage, mesh);
         }
     }
 }
@@ -576,13 +577,6 @@ void AreaSupport::handleWallStruts(
             }
         }
     }
-}
-
-
-void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh)
-{
-    generateSupportRoof(storage, mesh);
-    generateSupportBottom(storage, mesh);
 }
 
 void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh)

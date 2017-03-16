@@ -32,16 +32,6 @@ private:
      */
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
-
-
-    /*!
-     * Generate support skin areas and non-skin areas for a given mesh.
-     * 
-     * \param storage Output storage: support area + support skin area output
-     * \param mesh The mesh to generate support skins for.
-     */
-    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh);
-
     /*!
      * Generate support bottom areas for a given mesh.
      *
