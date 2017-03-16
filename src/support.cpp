@@ -638,7 +638,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         Polygons bottoms = layer.supportAreas.intersection(model);
         bottoms = bottoms.offset(interface_line_width).intersection(layer.supportAreas); //Expand support bottom a bit so that we're sure it's not too thin to be printed.
         bottoms.removeSmallAreas(1.0);
-        bottoms = bottoms.difference(layer.support_roof);
         layer.support_bottom.add(bottoms);
         layer.supportAreas = layer.supportAreas.difference(layer.support_bottom);
     }
