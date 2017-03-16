@@ -413,7 +413,7 @@ void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& suppor
 //
 //
 //
-//       for more horizontal surface, the stepping is (party) degated
+//       for more horizontal surface, the stepping is (party) negated
 //
 // ############################################################################
 //                                                    support
