@@ -389,18 +389,27 @@ void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& suppor
     {
         return;
     }
-    if (bottom_empty_layer_count <= 0 && bottom_stair_step_layer_count <= 0)
+    if (bottom_empty_layer_count <= 0 && bottom_stair_step_layer_count <= 1)
     {
         return;
     }
+
     int bottom_layer_nr = layer_idx - bottom_empty_layer_count;
     Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
 
-    int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
-    Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+    Polygons to_be_removed;
+    if (bottom_stair_step_layer_count <= 1)
+    {
+        to_be_removed = bottom_outline;
+    }
+    else
+    {
+        int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
+        Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
 
-    Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
-    Polygons to_be_removed = step_bottom_outline.intersection(allowed_step_width);
+        Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
+        to_be_removed = step_bottom_outline.intersection(allowed_step_width);
+    }
     support_areas = support_areas.difference(to_be_removed);
 }
 
