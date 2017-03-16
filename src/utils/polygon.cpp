@@ -55,7 +55,7 @@ bool ConstPolygonRef::_inside(Point p, bool border_result) const
     return (crossings % 2) == 1;
 }
 
-bool Polygons::empty()
+bool Polygons::empty() const
 {
     return paths.empty();
 }
