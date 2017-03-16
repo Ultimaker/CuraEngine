@@ -163,6 +163,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
     const int join_distance = mesh.getSettingInMicrons("support_join_distance");
     const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
+    const int support_bottom_stair_step_width = mesh.getSettingInMicrons("support_bottom_stair_step_width");
 
     const int extension_offset = mesh.getSettingInMicrons("support_offset");
 
@@ -301,11 +302,18 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         // move up from model
-        if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
+        if (layer_idx >= layerZdistanceBottom && (layerZdistanceBottom > 0 || support_bottom_stair_step_height > layerThickness))
         {
-            int stepHeight = support_bottom_stair_step_height / supportLayerThickness + 1;
-            int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
-            supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(bottomLayer, false));
+            int bottom_layer_nr = layer_idx - layerZdistanceBottom;
+            Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
+
+            int step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1;
+            int step_bottom_layer_nr = (bottom_layer_nr / step_layer_count) * step_layer_count;
+            Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+
+            Polygons allowed_step_width = supportLayer_this.intersection(bottom_outline).offset(support_bottom_stair_step_width);
+            Polygons to_be_removed = step_bottom_outline.intersection(allowed_step_width);
+            supportLayer_this = supportLayer_this.difference(to_be_removed);
         }
 
 
