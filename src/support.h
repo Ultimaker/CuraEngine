@@ -65,13 +65,13 @@ private:
      * and the bottom half will follow the model.
      * 
      * \param storage Where to get model outlines from
-     * \param[in,out] supportLayer_this The support areas before and after this function
+     * \param[in,out] support_areas The support areas before and after this function
      * \param layer_idx The layer number of the support layer we are processing
-     * \param layerZdistanceBottom The number of layers between the bottom of support and the top of the model on which support rests
+     * \param bottom_empty_layer_count The number of empty layers between the bottom of support and the top of the model on which support rests
      * \param bottom_stair_step_layer_count The max height (in nr of layers) of the support bottom stairs
      * \param support_bottom_stair_step_width The max width of the support bottom stairs
      */
-    static void handleBottom(const SliceDataStorage& storage, Polygons& supportLayer_this, const int layer_idx, const int layerZdistanceBottom, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
+    static void handleBottom(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
      * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).

@@ -207,8 +207,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int supportLayerThickness = layerThickness;
     
     const unsigned int layerZdistanceTop = std::max(0U, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
-    const unsigned int layerZdistanceBottom = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness));
-    const unsigned int bottom_stair_step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1;
+    const unsigned int bottom_empty_layer_count = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness)); // number of empty layers between support and model
+    const unsigned int bottom_stair_step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
@@ -303,7 +303,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         // move up from model
-        handleBottom(storage, supportLayer_this, layer_idx, layerZdistanceBottom, bottom_stair_step_layer_count, support_bottom_stair_step_width);
+        handleBottom(storage, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
 
         supportLayer_last = supportLayer_this;
@@ -383,25 +383,25 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     storage.support.generated = true;
 }
 
-void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& supportLayer_this, const int layer_idx, const int layerZdistanceBottom, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
 {
-    if (layer_idx < layerZdistanceBottom)
+    if (layer_idx < bottom_empty_layer_count)
     {
         return;
     }
-    if (layerZdistanceBottom <= 0 && bottom_stair_step_layer_count <= 0)
+    if (bottom_empty_layer_count <= 0 && bottom_stair_step_layer_count <= 0)
     {
         return;
     }
-    int bottom_layer_nr = layer_idx - layerZdistanceBottom;
+    int bottom_layer_nr = layer_idx - bottom_empty_layer_count;
     Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
 
     int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
     Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
 
-    Polygons allowed_step_width = supportLayer_this.intersection(bottom_outline).offset(support_bottom_stair_step_width);
+    Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
     Polygons to_be_removed = step_bottom_outline.intersection(allowed_step_width);
-    supportLayer_this = supportLayer_this.difference(to_be_removed);
+    support_areas = support_areas.difference(to_be_removed);
 }
 
 
