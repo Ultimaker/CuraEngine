@@ -162,8 +162,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
     const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
     const int join_distance = mesh.getSettingInMicrons("support_join_distance");
-    const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
-    const int support_bottom_stair_step_width = mesh.getSettingInMicrons("support_bottom_stair_step_width");
+    const int support_bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_height"));
+    const int support_bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_width"));
 
     const int extension_offset = mesh.getSettingInMicrons("support_offset");
 
