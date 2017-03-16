@@ -385,6 +385,50 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
 void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
 {
+// The idea behing support bottom stairs:
+//
+//   LEGEND:
+//   A: support resting on model
+//   x: stair step width
+//   C: to be removed from support untill the next stair step = intersection between model below and A offsetted by x
+//
+//     ALGORITHM                                                      RESULT
+//
+// ###########################                                     ###########################                              .
+//    support                                                         support                                               .
+// ###########################   ┐                                 ###########################                              .
+// AAAAxxxxxxxxxxxxxx            │                                                                                          .
+// CCCCCCCCCCCC                  │                                 ____        ###############                              .
+// |   \      :                  │                                 |   \                                                    .
+// |____\     :                  ├> stair step height              |____\      ###############                              .
+// |     \    :                  │                                 |     \                                                  .
+// |______\   :                  │                                 |______\    ###############                              .
+// |       \  :                  │                                 |       \                                                .
+// |________\ :                  │                                 |________\  ###############                              .
+// |model    \:                  │                                 |model    \                                              .
+// |__________\###############   ┘                                 |__________\###############                              .
+// |           \                                                   |           \                                            .
+// |____________\                                                  |____________\                                           .
+//
+//
+//
+//
+//       for more horizontal surface, the stepping is (party) degated
+//
+// ############################################################################
+//                                                    support
+// ############################################################################     ┐
+// AAAAAxxxxxxxxxxxxx                                                               │
+// CCCCCCCCCCCCCCCCCC##########################################################     │
+//      ^^--..__                                                                    │
+//              ^^--..__#######################################################     ├> stair step height
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺  ^^--..__                                                    │
+//                              ^^--..__#######################################     │
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺ ^^--..__                                    │
+//                                              ^^--..__#######################     │
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺^^--..__                    │
+//                                                              ^^--..__#######     ┘
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺
     if (layer_idx < bottom_empty_layer_count)
     {
         return;
