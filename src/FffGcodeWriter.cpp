@@ -1475,7 +1475,6 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const ExtruderTrain& interface_extr = *storage.meshgroup->getExtruderTrain(skin_extruder_nr);
 
     EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_interface_pattern");
-    int support_line_distance = interface_extr.getSettingInMicrons("support_interface_line_distance");
     
     
     bool all_roofs_are_low = true;
@@ -1509,7 +1508,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     bool use_endpieces = true;
     bool connected_zigzags = false;
 
-    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    const coord_t support_roof_line_distance = interface_extr.getSettingInMicrons("support_roof_line_distance");
+    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
@@ -1521,7 +1521,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         added = true;
     }
 
-    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    const coord_t support_bottom_line_distance = interface_extr.getSettingInMicrons("support_bottom_line_distance");
+    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
