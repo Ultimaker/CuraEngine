@@ -22,7 +22,8 @@ class PathConfigStorage
 private:
     const ExtruderTrain* adhesion_extruder_train;
     const ExtruderTrain* support_infill_train;
-    const ExtruderTrain* support_interface_train;
+    const ExtruderTrain* support_roof_train;
+    const ExtruderTrain* support_bottom_train;
 public:
     class MeshPathConfigs
     {
