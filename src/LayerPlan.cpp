@@ -90,6 +90,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
+, first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
@@ -250,6 +251,16 @@ void LayerPlan::moveInsideCombBoundary(int distance)
     }
 }
 
+std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const
+{
+    std::optional<std::pair<Point, bool>> ret;
+    if (first_travel_destination)
+    {
+        ret = std::make_pair(*first_travel_destination, first_travel_destination_is_inside);
+    }
+    return ret;
+}
+
 GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
@@ -268,9 +279,17 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
-    const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+    bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
-    if (comb != nullptr && !bypass_combing && last_planned_position)
+    bool is_first_travel_of_layer = static_cast<bool>(last_planned_position);
+    if (is_first_travel_of_layer)
+    {
+        bypass_combing = true; // first travel move is boguous; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
+        first_travel_destination = p;
+        first_travel_destination_is_inside = is_inside;
+    }
+
+    if (comb != nullptr && !bypass_combing)
     {
         const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
 
@@ -325,7 +344,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
         }
     }
     
-    if (!combed && last_planned_position) {
+    if (!combed && last_planned_position && !is_first_travel_of_layer) {
         // no combing? always retract!
         if (always_retract || !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
         {
