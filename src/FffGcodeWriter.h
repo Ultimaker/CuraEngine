@@ -454,14 +454,28 @@ private:
      * \return whether any support infill was added to the layer plan
      */
     bool addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+
     /*!
-     * Add the support skins to the layer plan \p gcodeLayer of the current layer.
-     * \param[in] storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
-     * \return whether any support skin was added to the layer plan
+     * Add the support skins to the layer plan \p gcodeLayer of the current
+     * layer.
+     *
+     * \param[in] storage Where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the g-code of.
+     * \return Whether any support skin was added to the layer plan.
      */
     bool addSupportRoofsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+
+    /*!
+     * Add the support bottoms to the layer plan \p gcodeLayer of the current
+     * layer.
+     *
+     * \param[in] storage Where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the g-code of.
+     * \return Whether any support skin was added to the layer plan.
+     */
+    bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
     
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.

@@ -269,7 +269,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
         ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
         if (getSettingBoolean("support_interface_enable"))
         {
-            ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
+            ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+            ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
         }
     }
 
@@ -350,9 +351,13 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
                     ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
                 }
             }
-            if (!support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+            if (!support_layer.support_bottom.empty())
             {
-                ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
+                ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+            }
+            if (!support_layer.support_roof.empty())
+            {
+                ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
             }
         }
     }

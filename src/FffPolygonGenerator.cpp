@@ -679,13 +679,17 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
 
         //Height of where the support reaches.
-        const unsigned int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
+        const unsigned int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: Support extruder should be configurable per object.
         max_print_height_per_extruder[support_infill_extruder_nr] =
             std::max(max_print_height_per_extruder[support_infill_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const unsigned int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr"); // TODO: support skin extruder should be configurable per object
-        max_print_height_per_extruder[support_skin_extruder_nr] =
-            std::max(max_print_height_per_extruder[support_skin_extruder_nr],
+        const unsigned int support_roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr"); // TODO: Support roof extruder should be configurable per object.
+        max_print_height_per_extruder[support_roof_extruder_nr] =
+            std::max(max_print_height_per_extruder[support_roof_extruder_nr],
+                     storage.support.layer_nr_max_filled_layer);
+        const unsigned int support_bottom_extruder_nr = storage.getSettingAsIndex("support_bottom_extruder_nr"); //TODO: Support bottom extruder should be configurable per object.
+        max_print_height_per_extruder[support_bottom_extruder_nr] =
+            std::max(max_print_height_per_extruder[support_bottom_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
 
         //Height of where the platform adhesion reaches.
