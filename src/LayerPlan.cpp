@@ -830,11 +830,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
-                    if (point_idx == path.points.size() - 1)
-                    {
-                        gcode.setZ(z); // go down to extrusion level when we spiralized before on this layer
-                        gcode.writeTravel(gcode.getPositionXY(), speed);
-                    }
                 }
                 continue;
             }
