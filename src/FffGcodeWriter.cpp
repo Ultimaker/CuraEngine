@@ -610,7 +610,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
-    assert(extruder_order_per_layer_negative_layers.size() + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
     const std::vector<unsigned int>& extruder_order =
         (layer_nr < 0)?
         extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr]
