@@ -109,6 +109,7 @@ enum class EFillMethod
     TRIANGLES,
     CONCENTRIC,
     ZIG_ZAG,
+    TRUNCATED_OCTAHEDRON,
     NONE
 };
 

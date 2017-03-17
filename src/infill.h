@@ -57,6 +57,7 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines);
 
 private:
+	void generateTroctInfill(Polygons& result);
     /*!
      * Function which returns the scanline_idx for a given x coordinate
      * 

@@ -353,6 +353,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::CONCENTRIC;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
+    if (value == "truncated_octahedron")
+        return EFillMethod::TRUNCATED_OCTAHEDRON;
     return EFillMethod::NONE;
 }
 
