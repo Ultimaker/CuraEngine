@@ -208,9 +208,8 @@ private:
      * Add raft layer plans onto the FffGcodeWriter::layer_plan_buffer
      * 
      * \param[in,out] storage where the slice data is stored.
-     * \param total_layers The total number of layers.
      */
-    void processRaft(const SliceDataStorage& storage, unsigned int total_layers);
+    void processRaft(const SliceDataStorage& storage);
 
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer

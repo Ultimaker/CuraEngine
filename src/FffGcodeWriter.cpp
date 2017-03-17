@@ -89,7 +89,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
-        processRaft(storage, total_layers);
+        processRaft(storage);
         // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
         // only process the filler layers if there is anything to print in them.
         for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
@@ -429,7 +429,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeTravel(start_pos, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
 }
     
-void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int total_layers)
+void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
