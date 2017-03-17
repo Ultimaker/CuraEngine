@@ -97,7 +97,14 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             , support_infill_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
         )
-, support_interface_config(
+, support_roof_config(
+            PrintFeatureType::SupportInterface
+            , support_interface_train->getSettingInMicrons("support_interface_line_width")
+            , layer_thickness
+            , support_interface_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_interface")}
+        )
+, support_bottom_config(
             PrintFeatureType::SupportInterface
             , support_interface_train->getSettingInMicrons("support_interface_line_width")
             , layer_thickness
@@ -172,7 +179,8 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
 
             const int extruder_nr_support_interface = storage.getSettingAsIndex("support_interface_extruder_nr");
             GCodePathConfig::SpeedDerivatives& first_layer_config_interface = global_first_layer_config_per_extruder[extruder_nr_support_interface];
-            support_interface_config.smoothSpeed(first_layer_config_interface, std::max(0, layer_nr), initial_speedup_layer_count);
+            support_roof_config.smoothSpeed(first_layer_config_interface, std::max(0, layer_nr), initial_speedup_layer_count);
+            support_bottom_config.smoothSpeed(first_layer_config_interface, std::max(0, layer_nr), initial_speedup_layer_count);
         }
     }
 

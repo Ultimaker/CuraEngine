@@ -1562,27 +1562,27 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     bool use_endpieces = true;
     bool connected_zigzags = false;
 
-    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_interface_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
     if (!roof_polygons.empty() || !roof_lines.empty())
     {
         setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
-        gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_interface_config);
-        gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_interface_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_roof_config);
+        gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
         added = true;
     }
 
-    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_interface_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
     if (!bottom_polygons.empty() || !bottom_lines.empty())
     {
         setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
-        gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_interface_config);
-        gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_interface_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
+        gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
         added = true;
     }
 
