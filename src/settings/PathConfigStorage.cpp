@@ -102,14 +102,14 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             , support_interface_train->getSettingInMicrons("support_interface_line_width")
             , layer_thickness
             , support_interface_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_interface")}
+            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_roof")}
         )
 , support_bottom_config(
             PrintFeatureType::SupportInterface
             , support_interface_train->getSettingInMicrons("support_interface_line_width")
             , layer_thickness
             , support_interface_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_bottom"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_bottom"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_interface")}
+            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_bottom"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_bottom"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_bottom")}
         )
 {
     const int extruder_count = storage.meshgroup->getExtruderCount();
