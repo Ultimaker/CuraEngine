@@ -281,7 +281,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
-    bool is_first_travel_of_layer = static_cast<bool>(last_planned_position);
+    bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
     if (is_first_travel_of_layer)
     {
         bypass_combing = true; // first travel move is boguous; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
