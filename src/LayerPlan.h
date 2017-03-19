@@ -244,6 +244,9 @@ private:
 
     int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
     SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
+
+    std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
+    bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
@@ -344,6 +347,14 @@ public:
     }
 
     /*!
+     * Get the destination state of the first travel move.
+     * This consists of the location and whether the destination was inside the model, or e.g. to support
+     * 
+     * Returns nothing if the layer is empty and no travel move was ever made.
+     */
+    std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
+
+    /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
     void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width) const
@@ -357,7 +368,7 @@ public:
     * Features like infill, walls, skin etc. are considered inside.
     * Features like prime tower and support are considered outside.
     */
-    void setIsInside(bool going_to_comb);
+    void setIsInside(bool is_inside);
 
     /*!
      * Plan a switch to a new extruder

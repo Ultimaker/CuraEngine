@@ -78,19 +78,24 @@ void LayerPlanBuffer::flush()
 
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
 {
+    std::optional<std::pair<Point, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
+
     assert(newest_layer->extruder_plans.front().extruder == prev_layer->extruder_plans.back().extruder);
-    const ExtruderPlan& extruder_plan_above_prev_layer = newest_layer->extruder_plans.front();
-    if (extruder_plan_above_prev_layer.paths.size() == 0)
+
+    if (!new_layer_destination_state)
     {
         logWarning("There are empty layers (or layers with empty extruder plans) in the print! Temperature control and cross layer travel moves might suffer.\n");
         return;
     }
-    const GCodePath& path_above = extruder_plan_above_prev_layer.paths[0];
-    assert(path_above.points.size() == 1 && "The first move planned should have been a boguous direct travel move");
 
-    Point first_location_new_layer = path_above.points[0];
+    Point first_location_new_layer = new_layer_destination_state->first;
 
-    prev_layer->addTravel(first_location_new_layer);
+    // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
+    if (!prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
+    {
+        prev_layer->setIsInside(new_layer_destination_state->second);
+        prev_layer->addTravel(first_location_new_layer);
+    }
 }
 
 void LayerPlanBuffer::processFanSpeedLayerTime()
