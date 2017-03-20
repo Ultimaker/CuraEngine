@@ -373,24 +373,6 @@ private:
     void processInfill(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
 
     /*!
-     * Add spaghetti infill for a given part in a layer plan.
-     * 
-     * Move over the infill region with a zigzag pattern and
-     * extrude as much material as needed for the current part
-     * and all parts below which should be filled withthis spaghetti.
-     * 
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
-     * \param mesh_config the line config with which to print a print feature
-     * \param part The part for which to create gcode
-     * \param layer_nr The current layer number.
-     * \param infill_line_distance The distance between the infill lines
-     * \param infill_overlap The distance by which the infill overlaps with the wall insets.
-     * \param fillAngle The angle in the XY plane at which the infill is generated.
-     */
-    void processSpaghettiInfill(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
-
-    /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
      * 
      * \param gcodeLayer The initial planning of the gcode of the layer.
