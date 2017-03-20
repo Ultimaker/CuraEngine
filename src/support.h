@@ -61,7 +61,7 @@ private:
      *
      * \param
      */
-    static void generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& mesh_outlines, const coord_t line_width, Polygons& interface);
+    static void generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& mesh_outlines, const coord_t safety_offset, Polygons& interface);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
