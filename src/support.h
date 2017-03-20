@@ -55,6 +55,15 @@ private:
     static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh);
 
     /*!
+     * \brief Generate a single layer of support interface.
+     *
+     * The layer is generated into 
+     *
+     * \param
+     */
+    static void generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& mesh_outlines, const coord_t line_width, Polygons& interface);
+
+    /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
      * 
      * \param supportLayer_up The support areas the layer above

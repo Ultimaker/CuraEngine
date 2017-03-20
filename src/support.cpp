@@ -636,20 +636,15 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
     {
-        SupportLayer& layer = support_layers[layer_idx];
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
-        //Find out what parts of the model are below the support, so where support bottom must be placed.
-        Polygons model;
+        std::vector<Polygons> mesh_outlines;
         for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
         {
-            const Polygons outlines_below = mesh.layers[std::round(layer_idx_below)].getOutlines();
-            model = model.unionPolygons(outlines_below);
+            mesh_outlines.push_back(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
-        Polygons bottoms = layer.supportAreas.intersection(model);
-        bottoms = bottoms.offset(bottom_line_width).intersection(layer.supportAreas); //Expand support bottom a bit so that we're sure it's not too thin to be printed.
-        bottoms.removeSmallAreas(1.0);
-        layer.support_bottom.add(bottoms);
-        layer.supportAreas = layer.supportAreas.difference(layer.support_bottom);
+        Polygons bottoms;
+        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, bottom_line_width, bottoms);
+        support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
 
@@ -670,23 +665,29 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < support_layers.size() - roof_layer_count - z_distance_top; layer_idx++)
     {
-        SupportLayer& layer = support_layers[layer_idx];
         const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top; //Maximum layer of the model that generates support roof.
-        //Find out what parts of the model are above the support, so where support roof must be placed.
-        Polygons model;
+        std::vector<Polygons> mesh_outlines;
         for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
         {
-            const Polygons outlines_above = mesh.layers[std::round(layer_idx_above)].getOutlines();
-            model = model.unionPolygons(outlines_above);
+            mesh_outlines.push_back(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }
-        Polygons roofs = layer.supportAreas.intersection(model);
-        roofs = roofs.offset(roof_line_width).intersection(layer.supportAreas); //Expand support roof a bit so that we're sure it's not too thin to be printed.
-        roofs.removeSmallAreas(1.0);
-        layer.support_roof.add(roofs);
-        layer.supportAreas = layer.supportAreas.difference(layer.support_roof);
+        Polygons roofs;
+        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, roof_line_width, roofs);
+        support_layers[layer_idx].support_roof.add(roofs);
     }
 }
 
-
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& colliding_mesh_outlines, const coord_t line_width, Polygons& interface)
+{
+    Polygons model;
+    for (const Polygons outline : colliding_mesh_outlines)
+    {
+        model = model.unionPolygons(outline);
+    }
+    interface = support_areas.intersection(model);
+    interface = interface.offset(line_width).intersection(support_areas);
+    interface.removeSmallAreas(1.0);
+    support_areas = support_areas.difference(interface);
+}
 
 }//namespace cura
