@@ -11,11 +11,15 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 
     coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
     
+    coord_t connection_inset_dist;
     if (mesh.getSettingInAngleDegrees("spaghetti_max_infill_angle") >= 90)
     {
-        return; // infill cannot be combined into pillars
+        connection_inset_dist = MM2INT(500); // big enough for all standard printers.
     }
-    coord_t connection_inset_dist = tan(mesh.getSettingInAngleRadians("spaghetti_max_infill_angle")) * mesh.getSettingInMicrons("layer_height"); // Horizontal component of the spaghetti_max_infill_angle
+    else
+    {
+        connection_inset_dist = tan(mesh.getSettingInAngleRadians("spaghetti_max_infill_angle")) * mesh.getSettingInMicrons("layer_height"); // Horizontal component of the spaghetti_max_infill_angle
+    }
 
     std::list<SpaghettiInfill::InfillPillar> pillar_base;
     coord_t current_z = 0;
