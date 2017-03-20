@@ -280,7 +280,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
     if (is_first_travel_of_layer)
     {
-        bypass_combing = true; // first travel move is boguous; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
+        bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
     }
