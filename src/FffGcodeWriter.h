@@ -330,12 +330,11 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
      * 
-     * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -355,7 +354,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshPartToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
