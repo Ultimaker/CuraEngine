@@ -647,7 +647,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     }
 }
 
-void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& colliding_mesh_outlines, const coord_t line_width, Polygons& interface)
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface)
 {
     Polygons model;
     for (const Polygons outline : colliding_mesh_outlines)
@@ -655,7 +655,7 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const s
         model = model.unionPolygons(outline);
     }
     interface = support_areas.intersection(model);
-    interface = interface.offset(line_width).intersection(support_areas);
+    interface = interface.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
     interface.removeSmallAreas(1.0);
     support_areas = support_areas.difference(interface);
 }
