@@ -53,7 +53,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
         break;
     case EFillMethod::TRUNCATED_OCTAHEDRON:
-        generateTroctInfill(result_lines);
+        generateTroctInfill(result_polygons);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
