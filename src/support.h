@@ -57,9 +57,17 @@ private:
     /*!
      * \brief Generate a single layer of support interface.
      *
-     * The layer is generated into 
+     * The interface polygons are going to get filled with the actual support
+     * interface polygons, and this is subtracted from the support areas.
      *
-     * \param
+     * \param support_areas The areas where support infill is going to be
+     * printed.
+     * \param mesh_outlines The outlines of the mesh above or below the layer
+     * we're generating interface for. These layers determine what areas are
+     * going to be filled with the interface.
+     * \param safety_offset An offset applied to the result to make sure
+     * everything can be printed.
+     * \param interface An output variable to put the resulting polygons in.
      */
     static void generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& mesh_outlines, const coord_t safety_offset, Polygons& interface);
 
