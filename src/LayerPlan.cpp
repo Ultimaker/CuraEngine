@@ -284,7 +284,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
     }
-    else if (always_retract && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    else if (always_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
@@ -346,7 +346,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     }
     
     // no combing? retract only when path is not shorter than minimum travel distance
-    if (!combed && !is_first_travel_of_layer && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    if (!combed && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
         if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
