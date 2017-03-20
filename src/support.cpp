@@ -190,7 +190,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     coord_t smoothing_distance;
     { // compute best smoothing_distance
         ExtruderTrain& infill_train = *storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
-        const coord_t support_infill_line_width = infill_train.getSettingInMicrons("support_infill_line_width");
+        const coord_t support_infill_line_width = infill_train.getSettingInMicrons("support_line_width");
         smoothing_distance = support_infill_line_width;
         if (interface_enable)
         {
