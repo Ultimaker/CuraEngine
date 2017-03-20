@@ -127,9 +127,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             continue;
         }
 
-        if (mesh.getSettingBoolean("support_interface_enable"))
+        if (mesh.getSettingBoolean("support_roof_enable"))
         {
             generateSupportRoof(storage, mesh);
+        }
+        if (mesh.getSettingBoolean("support_bottom_enable"))
+        {
             generateSupportBottom(storage, mesh);
         }
     }
@@ -184,7 +187,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
 
     int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
-    bool interface_enable = mesh.getSettingBoolean("support_interface_enable");
 
     // derived settings:
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
@@ -193,17 +195,20 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         ExtruderTrain& infill_train = *storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
         const coord_t support_infill_line_width = infill_train.getSettingInMicrons("support_line_width");
         smoothing_distance = support_infill_line_width;
-        if (interface_enable)
+        if (mesh.getSettingBoolean("support_roof_enable"))
         {
             const int support_roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr");
             const ExtruderTrain& roof_train = *storage.meshgroup->getExtruderTrain(support_roof_extruder_nr);
             const coord_t support_roof_line_width = roof_train.getSettingInMicrons("support_roof_line_width");
-            
+            smoothing_distance = std::max(smoothing_distance, support_roof_line_width);
+        }
+
+        if (mesh.getSettingBoolean("support_bottom_enable"))
+        {
             const int support_bottom_extruder_nr = storage.getSettingAsIndex("support_bottom_extruder_nr");
             const ExtruderTrain& bottom_train = *storage.meshgroup->getExtruderTrain(support_bottom_extruder_nr);
             const coord_t support_bottom_line_width = bottom_train.getSettingInMicrons("support_bottom_line_width");
-            
-            smoothing_distance = std::max({smoothing_distance, support_roof_line_width, support_bottom_line_width});
+            smoothing_distance = std::max(smoothing_distance, support_bottom_line_width);
         }
     }
 

@@ -146,7 +146,8 @@ void MeshGroup::finalize()
                 && (
                     getSettingAsIndex("support_infill_extruder_nr") == extruder_nr
                     || getSettingAsIndex("support_extruder_nr_layer_0") == extruder_nr
-                    || (getSettingBoolean("support_interface_enable") && (getSettingAsIndex("support_roof_extruder_nr") == extruder_nr || getSettingAsIndex("support_bottom_extruder_nr") == extruder_nr))
+                    || (getSettingBoolean("support_roof_enable") && getSettingAsIndex("support_roof_extruder_nr") == extruder_nr)
+                    || (getSettingBoolean("support_bottom_enable") && getSettingAsIndex("support_bottom_extruder_nr") == extruder_nr)
                     )
                 )
             {

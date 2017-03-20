@@ -267,9 +267,12 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     {
         ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
         ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-        if (getSettingBoolean("support_interface_enable"))
+        if (getSettingBoolean("support_roof_enable"))
         {
             ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+        }
+        if (getSettingBoolean("support_bottom_enable"))
+        {
             ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
         }
     }
