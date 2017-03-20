@@ -365,6 +365,12 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
 
 GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 {
+    bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
+    if (is_first_travel_of_layer)
+    { // spiralize calls addTravel_simple directly as the first travel move in a layer
+        first_travel_destination = p;
+        first_travel_destination_is_inside = is_inside;
+    }
     if (path == nullptr)
     {
         path = getLatestPathWithConfig(&configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
