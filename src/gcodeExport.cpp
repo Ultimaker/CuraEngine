@@ -72,7 +72,8 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         }
         for (const Mesh& mesh : meshgroup->meshes)
         {
-            if ((mesh.getSettingBoolean("support_enable") && mesh.getSettingBoolean("support_interface_enable") && (meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr) || meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr)))
+            if ((mesh.getSettingBoolean("support_enable") && mesh.getSettingBoolean("support_bottom_enable") && meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr))
+                || (mesh.getSettingBoolean("support_enable") && mesh.getSettingBoolean("support_roof_enable") && meshgroup->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
                 || (mesh.getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
                 || (mesh.getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
                 )
