@@ -83,6 +83,44 @@ protected:
         MatSegment mat_segment;
     };
 
+    /*!
+     * Instructions on how to handle a corner.
+     * A corner which has an outward offset on both sides is a detoured corner,
+     * which will be offsetted in the average direction of both normals with the average offset.
+     *                   ,.-~^~-.,                                        .
+     *                  /    ,    \                                       .
+     *                 /    / \    \                                      .
+     *                /    /   \    \                                     .
+     *               /    /     \    \ offsetted                          .
+     *                   original
+     * 
+     * Other corner types (shortcutting on both sides or on either side)
+     * are offsetted toward the location where parallel lines cross which are offsetted by the given amounts from the
+     * line segments connected to the corner.
+     * 
+     * The amount by which they shortcut the line segments is recorded as the disregard distance.
+     * Locations within the disregard distance on a line segment to a corner don't need to be offsetted.
+     * Negative disregard distances are maxed to zero: no piece of the original line segment needs to be disregarded.
+     * 
+     *                                                                              offsetted
+     *                                                                              |   original
+     *                          |   |                                               |   |
+     *                          |   |                                               |   |
+     *                          |   |                                               |   |
+     *                          |...|_______offsetted                               |___|_______offsetted
+     *        disregard dist  { |   :                             disregard dist  {    :|
+     *                        { |___:_______original                              {    :|_______original
+     *                           vvv                                                 vvv
+     *                         disregard dist                                      disregard dist = 0
+     */
+    struct CornerHandle
+    {
+        Point corner_offset_vector;
+        bool is_detour_corner;
+        coord_t prev_segment_disregard_distance;
+        coord_t next_segment_disregard_distance;
+    };
+
     TexturedMesh* mesh;
 
     /*!
@@ -108,23 +146,34 @@ protected:
     coord_t getOffset(const float color, const int face_idx);
 
     /*!
-     * Get the offset to be applied at a given corner
+     * Get how to handle variable offsetting of a corner.
+     * The result contains information on whether it is a detour corner or not.
+     * (Only corners with outward offsets on both line segments are considered detour corners)
+     * The result contains information on how much of the line segments before and after are not used in the result polygon
      * 
-     * Computes the average offset from the end of \p textured_face_slice and start of \p next_textured_face_slice
-     * If either of those is not present, the \ref TextureBumpMapProcessor::Settings::default_color is used for that segment
-     * 
-     * \warning Where no texture is present, no offset is applied to the outer boundary!
-     * 
-     * \param textured_face_slice From which to determine the offset at the end of the line segment - or default to zero
-     * \param next_textured_face_slice From which to determine the offset at the start of the line segment - or default to zero
+     * \param p0 The first point of the first line segment
+     * \param p1 The corner point shared by the two line segments
+     * \param p2 The second point of the second line segment
+     * \param textured_face_slice From which to determine the offset at the end of the first line segment - or default to zero
+     * \param next_textured_face_slice From which to determine the offset at the start of the second line segment - or default to zero
+     * \return Parameters which determine how to handle variable offsetting a corner
      */
-    coord_t getCornerOffset(std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice);
+    CornerHandle getCornerHandle(Point p0, Point p1, Point p2, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice);
 
     /*!
-     * Get how much of a corner to skip generating offsetted indices for inner corners,
-     * because those points would be removed by the offset itseld
+     * Get how to handle variable offsetting of a corner.
+     * The result contains information on whether it is a detour corner or not.
+     * (Only corners with outward offsets on both line segments are considered detour corners)
+     * The result contains information on how much of the line segments before and after are not used in the result polygon
+     * 
+     * \param p0 The first point of the first line segment
+     * \param p1 The corner point shared by the two line segments
+     * \param p2 The second point of the second line segment
+     * \param offset0 THe offset used on the segment from \p p0 to \p p1 in the direction of the CW normal
+     * \param offset1 THe offset used on the segment from \p p1 to \p p2 in the direction of the CW normal
+     * \return Parameters which determine how to handle variable offsetting a corner
      */
-    coord_t getCornerDisregard(Point p0, Point p1, Point p2, std::optional<TexturedFaceSlice>& textured_face_slice, std::optional<TexturedFaceSlice>& next_textured_face_slice);
+    static CornerHandle getCornerHandle(Point p0, Point p1, Point p2, coord_t offset0, coord_t offset1);
 
     /*!
      * Get the TexturedFaceSlice corresponding to an outline segment
