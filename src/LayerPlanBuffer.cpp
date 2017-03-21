@@ -177,11 +177,10 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
     if (warm_up.heating_time > in_between_time)
     {
         warm_up.heating_time = in_between_time;
-        warm_up.lowest_temperature = in_between_time / preheat_config.getTimeToHeatup1Degree(extruder, during_printing);
+        warm_up.lowest_temperature = initial_print_temp - in_between_time / preheat_config.getTimeToHeatup1Degree(extruder, during_printing);
     }
     warm_up.heating_time = warm_up.heating_time + extra_preheat_time;
     return warm_up;
-    
 }
 
 void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp)
