@@ -321,6 +321,17 @@ public:
         return dot(ba, bc);
     }
 
+    /*!
+     * Get the vector by which to offset a corner, when offsetting two line segments orthogonally with a different offset.
+     * 
+     * \param a The first point of the first line segment
+     * \param b The corner point between the two line segments
+     * \param c The second point of the second line segment
+     * \param offset_ab The offset to be applied on the line segment from \p a to \p b in the direction of the normal CCW of the line segment
+     * \param offset_bc The offset to be applied on the line segment from \p b to \p c in the direction of the normal CCW of the line segment
+     */
+    static Point variableCornerOffsetVector(const Point a, const Point b, const Point c, coord_t offset_ab, coord_t offset_bc);
+
 };
 
 

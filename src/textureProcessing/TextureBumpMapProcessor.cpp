@@ -83,7 +83,7 @@ coord_t TextureBumpMapProcessor::getOffset(const float color, const int face_idx
     return color * (settings.amplitude * 2) - settings.amplitude + settings.offset + extra_offset;
 }
 
-coord_t TextureBumpMapProcessor::getCornerOffset(std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice)
+TextureBumpMapProcessor::CornerHandle TextureBumpMapProcessor::getCornerHandle(Point p0, Point p1, Point p2, std::optional< TextureBumpMapProcessor::TexturedFaceSlice >& textured_face_slice, std::optional< TextureBumpMapProcessor::TexturedFaceSlice >& next_textured_face_slice)
 {
     coord_t offset0 = 0; // where no texture is present, no offset is applied
     coord_t offset1 = 0;
@@ -99,33 +99,48 @@ coord_t TextureBumpMapProcessor::getCornerOffset(std::optional<TextureBumpMapPro
         const int face_1_idx = next_textured_face_slice->face_segment.faceIndex;
         offset1 = getOffset(color1, face_1_idx);
     }
-    coord_t offset = (offset0 + offset1) / 2;
-    return offset;
+    return getCornerHandle(p0, p1, p2, offset0, offset1);
 }
 
-coord_t TextureBumpMapProcessor::getCornerDisregard(Point p0, Point p1, Point p2, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice)
+TextureBumpMapProcessor::CornerHandle TextureBumpMapProcessor::getCornerHandle(Point p0, Point p1, Point p2, coord_t offset0, coord_t offset1)
 {
-    coord_t offset = getCornerOffset(textured_face_slice, next_textured_face_slice);
-    if ((LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) < 0) == (offset > 0))
+    bool is_detour_corner; // whether /|012 is offsetted outward, which would mean we add a miter-like point rather than offsetting the point
+    if (offset0 * offset1 < 0)
     {
-        return 0;
+        is_detour_corner = false;
     }
-    Point v01 = p1 - p0;
-    Point v12 = p2 - p1;
-    assert(p0 != p1 && "Code below depends on v01 not being of zer o size");
-    assert(p1 != p2 && "This function assumes the three points are different");
-    Point n01 = normal(turn90CCW(v01), -1000);
-    Point n12 = normal(turn90CCW(v12), -1000);
-    Point corner_normal = n01 + n12;
-    coord_t corner_normal_size2 = vSize2(corner_normal);
-    coord_t normal_aspect = dot(corner_normal, v01) / vSize(v01); // The aspect of the corner normal along v01 (might be negative)
-    coord_t dist_aspect = sqrt(std::max((coord_t)1, corner_normal_size2 - normal_aspect * normal_aspect)); // The distance of the end of the normal vector to v01 or v12
-    // ^ due to rounding errors 'corner_normal_size2 - normal_aspect^2' may be smaller than zero; because of division on line below should be at least 1
-    coord_t disregard = std::abs(offset * normal_aspect) / dist_aspect;
-    assert(disregard >= 0);
-    return disregard;
-}
+    else
+    { // both offsets have the same sign
+        if ((LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) < 0) == (offset0 + offset1 > 0))
+        {
+            is_detour_corner = true;
+        }
+        else
+        {
+            is_detour_corner = false;
+        }
+    }
+    if (is_detour_corner)
+    {
+        coord_t offset = (offset0 + offset1) / 2;
+        Point v01 = p1 - p0;
+        Point v12 = p2 - p1;
+        Point n01 = normal(turn90CCW(v01), -1000);
+        Point n12 = normal(turn90CCW(v12), -1000);
+        Point corner_offset_vector = normal(n01 + n12, offset);
+        return CornerHandle{corner_offset_vector, is_detour_corner, 0, 0};
+    }
 
+    const Point corner_offset_vector = LinearAlg2D::variableCornerOffsetVector(p0, p1, p2, -offset0, -offset1);
+
+    const Point v10 = p0 - p1;
+    const coord_t prev_segment_disregard = std::max(static_cast<int64_t>(0), dot(v10, corner_offset_vector) / vSize(v10));
+
+    const Point v12 = p2 - p1;
+    const coord_t next_segment_disregard = std::max(static_cast<int64_t>(0), dot(v12, corner_offset_vector) / vSize(v12));
+
+    return CornerHandle{corner_offset_vector, is_detour_corner, prev_segment_disregard, next_segment_disregard};
+}
 
 void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, coord_t corner_disregard_p1, PolygonRef result)
 {
@@ -202,7 +217,8 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
             }
         }
 
-        coord_t corner_disregard_p0 = getCornerDisregard(poly[poly.size() - 2], poly.back(), poly[0], texture_poly.back(), texture_poly[0]);; // TODO
+        CornerHandle corner_handle_p0 = getCornerHandle(poly[poly.size() - 2], poly.back(), poly[0], texture_poly.back(), texture_poly[0]);
+
         coord_t dist_left_over = (settings.point_distance / 2); // the distance to be traversed on the line before making the first new point
         Point* p0 = &poly.back();
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
@@ -217,15 +233,15 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
             std::optional<TexturedFaceSlice>& textured_face_slice = texture_poly[point_idx];
             std::optional<TexturedFaceSlice>& next_textured_face_slice = texture_poly[next_point_idx];
 
-            coord_t corner_disregard_p1 = getCornerDisregard(*p0, p1, p2, textured_face_slice, next_textured_face_slice); // TODO
-            if (dist_left_over < corner_disregard_p0)
+            CornerHandle corner_handle_p1 = getCornerHandle(*p0, p1, p2, textured_face_slice, next_textured_face_slice);
+            if (dist_left_over < corner_handle_p0.next_segment_disregard_distance)
             {
-                dist_left_over = corner_disregard_p0;
+                dist_left_over = corner_handle_p0.next_segment_disregard_distance;
             }
 
             if (textured_face_slice)
             {
-                processSegmentBumpMap(layer_nr, textured_face_slice->face_segment, textured_face_slice->mat_segment, *p0, p1, dist_left_over, corner_disregard_p1, result);
+                processSegmentBumpMap(layer_nr, textured_face_slice->face_segment, textured_face_slice->mat_segment, *p0, p1, dist_left_over, corner_handle_p1.prev_segment_disregard_distance, result);
             }
             else
             {
@@ -242,23 +258,15 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
                 }
             }
 
-            if (corner_disregard_p1 == 0
-                && (textured_face_slice || next_textured_face_slice)
+            if ((textured_face_slice || next_textured_face_slice)
                 && (textured_face_slice || !shorterThen(p1 - *p0, SLICE_SEGMENT_SNAP_GAP)) // don't introduce corner points for gap closer poly segments
                 && (next_textured_face_slice || !shorterThen(p2 - p1, SLICE_SEGMENT_SNAP_GAP)) // don't introduce corner points for gap closer poly segments
                 )
-            { // add point for outward corner
-                // TODO: remove code duplication with getCornerDisregard
-                coord_t offset = getCornerOffset(textured_face_slice, next_textured_face_slice);
-                Point v01 = p1 - *p0;
-                Point v12 = p2 - p1;
-                Point n01 = normal(turn90CCW(v01), -1000);
-                Point n12 = normal(turn90CCW(v12), -1000);
-                Point corner_normal = normal(n01 + n12, offset);
-                result.add(p1 + corner_normal);
+            { // add offset point for corner
+                result.add(p1 + corner_handle_p1.corner_offset_vector);
             }
             p0 = &p1;
-            corner_disregard_p0 = corner_disregard_p1;
+            corner_handle_p0 = corner_handle_p1;
         }
         while (result.size() < 3 )
         {
