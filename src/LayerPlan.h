@@ -43,9 +43,9 @@ protected:
 
     int extruder; //!< The extruder used for this paths in the current plan.
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
-    double initial_printing_temperature; //!< The required temperature at the start of this extruder plan.
-    double printing_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp
-    std::optional<std::list<NozzleTempInsert>::iterator> printing_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
+    double required_start_temperature; //!< The required temperature at the start of this extruder plan or the temp to which to heat gradually over the layer change between this plan and the previous with the same extruder
+    std::optional<double> extrusion_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp (none if extruder plan has no extrusion moves)
+    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.

@@ -40,7 +40,7 @@ class LayerPlanBuffer : SettingsMessenger
 
     static constexpr const double extra_preheat_time = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
-    std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
+    std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the extrusion_temperature
 
     /*!
      * The buffer containing several layer plans (LayerPlan) before writing them to gcode.
@@ -113,14 +113,16 @@ private:
     void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_before_extruder_plan_end, int extruder, double temp);
     
     /*!
-     * Compute the time needed to preheat, based either on the time the extruder has been on standby 
-     * or based on the temp of the previous extruder plan which has the same extruder nr.
+     * Compute the time needed to preheat from standby to required temperature at the start of an extruder plan,
+     * based on the time the extruder has been on standby.
+     * 
+     * Also computes the temperature to which we cool before starting to heat agian.
      * 
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to find the preheat time needed
      * \return the time needed to preheat and the temperature from which heating starts
      */
-    Preheat::WarmUpResult timeBeforeExtruderPlanToInsert(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+    Preheat::WarmUpResult computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
     
     /*!
      * For two consecutive extruder plans of the same extruder (so on different layers), 
@@ -146,7 +148,16 @@ private:
     void insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
     
     /*!
-     * Insert the preheat command for the extruder plan corersponding to @p extruder_plan_idx of the layer corresponding to @p layer_plan_idx.
+     * Insert temperature commands related to the extruder plan corersponding to @p extruder_plan_idx
+     * and the extruder plan before:
+     * 
+     * In case the extruder plan before has the same extruder:
+     * - gradually change printing temperature around the layer change (\ref LayerPlanBuffer::insertPreheatCommand_singleExtrusion)
+     * 
+     * In case the previous extruder plan is a different extruder
+     * - insert preheat command from standby to initial temp in the extruder plan(s) before (\ref LayerPlanBuffer::insertPreheatCommand_multiExtrusion)
+     * - insert the final print temp command of the previous extruder plan (\ref LayerPlanBuffer::insertFinalPrintTempCommand)
+     * - insert the required extrusion temp command for the current extruder plan (\ref LayerPlanBuffer::insertPrintTempCommand)
      * 
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to generate the preheat command

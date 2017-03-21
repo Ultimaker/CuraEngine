@@ -13,8 +13,7 @@ namespace cura {
 ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , heated_pre_travel_time(0)
-, initial_printing_temperature(-1)
-, printing_temperature(-1)
+, required_start_temperature(-1)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
 , layer_thickness(layer_thickness)
@@ -762,7 +761,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
+                gcode.writeTemperatureCommand(extruder, extruder_plan.required_start_temperature, wait);
             }
 
             if (extruder_plan.prev_extruder_standby_temp)
