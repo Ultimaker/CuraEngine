@@ -1105,7 +1105,7 @@ void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const Slic
         infill_comp.generate(infill_polygons, infill_lines, mesh);
     }
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
-    if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL)
+    if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
     {
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
     }
@@ -1294,7 +1294,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const S
 
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
 
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL)
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
         }
