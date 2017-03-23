@@ -627,7 +627,6 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
 void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e)
 {
-    total_bounding_box.include(Point3(x, y, z));
     if (currentSpeed != speed)
     {
         *output_stream << " F" << PrecisionedDouble{1, speed * 60};
@@ -635,6 +634,8 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e)
     }
 
     Point gcode_pos = getGcodePos(x, y, current_extruder);
+    total_bounding_box.include(Point3(gcode_pos.X, gcode_pos.Y, z));
+
     *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
     if (z != currentPosition.z)
     {
