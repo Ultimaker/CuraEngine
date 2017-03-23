@@ -16,11 +16,11 @@ void Mold::process(Slicer& slicer, coord_t layer_height, double angle, coord_t w
         Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(open_polyline_width / 2));
         if (angle >= 90)
         {
-            layer.polygons = model_outlines.offset(width).difference(model_outlines);
+            layer.polygons = model_outlines.offset(width, ClipperLib::jtRound).difference(model_outlines);
         }
         else
         {
-            mold_outline_above = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width));
+            mold_outline_above = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
             layer.polygons = mold_outline_above.difference(model_outlines);
         }
         layer.openPolylines.clear();
