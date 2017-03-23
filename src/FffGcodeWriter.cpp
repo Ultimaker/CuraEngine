@@ -1425,7 +1425,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
         int support_infill_overlap = 0; // support infill should not be expanded outward
         
         int offset_from_outline = 0;
-        if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
+        if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
             Polygons boundary = island.offset(-support_line_width / 2);
             if (boundary.size() > 0)
