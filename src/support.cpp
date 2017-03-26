@@ -481,6 +481,10 @@ void AreaSupport::handleTowers(
 )
 {
     int layer_overhang_point =  layer_idx + z_layer_distance_tower;
+    if (layer_overhang_point >= layer_count - 1)
+    {
+        return;
+    }
     std::vector<Polygons>& overhang_points_here = overhang_points[layer_overhang_point]; // may be changed if an overhang point has a (smaller) overhang point directly below
     // handle new tower roof tops
     if (overhang_points_here.size() > 0)
