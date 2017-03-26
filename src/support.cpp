@@ -170,6 +170,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
     const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
     const bool use_towers = mesh.getSettingBoolean("support_use_towers") && supportMinAreaSqrt > 0;
+    const coord_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
 
     const int layerThickness = storage.getSettingInMicrons("layer_height");
     const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
@@ -294,6 +295,27 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
+        // make towers for small support
+        if (use_towers)
+        {
+            for (ConstPolygonRef poly : supportLayer_this)
+            {
+                if (poly.area() < supportMinAreaSqrt * supportMinAreaSqrt)
+                {
+                    if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= 1)
+                    {
+                        const Polygons& support_layer_above = supportAreas[layer_idx + tower_top_layer_count];
+                        Polygons here;
+                        here.add(poly);
+                        if (here.intersection(support_layer_above).size() > 0)
+                        {
+                            towerRoofs.push_back(here);
+                        }
+                    }
+                }
+            }
+        }
+
         if (storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
         { // handle support mesh
             supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
@@ -306,7 +328,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
             supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(bottomLayer, false));
         }
-
 
         supportLayer_last = supportLayer_this;
         
