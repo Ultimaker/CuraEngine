@@ -238,7 +238,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     // computation
         
     
-    std::vector<std::pair<int, std::vector<Polygons>>> overhang_points; // stores overhang_points along with the layer index at which the overhang point occurs
+    std::vector<std::vector<Polygons>> overhang_points; // stores overhang_points of each layer
     if (use_towers)
     {
         AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
@@ -269,7 +269,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
     }
 
-    int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
     std::vector<Polygons> towerRoofs;
 
@@ -287,7 +286,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             // handle straight walls
             AreaSupport::handleWallStruts(supportLayer_this, supportMinAreaSqrt, supportTowerDiameter);
             // handle towers
-            AreaSupport::handleTowers(supportLayer_this, towerRoofs, overhang_points, overhang_points_pos, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
+            AreaSupport::handleTowers(supportLayer_this, towerRoofs, overhang_points, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
         }
     
         if (layer_idx+1 < support_layer_count)
@@ -428,13 +427,16 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(
     SliceDataStorage& storage,
     SliceMeshStorage& mesh, 
-    std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, // stores overhang_points along with the layer index at which the overhang point occurs)
+    std::vector<std::vector<Polygons>>& overhang_points, // stores overhang_points along with the layer index at which the overhang point occurs)
     int layer_count,
     int supportMinAreaSqrt
 )
 {
     ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const unsigned int support_line_width = infill_extr->getSettingInMicrons("support_line_width");
+
+    overhang_points.resize(layer_count);
+
     for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -448,7 +450,7 @@ void AreaSupport::detectOverhangPoints(
                 {
                     part_poly_computed = part.outline.offset(-support_line_width / 2);
                 }
-                
+
                 if (part_poly.size() > 0)
                 {
                     Polygons part_poly_recomputed = part_poly.difference(storage.support.supportLayers[layer_idx].anti_overhang);
@@ -456,16 +458,9 @@ void AreaSupport::detectOverhangPoints(
                     {
                         continue;
                     }
-                    if (overhang_points.size() > 0 && overhang_points.back().first == layer_idx)
-                        overhang_points.back().second.push_back(part_poly_recomputed);
-                    else 
-                    {
-                        std::vector<Polygons> small_part_polys;
-                        small_part_polys.push_back(part_poly_recomputed);
-                        overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(layer_idx, small_part_polys));
-                    }
+                    std::vector<Polygons>& layer_overhang_points = overhang_points[layer_idx];
+                    layer_overhang_points.push_back(part_poly_recomputed);
                 }
-                
             }
         }
     }
@@ -476,8 +471,7 @@ void AreaSupport::detectOverhangPoints(
 void AreaSupport::handleTowers(
     Polygons& supportLayer_this,
     std::vector<Polygons>& towerRoofs,
-    std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points,
-    int& overhang_points_pos,
+    std::vector<std::vector<Polygons>>& overhang_points,
     int layer_idx,
     int towerRoofExpansionDistance,
     int supportTowerDiameter,
@@ -486,19 +480,18 @@ void AreaSupport::handleTowers(
     int z_layer_distance_tower
 )
 {
-    // handle new tower roof tops
     int layer_overhang_point =  layer_idx + z_layer_distance_tower;
-    if (overhang_points_pos >= 0 && layer_overhang_point < layer_count && 
-        overhang_points[overhang_points_pos].first == layer_overhang_point) 
+    std::vector<Polygons>& overhang_points_here = overhang_points[layer_overhang_point]; // may be changed if an overhang point has a (smaller) overhang point directly below
+    // handle new tower roof tops
+    if (overhang_points_here.size() > 0)
     {
-        std::vector<Polygons>& overhang_points_here = overhang_points[overhang_points_pos].second;
         { // make sure we have the lowest point (make polys empty if they have small parts below)
-            if (overhang_points_pos > 0 && overhang_points[overhang_points_pos - 1].first == layer_overhang_point - 1)
+            if (layer_overhang_point < layer_count && overhang_points[layer_overhang_point - 1].size() > 0)
             {
-                std::vector<Polygons>& overhang_points_below = overhang_points[overhang_points_pos - 1].second;
+                std::vector<Polygons>& overhang_points_below = overhang_points[layer_overhang_point - 1];
                 for (Polygons& poly_here : overhang_points_here)
                 {
-                    for (Polygons& poly_below : overhang_points_below)
+                    for (const Polygons& poly_below : overhang_points_below)
                     {
                         poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt*2));
                     }
@@ -506,9 +499,12 @@ void AreaSupport::handleTowers(
             }
         }
         for (Polygons& poly : overhang_points_here)
+        {
             if (poly.size() > 0)
+            {
                 towerRoofs.push_back(poly);
-        overhang_points_pos--;
+            }
+        }
     }
     
     // make tower roofs
