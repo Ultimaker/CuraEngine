@@ -16,6 +16,8 @@ static inline uint32_t pointHash(const Point3& p)
 
 Mesh::Mesh(SettingsBaseVirtual* parent)
 : SettingsBase(parent)
+, has_disconnected_faces(false)
+, has_overlapping_faces(false)
 {
 }
 
@@ -140,11 +142,28 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
 
     }
 
-    if (candidateFaces.size() == 0) { cura::logWarning("Couldn't find face connected to face %i.\n", notFaceIdx); return -1; }
+    if (candidateFaces.size() == 0)
+    {
+        cura::logDebug("Couldn't find face connected to face %i.\n", notFaceIdx);
+        if (!has_disconnected_faces)
+        {
+            cura::logWarning("Mesh has disconnected faces!\n");
+        }
+        has_disconnected_faces = true;
+        return -1;
+    }
     if (candidateFaces.size() == 1) { return candidateFaces[0]; }
 
 
-    if (candidateFaces.size() % 2 == 0) cura::log("Warning! Edge with uneven number of faces connecting it!(%i)\n", candidateFaces.size()+1);
+    if (candidateFaces.size() % 2 == 0)
+    {
+        cura::logDebug("Warning! Edge with uneven number of faces connecting it!(%i)\n", candidateFaces.size()+1);
+        if (!has_disconnected_faces)
+        {
+            cura::logWarning("Mesh has disconnected faces!\n");
+        }
+        has_disconnected_faces = true;
+    }
 
     FPoint3 vn = vertices[idx1].p - vertices[idx0].p;
     FPoint3 n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
@@ -153,7 +172,10 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
 // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
     FPoint3 n0 = FPoint3(vertices[notFaceVertexIdx].p - vertices[idx0].p).cross(v0);
 
-    if (n0.vSize() <= 0) cura::log("Warning! Face %i has zero area!", notFaceIdx);
+    if (n0.vSize() <= 0)
+    {
+        cura::logDebug("Face %i has zero area!", notFaceIdx);
+    }
 
     double smallestAngle = 1000; // more then 2 PI (impossible angle)
     int bestIdx = -1;
@@ -177,7 +199,12 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
 
         if (angle == 0)
         {
-            cura::log("Warning! Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
+            cura::logDebug("Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
+            if (!has_overlapping_faces)
+            {
+                cura::logWarning("Mesh has overlapping faces!\n");
+            }
+            has_overlapping_faces = true;
         }
         if (angle < smallestAngle)
         {
@@ -185,7 +212,15 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
             bestIdx = candidateFace;
         }
     }
-    if (bestIdx < 0) cura::logWarning("Couldn't find face connected to face %i.\n", notFaceIdx);
+    if (bestIdx < 0)
+    {
+        cura::logDebug("Couldn't find face connected to face %i.\n", notFaceIdx);
+        if (!has_disconnected_faces)
+        {
+            cura::logWarning("Mesh has disconnected faces!\n");
+        }
+        has_disconnected_faces = true;
+    }
     return bestIdx;
 }
 
