@@ -53,7 +53,8 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
         break;
     case EFillMethod::TRUNCATED_OCTAHEDRON:
-        generateTroctInfill(result_polygons);
+        generateTroctInfill(result_polygons, fill_angle);
+        generateTroctInfill(result_polygons, fill_angle + 90);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -61,12 +62,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
     }
 }
 
-void Infill::generateTroctInfill(Polygons& result)
+void Infill::generateTroctInfill(Polygons& result, double rotation)
   {
     int extrusionWidth = infill_line_width;
     int lineSpacing = line_distance;
     int infillOverlap = infill_overlap;
-    double rotation = fill_angle;
     int posZ = z;
 
     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
