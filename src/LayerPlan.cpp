@@ -266,10 +266,6 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
 
     GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-    if (always_retract)
-    {
-        path->retract = true;
-    }
 
     bool combed = false;
 
@@ -280,12 +276,17 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
-    bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
+    const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
     if (is_first_travel_of_layer)
     {
-        bypass_combing = true; // first travel move is boguous; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
+        bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
+    }
+    else if (always_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    {
+        // path is not shorter than min travel distance, force a retraction
+        path->retract = true;
     }
 
     if (comb != nullptr && !bypass_combing)
@@ -298,7 +299,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
         combed = comb->calc(*last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
-            bool retract = always_retract || combPaths.size() > 1;
+            bool retract = path->retract || combPaths.size() > 1;
             if (!retract)
             { // check whether we want to retract
                 if (combPaths.throughAir)
@@ -343,18 +344,16 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
         }
     }
     
-    if (!combed && last_planned_position && !is_first_travel_of_layer) {
-        // no combing? always retract!
-        if (always_retract || !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
-        {
-            if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
-            {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
-                assert (extr != nullptr);
-                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
-            }
-            path->retract = true;
-            path->perform_z_hop = perform_z_hops;
+    // no combing? retract only when path is not shorter than minimum travel distance
+    if (!combed && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    {
+        if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
+        {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
+            assert (extr != nullptr);
+            moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
         }
+        path->retract = true;
+        path->perform_z_hop = perform_z_hops;
     }
 
     GCodePath& ret = addTravel_simple(p, path);
