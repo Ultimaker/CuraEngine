@@ -157,7 +157,7 @@ private:
      * In case the previous extruder plan is a different extruder
      * - insert preheat command from standby to initial temp in the extruder plan(s) before (\ref LayerPlanBuffer::insertPreheatCommand_multiExtrusion)
      * - insert the final print temp command of the previous extruder plan (\ref LayerPlanBuffer::insertFinalPrintTempCommand)
-     * - insert the required extrusion temp command for the current extruder plan (\ref LayerPlanBuffer::insertPrintTempCommand)
+     * - insert the normal extrusion temp command for the current extruder plan (\ref LayerPlanBuffer::insertPrintTempCommand)
      * 
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to generate the preheat command
