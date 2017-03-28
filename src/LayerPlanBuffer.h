@@ -55,7 +55,7 @@ public:
     , gcode(gcode)
     , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
-    
+
     void setPreheatConfig(MeshGroup& settings);
 
     /*!
@@ -103,7 +103,7 @@ private:
     void processFanSpeedLayerTime();
 
     /*!
-     * Insert the preheat command for @p extruder into @p extruder_plan_before
+     * Insert a preheat command for @p extruder into @p extruder_plan_before
      * 
      * \param extruder_plan_before An extruder plan before the extruder plan for which the temperature is computed, in which to insert the preheat command
      * \param time_before_extruder_plan_end The time before the end of the extruder plan, before which to insert the preheat command
@@ -111,9 +111,9 @@ private:
      * \param temp The temperature of the preheat command
      */
     void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_before_extruder_plan_end, int extruder, double temp);
-    
+
     /*!
-     * Compute the time needed to preheat from standby to required temperature at the start of an extruder plan,
+     * Compute the time needed to preheat from standby to required (initial) printing temperature at the start of an extruder plan,
      * based on the time the extruder has been on standby.
      * 
      * Also computes the temperature to which we cool before starting to heat agian.
@@ -123,7 +123,7 @@ private:
      * \return the time needed to preheat and the temperature from which heating starts
      */
     Preheat::WarmUpResult computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
-    
+
     /*!
      * For two consecutive extruder plans of the same extruder (so on different layers), 
      * preheat the extruder to the temperature corresponding to the average flow of the second extruder plan.
@@ -135,7 +135,7 @@ private:
      * \param required_temp The required temperature for the second extruder plan
      */
     void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp);
-    
+
     /*!
      * Insert the preheat command for an extruder plan which is preceded by an extruder plan with a different extruder.
      * Find the time window in which this extruder hasn't been used
@@ -146,7 +146,7 @@ private:
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to find the preheat time needed
      */
     void insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
-    
+
     /*!
      * Insert temperature commands related to the extruder plan corersponding to @p extruder_plan_idx
      * and the extruder plan before:
