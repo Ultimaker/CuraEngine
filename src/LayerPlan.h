@@ -409,9 +409,9 @@ public:
      * This travel move needs to be fixed afterwards
      * 
      * \param p The point to travel to
-     * \param always_retract Whether to force a retraction to occur when travelling to this point.
+     * \param force_comb_retract Whether to force a retraction to occur when travelling to this point. (Only enforced when distance is larger than retraction_min_travel)
      */
-    GCodePath& addTravel(Point p, bool always_retract = false);
+    GCodePath& addTravel(Point p, bool force_comb_retract = false);
     
     /*!
      * Add a travel path to a certain point and retract if needed.
