@@ -95,7 +95,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 {
     int current_extruder = start_extruder;
     comb = nullptr;
-    was_inside = true; // not used, because the first travel move is boguous
+    was_inside = true; // not used, because the first travel move is bogus
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
