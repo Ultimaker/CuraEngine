@@ -1171,11 +1171,13 @@ void FffGcodeWriter::processInsets(LayerPlan& gcode_layer, const SliceMeshStorag
         }
         else
         {
+            const bool outer_inset_first = mesh->getSettingBoolean("outer_inset_first")
+                                            || (layer_nr == 0 && mesh->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
             int processed_inset_number = -1;
-            for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+            for (int inset_number = part.insets.size() - 1; inset_number > -1; inset_number--)
             {
                 processed_inset_number = inset_number;
-                if (mesh->getSettingBoolean("outer_inset_first"))
+                if (outer_inset_first)
                 {
                     processed_inset_number = part.insets.size() - 1 - inset_number;
                 }
