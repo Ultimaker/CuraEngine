@@ -1181,7 +1181,9 @@ void FffGcodeWriter::processInsets(LayerPlan& gcode_layer, const SliceMeshStorag
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
             }
         }
-        // only spiralize the first part in the mesh, other parts won't be printed
+        // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
+        // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
+        // one part higher up. Once all the parts have merged, layers above that level will be spiralized
         if (spiralize && &wall_layer.parts[0] == &part)
         {
             const std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
