@@ -170,7 +170,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
     const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
     const bool use_towers = mesh.getSettingBoolean("support_use_towers") && supportMinAreaSqrt > 0;
-    const coord_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
+    const unsigned int tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
 
     const int layerThickness = storage.getSettingInMicrons("layer_height");
     const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
@@ -448,7 +448,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(
     SliceDataStorage& storage,
     SliceMeshStorage& mesh, 
-    std::vector<std::vector<Polygons>>& overhang_points, // stores overhang_points along with the layer index at which the overhang point occurs)
+    std::vector<std::vector<Polygons>>& overhang_points, // stores overhang_points of each layer
     int layer_count,
     int supportMinAreaSqrt
 )
