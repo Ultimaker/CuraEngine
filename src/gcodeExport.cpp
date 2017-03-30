@@ -614,8 +614,7 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     Point3 diff = Point3(x,y,z) - currentPosition;
     if (isZHopped > 0)
     {
-        *output_stream << "G1 Z" << MMtoStream{currentPosition.z} << new_line;
-        isZHopped = 0;
+        writeZhopEnd();
     }
 
     writeUnretractionAndPrime();
@@ -628,7 +627,6 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
 void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e)
 {
-    total_bounding_box.include(Point3(x, y, z));
     if (currentSpeed != speed)
     {
         *output_stream << " F" << PrecisionedDouble{1, speed * 60};
@@ -636,6 +634,8 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e)
     }
 
     Point gcode_pos = getGcodePos(x, y, current_extruder);
+    total_bounding_box.include(Point3(gcode_pos.X, gcode_pos.Y, z));
+
     *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
     if (z != currentPosition.z)
     {
@@ -776,8 +776,8 @@ void GCodeExport::writeZhopStart(int hop_height)
     if (hop_height > 0)
     {
         isZHopped = hop_height;
-        *output_stream << "G1 Z" << MMtoStream{currentPosition.z + isZHopped} << new_line;
-        total_bounding_box.includeZ(currentPosition.z + isZHopped);
+        *output_stream << "G1 Z" << MMtoStream{current_layer_z + isZHopped} << new_line;
+        total_bounding_box.includeZ(current_layer_z + isZHopped);
     }
 }
 
@@ -786,7 +786,8 @@ void GCodeExport::writeZhopEnd()
     if (isZHopped)
     {
         isZHopped = 0;
-        *output_stream << "G1 Z" << MMtoStream{currentPosition.z} << new_line;
+        currentPosition.z = current_layer_z;
+        *output_stream << "G1 Z" << MMtoStream{current_layer_z} << new_line;
     }
 }
 

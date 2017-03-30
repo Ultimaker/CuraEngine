@@ -136,7 +136,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
             int pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
 
             // skin areas are to be enlarged by expand_skins_expand_distance but before they are expanded
-            // the skin areas are shrunk by min_skin_width_for_expansion so that very narrow regions of skin
+            // the skin areas are shrunk by pre_shrink so that very narrow regions of skin
             // (often caused by the model's surface having a steep incline) are removed first
 
             expand_skins_expand_distance += pre_shrink; // increase the expansion distance to compensate for the shrinkage

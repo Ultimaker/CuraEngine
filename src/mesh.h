@@ -87,6 +87,8 @@ public:
     }
 
 private:
+    mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
+    mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
     int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!
