@@ -86,7 +86,6 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
-    int seam_vertex_index; //!< the index of the layer's seam vertex (only used for spiralization)
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -194,6 +193,9 @@ public:
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
     std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
+
+    std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
+    std::vector<Polygons *> spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
     PrimeTower primeTower;
 
