@@ -86,6 +86,7 @@ public:
     Private()
         : socket(nullptr)
         , object_count(0)
+        , last_sent_progress(-1)
     { }
 
     std::shared_ptr<cura::proto::Layer> getLayerById(int id);
@@ -105,6 +106,8 @@ public:
 
     SliceDataStruct<cura::proto::Layer> sliced_layers;
     SliceDataStruct<cura::proto::LayerOptimized> optimized_layers;
+
+    int last_sent_progress; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
 };
 
 /*!
@@ -583,11 +586,19 @@ void CommandSocket::setExtruderForSend(int extruder)
 void CommandSocket::sendProgress(float amount)
 {
 #ifdef ARCUS
+    int rounded_amount = 1000 * amount;
+    if (private_data->last_sent_progress == rounded_amount)
+    {
+        return;
+    }
+
     auto message = std::make_shared<cura::proto::Progress>();
     amount /= private_data->object_count;
     amount += private_data->optimized_layers.sliced_objects * (1. / private_data->object_count);
     message->set_amount(amount);
     private_data->socket->sendMessage(message);
+
+    private_data->last_sent_progress = rounded_amount;
 #endif
 }
 
