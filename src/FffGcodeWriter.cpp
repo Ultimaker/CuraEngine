@@ -63,10 +63,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         total_layers = std::max(total_layers, mesh.layers.size());
-        if (mesh.getSettingBoolean("magic_spiralize"))
-        {
-            findLayerSeamsForSpiralize(mesh);
-        }
 
         setInfillAndSkinAngles(mesh);
     }
@@ -82,6 +78,11 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
     calculateExtruderOrderPerLayer(storage);
+
+    if (storage.meshgroup->getSettingBoolean("magic_spiralize"))
+    {
+        findLayerSeamsForSpiralize(storage, total_layers);
+    }
 
     int process_layer_starting_layer_nr = 0;
     bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
@@ -143,83 +144,120 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
 }
 
-void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
+void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_t total_layers)
 {
     // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
 
-    if (mesh.layers.size() > 0)
+    // we track the seam position for each layer and ensure that the seam position for next layer continues in the right direction
+
+    const SliceLayer* last_layer = nullptr; // points to the layer data for the last non-empty layer processed (for any extruder or mesh)
+
+    for (unsigned layer_nr = 0; layer_nr < total_layers; ++layer_nr)
     {
-        unsigned layer_nr = 0;
-        // set the seam vertex index to 0 for bottom layers that have no parts or insets
-        while (layer_nr < mesh.layers.size() && (mesh.layers[layer_nr].parts.size() == 0 || mesh.layers[layer_nr].parts[0].insets.size() == 0))
+        bool done_this_layer = false;
+        // iterate through extruders until we find a mesh that has a part with insets
+        const std::vector<unsigned int> &extruder_order = extruder_order_per_layer[layer_nr];
+        for (unsigned int extruder_idx = 0; !done_this_layer && extruder_idx < extruder_order.size(); ++extruder_idx)
         {
-            mesh.layers[layer_nr++].seam_vertex_index = 0;
-        }
-
-        if (layer_nr < mesh.layers.size())
-        {
-            // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
-            // in the first layer that has a part with insets. This allows the user to alter the seam start location which
-            // could be useful if the spiralization has a problem with a particular seam path.
-            Point seam_pos(0, 0);
-            if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
+            const unsigned int extruder_nr = extruder_order[extruder_idx];
+            // iterate through this extruder's meshes until we find a part with insets
+            const std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
+            for (unsigned int mesh_idx : mesh_order)
             {
-                seam_pos = Point(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
-            }
-            mesh.layers[layer_nr].seam_vertex_index = PolygonUtils::findClosest(seam_pos, mesh.layers[layer_nr].parts[0].insets[0][0]).point_idx;
-            ++layer_nr;
-        }
-
-        for (; layer_nr < mesh.layers.size(); layer_nr++)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            const SliceLayer& last_layer = mesh.layers[layer_nr - 1];
-
-            if (layer.parts.size() < 1 || layer.parts[0].insets.size() < 1 || last_layer.parts.size() < 1 || last_layer.parts[0].insets.size() < 1)
-            {
-                // either this layer or the last has no parts (or a part has no insets) so just duplicate the index calculated for the last layer
-                layer.seam_vertex_index = last_layer.seam_vertex_index;
-                continue;
-            }
-            ConstPolygonRef last_wall = last_layer.parts[0].insets[0][0];
-            ConstPolygonRef wall = layer.parts[0].insets[0][0];
-            const int n_points = wall.size();
-            Point last_wall_seam_vertex = last_wall[last_layer.seam_vertex_index];
-
-            // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
-            // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
-
-            int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
-
-            // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
-            // and if it is we move forward
-
-            // get the inward normal of the last layer seam vertex
-            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, last_layer.seam_vertex_index);
-
-            // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
-            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
-
-            // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
-            const int first_seam_vertex_idx = seam_vertex_idx;
-            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
-
-            while (a > M_PI)
-            {
-                // the vertex was on the right of the vector so move the seam vertex on
-                seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
-                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
-
-                if (seam_vertex_idx == first_seam_vertex_idx)
+                SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                // if this mesh has layer data for this layer process it
+                if (!done_this_layer && mesh.layers.size() > layer_nr)
                 {
-                    logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d\n", layer_nr);
-                    // this shouldn't happen!
-                    break;
+                    SliceLayer& layer = mesh.layers[layer_nr];
+                    // last_layer will be nullptr until we have processed the first non-empty layer
+                    if (last_layer == nullptr)
+                    {
+                        // set the seam vertex index to 0 for bottom layers that have no parts or insets
+                        if (layer.parts.size() == 0 || layer.parts[0].insets.size() == 0)
+                        {
+                            layer.seam_vertex_index = 0;
+                            // don't change last_layer or done_this_layer here because another mesh may have a part+insets for this layer
+                        }
+                        else
+                        {
+                            // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
+                            // in the first layer that has a part with insets. This allows the user to alter the seam start location which
+                            // could be useful if the spiralization has a problem with a particular seam path.
+                            Point seam_pos(0, 0);
+                            if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
+                            {
+                                seam_pos = Point(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
+                            }
+                            layer.seam_vertex_index = PolygonUtils::findClosest(seam_pos, layer.parts[0].insets[0][0]).point_idx;
+                            // ignore any further meshes/extruders for this layer
+                            last_layer = &mesh.layers[layer_nr];
+                            done_this_layer = true;
+                        }
+                    }
+                    else
+                    {
+                        if (last_layer->parts.size() < 1 || last_layer->parts[0].insets.size() < 1)
+                        {
+                            // the last layer has no parts (or the first part has no insets) so just duplicate the index calculated for the last layer
+                            layer.seam_vertex_index = last_layer->seam_vertex_index;
+                            // ignore any further meshes/extruders for this layer
+                            last_layer = &mesh.layers[layer_nr];
+                            done_this_layer = true;
+                        }
+                        else if (layer.parts.size() == 0 || layer.parts[0].insets.size() == 0)
+                        {
+                            // this layer has no parts (or the first part has no insets) so just duplicate the index calculated for the last layer
+                            layer.seam_vertex_index = last_layer->seam_vertex_index;
+                            // don't change last_layer or done_this_layer here because another mesh may have a part+insets for this layer
+                        }
+                        else
+                        {
+                            ConstPolygonRef last_wall = last_layer->parts[0].insets[0][0];
+                            ConstPolygonRef wall = layer.parts[0].insets[0][0];
+                            const int n_points = wall.size();
+                            Point last_wall_seam_vertex = last_wall[last_layer->seam_vertex_index];
+
+                            // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
+                            // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
+
+                            int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
+
+                            // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
+                            // and if it is we move forward
+
+                            // get the inward normal of the last layer seam vertex
+                            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, last_layer->seam_vertex_index);
+
+                            // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+                            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+
+                            // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+                            const int first_seam_vertex_idx = seam_vertex_idx;
+                            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+
+                            while (a > M_PI)
+                            {
+                                // the vertex was on the right of the vector so move the seam vertex on
+                                seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+                                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+
+                                if (seam_vertex_idx == first_seam_vertex_idx)
+                                {
+                                    logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d\n", layer_nr);
+                                    // this shouldn't happen!
+                                    break;
+                                }
+                            }
+
+                            // store result for use when spiralizing
+                            layer.seam_vertex_index = seam_vertex_idx;
+                            // ignore any further meshes/extruders for this layer
+                            last_layer = &mesh.layers[layer_nr];
+                            done_this_layer = true;
+                        }
+                    }
                 }
             }
-
-            // store result for use when spiralizing
-            mesh.layers[layer_nr].seam_vertex_index = seam_vertex_idx;
         }
     }
 }

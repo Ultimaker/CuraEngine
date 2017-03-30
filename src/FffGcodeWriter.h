@@ -466,10 +466,11 @@ private:
     void finalize();
 
     /*!
-     * Calculate for each layer in the mesh the index of the vertex that is considered to be the seam
-     * \param mesh The mesh containing the layers to be spiralized
+     * Calculate for each layer the index of the vertex that is considered to be the seam
+     * \param storage where the slice data is stored.
+     * \param total_layers The total number of layers
      */
-    void findLayerSeamsForSpiralize(SliceMeshStorage& mesh);
+    void findLayerSeamsForSpiralize(SliceDataStorage& storage, size_t total_layers);
 };
 
 }//namespace cura
