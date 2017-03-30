@@ -213,7 +213,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
 
                 if (seam_vertex_idx == first_seam_vertex_idx)
                 {
-                    logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d", layer_nr);
+                    logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d\n", layer_nr);
                     // this shouldn't happen!
                     break;
                 }
@@ -1115,7 +1115,7 @@ void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const Slic
         infill_comp.generate(infill_polygons, infill_lines, mesh);
     }
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
-    if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
+    if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
     {
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
     }
@@ -1304,7 +1304,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const S
 
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
 
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
         }
@@ -1435,7 +1435,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
         int support_infill_overlap = 0; // support infill should not be expanded outward
         
         int offset_from_outline = 0;
-        if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
+        if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
             Polygons boundary = island.offset(-support_line_width / 2);
             if (boundary.size() > 0)
