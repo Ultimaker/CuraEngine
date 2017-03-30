@@ -413,7 +413,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sup
 //
 //
 //
-//       for more horizontal surface, the stepping is (party) negated
+//       for more horizontal surface, the stepping is (partly) negated
 //
 // ############################################################################
 //                                                    support
