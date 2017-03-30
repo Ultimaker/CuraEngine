@@ -303,7 +303,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         // move up from model
-        handleBottom(storage, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
+        moveUpFromModel(storage, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
 
         supportLayer_last = supportLayer_this;
@@ -383,7 +383,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     storage.support.generated = true;
 }
 
-void AreaSupport::handleBottom(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
 {
 // The idea behing support bottom stairs:
 //
