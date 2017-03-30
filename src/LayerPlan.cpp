@@ -13,8 +13,7 @@ namespace cura {
 ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , heated_pre_travel_time(0)
-, initial_printing_temperature(-1)
-, printing_temperature(-1)
+, required_start_temperature(-1)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
 , layer_thickness(layer_thickness)
@@ -90,12 +89,13 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
+, first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     int current_extruder = start_extruder;
     comb = nullptr;
-    was_inside = true; // not used, because the first travel move is boguous
+    was_inside = true; // not used, because the first travel move is bogus
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
@@ -250,16 +250,22 @@ void LayerPlan::moveInsideCombBoundary(int distance)
     }
 }
 
-GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
+std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const
+{
+    std::optional<std::pair<Point, bool>> ret;
+    if (first_travel_destination)
+    {
+        ret = std::make_pair(*first_travel_destination, first_travel_destination_is_inside);
+    }
+    return ret;
+}
+
+GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
 
     GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-    if (always_retract)
-    {
-        path->retract = true;
-    }
 
     bool combed = false;
 
@@ -268,9 +274,22 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
-    const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+    bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
-    if (comb != nullptr && !bypass_combing && last_planned_position)
+    const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
+    if (is_first_travel_of_layer)
+    {
+        bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
+        first_travel_destination = p;
+        first_travel_destination_is_inside = is_inside;
+    }
+    else if (force_comb_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    {
+        // path is not shorter than min travel distance, force a retraction
+        path->retract = true;
+    }
+
+    if (comb != nullptr && !bypass_combing)
     {
         const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
 
@@ -280,7 +299,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
         combed = comb->calc(*last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
-            bool retract = always_retract || combPaths.size() > 1;
+            bool retract = path->retract || combPaths.size() > 1;
             if (!retract)
             { // check whether we want to retract
                 if (combPaths.throughAir)
@@ -325,18 +344,16 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
         }
     }
     
-    if (!combed && last_planned_position) {
-        // no combing? always retract!
-        if (always_retract || !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
-        {
-            if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
-            {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
-                assert (extr != nullptr);
-                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
-            }
-            path->retract = true;
-            path->perform_z_hop = perform_z_hops;
+    // no combing? retract only when path is not shorter than minimum travel distance
+    if (!combed && !is_first_travel_of_layer && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    {
+        if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
+        {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
+            assert (extr != nullptr);
+            moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
         }
+        path->retract = true;
+        path->perform_z_hop = perform_z_hops;
     }
 
     GCodePath& ret = addTravel_simple(p, path);
@@ -346,6 +363,12 @@ GCodePath& LayerPlan::addTravel(Point p, bool always_retract)
 
 GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 {
+    bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
+    if (is_first_travel_of_layer)
+    { // spiralize calls addTravel_simple directly as the first travel move in a layer
+        first_travel_destination = p;
+        first_travel_destination_is_inside = is_inside;
+    }
     if (path == nullptr)
     {
         path = getLatestPathWithConfig(&configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
@@ -737,7 +760,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
+                gcode.writeTemperatureCommand(extruder, extruder_plan.required_start_temperature, wait);
             }
 
             if (extruder_plan.prev_extruder_standby_temp)
@@ -830,11 +853,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
-                    if (point_idx == path.points.size() - 1)
-                    {
-                        gcode.setZ(z); // go down to extrusion level when we spiralized before on this layer
-                        gcode.writeTravel(gcode.getPositionXY(), speed);
-                    }
                 }
                 continue;
             }

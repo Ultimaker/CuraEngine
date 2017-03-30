@@ -43,9 +43,22 @@ protected:
 
     int extruder; //!< The extruder used for this paths in the current plan.
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
-    double initial_printing_temperature; //!< The required temperature at the start of this extruder plan.
-    double printing_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp
-    std::optional<std::list<NozzleTempInsert>::iterator> printing_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
+
+    /*!
+     * The required temperature at the start of this extruder plan
+     * or the temp to which to heat gradually over the layer change between this plan and the previous with the same extruder.
+     * 
+     * In case this extruder plan uses a different extruder than the last extruder plan:
+     * this is the temperature to which to heat and wait before starting this extruder.
+     * 
+     * In case this extruder plan uses the same extruder as the previous extruder plan (previous layer):
+     * this is the temperature used to heat to gradually when moving from the previous extruder layer to the next.
+     * In that case no temperature (and wait) command will be inserted from this value, but a NozzleTempInsert is used instead.
+     * In this case this member is only used as a way to convey information between different calls of \ref LayerPlanBuffer::processBuffer
+     */
+    double required_start_temperature;
+    std::optional<double> extrusion_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp (none if extruder plan has no extrusion moves)
+    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
@@ -244,6 +257,9 @@ private:
 
     int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
     SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
+
+    std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
+    bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
@@ -344,6 +360,14 @@ public:
     }
 
     /*!
+     * Get the destination state of the first travel move.
+     * This consists of the location and whether the destination was inside the model, or e.g. to support
+     * 
+     * Returns nothing if the layer is empty and no travel move was ever made.
+     */
+    std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
+
+    /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
     void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width) const
@@ -357,7 +381,7 @@ public:
     * Features like infill, walls, skin etc. are considered inside.
     * Features like prime tower and support are considered outside.
     */
-    void setIsInside(bool going_to_comb);
+    void setIsInside(bool is_inside);
 
     /*!
      * Plan a switch to a new extruder
@@ -385,9 +409,9 @@ public:
      * This travel move needs to be fixed afterwards
      * 
      * \param p The point to travel to
-     * \param always_retract Whether to force a retraction to occur when travelling to this point.
+     * \param force_comb_retract Whether to force a retraction to occur when travelling to this point. (Only enforced when distance is larger than retraction_min_travel)
      */
-    GCodePath& addTravel(Point p, bool always_retract = false);
+    GCodePath& addTravel(Point p, bool force_comb_retract = false);
     
     /*!
      * Add a travel path to a certain point and retract if needed.
