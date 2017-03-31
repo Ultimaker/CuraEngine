@@ -1154,7 +1154,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         const SliceLayer& wall_layer = mesh->layers[layer_nr];
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
-            if (wall_layer.parts.size() == 0 || part.insets.size() == 0)
+            if (part.insets.size() == 0)
             {
                 // nothing to do
                 return;
