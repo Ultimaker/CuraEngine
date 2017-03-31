@@ -1151,7 +1151,6 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
-        const SliceLayer& wall_layer = mesh->layers[layer_nr];
         if (mesh->getSettingBoolean("magic_spiralize"))
         {
             if (part.insets.size() == 0)
@@ -1174,15 +1173,14 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
         // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
-        if (spiralize && &wall_layer.parts[0] == &part)
+        if (spiralize && &mesh->layers[layer_nr].parts[0] == &part)
         {
-            const std::vector<Polygons>& wall_insets = wall_layer.parts[0].insets;
-            if (wall_insets.size() == 0 || wall_insets[0].size() == 0)
+            if (part.insets.size() == 0 || part.insets[0].size() == 0)
             {
                 // wall doesn't have usable outline
                 return;
             }
-            ConstPolygonRef last_wall_outline = wall_insets[0][0]; // default to current wall outline
+            ConstPolygonRef last_wall_outline = part.insets[0][0]; // default to current wall outline
             int last_seam_vertex_idx = -1; // last layer seam vertex index
             if (layer_nr > 0)
             {
@@ -1194,7 +1192,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
                 }
             }
-            ConstPolygonRef wall_outline = wall_insets[0][0]; // current layer outer wall outline
+            ConstPolygonRef wall_outline = part.insets[0][0]; // current layer outer wall outline
             const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
             // output a wall slice that is interpolated between the last and current walls
             gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
