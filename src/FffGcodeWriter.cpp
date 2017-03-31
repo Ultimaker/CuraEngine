@@ -180,10 +180,11 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
                 if (!done_this_layer && mesh.layers.size() > layer_nr)
                 {
                     SliceLayer& layer = mesh.layers[layer_nr];
-                    // last_layer_nr will be < 0 until we have processed the first non-empty layer
-                    if (last_layer_nr < 0)
+                    // if the first part in the layer (if any) has insets, process it
+                    if (layer.parts.size() != 0 && layer.parts[0].insets.size() != 0)
                     {
-                        if (layer.parts.size() != 0 && layer.parts[0].insets.size() != 0)
+                        // last_layer_nr will be < 0 until we have processed the first non-empty layer
+                        if (last_layer_nr < 0)
                         {
                             // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
                             // in the first layer that has a part with insets. This allows the user to alter the seam start location which
@@ -193,17 +194,13 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
                             {
                                 seam_pos = Point(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
                             }
-                            storage.spiralize_wall_outlines[layer_nr] = &layer.parts[0].insets[0];
                             storage.spiralize_seam_vertex_indices[layer_nr] = PolygonUtils::findClosest(seam_pos, layer.parts[0].insets[0][0]).point_idx;
-                            last_layer_nr = layer_nr;
-                            // ignore any further meshes/extruders for this layer
-                            done_this_layer = true;
                         }
-                    }
-                    else
-                    {
-                        if (layer.parts.size() != 0 && layer.parts[0].insets.size() != 0)
+                        else
                         {
+                            // note that the code below doesn't assume that last_layer_nr is one less than layer_nr but the print is going
+                            // to come out pretty weird if that isn't true as it implies that there are empty layers
+
                             ConstPolygonRef last_wall = (*storage.spiralize_wall_outlines[last_layer_nr])[0];
                             ConstPolygonRef wall = layer.parts[0].insets[0][0];
                             const int n_points = wall.size();
@@ -236,18 +233,18 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
                                 if (seam_vertex_idx == first_seam_vertex_idx)
                                 {
                                     logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d\n", layer_nr);
-                                    // this shouldn't happen!
+                                    // this shouldn't happen very often - I have seen it occur when the seam moves into a very sharp corner
                                     break;
                                 }
                             }
 
-                            // store results for use when spiralizing
-                            storage.spiralize_wall_outlines[layer_nr] = &layer.parts[0].insets[0];
                             storage.spiralize_seam_vertex_indices[layer_nr] = seam_vertex_idx;
-                            last_layer_nr = layer_nr;
-                            // ignore any further meshes/extruders for this layer
-                            done_this_layer = true;
                         }
+                        // save the wall outline for this layer so it can be used in the spiralize interpolation calculation
+                        storage.spiralize_wall_outlines[layer_nr] = &layer.parts[0].insets[0];
+                        last_layer_nr = layer_nr;
+                        // ignore any further meshes/extruders for this layer
+                        done_this_layer = true;
                     }
                 }
             }
