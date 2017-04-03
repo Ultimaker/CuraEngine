@@ -45,6 +45,7 @@ void AreaSupport::handleSupportMeshes(SliceDataStorage& storage, std::vector<Sli
             slicer_layer.polygons.clear();
         }
     }
+    storage.support.generated = true;
 }
 
 Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
