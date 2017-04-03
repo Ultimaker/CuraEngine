@@ -34,7 +34,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         switch (modifier_type)
         {
         case ANTI_OVERHANG:
-            support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons(slicer_layer.polygons);
+            support_layer.anti_overhang.add(slicer_layer.polygons);
             break;
         case SUPPORT_DROP_DOWN:
             support_layer.support_mesh_drop_down.add(slicer_layer.polygons);
@@ -113,6 +113,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
