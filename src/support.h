@@ -33,6 +33,11 @@ private:
      * 
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
      * 
+     * The anti_overhang areas are taken into account.
+     * 
+     * \warning This function should be called only once for handling support meshes.
+     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage
+     * 
      * \param storage data storage containing the input layer outline data
      * \param infill_settings The settings base to get the settings from which are based on the infill of the support
      * \param interface_settings The settings base to get the settings from which are based on the interface of the support
