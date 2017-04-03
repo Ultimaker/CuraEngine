@@ -14,9 +14,6 @@ class ExtruderTrain : public SettingsBase
 public:
     int getExtruderNr();
 
-    bool getIsUsed() const; //!< return whether this extruder train is (probably) used during printing the current meshgroup
-    void setIsUsed(bool used); //!< set whether this extruder train is (probably) used during printing the current meshgroup
-
     ExtruderTrain(SettingsBaseVirtual* settings, int extruder_nr);
 
 };
