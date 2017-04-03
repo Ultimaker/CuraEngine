@@ -176,7 +176,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  */
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
-    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
@@ -460,8 +460,8 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 
 
 void AreaSupport::detectOverhangPoints(
-    SliceDataStorage& storage,
-    SliceMeshStorage& mesh, 
+    const SliceDataStorage& storage,
+    const SliceMeshStorage& mesh,
     std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, // stores overhang_points along with the layer index at which the overhang point occurs)
     int layer_count,
     int supportMinAreaSqrt
@@ -471,13 +471,13 @@ void AreaSupport::detectOverhangPoints(
     const unsigned int support_line_width = infill_extr->getSettingInMicrons("support_line_width");
     for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
-        SliceLayer& layer = mesh.layers[layer_idx];
-        for (SliceLayerPart& part : layer.parts)
+        const SliceLayer& layer = mesh.layers[layer_idx];
+        for (const SliceLayerPart& part : layer.parts)
         {
             if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
             {
                 Polygons part_poly_computed;
-                Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
+                const Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
                 if (part.insets.size() == 0)
                 {
                     part_poly_computed = part.outline.offset(-support_line_width / 2);

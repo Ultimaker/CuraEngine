@@ -74,8 +74,8 @@ private:
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
      */
     static void detectOverhangPoints(
-        SliceDataStorage& storage,
-        SliceMeshStorage& mesh,
+        const SliceDataStorage& storage,
+        const SliceMeshStorage& mesh,
         std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, 
         int layer_count,
         int supportMinAreaSqrt
