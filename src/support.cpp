@@ -133,7 +133,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         }
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
+        const SettingsBaseVirtual& mesh_settings = storage.meshes[mesh_idx];
+        generateSupportAreas(storage, mesh_settings, mesh_settings, mesh_idx, layer_count, supportAreas);
 
         for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
         {
@@ -174,7 +175,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
     const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
@@ -185,34 +186,34 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         return;
     if (support_type == ESupportType::NONE)
         return;
-    
-    const double supportAngle = mesh.getSettingInAngleRadians("support_angle");
-    const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    const int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
-    const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
-    const int join_distance = mesh.getSettingInMicrons("support_join_distance");
-    const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
-
-    const int extension_offset = mesh.getSettingInMicrons("support_offset");
-
-    const int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
-    const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
-    const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
-    const bool use_towers = mesh.getSettingBoolean("support_use_towers") && supportMinAreaSqrt > 0;
 
     const int layerThickness = storage.getSettingInMicrons("layer_height");
-    const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
-    const int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
-
-    const bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
-
-    const double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
-    const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
-    const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
 
     int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
-    bool interface_enable = mesh.getSettingBoolean("support_interface_enable");
+    bool interface_enable = interface_settings.getSettingBoolean("support_interface_enable");
+
+    const double supportAngle = interface_settings.getSettingInAngleRadians("support_angle");
+    const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
+    const int supportZDistanceBottom = interface_settings.getSettingInMicrons("support_bottom_distance");
+    const int supportZDistanceTop = interface_settings.getSettingInMicrons("support_top_distance");
+    const int support_bottom_stair_step_height = interface_settings.getSettingInMicrons("support_bottom_stair_step_height");
+
+    const int join_distance = infill_settings.getSettingInMicrons("support_join_distance");
+    const int extension_offset = infill_settings.getSettingInMicrons("support_offset");
+
+    const int supportTowerDiameter = infill_settings.getSettingInMicrons("support_tower_diameter");
+    const int supportMinAreaSqrt = infill_settings.getSettingInMicrons("support_minimal_diameter");
+    const double supportTowerRoofAngle = infill_settings.getSettingInAngleRadians("support_tower_roof_angle");
+    const bool use_towers = infill_settings.getSettingBoolean("support_use_towers") && supportMinAreaSqrt > 0;
+
+    const int supportXYDistance = infill_settings.getSettingInMicrons("support_xy_distance");
+    const int support_xy_distance_overhang = infill_settings.getSettingInMicrons("support_xy_distance_overhang");
+    const bool use_support_xy_distance_overhang = infill_settings.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+
+    const double conical_support_angle = infill_settings.getSettingInAngleRadians("support_conical_angle");
+    const bool conical_support = infill_settings.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
+    const int64_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
 
     // derived settings:
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed

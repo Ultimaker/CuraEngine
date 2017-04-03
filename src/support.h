@@ -34,10 +34,12 @@ private:
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
      * 
      * \param storage data storage containing the input layer outline data
+     * \param infill_settings The settings base to get the settings from which are based on the infill of the support
+     * \param interface_settings The settings base to get the settings from which are based on the interface of the support
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
 
 
