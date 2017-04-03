@@ -12,12 +12,14 @@ namespace cura {
 class AreaSupport {
 public:
     /*!
-     * Move support mesh from slicer data into the support storage
+     * Move support mesh outlines from slicer data into the support storage
      * 
      * \param[out] storage Where to store the support areas
-     * \param volumes All sliced volumes in the meshgroup
+     * \param mesh Where to get the settings from what kind of support mesh it is.
+     * \param slicer Where to get the outlines from
+     * \return Whether the mesh is used up in support and no normal mesh processing is needed
      */
-    static void handleSupportMeshes(SliceDataStorage& storage, std::vector<Slicer*>& volumes);
+    static bool handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer);
 
     /*!
      * Generate the support areas and support skin areas for all models.

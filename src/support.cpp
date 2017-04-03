@@ -19,34 +19,34 @@
 namespace cura 
 {
 
-void AreaSupport::handleSupportMeshes(SliceDataStorage& storage, std::vector<Slicer*>& volumes)
+bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer)
 {
-    for (unsigned int mesh_idx = 0; mesh_idx < volumes.size(); mesh_idx++)
+    if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("support_mesh"))
     {
-        const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-        if (!mesh.getSettingBoolean("support_mesh") || mesh.getSettingBoolean("support_mesh_drop_down"))
+        return false;
+    }
+    enum ModifierType { ANTI_OVERHANG, SUPPORT_DROP_DOWN, SUPPORT_VANILLA };
+    ModifierType modifier_type = (mesh.getSettingBoolean("anti_overhang_mesh"))? ANTI_OVERHANG : ((mesh.getSettingBoolean("support_mesh"))? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
+    for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+    {
+        SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+        const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+        switch (modifier_type)
         {
-            continue;
-        }
-        Slicer& slicer = *volumes[mesh_idx];
-        if (slicer.layers.size() > storage.support.supportLayers.size())
-        { // there might already be support mesh data in the supportLayers
-            storage.support.supportLayers.resize(slicer.layers.size());
-        }
-        for (unsigned int layer_nr = 0; layer_nr < slicer.layers.size(); layer_nr++)
-        {
-            SlicerLayer& slicer_layer = slicer.layers[layer_nr];
-            SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-            support_layer.supportAreas.add(slicer_layer.polygons);
-            if (support_layer.supportAreas.size() > 0)
-            {
-                storage.support.layer_nr_max_filled_layer = layer_nr;
-            }
-            slicer_layer.polygons.clear();
+        case ANTI_OVERHANG:
+            support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons(slicer_layer.polygons);
+            break;
+        case SUPPORT_DROP_DOWN:
+            support_layer.support_mesh.add(slicer_layer.polygons);
+            break;
+        case SUPPORT_VANILLA:
+//                 support_layer.support_mesh.add(slicer_layer.polygons);
+            break;
         }
     }
-    storage.support.generated = true;
+    return true;
 }
+
 
 Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
