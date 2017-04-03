@@ -40,7 +40,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
             support_layer.support_mesh_drop_down.add(slicer_layer.polygons);
             break;
         case SUPPORT_VANILLA:
-//                 support_layer.support_mesh.add(slicer_layer.polygons);
+            support_layer.support_mesh.add(slicer_layer.polygons);
             break;
         }
     }
@@ -114,6 +114,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     {
         SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
+        support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
 
     // initialization of supportAreasPerLayer
@@ -324,7 +325,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         if (storage.support.supportLayers[layer_idx].support_mesh_drop_down.size() > 0)
-        { // handle support mesh
+        { // handle support mesh which should be supported by more support
             supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
 
@@ -344,6 +345,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         if (supportLayer_this.size() > 0)
         {
             supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
+        }
+
+        if (storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
+        { // handle support mesh which should NOT be supported by more support
+            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
         }
 
         supportAreas[layer_idx] = supportLayer_this;
