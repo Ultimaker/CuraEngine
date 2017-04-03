@@ -37,7 +37,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
             support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons(slicer_layer.polygons);
             break;
         case SUPPORT_DROP_DOWN:
-            support_layer.support_mesh.add(slicer_layer.polygons);
+            support_layer.support_mesh_drop_down.add(slicer_layer.polygons);
             break;
         case SUPPORT_VANILLA:
 //                 support_layer.support_mesh.add(slicer_layer.polygons);
@@ -113,7 +113,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
-        support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
+        support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
     }
 
     // initialization of supportAreasPerLayer
@@ -323,9 +323,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
-        if (storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
+        if (storage.support.supportLayers[layer_idx].support_mesh_drop_down.size() > 0)
         { // handle support mesh
-            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
 
         // move up from model
