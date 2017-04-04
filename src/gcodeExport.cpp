@@ -521,13 +521,13 @@ void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_pe
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
 {
-    if (isinf(extrusion_mm3_per_mm))
+    if (std::isinf(extrusion_mm3_per_mm))
     {
         logError("Extrusion rate is infinite!");
         assert(false && "Infinite extrusion move!");
         std::exit(1);
     }
-    if (isnan(extrusion_mm3_per_mm))
+    if (std::isnan(extrusion_mm3_per_mm))
     {
         logError("Extrusion rate is not a number!");
         assert(false && "NaN extrusion move!");
@@ -616,14 +616,14 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif //ASSERT_INSANE_OUTPUT
 
-    if (isinf(extrusion_mm3_per_mm))
+    if (std::isinf(extrusion_mm3_per_mm))
     {
         logError("Extrusion rate is infinite!");
         assert(false && "Infinite extrusion move!");
         std::exit(1);
     }
 
-    if (isnan(extrusion_mm3_per_mm))
+    if (std::isnan(extrusion_mm3_per_mm))
     {
         logError("Extrusion rate is not a number!");
         assert(false && "NaN extrusion move!");
