@@ -791,13 +791,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (first_extrusion_move_is_spiralized)
                 {
-                    // get extruder up to extrusion temperature if that's greater than the start temperature
-                    if (extruder_plan.extrusion_temperature && *extruder_plan.extrusion_temperature > extruder_plan.required_start_temperature)
-                    {
-                        constexpr bool wait = true;
-                        gcode.writeTemperatureCommand(extruder, *extruder_plan.extrusion_temperature, wait);
-                    }
-                    // do the prime here before moving back to the print
+                    // set the extrusion temperature and wait for it to be achieved
+                    gcode.writeTemperatureCommand(extruder, extruder_plan.extrusion_temperature.value_or(extruder_plan.required_start_temperature), true);
                     gcode.writeUnretractionAndPrime();
                 }
             }
