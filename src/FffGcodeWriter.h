@@ -398,6 +398,16 @@ private:
      */
     void processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
     
+    /*!
+     * Generate the a spiralized wall for a given layer part.
+     * \param[in] storage where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     */
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
     
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
@@ -472,6 +482,15 @@ private:
      * \param total_layers The total number of layers
      */
     void findLayerSeamsForSpiralize(SliceDataStorage& storage, size_t total_layers);
+
+    /*!
+     * Calculate the index of the vertex that is considered to be the seam for the given layer
+     * \param storage where the slice data is stored.
+     * \param mesh the mesh containing the layer of interest
+     * \param layer_nr layer number of the layer whose seam verted index is required
+     * \param last_layer_nr layer number of the previous layer
+     */
+    int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
 };
 
 }//namespace cura
