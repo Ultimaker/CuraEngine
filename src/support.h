@@ -59,14 +59,14 @@ private:
     /*!
      * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).
      * \param storage input layer outline information
-     * \param overhang_points stores overhang_points along with the layer index at which the overhang point occurs
+     * \param overhang_points stores overhang_points of each layer
      * \param layer_count total number of layers
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
      */
     static void detectOverhangPoints(
         SliceDataStorage& storage,
         SliceMeshStorage& mesh,
-        std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, 
+        std::vector<std::vector<Polygons>>& overhang_points,
         int layer_count,
         int supportMinAreaSqrt
     );
@@ -94,8 +94,7 @@ private:
      * From below the roof, the towers are added to the normal support layer and handled as normal support area.
      * \param supportLayer_this The support areas in the layer for which we are creating towers/struts
      * \param towerRoofs The parts of roofs which need to expand downward until they have the required diameter
-     * \param overhang_points stores overhang_points along with the layer index at which the overhang point occurs
-     * \param overhang_points_pos Index into \p overhang_points for the overhang points in the next layer
+     * \param overhang_points stores overhang_points of each layer
      * \param layer_idx The index of the layer at which to handle towers
      * \param towerRoofExpansionDistance The offset distance which determines the angle of the tower roof tops
      * \param supportTowerDiameter The diameter of the eventual tower, below the roof
@@ -106,8 +105,7 @@ private:
     static void handleTowers(
         Polygons& supportLayer_this,
         std::vector<Polygons>& towerRoofs,
-        std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points,
-        int& overhang_points_pos,
+        std::vector<std::vector<Polygons>>& overhang_points,
         int layer_idx,
         int towerRoofExpansionDistance,
         int supportTowerDiameter,
