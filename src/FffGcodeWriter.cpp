@@ -9,6 +9,7 @@
 #include "wallOverlap.h"
 #include "utils/orderOptimizer.h"
 #include "GcodeLayerThreader.h"
+#include "infill/SpaghettiInfillPathGenerator.h"
 
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
@@ -926,12 +927,11 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    if (mesh->getSettingAsCount("wall_line_count") > 0)
     { // don't switch extruder if there's nothing to print
         bool empty = true;
         for (const SliceLayerPart& part : layer->parts)
         {
-            if (part.insets.size() > 0)
+            if (part.isUsed(*mesh))
             {
                 empty = false;
                 break;
@@ -986,8 +986,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     
     if (mesh->getSettingBoolean("infill_before_walls"))
     {
-        processMultiLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        processSingleLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
@@ -996,8 +995,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
     if (!mesh->getSettingBoolean("infill_before_walls"))
     {
-        processMultiLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        processSingleLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
     int skin_angle = 45;
@@ -1021,6 +1019,18 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 }
 
             
+void FffGcodeWriter::processInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
+{
+    if (mesh->getSettingBoolean("spaghetti_infill_enabled"))
+    {
+        SpaghettiInfillPathGenerator::processSpaghettiInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
+    else
+    {
+        processMultiLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSingleLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
+}
 
 
 void FffGcodeWriter::processMultiLayerInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const

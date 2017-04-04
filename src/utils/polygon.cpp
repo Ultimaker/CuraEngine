@@ -190,6 +190,22 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
+coord_t Polygons::polyLineLength() const
+{
+    coord_t length = 0;
+    for (unsigned int poly_idx = 0; poly_idx < paths.size(); poly_idx++)
+    {
+        Point p0 = paths[poly_idx][0];
+        for (unsigned int point_idx = 1; point_idx < paths[poly_idx].size(); point_idx++)
+        {
+            Point p1 = paths[poly_idx][point_idx];
+            length += vSize(p0 - p1);
+            p0 = p1;
+        }
+    }
+    return length;
+}
+
 Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     Polygons ret;
@@ -1115,6 +1131,17 @@ Polygons Polygons::smooth2(int remove_length, int min_area) const
         }
     }
     return ret;
+}
+
+double PolygonsPart::area() const
+{
+    double area = 0;
+    for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+    {
+        area += operator[](poly_idx).area();
+        // note: holes have negative area
+    }
+    return area;
 }
 
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const

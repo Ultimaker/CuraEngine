@@ -73,6 +73,13 @@ public:
      * \return the own infill area
      */
     Polygons& getOwnInfillArea();
+
+    /*!
+     * Return whether this part has printable areas / perimeters
+     */
+    bool isUsed(const SettingsBaseVirtual& mesh_settings) const;
+
+    std::vector<std::pair<PolygonsPart, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume to fill over the area
 };
 
 /*!

@@ -91,6 +91,8 @@ set(engine_SRCS # Except main.cpp.
     src/Wireframe2gcode.cpp
 
     src/infill/NoZigZagConnectorProcessor.cpp
+    src/infill/SpaghettiInfill.cpp
+    src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorEndPieces.cpp

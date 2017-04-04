@@ -521,10 +521,23 @@ void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_pe
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
 {
+    if (isinf(extrusion_mm3_per_mm))
+    {
+        logError("Extrusion rate is infinite!");
+        assert(false && "Infinite extrusion move!");
+        std::exit(1);
+    }
+    if (isnan(extrusion_mm3_per_mm))
+    {
+        logError("Extrusion rate is not a number!");
+        assert(false && "NaN extrusion move!");
+        std::exit(1);
+    }
+
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
-    
+
     Point gcode_pos = getGcodePos(x,y, current_extruder);
-    
+
     //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
     float fspeed = speed * 60;
     float rpm = extrusion_per_mm * speed * 60;
@@ -582,7 +595,6 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
 #endif //ASSERT_INSANE_OUTPUT
 
-
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
     CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width);
@@ -603,6 +615,20 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif //ASSERT_INSANE_OUTPUT
+
+    if (isinf(extrusion_mm3_per_mm))
+    {
+        logError("Extrusion rate is infinite!");
+        assert(false && "Infinite extrusion move!");
+        std::exit(1);
+    }
+
+    if (isnan(extrusion_mm3_per_mm))
+    {
+        logError("Extrusion rate is not a number!");
+        assert(false && "NaN extrusion move!");
+        std::exit(1);
+    }
 
     if (extrusion_mm3_per_mm < 0.0)
     {

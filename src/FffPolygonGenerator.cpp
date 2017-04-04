@@ -20,6 +20,7 @@
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
 #include "skin.h"
+#include "infill/SpaghettiInfill.h"
 #include "infill.h"
 #include "raft.h"
 #include "progress/Progress.h"
@@ -504,18 +505,27 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 {
-    // create gradual infill areas
-    SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
-
-    //SubDivCube Pre-compute Octree
-    if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    // generate spaghetti infill filling areas and volumes
+    if (mesh.getSettingBoolean("spaghetti_infill_enabled"))
     {
-        SubDivCube::precomputeOctree(mesh);
+        SpaghettiInfill::generateSpaghettiInfill(mesh);
     }
+    else
+    {
 
-    // combine infill
-    unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
-    combineInfillLayers(mesh,combined_infill_layers);
+        // create gradual infill areas
+        SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
+
+        //SubDivCube Pre-compute Octree
+        if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
+        {
+            SubDivCube::precomputeOctree(mesh);
+        }
+
+        // combine infill
+        unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
+        combineInfillLayers(mesh,combined_infill_layers);
+    }
 
     // fuzzy skin
     if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
