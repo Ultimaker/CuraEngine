@@ -195,7 +195,7 @@ public:
     std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
 
     std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
-    std::vector<Polygons *> spiralize_wall_outlines; //!< the wall outline polygons for each layer
+    std::vector<Polygons* > spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
     PrimeTower primeTower;
 

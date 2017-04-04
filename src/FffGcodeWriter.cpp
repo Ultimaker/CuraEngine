@@ -164,7 +164,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
         storage.spiralize_seam_vertex_indices[layer_nr] = 0;
 
         // iterate through extruders until we find a mesh that has a part with insets
-        const std::vector<unsigned int> &extruder_order = extruder_order_per_layer[layer_nr];
+        const std::vector<unsigned int>& extruder_order = extruder_order_per_layer[layer_nr];
         for (unsigned int extruder_idx = 0; !done_this_layer && extruder_idx < extruder_order.size(); ++extruder_idx)
         {
             const unsigned int extruder_nr = extruder_order[extruder_idx];
