@@ -793,7 +793,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     // set the extrusion temperature and wait for it to be achieved
                     gcode.writeTemperatureCommand(extruder, extruder_plan.extrusion_temperature.value_or(extruder_plan.required_start_temperature), true);
+                    // do the prime
                     gcode.writeUnretractionAndPrime();
+                    // retract before the move back to the print
+                    gcode.writeRetraction(retraction_config);
                 }
             }
         }
