@@ -59,15 +59,12 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         processNextMeshGroupCode(storage);
     }
 
-    bool doing_spiralize = false;
     size_t total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         total_layers = std::max(total_layers, mesh.layers.size());
 
         setInfillAndSkinAngles(mesh);
-
-        doing_spiralize = doing_spiralize || mesh.getSettingBoolean("magic_spiralize");
     }
     
     gcode.writeLayerCountComment(total_layers);
@@ -82,7 +79,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
     calculateExtruderOrderPerLayer(storage);
 
-    if (doing_spiralize)
+    if (getSettingBoolean("magic_spiralize"))
     {
         findLayerSeamsForSpiralize(storage, total_layers);
     }
@@ -909,7 +906,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(storage, mesh, mesh_config, gcode_layer, layer_nr);
 }
@@ -1040,7 +1037,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     processSkinAndPerimeterGaps(gcode_layer, mesh, mesh_config, part, layer_nr, skin_overlap, skin_angle);
 
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
+    if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
     {
         gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
     }
@@ -1151,7 +1148,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
-        if (mesh->getSettingBoolean("magic_spiralize"))
+        if (getSettingBoolean("magic_spiralize"))
         {
             if (part.insets.size() == 0)
             {
@@ -1248,7 +1245,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const S
 
     constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-                            && !mesh->getSettingBoolean("magic_spiralize");
+                            && !getSettingBoolean("magic_spiralize");
 
     Point z_seam_pos(0, 0); // not used
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);

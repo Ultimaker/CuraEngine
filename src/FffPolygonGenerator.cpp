@@ -393,7 +393,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // skin & infill
 //     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
-    if (mesh.getSettingBoolean("magic_spiralize"))
+    if (getSettingBoolean("magic_spiralize"))
     {
         mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
     }
@@ -406,7 +406,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
         {
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
-            if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
             }
@@ -531,7 +531,7 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
     {
         int inset_count = mesh.getSettingAsCount("wall_line_count");
-        if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && ((layer_nr % 2) + 2) % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+        if (getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && ((layer_nr % 2) + 2) % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
             inset_count += 5;
         int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
         int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
