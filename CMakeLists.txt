@@ -73,6 +73,7 @@ set(engine_SRCS # Except main.cpp.
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
+    src/Mold.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/Preheat.cpp
