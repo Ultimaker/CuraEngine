@@ -274,6 +274,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
     std::vector<Polygons> towerRoofs;
+    Polygons stair_removal; // polygons to subtract from support because of stair-stepping
 
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
@@ -303,7 +304,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         // move up from model
-        moveUpFromModel(storage, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
+        moveUpFromModel(storage, stair_removal, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
 
         supportLayer_last = supportLayer_this;
@@ -383,7 +384,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     storage.support.generated = true;
 }
 
-void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
 {
 // The idea behing support bottom stairs:
 //
@@ -448,11 +449,30 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sup
     }
     else
     {
-        int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
-        Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+        to_be_removed = stair_removal.unionPolygons(bottom_outline);
+        if (layer_idx % bottom_stair_step_layer_count == 0)
+        { // update stairs for next step
+            Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
 
-        Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
-        to_be_removed = step_bottom_outline.intersection(allowed_step_width);
+            int step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
+            if (step_bottom_layer_nr >= 0)
+            {
+                Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+                stair_removal = step_bottom_outline.intersection(allowed_step_width);
+            }
+            else
+            {
+                stair_removal = allowed_step_width;
+            }
+        }
+//         int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
+//         int step_top_layer_nr = step_bottom_layer_nr + bottom_stair_step_layer_count - 1;
+//         if (layer_idx == step_top_layer_nr + 1 + bottom_empty_layer_count)
+//         { // update stairs for next step
+//             Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
+//             Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+//             stair_removal = step_bottom_outline.intersection(allowed_step_width);
+//         }
     }
     support_areas = support_areas.difference(to_be_removed);
 }

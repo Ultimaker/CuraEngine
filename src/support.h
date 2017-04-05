@@ -65,13 +65,14 @@ private:
      * and the bottom half will follow the model.
      * 
      * \param storage Where to get model outlines from
+     * \param[in,out] stair_removal The polygons to be removed for stair stepping on the current layer (input) and for the next layer (output). Only changed every [step_height] layers.
      * \param[in,out] support_areas The support areas before and after this function
      * \param layer_idx The layer number of the support layer we are processing
      * \param bottom_empty_layer_count The number of empty layers between the bottom of support and the top of the model on which support rests
      * \param bottom_stair_step_layer_count The max height (in nr of layers) of the support bottom stairs
      * \param support_bottom_stair_step_width The max width of the support bottom stairs
      */
-    static void moveUpFromModel(const SliceDataStorage& storage, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
+    static void moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
      * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).
