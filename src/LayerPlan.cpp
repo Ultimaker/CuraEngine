@@ -774,31 +774,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
-
-            if (!getPrimeTowerIsPlanned())
-            {
-                // when spiralizing, there should be no prime tower but to avoid huge blobs occuring at extruder changes
-                // we do the post extruder swap prime into thin air (before extruder is moved back to the print)
-                bool first_extrusion_move_is_spiralized = false;
-                std::vector<GCodePath>& paths = extruder_plan.paths;
-                for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
-                {
-                    if (!paths[path_idx].config->isTravelPath())
-                    {
-                        first_extrusion_move_is_spiralized = paths[path_idx].spiralize;
-                        break;
-                    }
-                }
-                if (first_extrusion_move_is_spiralized)
-                {
-                    // set the extrusion temperature and wait for it to be achieved
-                    gcode.writeTemperatureCommand(extruder, extruder_plan.extrusion_temperature.value_or(extruder_plan.required_start_temperature), true);
-                    // do the prime
-                    gcode.writeUnretractionAndPrime();
-                    // retract before the move back to the print
-                    gcode.writeRetraction(retraction_config);
-                }
-            }
         }
         else if (extruder_plan_idx == 0 && layer_nr != 0 && storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("retract_at_layer_change"))
         {
