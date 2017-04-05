@@ -303,6 +303,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
         }
 
+        // Enforce XY distance before bottom distance,
+        // because xy_offset might have introduced overlap between model and support,
+        // which makes stair stepping conclude the support already rests on the model,
+        // so it thinks it can make a step.
+
+        // inset using X/Y distance
+        if (supportLayer_this.size() > 0)
+        {
+            supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
+        }
+
         // move up from model
         moveUpFromModel(storage, stair_removal, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
@@ -310,11 +321,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         supportLayer_last = supportLayer_this;
         
         
-        // inset using X/Y distance
-        if (supportLayer_this.size() > 0)
-        {
-            supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
-        }
 
         supportAreas[layer_idx] = supportLayer_this;
 
