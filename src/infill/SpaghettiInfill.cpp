@@ -99,7 +99,7 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_
         poly.emplace_back(inside + Point(line_width / 2 + 10, -line_width / 2 - 10));
         poly.emplace_back(inside + Point(-line_width / 2 - 10, -line_width / 2 - 10));
     }
-    slice_layer_part.spaghetti_infill_volumes.emplace_back(top_part, volume);
+    slice_layer_part.spaghetti_infill_volumes.emplace_back(filling_area, volume);
 }
 
 bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part) const

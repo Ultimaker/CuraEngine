@@ -16,12 +16,12 @@ void SpaghettiInfillPathGenerator::processSpaghettiInfill(LayerPlan& gcode_layer
     const double layer_height_mm = (layer_nr == 0)? mesh->getSettingInMillimeters("layer_height_0") : mesh->getSettingInMillimeters("layer_height");
 
     // For each part on this layer which is used to fill that part and parts below:
-    for (const std::pair<PolygonsPart, double>& filling_area : part.spaghetti_infill_volumes)
+    for (const std::pair<Polygons, double>& filling_area : part.spaghetti_infill_volumes)
     {
         Polygons infill_lines;
         Polygons infill_polygons;
 
-        const PolygonsPart& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
+        const Polygons& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
         const double total_volume = filling_area.second * mesh->getSettingAsRatio("spaghetti_flow"); // volume to be extruded
         assert(total_volume > 0.0);
 
@@ -58,7 +58,7 @@ void SpaghettiInfillPathGenerator::processSpaghettiInfill(LayerPlan& gcode_layer
             // generate small path near the middle of the filling area
             // note that we need a path with positive length because that is currently the only way to insert an extrusion in a layer plan
             constexpr int path_length = 10;
-            Point middle = const_cast<PolygonsPart&>(area).outerPolygon().centerOfMass();
+            Point middle = AABB(area).getMiddle();
             if (!area.inside(middle))
             {
                 PolygonUtils::ensureInsideOrOutside(area, middle, infill_line_width / 2);

@@ -79,7 +79,7 @@ public:
      */
     bool isUsed(const SettingsBaseVirtual& mesh_settings) const;
 
-    std::vector<std::pair<PolygonsPart, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume to fill over the area
+    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume to fill over the area
 };
 
 /*!
