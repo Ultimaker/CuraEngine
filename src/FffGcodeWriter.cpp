@@ -1473,7 +1473,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         return false; //No need to generate support roof if there's no support.
     }
 
-    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const coord_t z = layer_nr * getSettingInMicrons("layer_height");
 
     const int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     const ExtruderTrain& roof_extr = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
@@ -1538,7 +1538,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         return false; //No need to generate support bottoms if there's no support.
     }
 
-    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const coord_t z = layer_nr * getSettingInMicrons("layer_height");
 
     const int bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
     const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
