@@ -251,7 +251,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
 #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
-    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
+    for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
         full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
