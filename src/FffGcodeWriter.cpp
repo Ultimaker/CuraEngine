@@ -1519,12 +1519,11 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
 
-    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
         || support_layer.support_roof.empty())
     {
-        return added;
+        return false; //No need to generate support roof if there's no support.
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
@@ -1571,27 +1570,25 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
-    if (!roof_polygons.empty() || !roof_lines.empty())
+    if (roof_polygons.empty() && roof_lines.empty())
     {
-        setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
-        gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_roof_config);
-        gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
-        added = true;
+        return false; //We didn't create any support roof.
     }
-
-    return added;
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_roof_config);
+    gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    return true;
 }
 
 bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
 
-    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
         || support_layer.support_bottom.empty())
     {
-        return added;
+        return false; //No need to generate support bottoms if there's no support.
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
@@ -1638,15 +1635,14 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
-    if (!bottom_polygons.empty() || !bottom_lines.empty())
+    if (bottom_polygons.empty() && bottom_lines.empty())
     {
-        setExtruder_addPrime(storage, gcode_layer, layer_nr, bottom_extruder_nr);
-        gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
-        gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
-        added = true;
+        return false;
     }
-
-    return added;
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, bottom_extruder_nr);
+    gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
+    gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    return true;
 }
 
 void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const
