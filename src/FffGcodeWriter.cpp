@@ -1531,7 +1531,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     const ExtruderTrain& roof_extr = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
 
-    EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
+    const EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
     
     
     bool all_roofs_are_low = true;
@@ -1596,7 +1596,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     const int bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
     const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
 
-    EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
+    const EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
     
     
     bool all_roofs_are_low = true;
