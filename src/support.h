@@ -71,7 +71,7 @@ private:
      * going to be filled with the interface.
      * \param safety_offset An offset applied to the result to make sure
      * everything can be printed.
-     * \param interface An output variable to put the resulting polygons in.
+     * \param[out] interface The resulting interface layer.
      */
     static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons& mesh_outlines, const coord_t safety_offset, Polygons& interface);
 
