@@ -461,13 +461,19 @@ void AreaSupport::detectOverhangPoints(
 
     overhang_points.resize(layer_count);
 
-    for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
+    for (int layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         for (SliceLayerPart& part : layer.parts)
         {
             if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
             {
+                SliceLayer& layer_below = mesh.layers[layer_idx - 1];
+                if (layer_below.getOutlines().intersection(part.outline).size() > 0)
+                {
+                    continue;
+                }
+
                 Polygons part_poly_computed;
                 Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
                 if (part.insets.size() == 0)
