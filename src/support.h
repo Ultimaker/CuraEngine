@@ -54,7 +54,7 @@ private:
      * 
      * \return The joined support areas for this layer.
      */
-    static Polygons join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
+    static Polygons join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
 
     /*!
      * Move the support up from model (cut away polygons to ensure bottom z distance)

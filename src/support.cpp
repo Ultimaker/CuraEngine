@@ -20,7 +20,7 @@ namespace cura
 {
     
     
-Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
@@ -272,7 +272,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     }
 
     int overhang_points_pos = overhang_points.size() - 1;
-    Polygons supportLayer_last;
+    const Polygons empty;
+    const Polygons* supportLayer_last = &empty;
     std::vector<Polygons> towerRoofs;
     Polygons stair_removal; // polygons to subtract from support because of stair-stepping
 
@@ -295,7 +296,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
         if (layer_idx+1 < support_layer_count)
         { // join with support from layer up                
-            supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+            supportLayer_this = AreaSupport::join(*supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         if (storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
@@ -318,11 +319,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         moveUpFromModel(storage, stair_removal, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
 
-        supportLayer_last = supportLayer_this;
-        
-        
-
         supportAreas[layer_idx] = supportLayer_this;
+        supportLayer_last = &supportAreas[layer_idx];
 
         Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size());
     }
