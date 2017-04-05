@@ -1479,32 +1479,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const ExtruderTrain& roof_extr = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
 
     const EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
-    
-    
-    bool all_roofs_are_low = true;
-    for (const SliceMeshStorage& mesh : storage.meshes)
-    {
-        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
-        {
-            all_roofs_are_low = false;
-            break;
-        }
-    }
-    
-    double fill_angle;
-    if (pattern == EFillMethod::CONCENTRIC)
-    {
-        fill_angle = 0;
-    }
-    else if (all_roofs_are_low || pattern == EFillMethod::TRIANGLES)
-    {
-        fill_angle = 90; // perpendicular to support lines
-    }
-    else 
-    {
-        fill_angle = 45 + (((layer_nr % 2) + 2) % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
-        // +2) %2 to handle negative layer numbers
-    }
+    const double fill_angle = supportInterfaceFillAngle(storage, pattern, layer_nr);
     constexpr int support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr int outline_offset =  0;
     constexpr int extra_infill_shift = 0;
@@ -1544,32 +1519,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
 
     const EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
-    
-    
-    bool all_roofs_are_low = true;
-    for (const SliceMeshStorage& mesh : storage.meshes)
-    {
-        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
-        {
-            all_roofs_are_low = false;
-            break;
-        }
-    }
-    
-    double fill_angle;
-    if (pattern == EFillMethod::CONCENTRIC)
-    {
-        fill_angle = 0;
-    }
-    else if (all_roofs_are_low || pattern == EFillMethod::TRIANGLES)
-    {
-        fill_angle = 90; // perpendicular to support lines
-    }
-    else 
-    {
-        fill_angle = 45 + (((layer_nr % 2) + 2) % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
-        // +2) %2 to handle negative layer numbers
-    }
+    const double fill_angle = supportInterfaceFillAngle(storage, pattern, layer_nr);
     constexpr int support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr int outline_offset =  0;
     constexpr int extra_infill_shift = 0;
@@ -1590,6 +1540,31 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
     gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
+}
+
+double FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const int layer_number) const
+{
+    if (pattern == EFillMethod::CONCENTRIC)
+    {
+        return 0; //Concentric has no rotation.
+    }
+    if (pattern == EFillMethod::TRIANGLES)
+    {
+        return 90; //Triangular support interface shouldn't alternate every layer.
+    }
+
+    for (const SliceMeshStorage& mesh : storage.meshes)
+    {
+        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
+        {
+            //Some roofs are quite thick.
+            //Alternate between the two kinds of diagonal: / and \ .
+            // + 2) % 2 is to handle negative layer numbers.
+            return 45 + (((layer_number % 2) + 2) % 2) * 90;
+        }
+    }
+
+    return 90; //Perpendicular to support lines.
 }
 
 void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const

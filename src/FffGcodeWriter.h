@@ -450,7 +450,22 @@ private:
      * \return Whether any support skin was added to the layer plan.
      */
     bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
-    
+
+    /*!
+     * \brief Gives the angle of the infill of support interface.
+     *
+     * The angle depends on which pattern it's using and in certain patterns it
+     * alternates between layers.
+     *
+     * \param storage A storage of meshes and their settings.
+     * \param pattern The pattern of the support interface to get the fill angle
+     * for.
+     * \param layer_number The current layer number to generate support
+     * interface for.
+     * \return The angle of support interface.
+     */
+    double supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const int layer_number) const;
+
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
      * 
