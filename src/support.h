@@ -35,7 +35,9 @@ private:
     /*!
      * Generate support bottom areas for a given mesh.
      *
-     * The areas are put in the slice data storage.
+     * The areas are removed from the normal support areas in the slice data
+     * storage, and stored separately in a different field of the slice data
+     * storage.
      *
      * \param storage Where to find the previously generated support areas and
      * where to output the new support bottom areas.
@@ -46,7 +48,9 @@ private:
     /*!
      * Generate support roof areas for a given mesh.
      *
-     * The areas are put in the slice data storage.
+     * The areas are removed from the normal support areas in the slice data
+     * storage, and stored separately in a different field of the slice data
+     * storage.
      *
      * \param storage Where to find the previously generated support areas and
      * where to output the new support roof areas.
