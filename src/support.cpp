@@ -302,14 +302,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             {
                 if (poly.area() < supportMinAreaSqrt * supportMinAreaSqrt)
                 {
-                    if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= 1)
+                    if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + layerZdistanceBottom)
                     {
                         const Polygons& support_layer_above = supportAreas[layer_idx + tower_top_layer_count];
-                        Polygons here;
-                        here.add(poly);
-                        if (here.intersection(support_layer_above).size() > 0)
+                        Point middle = AABB(poly).getMiddle();
+                        bool has_support_above = support_layer_above.inside(middle);
+                        bool has_model_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - layerZdistanceBottom, false).inside(middle);
+                        if (has_support_above && !has_model_below)
                         {
-                            towerRoofs.push_back(here);
+                            Polygons tiny_tower_here;
+                            tiny_tower_here.add(poly);
+                            towerRoofs.emplace_back(tiny_tower_here);
                         }
                     }
                 }
