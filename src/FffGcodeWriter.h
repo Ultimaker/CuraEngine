@@ -430,7 +430,7 @@ private:
     bool addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
 
     /*!
-     * Add the support skins to the layer plan \p gcodeLayer of the current
+     * Add the support roofs to the layer plan \p gcodeLayer of the current
      * layer.
      *
      * \param[in] storage Where the slice data is stored.
