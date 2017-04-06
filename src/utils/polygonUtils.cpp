@@ -383,10 +383,10 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
 ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
     ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
-    return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
+    return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, loc_to_line_polygons, loc_to_line_grid, penalty_function);
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
     if (!closest_polygon_point.isValid())
     {
@@ -405,7 +405,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     }
 
     // try once more with half the preferred distance inside
-    int64_t max_dist2_here = std::numeric_limits<int64_t>::max(); // we already concluded we are close enough to the closest_poly
+    int64_t max_dist2_here = std::numeric_limits<int64_t>::max(); // we already concluded we are close enough to the closest_poly when we obtained the closest_polygon_point
     moveInside2(*loc_to_line_polygons, closest_poly, from, preferred_dist_inside / 2, max_dist2_here, loc_to_line_grid, penalty_function);
     bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
     if (is_inside == (preferred_dist_inside > 0))
