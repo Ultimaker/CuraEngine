@@ -517,7 +517,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     }
     ConstPolygonRef poly1 = *poly1_result.poly;
     ConstPolygonRef poly2 = *poly2_result.poly;
-    if (poly1_result.point_idx < 0 || poly2_result.point_idx < 0)
+    if (poly1_result.point_idx == NO_INDEX || poly2_result.point_idx == NO_INDEX)
     {
         return;
     }
