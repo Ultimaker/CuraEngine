@@ -104,8 +104,6 @@ void Weaver::weave(MeshGroup* meshgroup)
     
     std::cerr<< "finding horizontal parts..." << std::endl;
     {
-        Polygons* lower_top_parts = &wireFrame.bottom_outline;
-        
         Progress::messageProgressStage(Progress::Stage::SUPPORT, nullptr);
         for (unsigned int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
         {
@@ -117,7 +115,6 @@ void Weaver::weave(MeshGroup* meshgroup)
             Polygons& layer_above = (layer_idx+1 < wireFrame.layers.size())? wireFrame.layers[layer_idx+1].supported : empty;
             
             createHorizontalFill(layer, layer_above);
-            lower_top_parts = &layer.supported;
         }
     }
     // at this point layer.supported still only contains the polygons to be connected
