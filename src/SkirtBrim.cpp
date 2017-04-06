@@ -64,7 +64,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     }
 }
 
-int SkirtBrim::generatePrimarySkirtBrimLines(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
+int SkirtBrim::generatePrimarySkirtBrimLines(int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
 
     int offset_distance = start_distance - primary_extruder_skirt_brim_line_width / 2;
@@ -123,7 +123,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         start_distance = primary_extruder_skirt_brim_line_width / 2;
     }
 
-    int offset_distance = generatePrimarySkirtBrimLines(storage, start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
+    int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
 
     // generate brim for ooze shield and draft shield

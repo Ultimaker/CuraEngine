@@ -88,7 +88,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
-        processRaft(storage, total_layers);
+        processRaft(storage);
         // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
         // only process the filler layers if there is anything to print in them.
         for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
@@ -428,7 +428,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeTravel(start_pos, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
 }
     
-void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int total_layers)
+void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
@@ -884,10 +884,10 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
     gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
 
-    addMeshOpenPolyLinesToGCode(storage, mesh, mesh_config, gcode_layer, layer_nr);
+    addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
 {
     const SliceLayer* layer = &mesh->layers[layer_nr];
     
@@ -960,15 +960,15 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     for (int part_idx : part_order_optimizer.polyOrder)
     {
         const SliceLayerPart& part = layer->parts[part_idx];
-        addMeshPartToGCode(storage, mesh, mesh_config, part, gcode_layer, layer_nr);
+        addMeshPartToGCode(mesh, mesh_config, part, gcode_layer, layer_nr);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
-        addMeshOpenPolyLinesToGCode(storage, mesh, mesh_config, gcode_layer, layer_nr);
+        addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
     }
 }
 
-void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshPartToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 

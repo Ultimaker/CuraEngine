@@ -537,7 +537,7 @@ void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& 
     }
 }
 
-bool ConstPolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
+bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
     // - walk in both directions untill shortcut > shortcut_length 
@@ -775,7 +775,7 @@ void ConstPolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut
     }
 }
 
-void ConstPolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const Point p1, const Point p2, const ListPolyIt p0_it, const ListPolyIt p1_it, const ListPolyIt p2_it, const Point v10, const Point v12, const Point v02, const int64_t shortcut_length, float cos_angle)
+void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const Point p2, const ListPolyIt p0_it, const ListPolyIt p1_it, const ListPolyIt p2_it, const Point v10, const Point v12, const Point v02, const int64_t shortcut_length, float cos_angle)
 {
     //  1----b---->2
     //  ^   /
@@ -921,11 +921,11 @@ void ConstPolygonRef::smooth_outward(float min_angle, int shortcut_length, Polyg
             Point v02 = p2_it.p() - p0_it.p();
             if (vSize2(v02) >= shortcut_length2)
             {
-                smooth_corner_simple(poly, p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
+                smooth_corner_simple(p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
             }
             else
             {
-                bool remove_poly = smooth_corner_complex(poly, p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
+                bool remove_poly = smooth_corner_complex(p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
                 if (remove_poly)
                 {
                     // don't convert ListPolygon into result
@@ -990,7 +990,7 @@ void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
     {
         poly->push_back(thiss[0]);
     }
-    auto is_zigzag = [remove_length](const Point v02, const int64_t v02_size, const Point v12, const int64_t v12_size, const Point v13, const int64_t v13_size, const int64_t dot1, const int64_t dot2)
+    auto is_zigzag = [remove_length](const int64_t v02_size, const int64_t v12_size, const int64_t v13_size, const int64_t dot1, const int64_t dot2)
     {
         if (v12_size > remove_length)
         { // v12 or v13 is too long
@@ -1036,7 +1036,7 @@ void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
         const int64_t dot1 = dot(v02T, v12);
         const Point v13T = turn90CCW(v13);
         const int64_t dot2 = dot(v13T, v12);
-        bool push_point = force_push || !is_zigzag(v02, v02_size, v12, v12_size, v13, v13_size, dot1, dot2);
+        bool push_point = force_push || !is_zigzag(v02_size, v12_size, v13_size, dot1, dot2);
         force_push = false;
         if (push_point)
         {

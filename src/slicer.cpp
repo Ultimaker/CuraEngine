@@ -51,7 +51,7 @@ void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polyline
     open_polylines.add(poly);
 }
 
-int SlicerLayer::tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
+int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
 {
     decltype(face_idx_to_segment_idx.begin()) it;
     auto it_end = face_idx_to_segment_idx.end();
@@ -90,7 +90,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
         {
             return -1;
         }
-        return tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+        return tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
     }
     else
     {
@@ -100,7 +100,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
         for (int face_to_try : faces_to_try)
         {
             int result_segment_idx =
-                tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+                tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
             if (result_segment_idx == static_cast<int>(start_segment_idx))
             {
                 return start_segment_idx;

@@ -173,7 +173,7 @@ void Wireframe2gcode::writeGCode()
 }
 
     
-void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) 
+void Wireframe2gcode::go_down(WeaveConnectionPart& part, unsigned int segment_idx)
 { 
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -206,7 +206,7 @@ void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsi
 
 
     
-void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
+void Wireframe2gcode::strategy_knot(WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     gcode.writeExtrusion(segment.to, speedUp, extrusion_mm3_per_mm_connection);
@@ -230,7 +230,7 @@ void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part
     gcode.writeTravel(current_pos + next_dir_2D, speedUp);
 }
 
-void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
+void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -277,7 +277,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
         }
 }
 
-void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
+void Wireframe2gcode::strategy_compensate(WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -318,7 +318,7 @@ void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& par
             writeMoveWithRetract(segment.to);
             break;
         case WeaveSegmentType::DOWN:
-            go_down(layer, part, segment_idx);
+            go_down(part, segment_idx);
             break;
         case WeaveSegmentType::FLAT:
             logWarning("Warning: flat piece in wire print connection.\n");
@@ -326,13 +326,13 @@ void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& par
         case WeaveSegmentType::UP:
             if (strategy == STRATEGY_KNOT)
             {
-                strategy_knot(layer, part, segment_idx);
+                strategy_knot(part, segment_idx);
             } else if (strategy == STRATEGY_RETRACT)
             { 
-                strategy_retract(layer, part, segment_idx);
+                strategy_retract(part, segment_idx);
             } else if (strategy == STRATEGY_COMPENSATE)
             {
-                strategy_compensate(layer, part, segment_idx);
+                strategy_compensate(part, segment_idx);
             }
             break;
         case WeaveSegmentType::DOWN_AND_FLAT:

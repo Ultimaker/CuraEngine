@@ -208,9 +208,8 @@ private:
      * Add raft layer plans onto the FffGcodeWriter::layer_plan_buffer
      * 
      * \param[in,out] storage where the slice data is stored.
-     * \param total_layers The total number of layers.
      */
-    void processRaft(const SliceDataStorage& storage, unsigned int total_layers);
+    void processRaft(const SliceDataStorage& storage);
 
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
@@ -331,7 +330,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
@@ -356,7 +355,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshPartToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add infill for a given part in a layer plan.

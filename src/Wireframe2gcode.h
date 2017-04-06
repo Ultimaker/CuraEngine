@@ -97,39 +97,35 @@ private:
     /*!
      * Function for writing the gcode for a diagonally down movement of a connection.
      * 
-     * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    void go_down(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Function for writing the gcode of an upward move of a connection, which does a couple of small moves at the top.
      * 
-     * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    void strategy_knot(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Function for writing the gcode of an upward move of a connection, which does a retract at the top.
      * 
-     * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    void strategy_retract(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Function for writing the gcode of an upward move of a connection, which goes Wireframe2gcode::fall_down further up 
      * and Wireframe2gcode::drag_along back from the direction it will go to next.
      * 
-     * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    void strategy_compensate(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Function writing the gcode of a segment in the connection between two layers.

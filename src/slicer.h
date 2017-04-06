@@ -392,12 +392,11 @@ private:
     /*!
      * Try to find a segment from face \p face_idx to continue \p segment.
      *
-     * \param[in] mesh The mesh being sliced.
      * \param[in] segment The previous segment that we want to find a continuation for.
      * \param[in] face_idx The index of the face that might have generated a continuation segment.
      * \param[in] start_segment_idx The index of the segment that started this polyline.
      */
-    int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment,
+    int tryFaceNextSegmentIdx(const SlicerSegment& segment,
                               int face_idx, unsigned int start_segment_idx) const;
 
     /*!
