@@ -1,5 +1,5 @@
 //Copyright (C) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -469,14 +469,6 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
                 stair_removal = allowed_step_width;
             }
         }
-//         int step_bottom_layer_nr = (bottom_layer_nr / bottom_stair_step_layer_count) * bottom_stair_step_layer_count;
-//         int step_top_layer_nr = step_bottom_layer_nr + bottom_stair_step_layer_count - 1;
-//         if (layer_idx == step_top_layer_nr + 1 + bottom_empty_layer_count)
-//         { // update stairs for next step
-//             Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
-//             Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
-//             stair_removal = step_bottom_outline.intersection(allowed_step_width);
-//         }
     }
     support_areas = support_areas.difference(to_be_removed);
 }
