@@ -41,7 +41,7 @@ void SpaghettiInfillPathGenerator::processSpaghettiInfill(LayerPlan& gcode_layer
             assert(normal_volume > 0.0);
             const float flow_ratio = total_volume / normal_volume;
             assert(flow_ratio / mesh->getSettingAsRatio("spaghetti_flow") >= 0.9);
-            assert(!isnan(flow_ratio) && !isinf(flow_ratio));
+            assert(!std::isnan(flow_ratio) && !isinf(flow_ratio));
 
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
