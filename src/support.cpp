@@ -343,7 +343,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
         supportAreas[layer_idx] = supportLayer_this;
 
-        Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size());
+        Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count * (mesh_idx + 1) - layer_idx, support_layer_count * storage.meshes.size());
     }
     
     // do stuff for when support on buildplate only

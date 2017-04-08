@@ -46,6 +46,8 @@ const Progress::Stage Progress::stages[] =
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {
+    assert(stage_progress <= 1.0);
+    assert(stage_progress >= 0.0);
     return ( accumulated_times[(int)stage] + stage_progress * times[(int)stage] ) / total_timing;
 }
 
