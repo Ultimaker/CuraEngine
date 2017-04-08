@@ -111,16 +111,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
 
-    for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
+    for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
         if (mesh.getSettingBoolean("mold_enabled"))
         {
-            Mold::process(*slicerList[meshIdx], layer_thickness, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"));
+            Mold::process(*slicerList[mesh_idx], layer_thickness, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"));
         }
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
-            ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
+            ConicalOverhang::apply(slicerList[mesh_idx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
         }
     }
 
