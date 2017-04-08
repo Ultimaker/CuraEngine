@@ -938,8 +938,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 // or do it anyway when we switch extruder in-place
                 gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
                 gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder].getSpeed());
-                // TODO: is this safe?! wouldn't the head move into the sides then?!
-                gcode.writeTravel(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), configs_storage.travel_config_per_extruder[extruder].getSpeed());
+
+                const Point current_pos = gcode.getPositionXY();
+                Point machine_middle (0, 0);
+                if (!storage.getSettingBoolean("machine_center_is_zero"))
+                {
+                    machine_middle.X = storage.getSettingInMicrons("machine_width") / 2;
+                    machine_middle.Y = storage.getSettingInMicrons("machine_depth") / 2;
+                }
+                const Point toward_middle_of_bed = current_pos - normal(current_pos - machine_middle, MM2INT(20.0));
+                gcode.writeTravel(toward_middle_of_bed, configs_storage.travel_config_per_extruder[extruder].getSpeed());
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
