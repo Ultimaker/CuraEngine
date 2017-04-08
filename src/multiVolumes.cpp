@@ -92,6 +92,38 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
         }
     }
 }
- 
+
+void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh>& meshes)
+{
+    for (unsigned int carving_mesh_idx = 0; carving_mesh_idx < volumes.size(); carving_mesh_idx++)
+    {
+        const Mesh& cutting_mesh = meshes[carving_mesh_idx];
+        if (!cutting_mesh.getSettingBoolean("cutting_mesh"))
+        {
+            continue;
+        }
+        Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
+        for (unsigned int layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
+        {
+            Polygons& cutting_mesh_layer = cutting_mesh_volume.layers[layer_nr].polygons;
+            Polygons new_outlines;
+            for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
+            {
+                const Mesh& carved_mesh = meshes[carved_mesh_idx];
+                if (carved_mesh_idx == carving_mesh_idx || carved_mesh.getSettingBoolean("cutting_mesh"))
+                {
+                    continue;
+                }
+                Slicer& carved_volume = *volumes[carved_mesh_idx];
+                Polygons& carved_mesh_layer = carved_volume.layers[layer_nr].polygons;
+                Polygons intersection = cutting_mesh_layer.intersection(carved_mesh_layer);
+                new_outlines.add(intersection);
+                carved_mesh_layer = carved_mesh_layer.difference(cutting_mesh_layer);
+            }
+            cutting_mesh_layer = new_outlines;
+        }
+    }
+}
+
 
 }//namespace cura

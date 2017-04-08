@@ -124,6 +124,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
     }
 
+    MultiVolumes::carveCuttingMeshes(slicerList, storage.meshgroup->meshes);
+
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
     if (storage.getSettingBoolean("carve_multiple_volumes"))
