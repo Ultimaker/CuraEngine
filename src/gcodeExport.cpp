@@ -95,9 +95,6 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
-    machine_dimensions.x = meshgroup->getSettingInMicrons("machine_width");
-    machine_dimensions.y = meshgroup->getSettingInMicrons("machine_depth");
-    machine_dimensions.z = meshgroup->getSettingInMicrons("machine_height");
 
     machine_name = meshgroup->getSettingString("machine_name");
 
