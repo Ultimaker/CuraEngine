@@ -1532,7 +1532,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const ExtruderTrain& roof_extr = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
 
     const EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
-    const double fill_angle = supportInterfaceFillAngle(storage, pattern, layer_nr);
+    const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_roof_height", layer_nr);
     constexpr int support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr int outline_offset =  0;
     constexpr int extra_infill_shift = 0;
@@ -1572,7 +1572,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
 
     const EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
-    const double fill_angle = supportInterfaceFillAngle(storage, pattern, layer_nr);
+    const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_bottom_height", layer_nr);
     constexpr int support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr int outline_offset =  0;
     constexpr int extra_infill_shift = 0;
@@ -1595,7 +1595,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     return true;
 }
 
-double FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const int layer_number) const
+double FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const int layer_number) const
 {
     if (pattern == EFillMethod::CONCENTRIC)
     {
@@ -1608,7 +1608,7 @@ double FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage
 
     for (const SliceMeshStorage& mesh : storage.meshes)
     {
-        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
+        if (mesh.getSettingInMicrons(interface_height_setting) >= 2 * getSettingInMicrons("layer_height"))
         {
             //Some roofs are quite thick.
             //Alternate between the two kinds of diagonal: / and \ .

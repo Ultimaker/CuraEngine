@@ -488,9 +488,11 @@ private:
      * for.
      * \param layer_number The current layer number to generate support
      * interface for.
+     * \param interface_height_setting The setting to retrieve from every mesh
+     * to determine whether the support interface should alternate.
      * \return The angle of support interface.
      */
-    double supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const int layer_number) const;
+    double supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const int layer_number) const;
 
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
