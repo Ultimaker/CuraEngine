@@ -13,7 +13,7 @@ AABB::AABB()
 {
 }
 
-AABB::AABB(Point&min, Point& max)
+AABB::AABB(const Point& min, const Point& max)
 : min(min), max(max)
 {
 }

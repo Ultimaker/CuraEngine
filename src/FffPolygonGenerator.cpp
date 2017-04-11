@@ -15,6 +15,7 @@
 #include "slicer/LayerPart.h"
 #include "textureProcessing/TextureBumpMapProcessor.h"
 #include "textureProcessing/TextureProximityProcessor.h"
+#include "textureProcessing/AreaTextureProcessor.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
 #include "skin.h"
@@ -119,6 +120,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
+        if (mesh.getSettingBoolean("area_texture_mapping"))
+        {
+            TexturedMesh& textured_mesh = *dynamic_cast<TexturedMesh*>(&mesh);
+            AreaTextureProcessor(textured_mesh, slicer->layers.size());
+        }
+        
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
