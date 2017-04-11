@@ -12,10 +12,10 @@
 namespace cura
 {
 
-FaceNormalStorage::FaceNormalStorage(Mesh* mesh)
+FaceNormalStorage::FaceNormalStorage(const Mesh* mesh)
 {
     face_normal_vertical_component.reserve(mesh->faces.size());
-    for (MeshFace& face : mesh->faces)
+    for (const MeshFace& face : mesh->faces)
     {
         Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
         Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
