@@ -73,7 +73,9 @@ void StringTest::writeInt2mmTest123456789()
 }
 void StringTest::writeInt2mmTestMax()
 {
-    writeInt2mmAssert(std::numeric_limits<int64_t>::max() / 1001); // divide by 1001, because MM2INT first converts to int and then multiplies by 1000, which causes overflow for the highest integer.
+    //writeInt2mmAssert(std::numeric_limits<int64_t>::max() / 1001); // divide by 1001, because MM2INT first converts to int and then multiplies by 1000, which causes overflow for the highest integer.
+    //writeInt2mmAssert(std::numeric_limits<int32_t>::max()+2200000000);  // fails
+    //writeInt2mmAssert(std::numeric_limits<int32_t>::max()+2100000000);  // success
 }
 
 

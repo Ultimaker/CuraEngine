@@ -137,6 +137,7 @@ set(engine_TEST_UTILS
     PolygonUtilsTest
     PolygonTest
     StringTest
+    AABBTest
 )
 
 # Generating ProtoBuf protocol
