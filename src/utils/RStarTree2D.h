@@ -6,18 +6,20 @@
 #include "r-star-tree/RStarTree.h"
 #include "AABB.h"
 
+#define PARENT_TREE_TYPE RStarTree<LeafType, 2, 2, 4>
+
 namespace cura
 {
 
 
 
 template <typename LeafType>
-class RStarTree2D : RStarTree<LeafType, 2, 2, 3>
+class RStarTree2D : PARENT_TREE_TYPE
 {
-    typedef RStarTree<LeafType, 2, 2, 3> RTree;
+    typedef PARENT_TREE_TYPE RTree;
 public:
     RStarTree2D()
-    : RStarTree<LeafType, 2, 2, 3>()
+    : PARENT_TREE_TYPE()
     {
     }
 
@@ -37,14 +39,14 @@ protected:
         
         bool operator()(const typename RTree::Node* const node) const 
         {
-            const typename RStarTree<LeafType, 2, 2, 3>::BoundingBox& bb = node->bound;
+            const typename PARENT_TREE_TYPE::BoundingBox& bb = node->bound;
             return bb.edges[0].first <= point.X && bb.edges[0].second >= point.X
                 && bb.edges[1].first <= point.Y && bb.edges[1].second >= point.Y;
         }
         
         bool operator()(const typename RTree::Leaf* const leaf) const 
         { 
-            const typename RStarTree<LeafType, 2, 2, 3>::BoundingBox& bb = leaf->bound;
+            const typename PARENT_TREE_TYPE::BoundingBox& bb = leaf->bound;
             return bb.edges[0].first <= point.X && bb.edges[0].second >= point.X
                 && bb.edges[1].first <= point.Y && bb.edges[1].second >= point.Y;
         }
@@ -59,7 +61,7 @@ protected:
         : ContinueVisiting(true)
         {};
 
-        void operator()(const typename RStarTree<LeafType, 2, 2, 3>::Leaf* const leaf) 
+        void operator()(const typename PARENT_TREE_TYPE::Leaf* const leaf) 
         {
             ret.push_back(leaf->leaf);
         }
@@ -76,7 +78,7 @@ void RStarTree2D<LeafType>::insert(const LeafType item, AABB aabb)
     
     bb.edges[1].first  = aabb.min.Y;
     bb.edges[1].second = aabb.max.Y;
-    RStarTree<LeafType, 2, 2, 3>::Insert(item, bb);
+    PARENT_TREE_TYPE::Insert(item, bb);
 }
 
 template <typename LeafType>
