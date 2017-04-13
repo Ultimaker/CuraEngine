@@ -18,7 +18,7 @@ void TemplateTest::tearDown()
 
 void TemplateTest::smokeTest()
 {
-    CPPUNIT_ASSERT_MESSAGE("Boom!", 1 < 5);
+    CPPUNIT_ASSERT_MESSAGE("Boom!", 1 > 5);
 }
 
 
