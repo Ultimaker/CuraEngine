@@ -1,6 +1,6 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
-
+//Use this file as a template for testing new classes
 #include "TemplateTest.h"
 
 namespace cura
