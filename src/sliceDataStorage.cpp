@@ -5,7 +5,7 @@
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
 #include "infill/SubDivCube.h" // For the destructor
-
+#include "textureProcessing/AreaTextureProcessor.h" // ~AreaTextureProcessor
 
 namespace cura
 {
@@ -110,6 +110,7 @@ SliceMeshStorage::SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int s
 , layer_nr_max_filled_layer(0)
 , base_subdiv_cube(nullptr)
 , texture_proximity_processor(nullptr)
+, area_location_to_texture(nullptr)
 {
     layers.resize(slice_layer_count);
 }
@@ -121,9 +122,11 @@ SliceMeshStorage::SliceMeshStorage(SliceMeshStorage&& old)
 , layer_nr_max_filled_layer(old.layer_nr_max_filled_layer)
 , base_subdiv_cube(old.base_subdiv_cube)
 , texture_proximity_processor(old.texture_proximity_processor)
+, area_location_to_texture(old.area_location_to_texture)
 {
     old.base_subdiv_cube = nullptr;
     old.texture_proximity_processor = nullptr;
+    old.area_location_to_texture = nullptr;
 }
 
 SliceMeshStorage::~SliceMeshStorage()
@@ -135,6 +138,10 @@ SliceMeshStorage::~SliceMeshStorage()
     if (texture_proximity_processor)
     {
         delete texture_proximity_processor;
+    }
+    if (area_location_to_texture)
+    {
+        delete area_location_to_texture;
     }
 }
 
