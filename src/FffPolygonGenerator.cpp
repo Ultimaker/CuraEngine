@@ -122,8 +122,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         */
         if (mesh.getSettingBoolean("area_texture_mapping"))
         {
-            TexturedMesh& textured_mesh = *dynamic_cast<TexturedMesh*>(&mesh);
-            AreaTextureProcessor(textured_mesh, slicer->layers.size());
+            TexturedMesh* textured_mesh = dynamic_cast<TexturedMesh*>(&mesh);
+            if (textured_mesh)
+            {
+                SliceMeshStorage& mesh_storage = storage.meshes[mesh_idx];
+                mesh_storage.area_location_to_texture = new AreaTextureProcessor(*textured_mesh, slicer->layers.size());
+            }
         }
         
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
