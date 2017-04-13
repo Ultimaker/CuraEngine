@@ -55,8 +55,9 @@ void AreaTextureProcessor::registerTexturedFace(const AreaTextureProcessor::Text
 
     AABB aabb(toPoint(aabb3d.min), toPoint(aabb3d.max));
 
-    const unsigned int min_layer = std::max(0, static_cast<int>((aabb3d.min.z - initial_slice_z) / layer_height));
-    const unsigned int max_layer = std::min(static_cast<int>(layer_to_texture_faces.size()), static_cast<int>((aabb3d.max.z - initial_slice_z) / layer_height + 1));
+    const int max = layer_to_texture_faces.size() - 1;
+    const unsigned int min_layer = std::max(0, std::min(max, static_cast<int>((aabb3d.min.z - initial_slice_z) / layer_height)));
+    const unsigned int max_layer = std::max(min_layer, std::min(max, static_cast<int>((aabb3d.max.z - initial_slice_z) / layer_height + 1)));
     for (unsigned int layer_nr = min_layer; layer_nr <= max_layer; layer_nr++)
     {
         RStarTree2D<TexturedFace>& layer_faces = layer_to_texture_faces[layer_nr];
