@@ -6,6 +6,7 @@
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
+
 #include <../src/utils/intpoint.h>
 #include <../src/utils/AABB.h>
 #include <../src/utils/polygon.h>
@@ -23,6 +24,7 @@ class AABBTest : public CppUnit::TestFixture
     CPPUNIT_TEST(calculateTest);
     CPPUNIT_TEST(getMiddleTest);
     CPPUNIT_TEST(hitTest);
+    CPPUNIT_TEST(hitTest2);
     CPPUNIT_TEST(includeTest);
     CPPUNIT_TEST(expandTest);
     CPPUNIT_TEST_SUITE_END();
@@ -39,16 +41,22 @@ public:
     void calculateTest();
     void getMiddleTest();
     void hitTest();
+    void hitTest2();
     void includeTest();
     void expandTest();
 
 private:
-    Polygon test_square;
+    /*!
+     * \brief The maximum allowed error in floats.
+     */
+    static constexpr double epsilon = 0.000001f;
+
+    Polygon test_rect;
     Polygon test_triangle;
     AABB my_aabb;
 };
 
 }
 
-#endif //AABB_TEST_H
+#endif // AABB_TEST_H
 
