@@ -130,6 +130,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         carveMultipleVolumes(slicerList, storage.getSettingBoolean("alternate_carve_order"));
     }
+
     generateMultipleVolumesOverlap(slicerList);
 
     storage.print_layer_count = 0;
@@ -154,41 +155,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
 
-        if (mesh.getSettingBoolean("anti_overhang_mesh"))
-        {
-            for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
-            {
-                SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-                SlicerLayer& slicer_layer = slicer->layers[layer_nr];
-                support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons(slicer_layer.polygons);
-                meshStorage.layers[layer_nr].printZ =
-                    slicer_layer.z
-                    + getSettingInMicrons("layer_height_0")
-                    - initial_slice_z;
-            }
-            continue;
-        }
-        if (mesh.getSettingBoolean("support_mesh"))
-        {
-            for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
-            {
-                SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-                SlicerLayer& slicer_layer = slicer->layers[layer_nr];
-                support_layer.support_mesh.add(slicer_layer.polygons);
-                meshStorage.layers[layer_nr].printZ =
-                    slicer_layer.z
-                    + getSettingInMicrons("layer_height_0")
-                    - initial_slice_z;
-            }
-            continue;
-        }
-
-        createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
-        delete slicerList[meshIdx];
+        const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
 
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
         //Add the raft offset to each layer.
-        for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
+        for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
             meshStorage.layers[layer_nr].printZ += 
@@ -206,12 +177,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
-
-            if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
-            {
-                meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
-            } 
         }
+
+        if (!is_support_modifier)
+        { // only create layer parts for normal meshes
+            createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
+        }
+
+        delete slicerList[meshIdx];
 
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
     }
