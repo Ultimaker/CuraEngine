@@ -1158,7 +1158,7 @@ void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const Slic
     }
 }
 
-void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const
+void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const
 {
     if (part.insets.size() == 0 || part.insets[0].size() == 0)
     {
@@ -1215,7 +1215,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
         if (spiralize && &mesh->layers[layer_nr].parts[0] == &part)
         {
-            processSpiralizedWall(storage, gcode_layer, mesh, mesh_config, part, layer_nr);
+            processSpiralizedWall(storage, gcode_layer, mesh_config, part, layer_nr);
         }
         else
         {

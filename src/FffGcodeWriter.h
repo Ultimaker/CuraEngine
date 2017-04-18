@@ -415,12 +415,11 @@ private:
      * Generate the a spiralized wall for a given layer part.
      * \param[in] storage where the slice data is stored.
      * \param[out] gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      */
-    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
     
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
