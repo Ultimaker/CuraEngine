@@ -677,12 +677,12 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     }
 }
 
-void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons& colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface)
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons& colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons)
 {
-    interface = support_areas.intersection(colliding_mesh_outlines);
-    interface = interface.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
-    interface.removeSmallAreas(1.0);
-    support_areas = support_areas.difference(interface);
+    interface_polygons = support_areas.intersection(colliding_mesh_outlines);
+    interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
+    interface_polygons.removeSmallAreas(1.0);
+    support_areas = support_areas.difference(interface_polygons);
 }
 
 }//namespace cura

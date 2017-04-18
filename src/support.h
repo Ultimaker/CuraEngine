@@ -71,9 +71,9 @@ private:
      * going to be filled with the interface.
      * \param safety_offset An offset applied to the result to make sure
      * everything can be printed.
-     * \param[out] interface The resulting interface layer.
+     * \param[out] interface_polygons The resulting interface layer. Do not use `interface` in windows!
      */
-    static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons& mesh_outlines, const coord_t safety_offset, Polygons& interface);
+    static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons& mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
