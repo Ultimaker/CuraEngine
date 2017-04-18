@@ -1,4 +1,5 @@
 #include "utils/logoutput.h"
+#include "utils/macros.h"
 #include "commandSocket.h"
 #include "FffProcessor.h"
 #include "progress/Progress.h"
@@ -36,6 +37,7 @@ class Listener : public Arcus::SocketListener
 public:
     void stateChanged(Arcus::SocketState::SocketState newState) override
     {
+      UNUSED_PARAM(newState);
     }
 
     void messageReceived() override
@@ -605,6 +607,7 @@ void CommandSocket::sendProgress(float amount)
 void CommandSocket::sendProgressStage(Progress::Stage stage)
 {
     // TODO
+    UNUSED_PARAM(stage);
 }
 
 void CommandSocket::sendPrintTimeMaterialEstimates()
@@ -630,6 +633,9 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
 
 void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float print_time)
 {
+    UNUSED_PARAM(index);
+    UNUSED_PARAM(extruder_nr);
+    UNUSED_PARAM(print_time);
 //     socket.sendInt32(CMD_OBJECT_PRINT_MATERIAL);
 //     socket.sendInt32(12);
 //     socket.sendInt32(index);
