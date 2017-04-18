@@ -180,21 +180,23 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-            GCodePathConfig::SpeedDerivatives initial_layer_speed_config{
+            GCodePathConfig::SpeedDerivatives initial_layer_travel_speed_config{
                     train->getSettingInMillimetersPerSecond("speed_travel_layer_0")
                     , train->getSettingInMillimetersPerSecond("acceleration_travel_layer_0")
                     , train->getSettingInMillimetersPerSecond("jerk_travel_layer_0")
             };
             GCodePathConfig& travel = travel_config_per_extruder[extruder_nr];
 
-            travel.smoothSpeed(initial_layer_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
+            travel.smoothSpeed(initial_layer_travel_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
 
             // don't smooth speed for the skirt/brim!
             // NOTE: not smoothing skirt/brim means the speeds are also not smoothed for the draft/ooze shield
 
+            const GCodePathConfig::SpeedDerivatives& initial_layer_print_speed_config = global_first_layer_config_per_extruder[extruder_nr];
+
             GCodePathConfig& prime_tower = prime_tower_config_per_extruder[extruder_nr];
 
-            prime_tower.smoothSpeed(initial_layer_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
+            prime_tower.smoothSpeed(initial_layer_print_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
         }
 
     }
