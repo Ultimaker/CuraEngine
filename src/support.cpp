@@ -444,7 +444,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
     }
 
     int bottom_layer_nr = layer_idx - bottom_empty_layer_count;
-    Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
+    const Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
 
     Polygons to_be_removed;
     if (bottom_stair_step_layer_count <= 1)
@@ -456,12 +456,13 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
         to_be_removed = stair_removal.unionPolygons(bottom_outline);
         if (layer_idx % bottom_stair_step_layer_count == 0)
         { // update stairs for next step
-            Polygons allowed_step_width = support_areas.intersection(bottom_outline).offset(support_bottom_stair_step_width);
+            const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, false);
+            const Polygons allowed_step_width = support_areas.intersection(supporting_bottom).offset(support_bottom_stair_step_width);
 
             int step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
             if (step_bottom_layer_nr >= 0)
             {
-                Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+                const Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
                 stair_removal = step_bottom_outline.intersection(allowed_step_width);
             }
             else
