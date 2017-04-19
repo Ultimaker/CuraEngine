@@ -130,11 +130,10 @@ private:
     /*!
      * Function writing the gcode of a segment in the connection between two layers.
      * 
-     * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    void handle_segment(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Function for writing the gcode of a segment in the connection between two roof insets / floor outsets.
