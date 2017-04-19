@@ -263,17 +263,20 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
     // support
     // support is presupposed to be present...
-    if (getSettingBoolean("support_enable"))
+    for (const SliceMeshStorage& mesh : meshes)
     {
-        ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-        ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-        if (getSettingBoolean("support_roof_enable"))
+        if (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_mesh"))
         {
-            ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
-        }
-        if (getSettingBoolean("support_bottom_enable"))
-        {
-            ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+            ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
+            ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
+            if (getSettingBoolean("support_roof_enable"))
+            {
+                ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+            }
+            if (getSettingBoolean("support_bottom_enable"))
+            {
+                ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+            }
         }
     }
 

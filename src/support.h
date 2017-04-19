@@ -8,11 +8,21 @@
 #include "sliceDataStorage.h"
 #include "MeshGroup.h"
 #include "commandSocket.h"
+#include "slicer.h"
 
 namespace cura {
 
 class AreaSupport {
 public:
+    /*!
+     * Move support mesh outlines from slicer data into the support storage
+     * 
+     * \param[out] storage Where to store the support areas
+     * \param mesh Where to get the settings from what kind of support mesh it is.
+     * \param slicer Where to get the outlines from
+     * \return Whether the mesh is used up in support and no normal mesh processing is needed
+     */
+    static bool handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer);
 
     /*!
      * Generate the support areas and support skin areas for all models.
@@ -26,11 +36,18 @@ private:
      * 
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
      * 
+     * The anti_overhang areas are taken into account.
+     * 
+     * \warning This function should be called only once for handling support meshes.
+     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage
+     * 
      * \param storage data storage containing the input layer outline data
+     * \param infill_settings The settings base to get the settings from which are based on the infill of the support
+     * \param interface_settings The settings base to get the settings from which are based on the interface of the support
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
     /*!
      * Generate support bottom areas for a given mesh.
@@ -99,8 +116,8 @@ private:
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
      */
     static void detectOverhangPoints(
-        SliceDataStorage& storage,
-        SliceMeshStorage& mesh,
+        const SliceDataStorage& storage,
+        const SliceMeshStorage& mesh,
         std::vector<std::vector<Polygons>>& overhang_points,
         int layer_count,
         int supportMinAreaSqrt

@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
@@ -72,7 +75,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         }
         for (const Mesh& mesh : meshgroup->meshes)
         {
-            if (mesh.getSettingBoolean("support_enable") && (
+            if ((mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_mesh")) && (
                        (mesh.getSettingBoolean("support_bottom_enable") && meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr))
                     || (mesh.getSettingBoolean("support_roof_enable") && meshgroup->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
                     || (meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
@@ -97,9 +100,6 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
-    machine_dimensions.x = meshgroup->getSettingInMicrons("machine_width");
-    machine_dimensions.y = meshgroup->getSettingInMicrons("machine_depth");
-    machine_dimensions.z = meshgroup->getSettingInMicrons("machine_height");
 
     machine_name = meshgroup->getSettingString("machine_name");
 

@@ -176,9 +176,10 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
+        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
         for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
-            if (extruder == adhesion_extruder_nr || !storage.meshgroup->getExtruderTrain(extruder)->getIsUsed())
+            if (extruder == adhesion_extruder_nr || !extruder_is_used[extruder])
             {
                 continue;
             }
