@@ -90,7 +90,7 @@ private:
      * everything can be printed.
      * \param[out] interface_polygons The resulting interface layer. Do not use `interface` in windows!
      */
-    static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons& mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons);
+    static void generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
