@@ -142,6 +142,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
                 continue;
             }
             // use extruder train settings rather than the per-object settings of the first support mesh encountered.
+            // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
+            // instead we must use the support extruder settings, which is the settings base common to all support meshes.
             int interface_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
             int infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
             infill_settings = storage.meshgroup->getExtruderTrain(infill_extruder_nr);
