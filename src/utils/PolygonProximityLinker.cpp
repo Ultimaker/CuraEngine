@@ -8,7 +8,7 @@
 #include "AABB.h" // for debug output svg html
 #include "SVG.h"
 
-namespace cura 
+namespace cura
 {
 
 PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity_distance)
@@ -21,7 +21,7 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     proximity_point_links.reserve(polygons.pointCount()); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
 
     // convert to list polygons for insertion of points
-    ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
+    ListPolyIt::convertPolygonsToLists(polygons, list_polygons);
 
     // link each corner to itself
     addSharpCorners();
@@ -56,13 +56,13 @@ std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::
             std::cerr << (from_link_pair.first == from_link_pair.second) << " ; " << (from_link_pair.first == point_to_link.end()) << " ; " << (from_link_pair.second == point_to_link.end()) << "\n";
             std::cerr << std::hash<Point>()(from) << " hashes " << std::hash<Point>()(it->second.a.p()) << " or " << std::hash<Point>()(it->second.b.p()) << "\n";
 //             std::cerr << "ERROR! some point got mapped to a link which doesn't have the point as one of the end points!\n";
-            
+
             std::cerr << "\n all links:\n";
             for (std::pair<const Point, const ProximityPointLink> pair : point_to_link)
             {
                 std::cerr << pair.first << " : " << pair.second.a.p() << "-" <<pair.second.b.p() << "\n";
             }
-            
+
             std::cerr << "\n link set \n";
             for (const ProximityPointLink link : proximity_point_links)
             {
@@ -182,7 +182,7 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_point_it, Li
 
     if (dist2 > proximity_distance_2
         || (a_point_it.poly == &to_list_poly
-            && dot(a_point_it.next().p() - a_point, b_to - b_from) > 0 
+            && dot(a_point_it.next().p() - a_point, b_to - b_from) > 0
             && dot(a_point - a_point_it.prev().p(), b_to - b_from) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
     )
     { // line segment too far away to be proximate
@@ -199,7 +199,7 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_point_it, Li
     {
         addProximityLink(a_point_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
     }
-    else 
+    else
     {
         if (new_points.find(a_point_it) == new_points.end())
         {
@@ -272,12 +272,12 @@ void PolygonProximityLinker::addProximityEndings()
         const ListPolyIt& a_1 = link.a;
         const ListPolyIt& b_1 = link.b;
         // an overlap segment can be an ending in two directions
-        { 
+        {
             ListPolyIt a_2 = a_1.next();
             ListPolyIt b_2 = b_1.prev();
             addProximityEnding(link, a_2, b_2, a_2, b_1, new_links);
         }
-        { 
+        {
             ListPolyIt a_2 = a_1.prev();
             ListPolyIt b_2 = b_1.next();
             addProximityEnding(link, a_2, b_2, a_1, b_2, new_links);
@@ -396,9 +396,9 @@ int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Po
     Point a = a2-a1;
     Point b = b2-b1;
     double cos_angle = INT2MM2(dot(a, b)) / vSizeMM(a) / vSizeMM(b);
-    // result == .5*overlap / tan(.5*angle) == .5*overlap / tan(.5*acos(cos_angle)) 
+    // result == .5*overlap / tan(.5*angle) == .5*overlap / tan(.5*acos(cos_angle))
     // [wolfram alpha] == 0.5*overlap * sqrt(cos_angle+1)/sqrt(1-cos_angle)
-    // [assuming positive x] == 0.5*overlap / sqrt( 2 / (cos_angle + 1) - 1 ) 
+    // [assuming positive x] == 0.5*overlap / sqrt( 2 / (cos_angle + 1) - 1 )
     if (cos_angle <= 0
         || ! std::isfinite(cos_angle) )
     {
@@ -498,4 +498,4 @@ const ProximityPointLink* PolygonProximityLinker::getLink(ListPolyIt a, ListPoly
     return nullptr;
 }
 
-}//namespace cura 
+}//namespace cura

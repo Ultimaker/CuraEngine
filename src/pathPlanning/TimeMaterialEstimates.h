@@ -4,7 +4,7 @@
 
 #include "../gcodeExport.h"
 
-namespace cura 
+namespace cura
 {
 
 class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
@@ -23,7 +23,7 @@ private:
 public:
     /*!
      * Basic contructor
-     * 
+     *
      * \param extrude_time Time in seconds occupied by extrusion
      * \param unretracted_travel_time Time in seconds occupied by non-retracted travel (non-extrusion)
      * \param retracted_travel_time Time in seconds occupied by retracted travel (non-extrusion)
@@ -43,7 +43,7 @@ public:
 
     /*!
      * Pointwise addition of estimate stats
-     * 
+     *
      * \param other The estimates to add to these estimates.
      * \return The resulting estimates
      */
@@ -51,7 +51,7 @@ public:
 
     /*!
      * In place pointwise addition of estimate stats
-     * 
+     *
      * \param other The estimates to add to these estimates.
      * \return These estimates
      */
@@ -60,9 +60,9 @@ public:
     /*!
      * \brief Subtracts the specified estimates from these estimates and returns
      * the result.
-     * 
+     *
      * Each of the estimates in this class are individually subtracted.
-     * 
+     *
      * \param other The estimates to subtract from these estimates.
      * \return These estimates with the specified estimates subtracted.
      */
@@ -70,10 +70,10 @@ public:
 
     /*!
      * \brief Subtracts the specified elements from these estimates.
-     * 
+     *
      * This causes the estimates in this instance to change. Each of the
      * estimates in this class are individually subtracted.
-     * 
+     *
      * \param other The estimates to subtract from these estimates.
      * \return A reference to this instance.
      */
@@ -81,39 +81,39 @@ public:
 
     /*!
      * Get total time estimate. The different time estimate member values added together.
-     * 
-     * \return the total of all different time estimate values 
+     *
+     * \return the total of all different time estimate values
      */
     double getTotalTime() const;
 
     /*!
      * Get the total time during which the head is not retracted.
-     * 
+     *
      * This includes extrusion time and non-retracted travel time
-     * 
+     *
      * \return the total time during which the head is not retracted.
      */
     double getTotalUnretractedTime() const;
 
     /*!
      * Get the total travel time.
-     * 
+     *
      * This includes the retracted travel time as well as the unretracted travel time.
-     * 
+     *
      * \return the total travel time.
      */
     double getTravelTime() const;
 
     /*!
      * Get the extrusion time.
-     * 
+     *
      * \return extrusion time.
      */
     double getExtrudeTime() const;
 
     /*!
      * Get the amount of material used in mm^3.
-     * 
+     *
      * \return amount of material
      */
     double getMaterial() const;

@@ -4,11 +4,11 @@
 
 #include "sliceDataStorage.h"
 
-namespace cura 
+namespace cura
 {
 /*!
  * Generate the skin areas and its insets.
- * 
+ *
  * \param layerNr The index of the layer for which to generate the skins.
  * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
  * \param downSkinCount The number of layers of bottom skin
@@ -22,7 +22,7 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int u
 
 /*!
  * Generate the skin areas (outlines)
- * 
+ *
  * \param layerNr The index of the layer for which to generate the skins.
  * \param mesh The storage where the layer outline information (input) is stored
  * and where the skin outline (output) is stored.
@@ -40,7 +40,7 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, const int innermost_
 
 /*!
  * Generate the skin insets.
- * 
+ *
  * \param layerNr The index of the layer for which to generate the skins.
  * \param part The part where the skin outline information (input) is stored and
  * where the skin insets (output) are stored.
@@ -51,11 +51,11 @@ void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int ins
 
 /*!
  * Generate Infill by offsetting from the last wall.
- * 
+ *
  * The walls should already be generated.
- * 
+ *
  * After this function has been called on a layer of a mesh, each SliceLayerPart of that layer should have an infill_area consisting of exactly one Polygons : the normal uncombined infill area.
- * 
+ *
  * \param layerNr The index of the layer for which to generate the infill
  * \param mesh The storage where the layer outline information (input) is stored and where the skin outline (output) is stored.
  * \param part The part where the insets (input) are stored and where the infill (output) is stored.
@@ -67,11 +67,11 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wal
 
 /*!
  * \brief Combines the infill of multiple layers for a specified mesh.
- * 
+ *
  * The infill layers are combined while the thickness of each layer is
  * multiplied such that the infill should fill up again to the full height of
  * all combined layers.
- * 
+ *
  * \param mesh The mesh to combine the infill layers of.
  * \param amount The number of layers to combine.
  */
@@ -85,18 +85,18 @@ class SkinInfillAreaComputation
 public:
     /*!
      * Generate infill areas which cause a gradually less dense infill structure from top to bottom.
-     * 
+     *
      * The areas generated overlap, so that more dense infill adds on to less dense infill.
      * That way you don't have infill lines which are broken when they cross a border between separated infill areas - if they would be as such.
-     * 
+     *
      * This function also guarantees that the SliceLayerPart::infill_area_per_combine_per_density is initialized with at least one item.
      * The last item in the list will be equal to the infill_area after this function.
-     * 
+     *
      * \param gradual_infill_step_height // The height difference between consecutive density infill areas
      * \param max_infill_steps the maximum exponent of division of infill density. At 5 the least dense infill will be 2^4 * infill_line_distance i.e. one 16th as dense
      */
     static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
-    
+
 };
 
 }//namespace cura

@@ -12,7 +12,7 @@ namespace cura
 /*!
 An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
 */
-struct AABB3D 
+struct AABB3D
 {
     Point3 min; //!< The minimal coordinates in x, y and z direction
     Point3 max; //!< The maximal coordinates in x, y and z direction
@@ -29,9 +29,9 @@ struct AABB3D
 
     /*!
      * Check whether this aabb overlaps with another.
-     * 
+     *
      * In the boundary case false is returned.
-     * 
+     *
      * \param other the aabb to check for overlaps with
      * \return Whether the two aabbs overlap
      */
@@ -65,7 +65,7 @@ struct AABB3D
 
     /*!
      * Offset the bounding box in the horizontal direction; outward or inward.
-     * 
+     *
      * \param outset the distance (positive or negative) to expand the bounding box outward
      */
     void expandXY(int outset);

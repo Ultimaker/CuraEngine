@@ -28,13 +28,13 @@ public:
 
     FlowTempGraph()
     {}
-    
+
     /*!
      * Get the temperature corresponding to a specific flow.
-     * 
+     *
      * For flows outside of the chart, the temperature at the minimal or maximal flow is returned.
      * When the graph is empty, the @p material_print_temperature is returned.
-     * 
+     *
      * \param flow the flow in mm^3/s
      * \param material_print_temperature The default printing temp (backward compatibility for when the graph fails)
      * \return the corresponding temp
@@ -64,7 +64,7 @@ public:
             }
             last_datum = &datum;
         }
-        
+
         logWarning("Warning! Flow too high!\n"); // TODO
         return data.back().temp;
     };

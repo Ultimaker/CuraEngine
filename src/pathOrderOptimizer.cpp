@@ -15,7 +15,7 @@ void PathOrderOptimizer::optimize()
 {
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
-    
+
     for (ConstPolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best = -1;
@@ -138,7 +138,7 @@ void LineOrderOptimizer::optimize()
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
-    
+
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best_point_idx = -1;

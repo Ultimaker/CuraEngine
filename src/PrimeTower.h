@@ -11,10 +11,10 @@
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
-namespace cura 
+namespace cura
 {
 
-    
+
 class SliceDataStorage;
 class LayerPlan;
 class GCodeExport;
@@ -63,24 +63,24 @@ public:
 
     /*!
      * Generate the prime tower area to be used on each layer
-     * 
+     *
      * Fills \ref PrimeTower::ground_poly and sets \ref PrimeTower::middle
-     * 
+     *
      * \param storage Where to retrieve prime tower settings from
      */
     void generateGroundpoly(const SliceDataStorage& storage);
 
     /*!
      * Generate the area where the prime tower should be.
-     * 
+     *
      * \param storage where to get settings from
-     * \param total_layers The total number of layers 
+     * \param total_layers The total number of layers
      */
     void generatePaths(const SliceDataStorage& storage);
 
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
-     * 
+     *
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param layer_nr The layer for which to generate the prime tower paths
@@ -101,9 +101,9 @@ private:
 
     /*!
      * Find an approriate representation for the point representing the location before going to the prime tower
-     * 
+     *
      * \warning This is not the actual position each time before the wipe tower
-     * 
+     *
      * \param storage where to get settings from
      * \return that location
      */
@@ -117,12 +117,12 @@ private:
 
     /*!
      * \see WipeTower::generatePaths
-     * 
+     *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
-     * 
+     *
      * \param storage where to get settings from
-     * \param total_layers The total number of layers 
+     * \param total_layers The total number of layers
      */
     void generatePaths_denseInfill(const SliceDataStorage& storage);
 
@@ -140,7 +140,7 @@ private:
 
     /*!
      * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower.
-     * 
+     *
      * \param storage where to get settings from
      * \param[out] gcode_layer where to add the planned paths for wiping
      * \param layer_nr The layer number of the \p gcode_layer

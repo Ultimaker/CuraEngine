@@ -4,12 +4,12 @@
 
 #include "../gcodeExport.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
  * A gcode command to insert before a specific path.
- * 
+ *
  * Currently only used for preheat commands
  */
 struct NozzleTempInsert

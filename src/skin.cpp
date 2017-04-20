@@ -5,9 +5,9 @@
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 
-#define MIN_AREA_SIZE (0.4 * 0.4) 
+#define MIN_AREA_SIZE (0.4 * 0.4)
 
-namespace cura 
+namespace cura
 {
 
 
@@ -41,7 +41,7 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int u
 void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
     SliceLayer& layer = mesh.layers[layer_nr];
-    
+
     if (downSkinCount == 0 && upSkinCount == 0)
     {
         return;
@@ -75,7 +75,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 }
                 return result;
             };
-            
+
         if (no_small_gaps_heuristic)
         {
             if (static_cast<int>(layer_nr - downSkinCount) >= 0)
@@ -87,7 +87,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 }
                 downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
-            
+
             if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()))
             {
                 Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
@@ -98,7 +98,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
         }
-        else 
+        else
         {
             if (layer_nr >= downSkinCount && downSkinCount > 0)
             {
@@ -113,7 +113,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 }
                 downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
-            
+
             if (layer_nr < static_cast<int>(mesh.layers.size()) - 1 - upSkinCount && upSkinCount > 0)
             {
                 Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + 1]);
@@ -130,7 +130,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         }
 
         int expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
-        
+
         if (expand_skins_expand_distance > 0)
         {
             int pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
@@ -156,7 +156,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         Polygons skin = upskin.unionPolygons(downskin);
 
         skin.removeSmallAreas(MIN_AREA_SIZE);
-        
+
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())
         {
             part.skin_parts.emplace_back();
@@ -177,7 +177,7 @@ void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int ins
     {
         return;
     }
-    
+
     for (SkinPart& skin_part : part->skin_parts)
     {
         for(int i=0; i<insetCount; i++)
@@ -191,7 +191,7 @@ void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int ins
             {
                 skin_part.insets[i] = skin_part.insets[i - 1].offset(-wall_line_width);
             }
-            
+
             // optimize polygons: remove unnecessary verts
             skin_part.insets[i].simplify();
             if (skin_part.insets[i].size() < 1)

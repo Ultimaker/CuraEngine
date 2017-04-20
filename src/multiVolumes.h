@@ -8,7 +8,7 @@
 namespace cura {
 
 /*!
- * 
+ *
  * \param alternate_carve_order Whether to switch which model carves out of which with every layer
  */
 void carveMultipleVolumes(std::vector<Slicer*> &meshes, bool alternate_carve_order);

@@ -30,7 +30,7 @@ FffGcodeWriter::FffGcodeWriter(SettingsBase* settings_)
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     gcode.preSetup(storage.meshgroup);
-    
+
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     { // first meshgroup
         gcode.resetTotalPrintTimeAndFilament();
@@ -43,13 +43,13 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 
     setConfigFanSpeedLayerTime(storage);
-    
+
     setConfigCoasting(storage);
 
     setConfigRetraction(storage);
 
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
-    
+
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     {
         unsigned int start_extruder_nr = getStartExtruder(storage);
@@ -67,7 +67,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
         setInfillAndSkinAngles(mesh);
     }
-    
+
     gcode.writeLayerCountComment(total_layers);
 
     { // calculate the mesh order for each extruder
@@ -281,21 +281,21 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
     }
 }
 
-void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
+void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 {
     for (int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
     {
         storage.coasting_config.emplace_back();
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
         CoastingConfig& coasting_config = storage.coasting_config.back();
-        coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable"); 
-        coasting_config.coasting_volume = train->getSettingInCubicMillimeters("coasting_volume"); 
-        coasting_config.coasting_min_volume = train->getSettingInCubicMillimeters("coasting_min_volume"); 
-        coasting_config.coasting_speed = train->getSettingInPercentage("coasting_speed") / 100.0; 
+        coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable");
+        coasting_config.coasting_volume = train->getSettingInCubicMillimeters("coasting_volume");
+        coasting_config.coasting_min_volume = train->getSettingInCubicMillimeters("coasting_min_volume");
+        coasting_config.coasting_speed = train->getSettingInPercentage("coasting_speed") / 100.0;
     }
 }
 
-void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
+void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 {
     int extruder_count = storage.meshgroup->getExtruderCount();
     for (int extruder = 0; extruder < extruder_count; extruder++)
@@ -312,7 +312,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         retraction_config.retraction_count_max = train->getSettingAsCount("retraction_count_max");
 
         RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder];
-        switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
+        switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount");
         switch_retraction_config.prime_volume = 0.0;
         switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
         switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
@@ -386,7 +386,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        if (getSettingBoolean("material_bed_temp_prepend")) 
+        if (getSettingBoolean("material_bed_temp_prepend"))
         {
             if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
             {
@@ -394,7 +394,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             }
         }
 
-        if (getSettingBoolean("material_print_temp_prepend")) 
+        if (getSettingBoolean("material_print_temp_prepend"))
         {
             for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
@@ -403,7 +403,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
                 double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
                 gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
             }
-            if (getSettingBoolean("material_print_temp_wait")) 
+            if (getSettingBoolean("material_print_temp_wait"))
             {
                 for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
                 {
@@ -460,16 +460,16 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     Point start_pos(storage.model_min.x, storage.model_min.y);
     gcode.writeTravel(start_pos, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
 }
-    
+
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-    
-    CombingMode combing_mode = storage.getSettingAsCombingMode("retraction_combing"); 
+
+    CombingMode combing_mode = storage.getSettingAsCombingMode("retraction_combing");
 
     int z = 0;
-    
+
 
 
     const int initial_raft_layer_nr = -Raft::getTotalExtraLayers(storage);
@@ -479,7 +479,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
-    
+
     { // raft base layer
         int layer_nr = initial_raft_layer_nr;
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
@@ -549,7 +549,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
-    
+
     int layer_height = train->getSettingInMicrons("raft_surface_thickness");
 
     for (int raftSurfaceLayer = 1; raftSurfaceLayer <= train->getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
@@ -573,7 +573,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         {
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
-        
+
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         double fill_angle = 90 * raftSurfaceLayer;
@@ -638,7 +638,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     coord_t max_inner_wall_width = 0;
     for (const SettingsBaseVirtual& mesh_settings : storage.meshes)
     {
-        max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
+        max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0"));
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
@@ -923,7 +923,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
 void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
 {
     const SliceLayer* layer = &mesh->layers[layer_nr];
-    
+
     Polygons lines;
     for(ConstPolygonRef polyline : layer->openPolyLines)
     {
@@ -936,7 +936,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, c
         }
     }
     gcode_layer.addLinesByOptimizer(lines, &mesh_config.inset0_config, SpaceFillType::PolyLines);
-    
+
 }
 
 void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
@@ -1011,12 +1011,12 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
         infill_angle = mesh->infill_angles.at((layer_nr / combined_infill_layers) % mesh->infill_angles.size());
     }
-    
+
     int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
     int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
-    
+
     gcode_layer.setIsInside(true); // going to print inside stuff below
-    
+
     if (mesh->getSettingBoolean("infill_before_walls"))
     {
         processInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
@@ -1051,7 +1051,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     gcode_layer.setIsInside(false);
 }
 
-            
+
 void FffGcodeWriter::processInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
     if (mesh->getSettingBoolean("spaghetti_infill_enabled"))
@@ -1087,7 +1087,7 @@ void FffGcodeWriter::processMultiLayerInfill(LayerPlan& gcode_layer, const Slice
                 {
                     infill_line_distance_here /= 2;
                 }
-                
+
                 Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines, mesh);
             }
@@ -1104,7 +1104,7 @@ void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const Slic
         return;
     }
     const unsigned int infill_line_width = mesh_config.infill_config[0].getLineWidth();
-        
+
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
     Polygons infill_lines;
@@ -1150,9 +1150,9 @@ void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const Slic
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
     if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
     {
-        gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
+        gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
     }
-    else 
+    else
     {
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
     }
@@ -1289,7 +1289,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const S
 
         Polygons skin_polygons;
         Polygons skin_lines;
-        
+
         EFillMethod pattern = (layer_nr == 0)?
             mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
             mesh->getSettingAsFillMethod("top_bottom_pattern");
@@ -1441,8 +1441,8 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)]; // account for negative layer numbers for raft filler layers
 
     bool added = false;
-    if (!storage.support.generated 
-        || layer_nr > storage.support.layer_nr_max_filled_layer 
+    if (!storage.support.generated
+        || layer_nr > storage.support.layer_nr_max_filled_layer
         || support_layer.supportAreas.size() == 0)
     {
         return added;
@@ -1475,7 +1475,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
         PolygonsPart& island = support_islands[island_order_optimizer.polyOrder[n]];
 
         int support_infill_overlap = 0; // support infill should not be expanded outward
-        
+
         int offset_from_outline = 0;
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
@@ -1513,8 +1513,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
 
     bool added = false;
-    if (!storage.support.generated 
-        || layer_nr > storage.support.layer_nr_max_filled_layer 
+    if (!storage.support.generated
+        || layer_nr > storage.support.layer_nr_max_filled_layer
         || support_layer.skin.size() == 0)
     {
         return added;
@@ -1527,8 +1527,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
 
     EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_interface_pattern");
     int support_line_distance = interface_extr.getSettingInMicrons("support_interface_line_distance");
-    
-    
+
+
     bool all_roofs_are_low = true;
     for (const SliceMeshStorage& mesh : storage.meshes)
     {
@@ -1538,7 +1538,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
             break;
         }
     }
-    
+
     double fillAngle;
     if (pattern == EFillMethod::CONCENTRIC)
     {
@@ -1548,7 +1548,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     {
         fillAngle = 90; // perpendicular to support lines
     }
-    else 
+    else
     {
         fillAngle = 45 + (((layer_nr % 2) + 2) % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
         // +2) %2 to handle negative layer numbers
@@ -1578,11 +1578,11 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 {
     if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
         return;
-    
+
     int previous_extruder = gcode_layer.getExtruder();
     if (previous_extruder == extruder_nr) { return; }
     bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
-    
+
     if (extruder_changed)
     {
         if (extruder_prime_layer_nr[extruder_nr] == layer_nr)

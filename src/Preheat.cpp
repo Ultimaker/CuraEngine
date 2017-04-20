@@ -1,6 +1,6 @@
 #include "Preheat.h"
 
-namespace cura 
+namespace cura
 {
 
 void Preheat::setConfig(const MeshGroup& meshgroup)
@@ -28,7 +28,7 @@ void Preheat::setConfig(const MeshGroup& meshgroup)
         config.material_initial_print_temperature = extruder_train.getSettingInDegreeCelsius("material_initial_print_temperature");
         config.material_final_print_temperature = extruder_train.getSettingInDegreeCelsius("material_final_print_temperature");
 
-        config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
+        config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature");
 
         config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("material_flow_temp_graph"); // [[0.1,180],[20,230]]
     }
@@ -105,7 +105,7 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time += time_to_heat_from_standby_to_print_temp;
         result.lowest_temperature = temp_mid;
     }
-    else 
+    else
     {
         result.heating_time += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
         result.lowest_temperature = std::max(temp_mid, temp_end - result.heating_time / time_to_heatup_1_degree);
@@ -167,7 +167,7 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         result.cooling_time += cool_down_time;
         result.highest_temperature = temp_mid;
     }
-    else 
+    else
     {
         result.cooling_time += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
         result.highest_temperature = std::min(temp_mid, temp_end + result.cooling_time / time_to_cooldown_1_degree);

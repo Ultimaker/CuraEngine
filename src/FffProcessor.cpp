@@ -1,6 +1,6 @@
-#include "FffProcessor.h" 
+#include "FffProcessor.h"
 
-namespace cura 
+namespace cura
 {
 
 FffProcessor FffProcessor::instance; // definition must be in cpp
@@ -26,7 +26,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
         sstream << getAllLocalSettingsString(); // global settings
         sstream << " -g";
     }
-    else 
+    else
     {
         sstream << " --next";
     }
@@ -73,20 +73,20 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         profile_string += getAllSettingsString(*meshgroup, meshgroup_number == 0);
         return true;
     }
-    
+
     if (meshgroup->getSettingBoolean("wireframe_enabled"))
     {
         log("starting Neith Weaver...\n");
-                    
+
         Weaver w(this);
         w.weave(meshgroup);
-        
+
         log("starting Neith Gcode generation...\n");
         Wireframe2gcode gcoder(w, gcode_writer.gcode, this);
         gcoder.writeGCode();
         log("finished Neith Gcode generation...\n");
-        
-    } else 
+
+    } else
     {
         SliceDataStorage storage(meshgroup);
 
@@ -94,7 +94,7 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         {
             return false;
         }
-        
+
         Progress::messageProgressStage(Progress::Stage::EXPORT, &time_keeper);
         gcode_writer.writeGCode(storage, time_keeper);
     }
@@ -116,4 +116,4 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     return true;
 }
 
-} // namespace cura 
+} // namespace cura

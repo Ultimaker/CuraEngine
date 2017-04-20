@@ -1,15 +1,15 @@
 #include "multiVolumes.h"
 
-namespace cura 
+namespace cura
 {
- 
+
 void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_order)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
     for (unsigned int volume_1_idx = 1; volume_1_idx < volumes.size(); volume_1_idx++)
     {
         Slicer& volume_1 = *volumes[volume_1_idx];
-        if (volume_1.mesh->getSettingBoolean("infill_mesh") 
+        if (volume_1.mesh->getSettingBoolean("infill_mesh")
             || volume_1.mesh->getSettingBoolean("anti_overhang_mesh")
             || volume_1.mesh->getSettingBoolean("support_mesh")
             )
@@ -46,7 +46,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_or
         }
     }
 }
- 
+
 //Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.
 //This generates some overlap in dual extrusion, for better bonding in touching parts.
 void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
@@ -92,6 +92,6 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
         }
     }
 }
- 
+
 
 }//namespace cura

@@ -18,7 +18,7 @@
 #include <windows.h>
 #endif
 
-#define DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR(x) 
+#define DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR(x)
 
 // std::cerr << x;
 
@@ -94,14 +94,14 @@ public:
     std::shared_ptr<cura::proto::LayerOptimized> getOptimizedLayerById(int id);
 
     Arcus::Socket* socket;
-    
+
     // Number of objects that need to be sliced
     int object_count;
 
     std::string temp_gcode_file;
     std::ostringstream gcode_output_stream;
-    
-    // Print object that olds one or more meshes that need to be sliced. 
+
+    // Print object that olds one or more meshes that need to be sliced.
     std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
 
     SliceDataStruct<cura::proto::Layer> sliced_layers;
@@ -295,9 +295,9 @@ void CommandSocket::connect(const std::string& ip, int port)
     }
 
     log("Connected to %s:%i\n", ip.c_str(), port);
-    
+
     bool slice_another_time = true;
-    
+
     // Start & continue listening as long as socket is not closed and there is no error.
     while(private_data->socket->getState() != Arcus::SocketState::Closed && private_data->socket->getState() != Arcus::SocketState::Error && slice_another_time)
     {
@@ -711,7 +711,7 @@ void CommandSocket::flushGcode()
     auto message = std::make_shared<cura::proto::GCodeLayer>();
     message->set_data(private_data->gcode_output_stream.str());
     private_data->socket->sendMessage(message);
-    
+
     private_data->gcode_output_stream.str("");
 #endif
 }

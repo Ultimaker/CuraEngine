@@ -12,10 +12,10 @@
 #include "PrimeTower.h"
 #include "gcodeExport.h" // CoastingConfig
 
-namespace cura 
+namespace cura
 {
 /*!
- * A SkinPart is a connected area designated as top and/or bottom skin. 
+ * A SkinPart is a connected area designated as top and/or bottom skin.
  * Surrounding each non-bridged skin area with an outline may result in better top skins.
  * It's filled during FffProcessor.processSliceData(.) and used in FffProcessor.writeGCode(.) to generate the final gcode.
  */
@@ -49,9 +49,9 @@ public:
      * The areas which need to be filled with sparse (0-99%) infill.
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
      * but is used to compute the infill_area_per_combine_per_density.
-     * 
+     *
      * These polygons may be cleared once they have been used to generate gradual infill and/or infill combine.
-     * 
+     *
      * If these polygons are not initialized, simply use the normal infill area.
      */
     std::optional<Polygons> infill_area_own;
@@ -59,8 +59,8 @@ public:
     /*!
      * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.
      * The infill_area is an array to support thicker layers of sparse infill and areas of different infill density.
-     * infill_area[x][n] is infill_area of (n+1) layers thick. 
-     * 
+     * infill_area[x][n] is infill_area of (n+1) layers thick.
+     *
      * infill_area[0] corresponds to the most dense infill area.
      * infill_area[x] will lie fully inside infill_area[x+1].
      * infill_area_per_combine_per_density.back()[0] == part.infill area initially
@@ -88,7 +88,7 @@ public:
 class SliceLayer
 {
 public:
-    int sliceZ;     //!< The height at which the 3D model was cut. 
+    int sliceZ;     //!< The height at which the 3D model was cut.
     // TODO: remove this /\ unused member!
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
@@ -96,7 +96,7 @@ public:
 
     /*!
      * Get the all outlines of all layer parts in this layer.
-     * 
+     *
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \return A collection of all the outline polygons
      */
@@ -105,7 +105,7 @@ public:
     /*!
      * Get the all outlines of all layer parts in this layer.
      * Add those polygons to @p result.
-     * 
+     *
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \param result The result: a collection of all the outline polygons
      */
@@ -213,11 +213,11 @@ public:
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
      * specified mesh group.
-     * 
+     *
      * It will obtain the settings from the mesh group too. The mesh group is
      * not yet sliced in this constructor. If no mesh group is provided, an
      * empty one will be created.
-     * 
+     *
      * \param meshgroup The mesh group to load into this data storage, if any.
      */
     SliceDataStorage(MeshGroup* meshgroup);
@@ -228,7 +228,7 @@ public:
 
     /*!
      * Get all outlines within a given layer.
-     * 
+     *
      * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
      * \param include_helper_parts whether to include support and prime tower
      * \param external_polys_only whether to disregard all hole polygons
@@ -237,9 +237,9 @@ public:
 
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * 
+     *
      * For helper parts the outlines are used.
-     * 
+     *
      * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
      * \param include_helper_parts whether to include support and prime tower
      */
@@ -247,14 +247,14 @@ public:
 
     /*!
      * Get the extruders used.
-     * 
+     *
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
     std::vector<bool> getExtrudersUsed() const;
 
     /*!
      * Get the extruders used on a particular layer.
-     * 
+     *
      * \param layer_nr the layer for which to check
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */

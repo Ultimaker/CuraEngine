@@ -19,7 +19,7 @@
 namespace cura
 {
 
-class Infill 
+class Infill
 {
     static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
 
@@ -43,7 +43,7 @@ public:
      * and the polygons which result from offsetting it by the \p outline_offset
      * and then expanding it again by half the \p infill_line_width
      * is added to the \p perimeter_gaps
-     * 
+     *
      * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
      */
     Infill(EFillMethod pattern
@@ -75,7 +75,7 @@ public:
     }
     /*!
      * Generate the infill.
-     * 
+     *
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param mesh The mesh for which to geenrate infill (should only be used for non-helper objects)
@@ -85,11 +85,11 @@ public:
 private:
     /*!
      * Function which returns the scanline_idx for a given x coordinate
-     * 
+     *
      * For negative \p x this is different from simple division.
-     * 
+     *
      * \warning \p line_distance is assumed to be positive
-     * 
+     *
      * \param x the point to get the scansegment index for
      * \param line_distance the width of the scan segments
      */
@@ -97,9 +97,9 @@ private:
 
     /*!
      * Generate sparse concentric infill
-     * 
+     *
      * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
-     * 
+     *
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
      */
@@ -114,7 +114,7 @@ private:
     void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
 
     /*!
-     * Generate sparse concentric infill 
+     * Generate sparse concentric infill
      * \param result (output) The resulting polygons
      */
     void generateConcentric3DInfill(Polygons& result);
@@ -153,7 +153,7 @@ private:
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
      * \param result (output) The resulting lines
-     * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
+     * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill
      * \param scanline_min_idx The lowest index of all scanlines crossing the polygon
      * \param line_distance The distance between two lines which are in the same direction
      * \param boundary The axis aligned boundary box within which the polygon is
@@ -171,29 +171,29 @@ private:
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
-     * 
+     *
      * idea:
      * intersect a regular grid of 'scanlines' with the area inside \p in_outline
-     * 
+     *
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
     void generateLineInfill(Polygons& result, int line_distance, const double& fill_angle, int64_t extra_shift);
-    
+
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
-     * 
+     *
      * This function implements the basic functionality of Infill::generateLineInfill (see doc of that function),
      * but makes calls to a ZigzagConnectorProcessor which handles what to do with each line segment - scanline intersection.
-     * 
+     *
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
-     * 
+     *
      * \param outline_offset An offset from the reference polygon (Infill::in_outline) to get the actual outline within which to generate infill
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
-     * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
+     * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill
      * \param zigzag_connector_processor The processor used to generate zigzag connectors
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
@@ -201,48 +201,48 @@ private:
     void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t extra_shift);
 
     /*!
-     * 
+     *
      * generate lines within the area of [in_outline], at regular intervals of [line_distance]
      * idea:
      * intersect a regular grid of 'scanlines' with the area inside [in_outline] (see generateLineInfill)
      * zigzag:
      * include pieces of boundary, connecting the lines, forming an accordion like zigzag instead of separate lines    |_|^|_|
-     * 
+     *
      * Note that ZigZag consists of 3 types:
      * - without endpieces
      * - with disconnected endpieces
      * - with connected endpieces
-     * 
+     *
      *     <--
      *     ___
      *    |   |   |
      *    |   |   |
      *    |   |___|
      *         -->
-     * 
+     *
      *        ^ = even scanline
      *  ^            ^ no endpieces
-     * 
+     *
      * start boundary from even scanline! :D
-     * 
-     * 
+     *
+     *
      *                 v  disconnected end piece: leave out last line segment
      *          _____
      *   |     |     |  \                     .
      *   |     |     |  |
      *   |_____|     |__/
-     * 
+     *
      *   ^     ^     ^    scanlines
-     * 
-     * 
+     *
+     *
      *                 v  connected end piece
      *          ________
      *   |     |     |  \                      .
      *   |     |     |  |
      *   |_____|     |__/                       .
-     * 
+     *
      *   ^     ^     ^    scanlines
-     * 
+     *
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines

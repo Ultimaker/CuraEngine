@@ -32,19 +32,19 @@ public:
 
     /*!
      * Connect with the GUI
-     * This creates and initialises the arcus socket and then continues listening for messages. 
+     * This creates and initialises the arcus socket and then continues listening for messages.
      * \param ip string containing the ip to connect with
      * \param port int of the port to connect with.
      */
     void connect(const std::string& ip, int port);
 
 #ifdef ARCUS
-    /*! 
-     * Handler for ObjectList message. 
+    /*!
+     * Handler for ObjectList message.
      * Loads all objects from the message and starts the slicing process
-     * 
+     *
      * Also handles meshgroup settings and extruder settings.
-     * 
+     *
      * \param[in] list The list of objects to slice
      * \param[in] settings_per_extruder_train The extruder train settings to load into the meshgroup
      */
@@ -56,12 +56,12 @@ public:
      */
     void sendOptimizedLayerInfo(int layer_nr, int32_t z, int32_t height);
 
-    /*! 
+    /*!
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
     static void sendPolygons(cura::PrintFeatureType type, const cura::Polygons& polygons, int line_width);
 
-    /*! 
+    /*!
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
     static void sendPolygon(cura::PrintFeatureType type, ConstPolygonRef polygon, int line_width);
@@ -91,26 +91,26 @@ public:
      */
     static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
 
-    /*! 
+    /*!
      * Send progress to GUI
      */
     void sendProgress(float amount);
-    
+
     /*!
-     * Send the current stage of the process to the GUI (starting, slicing infill, etc) 
+     * Send the current stage of the process to the GUI (starting, slicing infill, etc)
      */
     void sendProgressStage(Progress::Stage stage);
-    
+
     /*!
      * Send time estimate of how long print would take.
      */
     void sendPrintTimeMaterialEstimates();
-    
+
     /*!
      * Does nothing at the moment
      */
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
-    
+
     /*!
      * Send the slices of the model as polygons to the GUI.
      *
@@ -137,7 +137,7 @@ public:
     void sendFinishedSlicing();
 
     void beginGCode();
-    
+
     /*!
      * Flush the gcode in gcode_output_stream into a message queued in the socket.
      */

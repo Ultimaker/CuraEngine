@@ -18,13 +18,13 @@ namespace cura
  * Producer Consumer construct for when:
  * - production can occur in parallel
  * - consumption must be ordered and not multithreaded
- * 
+ *
  * A layer_nr index is passed to the item producer in order to produce the different items.
- * 
+ *
  * Each thread does production and consumption, giving priority to consumption if some is available.
- * 
+ *
  * If there is only one thread, it consumes every time it has produced one item.
- * 
+ *
  * \warning This class is only adequate when the expected production time of an item is more than (n_threads - 1) times as much as the expected consumption time of an item
  */
 template <typename T>
@@ -53,14 +53,14 @@ public:
 private:
     /*!
      * Produce an item and put it in \ref GcodeLayerThreader::produced
-     * 
+     *
      * \param item_argument_index The parameter with which to call \ref GcodeLayerThreader::produce_item
      */
     void produce(int item_argument_index);
 
     /*!
      * Consume an item from \ref GcodeLayerThreader::produced
-     * 
+     *
      * \param item_idx The index into \ref GcodeLayerThreader::produced
      */
     void consume(int item_idx);

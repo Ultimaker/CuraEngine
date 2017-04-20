@@ -10,7 +10,7 @@
 #include "polygon.h"
 
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -37,7 +37,7 @@ public:
     }
     /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
-     * 
+     *
      * \param other The ListPolyIt to test for equality
      * \return Wether the right argument refers to the same polygon in the same ListPolygon as the left argument.
      */
@@ -56,28 +56,28 @@ public:
         return *this;
     }
     //! move the iterator forward (and wrap around at the end)
-    ListPolyIt& operator++() 
-    { 
-        ++it; 
+    ListPolyIt& operator++()
+    {
+        ++it;
         if (it == poly->end()) { it = poly->begin(); }
-        return *this; 
+        return *this;
     }
     //! move the iterator backward (and wrap around at the beginning)
-    ListPolyIt& operator--() 
-    { 
+    ListPolyIt& operator--()
+    {
         if (it == poly->begin()) { it = poly->end(); }
-        --it; 
-        return *this; 
+        --it;
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
-    ListPolyIt next() const 
+    ListPolyIt next() const
     {
         ListPolyIt ret(*this);
         ++ret;
         return ret;
     }
     //! move the iterator backward (and wrap around at the beginning)
-    ListPolyIt prev() const 
+    ListPolyIt prev() const
     {
         ListPolyIt ret(*this);
         --ret;
@@ -90,28 +90,28 @@ public:
     }
     /*!
      * Convert Polygons to ListPolygons
-     * 
+     *
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
     static void convertPolygonsToLists(const Polygons& polys, ListPolygons& result);
     /*!
      * Convert Polygons to ListPolygons
-     * 
+     *
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
     static void convertPolygonToList(ConstPolygonRef poly, ListPolygon& result);
     /*!
      * Convert ListPolygons to Polygons
-     * 
+     *
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
     static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons);
     /*!
      * Convert ListPolygons to Polygons
-     * 
+     *
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
@@ -119,7 +119,7 @@ public:
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
-     * 
+     *
      * \param before Iterator to the point before the point to insert
      * \param after Iterator to the point after the point to insert
      * \param to_insert The point to insert into the ListPolygon in between \p before and \p after

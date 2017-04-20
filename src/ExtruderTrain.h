@@ -4,9 +4,9 @@
 
 #include "settings/settings.h"
 
-namespace cura 
+namespace cura
 {
-    
+
 class ExtruderTrain : public SettingsBase
 {
     int extruder_nr;

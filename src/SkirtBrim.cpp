@@ -5,7 +5,7 @@
 #include "SkirtBrim.h"
 #include "support.h"
 
-namespace cura 
+namespace cura
 {
 
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, const bool outside_only, Polygons& first_layer_outline)
@@ -37,7 +37,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             //  |+-+|     |+--+|
             //  || ||     ||[]|| > expand to fit an extra brim line
             //  |+-+|     |+--+|
-            //  +---+     +----+ 
+            //  +---+     +----+
             Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
             if (outside_only)
             { // don't remove support within empty holes where no brim is generated.
@@ -136,7 +136,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         //  |+-+|     |+--+|
         //  || ||     ||[]|| > expand to fit an extra brim line
         //  |+-+|     |+--+|
-        //  +---+     +----+ 
+        //  +---+     +----+
         const int64_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
 
         Polygons shield_brim;

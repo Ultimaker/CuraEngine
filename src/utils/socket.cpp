@@ -16,7 +16,7 @@
 
 namespace cura
 {
-    
+
 #ifdef __WIN32
 bool wsaStartupDone = false;
 #endif
@@ -41,8 +41,8 @@ void ClientSocket::connectTo(std::string host, int port)
 {
     struct sockaddr_in serv_addr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    
-    memset(&serv_addr, '0', sizeof(serv_addr)); 
+
+    memset(&serv_addr, '0', sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = inet_addr(host.c_str());

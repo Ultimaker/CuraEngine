@@ -31,12 +31,12 @@ public:
     {
         return key;
     }
-    
+
     void setType(std::string type)
     {
         this->type = type;
     }
-    
+
     std::string getType() const
     {
         return type;
@@ -46,7 +46,7 @@ public:
     {
         this->default_value = default_value;
     }
-    
+
     std::string getDefaultValue() const
     {
         return default_value;
@@ -56,12 +56,12 @@ public:
     {
         this->unit = unit;
     }
-    
+
     std::string getUnit() const
     {
         return unit;
     }
-    
+
     void debugOutputAllSettings() const
     {
         std::cerr << key <<  "(" << default_value << ")" << std::endl;

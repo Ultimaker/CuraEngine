@@ -1,7 +1,7 @@
 /** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #include "ExtruderTrain.h"
 
-namespace cura 
+namespace cura
 {
 int ExtruderTrain::getExtruderNr()
 {

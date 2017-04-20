@@ -14,14 +14,14 @@ namespace cura
 
 /*!
  * Get the order of a vector: the sorted indices of a vector
- * 
+ *
  * {1.6, 1.8, 1.7} returns {1, 3, 2} meaning {in[1], in[3], in[2]} is a sorted
  * vector
- * 
+ *
  * Thanks to Lukasz Wiklendt
- * 
+ *
  * \param in The vector for which to get the order
- * \return An ordered vector of indices into \p in 
+ * \return An ordered vector of indices into \p in
  */
 template<typename T>
 std::vector<size_t> order(const std::vector<T> &in)

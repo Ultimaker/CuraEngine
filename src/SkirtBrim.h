@@ -4,7 +4,7 @@
 
 #include "sliceDataStorage.h"
 
-namespace cura 
+namespace cura
 {
 
 class SkirtBrim
@@ -12,10 +12,10 @@ class SkirtBrim
 public:
     /*!
      * Generate skirt or brim (depending on parameters).
-     * 
+     *
      * When \p distance > 0 and \p count == 1 a skirt is generated, which has
      * slightly different configuration. Otherwise, a brim is generated.
-     * 
+     *
      * \param storage Storage containing the parts at the first layer.
      * \param distance The distance of the first outset from the parts at the first
      * layer.
@@ -27,10 +27,10 @@ public:
 private:
     /*!
      * Get the reference outline of the first layer around which to generate the first brim/skirt line.
-     * 
+     *
      * This function may change the support polygons in the first layer
      * in order to meet criteria for putting brim around the model as well as around the support.
-     * 
+     *
      * \param storage Storage containing the parts at the first layer.
      * \param primary_line_count Number of outsets / brim lines of the primary extruder.
      * \param primary_extruder_skirt_brim_line_width Line widths of the initial skirt/brim lines
@@ -42,7 +42,7 @@ private:
 
     /*!
      * Generate the skirt/brim lines around the model
-     * 
+     *
      * \param start_distance The distance of the first outset from the parts at the first
      * \param primary_line_count Number of outsets / brim lines of the primary extruder.
      * \param primary_extruder_skirt_brim_line_width Line widths of the initial skirt/brim lines

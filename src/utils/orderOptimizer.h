@@ -9,12 +9,12 @@
 #include "intpoint.h"
 
 namespace cura {
- 
+
 /*!
  * Order optimization class.
- * 
+ *
  * Utility class for optimizing the path order by minimizing the cyclic distance traveled between several items.
- * 
+ *
  * The path is heuristically optimized in a way such that each node is visited and the salesman which is travelling ends up where he started.
  */
 template <typename T>

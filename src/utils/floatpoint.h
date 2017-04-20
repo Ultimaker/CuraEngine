@@ -10,7 +10,7 @@
 
 namespace cura
 {
-    
+
 /*
 Floating point 3D points are used during model loading as 3D vectors.
 They represent millimeters in 3D space.
@@ -115,7 +115,7 @@ public:
         m[1][2] = 0.0;
         m[2][2] = 1.0;
     }
-    
+
     Point3 apply(const FPoint3& p) const
     {
         return Point3(

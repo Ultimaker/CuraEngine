@@ -73,7 +73,7 @@ public:
     Point3 max() const; //!< max (in x,y and z) vertex of the bounding box
     AABB3D getAABB() const; //!< Get the axis aligned bounding box
     void expandXY(int64_t offset); //!< Register applied horizontal expansion in the AABB
-    
+
     /*!
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
@@ -93,9 +93,9 @@ private:
 
     /*!
      * Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
-     * 
+     *
      * In case multiple faces connect with the same edge, return the next counter-clockwise face when viewing from \p idx1 to \p idx0.
-     * 
+     *
      * \param idx0 the first vertex index
      * \param idx1 the second vertex index
      * \param notFaceIdx the index of a face which shouldn't be returned

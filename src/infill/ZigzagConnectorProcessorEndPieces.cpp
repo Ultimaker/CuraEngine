@@ -2,7 +2,7 @@
 #include "ZigzagConnectorProcessorEndPieces.h"
 
 
-namespace cura 
+namespace cura
 {
 
 void ZigzagConnectorProcessorEndPieces::registerVertex(const Point& vertex)
@@ -24,4 +24,4 @@ void ZigzagConnectorProcessorEndPieces::registerVertex(const Point& vertex)
 }
 
 
-} // namespace cura 
+} // namespace cura

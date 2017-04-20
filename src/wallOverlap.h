@@ -17,7 +17,7 @@
 #include "utils/ProximityPointLink.h"
 #include "utils/PolygonProximityLinker.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -25,22 +25,22 @@ namespace cura
  * The overlapping area is approximated with connected trapzoids.
  * All places where the wall is closer than the nozzle width to another piece of wall are recorded.
  * The area of a trapezoid is then the length between two such locations multiplied by the average overlap at the two locations.
- * 
+ *
  * The amount of overlap between two locations is recorded in a link, so that we can look up the overlap at a given point in the polygon.
  * A link always occurs between a point already on a polygon and either another point of a polygon or a point on a line segment of a polygon.
  * In the latter case we insert the point into the polygon so that we can later look up by how much to reduce the extrusion at the corresponding line segment.
- * 
+ *
  * At the end of a sequence of trapezoids the overlap area generally ends with a residual triangle.
  * Therefore points are introduced on the line segments involved and a link is created with overlap zero.
- * 
+ *
  * \see PolygonProximityLinker
- * 
- * Each point on the polygons then maps to a link, so that we can easily look up which links corresponds 
+ *
+ * Each point on the polygons then maps to a link, so that we can easily look up which links corresponds
  * to the current line segment being produced when producing gcode.
- * 
+ *
  * When producing gcode, the first line crossing the overlap area is laid down normally and the second line is reduced by the overlap amount.
  * For this reason the function WallOverlapComputation::getFlow changes the internal state of the PolygonProximityLinker.
- * 
+ *
  * The main functionality of this class is performed by the constructor, by calling the constructor of PolygonProximityLinker.
  * The adjustment during gcode generation is made with the help of WallOverlapComputation::getFlow
  */
@@ -53,9 +53,9 @@ class WallOverlapComputation
 public:
     /*!
      * Compute the flow for a given line segment in the wall.
-     * 
+     *
      * \warning the first time this function is called it returns a different thing than the second, because the second time it thinks it already passed this segment once.
-     * 
+     *
      * \param from The beginning of the line segment
      * \param to The ending of the line segment
      * \return a value between zero and one representing the reduced flow of the line segment
@@ -72,9 +72,9 @@ private:
     /*!
      * Check whether \p from_it and \p from_other_it are connected and if so,
      * return the overlap area between those and the link \p to_link
-     * 
+     *
      * This presupposes that \p to_link and the link from \p from_it to \p from_other_it forms a single overlap quadrilateral
-     * 
+     *
      * from_other         to_other
      *          o<--------o
      *          ?         :
@@ -82,7 +82,7 @@ private:
      *          ?         :
      *          o-------->o
      *       from         to
-     * 
+     *
      * \param from_it The first point possibly invovled in the second link
      * \param to_it The first point of \p to_link connected to \p from_it
      * \param to_link The first link involved in the overlap: from \p from_it to \p to_it
@@ -95,7 +95,7 @@ private:
     /*!
      * Compute the approximate overlap area between two line segments
      * or between a line segment and a point when one of the line segments has the same start as end point.
-     * 
+     *
      *   other_to         other_from
      *          o<--------o
      *          :         :
@@ -107,7 +107,7 @@ private:
      *          :         :
      *          o-------->o
      *       from         to
-     * 
+     *
      * \param from The starting point of the one line segment
      * \param to the end point of the one line segment
      * \param to_dist The distance between \p to and \p to_other
@@ -119,9 +119,9 @@ private:
 
     /*!
      * Check whether an overlap segment between two consecutive links is already passed
-     * 
+     *
      * \note \p link_a and \p link_b are assumed to be consecutive
-     * 
+     *
      * \param link_a the one link of the overlap area
      * \param link_b the other link of the overlap area
      * \return whether the link has already been passed once
@@ -130,9 +130,9 @@ private:
 
     /*!
      * Mark an overlap area between two consecutive links as being passed once already.
-     * 
+     *
      * \note \p link_a and \p link_b are assumed to be consecutive
-     * 
+     *
      * \param link_a the one link of the overlap area
      * \param link_b the other link of the overlap area
      */
