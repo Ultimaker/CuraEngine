@@ -17,9 +17,9 @@ public:
     /*!
      * Convert the polygons (and open polylines) in \p slicer
      * in order to make a mold with a cutout in the shape of the outlines.
-     * 
+     *
      * The open polylines of the model are also used to cut out the shape inside the mold.
-     * 
+     *
      * \param slicer The container for the sliced polygons (and open polylines)
      * \param layer_height The overall layer height used (used to compute an offset from the \p angle)
      * \param angle The overhang angle for the outer outlines of the mold

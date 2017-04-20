@@ -181,12 +181,12 @@ enum class SupportDistPriority
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.
 #define MAX_INFILL_COMBINE 8
-    
+
 class SettingsBase;
 
 /*!
  * An abstract class for classes that can provide setting values.
- * These are: SettingsBase, which contains setting information 
+ * These are: SettingsBase, which contains setting information
  * and SettingsMessenger, which can pass on setting information from a SettingsBase
  */
 class SettingsBaseVirtual
@@ -195,26 +195,26 @@ protected:
     SettingsBaseVirtual* parent;
 public:
     virtual std::string getSettingString(std::string key) const = 0;
-    
+
     virtual void setSetting(std::string key, std::string value) = 0;
 
     /*!
      * Set the parent settings base for inheriting a setting to a specific setting base.
      * This overrides the use of \ref SettingsBaseVirtual::parent.
-     * 
+     *
      * \param key The setting for which to override the inheritance
      * \param parent The setting base from which to obtain the setting instead.
      */
     virtual void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent) = 0;
 
     virtual ~SettingsBaseVirtual() {}
-    
+
     SettingsBaseVirtual(); //!< SettingsBaseVirtual without a parent settings object
     SettingsBaseVirtual(SettingsBaseVirtual* parent); //!< construct a SettingsBaseVirtual with a parent settings object
-    
+
     void setParent(SettingsBaseVirtual* parent) { this->parent = parent; }
     SettingsBaseVirtual* getParent() { return parent; }
-    
+
     int getSettingAsIndex(std::string key) const;
     int getSettingAsCount(std::string key) const;
 
@@ -286,7 +286,7 @@ public:
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
-    
+
     std::string getAllLocalSettingsString() const
     {
         std::stringstream sstream;
@@ -299,7 +299,7 @@ public:
         }
         return sstream.str();
     }
-    
+
     void debugOutputAllLocalSettings()  const
     {
         for (auto pair : setting_values)
@@ -308,7 +308,7 @@ public:
 protected:
     /*!
      * Set a setting without checking if it's registered.
-     * 
+     *
      * Used in SettingsRegistry
      */
     void _setSetting(std::string key, std::string value);
@@ -323,7 +323,7 @@ class SettingsMessenger : public SettingsBaseVirtual
 {
 public:
     SettingsMessenger(SettingsBaseVirtual* parent); //!< construct a SettingsMessenger with a parent settings object
-    
+
     void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     std::string getSettingString(std::string key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)

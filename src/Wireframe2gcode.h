@@ -28,12 +28,12 @@ private:
     static const int STRATEGY_COMPENSATE = 0;
     static const int STRATEGY_KNOT = 1;
     static const int STRATEGY_RETRACT = 2;
-    
+
     int initial_layer_thickness;
     int filament_diameter;
     int line_width;
     double flowConnection;
-    double flowFlat; 
+    double flowFlat;
     double extrusion_mm3_per_mm_connection;
     double extrusion_mm3_per_mm_flat;
     int nozzle_outer_diameter;
@@ -61,100 +61,100 @@ private:
     int roof_fall_down;
     int roof_drag_along;
     double roof_outer_delay;
-    
+
     RetractionConfig standard_retraction_config; //!< The standard retraction settings used for moves between parts etc.
-    
+
 public:
     GCodeExport& gcode; //!< Where the result is 'stored'
-    
+
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
-    
+
     void writeGCode();
 
 
 private:
     WireFrame& wireFrame;
-    
+
     /*!
      * Startup gcode: nozzle temp up, retraction settings, bed temp
      */
     void processStartingCode();
-    
+
     /*!
      * Lay down a skirt
      */
     void processSkirt();
-    
+
     /*!
      * End gcode: nozzle temp down
      */
     void finalize();
-    
+
     void writeFill(std::vector<WeaveRoofPart>& infill_insets, Polygons& outlines
         , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
         , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler);
-    
+
     /*!
      * Function for writing the gcode for a diagonally down movement of a connection.
-     * 
+     *
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
     void go_down(WeaveConnectionPart& part, unsigned int segment_idx);
-    
+
     /*!
      * Function for writing the gcode of an upward move of a connection, which does a couple of small moves at the top.
-     * 
+     *
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
     void strategy_knot(WeaveConnectionPart& part, unsigned int segment_idx);
-    
+
     /*!
      * Function for writing the gcode of an upward move of a connection, which does a retract at the top.
-     * 
+     *
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
     void strategy_retract(WeaveConnectionPart& part, unsigned int segment_idx);
-    
+
     /*!
-     * Function for writing the gcode of an upward move of a connection, which goes Wireframe2gcode::fall_down further up 
+     * Function for writing the gcode of an upward move of a connection, which goes Wireframe2gcode::fall_down further up
      * and Wireframe2gcode::drag_along back from the direction it will go to next.
-     * 
+     *
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
     void strategy_compensate(WeaveConnectionPart& part, unsigned int segment_idx);
-    
+
     /*!
      * Function writing the gcode of a segment in the connection between two layers.
-     * 
+     *
      * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
     void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
-    
+
     /*!
      * Function for writing the gcode of a segment in the connection between two roof insets / floor outsets.
-     * 
+     *
      * \param inset The inset in which the segment is
      * \param part the part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
     void handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx);
-    
+
     /*!
      * Write a move action to gcode, inserting a retraction if neccesary.
-     * 
+     *
      * \param to The 3D destination of the move
      */
     void writeMoveWithRetract(Point3 to);
-    
+
     /*!
      * Write a move action to gcode, inserting a retraction if neccesary.
-     * 
+     *
      * \param to The 2D destination of the move
      */
     void writeMoveWithRetract(Point to);

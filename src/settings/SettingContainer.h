@@ -13,7 +13,7 @@
 
 namespace cura
 {
-    
+
 // Forward declaration
 class SettingConfig;
 class SettingRegistry;
@@ -35,23 +35,23 @@ public:
     std::string getKey() const { return key; }
     std::string getLabel() const { return label; }
     SettingContainer(std::string key, std::string label);
-    
+
     /*!
      * Get the SettingConfig::children.
-     * 
+     *
      * This is used to get the extruder trains; see Settingsbase::setExtruderTrainDefaults
-     * 
+     *
      * \return SettingConfig::children
      */
     const std::list<SettingConfig>& getChildren() const { return children; }
-    
+
     SettingConfig* addChild(std::string key, std::string label);
-    
+
     /*!
      * Get the \p idx th child.
-     * 
+     *
      * This is used to get a specific extruder train in Settingsbase::setExtruderTrainDefaults
-     * 
+     *
      * \param idx The index in the list of children
      * \return The \p idx th child
      */
@@ -63,14 +63,14 @@ public:
             while (idx > 0) { ++it; idx--; }
             return &*it;
         }
-        else 
+        else
             return nullptr;
     }
 
 private:
     /*!
      * Get the (direct) child with key \p key, or create one with key \p key and label \p label as well.
-     * 
+     *
      * \param key the key
      * \param label the label for creating a new child
      * \return The existing or newly created child setting.

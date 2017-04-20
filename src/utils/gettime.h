@@ -47,7 +47,7 @@ private:
     double startTime;
 public:
     TimeKeeper();
-    
+
     double restart();
 };
 

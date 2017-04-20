@@ -16,7 +16,7 @@
 #include "utils/math.h"
 #include "progress/Progress.h"
 
-namespace cura 
+namespace cura
 {
 
 bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer)
@@ -58,7 +58,7 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
         joined = supportLayer_this.unionPolygons(supportLayer_up.offset(conical_support_offset))
                                 .unionPolygons(small_parts);
     }
-    else 
+    else
     {
         joined = supportLayer_this.unionPolygons(supportLayer_up);
     }
@@ -182,7 +182,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     }
 }
 
-/* 
+/*
  * Algorithm:
  * From top layer to bottom layer:
  * - find overhang by looking at the difference between two consucutive layers
@@ -190,13 +190,13 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * - subtract current layer
  * - use the result for the next lower support layer (without doing XY-distance and Z bottom distance, so that a single support beam may move around the model a bit => more stability)
  * - perform inset using X/Y-distance and bottom Z distance
- * 
+ *
  * for support buildplate only: purge all support not connected to buildplate
  */
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
     const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        
+
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
 
@@ -256,43 +256,43 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     }
 
     const int z_layer_distance_tower = 1; // start tower directly below overhang point
-    
-    
+
+
     int supportLayerThickness = layerThickness;
-    
+
     const unsigned int layerZdistanceTop = std::max(0U, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
     const unsigned int layerZdistanceBottom = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness));
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
-    
+
     int64_t conical_support_offset;
-    if (conical_support_angle > 0) 
+    if (conical_support_angle > 0)
     { // outward ==> wider base than overhang
         conical_support_offset = -(tan(conical_support_angle) - 0.01) * supportLayerThickness;
     }
-    else 
+    else
     { // inward ==> smaller base than overhang
         conical_support_offset = (tan(-conical_support_angle) - 0.01) * supportLayerThickness;
     }
-    
+
     unsigned int support_layer_count = layer_count;
-    
+
     double tanTowerRoofAngle = tan(supportTowerRoofAngle);
     int towerRoofExpansionDistance = layerThickness / tanTowerRoofAngle;
-    
-    
+
+
     // early out
-    
+
     if ( layerZdistanceTop + 1 > support_layer_count )
     {
         return;
     }
-    
-    
+
+
     // computation
-        
-    
+
+
     std::vector<std::vector<Polygons>> overhang_points; // stores overhang_points of each layer
     if (use_towers && !is_support_modifier_place_holder)
     {
@@ -346,9 +346,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
             // handle towers
             AreaSupport::handleTowers(supportLayer_this, towerRoofs, overhang_points, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
         }
-    
+
         if (layer_idx+1 < support_layer_count)
-        { // join with support from layer up                
+        { // join with support from layer up
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
@@ -390,8 +390,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
         }
 
         supportLayer_last = supportLayer_this;
-        
-        
+
+
         // inset using X/Y distance
         if (supportLayer_this.size() > 0)
         {
@@ -407,7 +407,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
 
         Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count * (mesh_idx + 1) - layer_idx, support_layer_count * storage.meshes.size());
     }
-    
+
     // do stuff for when support on buildplate only
     if (supportOnBuildplateOnly)
     {
@@ -415,10 +415,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
         for (unsigned int layer_idx = 1 ; layer_idx < storage.support.supportLayers.size() ; layer_idx++)
         {
             Polygons& supportLayer = supportAreas[layer_idx];
-            
+
             if (conical_support)
             { // with conical support the next layer is allowed to be larger than the previous
-                touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + 10, ClipperLib::jtMiter, 10); 
+                touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + 10, ClipperLib::jtMiter, 10);
                 // + 10 and larger miter limit cause performing an outward offset after an inward offset can disregard sharp corners
                 //
                 // conical support can make
@@ -427,17 +427,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
                 //  |               : |
                 //  |        ==>    : |__
                 //  |____           :....
-                // 
+                //
                 // a miter limit would result in
                 //  | :             : |
                 //  | :..    <==    : |__
                 //  .\___           :....
                 //
-                
+
             }
-            
+
             touching_buildplate = supportLayer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
-            
+
             supportAreas[layer_idx] = touching_buildplate;
         }
     }
@@ -475,7 +475,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
 /*            layer 2
  * layer 1 ______________|
  * _______|         ^^^^^ basic overhang
- * 
+ *
  * ^^^^^^^ supporter
  * ^^^^^^^^^^^^^^^^^ supported
  * ^^^^^^^^^^^^^^^^^^^^^^ supportee
@@ -500,7 +500,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 //     Polygons support_extension = basic_overhang.offset(max_dist_from_lower_layer);
 //     support_extension = support_extension.intersection(supportLayer_supported);
 //     support_extension = support_extension.intersection(supportLayer_supportee);
-//     
+//
 //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
 //         presumably the computation above is slower than the one below
 
@@ -528,7 +528,7 @@ void AreaSupport::detectOverhangPoints(
         const SliceLayer& layer = mesh.layers[layer_idx];
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
+            if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt)
             {
                 const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
                 if (layer_below.getOutlines().intersection(part.outline).size() > 0)
@@ -602,7 +602,7 @@ void AreaSupport::handleTowers(
             }
         }
     }
-    
+
     // make tower roofs
     for (unsigned int roof_idx = 0; roof_idx < towerRoofs.size(); roof_idx++)
     {
@@ -646,14 +646,14 @@ void AreaSupport::handleWallStruts(
                     best_length2 = length2;
                 }
             }
-            
+
             if (best_length2 < supportMinAreaSqrt * supportMinAreaSqrt)
                 break; // this is a small area, not a wall!
-                
-            
+
+
             // an estimate of the width of the area
             int width = sqrt( poly.area() * poly.area() / best_length2 ); // sqrt (a^2 / l^2) instead of a / sqrt(l^2)
-            
+
             // add square tower (strut) in the middle of the wall
             if (width < supportMinAreaSqrt)
             {

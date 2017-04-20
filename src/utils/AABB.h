@@ -9,8 +9,8 @@
 
 namespace cura
 {
-    
-    
+
+
 /* Axis aligned boundary box */
 class AABB
 {
@@ -32,9 +32,9 @@ public:
 
     /*!
      * Check whether this aabb overlaps with another.
-     * 
+     *
      * In the boundary case false is returned.
-     * 
+     *
      * \param other the aabb to check for overlaps with
      * \return Whether the two aabbs overlap
      */
@@ -42,16 +42,16 @@ public:
 
     /*!
      * \brief Includes the specified point in the bounding box.
-     * 
+     *
      * The bounding box is expanded if the point is not within the bounding box.
-     * 
+     *
      * \param point The point to include in the bounding box.
      */
     void include(Point point);
 
     /*!
      * Expand the borders of the bounding box in each direction with the given amount
-     * 
+     *
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);

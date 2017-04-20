@@ -19,9 +19,9 @@ Date::Date(int year, int month, int day)
 std::string Date::toStringDashed()
 {
     std::ostringstream str;
-    str << std::setfill('0') << std::setw(4) << year << "-" 
-        << std::setfill('0') << std::setw(2) << month << "-" 
-        << std::setfill('0') << std::setw(2) << day; 
+    str << std::setfill('0') << std::setw(4) << year << "-"
+        << std::setfill('0') << std::setw(2) << month << "-"
+        << std::setfill('0') << std::setw(2) << day;
     return str.str();
 }
 

@@ -34,13 +34,13 @@ class SettingsToGv
         ERROR_FUNCTION,
         WARNING_FUNCTION
     };
-    
+
     FILE* out;
     std::set<std::string> engine_settings;
-    
+
     std::unordered_map<std::string, std::string> setting_to_color;
     bool parent_child_viz, inherit_viz, error_viz, warning_viz, global_only_viz;
-public: 
+public:
     SettingsToGv(std::string output_filename, std::string engine_settings_filename, bool parent_child_viz, bool inherit_viz, bool error_viz, bool warning_viz, bool global_only_viz)
     : parent_child_viz(parent_child_viz)
     , inherit_viz(inherit_viz)
@@ -50,8 +50,8 @@ public:
     {
         out = fopen(output_filename.c_str(), "w");
         fprintf(out, "digraph G {\n");
-        
-        
+
+
         std::ifstream engine_settings_file(engine_settings_filename.c_str());
         std::string line;
         while (std::getline(engine_settings_file, line))
@@ -124,14 +124,14 @@ private:
         fprintf(out, "edge [color=%s];\n", color.c_str());
         fprintf(out, "%s -> %s;\n", parent.c_str(), child.c_str());
     }
-    
+
     bool createFunctionEdges(const rapidjson::Value& data, std::string function_key, const std::string& parent, const std::string& name, const RelationType relation_type)
     {
         bool generated_edge = false;
         if (data.HasMember(function_key.c_str()) && data[function_key.c_str()].IsString())
         {
             std::string function = data[function_key.c_str()].GetString();
-            
+
             std::regex setting_name_regex("[a-zA-Z0-9_]+"); // matches mostly with setting names
             std::smatch regex_match;
             while (std::regex_search (function, regex_match, setting_name_regex))
@@ -143,9 +143,9 @@ private:
                     generated_edge = true;
                 }
                 else if ( ! std::regex_match(inherited_setting_string, std::regex("[0-9]+")) && // exclude numbers
-                    // result != "parent_value" && 
-                    inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" 
-                    && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" 
+                    // result != "parent_value" &&
+                    inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and"
+                    && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil"
                     && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
                     && inherited_setting_string != "log" // exclude functions
                     && inherited_setting_string != "grid" && inherited_setting_string != "triangles" // exclude enum values
@@ -158,7 +158,7 @@ private:
                         generated_edge = true;
                         generateEdge(inherited_setting_string, name, RelationType::PARENT_CHILD);
                     }
-                    else 
+                    else
                     {
                         generateEdge(inherited_setting_string, name, relation_type);
                     }
@@ -168,17 +168,17 @@ private:
         }
         return generated_edge;
     }
-    
+
     void parseSetting(const std::string& parent, rapidjson::Value::ConstMemberIterator json_object_it)
     {
         std::string name = json_object_it->name.GetString();
-        
+
 //         std::cerr << "parsed: " << name <<"\n";
-        
+
         bool generated_edge = false;
-        
+
         const rapidjson::Value& data = json_object_it->value;
-        
+
         if (data.HasMember("type") && data["type"].IsString() && data["type"].GetString() != std::string("category"))
         {
             if (global_only_viz)
@@ -209,8 +209,8 @@ private:
                 setting_to_color.emplace(name, color);
 //                 fprintf(out, "%s [color=%s];\n", name.c_str(), color.c_str());
             }
-            
-            
+
+
             bool generated_edge_inherit = createFunctionEdges(data, "value", parent, name, RelationType::INHERIT_FUNCTION);
             bool generated_edge_max = createFunctionEdges(data, "maximum_value", parent, name, RelationType::ERROR_FUNCTION);
             bool generated_edge_min = createFunctionEdges(data, "minimum_value", parent, name, RelationType::ERROR_FUNCTION);
@@ -220,7 +220,7 @@ private:
             {
                 generated_edge = true;
             }
-            
+
             if (!generated_edge && parent != "")
             {
                 generateEdge(parent, name, RelationType::PARENT_CHILD);
@@ -230,7 +230,7 @@ private:
         {
             name = "";
         }
-        
+
         // recursive part
         if (data.HasMember("children") && data["children"].IsObject())
         {
@@ -241,7 +241,7 @@ private:
             }
         }
     }
-    
+
     void parseJson(const rapidjson::Document& json_document)
     {
         if (json_document.HasMember("settings"))
@@ -256,10 +256,10 @@ private:
     int generateRecursive(std::string filename)
     {
         rapidjson::Document json_document;
-        
+
         int err = SettingRegistry::loadJSON(filename, json_document);
         if (err) { return err; }
-        
+
         if (json_document.HasMember("inherits"))
         {
             std::string filename_copy = std::string(filename.c_str()); // copy the string because dirname(.) changes the input string!!!

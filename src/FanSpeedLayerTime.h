@@ -3,10 +3,10 @@
 
 #include "settings/settings.h"
 
-namespace cura 
+namespace cura
 {
 
-struct FanSpeedLayerTimeSettings 
+struct FanSpeedLayerTimeSettings
 {
 public:
     double cool_min_layer_time;

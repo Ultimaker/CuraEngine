@@ -10,7 +10,7 @@
 #include "FlowTempGraph.h"
 
 
-namespace cura 
+namespace cura
 {
 
 
@@ -18,7 +18,7 @@ namespace cura
 /*!
  * Class for computing heatup and cooldown times used for computing the time the printer needs to heat up to a printing temperature.
  */
-class Preheat 
+class Preheat
 {
     /*!
      * The nozzle and material temperature settings for an extruder train.
@@ -42,7 +42,7 @@ class Preheat
         double material_final_print_temperature; //!< print temp at the end of all extrusion moves of an extruder to which it's cooled down just before - during the extrusion
 
         bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
-    
+
         FlowTempGraph flow_temp_graph; //!< The graph linking flows to corresponding temperatures
     };
 
@@ -80,7 +80,7 @@ public:
 
     /*!
      * Get the time it takes to heat up one degree celsius
-     * 
+     *
      * \param extruder the extruder train for which to get time it takes to heat up one degree celsius
      * \param during_printing whether the heating takes time during printing or when idle
      * \return the time it takes to heat up one degree celsius
@@ -120,7 +120,7 @@ public:
     /*!
      * Get the optimal temperature corresponding to a given average flow,
      * or the initial layer temperature.
-     * 
+     *
      * \param extruder The extruder train
      * \param flow The flow for which to get the optimal temperature
      * \param is_initial_layer Whether the initial layer temperature should be returned instead of flow-based temperature
@@ -140,12 +140,12 @@ public:
 
     /*!
      * Decide when to start warming up again after starting to cool down towards \p temp_mid.
-     * Two cases are considered: 
+     * Two cases are considered:
      * the case where the standby temperature is reached  \__/    .
      * and the case where it isn't  \/    .
-     * 
+     *
      * \warning it is assumed that \p temp_mid is lower than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
-     * 
+     *
     //                    ,temp_end
     //                   /                                    .
     //     ,temp_start  /                                     .
@@ -164,12 +164,12 @@ public:
 
     /*!
      * Decide when to start cooling down again after starting to warm up towards the \p temp_mid
-     * Two cases are considered: 
+     * Two cases are considered:
      * the case where the temperature is reached  /"""\    .
      * and the case where it isn't  /\    .
-     * 
+     *
      * \warning it is assumed that \p temp_mid is higher than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
-     * 
+     *
     //               _> temp_mid
     //       /""""""""\                                       .
     //      /          \                                      .
@@ -197,6 +197,6 @@ public:
     double getTimeToGoFromTempToTemp(int extruder, double temp_before, double temp_after, bool during_printing);
 };
 
-} // namespace cura 
+} // namespace cura
 
 #endif // PREHEAT_H

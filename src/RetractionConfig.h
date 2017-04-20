@@ -3,7 +3,7 @@
 #define RETRACTION_CONFIG_H
 
 
-namespace cura 
+namespace cura
 {
 
 /*!

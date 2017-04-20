@@ -12,13 +12,13 @@
 
 namespace cura {
 
-    
+
 enum class WeaveSegmentType
 {
-    UP, 
-    DOWN, 
-    FLAT, 
-    MOVE, 
+    UP,
+    DOWN,
+    FLAT,
+    MOVE,
     DOWN_AND_FLAT // DOWN_AND_FLAT is for parts of the roof which can either be viewed as flat or as down, since their [to] location is an up move with zero length
 };
 
@@ -84,7 +84,7 @@ struct WireFrame : public NoCopy
     int z_bottom;
     std::vector<WeaveLayer> layers;
 };
-    
+
 
 }//namespace cura
 

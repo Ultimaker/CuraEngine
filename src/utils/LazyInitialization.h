@@ -11,9 +11,9 @@ namespace cura
 
 /*!
  * Class for initializing an object only when it's requested
- * 
+ *
  * Credits to Johannes Goller
- * 
+ *
  * \tparam T The type of the object to instantiate lazily
  * \tparam Args The types of the arguments to the constructor or constructor function object
  */
@@ -24,7 +24,7 @@ public:
 
     /*!
      * Delayed constructor call of T class
-     * 
+     *
      * \warning passing references or pointers as parameters means these objects will be given to the constructor at evaluation time.
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
@@ -40,9 +40,9 @@ public:
 
     /*!
      * Delayed function call for creating a T object
-     * 
+     *
      * Performs a copy from the return value of the function on the stack to the heap.
-     * 
+     *
      * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
@@ -58,7 +58,7 @@ public:
 
     /*!
      * Delayed function call for creating a T object
-     * 
+     *
      * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
@@ -87,7 +87,7 @@ public:
 
     /*!
      * Dereference this lazy object
-     * 
+     *
      * Calls constructor if object isn't constructed yet.
      */
     T& operator*()

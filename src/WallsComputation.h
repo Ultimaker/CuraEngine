@@ -4,7 +4,7 @@
 
 #include "sliceDataStorage.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -36,7 +36,7 @@ public:
 
     /*!
      * Basic constructor initializing the parameters with which to perform the walls computation
-     * 
+     *
      * \param wall_0_inset The offset applied to the outer wall
      * \param line_width_0 line width of the outer wall
      * \param line_width_x line width of other walls
@@ -47,18 +47,18 @@ public:
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
-     * 
-     * Note that the second inset gets offsetted by WallsComputation::line_width_0 instead of the first, 
+     *
+     * Note that the second inset gets offsetted by WallsComputation::line_width_0 instead of the first,
      * which leads to better results for a smaller WallsComputation::line_width_0 than WallsComputation::line_width_x and when printing the outer wall last.
-     * 
+     *
      * \param layer The layer for which to generate the insets.
-     */ 
+     */
     void generateInsets(SliceLayer* layer);
 
 private:
     /*!
      * Generates the insets / perimeters for a single layer part.
-     * 
+     *
      * \param part The part for which to generate the insets.
      */
     void generateInsets(SliceLayerPart* part);

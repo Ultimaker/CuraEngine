@@ -32,7 +32,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
                 layer->polygons[i].reverse();
         }
     }
-    
+
     std::vector<PolygonsPart> result;
     result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     for(unsigned int i=0; i<result.size(); i++)
@@ -69,18 +69,18 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers,
 
 void layerparts2HTML(SliceDataStorage& storage, const char* filename, bool all_layers, int layer_nr)
 {
-    
+
     FILE* out = fopen(filename, "w");
     fprintf(out, "<!DOCTYPE html><html><body>");
     Point3 modelSize = storage.model_size;
     Point3 modelMin = storage.model_min;
-    
+
     Point model_min_2d = Point(modelMin.x, modelMin.y);
     Point model_max_2d = Point(modelSize.x, modelSize.y) + model_min_2d;
     AABB aabb(model_min_2d, model_max_2d);
-    
+
     SVG svg(filename, aabb);
-    
+
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         for(unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)

@@ -6,7 +6,7 @@
 #include "AABB.h" // for debug output svg html
 #include "SVG.h"
 
-namespace cura 
+namespace cura
 {
 
 
@@ -75,4 +75,4 @@ ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const Li
 
 
 
-}//namespace cura 
+}//namespace cura

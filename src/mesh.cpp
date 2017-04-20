@@ -96,9 +96,9 @@ int Mesh::findIndexOfVertex(const Point3& v)
     }
     vertex_hash_map[hash].push_back(vertices.size());
     vertices.emplace_back(v);
-    
+
     aabb.include(v);
-    
+
     return vertices.size() - 1;
 }
 

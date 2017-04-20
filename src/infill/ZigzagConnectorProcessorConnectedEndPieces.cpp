@@ -2,7 +2,7 @@
 #include "ZigzagConnectorProcessorConnectedEndPieces.h"
 
 
-namespace cura 
+namespace cura
 {
 
 
@@ -11,7 +11,7 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
     bool previous_scanline_is_even = last_scanline_is_even;
     last_scanline_is_even = scanline_is_even;
     bool this_scanline_is_even = last_scanline_is_even;
-    
+
     if (is_first_zigzag_connector)
     {
         first_zigzag_connector.push_back(intersection);
@@ -67,9 +67,9 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
     // reset member variables
     is_first_zigzag_connector = true;
     first_zigzag_connector_ends_in_even_scanline = true;
-    last_scanline_is_even = false; 
+    last_scanline_is_even = false;
     first_zigzag_connector.clear();
     zigzag_connector.clear();
 }
 
-} // namespace cura 
+} // namespace cura

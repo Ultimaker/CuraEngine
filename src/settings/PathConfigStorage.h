@@ -35,7 +35,7 @@ public:
 
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
     };
-    
+
     GCodePathConfig raft_base_config;
     GCodePathConfig raft_interface_config;
     GCodePathConfig raft_surface_config;
@@ -48,7 +48,7 @@ public:
     GCodePathConfig support_interface_config; //!< The config to use to print the dense roofs and bottoms of support
 
     std::vector<MeshPathConfigs> mesh_configs; //!< For each meash the config for all its feature types
-    
+
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */

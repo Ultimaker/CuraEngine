@@ -15,12 +15,12 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer)
     {
         if (!boundaryBox.hit(prevLayerPart.boundaryBox))
             continue;
-        
+
         islands.add(outline.intersection(prevLayerPart.outline));
     }
     if (islands.size() > 5 || islands.size() < 1)
         return -1;
-    
+
     //Next find the 2 largest islands that we rest on.
     double area1 = 0;
     double area2 = 0;
@@ -47,10 +47,10 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer)
             idx2 = n;
         }
     }
-    
+
     if (idx1 < 0 || idx2 < 0)
         return -1;
-    
+
     Point center1 = islands[idx1].centerOfMass();
     Point center2 = islands[idx2].centerOfMass();
 

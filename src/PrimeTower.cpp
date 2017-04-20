@@ -9,7 +9,7 @@
 #include "infill.h"
 #include "PrintFeature.h"
 
-namespace cura 
+namespace cura
 {
 
 PrimeTower::PrimeTower(const SliceDataStorage& storage)
@@ -38,7 +38,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     }
 
     PolygonRef p = ground_poly.newPoly();
-    int tower_distance = 0; 
+    int tower_distance = 0;
     int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
     int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
     p.add(Point(x + tower_distance, y + tower_distance));
@@ -180,7 +180,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-        wipe_from_middle &= train.getSettingBoolean("retraction_hop_enabled") 
+        wipe_from_middle &= train.getSettingBoolean("retraction_hop_enabled")
                         && (!train.getSettingBoolean("retraction_hop_only_when_collides") || train.getSettingBoolean("retraction_hop_after_extruder_switch"));
     }
 

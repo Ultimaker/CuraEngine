@@ -102,7 +102,7 @@ public:
     {
         return sqrt(vSize2());
     }
-    
+
     double vSizeMM() const
     {
         double fx = INT2MM(x);
@@ -127,7 +127,7 @@ public:
 };
 
 static Point3 no_point3(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
-    
+
 inline Point3 operator*(const int32_t i, const Point3& rhs) {
     return rhs * i;
 }
@@ -223,7 +223,7 @@ INLINE int angle(const Point& p)
 }
 
 }//namespace cura
-    
+
 namespace std {
 template <>
 struct hash<cura::Point> {
@@ -233,7 +233,7 @@ struct hash<cura::Point> {
         int result = 89;
         result = result * prime + pp.X;
         result = result * prime + pp.Y;
-        return result; 
+        return result;
     }
 };
 }

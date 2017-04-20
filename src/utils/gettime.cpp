@@ -3,7 +3,7 @@
 
 namespace cura
 {
-    
+
 TimeKeeper::TimeKeeper()
 {
     restart();

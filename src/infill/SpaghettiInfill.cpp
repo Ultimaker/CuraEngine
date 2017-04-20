@@ -10,7 +10,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     coord_t spaghetti_max_height = mesh.getSettingInMicrons("spaghetti_max_height");
 
     coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
-    
+
     coord_t connection_inset_dist;
     if (mesh.getSettingInAngleDegrees("spaghetti_max_infill_angle") >= 90)
     {

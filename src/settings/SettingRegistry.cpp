@@ -16,7 +16,7 @@
 
 namespace cura
 {
-    
+
 SettingRegistry SettingRegistry::instance; // define settingRegistry
 
 std::string SettingRegistry::toString(rapidjson::Type type)
@@ -99,7 +99,7 @@ int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_do
 /*!
  * Check whether a file exists.
  * from https://techoverflow.net/blog/2013/01/11/cpp-check-if-file-exists/
- * 
+ *
  * \param filename The path to a filename to check if it exists
  * \return Whether the file exists.
  */
@@ -149,7 +149,7 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
 int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base, bool warn_base_file_duplicates)
 {
     rapidjson::Document json_document;
-    
+
     log("Loading %s...\n", filename.c_str());
 
     int err = loadJSON(filename, json_document);
@@ -178,7 +178,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
         }
         err = loadJSONsettingsFromDoc(json_document, settings_base, false);
     }
-    else 
+    else
     {
         err = loadJSONsettingsFromDoc(json_document, settings_base, warn_base_file_duplicates);
     }
@@ -216,7 +216,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates)
 {
-    
+
     if (!json_document.IsObject())
     {
         cura::logError("JSON file is not an object.\n");
@@ -227,7 +227,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     {
         handleChildren(json_document["settings"], settings_base, warn_duplicates);
     }
-    
+
     if (json_document.HasMember("overrides"))
     {
         const rapidjson::Value& json_object_container = json_document["overrides"];
@@ -243,7 +243,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             _loadSettingValues(conf, override_iterator, settings_base);
         }
     }
-    
+
     return 0;
 }
 
@@ -299,7 +299,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
             return;
         }
         std::string label = json_setting["label"].GetString();
-        
+
         SettingConfig* setting = getSettingConfig(name);
         if (warn_duplicates && setting)
         {
@@ -350,7 +350,7 @@ void SettingRegistry::loadDefault(const rapidjson::GenericValue< rapidjson::UTF8
             ss << dflt.GetDouble();
             config->setDefault(ss.str());
         } // arrays are ignored because machine_extruder_trains needs to be handled separately
-        else 
+        else
         {
             logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
         }

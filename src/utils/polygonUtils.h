@@ -11,7 +11,7 @@
 #include "optional.h"
 #include "PolygonsPointIndex.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -63,18 +63,18 @@ struct PolygonsPointIndexSegmentLocator
 
 typedef SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator> LocToLineGrid;
 
-class PolygonUtils 
+class PolygonUtils
 {
 public:
     static const std::function<int(Point)> no_penalty_function; //!< Function always returning zero
 
     /*!
      * compute the length of a segment of a polygon
-     * 
+     *
      * if \p end == \p start then the full polygon is taken
-     * 
+     *
      * \warning assumes that start and end lie on the same polygon!
-     * 
+     *
      * \param start The start vertex of the segment
      * \param end the end vertex of the segment
      * \return the total length of all the line segments in between the two vertices.
@@ -83,12 +83,12 @@ public:
 
     /*!
      * Generate evenly spread out dots along a segment of a polygon
-     * 
+     *
      * Start at a distance from \p start and end at a distance from \p end,
      * unless \p end == \p start; then that point is in the result
-     * 
+     *
      * \warning Assumes that start and end lie on the same polygon!
-     * 
+     *
      * \param start The start vertex of the segment
      * \param end the end vertex of the segment
      * \param n_dots number of dots to spread out
@@ -100,7 +100,7 @@ public:
      * Get the normal of a boundary point, pointing outward.
      * Only the direction is set.
      * Nothing is said about the length of the vector returned.
-     * 
+     *
      * \param poly The polygon.
      * \param point_idx The index of the point in the polygon.
      */
@@ -108,7 +108,7 @@ public:
 
     /*!
     * Get a point from the \p poly with a given \p offset.
-    * 
+    *
     * \param poly The polygon.
     * \param point_idx The index of the point in the polygon.
     * \param offset The distance the point has to be moved outward from the polygon.
@@ -118,7 +118,7 @@ public:
 
     /*!
      * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
-     * 
+     *
      * \param point_on_boundary The object holding the point on the boundary along with the information of which line segment the point is on.
      * \param offset The distance the point has to be moved inward from the polygon.
      */
@@ -129,7 +129,7 @@ public:
     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
-    * 
+    *
     * \param polygons The polygons onto which to move the point
     * \param from[in,out] The point to move.
     * \param distance The distance by which to move the point.
@@ -143,11 +143,11 @@ public:
      * Given a \p distance more than zero, the point will end up inside, and conversely outside.
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
-     * 
+     *
      * \warning If \p loc_to_line_grid is used, it's best to have all and only \p polygons in there.
      * If \p from is not closest to \p polygons this function may
      * return a ClosestPolygonPoint on a polygon in \p loc_to_line_grid which is not in \p polygons.
-     * 
+     *
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
@@ -164,11 +164,11 @@ public:
      * Given a \p distance more than zero, the point will end up inside, and conversely outside.
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
-     * 
+     *
      * \warning When a \p loc_to_line is given this function only considers nearby elements.
      * Even when the penalty function favours elements farther away.
      * Also using the \p loc_to_line_grid automatically considers \p all_polygons
-     * 
+     *
      * \param loc_to_line_polygons All polygons which are present in the \p loc_to_line_grid of which \p polygon is an element
      * \param polygon The polygon onto which to move the point
      * \param from[in,out] The point to move.
@@ -182,12 +182,12 @@ public:
 
     /*!
      * The opposite of moveInside.
-     * 
+     *
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
      * Given a \p distance more than zero, the point will end up outside, and conversely inside.
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
-     * 
+     *
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
@@ -196,23 +196,23 @@ public:
      * \return The index to the polygon onto which we have moved the point.
      */
     static unsigned int moveOutside(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
-    
+
     /*!
      * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
      * Given a \p distance more than zero, the point will end up inside, and conversely outside.
-     * 
+     *
      * \param cpp The object holding the point on the boundary along with the information of which line segment the point is on.
      * \param distance The distance by which to move the point.
      * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
      */
     static Point moveInside(const ClosestPolygonPoint& cpp, const int distance);
-    
+
     /*!
      * The opposite of moveInside.
-     * 
+     *
      * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
      * Given a \p distance more than zero, the point will end up outside, and conversely inside.
-     * 
+     *
      * \param cpp The object holding the point on the boundary along with the information of which line segment the point is on.
      * \param distance The distance by which to move the point.
      * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
@@ -224,15 +224,15 @@ public:
      * Given a \p distance more than zero, the point will end up inside, and conversely outside.
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
-     * 
+     *
      * \warning May give false positives.
-     * Some checking is done to make sure we end up inside the polygon, 
+     * Some checking is done to make sure we end up inside the polygon,
      * but it might still be the case that we end up outside:
      * when the closest point on the boundary is very close to another polygon
-     * 
+     *
      * \warning When using a \p loc_to_line_grid which contains more polygons than just \p polygons,
      * the results is only correct if \p from is already closest to \p polygons, rather than other polygons in the \p loc_to_line_grid.
-     * 
+     *
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
      * \param preferred_dist_inside The preferred distance from the boundary to the point
@@ -249,15 +249,15 @@ public:
      * Given a \p distance more than zero, the point will end up inside, and conversely outside.
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
-     * 
+     *
      * \warning May give false positives.
-     * Some checking is done to make sure we end up inside the polygon, 
+     * Some checking is done to make sure we end up inside the polygon,
      * but it might still be the case that we end up outside:
      * when the closest point on the boundary is very close to another polygon
-     * 
+     *
      * \warning When using a \p loc_to_line_grid which contains more polygons than just \p polygons,
      * the results is only correct if \p from is already closest to \p polygons, rather than other polygons in the \p loc_to_line_grid.
-     * 
+     *
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
      * \param closest_polygon_point The point on \p polygons closest to \p from
@@ -271,27 +271,27 @@ public:
 
     /*!
     * Find the two points in two polygons with the smallest distance.
-    * 
+    *
     * Note: The amount of preliminary distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
     * Further convergence time depends on polygon size and shape.
-    * 
+    *
     * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
-    * 
+    *
     * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
     * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
-    * \param sample_size The number of points on each polygon to start the hill climbing search from. 
+    * \param sample_size The number of points on each polygon to start the hill climbing search from.
     */
     static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
 
     /*!
-    * 
+    *
     * \warning Assumes \p poly1_result and \p poly2_result have their pos and poly fields initialized!
     */
     static void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result);
 
     /*!
     * Find the nearest closest point on a polygon from a given index.
-    * 
+    *
     * \param from The point from which to get the smallest distance.
     * \param polygon The polygon on which to find the point with the smallest distance.
     * \param start_idx The index of the point in the polygon from which to start looking.
@@ -301,7 +301,7 @@ public:
 
     /*!
     * Find the nearest closest point on a polygon from a given index walking in one direction along the polygon.
-    * 
+    *
     * \param from The point from which to get the smallest distance.
     * \param polygon The polygon on which to find the point with the smallest distance.
     * \param start_idx The index of the point in the polygon from which to start looking.
@@ -312,18 +312,18 @@ public:
 
     /*!
      * Find the point closest to \p from in all polygons in \p polygons.
-     * 
+     *
      * \note The penalty term is applied to the *squared* distance score
-     * 
+     *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
     static ClosestPolygonPoint findClosest(Point from, const Polygons& polygons, const std::function<int(Point)>& penalty_function = no_penalty_function);
-        
+
     /*!
      * Find the point closest to \p from in the polygon \p polygon.
-     * 
+     *
      * \note The penalty term is applied to the *squared* distance score
-     * 
+     *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
     static ClosestPolygonPoint findClosest(Point from, ConstPolygonRef polygon, const std::function<int(Point)>& penalty_function = no_penalty_function);
@@ -346,9 +346,9 @@ public:
 
     /*!
      * Create a SparsePointGridInclusive mapping from locations to line segments occurring in the \p polygons
-     * 
+     *
      * \warning The caller of this function is responsible for deleting the returned object
-     * 
+     *
      * \param polygons The polygons for which to create the mapping
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
@@ -357,13 +357,13 @@ public:
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line
-     * 
+     *
      * \note The penalty term is applied to the *squared* distance score.
      * Note also that almost only nearby points are considered even when the penalty function would favour points farther away.
-     * 
+     *
      * \param from The location to find a polygon edge close to
      * \param polygons The polygons for which the \p loc_to_line has been built up
-     * \param loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons 
+     * \param loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparsePointGridInclusive
      */
@@ -371,13 +371,13 @@ public:
 
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparsePointGridInclusive \p destination_loc_to_line
-     * 
+     *
      * \note The penalty term is applied to the *squared* distance score.
      * Note also that almost only nearby points are considered even when the penalty function would favour points farther away.
-     * 
+     *
      * \param from The polygon for which to find a polygon edge close to
      * \param destination The polygons for which the \p destination_loc_to_line has been built up
-     * \param destination_loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segments of the \p destination 
+     * \param destination_loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segments of the \p destination
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from polygon and as second a cpp in the \p destination polygon.
      */
@@ -385,15 +385,15 @@ public:
 
     /*!
      * Checks whether a given line segment collides with polygons as given in a loc_to_line grid.
-     * 
+     *
      * If the line segment doesn't intersect with any edge of the polygon, but
      * merely touches it, a collision is also reported. For instance, a
      * collision is reported when the an endpoint of the line is exactly on the
      * polygon, and when the line coincides with an edge.
-     * 
+     *
      * \param[in] from The start point
      * \param[in] to The end point
-     * \param[in] loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons 
+     * \param[in] loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons
      * \param[out] collision_result (optional) The polygons segment intersecting with the line segment
      * \return whether the line segment collides with the boundary of the polygons
      */
@@ -403,7 +403,7 @@ public:
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
     * Returns whether another point could be found within the \p poly which can be found before encountering the point at index \p start_idx.
     * The point \p from and the polygon \p poly are assumed to lie on the same plane.
-    * 
+    *
     * \param from The point from whitch to find a point on the polygon satisfying the conditions
     * \param start_idx the index of the prev poly point on the poly.
     * \param poly_start_idx The index of the point in the polygon which is to be handled as the start of the polygon. No point further than this point will be the result.
@@ -416,12 +416,12 @@ public:
      * Checks whether a given line segment collides with a given polygon(s).
      * The transformed_startPoint and transformed_endPoint should have the same
      * Y coordinate.
-     * 
+     *
      * If the line segment doesn't intersect with any edge of the polygon, but
      * merely touches it, a collision is also reported. For instance, a
      * collision is reported when the an endpoint of the line is exactly on the
      * polygon, and when the line coincides with an edge.
-     * 
+     *
      * \param poly The polygon
      * \param transformed_startPoint The start point transformed such that it is
      * on the same horizontal line as the end point
@@ -436,12 +436,12 @@ public:
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
-     * 
+     *
      * If the line segment doesn't intersect with any edge of the polygon, but
      * merely touches it, a collision is also reported. For instance, a
      * collision is reported when the an endpoint of the line is exactly on the
      * polygon, and when the line coincides with an edge.
-     * 
+     *
      * \param poly The polygon
      * \param startPoint The start point
      * \param endPoint The end point
@@ -454,12 +454,12 @@ public:
      * Checks whether a given line segment collides with a given polygon(s).
      * The transformed_startPoint and transformed_endPoint should have the same
      * Y coordinate.
-     * 
+     *
      * If the line segment doesn't intersect with any edge of the polygon, but
      * merely touches it, a collision is also reported. For instance, a
      * collision is reported when the an endpoint of the line is exactly on the
      * polygon, and when the line coincides with an edge.
-     * 
+     *
      * \param poly The polygon
      * \param transformed_startPoint The start point transformed such that it is
      * on the same horizontal line as the end point
@@ -474,12 +474,12 @@ public:
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
-     * 
+     *
      * If the line segment doesn't intersect with any edge of the polygon, but
      * merely touches it, a collision is also reported. For instance, a
      * collision is reported when the an endpoint of the line is exactly on the
      * polygon, and when the line coincides with an edge.
-     * 
+     *
      * \param poly The polygon
      * \param startPoint The start point
      * \param endPoint The end point
@@ -491,7 +491,7 @@ public:
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.
-     * 
+     *
      * \param closest_polygon_point The ClosestPolygonPoint we have to move inside
      * \param distance The distance by which to move the point.
      * \param from[in,out] The point to move.
@@ -499,7 +499,7 @@ private:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPolygonPoint _moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point& from, const int64_t max_dist2);
-    
+
 };
 
 

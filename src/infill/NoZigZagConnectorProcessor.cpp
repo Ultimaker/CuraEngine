@@ -2,7 +2,7 @@
 #include "NoZigZagConnectorProcessor.h"
 
 
-namespace cura 
+namespace cura
 {
 
 void NoZigZagConnectorProcessor::registerVertex(const Point& vertex)
@@ -22,4 +22,4 @@ void NoZigZagConnectorProcessor::registerPolyFinished()
 
 
 
-} // namespace cura 
+} // namespace cura

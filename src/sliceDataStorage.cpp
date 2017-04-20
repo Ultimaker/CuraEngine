@@ -70,7 +70,7 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
         {
             result.add(part.outline.outerPolygon());
         }
-        else 
+        else
         {
             result.add(part.print_outline);
         }
@@ -140,23 +140,23 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             {
                 std::vector<PolygonsPart> parts = raftOutline.splitIntoParts();
                 Polygons result;
-                for (PolygonsPart& part : parts) 
+                for (PolygonsPart& part : parts)
                 {
                     result.add(part.outerPolygon());
                 }
                 return result;
             }
-            else 
+            else
             {
                 return raftOutline;
             }
         }
-        else 
+        else
         {
             return Polygons();
         }
     }
-    else 
+    else
     {
         Polygons total;
         if (layer_nr >= 0)
@@ -177,7 +177,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         }
         if (include_helper_parts)
         {
-            if (support.generated) 
+            if (support.generated)
             {
                 total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
                 total.add(support.supportLayers[std::max(0, layer_nr)].skin);
@@ -199,12 +199,12 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
         {
             return raftOutline;
         }
-        else 
+        else
         {
             return Polygons();
         }
     }
-    else 
+    else
     {
         Polygons total;
         if (layer_nr >= 0)
@@ -221,7 +221,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
         }
         if (include_helper_parts)
         {
-            if (support.generated) 
+            if (support.generated)
             {
                 total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
                 total.add(support.supportLayers[std::max(0, layer_nr)].skin);

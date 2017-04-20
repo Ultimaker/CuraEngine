@@ -142,8 +142,8 @@ void MeshGroup::finalize()
         meshgroup_offset.x = getSettingInMicrons("machine_width") / 2;
         meshgroup_offset.y = getSettingInMicrons("machine_depth") / 2;
     }
-    
-    // If a mesh position was given, put the mesh at this position in 3D space. 
+
+    // If a mesh position was given, put the mesh at this position in 3D space.
     for(Mesh& mesh : meshes)
     {
         Point3 mesh_offset(mesh.getSettingInMicrons("mesh_position_x"), mesh.getSettingInMicrons("mesh_position_y"), mesh.getSettingInMicrons("mesh_position_z"));

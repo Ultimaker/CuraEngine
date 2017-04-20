@@ -12,13 +12,13 @@ namespace cura {
 
 bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obstacles)
 {
-    
+
     min_crossing_idx = NO_INDEX;
     max_crossing_idx = NO_INDEX;
 
     for(unsigned int poly_idx = 0; poly_idx < boundary.size(); poly_idx++)
     {
-        PolyCrossings minMax(poly_idx); 
+        PolyCrossings minMax(poly_idx);
         PolygonRef poly = boundary[poly_idx];
         Point p0 = transformation_matrix.apply(poly[poly.size() - 1]);
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
@@ -32,7 +32,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
                     continue;
                 }
                 int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y); // intersection point between line segment and the scanline
-                
+
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
                     if (!((p1.Y == transformed_startPoint.Y && p1.Y < p0.Y) || (p0.Y == transformed_startPoint.Y && p0.Y < p1.Y)))
@@ -102,7 +102,7 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
             p0 = p1;
         }
     }
-    
+
     return false;
 }
 
@@ -112,11 +112,11 @@ bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
     {
         //We're not crossing any boundaries. So skip the comb generation.
-        combPath.push_back(startPoint); 
+        combPath.push_back(startPoint);
         combPath.push_back(endPoint);
         return true;
     }
-    
+
     bool success = calcScanlineCrossings(fail_on_unavoidable_obstacles);
     if (!success)
     {
@@ -131,7 +131,7 @@ bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
 }
 
 
-void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath) 
+void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
 {
     for (PolyCrossings* crossing = getNextPolygonAlongScanline(transformed_startPoint.X)
         ; crossing != nullptr
@@ -142,11 +142,11 @@ void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
     combPath.push_back(endPoint);
 }
 
-void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
+void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath)
 {
     PolygonRef poly = boundary[polyCrossings.poly_idx];
     combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
-    if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size() 
+    if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size()
         < poly.size() / 2 )
     { // follow the path in the same direction as the winding order of the boundary polygon
         for(unsigned int point_idx = polyCrossings.min.point_idx
@@ -184,7 +184,7 @@ LinePolygonsCrossings::PolyCrossings* LinePolygonsCrossings::getNextPolygonAlong
     return ret;
 }
 
-bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path) 
+bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path)
 {
     optimized_comb_path.push_back(startPoint);
     for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
@@ -202,10 +202,10 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             }
             optimized_comb_path.push_back(comb_path[point_idx - 1]);
         }
-        else 
+        else
         {
             // : dont add the newest point
-            
+
             // TODO: add the below extra optimization? (+/- 7% extra computation time, +/- 2% faster print for Dual_extrusion_support_generation.stl)
             while (optimized_comb_path.size() > 1)
             {
@@ -213,7 +213,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                 {
                     break;
                 }
-                else 
+                else
                 {
                     optimized_comb_path.pop_back();
                 }

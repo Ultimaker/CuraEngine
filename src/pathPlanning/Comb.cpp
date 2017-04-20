@@ -22,7 +22,7 @@ Polygons& Comb::getBoundaryOutside()
 {
     return *boundary_outside;
 }
-  
+
 Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
@@ -78,15 +78,15 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     unsigned int end_part_boundary_poly_idx;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
-    
+
     if (startInside && endInside && start_part_idx == end_part_idx)
     { // normal combing within part
         PolygonsPart part = partsView_inside.assemblePart(start_part_idx);
         combPaths.emplace_back();
         return LinePolygonsCrossings::comb(part, *inside_loc_to_line, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     }
-    else 
-    { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
+    else
+    { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed)
         //  INSIDE  |          in_between            |            OUTSIDE     |              in_between         |     INSIDE
         //        ^crossing_1_in     ^crossing_1_mid  ^crossing_1_out        ^crossing_2_out    ^crossing_2_mid   ^crossing_2_in
         //
@@ -141,7 +141,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                 return false;
             }
         }
-        
+
         // throught air from boundary to boundary
         if (avoid_other_parts && !skip_avoid_other_parts_path)
         {
@@ -161,7 +161,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                 }
             }
         }
-        else 
+        else
         { // directly through air (not avoiding other parts)
             combPaths.emplace_back();
             combPaths.throughAir = true;
@@ -187,20 +187,20 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                 combPaths.back().cross_boundary = true;
             }
         }
-        
+
         if (endInside)
         {
             // boundary to end
             assert(end_crossing.dest_part.size() > 0 && "The part we end up inside when combing should have been computed already!");
             combPaths.emplace_back();
-            
+
             bool combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
             if (!combing_succeeded)
             { // Couldn't comb between end point and computed crossing to the end part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
                 return false;
             }
         }
-        
+
         return true;
     }
 }
@@ -307,12 +307,12 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
         {
             out = PolygonUtils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
         }
-        else 
+        else
         {
             PolygonUtils::moveOutside(outside, out, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
         }
     }
-    int64_t in_out_dist2_1 = vSize2(out - in_or_mid); 
+    int64_t in_out_dist2_1 = vSize2(out - in_or_mid);
     if (dest_is_inside && in_out_dist2_1 > comber.max_crossing_dist2) // moveInside moved too far
     { // if move is too far over in_between
         // find crossing closer by
@@ -347,7 +347,7 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
         { // preliminary filtering
             continue;
         }
-        
+
         int64_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
         int64_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
         int64_t detour_dist = dist_to_start + dist_to_end;

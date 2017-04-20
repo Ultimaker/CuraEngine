@@ -4,12 +4,12 @@
 
 #include <utility> // pair
 
-namespace cura 
+namespace cura
 {
 
 /*!
  * A utility class for a pair of which the order between the first and the second doesn't matter.
- * 
+ *
  * \tparam A The type of both elements of the pair.
  */
 template<class A>

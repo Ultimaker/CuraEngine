@@ -30,7 +30,7 @@ public:
         Position() {for(unsigned int n=0;n<NUM_AXIS;n++) axis[n] = 0;}
         Position(double x, double y, double z, double e) {axis[0] = x;axis[1] = y;axis[2] = z;axis[3] = e;}
         double axis[NUM_AXIS];
-        
+
         double& operator[](const int n) { return axis[n]; }
     };
 
@@ -38,7 +38,7 @@ public:
     {
     public:
         bool recalculate_flag;
-        
+
         double accelerate_until;
         double decelerate_after;
         double initial_feedrate;
@@ -47,7 +47,7 @@ public:
         double entry_speed;
         double max_entry_speed;
         bool nominal_length_flag;
-        
+
         double nominal_feedrate;
         double maxTravel;
         double distance;
@@ -65,7 +65,7 @@ private:
     double max_z_jerk = 0.4;
     double max_e_jerk = 5.0;
     double extra_time = 0.0;
-    
+
     Position previous_feedrate;
     double previous_nominal_feedrate;
 
@@ -75,7 +75,7 @@ private:
 public:
     /*!
      * Set the movement configuration of the firmware.
-     * 
+     *
      * \param settings_base Where to get the settings from
      */
     void setFirmwareDefaults(const SettingsBaseVirtual* settings_base);
@@ -87,13 +87,13 @@ public:
     void setMaxZFeedrate(double max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
 
     void reset();
-    
+
     double calculate();
 private:
     void reverse_pass();
     void forward_pass();
     void recalculate_trapezoids();
-    
+
     void calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor);
     void planner_reverse_pass_kernel(Block *previous, Block *current, Block *next);
     void planner_forward_pass_kernel(Block *previous, Block *current, Block *next);

@@ -14,7 +14,7 @@
 
 namespace cura
 {
-    
+
 //c++11 no longer supplies a strcasecmp, so define our own version.
 static inline int stringcasecompare(const char* a, const char* b)
 {
@@ -30,7 +30,7 @@ static inline int stringcasecompare(const char* a, const char* b)
 
 /*!
  * Efficient conversion of micron integer type to millimeter string.
- * 
+ *
  * \param coord The micron unit to convert
  * \param ss The output stream to write the string to
  */
@@ -110,11 +110,11 @@ struct MMtoStream
 
 /*!
  * Efficient writing of a double to a stringstream
- * 
+ *
  * writes with \p precision digits after the decimal dot, but removes trailing zeros
- * 
+ *
  * \warning only works with precision up to 9 and input up to 10^14
- * 
+ *
  * \param precision The number of (non-zero) digits after the decimal dot
  * \param coord double to output
  * \param ss The output stream to write the string to

@@ -199,11 +199,11 @@ public:
      * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
      * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
      * exactly on the line.
-     * 
+     *
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     * 
+     *
      * \deprecated This function is no longer used, since the Clipper function is used by the function PolygonRef::inside(.)
-     * 
+     *
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
@@ -213,7 +213,7 @@ public:
     /*!
      * Clipper function.
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     * 
+     *
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
     bool inside(Point p, bool border_result = false) const
@@ -230,10 +230,10 @@ public:
      * Smooth out small perpendicular segments and store the result in \p result.
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
      * which has an angle with the next and previous line segment smaller than roughly 150*
-     * 
+     *
      * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
      * Such would be the case for an N shape.
-     * 
+     *
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
@@ -241,7 +241,7 @@ public:
 
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
-     * 
+     *
      * \param angle The maximum angle of inner corners to be smoothed out
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \param result The resulting polygon
@@ -251,7 +251,7 @@ public:
     /*!
      * Smooth out the polygon and store the result in \p result.
      * Smoothing is performed by removing vertices for which both connected line segments are smaller than \p remove_length
-     * 
+     *
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
@@ -261,9 +261,9 @@ public:
 private:
     /*!
      * Smooth out a simple corner consisting of two linesegments.
-     * 
+     *
      * Auxiliary function for \ref smooth_outward
-     * 
+     *
      * \param p0 The point before the corner
      * \param p1 The corner
      * \param p2 The point after the corner
@@ -280,12 +280,12 @@ private:
 
     /*!
      * Smooth out a complex corner where the shortcut bypasses more than two line segments
-     * 
+     *
      * Auxiliary function for \ref smooth_outward
-     * 
+     *
      * \warning This function might try to remove the whole polygon
      * Error code -1 means the whole polygon should be removed (which means it is a hole polygon)
-     * 
+     *
      * \param p1 The corner point
      * \param[in,out] p0_it Iterator to the last point checked before \p p1 to consider cutting off
      * \param[in,out] p2_it Iterator to the last point checked after \p p1 to consider cutting off
@@ -296,11 +296,11 @@ private:
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
-     * 
+     *
      * Try to take the shortcut from a place as far away from the corner as the place we are taking the shortcut to.
-     * 
+     *
      * Auxiliary function for \ref smooth_outward
-     * 
+     *
      * \param[in] p1 The corner point
      * \param[in] shortcut_length2 The square of the desired length ofthe shortcutting line
      * \param[in,out] p0_it Iterator to the previously checked point somewhere beyond \p p1. Updated for the next iteration.
@@ -392,7 +392,7 @@ public:
 
     /*!
      * Translate the whole polygon in some direction.
-     * 
+     *
      * \param translation The direction in which to move the polygon
      */
     void translate(Point translation)
@@ -403,19 +403,19 @@ public:
         }
     }
 
-    /*! 
+    /*!
      * Removes consecutive line segments with same orientation and changes this polygon.
-     * 
+     *
      * Removes verts which are connected to line segments which are both too small.
      * Removes verts which detour from a direct line from the previous and next vert by a too small amount.
-     * 
+     *
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
     void simplify(int smallest_line_segment_squared = 100, int allowed_error_distance_squared = 25);
 
     void pop_back()
-    { 
+    {
         path->pop_back();
     }
 };
@@ -481,7 +481,7 @@ public:
     }
     /*!
      * Remove a polygon from the list and move the last polygon to its place
-     * 
+     *
      * \warning changes the order of the polygons!
      */
     void remove(unsigned int index)
@@ -626,15 +626,15 @@ public:
         clipper.Execute(ret.paths, distance);
         return ret;
     }
-    
+
     /*!
      * Check if we are inside the polygon.
-     * 
+     *
      * We do this by counting the number of polygons inside which this point lies.
      * An odd number is inside, while an even number is outside.
-     * 
+     *
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
-     * 
+     *
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
@@ -650,40 +650,40 @@ public:
      * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
      * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
      * exactly on the line.
-     * 
+     *
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
-     * 
+     *
      * \deprecated This function is old and no longer used. instead use \ref Polygons::inside
-     * 
+     *
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
     bool insideOld(Point p, bool border_result = false) const;
-    
+
     /*!
-     * Find the polygon inside which point \p p resides. 
-     * 
+     * Find the polygon inside which point \p p resides.
+     *
      * We do this by tracing from the point towards the positive X direction,
      * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
      * We then find the polygon with an uneven number of crossings which is closest to \p p.
-     * 
+     *
      * If \p border_result, we return the first polygon which is exactly on \p p.
-     * 
+     *
      * \param p The point for which to check in which polygon it is.
      * \param border_result Whether a point exactly on a polygon counts as inside
      * \return The index of the polygon inside which the point \p p resides
      */
     unsigned int findInside(Point p, bool border_result = false);
-    
+
     /*!
      * Approximates the convex hull of the polygons.
      * \p extra_outset Extra offset outward
      * \return the convex hull (approximately)
-     * 
+     *
      */
     Polygons approxConvexHull(int extra_outset = 0);
-    
+
     /*!
      * Convex hull of all the points in the polygons.
      * \return the convex hull
@@ -695,10 +695,10 @@ public:
      * Smooth out small perpendicular segments
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
      * which has an angle with the next and previous line segment smaller than roughly 150*
-     * 
+     *
      * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
      * Such would be the case for an N shape.
-     * 
+     *
      * \param remove_length The length of the largest segment removed
      * \return The smoothed polygon
      */
@@ -706,7 +706,7 @@ public:
 
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
-     * 
+     *
      * \param angle The maximum angle of inner corners to be smoothed out
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \return The resulting polygons
@@ -714,14 +714,14 @@ public:
     Polygons smooth_outward(float angle, int shortcut_length);
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
-    
+
     /*!
      * removes points connected to similarly oriented lines
-     * 
+     *
      * \param smallest_line_segment maximal length of removed line segments
      * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5) 
+    void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5)
     {
         int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         int smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
@@ -774,7 +774,7 @@ public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each vector in the result has the index to an outline as first index, whereas the rest are indices to holes.
-     * 
+     *
      * \warning Note that this function reorders the polygons!
      */
     PartsView splitIntoPartsView(bool unionAll = false);
@@ -785,7 +785,7 @@ public:
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
      */
     void removeSmallAreas(double minAreaSize)
-    {               
+    {
         Polygons& thiss = *this;
         for(unsigned int i=0; i<size(); i++)
         {
@@ -807,7 +807,7 @@ public:
         {
             PolygonRef poly = thiss[poly_idx];
             Polygon result;
-            
+
             auto isDegenerate = [](Point& last, Point& now, Point& next)
             {
                 Point last_line = now - last;
@@ -829,19 +829,19 @@ public:
                         result.pop_back();
                     }
                 }
-                else 
+                else
                 {
                     result.add(poly[idx]);
                 }
             }
-            
+
             if (isChanged)
             {
-                if (result.size() > 2) 
-                {   
+                if (result.size() > 2)
+                {
                     *poly = *result;
                 }
-                else 
+                else
                 {
                     thiss.remove(poly_idx);
                     poly_idx--; // effectively the next iteration has the same poly_idx (referring to a new poly which is not yet processed)
@@ -860,13 +860,13 @@ public:
         {
             ConstPolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
-            if (poly_keep.size() > 0) 
+            if (poly_keep.size() > 0)
 //             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
             for (ConstPolygonRef poly_rem : to_be_removed)
             {
 //                 PolygonRef poly_rem = to_be_removed[hole_poly_idx];
                 if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0) continue;
-                
+
                 // find closest point, supposing this point aligns the two shapes in the best way
                 int closest_point_idx = 0;
                 int smallestDist2 = -1;
@@ -900,7 +900,7 @@ public:
             }
             if (!should_be_removed)
                 result.add(poly_keep);
-            
+
         }
         return result;
     }
@@ -931,7 +931,7 @@ public:
     }
 
     coord_t polyLineLength() const;
-    
+
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
@@ -945,7 +945,7 @@ public:
         }
         return ret;
     }
-    
+
     Point max() const
     {
         Point ret = Point(POINT_MIN, POINT_MIN);
@@ -974,11 +974,11 @@ public:
 
 /*!
  * A single area with holes. The first polygon is the outline, while the rest are holes within this outline.
- * 
+ *
  * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
 class PolygonsPart : public Polygons
-{   
+{
 public:
     PolygonRef outerPolygon()
     {
@@ -988,7 +988,7 @@ public:
     {
         return this->paths[0];
     }
-    
+
     bool inside(Point p) const
     {
         if (size() < 1)
@@ -1016,7 +1016,7 @@ public:
     PartsView(Polygons& polygons) : polygons(polygons) { }
     /*!
      * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
-     * 
+     *
      * \param poly_idx The index of the polygon in \p polygons
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
@@ -1024,7 +1024,7 @@ public:
     unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
-     * 
+     *
      * \param poly_idx The index of the polygon in \p polygons
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
@@ -1032,7 +1032,7 @@ public:
     PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
-     * 
+     *
      * \param part_idx The index of the part
      * \return The PolygonsPart with index \p poly_idx
      */

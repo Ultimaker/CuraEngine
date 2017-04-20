@@ -14,7 +14,7 @@
 #include "CombPath.h"
 #include "CombPaths.h"
 
-namespace cura 
+namespace cura
 {
 
 class SliceDataStorage;
@@ -22,14 +22,14 @@ class SliceDataStorage;
 /*!
  * Class for generating a full combing actions from a travel move from a start point to an end point.
  * A single Comb object is used for each layer.
- * 
+ *
  * Comb::calc is the main function of this class.
- * 
+ *
  * Typical output: A combing path to the boundary of the polygon + a move through air avoiding other parts in the layer + a combing path from the boundary of the ending polygon to the end point.
  * Each of these three is a CombPath; the first and last are within Comb::boundary_inside while the middle is outside of Comb::boundary_outside.
  * Between these there is a little gap where the nozzle crosses the boundary of an object approximately perpendicular to its boundary.
- * 
- * As an optimization, the combing paths inside are calculated on specifically those PolygonsParts within which to comb, while the coundary_outside isn't split into outside parts, 
+ *
+ * As an optimization, the combing paths inside are calculated on specifically those PolygonsParts within which to comb, while the coundary_outside isn't split into outside parts,
  * because generally there is only one outside part; encapsulated holes occur less often.
  */
 class Comb
@@ -38,7 +38,7 @@ class Comb
 private:
     /*!
      * A crossing from the inside boundary to the outside boundary.
-     * 
+     *
      * 'dest' is either the startPoint or the endpoint of a whole combing move.
      */
     class Crossing
@@ -54,7 +54,7 @@ private:
 
         /*!
          * Simple constructor
-         * 
+         *
          * \param dest_point Either the eventual startPoint or the eventual endPoint of this combing move.
          * \param dest_is_inside Whether the startPoint or endPoint is inside the inside boundary.
          * \param dest_part_idx The index into Comb:partsView_inside of the part in which the \p dest_point is.
@@ -65,15 +65,15 @@ private:
 
         /*!
          * Find the not-outside location (Combing::in_or_mid) of the crossing between to the outside boundary
-         * 
-         * \param partsView_inside Structured indices onto Comb::boundary_inside which shows which polygons belong to which part. 
+         *
+         * \param partsView_inside Structured indices onto Comb::boundary_inside which shows which polygons belong to which part.
          * \param close_to[in] Try to get a crossing close to this point
          */
         void findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to);
 
         /*!
          * Find the outside location (Combing::out)
-         * 
+         *
          * \param outside The outside boundary polygons
          * \param close_to A point to get closer to when there are multiple candidates on the outside boundary which are almost equally close to the Crossing::in_or_mid
          * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
@@ -87,9 +87,9 @@ private:
 
         /*!
          * Find the best crossing from some inside polygon to the outside boundary.
-         * 
+         *
          * The detour from \p estimated_start to \p estimated_end is minimized.
-         * 
+         *
          * \param outside The outside boundary polygons
          * \param from From which inside boundary the crossing to the outside starts or ends
          * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
@@ -103,7 +103,7 @@ private:
 
     const SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
-    
+
     const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     const int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
     const int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
@@ -114,9 +114,9 @@ private:
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
 
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
-    
+
     Polygons boundary_inside; //!< The boundary within which to comb. (Will be reordered by the partsView_inside)
-    const PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    const PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part.
     LocToLineGrid* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
@@ -143,9 +143,9 @@ private:
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)
-     * 
+     *
      * \warning \ref Comb::calc changes the order of polygons in \p Comb::comb_boundary_inside
-     * 
+     *
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
      * \param comb_boundary_inside The comb boundary within which to comb within layer parts.
@@ -159,9 +159,9 @@ public:
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
-     * 
+     *
      * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
-     * 
+     *
      * \param startPoint Where to start moving from
      * \param endPoint Where to move to
      * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint

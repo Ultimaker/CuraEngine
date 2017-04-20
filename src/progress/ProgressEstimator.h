@@ -8,13 +8,13 @@ namespace cura
 {
 /*
  * ProgressEstimator is a finger-tree with ProgressEstimatorLinear as leaves.
- * 
+ *
  * Each (non-leaf) node consists of a ProgressStageEstimator which consists of several stages.
- * 
+ *
  * The structure of this tree is an oversimplification of the call graph of CuraEngine.
- * 
+ *
  */
-    
+
 class ProgressEstimator
 {
 public:

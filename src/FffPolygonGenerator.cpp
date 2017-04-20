@@ -37,13 +37,13 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (!sliceModel(meshgroup, timeKeeper, storage)) 
+    if (!sliceModel(meshgroup, timeKeeper, storage))
     {
         return false;
     }
-    
+
     slices2polygons(storage, timeKeeper);
-    
+
     return true;
 }
 
@@ -66,7 +66,7 @@ unsigned int FffPolygonGenerator::getDraftShieldLayerCount(const unsigned int to
 bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
     Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper);
-    
+
     storage.model_min = meshgroup->min();
     storage.model_max = meshgroup->max();
     storage.model_size = storage.model_max - storage.model_min;
@@ -162,13 +162,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
-            meshStorage.layers[layer_nr].printZ += 
+            meshStorage.layers[layer_nr].printZ +=
                 getSettingInMicrons("layer_height_0")
                 - initial_slice_z;
             if (has_raft)
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
-                layer.printZ += 
+                layer.printZ +=
                     Raft::getTotalThickness(storage)
                     + train->getSettingInMicrons("raft_airgap")
                     - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
@@ -271,7 +271,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-    
+
     /*
     if (storage.support.generated)
     {
@@ -289,7 +289,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // handle helpers
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
-    
+
     logDebug("Processing ooze shield\n");
     processOozeShield(storage);
 
@@ -298,7 +298,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
-    
+
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -315,18 +315,18 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
         processInfillMesh(storage, mesh_order_idx, mesh_order);
     }
-    
+
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
     std::vector<double> walls_vs_skin_timing({22.953, 48.858});
     ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ProgressStageEstimator(walls_vs_skin_timing);
-    
+
     inset_skin_progress_estimate.nextStage(mesh_inset_skin_progress_estimator); // the stage of this function call
-    
+
     ProgressEstimatorLinear* inset_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(inset_estimator);
-    
-    
+
+
     // walls
     unsigned int processed_layer_count = 0;
 #pragma omp parallel for default(none) shared(mesh_layer_count, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
@@ -459,7 +459,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                 }
             }
         }
-        
+
         layer.parts.clear();
         for (PolygonsPart& part : new_parts)
         {
@@ -471,9 +471,9 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
         if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
         {
             mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
-        } 
+        }
     }
-    
+
 }
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
@@ -513,7 +513,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
  *
  * processInsets only reads and writes data for the current layer
  */
-void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int layer_nr) 
+void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
@@ -537,7 +537,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
 {
     int n_empty_first_layers = 0;
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
-    { 
+    {
         bool layer_is_empty = true;
         if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
         {
@@ -565,8 +565,8 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
                 }
             }
         }
-        
-        if (layer_is_empty) 
+
+        if (layer_is_empty)
         {
             n_empty_first_layers++;
         } else
@@ -574,7 +574,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
             break;
         }
     }
-    
+
     if (n_empty_first_layers > 0)
     {
         log("Removing %d layers because they are empty\n", n_empty_first_layers);
@@ -607,8 +607,8 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
  */
 void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill)
 {
-    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) 
-    { 
+    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+    {
         return;
     }
 
@@ -780,13 +780,13 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
             {
                 // generate points in between p0 and p1
                 PolygonRef result = results.newPoly();
-                
+
                 int64_t dist_left_over = rand() % (min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
                 Point* p0 = &poly.back();
                 for (Point& p1 : poly)
                 { // 'a' is the (next) new point between p0 and p1
                     Point p0p1 = p1 - *p0;
-                    int64_t p0p1_size = vSize(p0p1);    
+                    int64_t p0p1_size = vSize(p0p1);
                     int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
                     for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                     {
@@ -798,7 +798,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         dist_last_point = p0pa_dist;
                     }
                     dist_left_over = p0p1_size - dist_last_point;
-                    
+
                     p0 = &p1;
                 }
                 while (result.size() < 3 )

@@ -2,7 +2,7 @@
 #include "ZigzagConnectorProcessorDisconnectedEndPieces.h"
 
 
-namespace cura 
+namespace cura
 {
 
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
@@ -10,8 +10,8 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentInter
     bool previous_scanline_is_even = last_scanline_is_even;
     last_scanline_is_even = scanline_is_even;
     bool this_scanline_is_even = last_scanline_is_even;
-    
-    if (is_first_zigzag_connector) 
+
+    if (is_first_zigzag_connector)
     {
         first_zigzag_connector.push_back(intersection);
         first_zigzag_connector_ends_in_even_scanline = this_scanline_is_even;
@@ -32,7 +32,7 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentInter
             // skip the last segment to the [intersection]
             zigzag_connector.clear();
         }
-        
+
     }
     zigzag_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
     if (!this_scanline_is_even) // we are either in an end piece or an boundary segment starting in an odd scanline
@@ -70,10 +70,10 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
     // reset member variables
     is_first_zigzag_connector = true;
     first_zigzag_connector_ends_in_even_scanline = true;
-    last_scanline_is_even = false; 
+    last_scanline_is_even = false;
     first_zigzag_connector.clear();
     zigzag_connector.clear();
 }
 
 
-} // namespace cura 
+} // namespace cura

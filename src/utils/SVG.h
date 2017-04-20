@@ -23,9 +23,9 @@ public:
         GREEN,
         YELLOW
     };
-    
+
 private:
-    
+
     std::string toString(Color color)
     {
         switch (color)
@@ -40,9 +40,9 @@ private:
             default: return "black";
         }
     }
-    
-    
-    
+
+
+
     FILE* out; // the output file
     const AABB aabb; // the boundary box to display
     const Point aabb_size;
@@ -77,7 +77,7 @@ public:
     /*!
      * transform a point in real space to canvas space
      */
-    Point transform(const Point& p) 
+    Point transform(const Point& p)
     {
         return Point((p.X-aabb.min.X)*scale, canvas_size.X - border.X - (p.Y-aabb.min.Y)*scale) + border;
     }
@@ -87,7 +87,7 @@ public:
         fprintf(out, "<!-- %s -->\n", comment.c_str());
     }
 
-    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
+    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK)
     {
         for(PolygonsPart& parts : polygons.splitIntoParts())
         {
@@ -122,7 +122,7 @@ public:
     {
         Point pf = transform(p);
         fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.X, pf.Y, size, toString(color).c_str(), toString(color).c_str());
-        
+
         if (write_coords)
         {
             fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
@@ -147,10 +147,10 @@ public:
 
     /*!
      * \brief Draws a polyline on the canvas.
-     * 
+     *
      * The polyline is the set of line segments between each pair of consecutive
      * points in the specified vector.
-     * 
+     *
      * \param polyline A set of points between which line segments must be
      * drawn.
      * \param color The colour of the line segments. If this is not specified,
@@ -162,7 +162,7 @@ public:
         {
             return;
         }
-        
+
         Point transformed = transform(polyline[0]); //Element 0 must exist due to the check above.
         fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.X,transformed.Y); //Write the start of the path tag and the first endpoint.
         for(size_t point = 1;point < polyline.size();point++)
@@ -179,12 +179,12 @@ public:
         Point fb = transform(b);
         fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:%i\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str(), stroke_width);
     }
-    
+
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
-     * 
+     *
      * This is useful in the case where multiple lines may overlap each other.
-     * 
+     *
      * \param a The starting endpoint of the line.
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
@@ -222,10 +222,10 @@ public:
             p0 = p1;
         }
     }
-    
-    
-    
-    
+
+
+
+
     /*
     void Polygons::debugOutputHTML(const char* filename, bool dotTheVertices)
 {
@@ -251,7 +251,7 @@ public:
                 fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
             else
                 fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
-            
+
             if (dotTheVertices)
                 for(Point& p : poly)
                     fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"2\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" />", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
@@ -260,7 +260,7 @@ public:
     fprintf(out, "</svg>\n");
     fprintf(out, "</body></html>");
     fclose(out);
-    } */   
+    } */
 
 };
 

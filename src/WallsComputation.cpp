@@ -26,7 +26,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->print_outline = part->outline;
         return;
     }
-    
+
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
@@ -40,8 +40,8 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         {
             part->insets[i] = part->insets[i-1].offset(-line_width_x);
         }
-        
-        
+
+
         //Finally optimize all the polygons. Every point removed saves time in the long run.
         part->insets[i].simplify();
         part->insets[i].removeDegenerateVerts();
@@ -76,7 +76,7 @@ void WallsComputation::generateInsets(SliceLayer* layer)
     {
         generateInsets(&layer->parts[partNr]);
     }
-    
+
     //Remove the parts which did not generate an inset. As these parts are too small to print,
     // and later code can now assume that there is always minimal 1 inset line.
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)

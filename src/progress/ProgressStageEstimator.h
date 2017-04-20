@@ -23,29 +23,29 @@ class ProgressStageEstimator : public ProgressEstimator
         , stage(nullptr)
         {
         }
-        
+
     };
-    
+
 protected:
     std::vector<ProgressStage> stages;
     double total_estimated_time;
-    
+
 private:
     double accumulated_estimate;
     int current_stage_idx;
-    
+
 public:
     ProgressStageEstimator(std::vector<double>& relative_time_estimates);
-    
+
     double progress(int current_step);
-    
+
     /*!
-     * 
+     *
      * \warning This class is responsible for deleting the \p stage
-     * 
+     *
      */
     void nextStage(ProgressEstimator* stage);
-    
+
     ~ProgressStageEstimator();
 };
 

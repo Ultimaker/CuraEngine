@@ -7,10 +7,10 @@
 #include "settings/settings.h"
 
 namespace cura {
- 
+
 /*!
  * Parts order optimization class.
- * 
+ *
  * Utility class for optimizing the path order by minimizing the distance traveled between printing different parts in the layer.
  * The order of polygons is optimized and the startingpoint within each polygon is chosen.
  */
@@ -101,13 +101,13 @@ public:
 private:
     /*!
      * Update LineOrderOptimizer::polyStart if the current line is better than the current best.
-     * 
+     *
      * Besides looking at the distance from the previous line segment, we also look at the angle we make.
-     * 
+     *
      * We prefer 90 degree angles; 180 degree turn arounds are slow on machines where the jerk is limited.
-     * 0 degree (straight ahead) 'corners' occur only when a single infill line is interrupted, 
+     * 0 degree (straight ahead) 'corners' occur only when a single infill line is interrupted,
      * in which case the travel move might involve combing, which makes it rather longer.
-     * 
+     *
      * \param poly_idx[in] The index in LineOrderOptimizer::polygons for the current line to test
      * \param best[in, out] The index of current best line
      * \param best_score[in, out] The distance score for the current best line
@@ -118,14 +118,14 @@ private:
 
     /*!
      * Get a score to modify the distance score for measuring how good two lines follow each other.
-     * 
+     *
      * The angle score is symmetric in \p from and \p to; they can be exchanged without altering the result. (Code relies on this property)
-     * 
+     *
      * \param incoming_perpundicular_normal The direction in which the head was moving while printing the previous line, turned 90 degrees CCW
      * \param from The one end of the next line
      * \param to The other end of the next line
-     * \return A score measuring how good the angle is of the line between \p from and \p to when the previous line had a direction given by \p incoming_perpundicular_normal 
-     * 
+     * \return A score measuring how good the angle is of the line between \p from and \p to when the previous line had a direction given by \p incoming_perpundicular_normal
+     *
      */
     static float getAngleScore(Point incoming_perpundicular_normal, Point from, Point to);
 };

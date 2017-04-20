@@ -17,24 +17,24 @@
 #include "ProximityPointLink.h"
 #include "SparseLineGrid.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
  * Class for computing which parts of polygons are close to which other parts of polygons
  * A link always occurs between a point already on a polygon and either another point of a polygon or a point on a line segment of a polygon.
- * 
+ *
  * In the latter case we insert the point into the polygon so that we can later look up by how much to reduce the extrusion at the corresponding line segment.
  * This is the reason that the polygons are converted to (linked) lists before the proximity linking computation takes place, after which they are converted back.
- * 
+ *
  * At the end of a sequence of proximity links the polygon segments diverge away from each other.
  * Therefore points are introduced on the line segments involved and a link is created with a link distance of exactly the PolygonProximityLinker::proximity_distance.
- * 
+ *
  * We end up with links which include a boolean field to represent whether the link is already processed from outside.
  * This is used by functions which use the PolygonProximityLinker class when there is being looped over points in a polygon, which by definition loops over all links twice.
- * 
+ *
  * Each point on the polygons maps to a link, so that we can easily look up which links corresponds to the current line segment being handled when compensating for wall overlaps for example.
- * 
+ *
  * The main functionality of this class is performed by the constructor.
  */
 class PolygonProximityLinker
@@ -72,9 +72,9 @@ private:
 
     /*!
      * Create the initial \ref PolygonProximityLinker::line_grid
-     * 
+     *
      * Map locations where line segments of the input polygons occur to iterators pointing to the start of those line segments.
-     * 
+     *
      * Note that when points are introduced which split line segments in two,
      * the line_grid maps locations to segments which are not close any more.
      */
@@ -85,7 +85,7 @@ private:
     /*!
      * Find the basic proximity link (for a trapezoid) between a given point and a line segment
      * and record them into PolygonProximityLinker::overlap_point_links
-     * 
+     *
      * \param a_point_it Iterator to the point from which to check for proximity
      * \param to_list_poly The polygon in which the line segment occurs
      * \param b_from_it iterator to the one end point of the line segment
@@ -95,9 +95,9 @@ private:
 
     /*!
      * Add a new point to the polygon on a line segment between \p line_start and \p line_end
-     * 
+     *
      * Don't add the point if it's already the same as either of the end points of the line segment.
-     * 
+     *
      * \param point The point to insert
      * \param line_start The start of the line segment on which to insert
      * \param line_end The end of the line segment on which to insert
@@ -108,7 +108,7 @@ private:
 
     /*!
      * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
-     * 
+     *
      * \param from The one point of the link
      * \param to The other point of the link
      * \param dist The distance between the two points
@@ -120,9 +120,9 @@ private:
 
     /*!
      * Add a link for the corner at \p corner_point to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
-     * 
+     *
      * This is done by adding a link between the point and itself.
-     * 
+     *
      * \param corner_point The one point of the link
      * \param type The type of the link being introduced
      * \return Whether the point has been added
@@ -136,9 +136,9 @@ private:
 
     /*!
      * Add a link for the ending point of a given proximity region, if it is an ending.
-     * 
+     *
      * \param link_pair The link which might be an ending
-     * \param a_next The next point from ListPolyIt::a of \p link 
+     * \param a_next The next point from ListPolyIt::a of \p link
      * \param b_next The next point from ListPolyIt::b of \p link (in the opposite direction of \p a_next)
      * \param a_before_middle Where to insert a new point for a if this is indeed en ending
      * \param b_before_middle Where to insert a new point for b if this is indeed en ending
@@ -153,14 +153,14 @@ private:
 
     /*!
      * Add proximity links for sharp corners, so that the proximity of two consecutive line segments is compensated for.
-     * 
+     *
      * Currently UNIMPLEMENTED.
      */
     void addSharpCorners();
 
     /*!
      * Map a point to a link in PolygonProximityLinker::point_to_link
-     * 
+     *
      * \param p The key
      * \param it The value
      */
@@ -184,15 +184,15 @@ public:
 
     /*!
      * Get all links connected to a given point.
-     * 
+     *
      * The returned pair is an iterator range;
      * The first is the starting iterator (inclusive)
      * and the second is the end iterator (exclusive).
-     * 
+     *
      * Note that the returned iterators point to a pair,
      * for which the second is the actual link.
      * The first is \p from
-     * 
+     *
      * \param from The point to get all connected links for
      * \return a pair containing two iterators
      */
