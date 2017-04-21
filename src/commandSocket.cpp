@@ -429,7 +429,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
             int extruder_nr = extruder.id();
             if (extruder_nr >= extruder_count)
             {
-                logWarning("Definition has more extruder trains than extruder count suggests, ignoring extra extruder trains.");
+                logWarning("Definition has more extruder trains than extruder count suggests, ignoring extra extruder trains.\n");
                 break;
             }
             ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
