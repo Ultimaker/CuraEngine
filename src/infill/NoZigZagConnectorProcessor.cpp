@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "../utils/macros.h"
 
 #include "NoZigZagConnectorProcessor.h"
@@ -7,15 +9,14 @@
 namespace cura 
 {
 
-void NoZigZagConnectorProcessor::registerVertex(const Point& vertex)
+void NoZigZagConnectorProcessor::registerVertex(const Point&)
 {
-    UNUSED_PARAM(vertex);
+    //No need to add anything.
 }
 
-void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
+void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point&, bool)
 {
-    UNUSED_PARAM(intersection);
-    UNUSED_PARAM(scanline_is_even);
+    //No need to add anything.
 }
 
 void NoZigZagConnectorProcessor::registerPolyFinished()

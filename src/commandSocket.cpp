@@ -1,3 +1,6 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "utils/logoutput.h"
 #include "utils/macros.h"
 #include "commandSocket.h"
@@ -35,9 +38,8 @@ CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
 class Listener : public Arcus::SocketListener
 {
 public:
-    void stateChanged(Arcus::SocketState::SocketState newState) override
+    void stateChanged(Arcus::SocketState::SocketState) override
     {
-      UNUSED_PARAM(newState);
     }
 
     void messageReceived() override
@@ -631,16 +633,9 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
 #endif
 }
 
-void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float print_time)
+void CommandSocket::sendPrintMaterialForObject(int, int, float)
 {
-    UNUSED_PARAM(index);
-    UNUSED_PARAM(extruder_nr);
-    UNUSED_PARAM(print_time);
-//     socket.sendInt32(CMD_OBJECT_PRINT_MATERIAL);
-//     socket.sendInt32(12);
-//     socket.sendInt32(index);
-//     socket.sendInt32(extruder_nr);
-//     socket.sendFloat32(print_time);
+    //Do nothing.
 }
 
 void CommandSocket::sendLayerData()
