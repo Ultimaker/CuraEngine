@@ -191,8 +191,8 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
 
             int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
 
-            // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
-            // and if it is we move forward
+            // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
+            // and if it isn't, we move forward
 
             // get the inward normal of the last layer seam vertex
             Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, last_layer.seam_vertex_index);
@@ -200,13 +200,13 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceMeshStorage& mesh)
             // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
             Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
-            // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+            // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
             const int first_seam_vertex_idx = seam_vertex_idx;
             float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
-            while (a > M_PI)
+            while (a <= 0 || a >= M_PI)
             {
-                // the vertex was on the right of the vector so move the seam vertex on
+                // the vertex was not on the left of the vector so move the seam vertex on
                 seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
                 a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
