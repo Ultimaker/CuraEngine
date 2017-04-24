@@ -697,10 +697,10 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
-        std::vector<Polygons> mesh_outlines;
+        Polygons mesh_outlines;
         for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
         {
-            mesh_outlines.push_back(mesh.layers[std::round(layer_idx_below)].getOutlines());
+            mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, bottom_line_width, bottoms);
@@ -726,10 +726,10 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     for (unsigned int layer_idx = 0; layer_idx < support_layers.size() - roof_layer_count - z_distance_top; layer_idx++)
     {
         const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top; //Maximum layer of the model that generates support roof.
-        std::vector<Polygons> mesh_outlines;
+        Polygons mesh_outlines;
         for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
         {
-            mesh_outlines.push_back(mesh.layers[std::round(layer_idx_above)].getOutlines());
+            mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }
         Polygons roofs;
         generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, roof_line_width, roofs);
@@ -737,13 +737,9 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     }
 }
 
-void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const std::vector<Polygons>& colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons)
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons)
 {
-    Polygons model;
-    for (const Polygons outline : colliding_mesh_outlines)
-    {
-        model = model.unionPolygons(outline);
-    }
+    Polygons model = colliding_mesh_outlines.unionPolygons();
     interface_polygons = support_areas.intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
     interface_polygons.removeSmallAreas(1.0);
