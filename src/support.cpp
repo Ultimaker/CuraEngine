@@ -198,7 +198,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
 
-    bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
+    bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
 
     if (!mesh.getSettingBoolean("support_enable") && !is_support_modifier_place_holder)
     {
