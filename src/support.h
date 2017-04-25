@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
@@ -46,16 +49,48 @@ private:
      */
     static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
-
+    /*!
+     * Generate support bottom areas for a given mesh.
+     *
+     * The bottom areas are separated from the normal support areas in the slice
+     * data storage, and stored separately in a different field of the slice
+     * data storage.
+     *
+     * \param storage Where to find the previously generated support areas and
+     * where to output the new support bottom areas.
+     * \param mesh The mesh to generate support for.
+     */
+    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh);
 
     /*!
-     * Generate support skin areas and non-skin areas for a given mesh.
-     * 
-     * \param storage Output storage: support area + support skin area output
-     * \param mesh The mesh to generate support skins for.
-     * \param layer_count The number of layers in this mesh group.
+     * Generate support roof areas for a given mesh.
+     *
+     * The roof areas are separated from the normal support areas in the slice
+     * data storage, and stored separately in a different field of the slice
+     * data storage.
+     *
+     * \param storage Where to find the previously generated support areas and
+     * where to output the new support roof areas.
+     * \param mesh The mesh to generate support roof for.
      */
-    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_count);
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+
+    /*!
+     * \brief Generate a single layer of support interface.
+     *
+     * The interface polygons are going to get filled with the actual support
+     * interface polygons, and this is subtracted from the support areas.
+     *
+     * \param support_areas The areas where support infill is going to be
+     * printed.
+     * \param mesh_outlines The outlines of the mesh above or below the layer
+     * we're generating interface for. These layers determine what areas are
+     * going to be filled with the interface.
+     * \param safety_offset An offset applied to the result to make sure
+     * everything can be printed.
+     * \param[out] interface_polygons The resulting interface layer. Do not use `interface` in windows!
+     */
+    static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.

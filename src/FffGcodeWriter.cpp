@@ -1,3 +1,5 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
 #include <limits> // numeric_limits
@@ -666,13 +668,14 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
     }
 
-    unsigned int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
-    unsigned int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    const unsigned int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    const unsigned int support_bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
+    const unsigned int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     for (unsigned int extruder_nr : extruder_order)
     {
         if (include_helper_parts
-            && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_skin_extruder_nr))
+            && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_roof_extruder_nr || extruder_nr == support_bottom_extruder_nr))
         {
             addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr);
         }
@@ -936,7 +939,6 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, c
         }
     }
     gcode_layer.addLinesByOptimizer(lines, &mesh_config.inset0_config, SpaceFillType::PolyLines);
-    
 }
 
 void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
@@ -1415,11 +1417,12 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
         return support_added;
     }
 
-    int support_interface_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
+    const int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    const int support_bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-    if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
+    if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.supportAreas.empty())
     {
         return support_added;
     }
@@ -1429,9 +1432,13 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     {
         support_added |= addSupportInfillToGCode(storage, gcode_layer, layer_nr);
     }
-    if (extruder_nr == support_interface_extruder_nr)
+    if (extruder_nr == support_roof_extruder_nr)
     {
         support_added |= addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
+    }
+    if (extruder_nr == support_bottom_extruder_nr)
+    {
+        support_added |= addSupportBottomsToGCode(storage, gcode_layer, layer_nr);
     }
     return support_added;
 }
@@ -1512,66 +1519,105 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
 
-    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
-        || support_layer.skin.size() == 0)
+        || support_layer.support_roof.empty())
     {
-        return added;
+        return false; //No need to generate support roof if there's no support.
     }
 
-    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const coord_t z = layer_nr * getSettingInMicrons("layer_height");
 
-    int skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
-    const ExtruderTrain& interface_extr = *storage.meshgroup->getExtruderTrain(skin_extruder_nr);
+    const int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    const ExtruderTrain& roof_extr = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
 
-    EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_interface_pattern");
-    int support_line_distance = interface_extr.getSettingInMicrons("support_interface_line_distance");
-    
-    
-    bool all_roofs_are_low = true;
-    for (const SliceMeshStorage& mesh : storage.meshes)
+    const EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
+    const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_roof_height", layer_nr);
+    constexpr int support_roof_overlap = 0; // the roofs should never be expanded outwards
+    constexpr int outline_offset =  0;
+    constexpr int extra_infill_shift = 0;
+    constexpr Polygons* perimeter_gaps = nullptr;
+    constexpr bool use_endpieces = true;
+    constexpr bool connected_zigzags = false;
+
+    const coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
+    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Polygons roof_polygons;
+    Polygons roof_lines;
+    roof_computation.generate(roof_polygons, roof_lines);
+    if (roof_polygons.empty() && roof_lines.empty())
     {
-        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
-        {
-            all_roofs_are_low = false;
-            break;
-        }
+        return false; //We didn't create any support roof.
     }
-    
-    double fillAngle;
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_roof_config);
+    gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    return true;
+}
+
+bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
+{
+    const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
+
+    if (!storage.support.generated 
+        || layer_nr > storage.support.layer_nr_max_filled_layer 
+        || support_layer.support_bottom.empty())
+    {
+        return false; //No need to generate support bottoms if there's no support.
+    }
+
+    const coord_t z = layer_nr * getSettingInMicrons("layer_height");
+
+    const int bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
+    const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
+
+    const EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
+    const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_bottom_height", layer_nr);
+    constexpr int support_bottom_overlap = 0; // the bottoms should never be expanded outwards
+    constexpr int outline_offset =  0;
+    constexpr int extra_infill_shift = 0;
+    constexpr Polygons* perimeter_gaps = nullptr;
+    constexpr bool use_endpieces = true;
+    constexpr bool connected_zigzags = false;
+
+    const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance");
+    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Polygons bottom_polygons;
+    Polygons bottom_lines;
+    bottom_computation.generate(bottom_polygons, bottom_lines);
+    if (bottom_polygons.empty() && bottom_lines.empty())
+    {
+        return false;
+    }
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, bottom_extruder_nr);
+    gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
+    gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    return true;
+}
+
+double FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const int layer_number) const
+{
     if (pattern == EFillMethod::CONCENTRIC)
     {
-        fillAngle = 0;
+        return 0; //Concentric has no rotation.
     }
-    else if (all_roofs_are_low || pattern == EFillMethod::TRIANGLES)
+    if (pattern == EFillMethod::TRIANGLES)
     {
-        fillAngle = 90; // perpendicular to support lines
+        return 90; //Triangular support interface shouldn't alternate every layer.
     }
-    else 
-    {
-        fillAngle = 45 + (((layer_nr % 2) + 2) % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
-        // +2) %2 to handle negative layer numbers
-    }
-    int support_skin_overlap = 0; // the skin (roofs/bottoms) should never be expanded outwards
-    int outline_offset =  0;
-    int extra_infill_shift = 0;
-    Polygons* perimeter_gaps = nullptr;
-    bool use_endpieces = true;
-    bool connected_zigzags = false;
-    Infill infill_comp(pattern, support_layer.skin, outline_offset, gcode_layer.configs_storage.support_interface_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
-    Polygons support_polygons;
-    Polygons support_lines;
-    infill_comp.generate(support_polygons, support_lines);
 
-    if (support_lines.size() > 0 || support_polygons.size() > 0)
+    for (const SliceMeshStorage& mesh : storage.meshes)
     {
-        setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
-        gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_interface_config);
-        gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_interface_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
-        added = true;
+        if (mesh.getSettingInMicrons(interface_height_setting) >= 2 * getSettingInMicrons("layer_height"))
+        {
+            //Some roofs are quite thick.
+            //Alternate between the two kinds of diagonal: / and \ .
+            // + 2) % 2 is to handle negative layer numbers.
+            return 45 + (((layer_number % 2) + 2) % 2) * 90;
+        }
     }
-    return added;
+
+    return 90; //Perpendicular to support lines.
 }
 
 void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const

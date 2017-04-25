@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <string.h>
 #include <strings.h>
 #include <stdio.h>
@@ -129,11 +132,6 @@ void MeshGroup::clear()
 void MeshGroup::finalize()
 {
     extruder_count = getSettingAsCount("machine_extruder_count");
-
-    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    {
-        createExtruderTrain(extruder_nr); // create it if it didn't exist yet
-    }
 
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
     Point3 meshgroup_offset(0, 0, 0);
