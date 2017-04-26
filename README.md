@@ -1,5 +1,8 @@
 CuraEngine
 ==========
+
+[![Travis Build Status](https://travis-ci.org/Ultimaker/CuraEngine.svg)](https://travis-ci.org/Ultimaker/CuraEngine)
+
 The CuraEngine is a C++ console application for 3D printing GCode generation. It has been made as a better and faster alternative to the old Skeinforge engine.
 
 The CuraEngine is pure C++ and uses Clipper from http://www.angusj.com/delphi/clipper.php
