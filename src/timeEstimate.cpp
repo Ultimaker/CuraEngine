@@ -91,9 +91,6 @@ static inline double intersection_distance(double initial_rate, double final_rat
 static inline double acceleration_time_from_distance(double initial_feedrate, double distance, double acceleration)
 {
     double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
-    //If discriminant is negative, we're moving in the wrong direction.
-    //Making the discriminant 0 then gives the extremum of the parabola instead of the intersection.
-    discriminant = std::max(0.0, discriminant);
     return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
     
