@@ -364,11 +364,9 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // all meshes are presupposed to actually have content
     for (const SliceMeshStorage& mesh : meshes)
     {
-        if (!mesh.getSettingBoolean("anti_overhang_mesh")
-            && !mesh.getSettingBoolean("support_mesh")
-        )
+        for (unsigned int extruder_nr = 0; extruder_nr <= ret.size(); extruder_nr++)
         {
-            ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+            ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr);
         }
     }
     return ret;
@@ -453,18 +451,9 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         for (const SliceMeshStorage& mesh : meshes)
         {
-            if (layer_nr >= int(mesh.layers.size()))
+            for (unsigned int extruder_nr = 0; extruder_nr <= ret.size(); extruder_nr++)
             {
-                continue;
-            }
-            const SliceLayer& layer = mesh.layers[layer_nr];
-            for (const SliceLayerPart& part : layer.parts)
-            {
-                if (part.isUsed(mesh))
-                {
-                    ret[mesh.getSettingAsIndex("extruder_nr")] = true;
-                    break;
-                }
+                ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr, layer_nr);
             }
         }
     }
