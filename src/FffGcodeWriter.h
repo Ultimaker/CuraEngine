@@ -301,6 +301,8 @@ private:
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
+     * Each mesh which has some feature printed with the extruder is included in this order.
+     * One mesh can occur in the mesh order of multiple extruders.
      * 
      * \param[in] storage where the slice data is stored.
      * \param extruder_nr The extruder for which to determine the order
