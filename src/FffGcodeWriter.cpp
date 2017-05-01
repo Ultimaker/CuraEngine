@@ -623,9 +623,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
 
     bool avoid_other_parts = false;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
+    const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
-        if (gcode.getExtruderIsUsed(extr_nr))
+        if (extruder_is_used[extr_nr])
         {
             ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
 
