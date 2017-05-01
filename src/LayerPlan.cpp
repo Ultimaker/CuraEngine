@@ -923,6 +923,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
                         gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                     }
+                    // for layer display only - the loop finished at the seam vertex but as we started from
+                    // the location of the previous layer's seam vertex the loop may have a gap if this layer's
+                    // seam vertex is "behind" the previous layer's seam vertex. So output another line segment
+                    // that joins this layer's seam vertex to the following vertex. If the layers have been blended
+                    // then this can cause a visible ridge (on the screen, not on the print) because the first vertex
+                    // would have been shifted in x/y to make it nearer to the previous layer outline but the seam
+                    // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
+                    // the less the vertices are shifted and the less obvious is the ridge. If the layer display
+                    // really displayed a spiral rather than slices of a spiral, this would not be required.
+                    sendLineTo(path.config->type, path.points[0], path.getLineWidth());
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
