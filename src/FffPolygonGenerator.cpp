@@ -647,8 +647,17 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             {
                 continue; //Special type of mesh that doesn't get printed.
             }
-            const unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            max_print_height_per_extruder[extr_nr] = std::max(max_print_height_per_extruder[extr_nr], mesh.layer_nr_max_filled_layer);
+            for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+            {
+                for (int layer_nr = mesh.layers.size() - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
+                {
+                    if (mesh.getExtruderIsUsed(extruder_nr, layer_nr))
+                    {
+                        assert(max_print_height_per_extruder[extruder_nr] <= layer_nr);
+                        max_print_height_per_extruder[extruder_nr] = layer_nr;
+                    }
+                }
+            }
         }
 
         //Height of where the support reaches.
