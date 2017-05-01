@@ -78,6 +78,13 @@ public:
     Polygons& getOwnInfillArea();
 
     /*!
+     * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
+     * \see SliceLayerPart::infill_area_own
+     * \return the own infill area
+     */
+    const Polygons& getOwnInfillArea() const;
+
+    /*!
      * Return whether this part has printable areas / perimeters
      */
     bool isUsed(const SettingsBaseVirtual& mesh_settings) const;
@@ -180,6 +187,19 @@ public:
     }
 
     virtual ~SliceMeshStorage();
+
+    /*!
+     * \param extruder_nr The extruder for which to check
+     * \return whether a particular extruder is used by this mesh
+     */
+    bool getExtruderIsUsed(int extruder_nr) const;
+
+    /*!
+     * \param extruder_nr The extruder for which to check
+     * \param layer_nr the layer for which to check
+     * \return whether a particular extruder is used by this mesh on a particular layer
+     */
+    bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy

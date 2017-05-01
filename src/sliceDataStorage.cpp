@@ -12,6 +12,11 @@ namespace cura
 
 Polygons& SliceLayerPart::getOwnInfillArea()
 {
+    return const_cast<Polygons&>(const_cast<const SliceLayerPart*>(this)->getOwnInfillArea());
+}
+
+const Polygons& SliceLayerPart::getOwnInfillArea() const
+{
     if (infill_area_own)
     {
         return *infill_area_own;
@@ -111,6 +116,82 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
+}
+
+bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
+{
+    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    if (getSettingAsCount("wall_line_count") > 1 && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsIndex("infill_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    if (getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
+{
+    if (layer_nr < 0 || layer_nr >= static_cast<int>(layers.size()))
+    {
+        return false;
+    }
+    if (getSettingBoolean("anti_overhang_mesh")
+        || getSettingBoolean("support_mesh"))
+    { // object is not printed as object, but as support.
+        return false;
+    }
+    const SliceLayer& layer = layers[layer_nr];
+    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.insets.size() > 0 && part.insets[0].size() > 0)
+            {
+                return true;
+            }
+        }
+    }
+    if (getSettingAsCount("wall_line_count") > 1 && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.insets.size() > 1 && part.insets[1].size() > 0)
+            {
+                return true;
+            }
+        }
+    }
+    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsIndex("infill_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.getOwnInfillArea().size() > 0)
+            {
+                return true;
+            }
+        }
+    }
+    if (getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (!part.skin_parts.empty())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
