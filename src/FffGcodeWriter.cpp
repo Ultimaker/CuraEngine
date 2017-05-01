@@ -906,7 +906,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         return;
     }
 
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("wall_0_extruder_nr"));
 
     const SliceLayer* layer = &mesh->layers[layer_nr];
 
