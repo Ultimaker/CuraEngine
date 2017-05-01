@@ -224,11 +224,6 @@ bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const
     return extruder_attr[extruder_nr].use_temp;
 }
 
-bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].is_used;
-}
-
 int GCodeExport::getNozzleSize(const int extruder_nr) const
 {
     return extruder_attr[extruder_nr].nozzle_size;

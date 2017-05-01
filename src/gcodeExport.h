@@ -180,8 +180,6 @@ public:
 
     bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
 
-    bool getExtruderIsUsed(const int extruder_nr) const; //!< Returns whether the extruder with the given index is used up until the current meshgroup
-
     int getNozzleSize(const int extruder_nr) const;
 
     Point getExtruderOffset(const int id) const;
