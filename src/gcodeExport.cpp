@@ -55,36 +55,9 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
 
-    for (const Mesh& mesh : meshgroup->meshes)
-    {
-        if (!mesh.getSettingBoolean("anti_overhang_mesh")
-            && !mesh.getSettingBoolean("support_mesh")
-        )
-        {
-            extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
-        }
-    }
-
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-
-        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr) && meshgroup->getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
-        {
-            extruder_attr[extruder_nr].is_used = true;
-        }
-        for (const Mesh& mesh : meshgroup->meshes)
-        {
-            if ((mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_mesh")) && (
-                       (mesh.getSettingBoolean("support_bottom_enable") && meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr))
-                    || (mesh.getSettingBoolean("support_roof_enable") && meshgroup->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
-                    || (meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
-                    || (meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
-                ))
-            {
-                extruder_attr[extruder_nr].is_used = true;
-            }
-        }
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
@@ -818,6 +791,7 @@ void GCodeExport::startExtruder(int new_extruder)
 {
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
+        extruder_attr[new_extruder].is_used = true;
         if (flavor == EGCodeFlavor::MAKERBOT)
         {
             *output_stream << "M135 T" << new_extruder << new_line;
