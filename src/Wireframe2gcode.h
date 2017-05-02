@@ -91,8 +91,8 @@ private:
     void finalize();
     
     void writeFill(std::vector<WeaveRoofPart>& infill_insets, Polygons& outlines
-        , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
-        , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler);
+        , std::function<void (Wireframe2gcode&, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
+        , std::function<void (Wireframe2gcode&, WeaveConnectionSegment& p)> flatHandler);
     
     /*!
      * Function for writing the gcode for a diagonally down movement of a connection.
@@ -130,20 +130,18 @@ private:
     /*!
      * Function writing the gcode of a segment in the connection between two layers.
      * 
-     * \param layer The layer in which the segment is
      * \param part The part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    void handle_segment(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Function for writing the gcode of a segment in the connection between two roof insets / floor outsets.
      * 
-     * \param inset The inset in which the segment is
      * \param part the part in which the segment is
      * \param segment_idx The index of the segment in the \p part
      */
-    void handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx);
+    void handle_roof_segment(WeaveConnectionPart& part, unsigned int segment_idx);
     
     /*!
      * Write a move action to gcode, inserting a retraction if neccesary.

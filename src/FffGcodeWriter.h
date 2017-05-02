@@ -335,7 +335,6 @@ private:
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
      * 
-     * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -343,19 +342,6 @@ private:
      * 
      */
     void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
-
-    /*!
-     * Add a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
-     * 
-     * \param[in] storage where the slice data is stored.
-     * \param mesh The mesh to add to the layer plan \p gcode_layer.
-     * \param mesh_config the line config with which to print a print feature
-     * \param part The part to add
-     * \param gcode_layer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
-     * 
-     */
-    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add infill for a given part in a layer plan.
@@ -370,6 +356,20 @@ private:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
     void processInfill(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+
+    /*!
+     * Add a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param storage Storage to get global settings from.
+     * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part to add
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     * 
+     */
+    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
@@ -415,12 +415,11 @@ private:
      * Generate the a spiralized wall for a given layer part.
      * \param[in] storage where the slice data is stored.
      * \param[out] gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      */
-    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
     
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
@@ -454,15 +453,46 @@ private:
      * \return whether any support infill was added to the layer plan
      */
     bool addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+
     /*!
-     * Add the support skins to the layer plan \p gcodeLayer of the current layer.
-     * \param[in] storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
-     * \return whether any support skin was added to the layer plan
+     * Add the support roofs to the layer plan \p gcodeLayer of the current
+     * layer.
+     *
+     * \param[in] storage Where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the g-code of.
+     * \return Whether any support skin was added to the layer plan.
      */
     bool addSupportRoofsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
-    
+
+    /*!
+     * Add the support bottoms to the layer plan \p gcodeLayer of the current
+     * layer.
+     *
+     * \param[in] storage Where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the g-code of.
+     * \return Whether any support skin was added to the layer plan.
+     */
+    bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+
+    /*!
+     * \brief Gives the angle of the infill of support interface.
+     *
+     * The angle depends on which pattern it's using and in certain patterns it
+     * alternates between layers.
+     *
+     * \param storage A storage of meshes and their settings.
+     * \param pattern The pattern of the support interface to get the fill angle
+     * for.
+     * \param layer_number The current layer number to generate support
+     * interface for.
+     * \param interface_height_setting The setting to retrieve from every mesh
+     * to determine whether the support interface should alternate.
+     * \return The angle of support interface.
+     */
+    double supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const int layer_number) const;
+
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
      * 

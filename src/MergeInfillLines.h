@@ -13,7 +13,6 @@ class MergeInfillLines
 {
 //     void merge(Point& from, Point& p0, Point& p1);
     GCodeExport& gcode; //!<  Where to write the combined line to
-    int layer_nr; //!< The current layer number
     std::vector<GCodePath>& paths; //!< The paths currently under consideration
     ExtruderPlan& extruder_plan; //!< The extruder plan of the paths currently under consideration
     
@@ -64,9 +63,8 @@ public:
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
      */
-    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, const GCodePathConfig& travelConfig, int64_t nozzle_size, bool speed_equalize_flow_enabled, double speed_equalize_flow_max)
+    MergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, const GCodePathConfig& travelConfig, int64_t nozzle_size, bool speed_equalize_flow_enabled, double speed_equalize_flow_max)
     : gcode(gcode)
-    , layer_nr(layer_nr)
     , paths(paths)
     , extruder_plan(extruder_plan)
     , travelConfig(travelConfig)

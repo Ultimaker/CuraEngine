@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
@@ -72,11 +75,11 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         }
         for (const Mesh* mesh : meshgroup->meshes)
         {
-            if ((mesh->getSettingBoolean("support_enable") || mesh->getSettingBoolean("support_mesh"))
-                &&
-                ((mesh->getSettingBoolean("support_interface_enable") && meshgroup->getSettingAsIndex("support_interface_extruder_nr") == int(extruder_nr))
-                || meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr)
-                || meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr)
+            if ((mesh->getSettingBoolean("support_enable") || mesh->getSettingBoolean("support_mesh")) && (
+                       (mesh->getSettingBoolean("support_bottom_enable") && meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr))
+                    || (mesh->getSettingBoolean("support_roof_enable") && meshgroup->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
+                    || (meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+                    || (meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
                 ))
             {
                 extruder_attr[extruder_nr].is_used = true;

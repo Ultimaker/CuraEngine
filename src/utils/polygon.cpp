@@ -1,4 +1,6 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "polygon.h"
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
@@ -51,6 +53,11 @@ bool ConstPolygonRef::_inside(Point p, bool border_result) const
         p0 = p1;
     }
     return (crossings % 2) == 1;
+}
+
+bool Polygons::empty() const
+{
+    return paths.empty();
 }
 
 Polygons Polygons::approxConvexHull(int extra_outset)

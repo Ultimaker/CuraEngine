@@ -1,3 +1,6 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
 
@@ -450,6 +453,13 @@ public:
     {
         return paths.size();
     }
+
+    /*!
+     * Convenience function to check if the polygon has no points.
+     *
+     * \return `true` if the polygon has no points, or `false` if it does.
+     */
+    bool empty() const;
 
     unsigned int pointCount() const; //!< Return the amount of points in all polygons
 
