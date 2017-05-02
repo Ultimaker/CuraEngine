@@ -13,10 +13,16 @@ AABB3D::AABB3D()
 {
 }
 
+Point3 AABB3D::getMiddle() const
+{
+    return (min + max) / 2;
+}
+
+
 bool AABB3D::hit(const AABB3D& other) const
 {
-    if (   max.x < other.min.y
-        || min.x > other.max.y
+    if (   max.x < other.min.x
+        || min.x > other.max.x
         || max.y < other.min.y
         || min.y > other.max.y
         || max.z < other.min.z
@@ -35,6 +41,12 @@ void AABB3D::include(Point3 p)
     max.x = std::max(max.x, p.x);
     max.y = std::max(max.y, p.y);
     max.z = std::max(max.z, p.z);   
+}
+
+void AABB3D::includeZ(int32_t z)
+{
+    min.z = std::min(min.z, z);
+    max.z = std::max(max.z, z);
 }
 
 void AABB3D::offset(Point3 offset)

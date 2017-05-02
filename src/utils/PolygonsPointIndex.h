@@ -44,6 +44,13 @@ public:
         return (*polygons)[poly_idx][point_idx];
     }
     /*!
+     * Get the polygon to which this PolygonsPointIndex refers
+     */
+    ConstPolygonRef getPolygon() const
+    {
+        return (*polygons)[poly_idx];
+    }
+    /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
      * 
      * \param other The PolygonsPointIndex to test for equality
@@ -57,11 +64,12 @@ public:
     {
         return !(*this == other);
     }
-    void operator=(const PolygonsPointIndex& other)
+    PolygonsPointIndex& operator=(const PolygonsPointIndex& other)
     {
         polygons = other.polygons;
         poly_idx = other.poly_idx;
         point_idx = other.point_idx;
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
     PolygonsPointIndex& operator++() 

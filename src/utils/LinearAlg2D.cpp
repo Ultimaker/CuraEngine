@@ -2,6 +2,8 @@
 #include "linearAlg2D.h"
 
 #include <cmath> // atan2
+#include <cassert>
+#include <algorithm> // swap
 
 #include "intpoint.h" // dot
 
@@ -106,6 +108,40 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
         }
         return false;
     }
+}
+
+bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point b_from_transformed, Point b_to_transformed)
+{
+    assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
+    assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
+    if ((b_from_transformed.Y >= a_from_transformed.Y && b_to_transformed.Y <= a_from_transformed.Y) || (b_to_transformed.Y >= a_from_transformed.Y && b_from_transformed.Y <= a_from_transformed.Y))
+    {
+        if(b_to_transformed.Y == b_from_transformed.Y)
+        {
+            if (b_to_transformed.X < b_from_transformed.X)
+            {
+                std::swap(b_to_transformed.X, b_from_transformed.X);
+            }
+            if (b_from_transformed.X > a_to_transformed.X)
+            {
+                return false;
+            }
+            if (b_to_transformed.X < a_from_transformed.X)
+            {
+                return false;
+            }
+            return true;
+        }
+        else
+        {
+            int64_t x = b_from_transformed.X + (b_to_transformed.X - b_from_transformed.X) * (a_from_transformed.Y - b_from_transformed.Y) / (b_to_transformed.Y - b_from_transformed.Y);
+            if (x >= a_from_transformed.X && x <= a_to_transformed.X)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 } // namespace cura

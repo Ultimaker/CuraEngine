@@ -1,9 +1,16 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
 #include <ctype.h>
 #include <cstdio> // sprintf
 #include <sstream> // ostringstream
+
+#include <cinttypes> // PRId64
+
+#include "logoutput.h"
 
 namespace cura
 {
@@ -29,8 +36,19 @@ static inline int stringcasecompare(const char* a, const char* b)
  */
 static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
 {
-    char buffer[24];
-    int char_count = sprintf(buffer, "%ld", coord); // convert int to string
+    constexpr size_t buffer_size = 24;
+    char buffer[buffer_size];
+    int char_count = sprintf(buffer, "%d", int(coord)); // convert int to string
+#ifdef DEBUG
+    if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
+    {
+        logError("Cannot write %ld to buffer of size %i", coord, buffer_size);
+    }
+    if (char_count < 0)
+    {
+        logError("Encoding error while writing %ld", coord);
+    }
+#endif // DEBUG
     int end_pos = char_count; // the first character not to write any more
     int trailing_zeros = 1;
     while (trailing_zeros < 4 && buffer[char_count - trailing_zeros] == '0')
@@ -53,7 +71,7 @@ static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
             ss << '-';
             start = 1;
         }
-        ss << '.';
+        ss << "0.";
         for (int nulls = char_count - start; nulls < 3; nulls++)
         { // fill up to 3 decimals with zeros
             ss << '0';
@@ -103,10 +121,21 @@ struct MMtoStream
  */
 static inline void writeDoubleToStream(const unsigned int precision, const double coord, std::ostream& ss)
 {
-    char format[5] = "%.xf"; // write a float with [x] digits after the dot
+    char format[5] = "%.xF"; // write a float with [x] digits after the dot
     format[2] = '0' + precision; // set [x]
-    char buffer[24];
-    int char_count = snprintf(buffer, 24, format, coord);
+    constexpr size_t buffer_size = 400;
+    char buffer[buffer_size];
+    int char_count = sprintf(buffer, format, coord);
+#ifdef DEBUG
+    if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
+    {
+        logError("Cannot write %f to buffer of size %i", coord, buffer_size);
+    }
+    if (char_count < 0)
+    {
+        logError("Encoding error while writing %f", coord);
+    }
+#endif // DEBUG
     if (char_count <= 0)
     {
         return;

@@ -49,10 +49,11 @@ public:
     {
         return !(*this == other);
     }
-    void operator=(const ListPolyIt& other)
+    ListPolyIt& operator=(const ListPolyIt& other)
     {
         poly = other.poly;
         it = other.it;
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
     ListPolyIt& operator++() 
@@ -93,28 +94,28 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
+    static void convertPolygonsToLists(const Polygons& polys, ListPolygons& result);
     /*!
      * Convert Polygons to ListPolygons
      * 
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonToList(PolygonRef poly, ListPolygon& result);
+    static void convertPolygonToList(ConstPolygonRef poly, ListPolygon& result);
     /*!
      * Convert ListPolygons to Polygons
      * 
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons);
+    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons);
     /*!
      * Convert ListPolygons to Polygons
      * 
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon);
+    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, PolygonRef polygon);
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.

@@ -10,21 +10,21 @@ namespace cura
 {
 
 
-void ListPolyIt::convertPolygonsToLists(Polygons& polys, ListPolygons& result)
+void ListPolyIt::convertPolygonsToLists(const Polygons& polys, ListPolygons& result)
 {
-    for (PolygonRef poly : polys)
+    for (ConstPolygonRef poly : polys)
     {
         result.emplace_back();
         convertPolygonToList(poly, result.back());
     }
 }
 
-void ListPolyIt::convertPolygonToList(PolygonRef poly, ListPolygon& result)
+void ListPolyIt::convertPolygonToList(ConstPolygonRef poly, ListPolygon& result)
 {
 #ifdef DEBUG
     Point last = poly.back();
 #endif // DEBUG
-    for (Point& p : poly) 
+    for (const Point& p : poly)
     {
         result.push_back(p);
 #ifdef DEBUG
@@ -39,7 +39,7 @@ void ListPolyIt::convertPolygonToList(PolygonRef poly, ListPolygon& result)
 }
 
 
-void ListPolyIt::convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons)
+void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons)
 {
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -48,9 +48,9 @@ void ListPolyIt::convertListPolygonsToPolygons(ListPolygons& list_polygons, Poly
     }
 }
 
-void ListPolyIt::convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon)
+void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, PolygonRef polygon)
 {
-    for (Point& p : list_polygon)
+    for (const Point& p : list_polygon)
     {
         polygon.add(p);
     }

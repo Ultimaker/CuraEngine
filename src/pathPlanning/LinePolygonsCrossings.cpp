@@ -145,7 +145,7 @@ void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
 void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
 {
     PolygonRef poly = boundary[polyCrossings.poly_idx];
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - dist_to_move_boundary_point_outside, transformed_startPoint.Y)));
+    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
     if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size() 
         < poly.size() / 2 )
     { // follow the path in the same direction as the winding order of the boundary polygon
@@ -166,7 +166,7 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
             combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
         }
     }
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x + dist_to_move_boundary_point_outside, transformed_startPoint.Y))); 
+    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
 }
 
 
@@ -194,9 +194,9 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             continue;
         }
         Point& current_point = optimized_comb_path.back();
-        if (PolygonUtils::polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx]))
+        if (PolygonUtils::polygonCollidesWithLineSegment(current_point, comb_path[point_idx], loc_to_line_grid))
         {
-            if (PolygonUtils::polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx - 1]))
+            if (PolygonUtils::polygonCollidesWithLineSegment(current_point, comb_path[point_idx - 1], loc_to_line_grid))
             {
                 comb_path.cross_boundary = true;
             }
@@ -209,7 +209,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             // TODO: add the below extra optimization? (+/- 7% extra computation time, +/- 2% faster print for Dual_extrusion_support_generation.stl)
             while (optimized_comb_path.size() > 1)
             {
-                if (PolygonUtils::polygonCollidesWithlineSegment(boundary, optimized_comb_path[optimized_comb_path.size() - 2], comb_path[point_idx]))
+                if (PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[optimized_comb_path.size() - 2], comb_path[point_idx], loc_to_line_grid))
                 {
                     break;
                 }

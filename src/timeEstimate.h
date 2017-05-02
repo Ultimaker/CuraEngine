@@ -57,7 +57,7 @@ public:
     };
 
 private:
-    double max_feedrate[NUM_AXIS] = {600, 600, 40, 25};
+    double max_feedrate[NUM_AXIS] = {600, 600, 40, 25}; // mm/s
     double minimumfeedrate = 0.01;
     double acceleration = 3000;
     double max_acceleration[NUM_AXIS] = {9000, 9000, 100, 10000};

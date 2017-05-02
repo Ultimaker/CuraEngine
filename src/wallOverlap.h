@@ -60,7 +60,7 @@ public:
      * \param to The ending of the line segment
      * \return a value between zero and one representing the reduced flow of the line segment
      */
-    float getFlow(Point& from, Point& to);
+    float getFlow(const Point& from, const Point& to);
 
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.

@@ -8,6 +8,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 namespace cura {
 
@@ -75,11 +76,22 @@ public:
      * \param[in] query_pt The point to search around.
      * \param[in] radius The search radius.
      * \param[in] process_func Processes each element.  process_func(elem) is
-     *    called for each element in the cell.
+     *    called for each element in the cell. Processing stops if function returns false.
      */
-    template<class ProcessFunc>
     void processNearby(const Point &query_pt, coord_t radius,
-                       ProcessFunc &process_func) const;
+                       const std::function<bool (const ElemT&)>& process_func) const;
+
+    /*! \brief Process elements from cells that might contain sought after points along a line.
+     *
+     * Processes elements from cells that cross the line \p query_line.
+     * May process elements that are up to sqrt(2) * cell_size from \p query_line.
+     *
+     * \param[in] query_line The line along which to check each cell
+     * \param[in] process_func Processes each element.  process_func(elem) is
+     *    called for each element in the cells. Processing stops if function returns false.
+     */
+    void processLine(const std::pair<Point, Point> query_line,
+                       const std::function<bool (const Elem&)>& process_elem_func) const;
 
     coord_t getCellSize() const;
 
@@ -92,11 +104,29 @@ protected:
      *
      * \param[in] grid_pt The grid coordinates of the cell.
      * \param[in] process_func Processes each element.  process_func(elem) is
-     *    called for each element in the cell.
+     *    called for each element in the cell. Processing stops if function returns false.
+     * \return Whether we need to continue processing a next cell.
      */
-    template<class ProcessFunc>
-    void processFromCell(const GridPoint &grid_pt,
-                         ProcessFunc &process_func) const;
+    bool processFromCell(const GridPoint &grid_pt,
+                         const std::function<bool (const Elem&)>& process_func) const;
+
+    /*! \brief Process cells along a line indicated by \p line.
+     *
+     * \param[in] line The line along which to process cells
+     * \param[in] process_func Processes each cell.  process_func(elem) is
+     *    called for each cell. Processing stops if function returns false.
+     */
+    void processLineCells(const std::pair<Point, Point> line,
+                         const std::function<bool (GridPoint)>& process_cell_func);
+
+    /*! \brief Process cells along a line indicated by \p line.
+     *
+     * \param[in] line The line along which to process cells
+     * \param[in] process_func Processes each cell.  process_func(elem) is
+     *    called for each cell. Processing stops if function returns false.
+     */
+    void processLineCells(const std::pair<Point, Point> line,
+                         const std::function<bool (GridPoint)>& process_cell_func) const;
 
     /*! \brief Compute the grid coordinates of a point.
      *
@@ -132,6 +162,8 @@ protected:
     GridMap m_grid;
     /*! \brief The cell (square) size. */
     coord_t m_cell_size;
+
+    grid_coord_t nonzero_sign(const grid_coord_t z) const;
 };
 
 
@@ -190,23 +222,99 @@ typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  c
 }
 
 SGI_TEMPLATE
-template<class ProcessFunc>
-void SGI_THIS::processFromCell(
+bool SGI_THIS::processFromCell(
     const GridPoint &grid_pt,
-    ProcessFunc &process_func) const
+    const std::function<bool (const Elem&)>& process_func) const
 {
     auto grid_range = m_grid.equal_range(grid_pt);
     for (auto iter = grid_range.first; iter != grid_range.second; ++iter)
     {
-        process_func(iter->second);
+        if (!process_func(iter->second))
+        {
+            return false;
+        }
     }
-
+    return true;
 }
 
 SGI_TEMPLATE
-template<class ProcessFunc>
+void SGI_THIS::processLineCells(
+    const std::pair<Point, Point> line,
+    const std::function<bool (GridPoint)>& process_cell_func)
+{
+    static_cast<const SGI_THIS*>(this)->processLineCells(line, process_cell_func);
+}
+
+SGI_TEMPLATE
+void SGI_THIS::processLineCells(
+    const std::pair<Point, Point> line,
+    const std::function<bool (GridPoint)>& process_cell_func) const
+{
+
+    Point start = line.first;
+    Point end = line.second;
+    if (end.X < start.X)
+    { // make sure X increases between start and end
+        std::swap(start, end);
+    }
+
+    const GridPoint start_cell = toGridPoint(start);
+    const GridPoint end_cell = toGridPoint(end);
+    const coord_t y_diff = end.Y - start.Y;
+    const grid_coord_t y_dir = nonzero_sign(y_diff);
+
+    grid_coord_t x_cell_start = start_cell.X;
+    for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
+    { // for all Y from start to end
+        // nearest y coordinate of the cells in the next row
+        coord_t nearest_next_y = toLowerCoord(cell_y + ((nonzero_sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
+        grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
+        if (y_diff == 0)
+        {
+            x_cell_end = end_cell.X;
+        }
+        else
+        {
+            coord_t area = (end.X - start.X) * (nearest_next_y - start.Y);
+            // corresponding_x: the x coordinate corresponding to nearest_next_y
+            coord_t corresponding_x = start.X + area / y_diff;
+            x_cell_end = toGridCoord(corresponding_x + ((corresponding_x < 0) && ((area % y_diff) != 0)));
+            if (x_cell_end < start_cell.X)
+            { // process at least one cell!
+                x_cell_end = x_cell_start;
+            }
+        }
+
+        for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
+        {
+            GridPoint grid_loc(cell_x, cell_y);
+            bool continue_ = process_cell_func(grid_loc);
+            if (!continue_)
+            {
+                return;
+            }
+            if (grid_loc == end_cell)
+            {
+                return;
+            }
+        }
+        // TODO: this causes at least a one cell overlap for each row, which
+        // includes extra cells when crossing precisely on the corners
+        // where positive slope where x > 0 and negative slope where x < 0
+        x_cell_start = x_cell_end;
+    }
+    assert(false && "We should have returned already before here!");
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::grid_coord_t SGI_THIS::nonzero_sign(const grid_coord_t z) const
+{
+    return (z >= 0) - (z < 0);
+}
+
+SGI_TEMPLATE
 void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
-                             ProcessFunc &process_func) const
+                             const std::function<bool (const Elem&)>& process_func) const
 {
     Point min_loc(query_pt.X - radius, query_pt.Y - radius);
     Point max_loc(query_pt.X + radius, query_pt.Y + radius);
@@ -219,9 +327,24 @@ void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
         for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
         {
             GridPoint grid_pt(grid_x,grid_y);
-            processFromCell(grid_pt, process_func);
+            bool continue_ = processFromCell(grid_pt, process_func);
+            if (!continue_)
+            {
+                return;
+            }
         }
     }
+}
+
+SGI_TEMPLATE
+void SGI_THIS::processLine(const std::pair<Point, Point> query_line,
+                            const std::function<bool (const Elem&)>& process_elem_func) const
+{
+    const std::function<bool (const GridPoint&)> process_cell_func = [&process_elem_func, this](GridPoint grid_loc)
+        {
+            return processFromCell(grid_loc, process_elem_func);
+        };
+    processLineCells(query_line, process_cell_func);
 }
 
 SGI_TEMPLATE
@@ -229,9 +352,10 @@ std::vector<typename SGI_THIS::Elem>
 SGI_THIS::getNearby(const Point &query_pt, coord_t radius) const
 {
     std::vector<Elem> ret;
-    auto process_func = [&ret](const Elem &elem)
+    const std::function<bool (const Elem&)> process_func = [&ret](const Elem &elem)
         {
             ret.push_back(elem);
+            return true;
         };
     processNearby(query_pt, radius, process_func);
     return ret;
@@ -252,12 +376,12 @@ bool SGI_THIS::getNearest(
 {
     bool found = false;
     int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
-    auto process_func =
+    const std::function<bool (const Elem&)> process_func =
         [&query_pt, &elem_nearest, &found, &best_dist2, &precondition](const Elem &elem)
         {
             if (!precondition(elem))
             {
-                return;
+                return true;
             }
             int64_t dist2 = vSize2(elem.point - query_pt);
             if (dist2 < best_dist2)
@@ -266,6 +390,7 @@ bool SGI_THIS::getNearest(
                 elem_nearest = elem;
                 best_dist2 = dist2;
             }
+            return true;
         };
     processNearby(query_pt, radius, process_func);
     return found;

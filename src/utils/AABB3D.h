@@ -23,6 +23,11 @@ struct AABB3D
     AABB3D();
 
     /*!
+     * Get the middle of the bounding box
+     */
+    Point3 getMiddle() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      * 
      * In the boundary case false is returned.
@@ -37,6 +42,14 @@ struct AABB3D
      * \param p The point to include with the bounding box.
      */
     void include(Point3 p);
+
+    /*!
+     * Expand the AABB3D to include a z-coordinate.
+     *
+     * This is for including a point of which the X and Y coordinates are
+     * unknown but known to already be included in the bounding box.
+     */
+    void includeZ(int32_t z);
 
     /*!
      * Offset the coordinates of the bounding box.

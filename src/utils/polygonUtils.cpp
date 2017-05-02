@@ -22,7 +22,7 @@ int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex
     assert(start.poly_idx == end.poly_idx);
     int64_t segment_length = 0;
     Point prev_vert = start.p();
-    const PolygonRef poly = (*start.polygons)[start.poly_idx];
+    ConstPolygonRef poly = (*start.polygons)[start.poly_idx];
     for (unsigned int point_idx = 1; point_idx <= poly.size(); point_idx++)
     {
         unsigned int vert_idx = (start.point_idx + point_idx) % poly.size();
@@ -44,7 +44,7 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
     assert(start.poly_idx == end.poly_idx);
     int64_t segment_length = segmentLength(start, end);
 
-    const PolygonRef poly = (*start.polygons)[start.poly_idx];
+    ConstPolygonRef poly = (*start.polygons)[start.poly_idx];
     unsigned int n_dots_in_between = n_dots;
     if (start == end)
     {
@@ -80,7 +80,7 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
     assert(result.size() == n_dots && "we didn't generate as many wipe locations as we asked for.");
 }
 
-Point PolygonUtils::getVertexInwardNormal(PolygonRef poly, unsigned int point_idx)
+Point PolygonUtils::getVertexInwardNormal(ConstPolygonRef poly, unsigned int point_idx)
 {
     Point p1 = poly[point_idx];
 
@@ -110,7 +110,7 @@ Point PolygonUtils::getVertexInwardNormal(PolygonRef poly, unsigned int point_id
             break;
         }
     }
-    Point& p2 = poly[p2_idx];
+    const Point& p2 = poly[p2_idx];
 
     Point off0 = turn90CCW(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
     Point off1 = turn90CCW(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
@@ -119,22 +119,27 @@ Point PolygonUtils::getVertexInwardNormal(PolygonRef poly, unsigned int point_id
 }
 
 
-Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+Point PolygonUtils::getBoundaryPointWithOffset(ConstPolygonRef poly, unsigned int point_idx, int64_t offset)
 {
     return poly[point_idx] + normal(getVertexInwardNormal(poly, point_idx), -offset);
 }
 
 Point PolygonUtils::moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, int64_t inset)
 {
-    Point p0 = point_on_boundary.poly[point_on_boundary.point_idx];
-    Point p1 = point_on_boundary.poly[(point_on_boundary.point_idx + 1) % point_on_boundary.poly.size()];
+    if (!point_on_boundary.isValid())
+    {
+        return no_point;
+    }
+    ConstPolygonRef poly = *point_on_boundary.poly;
+    Point p0 = poly[point_on_boundary.point_idx];
+    Point p1 = poly[(point_on_boundary.point_idx + 1) % poly.size()];
     if (vSize2(p0 - point_on_boundary.location) < vSize2(p1 - point_on_boundary.location))
     {
-        return point_on_boundary.location + normal(getVertexInwardNormal(point_on_boundary.poly, point_on_boundary.point_idx), inset);
+        return point_on_boundary.location + normal(getVertexInwardNormal(poly, point_on_boundary.point_idx), inset);
     }
     else
     {
-        return point_on_boundary.location + normal(getVertexInwardNormal(point_on_boundary.poly, (point_on_boundary.point_idx + 1) % point_on_boundary.poly.size()), inset);
+        return point_on_boundary.location + normal(getVertexInwardNormal(poly, (point_on_boundary.point_idx + 1) % poly.size()), inset);
     }
 }
 
@@ -144,23 +149,39 @@ unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, in
     return moveInside(polygons, from, -distance, maxDist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, const int distance, const int64_t max_dist2, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, const int distance, const int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygons, penalty_function);
-    return _moveInside2(closest_polygon_point, distance, from, max_dist2);
+    std::optional<ClosestPolygonPoint> closest_polygon_point;
+    if (loc_to_line_grid)
+    {
+        closest_polygon_point = findClose(from, *loc_to_line_polygons, *loc_to_line_grid, penalty_function);
+    }
+    if (!closest_polygon_point)
+    {
+        closest_polygon_point = findClosest(from, polygons, penalty_function);
+    }
+    return _moveInside2(*closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const PolygonRef polygon, Point& from, const int distance, const int64_t max_dist2, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& loc_to_line_polygons, ConstPolygonRef polygon, Point& from, const int distance, const int64_t max_dist2, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygon, penalty_function);
-    return _moveInside2(closest_polygon_point, distance, from, max_dist2);
+    std::optional<ClosestPolygonPoint> closest_polygon_point;
+    if (loc_to_line_grid)
+    {
+        closest_polygon_point = findClose(from, loc_to_line_polygons, *loc_to_line_grid, penalty_function);
+    }
+    if (!closest_polygon_point)
+    {
+        closest_polygon_point = findClosest(from, polygon, penalty_function);
+    }
+    return _moveInside2(*closest_polygon_point, distance, from, max_dist2);
 }
 
 ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point& from, const int64_t max_dist2)
 {
-    if (closest_polygon_point.point_idx == NO_INDEX)
+    if (!closest_polygon_point.isValid())
     {
-        return ClosestPolygonPoint(closest_polygon_point.poly); // stub with invalid indices to signify we haven't found any
+        return ClosestPolygonPoint(); // stub with invalid indices to signify we haven't found any
     }
     const Point v_boundary_from = from - closest_polygon_point.location;
     Point result = moveInside(closest_polygon_point, distance);
@@ -182,7 +203,7 @@ ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closes
     {
         if (vSize2(v_boundary_from) > max_dist2)
         {
-            return ClosestPolygonPoint(closest_polygon_point.poly); // stub with invalid indices to signify we haven't found any
+            return ClosestPolygonPoint(*closest_polygon_point.poly); // stub with invalid indices to signify we haven't found any
         }
         else
         {
@@ -204,7 +225,7 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
     bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
-        const PolygonRef poly = polygons[poly_idx];
+        ConstPolygonRef poly = polygons[poly_idx];
         if (poly.size() < 2)
             continue;
         Point p0 = poly[poly.size()-2];
@@ -315,15 +336,19 @@ Point PolygonUtils::moveOutside(const ClosestPolygonPoint& cpp, const int distan
 
 Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distance)
 {
+    if (!cpp.isValid())
+    {
+        return no_point;
+    }
     if (distance == 0)
     { // the point which is assumed to be on the boundary doesn't have to be moved
         return cpp.location;
     }
-    const PolygonRef poly = cpp.poly;
+    ConstPolygonRef poly = *cpp.poly;
     unsigned int point_idx = cpp.point_idx;
     const Point& on_boundary = cpp.location;
 
-    Point& p1 = poly[point_idx];
+    const Point& p1 = poly[point_idx];
     unsigned int p2_idx;
     for (p2_idx = point_idx + 1; p2_idx != point_idx; p2_idx = p2_idx + 1)
     { // find the next point different from p1
@@ -336,7 +361,7 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
             break;
         }
     }
-    Point& p2 = poly[p2_idx];
+    const Point& p2 = poly[p2_idx];
 
     if (on_boundary == p1)
     {
@@ -355,14 +380,19 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     }
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, penalty_function);
-    if (closest_polygon_point.point_idx == NO_INDEX)
+    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
+    return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
+}
+
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
+{
+    if (!closest_polygon_point.isValid())
     {
-        return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
+        return ClosestPolygonPoint(); // we couldn't move inside
     }
-    PolygonRef closest_poly = closest_polygon_point.poly;
+    ConstPolygonRef closest_poly = *closest_polygon_point.poly;
     bool is_outside_boundary = closest_poly.orientation();
 
     {
@@ -376,7 +406,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
 
     // try once more with half the preferred distance inside
     int64_t max_dist2_here = std::numeric_limits<int64_t>::max(); // we already concluded we are close enough to the closest_poly
-    moveInside2(closest_poly, from, preferred_dist_inside / 2, max_dist2_here, penalty_function);
+    moveInside2(*loc_to_line_polygons, closest_poly, from, preferred_dist_inside / 2, max_dist2_here, loc_to_line_grid, penalty_function);
     bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
     if (is_inside == (preferred_dist_inside > 0))
     { // we ended up on the right side of the polygon
@@ -390,10 +420,10 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         Polygons insetted = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
         if (insetted.size() == 0)
         {
-            return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
+            return ClosestPolygonPoint(); // we couldn't move inside
         }
         ClosestPolygonPoint inside = findClosest(from, insetted, penalty_function);
-        if (inside.point_idx != NO_INDEX)
+        if (inside.isValid())
         {
             bool is_inside = polygons.inside(inside.location) == is_outside_boundary; // inside a hole is outside the part
             if (is_inside != (preferred_dist_inside > 0))
@@ -427,16 +457,16 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                         }
                     }
                     svg.writeComment("From location");
-                    svg.writePoint(from, false, 5, SVG::Color::GREEN);
+                    svg.writePoint(from, true, 5, SVG::Color::GREEN);
                     svg.writeComment("Location computed to be inside the black polygon");
-                    svg.writePoint(inside.location, false, 5, SVG::Color::RED);
+                    svg.writePoint(inside.location, true, 5, SVG::Color::RED);
                 }
                 catch(...)
                 {
                 }
                 logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
 #endif
-                return ClosestPolygonPoint(polygons[0]);
+                return ClosestPolygonPoint();
             }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location
@@ -447,8 +477,12 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
-    PolygonRef poly1 = poly1_result.poly;
-    PolygonRef poly2 = poly2_result.poly;
+    if (!poly1_result.isValid() || !poly2_result.isValid())
+    {
+        return;
+    }
+    ConstPolygonRef poly1 = *poly1_result.poly;
+    ConstPolygonRef poly2 = *poly2_result.poly;
     if (poly1.size() == 0 || poly2.size() == 0)
     {
         return;
@@ -477,8 +511,12 @@ void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, Clo
 
 void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
 {
-    PolygonRef poly1 = poly1_result.poly;
-    PolygonRef poly2 = poly2_result.poly;
+    if (!poly1_result.isValid() || !poly2_result.isValid())
+    {
+        return;
+    }
+    ConstPolygonRef poly1 = *poly1_result.poly;
+    ConstPolygonRef poly2 = *poly2_result.poly;
     if (poly1_result.point_idx < 0 || poly2_result.point_idx < 0)
     {
         return;
@@ -499,15 +537,15 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     }
 }
 
-ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef polygon, int start_idx)
+ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef polygon, int start_idx)
 {
     ClosestPolygonPoint forth = findNearestClosest(from, polygon, start_idx, 1);
-    if (forth.point_idx == NO_INDEX)
+    if (!forth.isValid())
     {
         return forth; // stop computation
     }
     ClosestPolygonPoint back = findNearestClosest(from, polygon, start_idx, -1);
-    assert(back.point_idx != NO_INDEX);
+    assert(back.isValid());
     if (vSize2(forth.location - from) < vSize2(back.location - from))
     {
         return forth;
@@ -518,7 +556,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
     }
 }
 
-ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef polygon, int start_idx, int direction)
+ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef polygon, int start_idx, int direction)
 {
     if (polygon.size() == 0)
     {
@@ -534,8 +572,8 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
     {
         int p1_idx = (polygon.size() + direction*p + start_idx) % polygon.size();
         int p2_idx = (polygon.size() + direction*(p+1) + start_idx) % polygon.size();
-        Point& p1 = polygon[p1_idx];
-        Point& p2 = polygon[p2_idx];
+        const Point& p1 = polygon[p1_idx];
+        const Point& p2 = polygon[p2_idx];
 
         Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closest_here);
@@ -556,23 +594,36 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
 
 ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygons, const std::function<int(Point)>& penalty_function)
 {
-    ClosestPolygonPoint none(from, -1, polygons[0], -1);
+    ClosestPolygonPoint none;
     
-    if (polygons.size() == 0) return none;
-    PolygonRef aPolygon = polygons[0];
-    if (aPolygon.size() == 0) return none;
-    Point aPoint = aPolygon[0];
-
-    ClosestPolygonPoint best(aPoint, 0, aPolygon, 0);
+    if (polygons.size() == 0)
+    {
+        return none;
+    }
+    ConstPolygonRef any_polygon = polygons[0];
+    unsigned int any_poly_idx;
+    for (any_poly_idx = 0; any_poly_idx < polygons.size(); any_poly_idx++)
+    { // find first point in all polygons
+        if (polygons[any_poly_idx].size() > 0)
+        {
+            any_polygon = polygons[any_poly_idx];
+            break;
+        }
+    }
+    if (any_polygon.size() == 0)
+    {
+        return none;
+    }
+    ClosestPolygonPoint best(any_polygon[0], 0, any_polygon, any_poly_idx);
 
     int64_t closestDist2_score = vSize2(from - best.location) + penalty_function(best.location);
     
     for (unsigned int ply = 0; ply < polygons.size(); ply++)
     {
-        const PolygonRef poly = polygons[ply];
+        ConstPolygonRef poly = polygons[ply];
         if (poly.size() == 0) continue;
         ClosestPolygonPoint closest_here = findClosest(from, poly, penalty_function);
-        if (closest_here.point_idx == NO_INDEX)
+        if (!closest_here.isValid())
         {
             continue;
         }
@@ -588,7 +639,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygo
     return best;
 }
 
-ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polygon, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, ConstPolygonRef polygon, const std::function<int(Point)>& penalty_function)
 {
     if (polygon.size() == 0)
     {
@@ -602,11 +653,11 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
 //
     for (unsigned int p = 0; p<polygon.size(); p++)
     {
-        Point& p1 = polygon[p];
+        const Point& p1 = polygon[p];
 
         unsigned int p2_idx = p+1;
         if (p2_idx >= polygon.size()) p2_idx = 0;
-        Point& p2 = polygon[p2_idx];
+        const Point& p2 = polygon[p2_idx];
 
         Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
@@ -627,7 +678,7 @@ PolygonsPointIndex PolygonUtils::findNearestVert(const Point from, const Polygon
     PolygonsPointIndex closest_vert;
     for (unsigned int poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
-        const PolygonRef poly = polys[poly_idx];
+        ConstPolygonRef poly = polys[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             int64_t dist2 = vSize2(poly[point_idx] - from);
@@ -641,7 +692,7 @@ PolygonsPointIndex PolygonUtils::findNearestVert(const Point from, const Polygon
     return closest_vert;
 }
 
-unsigned int PolygonUtils::findNearestVert(const Point from, const PolygonRef poly)
+unsigned int PolygonUtils::findNearestVert(const Point from, ConstPolygonRef poly)
 {
     int64_t best_dist2 = std::numeric_limits<int64_t>::max();
     unsigned int closest_vert_idx = -1;
@@ -658,7 +709,7 @@ unsigned int PolygonUtils::findNearestVert(const Point from, const PolygonRef po
 }
 
 
-SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+LocToLineGrid* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -666,11 +717,11 @@ SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUti
         n_points += poly.size();
     }
 
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* ret = new SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>(square_size, n_points);
+    LocToLineGrid* ret = new LocToLineGrid(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
-        const PolygonRef poly = polygons[poly_idx];
+        ConstPolygonRef poly = polygons[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             ret->insert(PolygonsPointIndex(&polygons, poly_idx, point_idx));
@@ -689,7 +740,7 @@ SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUti
  */
 std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     Point from, const Polygons& polygons,
-    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line,
+    const LocToLineGrid& loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines =
@@ -701,9 +752,9 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     PolygonsPointIndex best_point_poly_idx(nullptr, NO_INDEX, NO_INDEX);
     for (PolygonsPointIndex& point_poly_index : near_lines)
     {
-        const PolygonRef poly = polygons[point_poly_index.poly_idx];
-        Point& p1 = poly[point_poly_index.point_idx];
-        Point& p2 = poly[(point_poly_index.point_idx + 1) % poly.size()];
+        ConstPolygonRef poly = polygons[point_poly_index.poly_idx];
+        const Point& p1 = poly[point_poly_index.point_idx];
+        const Point& p2 = poly[(point_poly_index.point_idx + 1) % poly.size()];
 
         Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
@@ -727,8 +778,8 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
 
 
 std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(
-    const PolygonRef from, const Polygons& destination,
-    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& destination_loc_to_line,
+    ConstPolygonRef from, const Polygons& destination,
+    const LocToLineGrid& destination_loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
@@ -766,7 +817,7 @@ std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::f
 
 
 
-bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
+bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
 {
     
     Point prev_poly_point = poly[(start_idx + poly_start_idx) % poly.size()];
@@ -774,7 +825,7 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const Poly
     for (unsigned int prev_idx = start_idx; prev_idx < poly.size(); prev_idx++) 
     {
         int next_idx = (prev_idx + 1 + poly_start_idx) % poly.size(); // last checked segment is between last point in poly and poly[0]...
-        Point& next_poly_point = poly[next_idx];
+        const Point& next_poly_point = poly[next_idx];
         if ( !shorterThen(next_poly_point - from, dist) )
         {
             /*
@@ -842,34 +893,61 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const Poly
 }
 
 
+bool PolygonUtils::polygonCollidesWithLineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
+{
+    bool ret = false;
+    Point diff = to - from;
+    if (vSize2(diff) < 2)
+    { // transformation matrix would fail
+        return false;
+    }
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+    PointMatrix transformation_matrix = PointMatrix(diff);
+    Point transformed_from = transformation_matrix.apply(from);
+    Point transformed_to = transformation_matrix.apply(to);
+
+    PolygonsPointIndex result;
+
+    std::function<bool (const PolygonsPointIndex&)> process_elem_func =
+        [transformed_from, transformed_to, &transformation_matrix, &result, &ret]
+        (const PolygonsPointIndex& line_start)
+        {
+            Point p0 = transformation_matrix.apply(line_start.p());
+            Point p1 = transformation_matrix.apply(line_start.next().p());
+
+            if (LinearAlg2D::lineSegmentsCollide(transformed_from, transformed_to, p0, p1))
+            {
+                result = line_start;
+                ret = true;
+                return false;
+            }
+            return true;
+        };
+    loc_to_line.processLine(std::make_pair(from, to), process_elem_func);
+
+    if (collision_result)
+    {
+        *collision_result = result;
+    }
+    return ret;
+}
+
+bool PolygonUtils::polygonCollidesWithLineSegment(ConstPolygonRef poly, const Point& transformed_startPoint, const Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
     Point p0 = transformation_matrix.apply(poly.back());
     for(Point p1_ : poly)
     {
         Point p1 = transformation_matrix.apply(p1_);
-        if ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
+        if (LinearAlg2D::lineSegmentsCollide(transformed_startPoint, transformed_endPoint, p0, p1))
         {
-            int64_t x;
-            if(p1.Y == p0.Y)
-            {
-                x = p0.X;
-            }
-            else
-            {
-                x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
-            }
-            
-            if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
-                return true;
+            return true;
         }
         p0 = p1;
     }
     return false;
 }
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& startPoint, Point& endPoint)
+bool PolygonUtils::polygonCollidesWithLineSegment(ConstPolygonRef poly, const Point& startPoint, const Point& endPoint)
 {
     Point diff = endPoint - startPoint;
 
@@ -877,15 +955,15 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& 
     Point transformed_startPoint = transformation_matrix.apply(startPoint);
     Point transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    return PolygonUtils::polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
+    return PolygonUtils::polygonCollidesWithLineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const Point& transformed_startPoint, const Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
-    for (const PolygonRef poly : const_cast<Polygons&>(polys))
+    for (ConstPolygonRef poly : polys)
     {
         if (poly.size() == 0) { continue; }
-        if (PolygonUtils::polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
+        if (PolygonUtils::polygonCollidesWithLineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
         {
             return true;
         }
@@ -895,7 +973,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& 
 }
 
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& startPoint, Point& endPoint)
+bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const Point& startPoint, const Point& endPoint)
 {
     Point diff = endPoint - startPoint;
 
@@ -903,7 +981,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& 
     Point transformed_startPoint = transformation_matrix.apply(startPoint);
     Point transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    return polygonCollidesWithlineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
+    return polygonCollidesWithLineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
 

@@ -93,9 +93,8 @@ public:
         {
             for(unsigned int j=0;j<parts.size();j++)
             {
-                Polygon poly = parts[j];
                 fprintf(out, "<polygon points=\"");
-                for(Point& p : poly)
+                for (Point& p : parts[j])
                 {
                     Point fp = transform(p);
                     fprintf(out, "%lli,%lli ", fp.X, fp.Y);
@@ -130,9 +129,9 @@ public:
         }
     }
 
-    void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
+    void writePoints(ConstPolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
-        for (Point& p : poly)
+        for (const Point& p : poly)
         {
             writePoint(p, write_coords, size, color);
         }
@@ -209,12 +208,12 @@ public:
     }
     void writePolygons(const Polygons& polys, Color color = Color::BLACK)
     {
-        for (const PolygonRef poly : const_cast<Polygons&>(polys))
+        for (ConstPolygonRef poly : polys)
         {
             writePolygon(poly, color);
         }
     }
-    void writePolygon(const PolygonRef poly, Color color = Color::BLACK)
+    void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK)
     {
         Point p0 = poly.back();
         for (Point p1 : poly)

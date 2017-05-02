@@ -105,9 +105,11 @@ enum class EFillMethod
     LINES,
     GRID,
     CUBIC,
+    CUBICSUBDIV,
     TETRAHEDRAL,
     TRIANGLES,
     CONCENTRIC,
+    CONCENTRIC_3D,
     ZIG_ZAG,
     TRUNCATED_OCTAHEDRON,
     NONE
@@ -121,7 +123,8 @@ enum class EPlatformAdhesion
     NONE,
     SKIRT,
     BRIM,
-    RAFT
+    RAFT,
+    NONE
 };
 
 /*!
@@ -138,7 +141,7 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    BACK
+    USER_SPECIFIED
 };
 
 enum class ESurfaceMode
@@ -146,6 +149,12 @@ enum class ESurfaceMode
     NORMAL,
     SURFACE,
     BOTH
+};
+
+enum class FillPerimeterGapMode
+{
+    NOWHERE,
+    EVERYWHERE
 };
 
 enum class CombingMode
@@ -224,12 +233,13 @@ public:
     double getSettingInAngleDegrees(std::string key) const;
     double getSettingInAngleRadians(std::string key) const;
     double getSettingInMillimeters(std::string key) const;
-    int getSettingInMicrons(std::string key) const;
+    coord_t getSettingInMicrons(std::string key) const;
     bool getSettingBoolean(std::string key) const;
     double getSettingInDegreeCelsius(std::string key) const;
     double getSettingInMillimetersPerSecond(std::string key) const;
     double getSettingInCubicMillimeters(std::string key) const;
     double getSettingInPercentage(std::string key) const;
+    double getSettingAsRatio(std::string key) const; //!< For settings which are provided in percentage
     double getSettingInSeconds(std::string key) const;
 
     FlowTempGraph getSettingAsFlowTempGraph(std::string key) const;
@@ -242,8 +252,10 @@ public:
     ESupportType getSettingAsSupportType(std::string key) const;
     EZSeamType getSettingAsZSeamType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
-    CombingMode getSettingAsCombingMode(std::string key);
-    SupportDistPriority getSettingAsSupportDistPriority(std::string key);
+    FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
+    CombingMode getSettingAsCombingMode(std::string key) const;
+    SupportDistPriority getSettingAsSupportDistPriority(std::string key) const;
+    std::vector<int> getSettingAsIntegerList(std::string key) const;
 };
 
 class SettingRegistry;

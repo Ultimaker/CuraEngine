@@ -215,7 +215,7 @@ public:
     /*!
      * Adds closed polygon to the current path
      */
-    void sendPolygon(PrintFeatureType print_feature_type, Polygon poly, int width);
+    void sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef poly, int width);
 private:
     /*!
      * Convert and add a point to the points buffer, each point being represented as two consecutive floats. All members adding a 2D point to the data should use this function.
@@ -522,7 +522,7 @@ void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons
 #endif
 }
 
-void CommandSocket::sendPolygon(PrintFeatureType type, Polygon& polygon, int line_width)
+void CommandSocket::sendPolygon(PrintFeatureType type, ConstPolygonRef polygon, int line_width)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
@@ -629,8 +629,6 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 void CommandSocket::sendLayerData()
 {
 #ifdef ARCUS
-#endif
-#ifdef ARCUS
     auto& data = private_data->sliced_layers;
 
     data.sliced_objects++;
@@ -642,6 +640,7 @@ void CommandSocket::sendLayerData()
     {
         for (std::pair<const int, std::shared_ptr<cura::proto::Layer>> entry : data.slice_data) //Note: This is in no particular order!
         {
+            logDebug("Sending layer data for layer %i of %i.\n", entry.first, data.slice_data.size());
             private_data->socket->sendMessage(entry.second); //Send the actual layers.
         }
         data.sliced_objects = 0;
@@ -667,6 +666,7 @@ void CommandSocket::sendOptimizedLayerData()
     {
         for (std::pair<const int, std::shared_ptr<cura::proto::LayerOptimized>> entry : data.slice_data) //Note: This is in no particular order!
         {
+            logDebug("Sending layer data for layer %i of %i.\n", entry.first, data.slice_data.size());
             private_data->socket->sendMessage(entry.second); //Send the actual layers.
         }
         data.sliced_objects = 0;
@@ -797,7 +797,7 @@ void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type
     }
 }
 
-void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, Polygon polygon, int width)
+void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef polygon, int width)
 {
     if (polygon.size() < 2)
     {

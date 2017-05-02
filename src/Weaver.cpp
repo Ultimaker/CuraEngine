@@ -389,7 +389,7 @@ void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons&
 {
     for (unsigned int prt = 0 ; prt < parts1.size(); prt++)
     {
-        const PolygonRef upperPart = parts1[prt];
+        ConstPolygonRef upperPart = parts1[prt];
         
         ClosestPolygonPoint closestInPoly = PolygonUtils::findClosest(start_close_to, upperPart);
 
@@ -439,7 +439,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
     for (unsigned int prt = 0 ; prt < supported.size(); prt++)
     {
         
-        const PolygonRef upperPart = supported[prt];
+        ConstPolygonRef upperPart(supported[prt]);
         
         
         parts.emplace_back(prt);

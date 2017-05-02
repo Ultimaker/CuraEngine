@@ -42,6 +42,16 @@ if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
 endif()
 
+option (ENABLE_OPENMP
+    "Use OpenMP for parallel code" ON)
+
+if (ENABLE_OPENMP)
+    FIND_PACKAGE( OpenMP )
+    if( OPENMP_FOUND )
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+    endif()
+endif()
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR} libs)
 
 add_library(clipper STATIC libs/clipper/clipper.cpp)
@@ -56,16 +66,16 @@ set(engine_SRCS # Except main.cpp.
     src/FffProcessor.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
-    src/gcodePlanner.cpp
     src/infill.cpp
-    src/WallsComputation.cpp
     src/layerPart.cpp
+    src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
+    src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
     src/skin.cpp
@@ -84,13 +94,18 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
+    src/infill/SubDivCube.cpp
 
     src/pathPlanning/Comb.cpp
+    src/pathPlanning/GCodePath.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp
+    src/pathPlanning/NozzleTempInsert.cpp
+    src/pathPlanning/TimeMaterialEstimates.cpp
 
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
 
+    src/settings/PathConfigStorage.cpp
     src/settings/SettingConfig.cpp
     src/settings/SettingContainer.cpp
     src/settings/SettingRegistry.cpp
@@ -110,9 +125,6 @@ set(engine_SRCS # Except main.cpp.
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
-set(engine_TEST
-    GCodePlannerTest
-)
 set(engine_TEST_INFILL
 )
 set(engine_TEST_UTILS

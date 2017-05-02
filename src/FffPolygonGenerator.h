@@ -84,10 +84,9 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed (used for infill meshes)
-     * \param total_layers The total number of layers over all objects
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
-    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate);
+    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
     
     /*!
      * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
@@ -95,18 +94,16 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed
-     * \param total_layers The total number of layers over all objects
      */
-    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers);
+    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order);
     
     /*!
      * Process features which are derived from the basic walls, skin, and infill:
      * fuzzy skin, infill combine
      * 
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param total_layers The total number of layers over all objects
      */
-    void processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers);
+    void processDerivedWallsSkinInfill(SliceMeshStorage& mesh);
     
     /*!
      * Remove all bottom layers which are empty.
@@ -118,7 +115,14 @@ private:
      * \param total_layers The total number of layers
      */
     void removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers);
-    
+
+    /*!
+     * Set \ref SliceDataStorage::max_print_height_per_extruder and \ref SliceDataStorage::max_print_height_order and \ref SliceDataStorage::max_print_height_second_to_last_extruder
+     * 
+     * \param[in,out] storage Where to retrieve mesh and support etc settings from and where the print height statistics are saved.
+     */
+    void computePrintHeightStatistics(SliceDataStorage& storage);
+
     /*!
      * Generate the inset polygons which form the walls.
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
@@ -144,9 +148,8 @@ private:
      * Generate the polygons where the draft screen should be.
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param total_layers The total number of layers 
      */
-    void processDraftShield(SliceDataStorage& storage, unsigned int total_layers);
+    void processDraftShield(SliceDataStorage& storage);
 
     /*!
      * Generate the skirt/brim/raft areas/insets.
