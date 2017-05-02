@@ -16,20 +16,20 @@ int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two 
 int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
-void SlicerLayer::makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines)
+void SlicerLayer::makeBasicPolygonLoops(Polygons& open_polylines)
 {
     for(unsigned int start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
     {
         if (!segments[start_segment_idx].addedToPolygon)
         {
-            makeBasicPolygonLoop(mesh, open_polylines, start_segment_idx);
+            makeBasicPolygonLoop(open_polylines, start_segment_idx);
         }
     }
     //Clear the segmentList to save memory, it is no longer needed after this point.
     segments.clear();
 }
 
-void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(Polygons& open_polylines, unsigned int start_segment_idx)
 {
 
     Polygon poly;
@@ -40,7 +40,7 @@ void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polyline
         SlicerSegment& segment = segments[segment_idx];
         poly.add(segment.end);
         segment.addedToPolygon = true;
-        segment_idx = getNextSegmentIdx(mesh, segment, start_segment_idx);
+        segment_idx = getNextSegmentIdx(segment, start_segment_idx);
         if (segment_idx == static_cast<int>(start_segment_idx))
         { // polyon is closed
             polygons.add(poly);
@@ -51,7 +51,7 @@ void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polyline
     open_polylines.add(poly);
 }
 
-int SlicerLayer::tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
+int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
 {
     decltype(face_idx_to_segment_idx.begin()) it;
     auto it_end = face_idx_to_segment_idx.end();
@@ -78,7 +78,7 @@ int SlicerLayer::tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& se
     return -1;
 }
 
-int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx)
+int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, unsigned int start_segment_idx)
 {
     int next_segment_idx = -1;
 
@@ -90,7 +90,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
         {
             return -1;
         }
-        return tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+        return tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
     }
     else
     {
@@ -100,7 +100,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
         for (int face_to_try : faces_to_try)
         {
             int result_segment_idx =
-                tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+                tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
             if (result_segment_idx == static_cast<int>(start_segment_idx))
             {
                 return start_segment_idx;
@@ -738,7 +738,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 {
     Polygons open_polylines;
 
-    makeBasicPolygonLoops(mesh, open_polylines);
+    makeBasicPolygonLoops(open_polylines);
 
     connectOpenPolylines(open_polylines);
 

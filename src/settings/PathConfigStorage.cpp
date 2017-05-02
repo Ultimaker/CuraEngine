@@ -68,7 +68,8 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness)
 : adhesion_extruder_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr")))
 , support_infill_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr")))
-, support_interface_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr")))
+, support_roof_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_roof_extruder_nr")))
+, support_bottom_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_bottom_extruder_nr")))
 , raft_base_config(
             PrintFeatureType::SupportInterface
             , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width")
@@ -97,12 +98,19 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             , support_infill_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
         )
-, support_interface_config(
+, support_roof_config(
             PrintFeatureType::SupportInterface
-            , support_interface_train->getSettingInMicrons("support_interface_line_width")
+            , support_roof_train->getSettingInMicrons("support_roof_line_width")
             , layer_thickness
-            , support_interface_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_interface")}
+            , support_roof_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_roof_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("jerk_support_roof")}
+        )
+, support_bottom_config(
+            PrintFeatureType::SupportInterface
+            , support_bottom_train->getSettingInMicrons("support_bottom_line_width")
+            , layer_thickness
+            , support_bottom_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_bottom_train->getSettingInMillimetersPerSecond("speed_support_bottom"), support_bottom_train->getSettingInMillimetersPerSecond("acceleration_support_bottom"), support_bottom_train->getSettingInMillimetersPerSecond("jerk_support_bottom")}
         )
 {
     const int extruder_count = storage.meshgroup->getExtruderCount();
@@ -170,9 +178,12 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             GCodePathConfig::SpeedDerivatives& first_layer_config_infill = global_first_layer_config_per_extruder[extruder_nr_support_infill];
             support_infill_config.smoothSpeed(first_layer_config_infill, std::max(0, layer_nr), initial_speedup_layer_count);
 
-            const int extruder_nr_support_interface = storage.getSettingAsIndex("support_interface_extruder_nr");
-            GCodePathConfig::SpeedDerivatives& first_layer_config_interface = global_first_layer_config_per_extruder[extruder_nr_support_interface];
-            support_interface_config.smoothSpeed(first_layer_config_interface, std::max(0, layer_nr), initial_speedup_layer_count);
+            const int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
+            GCodePathConfig::SpeedDerivatives& first_layer_config_roof = global_first_layer_config_per_extruder[extruder_nr_support_roof];
+            support_roof_config.smoothSpeed(first_layer_config_roof, std::max(0, layer_nr), initial_speedup_layer_count);
+            const int extruder_nr_support_bottom = storage.getSettingAsIndex("support_bottom_extruder_nr");
+            GCodePathConfig::SpeedDerivatives& first_layer_config_bottom = global_first_layer_config_per_extruder[extruder_nr_support_bottom];
+            support_bottom_config.smoothSpeed(first_layer_config_bottom, std::max(0, layer_nr), initial_speedup_layer_count);
         }
     }
 
@@ -180,21 +191,23 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-            GCodePathConfig::SpeedDerivatives initial_layer_speed_config{
+            GCodePathConfig::SpeedDerivatives initial_layer_travel_speed_config{
                     train->getSettingInMillimetersPerSecond("speed_travel_layer_0")
                     , train->getSettingInMillimetersPerSecond("acceleration_travel_layer_0")
                     , train->getSettingInMillimetersPerSecond("jerk_travel_layer_0")
             };
             GCodePathConfig& travel = travel_config_per_extruder[extruder_nr];
 
-            travel.smoothSpeed(initial_layer_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
+            travel.smoothSpeed(initial_layer_travel_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
 
             // don't smooth speed for the skirt/brim!
             // NOTE: not smoothing skirt/brim means the speeds are also not smoothed for the draft/ooze shield
 
+            const GCodePathConfig::SpeedDerivatives& initial_layer_print_speed_config = global_first_layer_config_per_extruder[extruder_nr];
+
             GCodePathConfig& prime_tower = prime_tower_config_per_extruder[extruder_nr];
 
-            prime_tower.smoothSpeed(initial_layer_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
+            prime_tower.smoothSpeed(initial_layer_print_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
         }
 
     }

@@ -43,7 +43,6 @@ private:
     /*!
      * Generate the skirt/brim lines around the model
      * 
-     * \param storage Storage containing the parts at the first layer.
      * \param start_distance The distance of the first outset from the parts at the first
      * \param primary_line_count Number of outsets / brim lines of the primary extruder.
      * \param primary_extruder_skirt_brim_line_width Line widths of the initial skirt/brim lines
@@ -52,7 +51,7 @@ private:
      * \param[out] skirt_brim_primary_extruder Where to store the resulting brim/skirt lines in
      * \return The offset of the last brim/skirt line from the reference polygon \p first_layer_outline
      */
-    static int generatePrimarySkirtBrimLines(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder);
+    static int generatePrimarySkirtBrimLines(int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder);
 };
 }//namespace cura
 

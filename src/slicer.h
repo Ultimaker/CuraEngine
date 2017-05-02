@@ -66,30 +66,27 @@ protected:
     /*!
      * Connect the segments into loops which correctly form polygons (don't perform stitching here)
      *
-     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
-     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines);
+    void makeBasicPolygonLoops(Polygons& open_polylines);
 
     /*!
      * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
      *
-     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
-     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
      */
-    void makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx);
+    void makeBasicPolygonLoop(Polygons& open_polylines, unsigned int start_segment_idx);
 
     /*!
      * Get the next segment connected to the end of \p segment.
      * Used to make closed polygon loops.
      * Return ASAP if segment is (also) connected to SlicerLayer::segments[\p start_segment_idx]
      *
-     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
      * \param[in] segment The segment from which to start looking for the next
      * \param[in] start_segment_idx The index to the segment which when conected to \p segment will immediately stop looking for further candidates.
      */
-    int getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx);
+    int getNextSegmentIdx(const SlicerSegment& segment, unsigned int start_segment_idx);
 
     /*!
      * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
@@ -392,12 +389,11 @@ private:
     /*!
      * Try to find a segment from face \p face_idx to continue \p segment.
      *
-     * \param[in] mesh The mesh being sliced.
      * \param[in] segment The previous segment that we want to find a continuation for.
      * \param[in] face_idx The index of the face that might have generated a continuation segment.
      * \param[in] start_segment_idx The index of the segment that started this polyline.
      */
-    int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment,
+    int tryFaceNextSegmentIdx(const SlicerSegment& segment,
                               int face_idx, unsigned int start_segment_idx) const;
 
     /*!

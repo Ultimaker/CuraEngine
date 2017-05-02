@@ -208,9 +208,8 @@ private:
      * Add raft layer plans onto the FffGcodeWriter::layer_plan_buffer
      * 
      * \param[in,out] storage where the slice data is stored.
-     * \param total_layers The total number of layers.
      */
-    void processRaft(const SliceDataStorage& storage, unsigned int total_layers);
+    void processRaft(const SliceDataStorage& storage);
 
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
@@ -331,12 +330,11 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
      * 
-     * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -346,9 +344,24 @@ private:
     void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
+     * Add infill for a given part in a layer plan.
+     * 
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param infill_line_distance The distance between the infill lines
+     * \param infill_overlap The distance by which the infill overlaps with the wall insets.
+     * \param fillAngle The angle in the XY plane at which the infill is generated.
+     */
+    void processInfill(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+
+    /*!
      * Add a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
      * 
      * \param[in] storage where the slice data is stored.
+     * \param storage Storage to get global settings from.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
      * \param mesh_config the line config with which to print a print feature
      * \param part The part to add
@@ -357,7 +370,7 @@ private:
      * 
      */
     void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
-    
+
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
      * 
@@ -387,6 +400,7 @@ private:
     
     /*!
      * Generate the insets for the walls of a given layer part.
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param mesh_config the line config with which to print a print feature
@@ -395,8 +409,17 @@ private:
      * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
      * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      */
-    void processInsets(LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
+    void processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
     
+    /*!
+     * Generate the a spiralized wall for a given layer part.
+     * \param[in] storage where the slice data is stored.
+     * \param[out] gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     */
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
     
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
@@ -430,15 +453,46 @@ private:
      * \return whether any support infill was added to the layer plan
      */
     bool addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+
     /*!
-     * Add the support skins to the layer plan \p gcodeLayer of the current layer.
-     * \param[in] storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
-     * \return whether any support skin was added to the layer plan
+     * Add the support roofs to the layer plan \p gcodeLayer of the current
+     * layer.
+     *
+     * \param[in] storage Where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the g-code of.
+     * \return Whether any support skin was added to the layer plan.
      */
     bool addSupportRoofsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
-    
+
+    /*!
+     * Add the support bottoms to the layer plan \p gcodeLayer of the current
+     * layer.
+     *
+     * \param[in] storage Where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the g-code of.
+     * \return Whether any support skin was added to the layer plan.
+     */
+    bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+
+    /*!
+     * \brief Gives the angle of the infill of support interface.
+     *
+     * The angle depends on which pattern it's using and in certain patterns it
+     * alternates between layers.
+     *
+     * \param storage A storage of meshes and their settings.
+     * \param pattern The pattern of the support interface to get the fill angle
+     * for.
+     * \param layer_number The current layer number to generate support
+     * interface for.
+     * \param interface_height_setting The setting to retrieve from every mesh
+     * to determine whether the support interface should alternate.
+     * \return The angle of support interface.
+     */
+    double supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const int layer_number) const;
+
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
      * 
@@ -466,10 +520,21 @@ private:
     void finalize();
 
     /*!
-     * Calculate for each layer in the mesh the index of the vertex that is considered to be the seam
-     * \param mesh The mesh containing the layers to be spiralized
+     * Calculate for each layer the index of the vertex that is considered to be the seam
+     * \param storage where the slice data is stored.
+     * \param total_layers The total number of layers
      */
-    void findLayerSeamsForSpiralize(SliceMeshStorage& mesh);
+    void findLayerSeamsForSpiralize(SliceDataStorage& storage, size_t total_layers);
+
+    /*!
+     * Calculate the index of the vertex that is considered to be the seam for the given layer
+     * \param storage where the slice data is stored.
+     * \param mesh the mesh containing the layer of interest
+     * \param layer_nr layer number of the layer whose seam verted index is required
+     * \param last_layer_nr layer number of the previous layer
+     * \return layer seam vertex index
+     */
+    unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
 };
 
 }//namespace cura
