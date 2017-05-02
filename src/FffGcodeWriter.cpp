@@ -1262,37 +1262,37 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     constexpr float flow = 1.0;
                     if (part.insets[0].size() > 0 && extruder_nr == mesh->getSettingAsIndex("wall_0_extruder_nr"))
                     {
-                    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                    added_something = true;
-                    if (!compensate_overlap_0)
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        Polygons outer_wall = part.insets[0];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                    }
+                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                        added_something = true;
+                        if (!compensate_overlap_0)
+                        {
+                            WallOverlapComputation* wall_overlap_computation(nullptr);
+                            gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                        }
+                        else
+                        {
+                            Polygons outer_wall = part.insets[0];
+                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                            gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                        }
                     }
                 }
                 else
                 {
                     if (part.insets[processed_inset_number].size() > 0 && extruder_nr == mesh->getSettingAsIndex("wall_x_extruder_nr"))
                     {
-                    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                    added_something = true;
-                    if (!compensate_overlap_x)
-                    {
-                        gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
-                    }
-                    else
-                    {
-                        Polygons outer_wall = part.insets[processed_inset_number];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.insetX_config, &wall_overlap_computation);
-                    }
+                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                        added_something = true;
+                        if (!compensate_overlap_x)
+                        {
+                            gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
+                        }
+                        else
+                        {
+                            Polygons outer_wall = part.insets[processed_inset_number];
+                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                            gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.insetX_config, &wall_overlap_computation);
+                        }
                     }
                 }
             }
@@ -1404,18 +1404,18 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
         // add skin itself!
         if ((skin_polygons.size() > 0 || skin_lines.size() > 0) && extruder_nr == top_bottom_extruder_nr)
         {
-        added_something = true;
-        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-        gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
 
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
-        {
-            gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
-        }
-        else
-        {
-            gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
-        }
+            if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+            {
+                gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
+            }
+            else
+            {
+                gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            }
         }
 
         if (fill_perimeter_gaps)
