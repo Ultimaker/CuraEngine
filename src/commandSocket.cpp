@@ -422,7 +422,8 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
     }
 
     { // load extruder settings
-        for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
+        int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         { // initialize remaining extruder trains and load the defaults
             meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
         }
@@ -430,6 +431,11 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
         for (auto extruder : settings_per_extruder_train)
         {
             int extruder_nr = extruder.id();
+            if (extruder_nr >= extruder_count)
+            {
+                logWarning("Definition has more extruder trains than extruder count suggests, ignoring extra extruder trains.\n");
+                break;
+            }
             ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
             for (auto setting : extruder.settings().settings())
             {
