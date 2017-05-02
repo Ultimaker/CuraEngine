@@ -123,8 +123,7 @@ enum class EPlatformAdhesion
     NONE,
     SKIRT,
     BRIM,
-    RAFT,
-    NONE
+    RAFT
 };
 
 /*!
