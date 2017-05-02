@@ -885,7 +885,12 @@ void GCodeExport::writePrimeTrain(double travel_speed)
 
     if (flavor == EGCodeFlavor::GRIFFIN)
     {
-        *output_stream << "G280" << new_line;
+        std::string command = "G280";
+        if (!extruder_attr[current_extruder].is_prime_enabled)
+        {
+            command += " S1";  // use S1 to disable priming
+        }
+        *output_stream << command << new_line;
     }
     else
     {
