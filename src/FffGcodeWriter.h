@@ -225,11 +225,11 @@ private:
     LayerPlan& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
 
     /*!
-     * Whether the extruders need to be primed separately just before they are used.
+     * Whether any extruder needs to be primed separately just before they are used.
      * 
-     * \return whether the extruders need to be primed separately just before they are used
+     * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getExtrudersNeedPrimeDuringFirstLayer() const;
+    bool getAnyExtruderNeedPrimeDuringFirstLayer(const SliceDataStorage& storage) const;
 
     /*!
      * Plan priming of all used extruders which haven't been primed yet
