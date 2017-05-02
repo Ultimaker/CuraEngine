@@ -1,12 +1,18 @@
 /** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 #include "SpaghettiInfillPathGenerator.h"
 #include "../infill.h"
+#include "../FffGcodeWriter.h"
 
 namespace cura {
 
 
-void SpaghettiInfillPathGenerator::processSpaghettiInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
+bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
+    if (extruder_nr != mesh->getSettingAsIndex("infill_extruder_nr"))
+    {
+        return false;
+    }
+    bool added_something = false;
     const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
     const unsigned int infill_line_width = config.getLineWidth();
@@ -43,14 +49,19 @@ void SpaghettiInfillPathGenerator::processSpaghettiInfill(LayerPlan& gcode_layer
             assert(flow_ratio / mesh->getSettingAsRatio("spaghetti_flow") >= 0.9);
             assert(!std::isnan(flow_ratio) && !std::isinf(flow_ratio));
 
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
-            if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+            if (!infill_polygons.empty() || !infill_lines.empty())
             {
-                gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-            }
-            else
-            {
-                gcode_layer.addLinesByOptimizer(infill_lines, &config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
+                added_something = true;
+                fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
+                if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+                {
+                    gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                }
+                else
+                {
+                    gcode_layer.addLinesByOptimizer(infill_lines, &config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
+                }
             }
         }
         else
@@ -69,6 +80,7 @@ void SpaghettiInfillPathGenerator::processSpaghettiInfill(LayerPlan& gcode_layer
             gcode_layer.addExtrusionMove(middle + Point(0, path_length), &config, SpaceFillType::Lines, flow_ratio);
         }
     }
+    return added_something;
 }
 
 }//namespace cura
