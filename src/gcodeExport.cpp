@@ -90,6 +90,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
         extruder_attr[extruder_nr].use_temp = train->getSettingBoolean("machine_nozzle_temp_enabled");
+        extruder_attr[extruder_nr].is_prime_enabled = train->getSettingBoolean("prime_enable");
 
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
