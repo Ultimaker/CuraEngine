@@ -428,13 +428,18 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
             meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
         }
 
+        bool logged_extra_extruders = false;
         for (auto extruder : settings_per_extruder_train)
         {
             int extruder_nr = extruder.id();
             if (extruder_nr >= extruder_count)
             {
-                logWarning("Definition has more extruder trains than extruder count suggests, ignoring extra extruder trains.\n");
-                break;
+                if (!logged_extra_extruders)
+                {
+                    log("Definition has more extruder trains than extruder count suggests, ignoring extra extruder trains.\n");
+                    logged_extra_extruders = true;
+                }
+                continue;
             }
             ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
             for (auto setting : extruder.settings().settings())
