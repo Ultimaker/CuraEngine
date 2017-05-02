@@ -27,39 +27,6 @@ const Polygons& SliceLayerPart::getOwnInfillArea() const
     }
 }
 
-bool SliceLayerPart::isUsed(const SettingsBaseVirtual& mesh_settings) const
-{
-    if (mesh_settings.getSettingAsCount("wall_line_count") > 0 && insets.size() > 0)
-    { // note that in case wall line count is zero, the outline was pushed onto the insets
-        return true;
-    }
-    if (skin_parts.size() > 0)
-    {
-        return true;
-    }
-    if (mesh_settings.getSettingBoolean("spaghetti_infill_enabled"))
-    {
-        if (spaghetti_infill_volumes.size() > 0)
-        {
-            return true;
-        }
-    }
-    else if (mesh_settings.getSettingInMicrons("infill_line_distance") > 0)
-    {
-        for (const std::vector<Polygons>& infill_area_per_combine : infill_area_per_combine_per_density)
-        {
-            for (const Polygons& area : infill_area_per_combine)
-            {
-                if (area.size() > 0)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
 Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
