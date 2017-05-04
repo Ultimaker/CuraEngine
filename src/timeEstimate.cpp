@@ -127,11 +127,13 @@ void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double 
     block->final_feedrate = final_feedrate;
 }                    
 
-void TimeEstimateCalculator::plan(Position newPos, double feedrate)
+void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeatureType feature)
 {
     Block block;
     memset(&block, 0, sizeof(block));
-    
+
+    block.feature = feature;
+
     block.maxTravel = 0;
     for(unsigned int n=0; n<NUM_AXIS; n++)
     {
