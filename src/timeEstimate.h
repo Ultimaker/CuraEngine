@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <unordered_map>
 
 #include "PrintFeature.h"
 
@@ -92,7 +93,7 @@ public:
 
     void reset();
     
-    double calculate();
+    std::unordered_map<PrintFeatureType, double> calculate();
 private:
     void reverse_pass();
     void forward_pass();

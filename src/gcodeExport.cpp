@@ -27,7 +27,19 @@ GCodeExport::GCodeExport()
     current_extruder = 0;
     currentFanSpeed = -1;
 
-    totalPrintTime = 0.0;
+    total_print_times = {
+        {PrintFeatureType::Infill, 0},
+        {PrintFeatureType::InnerWall, 0},
+        {PrintFeatureType::MoveCombing, 0},
+        {PrintFeatureType::MoveRetraction, 0},
+        {PrintFeatureType::NoneType, 0},
+        {PrintFeatureType::OuterWall, 0},
+        {PrintFeatureType::Skin, 0},
+        {PrintFeatureType::SkirtBrim, 0},
+        {PrintFeatureType::Support, 0},
+        {PrintFeatureType::SupportInfill, 0},
+        {PrintFeatureType::SupportInterface, 0}
+    };
 
     currentSpeed = 1;
     current_acceleration = -1;
@@ -377,14 +389,27 @@ double GCodeExport::getTotalFilamentUsed(int extruder_nr)
     return extruder_attr[extruder_nr].totalFilament;
 }
 
-double GCodeExport::getTotalPrintTime()
+std::unordered_map<PrintFeatureType, double> GCodeExport::getTotalPrintTimes()
 {
-    return totalPrintTime;
+    return total_print_times;
+}
+
+double GCodeExport::getSumTotalPrintTimes()
+{
+    double sum = 0.0;
+    for(auto item : getTotalPrintTimes())
+    {
+        sum += item.second;
+    }
+    return sum;
 }
 
 void GCodeExport::resetTotalPrintTimeAndFilament()
 {
-    totalPrintTime = 0;
+    for(auto item : total_print_times)
+    {
+        total_print_times[item.first] = 0.0;
+    }
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
     {
         extruder_attr[e].totalFilament = 0.0;
@@ -396,9 +421,12 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
 
 void GCodeExport::updateTotalPrintTime()
 {
-    totalPrintTime += estimateCalculator.calculate();
+    for(auto item : estimateCalculator.calculate())
+    {
+        total_print_times[item.first] += item.second;
+    }
     estimateCalculator.reset();
-    writeTimeComment(totalPrintTime);
+    writeTimeComment(getSumTotalPrintTimes());
 }
 
 void GCodeExport::writeComment(std::string comment)
@@ -1030,7 +1058,7 @@ void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);
-    int64_t print_time = getTotalPrintTime();
+    int64_t print_time = getSumTotalPrintTimes();
     int mat_0 = getTotalFilamentUsed(0);
     log("Print time: %d\n", print_time);
     log("Print time (readable): %dh %dm %ds\n", print_time / 60 / 60, (print_time / 60) % 60, print_time % 60);

@@ -116,7 +116,7 @@ private:
     int currentFanSpeed;
     EGCodeFlavor flavor;
 
-    double totalPrintTime; //!< The total estimated print time in seconds
+    std::unordered_map<PrintFeatureType, double> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
@@ -223,11 +223,17 @@ public:
     double getTotalFilamentUsed(int extruder_nr);
 
     /*!
-     * Get the total estimated print time in seconds
+     * Get the total estimated print time in seconds for each feature
      * 
-     * \return total print time in seconds
+     * \return total print time in seconds for each feature
      */
-    double getTotalPrintTime();
+    std::unordered_map<PrintFeatureType, double> getTotalPrintTimes();
+    /*!
+     * Get the total print time in seconds for the complete print
+     * 
+     * \return total print time in seconds for the complete print
+     */
+    double getSumTotalPrintTimes();
     void updateTotalPrintTime();
     void resetTotalPrintTimeAndFilament();
     
