@@ -343,6 +343,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
 
     const Polygons empty;
     const Polygons* supportLayer_last = &empty;
+    Polygons support_layer_last_without_support_mesh;
     std::vector<Polygons> towerRoofs;
     Polygons stair_removal; // polygons to subtract from support because of stair-stepping
 
@@ -408,16 +409,25 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
             supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
 
+        // inset using XY distance before determining the support areas for the next layer because
+        // otherwise a support pillar would always go to the build plate even when there's model in between
+
+        supportLayer_last = &supportAreas[layer_idx];
+
         if (is_support_modifier_place_holder && storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
         { // handle support mesh which should NOT be supported by more support
-            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+            support_layer_last_without_support_mesh = supportLayer_this;
+            supportLayer_last = &support_layer_last_without_support_mesh;
+            // reapply XY distance to support mesh
+            // the support mesh cannot be merged before applying the XY distance globally because then it would be taken along to the next layer.
+            Polygons support_mesh = storage.support.supportLayers[layer_idx].support_mesh.difference(xy_disallowed_per_layer[layer_idx]);
+            supportLayer_this = supportLayer_this.unionPolygons(support_mesh);
         }
 
         // move up from model
         moveUpFromModel(storage, stair_removal, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
 
         supportAreas[layer_idx] = supportLayer_this;
-        supportLayer_last = &supportAreas[layer_idx];
 
         Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count * (mesh_idx + 1) - layer_idx, support_layer_count * storage.meshes.size());
     }
