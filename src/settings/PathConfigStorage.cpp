@@ -35,6 +35,13 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_0"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0")}
 )
+, inset0_config_layer0(
+    PrintFeatureType::OuterWall
+    , mesh.getSettingInMicrons("wall_line_width_0") * mesh.getSettingInPercentage("initial_layer_line_width_factor") / 100.0
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_0"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0")}
+)
 , insetX_config(
     PrintFeatureType::InnerWall
     , mesh.getSettingInMicrons("wall_line_width_x")
@@ -42,12 +49,26 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
 )
+, insetX_config_layer0(
+PrintFeatureType::InnerWall
+, mesh.getSettingInMicrons("wall_line_width_x") * mesh.getSettingInPercentage("initial_layer_line_width_factor") / 100.0
+, layer_thickness
+, mesh.getSettingInPercentage("material_flow")
+, GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
+)
 , skin_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width")
     , layer_thickness
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+)
+, skin_config_layer0(
+PrintFeatureType::Skin
+, mesh.getSettingInMicrons("skin_line_width") * mesh.getSettingInPercentage("initial_layer_line_width_factor") / 100.0
+, layer_thickness
+, mesh.getSettingInPercentage("material_flow")
+, GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
 
 , perimeter_gap_config(getPerimeterGapConfig(mesh, layer_thickness))
@@ -227,12 +248,15 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             MeshPathConfigs& mesh_config = mesh_configs[mesh_idx];
             //Outer wall speed (per mesh).
             mesh_config.inset0_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_config.inset0_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
 
             //Inner wall speed (per mesh).
             mesh_config.insetX_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_config.insetX_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
 
             //Skin speed (per mesh).
             mesh_config.skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_config.skin_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
             mesh_config.perimeter_gap_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
 
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)

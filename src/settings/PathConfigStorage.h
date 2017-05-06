@@ -29,8 +29,11 @@ public:
     {
     public:
         GCodePathConfig inset0_config;
+        GCodePathConfig inset0_config_layer0;
         GCodePathConfig insetX_config;
+        GCodePathConfig insetX_config_layer0;
         GCodePathConfig skin_config;
+        GCodePathConfig skin_config_layer0;
         GCodePathConfig perimeter_gap_config;
         std::vector<GCodePathConfig> infill_config;
 
