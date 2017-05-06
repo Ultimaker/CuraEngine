@@ -119,7 +119,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
         if (mesh.getSettingBoolean("mold_enabled"))
         {
-            Mold::process(*slicerList[meshIdx], layer_thickness, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"));
+            Mold::process(*slicerList[meshIdx], layer_thickness, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"), mesh.getSettingInMicrons("wall_line_width_0") * mesh.getSettingAsRatio("initial_layer_line_width_factor"));
         }
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
@@ -526,6 +526,11 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
             inset_count += 5;
         int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
         int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        if (layer_nr == 0)
+        {
+            line_width_x *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_0 *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+        }
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
         {
             inset_count += ((layer_nr % 2) + 2) % 2;
@@ -616,7 +621,11 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     }
 
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    if (layer_nr == 0)
+    {
+        innermost_wall_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+    }
     generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
 
     if (process_infill)

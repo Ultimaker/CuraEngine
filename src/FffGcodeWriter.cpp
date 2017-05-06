@@ -641,6 +641,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     for (const SettingsBaseVirtual& mesh_settings : storage.meshes)
     {
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
+        if (layer_nr == 0)
+        {
+            max_inner_wall_width *= mesh_settings.getSettingAsRatio("initial_layer_line_width_factor");
+        }
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
@@ -1047,7 +1051,12 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
     if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
     {
-        gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
+        int line_width = mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+        if (layer_nr == 0)
+        {
+            line_width *= mesh->getSettingAsRatio("initial_layer_line_width_factor");
+        }
+        gcode_layer.moveInsideCombBoundary(line_width);
     }
 
     gcode_layer.setIsInside(false);
@@ -1243,7 +1252,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     else
                     {
                         Polygons outer_wall = part.insets[0];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0") * mesh->getSettingAsRatio("initial_layer_line_width_factor"));
                         gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.getInset0Config(layer_nr), &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                     }
                 }
@@ -1256,7 +1265,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     else
                     {
                         Polygons outer_wall = part.insets[processed_inset_number];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x") * ((layer_nr == 0)? mesh->getSettingAsRatio("initial_layer_line_width_factor") : 1.0f));
                         gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.getInsetXConfig(layer_nr), &wall_overlap_computation);
                     }
                 }

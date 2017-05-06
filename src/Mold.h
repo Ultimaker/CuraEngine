@@ -25,8 +25,9 @@ public:
      * \param angle The overhang angle for the outer outlines of the mold
      * \param width The minmal width of the mold; the minmal distance between the outside and inside of the mold in horizontal direction
      * \param open_polyline_width The width with which the open polylines are cut out of the mold
+     * \param open_polyline_width_layer0 The width with which the open polylines are cut out of the mold on the first layer
      */
-    static void process(Slicer& slicer, coord_t layer_height, double angle, coord_t width, coord_t open_polyline_width);
+    static void process(Slicer& slicer, coord_t layer_height, double angle, coord_t width, coord_t open_polyline_width, coord_t open_polyline_width_layer0);
 private:
 };
 
