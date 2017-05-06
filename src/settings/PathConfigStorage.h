@@ -38,6 +38,9 @@ public:
         std::vector<GCodePathConfig> infill_config;
 
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
+        const GCodePathConfig *getInset0Config(const int layer_nr) const;
+        const GCodePathConfig *getInsetXConfig(const int layer_nr) const;
+        const GCodePathConfig *getSkinConfig(const int layer_nr) const;
     };
     
     GCodePathConfig raft_base_config;
