@@ -1,3 +1,6 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "multiVolumes.h"
 
 namespace cura 
@@ -110,7 +113,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];
-                if (carved_mesh_idx == carving_mesh_idx || carved_mesh.getSettingBoolean("cutting_mesh"))
+                if (carved_mesh.getSettingBoolean("cutting_mesh"))
                 {
                     continue;
                 }
