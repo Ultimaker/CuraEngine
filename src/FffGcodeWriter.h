@@ -225,11 +225,15 @@ private:
     LayerPlan& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
 
     /*!
-     * Whether any extruder needs to be primed separately just before they are used.
+     * This function checks whether prime poop should happen for any extruder on the first layer.
+     * Priming will always happen, but the actual priming may or may not include a prime poop.
+     *
+     * Technically, this function checks whether any extruder needs to be primed (with a prime poop)
+     * separately just before they are used.
      * 
      * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getAnyExtruderNeedPrimeDuringFirstLayer(const SliceDataStorage& storage) const;
+    bool getAnyExtruderNeedPrimePoopDuringFirstLayer(const SliceDataStorage& storage) const;
 
     /*!
      * Plan priming of all used extruders which haven't been primed yet

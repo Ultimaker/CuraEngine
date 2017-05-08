@@ -42,7 +42,7 @@ private:
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
         bool use_temp; //!< Whether to insert temperature commands for this extruder
-        bool is_prime_enabled; //! < Whether the priming poop is enabled
+        bool is_prime_poop_enabled; //! < Whether the priming poop is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
@@ -70,7 +70,7 @@ private:
         : prime_pos(0, 0, 0)
         , prime_pos_is_abs(false)
         , is_primed(false)
-        , is_prime_enabled(false)
+        , is_prime_poop_enabled(false)
         , is_used(false)
         , nozzle_offset(0,0)
         , extruderCharacter(0)

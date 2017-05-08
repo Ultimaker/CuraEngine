@@ -712,7 +712,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     return gcode_layer;
 }
 
-bool FffGcodeWriter::getAnyExtruderNeedPrimeDuringFirstLayer(const SliceDataStorage& storage) const
+bool FffGcodeWriter::getAnyExtruderNeedPrimePoopDuringFirstLayer(const SliceDataStorage& storage) const
 {
     bool need_prime = false;
     switch (gcode.getFlavor())
@@ -733,8 +733,9 @@ bool FffGcodeWriter::getAnyExtruderNeedPrimeDuringFirstLayer(const SliceDataStor
 
         for (uint32_t extruder_nr = 0; extruder_nr < extruders_is_used_overall.size(); ++extruder_nr)
         {
-            const bool extruder_prime_enabled = storage.getExtruderPrimeEnabled(extruder_nr);
-            has_extruder_that_needs_prime = has_extruder_that_needs_prime || (extruders_is_used_overall[extruder_nr] && extruder_prime_enabled);
+            const bool extruder_prime_poop_enabled = storage.getExtruderPrimePoopEnabled(extruder_nr);
+            has_extruder_that_needs_prime = has_extruder_that_needs_prime
+                || (extruders_is_used_overall[extruder_nr] && extruder_prime_poop_enabled);
             if (has_extruder_that_needs_prime)
             {
                 break;
@@ -839,12 +840,12 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
         || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
-        // check if we need priming on the first layer
-        if (getAnyExtruderNeedPrimeDuringFirstLayer(storage))
+        // check if we need prime poop on the first layer
+        if (getAnyExtruderNeedPrimePoopDuringFirstLayer(storage))
         {
             for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
             {
-                if (extruder_is_used_overall[used_idx] && storage.getExtruderPrimeEnabled(used_idx))
+                if (extruder_is_used_overall[used_idx] && storage.getExtruderPrimePoopEnabled(used_idx))
                 {
                     extruder_is_used_on_this_layer[used_idx] = true;
                 }

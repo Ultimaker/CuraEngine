@@ -265,12 +265,12 @@ public:
     std::vector<bool> getExtrudersUsed(int layer_nr) const;
 
     /*!
-     * Gets whether priming is enabled for the given extruder number.
+     * Gets whether prime poop is enabled for the given extruder number.
      *
      * \param extruder_nr the extruder number to check.
-     * \return a bool indicating whether priming is enabled for the given extruder number.
+     * \return a bool indicating whether prime poop is enabled for the given extruder number.
      */
-    bool getExtruderPrimeEnabled(int extruder_nr) const;
+    bool getExtruderPrimePoopEnabled(int extruder_nr) const;
 
 private:
     /*!
