@@ -87,11 +87,23 @@ SliceMeshStorage::~SliceMeshStorage()
 
 bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
 {
+    if (getSettingBoolean("magic_spiralize"))
+    {
+        if (getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     if (getSettingAsCount("wall_line_count") > 0 && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
     {
         return true;
     }
-    if (getSettingAsCount("wall_line_count") > 1 && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
+    if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter") || getSettingBoolean("fill_perimeter_gaps"))
+        && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
     {
         return true;
     }
@@ -99,7 +111,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
     {
         return true;
     }
-    if (getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
+    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers")) && getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
     {
         return true;
     }
@@ -128,7 +140,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             }
         }
     }
-    if (getSettingAsCount("wall_line_count") > 1 && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
+    if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter")) && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
