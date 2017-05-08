@@ -629,18 +629,18 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
     logDebug("Sending print time and material estimates.\n");
     auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
 
-    std::unordered_map<PrintFeatureType, double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimes();
-    message->set_time_infill(time_estimates[PrintFeatureType::Infill]);
-    message->set_time_inset_0(time_estimates[PrintFeatureType::OuterWall]);
-    message->set_time_inset_x(time_estimates[PrintFeatureType::InnerWall]);
-    message->set_time_none(time_estimates[PrintFeatureType::NoneType]);
-    message->set_time_retract(time_estimates[PrintFeatureType::MoveRetraction]);
-    message->set_time_skin(time_estimates[PrintFeatureType::Skin]);
-    message->set_time_skirt(time_estimates[PrintFeatureType::SkirtBrim]);
-    message->set_time_support(time_estimates[PrintFeatureType::Support]);
-    message->set_time_support_infill(time_estimates[PrintFeatureType::SupportInfill]);
-    message->set_time_support_interface(time_estimates[PrintFeatureType::SupportInterface]);
-    message->set_time_travel(time_estimates[PrintFeatureType::MoveCombing]);
+    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimes();
+    message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
+    message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
+    message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
+    message->set_time_none(time_estimates[static_cast<unsigned char>(PrintFeatureType::NoneType)]);
+    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetraction)]);
+    message->set_time_skin(time_estimates[static_cast<unsigned char>(PrintFeatureType::Skin)]);
+    message->set_time_skirt(time_estimates[static_cast<unsigned char>(PrintFeatureType::SkirtBrim)]);
+    message->set_time_support(time_estimates[static_cast<unsigned char>(PrintFeatureType::Support)]);
+    message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
+    message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
+    message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
     int num_extruders = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
     for (int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
     {

@@ -27,19 +27,7 @@ GCodeExport::GCodeExport()
     current_extruder = 0;
     currentFanSpeed = -1;
 
-    total_print_times = {
-        {PrintFeatureType::Infill, 0},
-        {PrintFeatureType::InnerWall, 0},
-        {PrintFeatureType::MoveCombing, 0},
-        {PrintFeatureType::MoveRetraction, 0},
-        {PrintFeatureType::NoneType, 0},
-        {PrintFeatureType::OuterWall, 0},
-        {PrintFeatureType::Skin, 0},
-        {PrintFeatureType::SkirtBrim, 0},
-        {PrintFeatureType::Support, 0},
-        {PrintFeatureType::SupportInfill, 0},
-        {PrintFeatureType::SupportInterface, 0}
-    };
+    total_print_times = std::vector<double>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
     currentSpeed = 1;
     current_acceleration = -1;
@@ -389,7 +377,7 @@ double GCodeExport::getTotalFilamentUsed(int extruder_nr)
     return extruder_attr[extruder_nr].totalFilament;
 }
 
-std::unordered_map<PrintFeatureType, double> GCodeExport::getTotalPrintTimes()
+std::vector<double> GCodeExport::getTotalPrintTimes()
 {
     return total_print_times;
 }
@@ -397,18 +385,18 @@ std::unordered_map<PrintFeatureType, double> GCodeExport::getTotalPrintTimes()
 double GCodeExport::getSumTotalPrintTimes()
 {
     double sum = 0.0;
-    for(auto item : getTotalPrintTimes())
+    for(double item : getTotalPrintTimes())
     {
-        sum += item.second;
+        sum += item;
     }
     return sum;
 }
 
 void GCodeExport::resetTotalPrintTimeAndFilament()
 {
-    for(auto item : total_print_times)
+    for(size_t i = 0; i < total_print_times.size(); i++)
     {
-        total_print_times[item.first] = 0.0;
+        total_print_times[i] = 0.0;
     }
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
     {
@@ -421,9 +409,10 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
 
 void GCodeExport::updateTotalPrintTime()
 {
-    for(auto item : estimateCalculator.calculate())
+    std::vector<double> estimates = estimateCalculator.calculate();
+    for(size_t i = 0; i < estimates.size(); i++)
     {
-        total_print_times[item.first] += item.second;
+        total_print_times[i] += estimates[i];
     }
     estimateCalculator.reset();
     writeTimeComment(getSumTotalPrintTimes());

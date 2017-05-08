@@ -221,33 +221,22 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
     blocks.push_back(block);
 }
 
-std::unordered_map<PrintFeatureType, double> TimeEstimateCalculator::calculate()
+std::vector<double> TimeEstimateCalculator::calculate()
 {
     reverse_pass();
     forward_pass();
     recalculate_trapezoids();
     
-    std::unordered_map<PrintFeatureType, double> totals = {
-        {PrintFeatureType::NoneType, extra_time}, // Extra time (pause for minimum layer time, etc) is marked as NoneType
-        {PrintFeatureType::Infill, 0},
-        {PrintFeatureType::InnerWall, 0},
-        {PrintFeatureType::MoveCombing, 0},
-        {PrintFeatureType::MoveRetraction, 0},
-        {PrintFeatureType::OuterWall, 0},
-        {PrintFeatureType::Skin, 0},
-        {PrintFeatureType::SkirtBrim, 0},
-        {PrintFeatureType::Support, 0},
-        {PrintFeatureType::SupportInfill, 0},
-        {PrintFeatureType::SupportInterface, 0}
-    };
+    std::vector<double> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
     for(unsigned int n=0; n<blocks.size(); n++)
     {
         Block& block = blocks[n];
         double plateau_distance = block.decelerate_after - block.accelerate_until;
         
-        totals[block.feature] += acceleration_time_from_distance(block.initial_feedrate, block.accelerate_until, block.acceleration);
-        totals[block.feature] += plateau_distance / block.nominal_feedrate;
-        totals[block.feature] += acceleration_time_from_distance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
+        totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.initial_feedrate, block.accelerate_until, block.acceleration);
+        totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
+        totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
     }
     return totals;
 }

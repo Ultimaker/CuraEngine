@@ -132,7 +132,7 @@ public:
      * 
      * \return total print time in seconds for each feature
      */
-    std::unordered_map<PrintFeatureType, double> getTotalPrintTimes()
+    std::vector<double> getTotalPrintTimes()
     {
         return gcode.getTotalPrintTimes();
     }

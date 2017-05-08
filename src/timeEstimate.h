@@ -93,7 +93,7 @@ public:
 
     void reset();
     
-    std::unordered_map<PrintFeatureType, double> calculate();
+    std::vector<double> calculate();
 private:
     void reverse_pass();
     void forward_pass();
