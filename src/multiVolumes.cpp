@@ -120,7 +120,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 new_outlines.add(intersection);
                 carved_mesh_layer = carved_mesh_layer.difference(cutting_mesh_layer);
             }
-            cutting_mesh_layer = new_outlines;
+            cutting_mesh_layer = new_outlines.unionPolygons();
         }
     }
 }
