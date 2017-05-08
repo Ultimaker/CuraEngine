@@ -42,6 +42,7 @@ private:
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
         bool use_temp; //!< Whether to insert temperature commands for this extruder
+        bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
@@ -69,6 +70,7 @@ private:
         : prime_pos(0, 0, 0)
         , prime_pos_is_abs(false)
         , is_primed(false)
+        , is_prime_blob_enabled(false)
         , is_used(false)
         , nozzle_offset(0,0)
         , extruderCharacter(0)
@@ -340,7 +342,7 @@ public:
     /*!
      * Get ready for extrusion moves:
      * - unretract (G11 or G1 E.)
-     * - prime poop (G1 E)
+     * - prime blob (G1 E)
      * 
      * It estimates the time in \ref GCodeExport::estimateCalculator
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed

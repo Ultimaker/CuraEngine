@@ -712,15 +712,29 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     return gcode_layer;
 }
 
-bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer() const
+bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const
 {
-    switch(gcode.getFlavor())
+    bool need_prime_blob = false;
+    switch (gcode.getFlavor())
     {
         case EGCodeFlavor::GRIFFIN:
-            return true;
+            need_prime_blob = true;
+            break;
         default:
-            return false; // TODO: change this once priming for other firmware types is implemented
+            need_prime_blob = false; // TODO: change this once priming for other firmware types is implemented
+            break;
     }
+
+    // check the settings if the prime blob is disabled
+    if (need_prime_blob)
+    {
+        const bool is_extruder_used_overall = storage.getExtrudersUsed()[extruder_nr];
+        const bool extruder_prime_blob_enabled = storage.getExtruderPrimeBlobEnabled(extruder_nr);
+
+        need_prime_blob = is_extruder_used_overall && extruder_prime_blob_enabled;
+    }
+
+    return need_prime_blob;
 }
 
 void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr) const
@@ -809,22 +823,21 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     std::vector<unsigned int> ret;
     ret.push_back(start_extruder);
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    std::vector<bool> extruder_is_used_overall = storage.getExtrudersUsed();
-    if (getExtrudersNeedPrimeDuringFirstLayer())
+    
+    // check if we are on the first layer
+    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
+        || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
-        if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
-            || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0)
-            )
+        // check if we need prime blob on the first layer
+        for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
         {
-            for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
+            if (this->getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
             {
-                if (extruder_is_used_overall[used_idx])
-                {
-                    extruder_is_used_on_this_layer[used_idx] = true;
-                }
+                extruder_is_used_on_this_layer[used_idx] = true;
             }
         }
     }
+
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if (extruder_nr == start_extruder)

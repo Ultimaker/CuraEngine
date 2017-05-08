@@ -390,30 +390,15 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     return ret;
 }
 
+bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
+{
+    if (extruder_nr >= meshgroup->getExtruderCount())
+    {
+        return false;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    const ExtruderTrain *train = meshgroup->getExtruderTrain(extruder_nr);
+    return train->getSettingBoolean("prime_blob_enable");
+}
 
 } // namespace cura
