@@ -60,7 +60,7 @@ void Wireframe2gcode::writeGCode()
     // bottom:
     Polygons empty_outlines;
     writeFill(wireFrame.bottom_infill.roof_insets, empty_outlines, 
-              [this](Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx) { 
+              [this](Wireframe2gcode&, WeaveConnectionPart& part, unsigned int segment_idx) {
                     WeaveConnectionSegment& segment = part.connection.segments[segment_idx]; 
                     if (segment.segmentType == WeaveSegmentType::MOVE || segment.segmentType == WeaveSegmentType::DOWN_AND_FLAT) // this is the case when an inset overlaps with a hole 
                     {
@@ -71,7 +71,7 @@ void Wireframe2gcode::writeGCode()
                     }
                 }   
             , 
-              [this](Wireframe2gcode& thiss, WeaveConnectionSegment& segment) { 
+              [this](Wireframe2gcode&, WeaveConnectionSegment& segment) {
                     if (segment.segmentType == WeaveSegmentType::MOVE)
                         writeMoveWithRetract(segment.to);
                     else if (segment.segmentType == WeaveSegmentType::DOWN_AND_FLAT)
@@ -110,7 +110,7 @@ void Wireframe2gcode::writeGCode()
                 writeMoveWithRetract(part.connection.from);
                 for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
                 {
-                    handle_segment(layer, part, segment_idx);
+                    handle_segment(part, segment_idx);
                 }
             }
             
@@ -136,11 +136,11 @@ void Wireframe2gcode::writeGCode()
         
         // roofs:
         gcode.setZ(layer.z1);
-        std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)>
+        std::function<void (Wireframe2gcode&, WeaveConnectionPart& part, unsigned int segment_idx)>
             handle_roof = &Wireframe2gcode::handle_roof_segment;
         writeFill(layer.roofs.roof_insets, layer.roofs.roof_outlines,
                   handle_roof,
-                [this](Wireframe2gcode& thiss, WeaveConnectionSegment& segment) { // handle flat segments
+                [this](Wireframe2gcode&, WeaveConnectionSegment& segment) { // handle flat segments
                     if (segment.segmentType == WeaveSegmentType::MOVE)
                     {
                         writeMoveWithRetract(segment.to);
@@ -308,7 +308,7 @@ void Wireframe2gcode::strategy_compensate(WeaveConnectionPart& part, unsigned in
     
     gcode.writeExtrusion(newTop, speedUp * newLength / orrLength, extrusion_mm3_per_mm_connection * orrLength / newLength);
 }
-void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) 
+void Wireframe2gcode::handle_segment(WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     
@@ -344,7 +344,7 @@ void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& par
 
 
 
-void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)
+void Wireframe2gcode::handle_roof_segment(WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -403,8 +403,8 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
 
 
 void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polygons& roof_outlines
-    , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
-    , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler)
+    , std::function<void (Wireframe2gcode&, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
+    , std::function<void (Wireframe2gcode&, WeaveConnectionSegment& p)> flatHandler)
 {
         
     // bottom:
@@ -432,7 +432,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polyg
             writeMoveWithRetract(first_extrusion_from);
             for (unsigned int segment_idx = first_segment_idx; segment_idx < segments.size(); segment_idx++)
             {
-                connectionHandler(*this, inset, inset_part, segment_idx);
+                connectionHandler(*this, inset_part, segment_idx);
             }
             
             gcode.writeTypeComment(PrintFeatureType::InnerWall); // top

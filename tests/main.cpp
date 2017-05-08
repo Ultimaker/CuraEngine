@@ -5,11 +5,16 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/XmlOutputter.h>
 
+#include <../src/utils/macros.h>
+
 /*!
  * \brief Runs the test cases.
  */
 int main(int argc,char** argv)
 {
+    UNUSED_PARAM(argc);
+    UNUSED_PARAM(argv);
+
     CppUnit::TextUi::TestRunner runner;
     
     //Set the output type to be JUnit-style XML.

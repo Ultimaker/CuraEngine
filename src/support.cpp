@@ -1,5 +1,5 @@
 //Copyright (C) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -18,9 +18,37 @@
 
 namespace cura 
 {
-    
-    
-Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+
+bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer)
+{
+    if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("support_mesh"))
+    {
+        return false;
+    }
+    enum ModifierType { ANTI_OVERHANG, SUPPORT_DROP_DOWN, SUPPORT_VANILLA };
+    ModifierType modifier_type = (mesh.getSettingBoolean("anti_overhang_mesh"))? ANTI_OVERHANG : ((mesh.getSettingBoolean("support_mesh_drop_down"))? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
+    for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+    {
+        SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+        const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+        switch (modifier_type)
+        {
+        case ANTI_OVERHANG:
+            support_layer.anti_overhang.add(slicer_layer.polygons);
+            break;
+        case SUPPORT_DROP_DOWN:
+            support_layer.support_mesh_drop_down.add(slicer_layer.polygons);
+            break;
+        case SUPPORT_VANILLA:
+            support_layer.support_mesh.add(slicer_layer.polygons);
+            break;
+        }
+    }
+    return true;
+}
+
+
+Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
@@ -85,16 +113,19 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
+        support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
 
     // initialization of supportAreasPerLayer
     if (layer_count > storage.support.supportLayers.size())
-    { // there might alsready be anti_overhang_area data in the supportLayers
+    { // there might already be anti_overhang_area data or support mesh data in the supportLayers
         storage.support.supportLayers.resize(layer_count);
     }
 
     // generate support areas
+    bool support_modifier_meshes_handled = false;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
@@ -102,9 +133,26 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         {
             continue;
         }
+        SettingsBaseVirtual* infill_settings = &storage.meshes[mesh_idx];
+        SettingsBaseVirtual* interface_settings = &storage.meshes[mesh_idx];
+        if (mesh.getSettingBoolean("support_mesh"))
+        {
+            if (support_modifier_meshes_handled)
+            { // handle all support_mesh and support_mesh_drop_down areas only once
+                continue;
+            }
+            // use extruder train settings rather than the per-object settings of the first support mesh encountered.
+            // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
+            // instead we must use the support extruder settings, which is the settings base common to all support meshes.
+            int interface_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
+            int infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+            infill_settings = storage.meshgroup->getExtruderTrain(infill_extruder_nr);
+            interface_settings = storage.meshgroup->getExtruderTrain(interface_extruder_nr);
+            support_modifier_meshes_handled = true;
+        }
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
+        generateSupportAreas(storage, *infill_settings, *interface_settings, mesh_idx, layer_count, supportAreas);
 
         for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
         {
@@ -127,9 +175,13 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             continue;
         }
 
-        if (mesh.getSettingBoolean("support_interface_enable"))
+        if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            generateSupportInterface(storage, mesh, layer_count);
+            generateSupportRoof(storage, mesh);
+        }
+        if (mesh.getSettingBoolean("support_bottom_enable"))
+        {
+            generateSupportBottom(storage, mesh);
         }
     }
 }
@@ -145,59 +197,74 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
-    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
-    
-    if (!mesh.getSettingBoolean("support_enable"))
-        return;
-    if (support_type == ESupportType::NONE)
-        return;
-    
-    const double supportAngle = mesh.getSettingInAngleRadians("support_angle");
-    const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    const int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
-    const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
-    const int join_distance = mesh.getSettingInMicrons("support_join_distance");
-    const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
 
-    const int extension_offset = mesh.getSettingInMicrons("support_offset");
+    bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
 
-    const int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
-    const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
-    const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
-    const bool use_towers = mesh.getSettingBoolean("support_use_towers") && supportMinAreaSqrt > 0;
-    const unsigned int tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
+    if (!mesh.getSettingBoolean("support_enable") && !is_support_modifier_place_holder)
+    {
+        return;
+    }
+    if (support_type == ESupportType::NONE && !is_support_modifier_place_holder)
+    {
+        return;
+    }
 
     const int layerThickness = storage.getSettingInMicrons("layer_height");
-    const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
-    const int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
 
-    const bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
 
-    const double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
-    const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
-    const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
-
-    int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
-    bool interface_enable = mesh.getSettingBoolean("support_interface_enable");
+
+    const double supportAngle = interface_settings.getSettingInAngleRadians("support_angle");
+    const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
+    const int supportZDistanceBottom = interface_settings.getSettingInMicrons("support_bottom_distance");
+    const int supportZDistanceTop = interface_settings.getSettingInMicrons("support_top_distance");
+    const unsigned int tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
+    const coord_t support_bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_height"));
+    const coord_t support_bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_width"));
+
+    const int join_distance = infill_settings.getSettingInMicrons("support_join_distance");
+    const int extension_offset = infill_settings.getSettingInMicrons("support_offset");
+
+    const int supportTowerDiameter = infill_settings.getSettingInMicrons("support_tower_diameter");
+    const int supportMinAreaSqrt = infill_settings.getSettingInMicrons("support_minimal_diameter");
+    const double supportTowerRoofAngle = infill_settings.getSettingInAngleRadians("support_tower_roof_angle");
+    const bool use_towers = infill_settings.getSettingBoolean("support_use_towers") && supportMinAreaSqrt > 0;
+
+    const int supportXYDistance = infill_settings.getSettingInMicrons("support_xy_distance");
+    const int support_xy_distance_overhang = infill_settings.getSettingInMicrons("support_xy_distance_overhang");
+    const bool use_support_xy_distance_overhang = infill_settings.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+
+    const double conical_support_angle = infill_settings.getSettingInAngleRadians("support_conical_angle");
+    const bool conical_support = infill_settings.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
+    const int64_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
 
     // derived settings:
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
-    int smoothing_distance;
+    coord_t smoothing_distance;
     { // compute best smoothing_distance
         ExtruderTrain& infill_train = *storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
-        int support_infill_line_width = infill_train.getSettingInMicrons("support_interface_line_width");
+        const coord_t support_infill_line_width = infill_train.getSettingInMicrons("support_line_width");
         smoothing_distance = support_infill_line_width;
-        if (interface_enable)
+        if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            ExtruderTrain& interface_train = *storage.meshgroup->getExtruderTrain(support_skin_extruder_nr);
-            int support_interface_line_width = interface_train.getSettingInMicrons("support_interface_line_width");
-            smoothing_distance = std::max(support_interface_line_width, smoothing_distance);
+            const int support_roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr");
+            const ExtruderTrain& roof_train = *storage.meshgroup->getExtruderTrain(support_roof_extruder_nr);
+            const coord_t support_roof_line_width = roof_train.getSettingInMicrons("support_roof_line_width");
+            smoothing_distance = std::max(smoothing_distance, support_roof_line_width);
+        }
+
+        if (mesh.getSettingBoolean("support_bottom_enable"))
+        {
+            const int support_bottom_extruder_nr = storage.getSettingAsIndex("support_bottom_extruder_nr");
+            const ExtruderTrain& bottom_train = *storage.meshgroup->getExtruderTrain(support_bottom_extruder_nr);
+            const coord_t support_bottom_line_width = bottom_train.getSettingInMicrons("support_bottom_line_width");
+            smoothing_distance = std::max(smoothing_distance, support_bottom_line_width);
         }
     }
 
@@ -207,7 +274,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int supportLayerThickness = layerThickness;
     
     const unsigned int layerZdistanceTop = std::max(0U, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
-    const unsigned int layerZdistanceBottom = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness));
+    const unsigned int bottom_empty_layer_count = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness)); // number of empty layers between support and model
+    const unsigned int bottom_stair_step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
@@ -240,7 +308,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         
     
     std::vector<std::vector<Polygons>> overhang_points; // stores overhang_points of each layer
-    if (use_towers)
+    if (use_towers && !is_support_modifier_place_holder)
     {
         AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
     }
@@ -249,40 +317,46 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     std::vector<Polygons> full_overhang_per_layer;
     xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
-#pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
-    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
+    if (!is_support_modifier_place_holder)
     {
-        std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
-        full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
-
-        Polygons basic_overhang = basic_and_full_overhang.first;
-        Polygons outlines = storage.getLayerOutlines(layer_idx, false);
-        if (use_support_xy_distance_overhang)
+        #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
+        for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
         {
-            Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
-            Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+            std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
+            full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
 
-            xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
-        }
-        else
-        {
-            xy_disallowed_per_layer[layer_idx] = outlines.offset(supportXYDistance);
+            Polygons basic_overhang = basic_and_full_overhang.first;
+            Polygons outlines = storage.getLayerOutlines(layer_idx, false);
+            if (use_support_xy_distance_overhang)
+            {
+                Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
+                Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+
+                xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
+            }
+            else
+            {
+                xy_disallowed_per_layer[layer_idx] = outlines.offset(supportXYDistance);
+            }
         }
     }
 
-    Polygons supportLayer_last;
+    const Polygons empty;
+    const Polygons* supportLayer_last = &empty;
+    Polygons support_layer_last_without_support_mesh;
     std::vector<Polygons> towerRoofs;
+    Polygons stair_removal; // polygons to subtract from support because of stair-stepping
 
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
         Polygons supportLayer_this = full_overhang_per_layer[layer_idx + layerZdistanceTop];;
 
-        if (extension_offset)
+        if (extension_offset && !is_support_modifier_place_holder)
         {
             supportLayer_this = supportLayer_this.offset(extension_offset);
         }
 
-        if (use_towers)
+        if (use_towers && !is_support_modifier_place_holder)
         {
             // handle straight walls
             AreaSupport::handleWallStruts(supportLayer_this, supportMinAreaSqrt, supportTowerDiameter);
@@ -292,7 +366,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
         if (layer_idx+1 < support_layer_count)
         { // join with support from layer up                
-            supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+            supportLayer_this = AreaSupport::join(*supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         // make towers for small support
@@ -302,12 +376,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             {
                 if (poly.area() < supportMinAreaSqrt * supportMinAreaSqrt)
                 {
-                    if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + layerZdistanceBottom)
+                    if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
                         const Polygons& support_layer_above = supportAreas[layer_idx + tower_top_layer_count];
                         Point middle = AABB(poly).getMiddle();
                         bool has_support_above = support_layer_above.inside(middle);
-                        bool has_model_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - layerZdistanceBottom, false).inside(middle);
+                        bool has_model_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, false).inside(middle);
                         if (has_support_above && !has_model_below)
                         {
                             Polygons tiny_tower_here;
@@ -319,31 +393,43 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             }
         }
 
-        if (storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
-        { // handle support mesh
-            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+        if (is_support_modifier_place_holder && storage.support.supportLayers[layer_idx].support_mesh_drop_down.size() > 0)
+        { // handle support mesh which should be supported by more support
+            supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
 
-        // move up from model
-        if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
-        {
-            int stepHeight = support_bottom_stair_step_height / supportLayerThickness + 1;
-            int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
-            supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(bottomLayer, false));
-        }
+        // Enforce XY distance before bottom distance,
+        // because xy_offset might have introduced overlap between model and support,
+        // which makes stair stepping conclude the support already rests on the model,
+        // so it thinks it can make a step.
 
-        supportLayer_last = supportLayer_this;
-        
-        
         // inset using X/Y distance
         if (supportLayer_this.size() > 0)
         {
             supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
 
+        // inset using XY distance before determining the support areas for the next layer because
+        // otherwise a support pillar would always go to the build plate even when there's model in between
+
+        supportLayer_last = &supportAreas[layer_idx];
+
+        if (is_support_modifier_place_holder && storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
+        { // handle support mesh which should NOT be supported by more support
+            support_layer_last_without_support_mesh = supportLayer_this;
+            supportLayer_last = &support_layer_last_without_support_mesh;
+            // reapply XY distance to support mesh
+            // the support mesh cannot be merged before applying the XY distance globally because then it would be taken along to the next layer.
+            Polygons support_mesh = storage.support.supportLayers[layer_idx].support_mesh.difference(xy_disallowed_per_layer[layer_idx]);
+            supportLayer_this = supportLayer_this.unionPolygons(support_mesh);
+        }
+
+        // move up from model
+        moveUpFromModel(storage, stair_removal, supportLayer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, support_bottom_stair_step_width);
+
         supportAreas[layer_idx] = supportLayer_this;
 
-        Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size());
+        Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count * (mesh_idx + 1) - layer_idx, support_layer_count * storage.meshes.size());
     }
     
     // do stuff for when support on buildplate only
@@ -409,6 +495,92 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     storage.support.generated = true;
 }
 
+void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+{
+// The idea behing support bottom stairs:
+//
+//   LEGEND:
+//   A: support resting on model
+//   x: stair step width
+//   C: to be removed from support untill the next stair step = intersection between model below and A offsetted by x
+//
+//     ALGORITHM                                                      RESULT
+//
+// ###########################                                     ###########################                              .
+//    support                                                         support                                               .
+// ###########################   ┐                                 ###########################                              .
+// AAAAxxxxxxxxxxxxxx            │                                                                                          .
+// CCCCCCCCCCCC                  │                                 ____        ###############                              .
+// |   \      :                  │                                 |   \                                                    .
+// |____\     :                  ├> stair step height              |____\      ###############                              .
+// |     \    :                  │                                 |     \                                                  .
+// |______\   :                  │                                 |______\    ###############                              .
+// |       \  :                  │                                 |       \                                                .
+// |________\ :                  │                                 |________\  ###############                              .
+// |model    \:                  │                                 |model    \                                              .
+// |__________\###############   ┘                                 |__________\###############                              .
+// |           \                                                   |           \                                            .
+// |____________\                                                  |____________\                                           .
+//
+//
+//
+//
+//       for more horizontal surface, the stepping is (partly) negated
+//
+// ############################################################################
+//                                                    support
+// ############################################################################     ┐
+// AAAAAxxxxxxxxxxxxx                                                               │
+// CCCCCCCCCCCCCCCCCC##########################################################     │           >>>>>>>>>   result only applies stair step to first layer(s) of what woud normally be the stair step
+//      ^^--..__                                                                    │
+//              ^^--..__#######################################################     ├> stair step height
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺  ^^--..__                                                    │
+//                              ^^--..__#######################################     │
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺ ^^--..__                                    │
+//                                              ^^--..__#######################     │
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺^^--..__                    │
+//                                                              ^^--..__#######     ┘
+// ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺
+    if (layer_idx < bottom_empty_layer_count)
+    {
+        return;
+    }
+    if (bottom_empty_layer_count <= 0 && bottom_stair_step_layer_count <= 1)
+    {
+        return;
+    }
+
+    int bottom_layer_nr = layer_idx - bottom_empty_layer_count;
+    const Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
+
+    Polygons to_be_removed;
+    if (bottom_stair_step_layer_count <= 1)
+    {
+        to_be_removed = bottom_outline;
+    }
+    else
+    {
+        to_be_removed = stair_removal.unionPolygons(bottom_outline);
+        if (layer_idx % bottom_stair_step_layer_count == 0)
+        { // update stairs for next step
+            const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, false);
+            const Polygons allowed_step_width = support_areas.intersection(supporting_bottom).offset(support_bottom_stair_step_width);
+
+            int step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
+            if (step_bottom_layer_nr >= 0)
+            {
+                const Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+                stair_removal = step_bottom_outline.intersection(allowed_step_width);
+            }
+            else
+            {
+                stair_removal = allowed_step_width;
+            }
+        }
+    }
+    support_areas = support_areas.difference(to_be_removed);
+}
+
 
 /*            layer 2
  * layer 1 ______________|
@@ -443,14 +615,14 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 //         presumably the computation above is slower than the one below
 
     Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 100); // +100 for easier joining with support from layer above
-    Polygons full_overhang = overhang_extented.intersection(supportLayer_supported.unionPolygons(supportLayer_supportee));
+    Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
     return std::make_pair(basic_overhang, full_overhang);
 }
 
 
 void AreaSupport::detectOverhangPoints(
-    SliceDataStorage& storage,
-    SliceMeshStorage& mesh, 
+    const SliceDataStorage& storage,
+    const SliceMeshStorage& mesh,
     std::vector<std::vector<Polygons>>& overhang_points, // stores overhang_points of each layer
     int layer_count,
     int supportMinAreaSqrt
@@ -463,19 +635,19 @@ void AreaSupport::detectOverhangPoints(
 
     for (int layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
-        SliceLayer& layer = mesh.layers[layer_idx];
-        for (SliceLayerPart& part : layer.parts)
+        const SliceLayer& layer = mesh.layers[layer_idx];
+        for (const SliceLayerPart& part : layer.parts)
         {
             if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
             {
-                SliceLayer& layer_below = mesh.layers[layer_idx - 1];
+                const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
                 if (layer_below.getOutlines().intersection(part.outline).size() > 0)
                 {
                     continue;
                 }
 
                 Polygons part_poly_computed;
-                Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
+                const Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
                 if (part.insets.size() == 0)
                 {
                     part_poly_computed = part.outline.offset(-support_line_width / 2);
@@ -608,62 +780,71 @@ void AreaSupport::handleWallStruts(
     }
 }
 
-
-void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_count)
+void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh)
 {
-    const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
-    const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));
-    const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
-    const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
-
-    const int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height")));
-    const int interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
-
-    std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
-    for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
+    const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support bottom.
+    if (bottom_layer_count <= 0)
     {
-        SupportLayer& layer = supportLayers[layer_idx];
+        return;
+    }
+    const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height")); //Number of layers between support bottom and model.
+    const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height"))); //Resolution of generating support bottoms above model.
+    const coord_t bottom_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_bottom_extruder_nr"))->getSettingInMicrons("support_bottom_line_width");
 
-        const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
+    const unsigned int scan_count = std::max(1u, (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
+    const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+
+    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
+    {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
-        if (top_layer_idx_above >= supportLayers.size())
+        Polygons mesh_outlines;
+        for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
         {
-            continue;
-        }
-        Polygons roofs;
-        if (roof_layer_count > 0)
-        {
-            Polygons model;
-            const unsigned int n_scans = std::max(1u, (roof_layer_count - 1) / skip_layer_count);
-            const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(n_scans));
-            for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
-            {
-                const Polygons outlines_above = mesh.layers[std::round(layer_idx_above)].getOutlines();
-                model = model.unionPolygons(outlines_above);
-            }
-            roofs = layer.supportAreas.intersection(model);
+            mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
         Polygons bottoms;
-        if (bottom_layer_count > 0)
-        {
-            Polygons model;
-            const unsigned int n_scans = std::max(1u, (bottom_layer_count - 1) / skip_layer_count);
-            const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(n_scans));
-            for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
-            {
-                const Polygons outlines_below = mesh.layers[std::round(layer_idx_below)].getOutlines();
-                model = model.unionPolygons(outlines_below);
-            }
-            bottoms = layer.supportAreas.intersection(model);
-        }
-        // expand skin a bit so that we're sure it's not too thin to be printed.
-        Polygons skin = roofs.unionPolygons(bottoms).offset(interface_line_width).intersection(layer.supportAreas);
-        skin.removeSmallAreas(1.0);
-        layer.skin.add(skin);
-        layer.supportAreas = layer.supportAreas.difference(layer.skin);
+        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, bottom_line_width, bottoms);
+        support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
 
+void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+{
+    const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support roof.
+    if (roof_layer_count <= 0)
+    {
+        return;
+    }
+    const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height")); //Number of layers between support roof and model.
+    const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height"))); //Resolution of generating support roof below model.
+    const coord_t roof_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_roof_extruder_nr"))->getSettingInMicrons("support_roof_line_width");
 
+    const unsigned int scan_count = std::max(1u, (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
+    const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+
+    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    for (unsigned int layer_idx = 0; layer_idx < support_layers.size() - roof_layer_count - z_distance_top; layer_idx++)
+    {
+        const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top; //Maximum layer of the model that generates support roof.
+        Polygons mesh_outlines;
+        for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
+        {
+            mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
+        }
+        Polygons roofs;
+        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, roof_line_width, roofs);
+        support_layers[layer_idx].support_roof.add(roofs);
+    }
+}
+
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons)
+{
+    Polygons model = colliding_mesh_outlines.unionPolygons();
+    interface_polygons = support_areas.intersection(model);
+    interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
+    interface_polygons.removeSmallAreas(1.0);
+    support_areas = support_areas.difference(interface_polygons);
+}
 
 }//namespace cura

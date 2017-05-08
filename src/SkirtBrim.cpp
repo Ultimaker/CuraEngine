@@ -1,5 +1,5 @@
 //Copyright (C) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SkirtBrim.h"
@@ -46,7 +46,8 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             SupportLayer& support_layer = storage.support.supportLayers[0];
             support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
             first_layer_outline.add(support_layer.supportAreas);
-            first_layer_outline.add(support_layer.skin);
+            first_layer_outline.add(support_layer.support_bottom);
+            first_layer_outline.add(support_layer.support_roof);
         }
         if (storage.primeTower.enabled)
         {
@@ -175,9 +176,10 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
+        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
         for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
-            if (extruder == adhesion_extruder_nr || !storage.meshgroup->getExtruderTrain(extruder)->getIsUsed())
+            if (extruder == adhesion_extruder_nr || !extruder_is_used[extruder])
             {
                 continue;
             }

@@ -1,4 +1,4 @@
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "sliceDataStorage.h"
@@ -180,7 +180,8 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             if (support.generated) 
             {
                 total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
-                total.add(support.supportLayers[std::max(0, layer_nr)].skin);
+                total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
+                total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
             }
             if (primeTower.enabled)
             {
@@ -224,7 +225,8 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             if (support.generated) 
             {
                 total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
-                total.add(support.supportLayers[std::max(0, layer_nr)].skin);
+                total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
+                total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
             }
             if (primeTower.enabled)
             {
@@ -261,13 +263,20 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
     // support
     // support is presupposed to be present...
-    if (getSettingBoolean("support_enable"))
+    for (const SliceMeshStorage& mesh : meshes)
     {
-        ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-        ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-        if (getSettingBoolean("support_interface_enable"))
+        if (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_mesh"))
         {
-            ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
+            ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
+            ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
+            if (getSettingBoolean("support_roof_enable"))
+            {
+                ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+            }
+            if (getSettingBoolean("support_bottom_enable"))
+            {
+                ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+            }
         }
     }
 
@@ -336,21 +345,25 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
             const SupportLayer& support_layer = support.supportLayers[layer_nr];
             if (layer_nr == 0)
             {
-                if (support_layer.supportAreas.size() > 0)
+                if (!support_layer.supportAreas.empty())
                 {
                     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
                 }
             }
             else
             {
-                if (support_layer.supportAreas.size() > 0)
+                if (!support_layer.supportAreas.empty())
                 {
                     ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
                 }
             }
-            if (support_layer.skin.size() > 0)
+            if (!support_layer.support_bottom.empty())
             {
-                ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
+                ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+            }
+            if (!support_layer.support_roof.empty())
+            {
+                ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
             }
         }
     }
