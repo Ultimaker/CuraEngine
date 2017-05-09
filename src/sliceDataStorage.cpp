@@ -140,6 +140,25 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             }
         }
     }
+    if (getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        && (getSettingAsCount("wall_line_count") > 0 || getSettingAsCount("skin_outline_count") > 0)
+        && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.perimeter_gaps.size() > 0)
+            {
+                return true;
+            }
+            for (const SkinPart& skin_part : part.skin_parts)
+            {
+                if (skin_part.perimeter_gaps.size() > 0)
+                {
+                    return true;
+                }
+            }
+        }
+    }
     if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter")) && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
