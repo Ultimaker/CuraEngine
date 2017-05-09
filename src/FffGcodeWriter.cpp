@@ -1356,104 +1356,104 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
 bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
-        const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
-        const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
-        const int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
-        const int wall_x_extruder_nr = mesh->getSettingAsIndex("wall_x_extruder_nr");
-        const int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
+    const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
+    const int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
+    const int wall_x_extruder_nr = mesh->getSettingAsIndex("wall_x_extruder_nr");
+    const int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-        const bool fill_perimeter_gaps =
-            mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-            && !getSettingBoolean("magic_spiralize")
-            && extruder_nr == wall_x_extruder_nr;
+    const bool fill_perimeter_gaps =
+        mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        && !getSettingBoolean("magic_spiralize")
+        && extruder_nr == wall_x_extruder_nr;
 
-        bool added_something = false;
+    bool added_something = false;
 
-        Polygons skin_polygons;
-        Polygons skin_lines;
+    Polygons skin_polygons;
+    Polygons skin_lines;
 
-        EFillMethod pattern = (layer_nr == 0)?
-        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-        mesh->getSettingAsFillMethod("top_bottom_pattern");
-        int bridge = -1;
-        if (layer_nr > 0)
-            bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
-        if (bridge > -1)
+    EFillMethod pattern = (layer_nr == 0)?
+    mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
+    mesh->getSettingAsFillMethod("top_bottom_pattern");
+    int bridge = -1;
+    if (layer_nr > 0)
+        bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
+    if (bridge > -1)
+    {
+        pattern = EFillMethod::LINES;
+        skin_angle = bridge;
+    }
+
+    const Polygons* inner_skin_outline = nullptr;
+    int offset_from_inner_skin_outline = 0;
+    if (pattern != EFillMethod::CONCENTRIC)
+    {
+        // add skin walls aka skin perimeters
+        if (extruder_nr == wall_x_extruder_nr)
         {
-            pattern = EFillMethod::LINES;
-            skin_angle = bridge;
-        }
-
-        const Polygons* inner_skin_outline = nullptr;
-        int offset_from_inner_skin_outline = 0;
-        if (pattern != EFillMethod::CONCENTRIC)
-        {
-            // add skin walls aka skin perimeters
-            if (extruder_nr == wall_x_extruder_nr)
+            for (const Polygons& skin_perimeter : skin_part.insets)
             {
-                for (const Polygons& skin_perimeter : skin_part.insets)
+                if (skin_perimeter.size() > 0)
                 {
-                    if (skin_perimeter.size() > 0)
-                    {
-                        added_something = true;
-                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                        gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
-                    }
+                    added_something = true;
+                    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                    gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
                 }
             }
-
-            // determine inner_skin_outline
-            if (skin_part.insets.size() > 0)
-            {
-                inner_skin_outline = &skin_part.insets.back();
-                offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
-            }
         }
 
-        if (inner_skin_outline == nullptr)
+        // determine inner_skin_outline
+        if (skin_part.insets.size() > 0)
         {
-            inner_skin_outline = &skin_part.outline;
+            inner_skin_outline = &skin_part.insets.back();
+            offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
         }
+    }
 
-        int extra_infill_shift = 0;
-        Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
-        Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
-        infill_comp.generate(skin_polygons, skin_lines);
+    if (inner_skin_outline == nullptr)
+    {
+        inner_skin_outline = &skin_part.outline;
+    }
 
-        // add skin itself!
-        if ((skin_polygons.size() > 0 || skin_lines.size() > 0) && extruder_nr == top_bottom_extruder_nr)
+    int extra_infill_shift = 0;
+    Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
+    Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+    Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
+    infill_comp.generate(skin_polygons, skin_lines);
+
+    // add skin itself!
+    if ((skin_polygons.size() > 0 || skin_lines.size() > 0) && extruder_nr == top_bottom_extruder_nr)
+    {
+        added_something = true;
+        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+        gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
+
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+        {
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
+        }
+        else
+        {
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        }
+    }
+
+    if (fill_perimeter_gaps)
+    { // handle perimeter_gaps of concentric skin
+        Polygons perimeter_gaps = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
+        Polygons gap_polygons; // will remain empty
+        Polygons gap_lines;
+        int offset = 0;
+        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(gap_polygons, gap_lines);
+        if (gap_lines.size() > 0)
         {
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-            gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
-
-            if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
-            {
-                gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
-            }
-            else
-            {
-                gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
-            }
+            gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
         }
-
-        if (fill_perimeter_gaps)
-        { // handle perimeter_gaps of concentric skin
-            Polygons perimeter_gaps = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
-            Polygons gap_polygons; // will remain empty
-            Polygons gap_lines;
-            int offset = 0;
-            Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
-            infill_comp.generate(gap_polygons, gap_lines);
-            if (gap_lines.size() > 0)
-            {
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
-            }
-        }
-        return added_something;
+    }
+    return added_something;
 }
 
 bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const
