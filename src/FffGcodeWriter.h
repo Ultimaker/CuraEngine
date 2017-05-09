@@ -460,6 +460,10 @@ private:
      * 
      * Perimeter gaps are handled for skin outlines and printed after the skin fill of the skin part is printed.
      * 
+     * Note that the normal perimeter gaps are printed with the outer wall extruder,
+     * while newly generated perimeter gaps between consecutive insets of a concentric top/bottom pattern
+     * are printed with the top bottom extruder.
+     * 
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder

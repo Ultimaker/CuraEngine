@@ -1366,6 +1366,10 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize")
         && extruder_nr == wall_0_extruder_nr;
+    const bool fill_concentric_perimeter_gaps =
+        mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        && !getSettingBoolean("magic_spiralize")
+        && extruder_nr == top_bottom_extruder_nr;
 
     bool added_something = false;
 
@@ -1420,7 +1424,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 
     int extra_infill_shift = 0;
     Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
-    Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+    Polygons* perimeter_gaps_output = (fill_concentric_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
     Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
     infill_comp.generate(skin_polygons, skin_lines);
 
@@ -1441,13 +1445,27 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         }
     }
 
-    if (fill_perimeter_gaps)
+    if (fill_perimeter_gaps || fill_concentric_perimeter_gaps)
     { // handle perimeter_gaps of concentric skin
-        Polygons perimeter_gaps = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
+        const Polygons* perimeter_gaps = nullptr;
+        Polygons perimeter_gaps_recomputed;
+        if (wall_0_extruder_nr == top_bottom_extruder_nr) // then also both are equalt to extruder_nr
+        {
+            perimeter_gaps = &perimeter_gaps_recomputed;
+            perimeter_gaps_recomputed = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
+        }
+        else if (extruder_nr == wall_0_extruder_nr)
+        {
+            perimeter_gaps = &skin_part.perimeter_gaps;
+        }
+        else
+        {
+            perimeter_gaps = &concentric_perimeter_gaps;
+        }
         Polygons gap_polygons; // will remain empty
         Polygons gap_lines;
         int offset = 0;
-        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        Infill infill_comp(EFillMethod::LINES, *perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
         infill_comp.generate(gap_polygons, gap_lines);
         if (gap_lines.size() > 0)
         {
