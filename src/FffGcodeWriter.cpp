@@ -1312,7 +1312,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     }
     bool added_something = false;
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
-    const unsigned int skin_line_width = mesh_config.skin_config.getLineWidth();
     const unsigned int perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
 
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
@@ -1331,13 +1330,51 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
     {
         const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+        added_something = added_something |
+            processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, skin_overlap, skin_angle);
+    }
+
+    if (fill_perimeter_gaps)
+    { // handle perimeter gaps of normal insets
+        Polygons gap_polygons; // unused
+        Polygons gap_lines; // soon to be generated gap filler lines
+        int offset = 0;
+        int extra_infill_shift = 0;
+        Infill infill_comp(EFillMethod::LINES, part.perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(gap_polygons, gap_lines);
+
+        if (gap_lines.size() > 0)
+        {
+            assert(extruder_nr == wall_x_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
+        }
+    }
+    return added_something;
+}
+
+bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
+{
+        const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
+        const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
+        const int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
+        const int wall_x_extruder_nr = mesh->getSettingAsIndex("wall_x_extruder_nr");
+        const int64_t z = layer_nr * getSettingInMicrons("layer_height");
+
+        const bool fill_perimeter_gaps =
+            mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+            && !getSettingBoolean("magic_spiralize")
+            && extruder_nr == wall_x_extruder_nr;
+
+        bool added_something = false;
 
         Polygons skin_polygons;
         Polygons skin_lines;
-        
+
         EFillMethod pattern = (layer_nr == 0)?
-            mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-            mesh->getSettingAsFillMethod("top_bottom_pattern");
+        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
+        mesh->getSettingAsFillMethod("top_bottom_pattern");
         int bridge = -1;
         if (layer_nr > 0)
             bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
@@ -1416,26 +1453,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                 gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
             }
         }
-    }
-
-    if (fill_perimeter_gaps)
-    { // handle perimeter gaps of normal insets
-        Polygons gap_polygons; // unused
-        Polygons gap_lines; // soon to be generated gap filler lines
-        int offset = 0;
-        int extra_infill_shift = 0;
-        Infill infill_comp(EFillMethod::LINES, part.perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
-        infill_comp.generate(gap_polygons, gap_lines);
-
-        if (gap_lines.size() > 0)
-        {
-            assert(extruder_nr == wall_x_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
-            added_something = true;
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-            gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
-        }
-    }
-    return added_something;
+        return added_something;
 }
 
 bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const
