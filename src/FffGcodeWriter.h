@@ -440,7 +440,7 @@ private:
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
      * 
-     * Perimeter gaps are handled for skin outlines and printed during the skin fill of the skin part is printed by calling \ref processSkinPart.
+     * Perimeter gaps are handled for skin outlines and printed after the skin fill of the skin part is printed by calling \ref processSkinPart.
      * Perimeter gaps between the walls are added to the gcode afterwards.
      * 
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -458,7 +458,7 @@ private:
     /*!
      * Add the gcode of the top/bottom skin of the given skin part and of the perimeter gaps.
      * 
-     * Perimeter gaps are handled for skin outlines and printed during the skin fill of the skin part is printed.
+     * Perimeter gaps are handled for skin outlines and printed after the skin fill of the skin part is printed.
      * 
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.

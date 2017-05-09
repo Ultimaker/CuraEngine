@@ -1305,8 +1305,8 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
     int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
-    int wall_x_extruder_nr = mesh->getSettingAsIndex("wall_x_extruder_nr");
-    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_x_extruder_nr)
+    int wall_0_extruder_nr = mesh->getSettingAsIndex("wall_0_extruder_nr");
+    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr)
     {
         return false;
     }
@@ -1316,7 +1316,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
                             && !getSettingBoolean("magic_spiralize")
-                            && extruder_nr == wall_x_extruder_nr;
+                            && extruder_nr == wall_0_extruder_nr;
 
     Point z_seam_pos(0, 0); // not used
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
@@ -1345,7 +1345,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
         if (gap_lines.size() > 0)
         {
-            assert(extruder_nr == wall_x_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
+            assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
             gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
@@ -1359,13 +1359,13 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
     const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
     const int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
-    const int wall_x_extruder_nr = mesh->getSettingAsIndex("wall_x_extruder_nr");
+    const int wall_0_extruder_nr = mesh->getSettingAsIndex("wall_0_extruder_nr");
     const int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
     const bool fill_perimeter_gaps =
         mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize")
-        && extruder_nr == wall_x_extruder_nr;
+        && extruder_nr == wall_0_extruder_nr;
 
     bool added_something = false;
 
@@ -1377,19 +1377,22 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     mesh->getSettingAsFillMethod("top_bottom_pattern");
     int bridge = -1;
     if (layer_nr > 0)
+    {
         bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
+    }
     if (bridge > -1)
     {
         pattern = EFillMethod::LINES;
         skin_angle = bridge;
     }
 
+    // add insets
     const Polygons* inner_skin_outline = nullptr;
     int offset_from_inner_skin_outline = 0;
     if (pattern != EFillMethod::CONCENTRIC)
     {
         // add skin walls aka skin perimeters
-        if (extruder_nr == wall_x_extruder_nr)
+        if (extruder_nr == wall_0_extruder_nr)
         {
             for (const Polygons& skin_perimeter : skin_part.insets)
             {
