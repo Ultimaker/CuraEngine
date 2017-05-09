@@ -1315,7 +1315,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     const unsigned int skin_line_width = mesh_config.skin_config.getLineWidth();
     const unsigned int perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
 
-    constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
                             && !getSettingBoolean("magic_spiralize")
                             && extruder_nr == wall_x_extruder_nr;
@@ -1348,8 +1347,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             skin_angle = bridge;
         }
 
-        Polygons perimeter_gaps; // the perimeter gaps of the insets of this skin part
-
         const Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
         if (pattern != EFillMethod::CONCENTRIC)
@@ -1368,26 +1365,11 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                 }
             }
 
-            // compute perimeter gaps and determine inner_skin_outline
+            // determine inner_skin_outline
             if (skin_part.insets.size() > 0)
             {
                 inner_skin_outline = &skin_part.insets.back();
                 offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
-
-                if (fill_perimeter_gaps)
-                {
-                    // add perimeter gaps between the outer skin inset and the innermost wall
-                    const Polygons outer = skin_part.outline;
-                    const Polygons inner = skin_part.insets[0].offset(mesh_config.insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
-                    perimeter_gaps.add(outer.difference(inner));
-
-                    for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
-                    { // add perimeter gaps between consecutive skin walls
-                        const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * mesh_config.insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
-                        const Polygons inner = skin_part.insets[inset_idx].offset(mesh_config.insetX_config.getLineWidth() / 2);
-                        perimeter_gaps.add(outer.difference(inner));
-                    }
-                }
             }
         }
 
@@ -1397,7 +1379,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
         }
 
         int extra_infill_shift = 0;
-        Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &perimeter_gaps : nullptr;
+        Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
+        Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
         Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
         infill_comp.generate(skin_polygons, skin_lines);
 
@@ -1419,7 +1402,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
         }
 
         if (fill_perimeter_gaps)
-        { // handle perimeter_gaps of skin insets
+        { // handle perimeter_gaps of concentric skin
+            Polygons perimeter_gaps = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
             Polygons gap_polygons; // will remain empty
             Polygons gap_lines;
             int offset = 0;
@@ -1436,39 +1420,11 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
     if (fill_perimeter_gaps)
     { // handle perimeter gaps of normal insets
-        Polygons perimeter_gaps;
-        int line_width = mesh_config.inset0_config.getLineWidth();
-        for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
-        {
-            const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-            line_width = mesh_config.insetX_config.getLineWidth();
-
-            Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
-            perimeter_gaps.add(outer.difference(inner));
-        }
-        { // gap between inner wall and skin/infill
-            if (mesh->getSettingInMicrons("infill_line_distance") > 0
-                && !mesh->getSettingBoolean("infill_hollow")
-                && mesh->getSettingInMicrons("infill_overlap_mm") >= 0
-            )
-            {
-                const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-
-                Polygons inner = part.infill_area;
-                for (const SkinPart& skin_part : part.skin_parts)
-                {
-                    inner.add(skin_part.outline);
-                }
-                inner = inner.unionPolygons();
-                perimeter_gaps.add(outer.difference(inner));
-            }
-        }
-
         Polygons gap_polygons; // unused
         Polygons gap_lines; // soon to be generated gap filler lines
         int offset = 0;
         int extra_infill_shift = 0;
-        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        Infill infill_comp(EFillMethod::LINES, part.perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
         infill_comp.generate(gap_polygons, gap_lines);
 
         if (gap_lines.size() > 0)

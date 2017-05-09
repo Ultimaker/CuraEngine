@@ -436,21 +436,21 @@ private:
      * \param layer_nr The current layer number.
      */
     void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
-    
+
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
      * 
-     * Perimter gaps are generated for skin outlines and printed while the skin fill of the skin part is printed.
+     * Perimeter gaps are handled for skin outlines and printed while the skin fill of the skin part is printed by calling \ref processSkinPart.
      * Perimeter gaps between the walls are added to the gcode afterwards.
      * 
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param skin_overlap The distance by which the skin overlaps with the wall insets and the distance by which the perimeter gaps overlap with adjacent print features.
-     * \param fillAngle The angle in the XY plane at which the infill is generated.
+     * \param infill_angle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
     bool processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;

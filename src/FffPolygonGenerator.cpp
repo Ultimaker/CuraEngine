@@ -234,6 +234,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
+    // send layer info
     for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
         SliceLayer* layer = nullptr;
@@ -301,7 +302,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
-    
+
+    processPerimeterGaps(storage);
+
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -406,6 +409,75 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
                 processed_layer_count++;
         }
         }
+}
+
+void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
+{
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+        bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+                                    && !getSettingBoolean("magic_spiralize");
+        if (!fill_perimeter_gaps)
+        {
+            continue;
+        }
+        bool fill_gaps_between_inner_wall_and_skin_or_infill =
+            mesh.getSettingInMicrons("infill_line_distance") > 0
+            && !mesh.getSettingBoolean("infill_hollow")
+            && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
+        coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+        for (SliceLayer& layer : mesh.layers)
+        {
+            for (SliceLayerPart& part : layer.parts)
+            {
+                 // handle perimeter gaps of normal insets
+                int line_width = wall_line_width_0;
+                for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
+                {
+                    const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+                    line_width = wall_line_width_x;
+
+                    Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
+
+                // gap between inner wall and skin/infill
+                if (fill_gaps_between_inner_wall_and_skin_or_infill)
+                {
+                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+
+                    Polygons inner = part.infill_area;
+                    for (const SkinPart& skin_part : part.skin_parts)
+                    {
+                        inner.add(skin_part.outline);
+                    }
+                    inner = inner.unionPolygons();
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
+
+                // add perimeter gaps for skin insets
+                for (SkinPart& skin_part : part.skin_parts)
+                {
+                    if (skin_part.insets.size() > 0)
+                    {
+                        // add perimeter gaps between the outer skin inset and the innermost wall
+                        const Polygons outer = skin_part.outline;
+                        const Polygons inner = skin_part.insets[0].offset(wall_line_width_x / 2 + perimeter_gaps_extra_offset);
+                        skin_part.perimeter_gaps.add(outer.difference(inner));
+
+                        for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
+                        { // add perimeter gaps between consecutive skin walls
+                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * wall_line_width_x / 2 - perimeter_gaps_extra_offset);
+                            const Polygons inner = skin_part.insets[inset_idx].offset(wall_line_width_x / 2);
+                            skin_part.perimeter_gaps.add(outer.difference(inner));
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order)

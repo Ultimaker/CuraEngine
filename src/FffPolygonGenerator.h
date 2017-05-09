@@ -87,7 +87,15 @@ private:
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
     void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
-    
+
+    /*!
+     * Generate areas for the gaps between walls where the next inset doesn't fit.
+     * These areas should be filled with a skin-like pattern, so that these skin lines get combined into one line with gradual changing width.
+     * 
+     * \param[in,out] storage fetches the perimeter information (see SliceLayerPart::insets and SkinPart::insets) and generates the other perimeter_gaps in SliceLayerPart and SkinPart
+     */
+    void processPerimeterGaps(SliceDataStorage& storage);
+
     /*!
      * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
      * 
