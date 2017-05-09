@@ -496,6 +496,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRe
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
     const int max_dist2 = config->getLineWidth() * config->getLineWidth() * 4; // (2 * lineWidth)^2;
+    const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
 
     double total_length = 0.0; // determine the length of the complete wall
     Point p0 = origin;
@@ -520,20 +521,28 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRe
     {
         // p is a point from the current wall polygon
         const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
-        wall_length += vSizeMM(p - p0);
-        p0 = p;
-
-        // now find the point on the last wall that is closest to p
-        ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
-        // if we found a point and it's not further away than max_dist2, use it
-        if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+        if (smooth_contours)
         {
-            // interpolate between cpp.location and p depending on how far we have progressed along wall
-            addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+            wall_length += vSizeMM(p - p0);
+            p0 = p;
+
+            // now find the point on the last wall that is closest to p
+            ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+            // if we found a point and it's not further away than max_dist2, use it
+            if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+            {
+                // interpolate between cpp.location and p depending on how far we have progressed along wall
+                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+            }
+            else
+            {
+                // no point in the last wall was found close enough to the current wall point so don't interpolate
+                addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+            }
         }
         else
         {
-            // no point in the last wall was found close enough to the current wall point so don't interpolate
+            // no smoothing, use point verbatim
             addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
         }
     }
