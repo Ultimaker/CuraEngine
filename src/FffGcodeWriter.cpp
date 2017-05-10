@@ -1377,8 +1377,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     Polygons skin_lines;
 
     EFillMethod pattern = (layer_nr == 0)?
-    mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-    mesh->getSettingAsFillMethod("top_bottom_pattern");
+        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
+        mesh->getSettingAsFillMethod("top_bottom_pattern");
     int bridge = -1;
     if (layer_nr > 0)
     {
