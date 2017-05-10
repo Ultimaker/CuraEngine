@@ -111,7 +111,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
     {
         return true;
     }
-    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers")) && getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
+    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers") > 0) && getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
     {
         return true;
     }
