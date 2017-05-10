@@ -610,7 +610,20 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     }
     else
     {
-        z = storage.meshes[0].layers[layer_nr].printZ;
+        z = storage.meshes[0].layers[layer_nr].printZ; // stub default
+        // find printZ of first actual printed mesh
+        for (const SliceMeshStorage& mesh : storage.meshes)
+        {
+            if (mesh.getSettingBoolean("support_mesh")
+                || mesh.getSettingBoolean("anti_overhang_mesh")
+                || mesh.getSettingBoolean("cutting_mesh")
+                || mesh.getSettingBoolean("infill_mesh"))
+            {
+                continue;
+            }
+            z = mesh.layers[layer_nr].printZ;
+            break;
+        }
         if (layer_nr == 0)
         {
             if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
