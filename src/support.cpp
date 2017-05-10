@@ -134,7 +134,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             continue;
         }
         SettingsBaseVirtual* infill_settings = &storage.meshes[mesh_idx];
-        SettingsBaseVirtual* interface_settings = &storage.meshes[mesh_idx];
+        SettingsBaseVirtual* roof_settings = &storage.meshes[mesh_idx];
+        SettingsBaseVirtual* bottom_settings = &storage.meshes[mesh_idx];
         if (mesh.getSettingBoolean("support_mesh"))
         {
             if (support_modifier_meshes_handled)
@@ -144,15 +145,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             // use extruder train settings rather than the per-object settings of the first support mesh encountered.
             // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
             // instead we must use the support extruder settings, which is the settings base common to all support meshes.
-            int interface_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
+            int roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr");
+            int bottom_extruder_nr = storage.getSettingAsIndex("support_bottom_extruder_nr");
             int infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
             infill_settings = storage.meshgroup->getExtruderTrain(infill_extruder_nr);
-            interface_settings = storage.meshgroup->getExtruderTrain(interface_extruder_nr);
+            roof_settings = storage.meshgroup->getExtruderTrain(roof_extruder_nr);
+            bottom_settings = storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
             support_modifier_meshes_handled = true;
         }
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, *infill_settings, *interface_settings, mesh_idx, layer_count, supportAreas);
+        generateSupportAreas(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, supportAreas);
 
         for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
         {
@@ -197,7 +200,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
     const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
@@ -220,10 +223,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
 
     int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
 
-    const double supportAngle = interface_settings.getSettingInAngleRadians("support_angle");
+    const double supportAngle = ((mesh.getSettingBoolean("support_roof_enable"))? roof_settings : infill_settings).getSettingInAngleRadians("support_angle");
     const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    const int supportZDistanceBottom = interface_settings.getSettingInMicrons("support_bottom_distance");
-    const int supportZDistanceTop = interface_settings.getSettingInMicrons("support_top_distance");
+    const int supportZDistanceBottom = ((mesh.getSettingBoolean("support_bottom_enable"))? bottom_settings : infill_settings).getSettingInMicrons("support_bottom_distance");
+    const int supportZDistanceTop = ((mesh.getSettingBoolean("support_roof_enable"))? roof_settings : infill_settings).getSettingInMicrons("support_top_distance");
     const unsigned int tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
     const coord_t support_bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_height"));
     const coord_t support_bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_width"));
