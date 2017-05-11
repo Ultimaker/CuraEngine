@@ -227,7 +227,7 @@ public:
      * 
      * \return total print time in seconds for each feature
      */
-    std::vector<double> getTotalPrintTimes();
+    std::vector<double> getTotalPrintTimePerFeature();
     /*!
      * Get the total print time in seconds for the complete print
      * 

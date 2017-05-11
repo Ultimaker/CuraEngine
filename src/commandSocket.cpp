@@ -629,7 +629,7 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
     logDebug("Sending print time and material estimates.\n");
     auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
 
-    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimes();
+    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
     message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
     message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
     message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);

@@ -132,9 +132,9 @@ public:
      * 
      * \return total print time in seconds for each feature
      */
-    std::vector<double> getTotalPrintTimes()
+    std::vector<double> getTotalPrintTimePerFeature()
     {
-        return gcode.getTotalPrintTimes();
+        return gcode.getTotalPrintTimePerFeature();
     }
 
     /*!

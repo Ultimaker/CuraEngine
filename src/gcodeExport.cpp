@@ -377,7 +377,7 @@ double GCodeExport::getTotalFilamentUsed(int extruder_nr)
     return extruder_attr[extruder_nr].totalFilament;
 }
 
-std::vector<double> GCodeExport::getTotalPrintTimes()
+std::vector<double> GCodeExport::getTotalPrintTimePerFeature()
 {
     return total_print_times;
 }
@@ -385,7 +385,7 @@ std::vector<double> GCodeExport::getTotalPrintTimes()
 double GCodeExport::getSumTotalPrintTimes()
 {
     double sum = 0.0;
-    for(double item : getTotalPrintTimes())
+    for(double item : getTotalPrintTimePerFeature())
     {
         sum += item;
     }
