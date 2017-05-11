@@ -53,11 +53,15 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
             coord_t width = mesh.getSettingInMicrons("mold_width");
             coord_t open_polyline_width = mesh.getSettingInMicrons("wall_line_width_0");
             double angle = mesh.getSettingInAngleDegrees("mold_angle");
+            coord_t roof_height = mesh.getSettingInMicrons("mold_roof_height");
+
             coord_t inset = tan(angle / 180 * M_PI) * layer_height;
+            unsigned int roof_layer_count = roof_height / layer_height;
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
             Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(open_polyline_width / 2));
+            layer.openPolylines.clear();
             all_original_mold_outlines.add(model_outlines);
 
             if (angle >= 90)
@@ -69,7 +73,14 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
                 Polygons& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
                 layer.polygons = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
             }
-            layer.openPolylines.clear();
+
+            // add roofs
+            if (roof_layer_count > 0 && layer_nr > 0)
+            {
+                unsigned int layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
+                Polygons roofs = slicer.layers[layer_nr_below].polygons.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
+                layer.polygons = layer.polygons.unionPolygons(roofs);
+            }
 
             mold_outline_above_per_mesh[mesh_idx] = layer.polygons;
         }
