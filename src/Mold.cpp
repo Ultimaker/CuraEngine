@@ -6,37 +6,84 @@
 namespace cura
 {
 
-void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height)
+void Mold::process(const SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height)
 {
-    for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
-    {
-        Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-        if (mesh.getSettingBoolean("mold_enabled"))
+    { // check whether we even need to process molds
+        bool has_any_mold = false;
+        for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            Mold::process(*slicer_list[mesh_idx], layer_height, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"));
+            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            if (mesh.getSettingBoolean("mold_enabled"))
+            {
+                has_any_mold = true;
+                break;
+            }
+        }
+        if (!has_any_mold)
+        {
+            return;
         }
     }
-}
 
-void Mold::process(Slicer& slicer, coord_t layer_height, double angle, coord_t width, coord_t open_polyline_width)
-{
-    Polygons mold_outline_above; // the outside of the mold
+    unsigned int layer_count = 0;
+    { // compute layer_count
+        for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
+        {
+            Slicer& slicer = *slicer_list[mesh_idx];
+            unsigned int layer_count_here = slicer.layers.size();
+            layer_count = std::max(layer_count, layer_count_here);
+        }
+    }
 
-    coord_t inset = tan(angle / 180 * M_PI) * layer_height;
-    for (int layer_nr = slicer.layers.size() - 1; layer_nr >= 0; layer_nr--)
+    std::vector<Polygons> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
+    mold_outline_above_per_mesh.resize(slicer_list.size());
+    for (int layer_nr = layer_count - 1; layer_nr >= 0; layer_nr--)
     {
-        SlicerLayer& layer = slicer.layers[layer_nr];
-        Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(open_polyline_width / 2));
-        if (angle >= 90)
+        Polygons all_original_mold_outlines; // outlines of all models for which to generate a mold (insides of all molds)
+
+        // first generate outlines
+        for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            layer.polygons = model_outlines.offset(width, ClipperLib::jtRound).difference(model_outlines);
+            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            Slicer& slicer = *slicer_list[mesh_idx];
+            if (!mesh.getSettingBoolean("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
+            {
+                continue;
+            }
+            coord_t width = mesh.getSettingInMicrons("mold_width");
+            coord_t open_polyline_width = mesh.getSettingInMicrons("wall_line_width_0");
+            double angle = mesh.getSettingInAngleDegrees("mold_angle");
+            coord_t inset = tan(angle / 180 * M_PI) * layer_height;
+
+
+            SlicerLayer& layer = slicer.layers[layer_nr];
+            Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(open_polyline_width / 2));
+            all_original_mold_outlines.add(model_outlines);
+
+            if (angle >= 90)
+            {
+                layer.polygons = model_outlines.offset(width, ClipperLib::jtRound);
+            }
+            else
+            {
+                Polygons& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
+                layer.polygons = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
+            }
+            layer.openPolylines.clear();
+
+            mold_outline_above_per_mesh[mesh_idx] = layer.polygons;
         }
-        else
+        all_original_mold_outlines = all_original_mold_outlines.unionPolygons();
+
+        // cut out molds from all objects after generating mold outlines for all objects so that molds won't overlap into the casting cutout of another mold
+
+        // carve molds out of all other models
+        for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            mold_outline_above = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
-            layer.polygons = mold_outline_above.difference(model_outlines);
+            Slicer& slicer = *slicer_list[mesh_idx];
+            SlicerLayer& layer = slicer.layers[layer_nr];
+            layer.polygons = layer.polygons.difference(all_original_mold_outlines);
         }
-        layer.openPolylines.clear();
     }
 
 }
