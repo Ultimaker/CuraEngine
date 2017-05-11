@@ -29,7 +29,7 @@ public:
      * \param slicer_list The container for the sliced polygons (and open polylines) of all meshes
      * \param layer_height The overall layer height used (used to compute an offset from the mold angle)
      */
-    static void process(const SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height);
+    static void process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height);
 private:
 };
 
