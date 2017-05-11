@@ -889,7 +889,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     )
                     {
                         sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth());
-                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
+                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM(), paths[path_idx+2].config->type);
                         path_idx += 2;
                     }
                     else 
@@ -897,7 +897,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
                             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type);
                         }
                     }
                 }
@@ -930,7 +930,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(z + layer_thickness * length / totalLength);
                         sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -1108,10 +1108,10 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
         }
         sendLineTo(path.config->type, start, path.getLineWidth());
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM());
+        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
     }
 
     // write coasting path

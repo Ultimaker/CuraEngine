@@ -1692,7 +1692,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 
 void FffGcodeWriter::finalize()
 {
-    double print_time = gcode.getTotalPrintTime();
+    double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
     for (int extr_nr = 0; extr_nr < getSettingAsCount("machine_extruder_count"); extr_nr++)

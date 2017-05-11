@@ -127,11 +127,13 @@ void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double 
     block->final_feedrate = final_feedrate;
 }                    
 
-void TimeEstimateCalculator::plan(Position newPos, double feedrate)
+void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeatureType feature)
 {
     Block block;
     memset(&block, 0, sizeof(block));
-    
+
+    block.feature = feature;
+
     block.maxTravel = 0;
     for(unsigned int n=0; n<NUM_AXIS; n++)
     {
@@ -219,23 +221,24 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate)
     blocks.push_back(block);
 }
 
-double TimeEstimateCalculator::calculate()
+std::vector<double> TimeEstimateCalculator::calculate()
 {
     reverse_pass();
     forward_pass();
     recalculate_trapezoids();
     
-    double totalTime = extra_time;
+    std::vector<double> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
     for(unsigned int n=0; n<blocks.size(); n++)
     {
         Block& block = blocks[n];
         double plateau_distance = block.decelerate_after - block.accelerate_until;
         
-        totalTime += acceleration_time_from_distance(block.initial_feedrate, block.accelerate_until, block.acceleration);
-        totalTime += plateau_distance / block.nominal_feedrate;
-        totalTime += acceleration_time_from_distance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
+        totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.initial_feedrate, block.accelerate_until, block.acceleration);
+        totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
+        totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
     }
-    return totalTime;
+    return totals;
 }
 
 // The kernel called by accelerationPlanner::calculate() when scanning the plan from last to first entry.

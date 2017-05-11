@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <vector>
+#include <unordered_map>
+
+#include "PrintFeature.h"
 
 namespace cura
 {
@@ -54,6 +57,8 @@ public:
         double acceleration;
         Position delta;
         Position absDelta;
+
+        PrintFeatureType feature;
     };
 
 private:
@@ -80,7 +85,7 @@ public:
      */
     void setFirmwareDefaults(const SettingsBaseVirtual* settings_base);
     void setPosition(Position newPos);
-    void plan(Position newPos, double feedRate);
+    void plan(Position newPos, double feedRate, PrintFeatureType feature);
     void addTime(double time);
     void setAcceleration(double acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(double jerk); //!< Set the max xy jerk to \p jerk
@@ -88,7 +93,7 @@ public:
 
     void reset();
     
-    double calculate();
+    std::vector<double> calculate();
 private:
     void reverse_pass();
     void forward_pass();

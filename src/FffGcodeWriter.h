@@ -128,13 +128,13 @@ public:
     }
 
     /*!
-     * Get the total estimated print time in seconds
+     * Get the total estimated print time in seconds for each feature
      * 
-     * \return total print time in seconds
+     * \return total print time in seconds for each feature
      */
-    double getTotalPrintTime()
+    std::vector<double> getTotalPrintTimePerFeature()
     {
-        return gcode.getTotalPrintTime();
+        return gcode.getTotalPrintTimePerFeature();
     }
 
     /*!
