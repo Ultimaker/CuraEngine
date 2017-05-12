@@ -162,6 +162,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
 
+        if (!is_support_modifier)
+        { // only create layer parts for normal meshes
+            createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
+        }
+
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
         //Add the raft offset to each layer.
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
@@ -182,11 +187,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
-        }
-
-        if (!is_support_modifier)
-        { // only create layer parts for normal meshes
-            createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         }
 
         delete slicerList[meshIdx];
