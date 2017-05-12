@@ -158,7 +158,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
 
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
     Point3 child_center;
-    coord_t radius = double(double(cube_properties.height)) / 4.0 + radius_addition;
+    coord_t radius = double(cube_properties.height) / 4.0 + radius_addition;
 
     int child_nr = 0;
     std::vector<Point3> rel_child_centers;
