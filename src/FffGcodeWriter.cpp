@@ -454,7 +454,6 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
         gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
     }
 
-    gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
 
     gcode.setZ(max_object_height + 5000);
