@@ -893,12 +893,18 @@ void GCodeExport::writePrimeTrain(double travel_speed)
     { // extruder is already primed once!
         return;
     }
-    Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
-    if (!extruder_attr[current_extruder].prime_pos_is_abs)
-    {
-        prime_pos += currentPosition;
+    if (extruder_attr[current_extruder].is_prime_blob_enabled)
+    { // only move to prime position if we do a blob/poop
+        // ideally the prime position would be respected whether we do a blob or not,
+        // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
+        // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
+        Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
+        if (!extruder_attr[current_extruder].prime_pos_is_abs)
+        {
+            prime_pos += currentPosition;
+        }
+        writeTravel(prime_pos, travel_speed);
     }
-    writeTravel(prime_pos, travel_speed);
 
     if (flavor == EGCodeFlavor::GRIFFIN)
     {

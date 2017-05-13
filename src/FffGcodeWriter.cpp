@@ -1660,12 +1660,17 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-            // move to prime position
-            bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-            gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
+            if (train->getSettingBoolean("prime_blob_enable"))
+            { // only move to prime position if we do a blob/poop
+                // ideally the prime position would be respected whether we do a blob or not,
+                // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
+                // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
+                bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+                Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
 
-            gcode_layer.planPrime();
+                gcode_layer.planPrime();
+            }
         }
 
         if (layer_nr == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
