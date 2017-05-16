@@ -827,9 +827,9 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    for (unsigned int layer_idx = 0; static_cast<int>(layer_idx) < static_cast<int>(support_layers.size() - roof_layer_count - z_distance_top); layer_idx++)
+    for (unsigned int layer_idx = 0; static_cast<int>(layer_idx) < static_cast<int>(support_layers.size() - z_distance_top); layer_idx++)
     {
-        const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top; //Maximum layer of the model that generates support roof.
+        const unsigned int top_layer_idx_above = std::min(static_cast<unsigned int>(support_layers.size() - 1), layer_idx + roof_layer_count + z_distance_top); //Maximum layer of the model that generates support roof.
         Polygons mesh_outlines;
         for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
         {
