@@ -236,20 +236,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-    {
-        SliceLayer* layer = nullptr;
-        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-        { // find first mesh which has this layer
-            SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-            if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
-            {
-                layer = &mesh.layers[layer_nr];
-                break;
-            }
-        }
-    }
-
     log("Layer count: %i\n", storage.print_layer_count);
 
     //layerparts2HTML(storage, "output/output.html");
