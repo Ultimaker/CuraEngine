@@ -21,9 +21,9 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 #define INT2MM(n) (double(n) / 1000.0)
 #define INT2MM2(n) (double(n) / 1000000.0)
-#define MM2INT(n) (int64_t((n) * 1000))
-#define MM2_2INT(n) (int64_t((n) * 1000000))
-#define MM3_2INT(n) (int64_t((n) * 1000000000))
+#define MM2INT(n) (int64_t(std::round((n) * 1000)))
+#define MM2_2INT(n) (int64_t(std::round((n) * 1000000)))
+#define MM3_2INT(n) (int64_t(std::round((n) * 1000000000)))
 
 #define INT2MICRON(n) ((n) / 1)
 #define MICRON2INT(n) ((n) * 1)
