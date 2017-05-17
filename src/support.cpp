@@ -207,7 +207,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
 
-    bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
+    bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
 
     if (!mesh.getSettingBoolean("support_enable") && !is_support_modifier_place_holder)
     {
@@ -245,7 +245,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
 
     const double conical_support_angle = infill_settings.getSettingInAngleRadians("support_conical_angle");
     const bool conical_support = infill_settings.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
-    const int64_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
+    const coord_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
 
     // derived settings:
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
@@ -283,7 +283,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
     
-    int64_t conical_support_offset;
+    coord_t conical_support_offset;
     if (conical_support_angle > 0) 
     { // outward ==> wider base than overhang
         conical_support_offset = -(tan(conical_support_angle) - 0.01) * supportLayerThickness;
