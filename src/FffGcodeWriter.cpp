@@ -601,11 +601,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         const int filler_layer_count = Raft::getFillerLayerCount(storage);
         layer_thickness = Raft::getFillerLayerHeight(storage);
         z = Raft::getTotalThickness(storage) + (filler_layer_count + layer_nr + 1) * layer_thickness;
-
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_thickness);
-        }
     }
     else
     {
@@ -631,6 +626,12 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
             }
             layer_thickness = getSettingInMicrons("layer_height_0");
         }
+    }
+
+    if (CommandSocket::isInstantiated())
+    {
+#pragma omp critical
+        CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_thickness);
     }
 
     bool avoid_other_parts = false;

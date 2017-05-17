@@ -248,13 +248,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
                 break;
             }
         }
-        if (layer != nullptr)
-        {
-            if (CommandSocket::isInstantiated())
-            { // send layer info
-                CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
-            }
-        }
     }
 
     log("Layer count: %i\n", storage.print_layer_count);
