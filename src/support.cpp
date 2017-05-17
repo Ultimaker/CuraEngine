@@ -125,7 +125,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     }
 
     // generate support areas
-    bool support_modifier_meshes_handled = false;
+    bool support_meshes_drop_down_handled = false;
+    bool support_meshes_handled = false;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
@@ -138,7 +139,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         SettingsBaseVirtual* bottom_settings = &storage.meshes[mesh_idx];
         if (mesh.getSettingBoolean("support_mesh"))
         {
-            if (support_modifier_meshes_handled)
+            if ((mesh.getSettingBoolean("support_mesh_drop_down") && support_meshes_drop_down_handled) ||
+                (!mesh.getSettingBoolean("support_mesh_drop_down") && support_meshes_handled) )
             { // handle all support_mesh and support_mesh_drop_down areas only once
                 continue;
             }
@@ -151,7 +153,14 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             infill_settings = storage.meshgroup->getExtruderTrain(infill_extruder_nr);
             roof_settings = storage.meshgroup->getExtruderTrain(roof_extruder_nr);
             bottom_settings = storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
-            support_modifier_meshes_handled = true;
+            if (mesh.getSettingBoolean("support_mesh_drop_down"))
+            {
+                support_meshes_drop_down_handled = true;
+            }
+            else
+            {
+                support_meshes_handled = true;
+            }
         }
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
@@ -208,6 +217,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
 
     bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
+    bool is_support_mesh_nondrop_place_holder = is_support_modifier_place_holder && !mesh.getSettingBoolean("support_mesh_drop_down");
+    bool is_support_mesh_drop_down_place_holder = is_support_modifier_place_holder && mesh.getSettingBoolean("support_mesh_drop_down");
 
     if (!mesh.getSettingBoolean("support_enable") && !is_support_modifier_place_holder)
     {
@@ -344,9 +355,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
         }
     }
 
-    const Polygons empty;
-    const Polygons* supportLayer_last = &empty;
-    Polygons support_layer_last_without_support_mesh;
     std::vector<Polygons> towerRoofs;
     Polygons stair_removal; // polygons to subtract from support because of stair-stepping
 
@@ -366,10 +374,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
             // handle towers
             AreaSupport::handleTowers(supportLayer_this, towerRoofs, overhang_points, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
         }
-    
-        if (layer_idx+1 < support_layer_count)
-        { // join with support from layer up                
-            supportLayer_this = AreaSupport::join(*supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+
+        if (layer_idx + 1 < support_layer_count)
+        { // join with support from layer up
+            const Polygons empty;
+            const Polygons* support_layer_above = (layer_idx < supportAreas.size())? &supportAreas[layer_idx + 1] : &empty;
+            if (is_support_mesh_nondrop_place_holder)
+            {
+                support_layer_above = &empty;
+                supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+            }
+            supportLayer_this = AreaSupport::join(*support_layer_above, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         // make towers for small support
@@ -396,7 +411,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
             }
         }
 
-        if (is_support_modifier_place_holder && storage.support.supportLayers[layer_idx].support_mesh_drop_down.size() > 0)
+        if (is_support_mesh_drop_down_place_holder && storage.support.supportLayers[layer_idx].support_mesh_drop_down.size() > 0)
         { // handle support mesh which should be supported by more support
             supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
@@ -410,21 +425,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
         if (supportLayer_this.size() > 0)
         {
             supportLayer_this = supportLayer_this.difference(xy_disallowed_per_layer[layer_idx]);
-        }
-
-        // inset using XY distance before determining the support areas for the next layer because
-        // otherwise a support pillar would always go to the build plate even when there's model in between
-
-        supportLayer_last = &supportAreas[layer_idx];
-
-        if (is_support_modifier_place_holder && storage.support.supportLayers[layer_idx].support_mesh.size() > 0)
-        { // handle support mesh which should NOT be supported by more support
-            support_layer_last_without_support_mesh = supportLayer_this;
-            supportLayer_last = &support_layer_last_without_support_mesh;
-            // reapply XY distance to support mesh
-            // the support mesh cannot be merged before applying the XY distance globally because then it would be taken along to the next layer.
-            Polygons support_mesh = storage.support.supportLayers[layer_idx].support_mesh.difference(xy_disallowed_per_layer[layer_idx]);
-            supportLayer_this = supportLayer_this.unionPolygons(support_mesh);
         }
 
         // move up from model
