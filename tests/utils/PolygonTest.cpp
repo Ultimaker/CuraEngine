@@ -14,7 +14,6 @@ void PolygonTest::setUp()
     test_square.emplace_back(100, 100);
     test_square.emplace_back(0, 100);
 
-
     pointy_square.emplace_back(0, 0);
     pointy_square.emplace_back(47, 0);
     pointy_square.emplace_back(50, 80);

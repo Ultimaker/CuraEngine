@@ -137,6 +137,11 @@ set(engine_TEST_UTILS
     PolygonUtilsTest
     PolygonTest
     StringTest
+    AABBTest
+    AABB3DTest
+)
+set(engine_TEST_SETTINGS
+    SettingsTest
 )
 
 # Generating ProtoBuf protocol
@@ -175,6 +180,11 @@ if (BUILD_TESTS)
     endforeach()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine cppunit)
+        add_test(${test} ${test})
+    endforeach()
+    foreach (test ${engine_TEST_SETTINGS})
+        add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
