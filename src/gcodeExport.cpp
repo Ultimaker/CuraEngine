@@ -27,7 +27,7 @@ GCodeExport::GCodeExport()
     current_extruder = 0;
     currentFanSpeed = -1;
 
-    totalPrintTime = 0.0;
+    total_print_times = std::vector<double>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
     currentSpeed = 1;
     current_acceleration = -1;
@@ -63,6 +63,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
         extruder_attr[extruder_nr].use_temp = train->getSettingBoolean("machine_nozzle_temp_enabled");
+        extruder_attr[extruder_nr].is_prime_blob_enabled = train->getSettingBoolean("prime_blob_enable");
 
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
@@ -345,14 +346,27 @@ double GCodeExport::getTotalFilamentUsed(int extruder_nr)
     return extruder_attr[extruder_nr].totalFilament;
 }
 
-double GCodeExport::getTotalPrintTime()
+std::vector<double> GCodeExport::getTotalPrintTimePerFeature()
 {
-    return totalPrintTime;
+    return total_print_times;
+}
+
+double GCodeExport::getSumTotalPrintTimes()
+{
+    double sum = 0.0;
+    for(double item : getTotalPrintTimePerFeature())
+    {
+        sum += item;
+    }
+    return sum;
 }
 
 void GCodeExport::resetTotalPrintTimeAndFilament()
 {
-    totalPrintTime = 0;
+    for(size_t i = 0; i < total_print_times.size(); i++)
+    {
+        total_print_times[i] = 0.0;
+    }
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
     {
         extruder_attr[e].totalFilament = 0.0;
@@ -364,9 +378,13 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
 
 void GCodeExport::updateTotalPrintTime()
 {
-    totalPrintTime += estimateCalculator.calculate();
+    std::vector<double> estimates = estimateCalculator.calculate();
+    for(size_t i = 0; i < estimates.size(); i++)
+    {
+        total_print_times[i] += estimates[i];
+    }
     estimateCalculator.reset();
-    writeTimeComment(totalPrintTime);
+    writeTimeComment(getSumTotalPrintTimes());
 }
 
 void GCodeExport::writeComment(std::string comment)
@@ -464,32 +482,32 @@ void GCodeExport::writeTravel(Point p, double speed)
 {
     writeTravel(Point3(p.X, p.Y, current_layer_z), speed);
 }
-void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm)
+void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
-    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm);
+    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, feature);
 }
 
 void GCodeExport::writeTravel(Point3 p, double speed)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        writeMoveBFB(p.x, p.y, p.z + isZHopped, speed, 0.0);
+        writeMoveBFB(p.x, p.y, p.z + isZHopped, speed, 0.0, PrintFeatureType::MoveCombing);
         return;
     }
     writeTravel(p.x, p.y, p.z + isZHopped, speed);
 }
 
-void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm)
+void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        writeMoveBFB(p.x, p.y, p.z, speed, extrusion_mm3_per_mm);
+        writeMoveBFB(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm);
+    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
 }
 
-void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
+void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (std::isinf(extrusion_mm3_per_mm))
     {
@@ -550,7 +568,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     *output_stream << " F" << PrecisionedDouble{1, fspeed} << new_line;
     
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
 }
 
 void GCodeExport::writeTravel(int x, int y, int z, double speed)
@@ -570,10 +588,10 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
     CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width);
 
     *output_stream << "G0";
-    writeFXYZE(speed, x, y, z, current_e_value);
+    writeFXYZE(speed, x, y, z, current_e_value, PrintFeatureType::MoveCombing);
 }
 
-void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
+void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
@@ -618,10 +636,10 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
 
     *output_stream << "G1";
-    writeFXYZE(speed, x, y, z, new_e_value);
+    writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
-void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e)
+void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e, PrintFeatureType feature)
 {
     if (currentSpeed != speed)
     {
@@ -645,7 +663,7 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e)
     
     currentPosition = Point3(x, y, z);
     current_e_value = e;
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
 }
 
 void GCodeExport::writeUnretractionAndPrime()
@@ -663,14 +681,14 @@ void GCodeExport::writeUnretractionAndPrime()
                 *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             }
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0, PrintFeatureType::MoveRetraction);
         }
         else
         {
             current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
             *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         }
         if (getCurrentExtrudedVolume() > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
         {
@@ -682,7 +700,7 @@ void GCodeExport::writeUnretractionAndPrime()
     {
         *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
         currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::NoneType);
     }
     extruder_attr[current_extruder].prime_volume = 0.0;
 }
@@ -749,7 +767,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
         *output_stream << new_line;
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)), 25); // TODO: hardcoded values!
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)), 25, PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
     }
     else
     {
@@ -758,7 +776,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream << "G1 F" << PrecisionedDouble{1, speed} << " "
             << extr_attr.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
         currentSpeed = speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         extr_attr.last_retraction_prime_speed = config.primeSpeed;
     }
 
@@ -844,16 +862,27 @@ void GCodeExport::writePrimeTrain(double travel_speed)
     { // extruder is already primed once!
         return;
     }
-    Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
-    if (!extruder_attr[current_extruder].prime_pos_is_abs)
-    {
-        prime_pos += currentPosition;
+    if (extruder_attr[current_extruder].is_prime_blob_enabled)
+    { // only move to prime position if we do a blob/poop
+        // ideally the prime position would be respected whether we do a blob or not,
+        // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
+        // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
+        Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
+        if (!extruder_attr[current_extruder].prime_pos_is_abs)
+        {
+            prime_pos += currentPosition;
+        }
+        writeTravel(prime_pos, travel_speed);
     }
-    writeTravel(prime_pos, travel_speed);
 
     if (flavor == EGCodeFlavor::GRIFFIN)
     {
-        *output_stream << "G280" << new_line;
+        std::string command = "G280";
+        if (!extruder_attr[current_extruder].is_prime_blob_enabled)
+        {
+            command += " S1";  // use S1 to disable prime blob
+        }
+        *output_stream << command << new_line;
     }
     else
     {
@@ -999,7 +1028,7 @@ void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);
-    int64_t print_time = getTotalPrintTime();
+    int64_t print_time = getSumTotalPrintTimes();
     int mat_0 = getTotalFilamentUsed(0);
     log("Print time: %d\n", print_time);
     log("Print time (readable): %dh %dm %ds\n", print_time / 60 / 60, (print_time / 60) % 60, print_time % 60);

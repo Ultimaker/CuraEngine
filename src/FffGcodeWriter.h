@@ -128,13 +128,13 @@ public:
     }
 
     /*!
-     * Get the total estimated print time in seconds
+     * Get the total estimated print time in seconds for each feature
      * 
-     * \return total print time in seconds
+     * \return total print time in seconds for each feature
      */
-    double getTotalPrintTime()
+    std::vector<double> getTotalPrintTimePerFeature()
     {
-        return gcode.getTotalPrintTime();
+        return gcode.getTotalPrintTimePerFeature();
     }
 
     /*!
@@ -225,11 +225,15 @@ private:
     LayerPlan& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
 
     /*!
-     * Whether the extruders need to be primed separately just before they are used.
+     * This function checks whether prime blob should happen for any extruder on the first layer.
+     * Priming will always happen, but the actual priming may or may not include a prime blob.
+     *
+     * Technically, this function checks whether any extruder needs to be primed (with a prime blob)
+     * separately just before they are used.
      * 
-     * \return whether the extruders need to be primed separately just before they are used
+     * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getExtrudersNeedPrimeDuringFirstLayer() const;
+    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const;
 
     /*!
      * Plan priming of all used extruders which haven't been primed yet

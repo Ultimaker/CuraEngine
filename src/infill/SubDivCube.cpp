@@ -15,7 +15,6 @@ namespace cura
 {
 
 std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step;
-double SubDivCube::radius_multiplier = 1;
 int32_t SubDivCube::radius_addition = 0;
 Point3Matrix SubDivCube::rotation_matrix;
 PointMatrix SubDivCube::infill_rotation_matrix;
@@ -33,7 +32,6 @@ SubDivCube::~SubDivCube()
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
-    radius_multiplier = mesh.getSettingAsRatio("sub_div_rad_mult");
     radius_addition = mesh.getSettingInMicrons("sub_div_rad_add");
     double infill_angle = M_PI / 4.0;
 
@@ -160,7 +158,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
 
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
     Point3 child_center;
-    coord_t radius = double(radius_multiplier * double(cube_properties.height)) / 4.0 + radius_addition;
+    coord_t radius = double(cube_properties.height) / 4.0 + radius_addition;
 
     int child_nr = 0;
     std::vector<Point3> rel_child_centers;

@@ -43,11 +43,12 @@ private:
      * 
      * \param storage data storage containing the input layer outline data
      * \param infill_settings The settings base to get the settings from which are based on the infill of the support
-     * \param interface_settings The settings base to get the settings from which are based on the interface of the support
+     * \param roof_settings The settings base to get the settings from which are based on the top interface of the support
+     * \param bottom_settings The settings base to get the settings from which are based on the bottom interface of the support
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
     /*!
      * Generate support bottom areas for a given mesh.
@@ -106,7 +107,25 @@ private:
      * 
      * \return The joined support areas for this layer.
      */
-    static Polygons join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
+    static Polygons join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
+
+    /*!
+     * Move the support up from model (cut away polygons to ensure bottom z distance)
+     * and apply stair step transformation.
+     * 
+     * If the bottom stairs defined only by the step height are too wide,
+     * the top half of the step will be as wide as the stair step width
+     * and the bottom half will follow the model.
+     * 
+     * \param storage Where to get model outlines from
+     * \param[in,out] stair_removal The polygons to be removed for stair stepping on the current layer (input) and for the next layer (output). Only changed every [step_height] layers.
+     * \param[in,out] support_areas The support areas before and after this function
+     * \param layer_idx The layer number of the support layer we are processing
+     * \param bottom_empty_layer_count The number of empty layers between the bottom of support and the top of the model on which support rests
+     * \param bottom_stair_step_layer_count The max height (in nr of layers) of the support bottom stairs
+     * \param support_bottom_stair_step_width The max width of the support bottom stairs
+     */
+    static void moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
      * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).

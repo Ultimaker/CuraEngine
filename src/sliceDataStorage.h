@@ -281,6 +281,14 @@ public:
      */
     std::vector<bool> getExtrudersUsed(int layer_nr) const;
 
+    /*!
+     * Gets whether prime blob is enabled for the given extruder number.
+     *
+     * \param extruder_nr the extruder number to check.
+     * \return a bool indicating whether prime blob is enabled for the given extruder number.
+     */
+    bool getExtruderPrimeBlobEnabled(int extruder_nr) const;
+
 private:
     /*!
      * Construct the retraction_config_per_extruder

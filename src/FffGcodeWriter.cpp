@@ -179,8 +179,8 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
 
         int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
 
-        // now we check that the vertex following the seam vertex is not to the right of the seam vertex in the last layer
-        // and if it is we move forward
+        // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
+        // and if it isn't, we move forward
 
         // get the inward normal of the last layer seam vertex
         Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
@@ -188,13 +188,13 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
         Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
-        // now test the vertex following the candidate seam vertex and if it lies to the left or on the vector, it's good to use
+        // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
         const int first_seam_vertex_idx = seam_vertex_idx;
         float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
-        while (a > M_PI)
+        while (a <= 0 || a >= M_PI)
         {
-            // the vertex was on the right of the vector so move the seam vertex on
+            // the vertex was not on the left of the vector so move the seam vertex on
             seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
             a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
@@ -454,7 +454,6 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
         gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
     }
 
-    gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
 
     gcode.setZ(max_object_height + 5000);
@@ -610,7 +609,20 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     }
     else
     {
-        z = storage.meshes[0].layers[layer_nr].printZ;
+        z = storage.meshes[0].layers[layer_nr].printZ; // stub default
+        // find printZ of first actual printed mesh
+        for (const SliceMeshStorage& mesh : storage.meshes)
+        {
+            if (mesh.getSettingBoolean("support_mesh")
+                || mesh.getSettingBoolean("anti_overhang_mesh")
+                || mesh.getSettingBoolean("cutting_mesh")
+                || mesh.getSettingBoolean("infill_mesh"))
+            {
+                continue;
+            }
+            z = mesh.layers[layer_nr].printZ;
+            break;
+        }
         if (layer_nr == 0)
         {
             if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
@@ -714,15 +726,29 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     return gcode_layer;
 }
 
-bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer() const
+bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const
 {
-    switch(gcode.getFlavor())
+    bool need_prime_blob = false;
+    switch (gcode.getFlavor())
     {
         case EGCodeFlavor::GRIFFIN:
-            return true;
+            need_prime_blob = true;
+            break;
         default:
-            return false; // TODO: change this once priming for other firmware types is implemented
+            need_prime_blob = false; // TODO: change this once priming for other firmware types is implemented
+            break;
     }
+
+    // check the settings if the prime blob is disabled
+    if (need_prime_blob)
+    {
+        const bool is_extruder_used_overall = storage.getExtrudersUsed()[extruder_nr];
+        const bool extruder_prime_blob_enabled = storage.getExtruderPrimeBlobEnabled(extruder_nr);
+
+        need_prime_blob = is_extruder_used_overall && extruder_prime_blob_enabled;
+    }
+
+    return need_prime_blob;
 }
 
 void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr) const
@@ -811,22 +837,21 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     std::vector<unsigned int> ret;
     ret.push_back(start_extruder);
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    std::vector<bool> extruder_is_used_overall = storage.getExtrudersUsed();
-    if (getExtrudersNeedPrimeDuringFirstLayer())
+    
+    // check if we are on the first layer
+    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
+        || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
-        if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
-            || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0)
-            )
+        // check if we need prime blob on the first layer
+        for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
         {
-            for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
+            if (this->getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
             {
-                if (extruder_is_used_overall[used_idx])
-                {
-                    extruder_is_used_on_this_layer[used_idx] = true;
-                }
+                extruder_is_used_on_this_layer[used_idx] = true;
             }
         }
     }
+
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if (extruder_nr == start_extruder)
@@ -1703,12 +1728,17 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-            // move to prime position
-            bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-            gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
+            if (train->getSettingBoolean("prime_blob_enable"))
+            { // only move to prime position if we do a blob/poop
+                // ideally the prime position would be respected whether we do a blob or not,
+                // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
+                // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
+                bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+                Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
 
-            gcode_layer.planPrime();
+                gcode_layer.planPrime();
+            }
         }
 
         if (layer_nr == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
@@ -1734,7 +1764,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 
 void FffGcodeWriter::finalize()
 {
-    double print_time = gcode.getTotalPrintTime();
+    double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
     for (int extr_nr = 0; extr_nr < getSettingAsCount("machine_extruder_count"); extr_nr++)
