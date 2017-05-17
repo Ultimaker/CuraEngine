@@ -454,7 +454,7 @@ void LayerPlanBuffer::insertTempCommands()
         return;
     }
 
-    std::vector<ExtruderPlan*> extruder_plans;
+    std::vector<ExtruderPlan*> extruder_plans; // sorted in print order
     extruder_plans.reserve(buffer.size() * 2);
     for (LayerPlan* layer_plan : buffer)
     {
