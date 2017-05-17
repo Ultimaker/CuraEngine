@@ -19,6 +19,8 @@ double layer_height; //!< report basic layer height in RepRap gcode file.
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
+, is_volumatric(false)
+, firmware_retract(false)
 , layer_nr(0)
 {
     *output_stream << std::fixed;
@@ -50,6 +52,7 @@ GCodeExport::~GCodeExport()
 
 void GCodeExport::preSetup(const MeshGroup* meshgroup)
 {
+    firmware_retract = settings->getSettingBoolean("machine_firmware_retract");
     setFlavor(meshgroup->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = meshgroup->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
@@ -273,10 +276,6 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
     {
         firmware_retract = true;
-    }
-    else 
-    {
-        firmware_retract = false;
     }
 }
 
