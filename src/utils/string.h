@@ -8,9 +8,9 @@
 #include <cstdio> // sprintf
 #include <sstream> // ostringstream
 
-#include <cinttypes> // PRId64
-
 #include "logoutput.h"
+
+#include "intpoint.h" // coord_t
 
 namespace cura
 {
@@ -34,11 +34,11 @@ static inline int stringcasecompare(const char* a, const char* b)
  * \param coord The micron unit to convert
  * \param ss The output stream to write the string to
  */
-static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
+static inline void writeInt2mm(const coord_t coord, std::ostream& ss)
 {
     constexpr size_t buffer_size = 24;
     char buffer[buffer_size];
-    int char_count = sprintf(buffer, "%d", int(coord)); // convert int to string
+    int char_count = sprintf(buffer, "%lli", coord); // convert int to string
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
