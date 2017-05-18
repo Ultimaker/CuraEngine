@@ -216,9 +216,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
 
-    bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
-    bool is_support_mesh_nondrop_place_holder = is_support_modifier_place_holder && !mesh.getSettingBoolean("support_mesh_drop_down");
-    bool is_support_mesh_drop_down_place_holder = is_support_modifier_place_holder && mesh.getSettingBoolean("support_mesh_drop_down");
+    const bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
+    const bool is_support_mesh_nondrop_place_holder = is_support_modifier_place_holder && !mesh.getSettingBoolean("support_mesh_drop_down");
+    const bool is_support_mesh_drop_down_place_holder = is_support_modifier_place_holder && mesh.getSettingBoolean("support_mesh_drop_down");
 
     if (!mesh.getSettingBoolean("support_enable") && !is_support_modifier_place_holder)
     {
@@ -331,16 +331,16 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     std::vector<Polygons> full_overhang_per_layer;
     xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
-    if (!is_support_modifier_place_holder)
+    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
+    for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
     {
-        #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
-        for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
-        {
+        Polygons outlines = storage.getLayerOutlines(layer_idx, false);
+        if (!is_support_modifier_place_holder)
+        { // don't compute overhang for support meshes
             std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
             full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
 
             Polygons basic_overhang = basic_and_full_overhang.first;
-            Polygons outlines = storage.getLayerOutlines(layer_idx, false);
             if (use_support_xy_distance_overhang)
             {
                 Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
@@ -348,10 +348,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
 
                 xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
             }
-            else
-            {
-                xy_disallowed_per_layer[layer_idx] = outlines.offset(supportXYDistance);
-            }
+        }
+        if (is_support_modifier_place_holder || !use_support_xy_distance_overhang)
+        {
+            xy_disallowed_per_layer[layer_idx] = outlines.offset(supportXYDistance);
         }
     }
 
