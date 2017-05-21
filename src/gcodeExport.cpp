@@ -1026,15 +1026,20 @@ void GCodeExport::writeJerk(double jerk)
 {
     if (current_jerk != jerk)
     {
-        if (getFlavor() == EGCodeFlavor::REPETIER)
+        switch (getFlavor())
         {
-            *output_stream << "M207 X";
+            case EGCodeFlavor::REPRAP:
+                *output_stream << "M566 X" << PrecisionedDouble{2, jerk * 60} << " Y" << PrecisionedDouble{2, jerk * 60} << new_line;
+                break;
+            case EGCodeFlavor::REPETIER:
+                *output_stream << "M207 X";
+                *output_stream << PrecisionedDouble{2, jerk} << new_line;
+                break;
+            default:
+                *output_stream << "M205 X";
+                *output_stream << PrecisionedDouble{2, jerk} << new_line;
+                break;
         }
-        else
-        {
-            *output_stream << "M205 X";
-        }
-        *output_stream << PrecisionedDouble{2, jerk} << new_line;
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
