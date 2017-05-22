@@ -1211,6 +1211,30 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
 }
 
+int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vector<ConstPolygonRef>& inset_polys)
+{
+    int smallest_inner_poly_idx = -1;
+    double smallest_inner_poly_area = outer_wall.area();
+    Polygons outer;
+    outer.add(outer_wall);
+    for (unsigned inner_poly_idx = 0; inner_poly_idx < inset_polys.size(); ++inner_poly_idx)
+    {
+        Polygons inner;
+        inner.add(inset_polys[inner_poly_idx]);
+        Polygons intersection = outer.intersection(inner);
+        if (intersection.size() > 0)
+        {
+            double inner_area = inner[0].area();
+            if (inner_area < smallest_inner_poly_area)
+            {
+                smallest_inner_poly_area = inner_area;
+                smallest_inner_poly_idx = inner_poly_idx;
+            }
+        }
+    }
+    return smallest_inner_poly_idx;
+}
+
 void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
@@ -1276,29 +1300,22 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 Polygons outer; // the outermost wall of a hole
                 outer.add(inset_polys[0][outer_poly_idx]);
                 // now find the smallest inner poly that contains this hole
-                int smallest_inner_poly_idx = -1;
-                double smallest_inner_poly_area = outer[0].area();
-                for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
-                {
-                    Polygons inner;
-                    inner.add(inset_polys[1][inner_poly_idx]);
-                    Polygons intersection = outer.intersection(inner);
-                    if (intersection.size() > 0)
-                    {
-                        double inner_area = inner[0].area();
-                        if (inner_area < smallest_inner_poly_area)
-                        {
-                            smallest_inner_poly_area = inner_area;
-                            smallest_inner_poly_idx = inner_poly_idx;
-                        }
-                    }
-                }
+                int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(outer[0], inset_polys[1]) : -1;
                 if (smallest_inner_poly_idx >= 0)
                 {
                     constexpr bool spiralize = false;
                     constexpr float flow = 1.0;
                     Polygons inner;
                     inner.add(inset_polys[1][smallest_inner_poly_idx]);
+                    for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+                    {
+                        int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
+                        if (i >= 0)
+                        {
+                            inner.add(inset_polys[inset_idx][i]);
+                            inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
+                        }
+                    }
                     if (outer_inset_first)
                     {
                         WallOverlapComputation* wall_overlap_computation(nullptr);
@@ -1328,6 +1345,21 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     Polygons intersection = outer.intersection(inner);
                     if (intersection.size() > 0)
                     {
+                        if (outer_poly_idx == 0)
+                        {
+                        }
+                        else
+                        {
+                            for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+                            {
+                                int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
+                                if (i >= 0)
+                                {
+                                    inner.add(inset_polys[inset_idx][i]);
+                                    inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
+                                }
+                            }
+                        }
                         constexpr bool spiralize = false;
                         constexpr float flow = 1.0;
                         if (outer_inset_first)
@@ -1369,6 +1401,15 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             {
                 Polygons inner;
                 inner.add(inset_polys[1][inner_poly_idx]);
+                for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+                {
+                    int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
+                    if (i >= 0)
+                    {
+                        inner.add(inset_polys[inset_idx][i]);
+                        inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
+                    }
+                }
                 gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
             }
         }
