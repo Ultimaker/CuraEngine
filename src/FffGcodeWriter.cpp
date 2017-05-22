@@ -838,7 +838,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
     
     // check if we are on the first layer
-    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
+    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getFillerLayerCount(storage))
         || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
         // check if we need prime blob on the first layer
