@@ -514,6 +514,14 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
+        // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
+        // and then switch back to the original extruder.
+        std::vector<unsigned int> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
+        for (unsigned int each_extruder_need_prime : extruder_order)
+        {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_extruder_need_prime);
+        }
+
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
@@ -569,6 +577,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
+
+        // make sure that we are using the correct extruder to print raft
+        gcode_layer.setExtruder(extruder_nr);
 
         if (CommandSocket::isInstantiated())
         {
@@ -823,13 +834,13 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<int>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<unsigned int>>& extruder_order_per_layer_here = (layer_nr < 0)? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
-        extruder_order_per_layer_here.push_back(calculateLayerExtruderOrder(storage, last_extruder, layer_nr));
+        extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
         last_extruder = extruder_order_per_layer_here.back().back();
         extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
     }
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
+std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
 {
     unsigned int extruder_count = storage.getSettingAsCount("machine_extruder_count");
     assert(static_cast<int>(extruder_count) > 0);
@@ -838,7 +849,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
     
     // check if we are on the first layer
-    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getFillerLayerCount(storage))
+    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
         || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
         // check if we need prime blob on the first layer
