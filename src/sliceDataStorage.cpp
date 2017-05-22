@@ -89,7 +89,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
 {
     if (getSettingBoolean("magic_spiralize"))
     {
-        if (getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+        if (getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
         {
             return true;
         }
@@ -98,20 +98,20 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
             return false;
         }
     }
-    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
     {
         return true;
     }
     if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter") || getSettingBoolean("fill_perimeter_gaps"))
-        && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
+        && getSettingAsExtruderNr("wall_x_extruder_nr") == extruder_nr)
     {
         return true;
     }
-    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsIndex("infill_extruder_nr") == extruder_nr)
+    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsExtruderNr("infill_extruder_nr") == extruder_nr)
     {
         return true;
     }
-    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers") > 0) && getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
+    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers") > 0) && getSettingAsExtruderNr("top_bottom_extruder_nr") == extruder_nr)
     {
         return true;
     }
@@ -130,7 +130,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
         return false;
     }
     const SliceLayer& layer = layers[layer_nr];
-    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -142,7 +142,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
     }
     if (getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && (getSettingAsCount("wall_line_count") > 0 || getSettingAsCount("skin_outline_count") > 0)
-        && getSettingAsIndex("wall_0_extruder_nr") == extruder_nr)
+        && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -159,7 +159,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             }
         }
     }
-    if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter")) && getSettingAsIndex("wall_x_extruder_nr") == extruder_nr)
+    if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter")) && getSettingAsExtruderNr("wall_x_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -169,7 +169,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             }
         }
     }
-    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsIndex("infill_extruder_nr") == extruder_nr)
+    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsExtruderNr("infill_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -179,7 +179,7 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             }
         }
     }
-    if (getSettingAsIndex("top_bottom_extruder_nr") == extruder_nr)
+    if (getSettingAsExtruderNr("top_bottom_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {

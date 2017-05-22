@@ -8,7 +8,7 @@ namespace cura {
 
 bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
-    if (extruder_nr != mesh->getSettingAsIndex("infill_extruder_nr"))
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
     {
         return false;
     }

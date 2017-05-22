@@ -703,7 +703,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
                 const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
-                    assert(static_cast<int>(extruder_nr) == mesh->getSettingAsIndex("wall_0_extruder_nr") && "mesh surface mode should always only be printed with the outer wall extruder!");
+                    assert(static_cast<int>(extruder_nr) == mesh->getSettingAsExtruderNr("wall_0_extruder_nr") && "mesh surface mode should always only be printed with the outer wall extruder!");
                     addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer, layer_nr);
                 }
                 else
@@ -933,7 +933,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         return;
     }
 
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("wall_0_extruder_nr"));
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsExtruderNr("wall_0_extruder_nr"));
 
     const SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -1008,7 +1008,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         const SliceLayerPart& part = layer->parts[part_idx];
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer, layer_nr);
     }
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh->getSettingAsIndex("wall_0_extruder_nr"))
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
     }
@@ -1068,7 +1068,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
 bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
-    if (extruder_nr != mesh->getSettingAsIndex("infill_extruder_nr"))
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
     {
         return false;
     }
@@ -1087,7 +1087,7 @@ bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& g
 
 bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
-    if (extruder_nr != mesh->getSettingAsIndex("infill_extruder_nr"))
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
     {
         return false;
     }
@@ -1129,7 +1129,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
 
 bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
-    if (extruder_nr != mesh->getSettingAsIndex("infill_extruder_nr"))
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
     {
         return false;
     }
@@ -1226,7 +1226,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
 
 bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
-    if (extruder_nr != mesh->getSettingAsIndex("wall_0_extruder_nr") && extruder_nr != mesh->getSettingAsIndex("wall_x_extruder_nr"))
+    if (extruder_nr != mesh->getSettingAsExtruderNr("wall_0_extruder_nr") && extruder_nr != mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
     {
         return false;
     }
@@ -1249,7 +1249,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             {
                 spiralize = true;
             }
-            if (spiralize && layer_nr == bottom_layers && !part.insets.empty() && extruder_nr == mesh->getSettingAsIndex("wall_0_extruder_nr"))
+            if (spiralize && layer_nr == bottom_layers && !part.insets.empty() && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
@@ -1263,7 +1263,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
         if (spiralize && &mesh->layers[layer_nr].parts[0] == &part)
         {
-            if (part.insets.size() > 0 && extruder_nr == mesh->getSettingAsIndex("wall_0_extruder_nr"))
+            if (part.insets.size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
             {
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
@@ -1286,7 +1286,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 {
                     constexpr bool spiralize = false;
                     constexpr float flow = 1.0;
-                    if (part.insets[0].size() > 0 && extruder_nr == mesh->getSettingAsIndex("wall_0_extruder_nr"))
+                    if (part.insets[0].size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                     {
                         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
                         added_something = true;
@@ -1305,7 +1305,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
                 else
                 {
-                    if (part.insets[processed_inset_number].size() > 0 && extruder_nr == mesh->getSettingAsIndex("wall_x_extruder_nr"))
+                    if (part.insets[processed_inset_number].size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
                     {
                         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
                         added_something = true;
@@ -1330,8 +1330,8 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
 bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
-    int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
-    int wall_0_extruder_nr = mesh->getSettingAsIndex("wall_0_extruder_nr");
+    int top_bottom_extruder_nr = mesh->getSettingAsExtruderNr("top_bottom_extruder_nr");
+    int wall_0_extruder_nr = mesh->getSettingAsExtruderNr("wall_0_extruder_nr");
     if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr)
     {
         return false;
@@ -1384,8 +1384,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 {
     const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
     const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
-    const int top_bottom_extruder_nr = mesh->getSettingAsIndex("top_bottom_extruder_nr");
-    const int wall_0_extruder_nr = mesh->getSettingAsIndex("wall_0_extruder_nr");
+    const int top_bottom_extruder_nr = mesh->getSettingAsExtruderNr("top_bottom_extruder_nr");
+    const int wall_0_extruder_nr = mesh->getSettingAsExtruderNr("wall_0_extruder_nr");
     const int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
     const bool fill_perimeter_gaps =
