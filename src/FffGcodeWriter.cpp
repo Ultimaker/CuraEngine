@@ -514,6 +514,20 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
+        // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
+        // and then switch back to the original extruder.
+        std::vector<uint32_t> extruder_order = calculateLayerExtruderOrder(storage, extruder_nr, layer_nr);
+        bool has_extruders_primed = false;
+        for (uint32_t each_extruder_need_prime : extruder_order)
+        {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_extruder_need_prime);
+            has_extruders_primed = true;
+        }
+        if (has_extruders_primed)
+        {
+            gcode_layer.setExtruder(extruder_nr);
+        }
+
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
@@ -838,7 +852,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const Slic
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
     
     // check if we are on the first layer
-    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getFillerLayerCount(storage))
+    if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
         || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
         // check if we need prime blob on the first layer
