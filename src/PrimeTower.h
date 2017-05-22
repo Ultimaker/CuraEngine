@@ -74,7 +74,6 @@ public:
      * Generate the area where the prime tower should be.
      * 
      * \param storage where to get settings from
-     * \param total_layers The total number of layers 
      */
     void generatePaths(const SliceDataStorage& storage);
 
@@ -122,7 +121,6 @@ private:
      * Fill the ground poly with dense infill.
      * 
      * \param storage where to get settings from
-     * \param total_layers The total number of layers 
      */
     void generatePaths_denseInfill(const SliceDataStorage& storage);
 
