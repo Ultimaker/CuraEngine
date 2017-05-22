@@ -21,9 +21,9 @@ class GCodeExport;
 
 /*!
  * Class for everything to do with the prime tower:
- * - generating the areas
- * - checking up till which height the prime tower has to be printed
- * - generating the paths and adding them to the layer plan
+ * - Generating the areas.
+ * - Checking up untill which height the prime tower has to be printed.
+ * - Generating the paths and adding them to the layer plan.
  */
 class PrimeTower
 {
@@ -33,14 +33,14 @@ private:
         Polygons polygons;
         Polygons lines;
     };
-    int extruder_count; //!< number of extruders
+    int extruder_count; //!< Number of extruders
 
     bool is_hollow; //!< Whether the prime tower is hollow
 
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
 
-    Point post_wipe_point; //!< location to post-wipe the unused nozzle off on
+    Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
 
     std::vector<ClosestPolygonPoint> pre_wipe_locations; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int pre_wipe_location_skip = 13; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
@@ -51,7 +51,7 @@ public:
     bool enabled; //!< Whether the prime tower is enabled.
     Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
 
-    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< for each extruder a vector of patterns to alternate between, over the layers
+    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< For each extruder a vector of patterns to alternate between, over the layers
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
@@ -74,7 +74,6 @@ public:
      * Generate the area where the prime tower should be.
      * 
      * \param storage where to get settings from
-     * \param total_layers The total number of layers 
      */
     void generatePaths(const SliceDataStorage& storage);
 
@@ -122,7 +121,6 @@ private:
      * Fill the ground poly with dense infill.
      * 
      * \param storage where to get settings from
-     * \param total_layers The total number of layers 
      */
     void generatePaths_denseInfill(const SliceDataStorage& storage);
 

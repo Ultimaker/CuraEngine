@@ -114,13 +114,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
 
+    Mold::process(storage, slicerList, layer_thickness);
+
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
         Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-        if (mesh.getSettingBoolean("mold_enabled"))
-        {
-            Mold::process(*slicerList[mesh_idx], layer_thickness, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"));
-        }
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
@@ -234,28 +232,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, inset_skin_progress_estimate);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
-    }
-
-    // send layer info
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-    {
-        SliceLayer* layer = nullptr;
-        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-        { // find first mesh which has this layer
-            SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-            if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
-            {
-                layer = &mesh.layers[layer_nr];
-                break;
-            }
-        }
-        if (layer != nullptr)
-        {
-            if (CommandSocket::isInstantiated())
-            { // send layer info
-                CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
-            }
-        }
     }
 
     log("Layer count: %i\n", storage.print_layer_count);
