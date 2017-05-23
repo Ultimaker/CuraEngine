@@ -1027,9 +1027,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     
     int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
     int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
-    
-    gcode_layer.setIsInside(true); // going to print inside stuff below
-    
+
     bool added_something = false;
 
     if (mesh->getSettingBoolean("infill_before_walls"))
@@ -1119,6 +1117,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             {
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
                 gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[combine_idx]);
                 gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
             }
@@ -1186,6 +1185,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+        gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
         {
@@ -1253,6 +1253,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
@@ -1267,6 +1268,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             {
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part, layer_nr);
             }
         }
@@ -1288,8 +1290,9 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     constexpr float flow = 1.0;
                     if (part.insets[0].size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                     {
-                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
                         added_something = true;
+                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                        gcode_layer.setIsInside(true); // going to print stuff inside print object
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
@@ -1307,8 +1310,9 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 {
                     if (part.insets[processed_inset_number].size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
                     {
-                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
                         added_something = true;
+                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                        gcode_layer.setIsInside(true); // going to print stuff inside print object
                         if (!compensate_overlap_x)
                         {
                             gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
@@ -1374,6 +1378,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
         }
     }
@@ -1430,6 +1435,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
                 {
                     added_something = true;
                     setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                    gcode_layer.setIsInside(true); // going to print stuff inside print object
                     gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
                 }
             }
@@ -1459,6 +1465,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+        gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
 
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
@@ -1497,6 +1504,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         {
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
         }
     }
@@ -1584,6 +1592,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
             if (boundary.size() > 0)
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
                 gcode_layer.addPolygonsByOptimizer(boundary, &gcode_layer.configs_storage.support_infill_config);
             }
             offset_from_outline = -support_line_width;
@@ -1601,6 +1610,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
         if (support_lines.size() > 0 || support_polygons.size() > 0)
         {
             setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+            gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
             gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_infill_config);
             gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_infill_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
             added = true;
@@ -1644,6 +1654,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         return false; //We didn't create any support roof.
     }
     setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_roof_config);
     gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -1684,6 +1695,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         return false;
     }
     setExtruder_addPrime(storage, gcode_layer, layer_nr, bottom_extruder_nr);
+    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
     gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
