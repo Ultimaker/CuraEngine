@@ -1447,7 +1447,7 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
     {
         logDebug("Layer %d, %lu outer walls remaining to be output (should be 0!)\n", layer_nr, orderOptimizer.polyOrder.size());
     }
-#if 0
+#if 1
     /* now process any outer walls that remain */
     for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
     {
@@ -1474,7 +1474,7 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
         {
             logDebug("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, inset_polys[1].size());
         }
-#if 0
+#if 1
         /* now process any level 1 insets that remain */
         for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size();)
         {
