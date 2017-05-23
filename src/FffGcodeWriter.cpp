@@ -1211,7 +1211,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
 }
 
-int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vector<ConstPolygonRef>& inset_polys)
+static int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vector<ConstPolygonRef>& inset_polys)
 {
     int smallest_inner_poly_idx = -1;
     double smallest_inner_poly_area = outer_wall.area();
@@ -1233,6 +1233,160 @@ int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vec
         }
     }
     return smallest_inner_poly_idx;
+}
+
+static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+{
+    //bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
+    //bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
+    bool retract_before_outer_wall = mesh->getSettingBoolean("travel_retract_before_outer_wall");
+    const bool outer_inset_first = mesh->getSettingBoolean("outer_inset_first")
+                                    || (layer_nr == 0 && mesh->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
+    const unsigned num_insets = part.insets.size();
+    // create a vector of vectors containing all the inset polys
+    std::vector<std::vector<ConstPolygonRef>> inset_polys;
+    for (unsigned inset_idx = 0; inset_idx < num_insets; ++inset_idx)
+    {
+        inset_polys.emplace_back();
+        for (unsigned poly_idx = 0; poly_idx < part.insets[inset_idx].size(); ++poly_idx)
+        {
+            inset_polys[inset_idx].push_back(part.insets[inset_idx][poly_idx]);
+        }
+    }
+    // now work out the order we wish to visit all the outer insets
+    PathOrderOptimizer orderOptimizer(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
+    for (unsigned int poly_idx = 0; poly_idx < inset_polys[0].size(); poly_idx++)
+    {
+        orderOptimizer.addPolygon(inset_polys[0][poly_idx]);
+    }
+    orderOptimizer.optimize();
+    constexpr bool spiralize = false;
+    constexpr float flow = 1.0;
+    // firstly, we process all of the holes in the optimized order
+    // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
+    for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
+    {
+        const unsigned outer_poly_idx = orderOptimizer.polyOrder[outer_poly_order_idx];
+        if (outer_poly_idx == 0)
+        {
+            // the outermost wall isn't a hole so ignore it for now
+            continue;
+        }
+        Polygons outer; // the outermost wall of a hole
+        outer.add(inset_polys[0][outer_poly_idx]);
+        // now find the smallest poly in the level 1 insets that contains this hole
+        int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(outer[0], inset_polys[1]) : -1;
+        if (smallest_inner_poly_idx >= 0)
+        {
+            // consume the outer wall inset (HACK ALERT: this removes an element from orderOptimizer.polyOrder)
+            orderOptimizer.polyOrder.erase(orderOptimizer.polyOrder.begin() + outer_poly_order_idx);
+            --outer_poly_order_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
+            // consume the level 1 inset
+            Polygons inner;
+            inner.add(inset_polys[1][smallest_inner_poly_idx]);
+            inset_polys[1].erase(inset_polys[1].begin() + smallest_inner_poly_idx);
+            // now find all the insets that immediately surround this hole and consume them
+            for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+            {
+                int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
+                if (i >= 0)
+                {
+                    inner.add(inset_polys[inset_idx][i]);
+                    inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
+                }
+            }
+            // output the inset polys
+            if (outer_inset_first)
+            {
+                WallOverlapComputation* wall_overlap_computation(nullptr);
+                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+            }
+            else
+            {
+                std::reverse(inner.begin(),inner.end());
+                gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+                WallOverlapComputation* wall_overlap_computation(nullptr);
+                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+            }
+        }
+    }
+    // now process the remaining top level insets (outer walls) that have a level 1 inset inside them
+    for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
+    {
+        const unsigned outer_poly_idx = orderOptimizer.polyOrder[outer_poly_order_idx];
+        Polygons outer; // the outermost wall of a model
+        outer.add(inset_polys[0][outer_poly_idx]);
+        // find the level 1 insets that are inside the outer wall
+        for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
+        {
+            Polygons inner;
+            inner.add(inset_polys[1][inner_poly_idx]);
+            Polygons intersection = outer.intersection(inner);
+            if (intersection.size() > 0)
+            {
+                // consume the outer wall and the level 1 inset
+                orderOptimizer.polyOrder.erase(orderOptimizer.polyOrder.begin() + outer_poly_order_idx);
+                --outer_poly_order_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
+                inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
+                if (outer_inset_first)
+                {
+                    WallOverlapComputation* wall_overlap_computation(nullptr);
+                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+                }
+                else
+                {
+                    std::reverse(inner.begin(),inner.end());
+                    gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+                    WallOverlapComputation* wall_overlap_computation(nullptr);
+                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                }
+                break; // quit inner loop because outer has been consumed
+            }
+        }
+    }
+    /* now process any outer walls that remain */
+    for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
+    {
+        const unsigned outer_poly_idx = orderOptimizer.polyOrder[outer_poly_order_idx];
+        Polygons outer;
+        outer.add(inset_polys[0][outer_poly_idx]);
+        constexpr bool spiralize = false;
+        constexpr float flow = 1.0;
+        WallOverlapComputation* wall_overlap_computation(nullptr);
+        gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+    }
+    /* now process any level 1 insets that remain */
+    for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size();)
+    {
+        // consume the level 1 inset and the insets that surround them
+        Polygons inner;
+        inner.add(inset_polys[1][inner_poly_idx]);
+        inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
+        for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+        {
+            int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
+            if (i >= 0)
+            {
+                inner.add(inset_polys[inset_idx][i]);
+                inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
+            }
+        }
+        gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+    }
+    /* mop up all the remaining insets */
+    Polygons remaining;
+    {
+        for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+        {
+            for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_idx].size(); ++poly_idx)
+            {
+                remaining.add(inset_polys[inset_idx][poly_idx]);
+            }
+        }
+        gcode_layer.addPolygonsByOptimizer(remaining, &mesh_config.insetX_config);
+    }
 }
 
 void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
@@ -1271,147 +1425,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         }
         else if (mesh->getSettingBoolean("group_walls"))
         {
-            const bool outer_inset_first = mesh->getSettingBoolean("outer_inset_first")
-                                            || (layer_nr == 0 && mesh->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
-            const unsigned num_insets = part.insets.size();
-            std::vector<std::vector<ConstPolygonRef>> inset_polys;
-            for (unsigned inset_idx = 0; inset_idx < num_insets; ++inset_idx)
-            {
-                inset_polys.emplace_back();
-                for (unsigned poly_idx = 0; poly_idx < part.insets[inset_idx].size(); ++poly_idx)
-                {
-                    inset_polys[inset_idx].push_back(part.insets[inset_idx][poly_idx]);
-                }
-            }
-            PathOrderOptimizer orderOptimizer(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
-            for (unsigned int poly_idx = 0; poly_idx < inset_polys[0].size(); poly_idx++)
-            {
-                orderOptimizer.addPolygon(inset_polys[0][poly_idx]);
-            }
-            orderOptimizer.optimize();
-            for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
-            {
-                const unsigned outer_poly_idx = orderOptimizer.polyOrder[outer_poly_order_idx];
-                if (outer_poly_idx == 0)
-                {
-                    // don't process the outermost wall yet
-                    continue;
-                }
-                Polygons outer; // the outermost wall of a hole
-                outer.add(inset_polys[0][outer_poly_idx]);
-                // now find the smallest inner poly that contains this hole
-                int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(outer[0], inset_polys[1]) : -1;
-                if (smallest_inner_poly_idx >= 0)
-                {
-                    constexpr bool spiralize = false;
-                    constexpr float flow = 1.0;
-                    Polygons inner;
-                    inner.add(inset_polys[1][smallest_inner_poly_idx]);
-                    for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
-                    {
-                        int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
-                        if (i >= 0)
-                        {
-                            inner.add(inset_polys[inset_idx][i]);
-                            inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
-                        }
-                    }
-                    if (outer_inset_first)
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                        gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
-                    }
-                    else
-                    {
-                        gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                    }
-                    orderOptimizer.polyOrder.erase(orderOptimizer.polyOrder.begin() + outer_poly_order_idx);
-                    --outer_poly_order_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
-                    inset_polys[1].erase(inset_polys[1].begin() + smallest_inner_poly_idx);
-                }
-            }
-            for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
-            {
-                const unsigned outer_poly_idx = orderOptimizer.polyOrder[outer_poly_order_idx];
-                Polygons outer;
-                outer.add(inset_polys[0][outer_poly_idx]);
-                for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
-                {
-                    Polygons inner;
-                    inner.add(inset_polys[1][inner_poly_idx]);
-                    Polygons intersection = outer.intersection(inner);
-                    if (intersection.size() > 0)
-                    {
-                        if (outer_poly_idx == 0)
-                        {
-                        }
-                        else
-                        {
-                            for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
-                            {
-                                int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
-                                if (i >= 0)
-                                {
-                                    inner.add(inset_polys[inset_idx][i]);
-                                    inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
-                                }
-                            }
-                        }
-                        constexpr bool spiralize = false;
-                        constexpr float flow = 1.0;
-                        if (outer_inset_first)
-                        {
-                            if (inner_poly_idx == 0)
-                            {
-                                WallOverlapComputation* wall_overlap_computation(nullptr);
-                                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                            }
-                            gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
-                        }
-                        else
-                        {
-                            gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
-                            if (inner_poly_idx == 0)
-                            {
-                                WallOverlapComputation* wall_overlap_computation(nullptr);
-                                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                            }
-                        }
-                        orderOptimizer.polyOrder.erase(orderOptimizer.polyOrder.begin() + outer_poly_order_idx);
-                        --outer_poly_order_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
-                        inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
-                        break; // quit inner loop because outer has gone away
-                    }
-                }
-            }
-            for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
-            {
-                const unsigned outer_poly_idx = orderOptimizer.polyOrder[outer_poly_order_idx];
-                Polygons outer;
-                outer.add(inset_polys[0][outer_poly_idx]);
-                constexpr bool spiralize = false;
-                constexpr float flow = 1.0;
-                WallOverlapComputation* wall_overlap_computation(nullptr);
-                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-            }
-            for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
-            {
-                Polygons inner;
-                inner.add(inset_polys[1][inner_poly_idx]);
-                for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
-                {
-                    int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
-                    if (i >= 0)
-                    {
-                        inner.add(inset_polys[inset_idx][i]);
-                        inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
-                    }
-                }
-                gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
-            }
+            processInsetsAsGroups(storage, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
         }
         else
         {
