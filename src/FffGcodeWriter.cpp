@@ -1213,18 +1213,22 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
 
 static int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vector<ConstPolygonRef>& inset_polys)
 {
+    // given the outer wall of a hole, search a collection of level 1 insets for the smallest inset that encloses the hole
+    // we need to find the smallest enclosing inset because there could be two insets that surround the hole:
+    // the one we want and also an inset of the outer wall of the part
     int smallest_inner_poly_idx = -1;
-    double smallest_inner_poly_area = outer_wall.area();
+    double smallest_inner_poly_area = std::numeric_limits<double>::max();
     Polygons outer;
     outer.add(outer_wall);
     for (unsigned inner_poly_idx = 0; inner_poly_idx < inset_polys.size(); ++inner_poly_idx)
     {
         Polygons inner;
         inner.add(inset_polys[inner_poly_idx]);
-        Polygons intersection = outer.intersection(inner);
-        if (intersection.size() > 0)
+        // as holes don't overlap, if the outer and inner insets intersect, it is safe to assume that the outer is inside the inner
+        if (outer.intersection(inner).size() > 0)
         {
-            double inner_area = inner[0].area();
+            // the outer poly overlaps the candidate inset, if it's the smallest, remember it
+            const double inner_area = std::abs(inner[0].area());
             if (inner_area < smallest_inner_poly_area)
             {
                 smallest_inner_poly_area = inner_area;
