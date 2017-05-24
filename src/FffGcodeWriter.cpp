@@ -1321,6 +1321,16 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
             }
             else
             {
+                // when the user has specified the z seam location, we want the insets that surround the hole to start
+                // as close as possible to the z seam location so to avoid the possible retract when moving from the end
+                // of the immediately enclosing inset to the start of the hole outer wall we first move to the location
+                // of the z seam and the insets should now start/finish close to there
+                //
+                // FIXME: adding the travel move for the first hole in the part triggers an assertion so we only do this for subsequent holes!
+                if (outer_poly_order_idx > 0 && z_seam_type == EZSeamType::USER_SPECIFIED)
+                {
+                    gcode_layer.addTravel(outer[0][orderOptimizer.polyStart[outer_poly_order_idx]]);
+                }
                 std::reverse(inner.begin(),inner.end());
                 if (compensate_overlap_x)
                 {
@@ -1403,6 +1413,16 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
             }
             else
             {
+                // just like we did for the holes, ensure that the outer wall insets get started close to the z seam position
+                // FIXME: to avoid assertion, don't do this unless at least one hole has previously been output
+                if (part.insets[0].size() > 1 && z_seam_type == EZSeamType::USER_SPECIFIED)
+                {
+                    // determine the location of the z seam (is this the easiest way to do this?)
+                    PathOrderOptimizer oo(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
+                    oo.addPolygon(inset_polys[0][0]);
+                    oo.optimize();
+                    gcode_layer.addTravel(inset_polys[0][0][oo.polyStart[0]]);
+                }
                 if (compensate_overlap_x)
                 {
                     WallOverlapComputation wall_overlap_computation(inners, mesh->getSettingInMicrons("wall_line_width_x"));
