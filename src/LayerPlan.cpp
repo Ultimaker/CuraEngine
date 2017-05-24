@@ -187,18 +187,19 @@ bool LayerPlan::setExtruder(int extruder)
     }
     setIsInside(false);
     { // handle end position of the prev extruder
-        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
-        bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
-        Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
-        if (!end_pos_absolute)
-        {
-            end_pos += getLastPosition();
-        }
-        else 
-        {
-            Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-            end_pos += extruder_offset; // absolute end pos is given as a head position
-        }
+        // SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
+        // bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
+        // Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
+        // if (!end_pos_absolute)
+        // {
+        //     // end_pos += getLastPosition();
+        // }
+        // else 
+        // {
+        //     Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+        //     end_pos += extruder_offset; // absolute end pos is given as a head position
+        // }
+        Point end_pos = getLastPosition();
         addTravel(end_pos); //  + extruder_offset cause it 
     }
     if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
@@ -215,18 +216,19 @@ bool LayerPlan::setExtruder(int extruder)
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
 
     { // handle starting pos of the new extruder
-        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
-        bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
-        Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
-        if (!start_pos_absolute)
-        {
-            start_pos += getLastPosition();
-        }
-        else 
-        {
-            Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-            start_pos += extruder_offset; // absolute start pos is given as a head position
-        }
+        // SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
+        // bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
+        // Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
+        // if (!start_pos_absolute)
+        // {
+        //     start_pos += getLastPosition();
+        // }
+        // else 
+        // {
+        //     Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+        //     start_pos += extruder_offset; // absolute start pos is given as a head position
+        // }
+        Point start_pos = getLastPosition();
         last_planned_position = start_pos;
     }
     return true;

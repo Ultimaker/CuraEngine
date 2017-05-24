@@ -4,6 +4,10 @@
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 
+#define SQRT2MUL(x) ((30547*(x))/21600)
+#define OCTSLEN(x) ((43200*(x))/73747)
+#define OCTDLEN(x) ((21600*(x))/30547)
+
 namespace cura {
 
 int Infill::computeScanSegmentIdx(int x, int line_width)
@@ -48,6 +52,9 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
         break;
+    case EFillMethod::TRUNCATED_OCTAHEDRON:
+        generateTroctInfill(result_polygons, fill_angle);
+        generateTroctInfill(result_polygons, fill_angle + 90);
     case EFillMethod::CUBICSUBDIV:
         if (!mesh)
         {
@@ -59,6 +66,117 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     default:
         logError("Fill pattern has unknown value.\n");
         break;
+    }
+}
+
+void Infill::generateTroctInfill(Polygons& result, double rotation)
+  {
+    int extrusionWidth = infill_line_width;
+    int lineSpacing = line_distance;
+    int infillOverlap = infill_overlap;
+    int posZ = z;
+
+    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
+    PointMatrix matrix(rotation);
+    outline.applyMatrix(matrix);
+    AABB boundary(outline);
+
+    // ignore infill for areas smaller than line spacing
+    if((abs(boundary.min.X - boundary.max.X) + abs(boundary.min.Y - boundary.max.Y)) < lineSpacing){
+      return;
+    }
+
+    // fix to normalise against diagonal infill
+    lineSpacing = lineSpacing * 2;
+
+    uint64_t Zscale = SQRT2MUL(lineSpacing);
+
+    int offset = abs(posZ % (Zscale) - (Zscale/2)) - (Zscale/4);
+    boundary.min.X = ((boundary.min.X / lineSpacing) - 1) * lineSpacing;
+    boundary.min.Y = ((boundary.min.Y / lineSpacing) - 1) * lineSpacing;
+
+    unsigned int lineCountX = (boundary.max.X - boundary.min.X + (lineSpacing - 1)) / lineSpacing;
+    unsigned int lineCountY = (boundary.max.Y - boundary.min.Y + (lineSpacing - 1)) / lineSpacing;
+    int rtMod = int(rotation / 90) % 2;
+    // with an odd number of lines, sides need to be swapped around
+    if(rtMod == 1){
+      rtMod = (lineCountX + int(rotation / 90)) % 2;
+    }
+
+    // draw non-horizontal walls of octohedrons
+    Polygons po;
+    PolygonRef p = po.newPoly();
+    for(unsigned int ly=0; ly < lineCountY;){
+      for(size_t it = 0; it < 2; ly++, it++){
+        int side = (2*((ly + it + rtMod) % 2) - 1);
+        int y = (ly * lineSpacing) + boundary.min.Y + lineSpacing / 2 - (offset/2 * side);
+        int x = boundary.min.X-(offset/2);
+        if(it == 1){
+          x = (lineCountX * (lineSpacing)) + boundary.min.X + lineSpacing / 2 - (offset/2);
+        }
+        p.add(Point(x,y));
+        for(unsigned int lx=0; lx < lineCountX; lx++){
+          if(it == 1){
+            side = (2*((lx + ly + it + rtMod + lineCountX) % 2) - 1);
+            y = (ly * lineSpacing) + boundary.min.Y + lineSpacing / 2 + (offset/2 * side);
+            x = ((lineCountX - lx - 1) * lineSpacing) + boundary.min.X + lineSpacing / 2;
+            p.add(Point(x+lineSpacing-abs(offset/2), y));
+            p.add(Point(x+abs(offset/2), y));
+          } else {
+            side = (2*((lx + ly + it + rtMod) % 2) - 1);
+            y = (ly * lineSpacing) + boundary.min.Y + lineSpacing / 2 + (offset/2 * side);
+            x = (lx * lineSpacing) + boundary.min.X + lineSpacing / 2;
+            p.add(Point(x+abs(offset/2), y));
+            p.add(Point(x+lineSpacing-abs(offset/2), y));
+          }
+        }
+        x = (lineCountX * lineSpacing) + boundary.min.X + lineSpacing / 2 - (offset/2);
+        if(it == 1){
+          x = boundary.min.X-(offset/2);
+        }
+        y = (ly * lineSpacing) + boundary.min.Y + lineSpacing / 2 - (offset/2 * side);
+        p.add(Point(x,y));
+      }
+    }
+    // Generate tops / bottoms of octohedrons
+    if(abs((abs(offset) - Zscale/4)) < (extrusionWidth/2)){
+      uint64_t startLine = (offset < 0) ? 0 : 1;
+      uint64_t coverWidth = OCTSLEN(lineSpacing);
+      std::vector<Point> points;
+      for(size_t xi = 0; xi < (lineCountX+1); xi++){
+        for(size_t yi = 0; yi < (lineCountY); yi += 2){
+          points.push_back(Point(boundary.min.X + OCTDLEN(lineSpacing)
+                                 + (xi - startLine + rtMod) * lineSpacing,
+                                 boundary.min.Y + OCTDLEN(lineSpacing)
+                                 + (yi + (xi%2)) * lineSpacing
+                                 + extrusionWidth/2));
+        }
+      }
+      uint64_t order = 0;
+      for(Point pp : points){
+        PolygonRef p = po.newPoly();
+        for(size_t yi = 0; yi <= coverWidth; yi += extrusionWidth) {
+          if(order == 0){
+            p.add(Point(pp.X, pp.Y + yi));
+            p.add(Point(pp.X + coverWidth + extrusionWidth, pp.Y + yi));
+          } else {
+            p.add(Point(pp.X + coverWidth + extrusionWidth, pp.Y + yi));
+            p.add(Point(pp.X, pp.Y + yi));
+          }
+          order = (order + 1) % 2;
+        }
+      }
+    }
+    // intersect with outline polygon(s)
+    Polygons pi = po.intersection(outline);
+    // Hack to add intersection to result. There doesn't seem
+    // to be a direct way to do this
+    for(unsigned int polyNr=0; polyNr < pi.size(); polyNr++) {
+      PolygonRef p = result.newPoly(); //  = result.newPoly()
+      for(unsigned int i=0; i < pi[polyNr].size(); i++) {
+        Point p0 = pi[polyNr][i];
+        p.add(matrix.unapply(Point(p0.X,p0.Y)));
+      }
     }
 }
 

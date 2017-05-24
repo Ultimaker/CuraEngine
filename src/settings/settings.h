@@ -111,6 +111,7 @@ enum class EFillMethod
     CONCENTRIC,
     CONCENTRIC_3D,
     ZIG_ZAG,
+    TRUNCATED_OCTAHEDRON,
     NONE
 };
 
@@ -119,10 +120,10 @@ enum class EFillMethod
  */
 enum class EPlatformAdhesion
 {
+    NONE,
     SKIRT,
     BRIM,
-    RAFT,
-    NONE
+    RAFT
 };
 
 /*!

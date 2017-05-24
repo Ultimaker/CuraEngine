@@ -365,6 +365,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
+    if (value == "truncated_octahedron")
+        return EFillMethod::TRUNCATED_OCTAHEDRON;
     return EFillMethod::NONE;
 }
 
@@ -375,9 +377,9 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
         return EPlatformAdhesion::RAFT;
-    if (value == "none")
-        return EPlatformAdhesion::NONE;
-    return EPlatformAdhesion::SKIRT;
+    if (value == "skirt")
+    	return EPlatformAdhesion::SKIRT;
+    return EPlatformAdhesion::NONE;
 }
 
 ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key) const

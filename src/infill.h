@@ -83,6 +83,7 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh = nullptr);
 
 private:
+	void generateTroctInfill(Polygons& result, double rotation);
     /*!
      * Function which returns the scanline_idx for a given x coordinate
      * 
