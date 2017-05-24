@@ -1439,46 +1439,16 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
             }
         }
     }
-    if (inset_polys.size() > 1)
-    {
-        if (inset_polys[1].size() > 0)
-        {
-            logDebug("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, inset_polys[1].size());
-        }
-#if 1
-        /* now process any level 1 insets that remain */
-        for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size();)
-        {
-            // consume the level 1 inset and the insets that surround them
-            Polygons inner;
-            inner.add(inset_polys[1][inner_poly_idx]);
-            inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
-            for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
-            {
-                int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
-                if (i >= 0)
-                {
-                    inner.add(inset_polys[inset_idx][i]);
-                    inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
-                }
-            }
-            if (compensate_overlap_x)
-            {
-                WallOverlapComputation wall_overlap_computation(inner, mesh->getSettingInMicrons("wall_line_width_x"));
-                gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config, &wall_overlap_computation);
-            }
-            else
-            {
-                gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
-            }
-        }
-#endif
-    }
-    /* mop up all the remaining insets level 2 and above */
+    /* mop up all the remaining insets */
     Polygons remaining;
-    for (unsigned inset_idx = 2; inset_idx < inset_polys.size(); ++inset_idx)
+    for (unsigned inset_idx = 1; inset_idx < inset_polys.size(); ++inset_idx)
     {
-        for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_idx].size(); ++poly_idx)
+        const unsigned num_polys = inset_polys[inset_idx].size();
+        if (inset_idx == 1 && num_polys > 0)
+        {
+            logDebug("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
+        }
+        for (unsigned poly_idx = 0; poly_idx < num_polys; ++poly_idx)
         {
             remaining.add(inset_polys[inset_idx][poly_idx]);
         }
