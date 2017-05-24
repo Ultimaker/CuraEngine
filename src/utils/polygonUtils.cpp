@@ -474,9 +474,9 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     {
                     }
                     logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
-#endif
                     return ClosestPolygonPoint();
                 }
+#endif
             }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location
