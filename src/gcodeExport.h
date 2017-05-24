@@ -169,16 +169,19 @@ public:
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
      * 
+     * \param extruder_is_used For each extruder whether it is used in the print
      * \param print_time The total print time in seconds of the whole gcode (if known)
      * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
      * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
+    std::string getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
+
+    bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
     bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
 

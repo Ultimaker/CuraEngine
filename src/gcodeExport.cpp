@@ -116,7 +116,7 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 }
 
 
-std::string GCodeExport::getFileHeader(const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
     switch (flavor)
@@ -132,7 +132,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
-            if (!extruder_attr[extr_nr].is_used)
+            if (!extruder_is_used[extr_nr])
             {
                 continue;
             }
@@ -191,6 +191,13 @@ void GCodeExport::setOutputStream(std::ostream* stream)
 {
     output_stream = stream;
     *output_stream << std::fixed;
+}
+
+bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
+{
+    assert(extruder_nr >= 0);
+    assert(extruder_nr < MAX_EXTRUDERS);
+    return extruder_attr[extruder_nr].is_used;
 }
 
 bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const

@@ -380,7 +380,8 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 {
     if (!CommandSocket::isInstantiated())
     {
-        std::string prefix = gcode.getFileHeader();
+        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+        std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
     }
 
@@ -1780,19 +1781,20 @@ void FffGcodeWriter::finalize()
     double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
+    std::vector<bool> extruder_is_used;
     for (int extr_nr = 0; extr_nr < getSettingAsCount("machine_extruder_count"); extr_nr++)
     {
         filament_used.emplace_back(gcode.getTotalFilamentUsed(extr_nr));
         material_ids.emplace_back(gcode.getMaterialGUID(extr_nr));
+        extruder_is_used.push_back(gcode.getExtruderIsUsed(extr_nr));
     }
-    std::string prefix = gcode.getFileHeader(&print_time, filament_used, material_ids);
+    std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
     if (CommandSocket::isInstantiated())
     {
         CommandSocket::getInstance()->sendGCodePrefix(prefix);
     }
     else
     {
-        std::string prefix = gcode.getFileHeader(&print_time, filament_used, material_ids);
         log("Gcode header after slicing:\n");
         log(prefix.c_str());
         log("End of gcode header.\n");
