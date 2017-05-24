@@ -137,7 +137,9 @@ private:
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const int layer_nr, const int extruder) const;
 
     /*!
-     * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower.
+     * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower. 
+     * This generates wipe moves from inside the tower towards the outside if the tower is hollow. Otherwise
+     * it wipes from outside to inside.
      * 
      * \param storage where to get settings from
      * \param[out] gcode_layer where to add the planned paths for wiping

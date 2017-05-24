@@ -236,6 +236,9 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
     const Point end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - end;
     const Point start = wipe_location.location + normal(outward_dir, start_dist);
+    
+    
+    
     if (wipe_from_middle)
     {
         // for hollow wipe tower:
@@ -255,7 +258,21 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
     {
         gcode_layer.addTravel(start);
     }
-    float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
+    
+    float flow = 0.0001; // Force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
+    
+    // Check if we need to purge before wiping on the prime tower.
+    if(train.getSettingBoolean("prime_tower_purge_enabled"))
+    {
+        // We can't do a "real" stand still & extrude move, we need to fake one. 
+        // We do this by changing the flow of the "move to end of wipe" position.
+        const unsigned int infill_line_width = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr].getLineWidth();
+        const double layer_height_mm = (layer_nr == 0)? train.getSettingInMillimeters("layer_height_0") : train.getSettingInMillimeters("layer_height");
+        const double normal_volume = INT2MM(INT2MM(start_dist * infill_line_width)) * layer_height_mm; // Volume extruded on the "normal" move
+        const double total_volume = train.getSettingBoolean("prime_tower_purge_volume"); // Volume to be primed
+        flow = total_volume / normal_volume; // New flow ratio
+    } 
+    
     gcode_layer.addExtrusionMove(end, &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
 
