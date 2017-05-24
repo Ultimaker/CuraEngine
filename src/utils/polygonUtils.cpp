@@ -425,7 +425,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         ClosestPolygonPoint inside = findClosest(from, insetted, penalty_function);
         if (inside.isValid())
         {
-            bool is_inside = polygons.inside(inside.location) == is_outside_boundary; // inside a hole is outside the part
+            bool is_inside = polygons.inside(inside.location);
             if (is_inside != (preferred_dist_inside > 0))
             {
                 /*
