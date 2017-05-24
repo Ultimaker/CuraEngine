@@ -1476,7 +1476,7 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
     }
     /* mop up all the remaining insets level 2 and above */
     Polygons remaining;
-    for (unsigned inset_idx = 2; inset_idx < inset_polys.size() && inset_polys[inset_idx].size(); ++inset_idx)
+    for (unsigned inset_idx = 2; inset_idx < inset_polys.size(); ++inset_idx)
     {
         for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_idx].size(); ++poly_idx)
         {
