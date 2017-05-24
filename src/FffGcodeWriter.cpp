@@ -1530,7 +1530,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         {
             processSpiralizedWall(storage, gcode_layer, mesh_config, part, layer_nr);
         }
-        else if (mesh->getSettingBoolean("group_walls"))
+        else if (mesh->getSettingBoolean("optimize_wall_printing_order"))
         {
             processInsetsWithOptimizedOrdering(storage, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
         }
