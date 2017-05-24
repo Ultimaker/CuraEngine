@@ -1275,17 +1275,24 @@ static void processInsetsAsGroups(const SliceDataStorage& storage, LayerPlan& gc
         int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(outer[0], inset_polys[1]) : -1;
         if (smallest_inner_poly_idx >= 0)
         {
-            // consume the level 1 inset
             Polygons inner;
             inner.add(inset_polys[1][smallest_inner_poly_idx]);
+            double lastInsetArea = std::abs(inset_polys[1][smallest_inner_poly_idx].area());
+            // consume the level 1 inset
             inset_polys[1].erase(inset_polys[1].begin() + smallest_inner_poly_idx);
             // now find all the insets that immediately surround this hole and consume them
+            // in the situation where the number of insets that surround the hole is less than the number
+            // of insets at the outer wall of the part (due to the hole being close to other holes) we need
+            // to avoid grabbing one of the outer wall insets so don't use an inset that has more than 2 times
+            // the area of the inset inside it. It doesn't really matter if it does grab one of the outer wall insets
+            // it will just output it sooner than is optimal.
             for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
             {
                 int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
-                if (i >= 0)
+                if (i >= 0 && std::abs(inset_polys[inset_idx][i].area()) < lastInsetArea * 2)
                 {
                     inner.add(inset_polys[inset_idx][i]);
+                    lastInsetArea = std::abs(inset_polys[inset_idx][i].area());
                     inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
                 }
             }
