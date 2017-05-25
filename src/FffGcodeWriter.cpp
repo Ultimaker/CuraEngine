@@ -1327,7 +1327,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 // of the z seam and the insets should now start/finish close to there
                 if (z_seam_type == EZSeamType::USER_SPECIFIED)
                 {
-                    Point z_seam_location = outer[0][orderOptimizer.polyStart[outer_poly_order_idx]];
+                    Point z_seam_location = outer[0][orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]]];
                     gcode_layer.addTravel(z_seam_location);
                     if (outer_poly_order_idx == 0)
                     {
