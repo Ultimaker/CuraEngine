@@ -1269,14 +1269,14 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
     for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
     {
-        Polygons outer; // the outermost wall of a hole
-        outer.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
+        Polygons hole_outer_wall; // the outermost wall of a hole
+        hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         // now find the smallest poly in the level 1 insets that contains this hole
-        int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(outer[0], inset_polys[1]) : -1;
+        int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(hole_outer_wall[0], inset_polys[1]) : -1;
         if (smallest_inner_poly_idx >= 0)
         {
-            Polygons inner;
-            inner.add(inset_polys[1][smallest_inner_poly_idx]);
+            Polygons hole_inner_walls; // the innermost walls of a hole
+            hole_inner_walls.add(inset_polys[1][smallest_inner_poly_idx]);
             double lastInsetArea = std::abs(inset_polys[1][smallest_inner_poly_idx].area());
             // consume the level 1 inset
             inset_polys[1].erase(inset_polys[1].begin() + smallest_inner_poly_idx);
@@ -1288,10 +1288,10 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             // it will just output it sooner than is optimal.
             for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
             {
-                int i = smallestEnclosingInsetPoly(inner[0], inset_polys[inset_idx]);
+                int i = smallestEnclosingInsetPoly(hole_inner_walls[0], inset_polys[inset_idx]);
                 if (i >= 0 && std::abs(inset_polys[inset_idx][i].area()) < lastInsetArea * 2)
                 {
-                    inner.add(inset_polys[inset_idx][i]);
+                    hole_inner_walls.add(inset_polys[inset_idx][i]);
                     lastInsetArea = std::abs(inset_polys[inset_idx][i].area());
                     inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
                 }
@@ -1301,22 +1301,22 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             {
                 if (compensate_overlap_0)
                 {
-                    WallOverlapComputation wall_overlap_computation(outer, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    WallOverlapComputation wall_overlap_computation(hole_outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
                 else
                 {
                     WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
                 if (compensate_overlap_x)
                 {
-                    WallOverlapComputation wall_overlap_computation(inner, mesh->getSettingInMicrons("wall_line_width_x"));
-                    gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config, &wall_overlap_computation);
+                    WallOverlapComputation wall_overlap_computation(hole_inner_walls, mesh->getSettingInMicrons("wall_line_width_x"));
+                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, &mesh_config.insetX_config, &wall_overlap_computation);
                 }
                 else
                 {
-                    gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, &mesh_config.insetX_config);
                 }
             }
             else
@@ -1327,7 +1327,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 // of the z seam and the insets should now start/finish close to there
                 if (z_seam_type == EZSeamType::USER_SPECIFIED)
                 {
-                    Point z_seam_location = outer[0][orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]]];
+                    Point z_seam_location = hole_outer_wall[0][orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]]];
                     gcode_layer.addTravel(z_seam_location);
                     if (outer_poly_order_idx == 0)
                     {
@@ -1335,25 +1335,25 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                         gcode_layer.addExtrusionMove(z_seam_location, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
                     }
                 }
-                std::reverse(inner.begin(),inner.end());
+                std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
                 if (compensate_overlap_x)
                 {
-                    WallOverlapComputation wall_overlap_computation(inner, mesh->getSettingInMicrons("wall_line_width_x"));
-                    gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config, &wall_overlap_computation);
+                    WallOverlapComputation wall_overlap_computation(hole_inner_walls, mesh->getSettingInMicrons("wall_line_width_x"));
+                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, &mesh_config.insetX_config, &wall_overlap_computation);
                 }
                 else
                 {
-                    gcode_layer.addPolygonsByOptimizer(inner, &mesh_config.insetX_config);
+                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, &mesh_config.insetX_config);
                 }
                 if (compensate_overlap_0)
                 {
-                    WallOverlapComputation wall_overlap_computation(outer, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    WallOverlapComputation wall_overlap_computation(hole_outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
                 else
                 {
                     WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
             }
         }
@@ -1362,57 +1362,57 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             // just the outer wall, no level 1 inset
             if (compensate_overlap_0)
             {
-                WallOverlapComputation wall_overlap_computation(outer, mesh->getSettingInMicrons("wall_line_width_0"));
-                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                WallOverlapComputation wall_overlap_computation(hole_outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
             }
             else
             {
                 WallOverlapComputation* wall_overlap_computation(nullptr);
-                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
             }
         }
     }
     // now process the part's outer wall
     {
-        Polygons outer; // the outermost wall of a model
-        outer.add(inset_polys[0][0]);
+        Polygons part_outer_wall; // the outermost wall of a part
+        part_outer_wall.add(inset_polys[0][0]);
         // find the level 1 insets that are inside the outer wall and consume them
-        Polygons inners;
+        Polygons part_inner_walls;
         for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
         {
             Polygons inner;
             inner.add(inset_polys[1][inner_poly_idx]);
-            if (outer.intersection(inner).size() > 0)
+            if (part_outer_wall.intersection(inner).size() > 0)
             {
-                inners.add(inner[0]);
+                part_inner_walls.add(inner[0]);
                 // consume the inset
                 inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
                 --inner_poly_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
             }
         }
 
-        if (inners.size() > 0)
+        if (part_inner_walls.size() > 0)
         {
             if (outer_inset_first)
             {
                 if (compensate_overlap_0)
                 {
-                    WallOverlapComputation wall_overlap_computation(outer, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    WallOverlapComputation wall_overlap_computation(part_outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
                 else
                 {
                     WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
                 if (compensate_overlap_x)
                 {
-                    WallOverlapComputation wall_overlap_computation(inners, mesh->getSettingInMicrons("wall_line_width_x"));
-                    gcode_layer.addPolygonsByOptimizer(inners, &mesh_config.insetX_config, &wall_overlap_computation);
+                    WallOverlapComputation wall_overlap_computation(part_inner_walls, mesh->getSettingInMicrons("wall_line_width_x"));
+                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, &mesh_config.insetX_config, &wall_overlap_computation);
                 }
                 else
                 {
-                    gcode_layer.addPolygonsByOptimizer(inners, &mesh_config.insetX_config);
+                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, &mesh_config.insetX_config);
                 }
             }
             else
@@ -1434,22 +1434,22 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 }
                 if (compensate_overlap_x)
                 {
-                    WallOverlapComputation wall_overlap_computation(inners, mesh->getSettingInMicrons("wall_line_width_x"));
-                    gcode_layer.addPolygonsByOptimizer(inners, &mesh_config.insetX_config, &wall_overlap_computation);
+                    WallOverlapComputation wall_overlap_computation(part_inner_walls, mesh->getSettingInMicrons("wall_line_width_x"));
+                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, &mesh_config.insetX_config, &wall_overlap_computation);
                 }
                 else
                 {
-                    gcode_layer.addPolygonsByOptimizer(inners, &mesh_config.insetX_config);
+                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, &mesh_config.insetX_config);
                 }
                 if (compensate_overlap_0)
                 {
-                    WallOverlapComputation wall_overlap_computation(outer, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    WallOverlapComputation wall_overlap_computation(part_outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
                 else
                 {
                     WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                 }
             }
         }
@@ -1458,13 +1458,13 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             // just the outer wall, no inners
             if (compensate_overlap_0)
             {
-                WallOverlapComputation wall_overlap_computation(outer, mesh->getSettingInMicrons("wall_line_width_0"));
-                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                WallOverlapComputation wall_overlap_computation(part_outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
             }
             else
             {
                 WallOverlapComputation* wall_overlap_computation(nullptr);
-                gcode_layer.addPolygonsByOptimizer(outer, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
             }
         }
     }
