@@ -1475,7 +1475,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         const unsigned num_polys = inset_polys[inset_idx].size();
         if (inset_idx == 1 && num_polys > 0)
         {
-            logDebug("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
+            logWarning("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
         }
         for (unsigned poly_idx = 0; poly_idx < num_polys; ++poly_idx)
         {
