@@ -1425,8 +1425,10 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             }
             else
             {
-                // just like we did for the holes, ensure that the outer wall insets get started close to the z seam position
-                if (z_seam_type == EZSeamType::USER_SPECIFIED)
+                // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
+                // but if there is more than one outer wall inset, don't bother to move as it may actually be a waste of time because
+                // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
+                if (z_seam_type == EZSeamType::USER_SPECIFIED && part_inner_walls.size() == 1)
                 {
                     // determine the location of the z seam (is this the easiest way to do this?)
                     PathOrderOptimizer oo(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
