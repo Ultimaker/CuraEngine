@@ -1211,6 +1211,14 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
 }
 
+static bool polysIntersect(const Polygons& poly_a, const Polygons &poly_b)
+{
+    // only do the full intersection when the polys' BBs overlap
+    AABB bba(poly_a);
+    AABB bbb(poly_b);
+    return bba.hit(bbb) && poly_a.intersection(poly_b).size() > 0;
+}
+
 static int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vector<ConstPolygonRef>& inset_polys)
 {
     // given the outer wall of a hole, search a collection of level 1 insets for the smallest inset that encloses the hole
@@ -1225,7 +1233,7 @@ static int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const s
         Polygons inner;
         inner.add(inset_polys[inner_poly_idx]);
         // as holes don't overlap, if the outer and inner insets intersect, it is safe to assume that the outer is inside the inner
-        if (outer.intersection(inner).size() > 0)
+        if (polysIntersect(inner, outer))
         {
             // the outer poly overlaps the candidate inset, if it's the smallest, remember it
             const double inner_area = std::abs(inner[0].area());
@@ -1382,7 +1390,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         {
             Polygons inner;
             inner.add(inset_polys[1][inner_poly_idx]);
-            if (part_outer_wall.intersection(inner).size() > 0)
+            if (polysIntersect(inner, part_outer_wall))
             {
                 part_inner_walls.add(inner[0]);
                 // consume the inset
