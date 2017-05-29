@@ -519,10 +519,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
         // and then switch back to the original extruder.
         std::vector<unsigned int> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
-        for (unsigned int each_extruder_need_prime : extruder_order)
+        for (unsigned int each_to_be_primed_extruder_nr : extruder_order)
         {
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_extruder_need_prime);
-            last_extruder_on_initial_raft_layer = each_extruder_need_prime;
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_to_be_primed_extruder_nr);
+            last_extruder_on_initial_raft_layer = each_to_be_primed_extruder_nr;
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
