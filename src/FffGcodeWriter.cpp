@@ -1247,6 +1247,21 @@ static int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const s
     return smallest_inner_poly_idx;
 }
 
+static bool polyOutlinesAdjacent(const ConstPolygonRef wall0, const ConstPolygonRef wall1, const coord_t max_gap)
+{
+    const coord_t max_gap2 = max_gap * max_gap;
+    for (unsigned wall0_index = 0; wall0_index < wall0.size(); ++wall0_index)
+    {
+        const Point wall0_point = wall0[wall0_index];
+        for (unsigned wall1_index = 0; wall1_index < wall1.size(); ++wall1_index)
+        {
+            if (vSize2(wall0_point - wall1[wall1_index]) < max_gap2)
+                return true;
+        }
+    }
+    return false;
+}
+
 static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
     const coord_t wall_line_width_0 = mesh->getSettingInMicrons("wall_line_width_0");
@@ -1284,9 +1299,9 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         // now find the smallest poly in the level 1 insets that contains this hole
         int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(hole_outer_wall[0], inset_polys[1]) : -1;
-        if (smallest_inner_poly_idx >= 0 && std::abs(inset_polys[1][smallest_inner_poly_idx].area() > std::abs(hole_outer_wall[0].area() * 2)))
+        if (smallest_inner_poly_idx >= 0 && !polyOutlinesAdjacent(hole_outer_wall[0], inset_polys[1][smallest_inner_poly_idx], std::max(wall_line_width_0, wall_line_width_x) * 2))
         {
-            // hmm, the inset that contains the hole has more than twice the area of the hole, let's ignore it
+            // the smallest inset that contains this hole doesn't actually touch it so ignore it
             smallest_inner_poly_idx = -1;
         }
         // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
@@ -1314,24 +1329,19 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         }
         if (smallest_inner_poly_idx >= 0)
         {
+            ConstPolygonRef lastInset = inset_polys[1][smallest_inner_poly_idx];
             Polygons hole_inner_walls; // the innermost walls of a hole
-            hole_inner_walls.add(inset_polys[1][smallest_inner_poly_idx]);
-            double lastInsetArea = std::abs(inset_polys[1][smallest_inner_poly_idx].area());
+            hole_inner_walls.add(lastInset);
             // consume the level 1 inset
             inset_polys[1].erase(inset_polys[1].begin() + smallest_inner_poly_idx);
             // now find all the insets that immediately surround this hole and consume them
-            // in the situation where the number of insets that surround the hole is less than the number
-            // of insets at the outer wall of the part (due to the hole being close to other holes) we need
-            // to avoid grabbing one of the outer wall insets so don't use an inset that has more than 2 times
-            // the area of the inset inside it. It doesn't really matter if it does grab one of the outer wall insets
-            // it will just output it sooner than is optimal.
             for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
             {
-                int i = smallestEnclosingInsetPoly(hole_inner_walls[0], inset_polys[inset_idx]);
-                if (i >= 0 && std::abs(inset_polys[inset_idx][i].area()) < lastInsetArea * 2)
+                int i = smallestEnclosingInsetPoly(lastInset, inset_polys[inset_idx]);
+                if (i >= 0 && polyOutlinesAdjacent(lastInset, inset_polys[inset_idx][i], wall_line_width_x * 2))
                 {
-                    hole_inner_walls.add(inset_polys[inset_idx][i]);
-                    lastInsetArea = std::abs(inset_polys[inset_idx][i].area());
+                    lastInset = inset_polys[inset_idx][i];
+                    hole_inner_walls.add(lastInset);
                     inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
                 }
             }
