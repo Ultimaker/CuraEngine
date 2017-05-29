@@ -16,22 +16,29 @@ void PathOrderOptimizer::optimize()
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
-    for (ConstPolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
+    for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
     {
-        int best = -1;
-        float bestDist = std::numeric_limits<float>::infinity();
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
+        const ConstPolygonRef poly = polygons[poly_idx];
+        if (type == EZSeamType::USER_SPECIFIED)
         {
-            float dist = vSize2f(poly[point_idx] - startPoint);
-            if (dist < bestDist)
-            {
-                best = point_idx;
-                bestDist = dist;
-            }
+            polyStart.push_back(getClosestPointInPolygon(z_seam_pos, poly_idx));
         }
-        polyStart.push_back(best);
+        else
+        {
+            int best = -1;
+            float bestDist = std::numeric_limits<float>::infinity();
+            for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
+            {
+                float dist = vSize2f(poly[point_idx] - startPoint);
+                if (dist < bestDist)
+                {
+                    best = point_idx;
+                    bestDist = dist;
+                }
+            }
+            polyStart.push_back(best);
+        }
         //picked.push_back(false); /// initialize all picked values as false
-
         assert(poly.size() != 2);
     }
 
