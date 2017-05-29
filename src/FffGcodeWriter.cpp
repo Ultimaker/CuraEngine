@@ -1289,6 +1289,29 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             // hmm, the inset that contains the hole has more than twice the area of the hole, let's ignore it
             smallest_inner_poly_idx = -1;
         }
+        // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
+        // in this situation we don't want to output the level 1 inset until after all the holes' outer walls have been printed
+        if (outer_inset_first && smallest_inner_poly_idx >= 0)
+        {
+            // does the level 1 inset surround more than one hole?
+            Polygons inset;
+            inset.add(inset_polys[1][smallest_inner_poly_idx]);
+            int num_holes_surrounded = 0;
+            for (unsigned i = 1; num_holes_surrounded < 2 && i < inset_polys[0].size(); ++i)
+            {
+                Polygons hole;
+                hole.add(inset_polys[0][i]);
+                if (polysIntersect(inset, hole))
+                {
+                    ++num_holes_surrounded;
+                }
+            }
+            if (num_holes_surrounded > 1)
+            {
+                 // yes, so defer printing the inset until all the hole outlines have been printed
+                 smallest_inner_poly_idx = -1;
+            }
+        }
         if (smallest_inner_poly_idx >= 0)
         {
             Polygons hole_inner_walls; // the innermost walls of a hole
