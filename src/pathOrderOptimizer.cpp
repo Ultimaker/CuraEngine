@@ -19,24 +19,30 @@ void PathOrderOptimizer::optimize()
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
     {
         const ConstPolygonRef poly = polygons[poly_idx];
-        if (type == EZSeamType::USER_SPECIFIED)
+        switch (type)
         {
-            polyStart.push_back(getClosestPointInPolygon(z_seam_pos, poly_idx));
-        }
-        else
-        {
-            int best = -1;
-            float bestDist = std::numeric_limits<float>::infinity();
-            for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
+            case EZSeamType::USER_SPECIFIED:
+                polyStart.push_back(getClosestPointInPolygon(z_seam_pos, poly_idx));
+                break;
+            case EZSeamType::RANDOM:
+                polyStart.push_back(getRandomPointInPolygon(poly_idx));
+                break;
+            default:
             {
-                float dist = vSize2f(poly[point_idx] - startPoint);
-                if (dist < bestDist)
+                int best = -1;
+                float bestDist = std::numeric_limits<float>::infinity();
+                for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
                 {
-                    best = point_idx;
-                    bestDist = dist;
+                    float dist = vSize2f(poly[point_idx] - startPoint);
+                    if (dist < bestDist)
+                    {
+                        best = point_idx;
+                        bestDist = dist;
+                    }
                 }
+                polyStart.push_back(best);
+                break;
             }
-            polyStart.push_back(best);
         }
         //picked.push_back(false); /// initialize all picked values as false
         assert(poly.size() != 2);
@@ -84,14 +90,16 @@ void PathOrderOptimizer::optimize()
         }
     }
 
-    prev_point = startPoint;
-    for (unsigned int order_idx = 0; order_idx < polyOrder.size(); order_idx++) /// decide final starting points in each polygon
+    if (type == EZSeamType::SHORTEST)
     {
-        int poly_idx = polyOrder[order_idx];
-        int point_idx = getPolyStart(prev_point, poly_idx);
-        polyStart[poly_idx] = point_idx;
-        prev_point = polygons[poly_idx][point_idx];
-
+        prev_point = startPoint;
+        for (unsigned int order_idx = 0; order_idx < polyOrder.size(); order_idx++) /// decide final starting points in each polygon
+        {
+            int poly_idx = polyOrder[order_idx];
+            int point_idx = getPolyStart(prev_point, poly_idx);
+            polyStart[poly_idx] = point_idx;
+            prev_point = polygons[poly_idx][point_idx];
+        }
     }
 }
 
