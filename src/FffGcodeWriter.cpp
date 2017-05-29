@@ -1284,6 +1284,11 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         // now find the smallest poly in the level 1 insets that contains this hole
         int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(hole_outer_wall[0], inset_polys[1]) : -1;
+        if (smallest_inner_poly_idx >= 0 && std::abs(inset_polys[1][smallest_inner_poly_idx].area() > std::abs(hole_outer_wall[0].area() * 2)))
+        {
+            // hmm, the inset that contains the hole has more than twice the area of the hole, let's ignore it
+            smallest_inner_poly_idx = -1;
+        }
         if (smallest_inner_poly_idx >= 0)
         {
             Polygons hole_inner_walls; // the innermost walls of a hole
