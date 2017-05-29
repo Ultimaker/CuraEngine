@@ -1340,8 +1340,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 {
                     const int z_seam_point_idx = orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]];
                     const ClosestPolygonPoint z_seam_location(hole_outer_wall[0][z_seam_point_idx], z_seam_point_idx, hole_outer_wall[0]);
-                    const int distance = static_cast<int>(wall_line_width_0 * 0.5 + wall_line_width_x * (hole_inner_walls.size() - 0.5));
-                    const Point dest = PolygonUtils::moveInside(z_seam_location, distance);
+                    const Point dest = PolygonUtils::moveInside(z_seam_location, static_cast<int>(wall_line_width_0 * 0.5 + wall_line_width_x * (hole_inner_walls.size() - 0.5)));
                     gcode_layer.addTravel(dest);
                     if (outer_poly_order_idx == 0)
                     {
