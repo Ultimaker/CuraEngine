@@ -1435,13 +1435,10 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
                 if (z_seam_type == EZSeamType::USER_SPECIFIED && part_inner_walls.size() == 1)
                 {
-                    // determine the location of the z seam (is this the easiest way to do this?)
-                    PathOrderOptimizer oo(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
-                    oo.addPolygon(inset_polys[0][0]);
-                    oo.optimize();
-                    ClosestPolygonPoint z_seam_location(inset_polys[0][0][oo.polyStart[0]], oo.polyStart[0], inset_polys[0][0]);
-                    const int distance = (wall_line_width_0 + wall_line_width_x) / 2;
-                    const Point dest = PolygonUtils::moveInside(z_seam_location, distance);
+                    // determine the location of the z seam
+                    const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, inset_polys[0][0]);
+                    const ClosestPolygonPoint z_seam_location(inset_polys[0][0][z_seam_idx], z_seam_idx, inset_polys[0][0]);
+                    const Point dest = PolygonUtils::moveInside(z_seam_location, (wall_line_width_0 + wall_line_width_x) / 2);
                     gcode_layer.addTravel(dest);
                     if (part.insets[0].size() == 1) // part has no holes, just an outer wall
                     {
