@@ -280,7 +280,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
-    
+
+    processPerimeterGaps(storage);
+
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -385,6 +387,75 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
                 processed_layer_count++;
         }
         }
+}
+
+void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
+{
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+        bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+                                    && !getSettingBoolean("magic_spiralize");
+        if (!fill_perimeter_gaps)
+        {
+            continue;
+        }
+        bool fill_gaps_between_inner_wall_and_skin_or_infill =
+            mesh.getSettingInMicrons("infill_line_distance") > 0
+            && !mesh.getSettingBoolean("infill_hollow")
+            && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
+        coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+        for (SliceLayer& layer : mesh.layers)
+        {
+            for (SliceLayerPart& part : layer.parts)
+            {
+                 // handle perimeter gaps of normal insets
+                int line_width = wall_line_width_0;
+                for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
+                {
+                    const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+                    line_width = wall_line_width_x;
+
+                    Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
+
+                // gap between inner wall and skin/infill
+                if (fill_gaps_between_inner_wall_and_skin_or_infill)
+                {
+                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+
+                    Polygons inner = part.infill_area;
+                    for (const SkinPart& skin_part : part.skin_parts)
+                    {
+                        inner.add(skin_part.outline);
+                    }
+                    inner = inner.unionPolygons();
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
+
+                // add perimeter gaps for skin insets
+                for (SkinPart& skin_part : part.skin_parts)
+                {
+                    if (skin_part.insets.size() > 0)
+                    {
+                        // add perimeter gaps between the outer skin inset and the innermost wall
+                        const Polygons outer = skin_part.outline;
+                        const Polygons inner = skin_part.insets[0].offset(wall_line_width_x / 2 + perimeter_gaps_extra_offset);
+                        skin_part.perimeter_gaps.add(outer.difference(inner));
+
+                        for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
+                        { // add perimeter gaps between consecutive skin walls
+                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * wall_line_width_x / 2 - perimeter_gaps_extra_offset);
+                            const Polygons inner = skin_part.insets[inset_idx].offset(wall_line_width_x / 2);
+                            skin_part.perimeter_gaps.add(outer.difference(inner));
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order)
@@ -596,7 +667,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
 
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
     const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
-    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
+    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
 
     if (process_infill)
     { // process infill when infill density > 0
@@ -613,7 +684,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
 
 void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
 {
-    int extruder_count = storage.meshgroup->getExtruderCount();
+    unsigned int extruder_count = storage.meshgroup->getExtruderCount();
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
@@ -626,8 +697,17 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             {
                 continue; //Special type of mesh that doesn't get printed.
             }
-            const unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            max_print_height_per_extruder[extr_nr] = std::max(max_print_height_per_extruder[extr_nr], mesh.layer_nr_max_filled_layer);
+            for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+            {
+                for (int layer_nr = mesh.layers.size() - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
+                {
+                    if (mesh.getExtruderIsUsed(extruder_nr, layer_nr))
+                    {
+                        assert(max_print_height_per_extruder[extruder_nr] <= layer_nr);
+                        max_print_height_per_extruder[extruder_nr] = layer_nr;
+                    }
+                }
+            }
         }
 
         //Height of where the support reaches.
