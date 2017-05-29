@@ -480,7 +480,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
-    
+
+    unsigned int last_extruder_on_initial_raft_layer = extruder_nr;
+
     { // raft base layer
         int layer_nr = initial_raft_layer_nr;
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
@@ -520,6 +522,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         for (unsigned int each_extruder_need_prime : extruder_order)
         {
             setExtruder_addPrime(storage, gcode_layer, layer_nr, each_extruder_need_prime);
+            last_extruder_on_initial_raft_layer = each_extruder_need_prime;
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
@@ -539,7 +542,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, last_extruder_on_initial_raft_layer, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
