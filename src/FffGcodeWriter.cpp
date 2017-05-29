@@ -1334,16 +1334,19 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             {
                 // when the user has specified the z seam location, we want the insets that surround the hole to start
                 // as close as possible to the z seam location so to avoid the possible retract when moving from the end
-                // of the immediately enclosing inset to the start of the hole outer wall we first move to the location
-                // of the z seam and the insets should now start/finish close to there
+                // of the immediately enclosing inset to the start of the hole outer wall we first move to a location
+                // that is close to the z seam and inside the wall - the insets should now start/finish close to there
                 if (z_seam_type == EZSeamType::USER_SPECIFIED)
                 {
-                    Point z_seam_location = hole_outer_wall[0][orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]]];
-                    gcode_layer.addTravel(z_seam_location);
+                    const int z_seam_point_idx = orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]];
+                    const ClosestPolygonPoint z_seam_location(hole_outer_wall[0][z_seam_point_idx], z_seam_point_idx, hole_outer_wall[0]);
+                    const int distance = static_cast<int>(wall_line_width_0 * 0.5 + wall_line_width_x * (hole_inner_walls.size() - 0.5));
+                    const Point dest = PolygonUtils::moveInside(z_seam_location, distance);
+                    gcode_layer.addTravel(dest);
                     if (outer_poly_order_idx == 0)
                     {
                         // FIXME: adding the above travel move for the first hole in the part triggers an assertion unless we follow it with this bogus zero length extrude
-                        gcode_layer.addExtrusionMove(z_seam_location, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
+                        gcode_layer.addExtrusionMove(dest, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
                     }
                 }
                 std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
@@ -1383,7 +1386,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             }
         }
     }
-    // now process the part's outer wall
+    // now process the part's outer wall and the level 1 insets that it surrounds
     {
         Polygons part_outer_wall; // the outermost wall of a part
         part_outer_wall.add(inset_polys[0][0]);
@@ -1437,12 +1440,14 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                     PathOrderOptimizer oo(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
                     oo.addPolygon(inset_polys[0][0]);
                     oo.optimize();
-                    Point z_seam_location = inset_polys[0][0][oo.polyStart[0]];
-                    gcode_layer.addTravel(z_seam_location);
+                    ClosestPolygonPoint z_seam_location(inset_polys[0][0][oo.polyStart[0]], oo.polyStart[0], inset_polys[0][0]);
+                    const int distance = (wall_line_width_0 + wall_line_width_x) / 2;
+                    const Point dest = PolygonUtils::moveInside(z_seam_location, distance);
+                    gcode_layer.addTravel(dest);
                     if (part.insets[0].size() == 1) // part has no holes, just an outer wall
                     {
                         // FIXME: adding the above travel move triggers an assertion unless we follow it with this bogus zero length extrude
-                        gcode_layer.addExtrusionMove(z_seam_location, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
+                        gcode_layer.addExtrusionMove(dest, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
                     }
                 }
                 if (compensate_overlap_x)
