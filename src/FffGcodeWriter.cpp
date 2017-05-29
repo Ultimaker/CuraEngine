@@ -1335,12 +1335,12 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 // when the user has specified the z seam location, we want the insets that surround the hole to start
                 // as close as possible to the z seam location so to avoid the possible retract when moving from the end
                 // of the immediately enclosing inset to the start of the hole outer wall we first move to a location
-                // that is close to the z seam and inside the wall - the insets should now start/finish close to there
+                // that is close to the z seam and at a vertex of the first inset we want to be printed
                 if (z_seam_type == EZSeamType::USER_SPECIFIED)
                 {
-                    const int z_seam_point_idx = orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]];
-                    const ClosestPolygonPoint z_seam_location(hole_outer_wall[0][z_seam_point_idx], z_seam_point_idx, hole_outer_wall[0]);
-                    const Point dest = PolygonUtils::moveInside(z_seam_location, static_cast<int>(wall_line_width_0 * 0.5 + wall_line_width_x * (hole_inner_walls.size() - 0.5)));
+                    const Point z_seam_location = hole_outer_wall[0][orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]]];
+                    // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
+                    const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
                     gcode_layer.addTravel(dest);
                     if (outer_poly_order_idx == 0)
                     {
@@ -1438,7 +1438,8 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                     // determine the location of the z seam
                     const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, inset_polys[0][0]);
                     const ClosestPolygonPoint z_seam_location(inset_polys[0][0][z_seam_idx], z_seam_idx, inset_polys[0][0]);
-                    const Point dest = PolygonUtils::moveInside(z_seam_location, (wall_line_width_0 + wall_line_width_x) / 2);
+                    // move to the location of the vertex in the level 1 inset that's closest to the z seam location
+                    const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
                     if (part.insets[0].size() == 1) // part has no holes, just an outer wall
                     {
