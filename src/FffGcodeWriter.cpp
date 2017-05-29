@@ -481,7 +481,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
 
-    unsigned int last_extruder_on_initial_raft_layer = extruder_nr;
+    unsigned int current_extruder_nr = extruder_nr;
 
     { // raft base layer
         int layer_nr = initial_raft_layer_nr;
@@ -519,10 +519,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
         // and then switch back to the original extruder.
         std::vector<unsigned int> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
-        for (unsigned int each_to_be_primed_extruder_nr : extruder_order)
+        for (unsigned int to_be_primed_extruder_nr : extruder_order)
         {
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_to_be_primed_extruder_nr);
-            last_extruder_on_initial_raft_layer = each_to_be_primed_extruder_nr;
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, to_be_primed_extruder_nr);
+            current_extruder_nr = to_be_primed_extruder_nr;
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
@@ -542,10 +542,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, last_extruder_on_initial_raft_layer, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
+        current_extruder_nr = extruder_nr;
 
         if (CommandSocket::isInstantiated())
         {
@@ -583,6 +584,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // make sure that we are using the correct extruder to print raft
         gcode_layer.setExtruder(extruder_nr);
+        current_extruder_nr = extruder_nr;
 
         if (CommandSocket::isInstantiated())
         {
