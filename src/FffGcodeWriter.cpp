@@ -1219,34 +1219,6 @@ static bool polysIntersect(const Polygons& poly_a, const Polygons &poly_b)
     return bba.hit(bbb) && poly_a.intersection(poly_b).size() > 0;
 }
 
-static int smallestEnclosingInsetPoly(const ConstPolygonRef& outer_wall, const std::vector<ConstPolygonRef>& inset_polys)
-{
-    // given the outer wall of a hole, search a collection of level 1 insets for the smallest inset that encloses the hole
-    // we need to find the smallest enclosing inset because there could be two insets that surround the hole:
-    // the one we want and also an inset of the outer wall of the part
-    int smallest_inner_poly_idx = -1;
-    double smallest_inner_poly_area = std::numeric_limits<double>::max();
-    Polygons outer;
-    outer.add(outer_wall);
-    for (unsigned inner_poly_idx = 0; inner_poly_idx < inset_polys.size(); ++inner_poly_idx)
-    {
-        Polygons inner;
-        inner.add(inset_polys[inner_poly_idx]);
-        // as holes don't overlap, if the outer and inner insets intersect, it is safe to assume that the outer is inside the inner
-        if (polysIntersect(inner, outer))
-        {
-            // the outer poly overlaps the candidate inset, if it's the smallest, remember it
-            const double inner_area = std::abs(inner[0].area());
-            if (inner_area < smallest_inner_poly_area)
-            {
-                smallest_inner_poly_area = inner_area;
-                smallest_inner_poly_idx = inner_poly_idx;
-            }
-        }
-    }
-    return smallest_inner_poly_idx;
-}
-
 static bool polyOutlinesAdjacent(const ConstPolygonRef wall0, const ConstPolygonRef wall1, const coord_t max_gap)
 {
     const coord_t max_gap2 = max_gap * max_gap;
@@ -1260,6 +1232,24 @@ static bool polyOutlinesAdjacent(const ConstPolygonRef wall0, const ConstPolygon
         }
     }
     return false;
+}
+
+static int findAdjacentEnclosingPoly(const ConstPolygonRef& outer_inset, const std::vector<ConstPolygonRef>& inset_polys, const coord_t max_gap)
+{
+    // given an inset, search a collection of insets for the adjacent enclosing inset
+    Polygons outer;
+    outer.add(outer_inset);
+    for (unsigned inner_poly_idx = 0; inner_poly_idx < inset_polys.size(); ++inner_poly_idx)
+    {
+        Polygons inner;
+        inner.add(inset_polys[inner_poly_idx]);
+        // as holes don't overlap, if the outer and inner insets intersect, it is safe to assume that the outer is inside the inner
+        if (polysIntersect(inner, outer) && polyOutlinesAdjacent(outer_inset, inset_polys[inner_poly_idx], max_gap))
+        {
+            return inner_poly_idx;
+        }
+    }
+    return -1;
 }
 
 static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
@@ -1297,20 +1287,15 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
     {
         Polygons hole_outer_wall; // the outermost wall of a hole
         hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
-        // now find the smallest poly in the level 1 insets that contains this hole
-        int smallest_inner_poly_idx = (inset_polys.size() > 1) ? smallestEnclosingInsetPoly(hole_outer_wall[0], inset_polys[1]) : -1;
-        if (smallest_inner_poly_idx >= 0 && !polyOutlinesAdjacent(hole_outer_wall[0], inset_polys[1][smallest_inner_poly_idx], std::max(wall_line_width_0, wall_line_width_x) * 2))
-        {
-            // the smallest inset that contains this hole doesn't actually touch it so ignore it
-            smallest_inner_poly_idx = -1;
-        }
+        // now find the adjacent poly in the level 1 insets that encloses this hole
+        int adjacent_enclosing_poly_idx = (inset_polys.size() > 1) ? findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 2) : -1;
         // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
         // in this situation we don't want to output the level 1 inset until after all the holes' outer walls have been printed
-        if (outer_inset_first && smallest_inner_poly_idx >= 0)
+        if (outer_inset_first && adjacent_enclosing_poly_idx >= 0)
         {
             // does the level 1 inset surround more than one hole?
             Polygons inset;
-            inset.add(inset_polys[1][smallest_inner_poly_idx]);
+            inset.add(inset_polys[1][adjacent_enclosing_poly_idx]);
             int num_holes_surrounded = 0;
             for (unsigned i = 1; num_holes_surrounded < 2 && i < inset_polys[0].size(); ++i)
             {
@@ -1324,22 +1309,21 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             if (num_holes_surrounded > 1)
             {
                  // yes, so defer printing the inset until all the hole outlines have been printed
-                 smallest_inner_poly_idx = -1;
+                 adjacent_enclosing_poly_idx = -1;
             }
         }
-        if (smallest_inner_poly_idx >= 0)
+        if (adjacent_enclosing_poly_idx >= 0)
         {
-            ConstPolygonRef lastInset = inset_polys[1][smallest_inner_poly_idx];
+            ConstPolygonRef lastInset = inset_polys[1][adjacent_enclosing_poly_idx];
             Polygons hole_inner_walls; // the innermost walls of a hole
             hole_inner_walls.add(lastInset);
             // consume the level 1 inset
-            inset_polys[1].erase(inset_polys[1].begin() + smallest_inner_poly_idx);
+            inset_polys[1].erase(inset_polys[1].begin() + adjacent_enclosing_poly_idx);
             // now find all the insets that immediately surround this hole and consume them
             for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
             {
-                int i = smallestEnclosingInsetPoly(lastInset, inset_polys[inset_idx]);
-                if (i >= 0 && polyOutlinesAdjacent(lastInset, inset_polys[inset_idx][i], wall_line_width_x * 2))
-                {
+                int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_idx], wall_line_width_x * 2);
+                if (i >= 0) {
                     lastInset = inset_polys[inset_idx][i];
                     hole_inner_walls.add(lastInset);
                     inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
