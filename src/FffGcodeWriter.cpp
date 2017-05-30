@@ -1219,16 +1219,20 @@ static bool polysIntersect(const Polygons& poly_a, const Polygons &poly_b)
     return bba.hit(bbb) && poly_a.intersection(poly_b).size() > 0;
 }
 
-static bool polyOutlinesAdjacent(const ConstPolygonRef wall0, const ConstPolygonRef wall1, const coord_t max_gap)
+static bool polyOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap)
 {
     const coord_t max_gap2 = max_gap * max_gap;
-    for (unsigned wall0_index = 0; wall0_index < wall0.size(); ++wall0_index)
+    const unsigned outer_poly_size = outer_poly.size();
+    for (unsigned line_index = 0; line_index < outer_poly_size; ++line_index)
     {
-        const Point wall0_point = wall0[wall0_index];
-        for (unsigned wall1_index = 0; wall1_index < wall1.size(); ++wall1_index)
+        const Point lp0 = outer_poly[line_index];
+        const Point lp1 = outer_poly[(line_index + 1) % outer_poly_size];
+        for (Point inner_poly_point : inner_poly)
         {
-            if (vSize2(wall0_point - wall1[wall1_index]) < max_gap2)
+            if (LinearAlg2D::getDist2FromLineSegment(lp0, inner_poly_point, lp1) < max_gap2)
+            {
                 return true;
+            }
         }
     }
     return false;
