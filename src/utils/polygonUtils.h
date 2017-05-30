@@ -489,10 +489,10 @@ public:
     static bool polygonCollidesWithLineSegment(const Polygons& polys, const Point& startPoint, const Point& endPoint);
 
     /*!
-     * Checks whether two polygons intersect - does a BB hit check first and if that succeeds, the full intersection
+     * Checks whether two polygon groups intersect - does a BB hit check first and if that succeeds, the full intersection
      *
-     * \param poly_a A polygon
-     * \param poly_b Another polygon
+     * \param poly_a A polygon group
+     * \param poly_b Another polygon group
      * \return true if \p poly_a and \p poly_b intersect, false otherwise
      */
     static bool polygonsIntersect(const Polygons& poly_a, const Polygons &poly_b);
