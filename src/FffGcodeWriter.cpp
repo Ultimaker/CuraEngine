@@ -1271,8 +1271,8 @@ static int findAdjacentPoly(const ConstPolygonRef& inset, const std::vector<Cons
 
 static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
-    const coord_t wall_line_width_0 = mesh->getSettingInMicrons("wall_line_width_0");
-    const coord_t wall_line_width_x = mesh->getSettingInMicrons("wall_line_width_x");
+    const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
+    const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t wall_0_wipe_dist = mesh->getSettingInMicrons("wall_0_wipe_dist");
     const bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     const bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
