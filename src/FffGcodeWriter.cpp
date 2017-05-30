@@ -1284,12 +1284,12 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
     constexpr float flow = 1.0;
     // create a vector of vectors containing all the inset polys
     std::vector<std::vector<ConstPolygonRef>> inset_polys;
-    for (unsigned inset_idx = 0; inset_idx < num_insets; ++inset_idx)
+    for (unsigned inset_level = 0; inset_level < num_insets; ++inset_level)
     {
         inset_polys.emplace_back();
-        for (unsigned poly_idx = 0; poly_idx < part.insets[inset_idx].size(); ++poly_idx)
+        for (unsigned poly_idx = 0; poly_idx < part.insets[inset_level].size(); ++poly_idx)
         {
-            inset_polys[inset_idx].push_back(part.insets[inset_idx][poly_idx]);
+            inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
         }
     }
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
@@ -1348,13 +1348,13 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             // consume the level 1 inset
             inset_polys[1].erase(inset_polys[1].begin() + adjacent_poly_idx);
             // now find all the insets that immediately surround this hole and consume them
-            for (unsigned inset_idx = 2; inset_idx < num_insets && inset_polys[inset_idx].size(); ++inset_idx)
+            for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
-                int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_idx], wall_line_width_x * 1.5f);
+                int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.5f);
                 if (i >= 0) {
-                    lastInset = inset_polys[inset_idx][i];
+                    lastInset = inset_polys[inset_level][i];
                     hole_inner_walls.add(lastInset);
-                    inset_polys[inset_idx].erase(inset_polys[inset_idx].begin() + i);
+                    inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
                 }
             }
             // output the inset polys
@@ -1535,16 +1535,16 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
     }
     /* mop up all the remaining insets */
     Polygons remaining;
-    for (unsigned inset_idx = 1; inset_idx < inset_polys.size(); ++inset_idx)
+    for (unsigned inset_level = 1; inset_level < inset_polys.size(); ++inset_level)
     {
-        const unsigned num_polys = inset_polys[inset_idx].size();
-        if (inset_idx == 1 && num_polys > 0)
+        const unsigned num_polys = inset_polys[inset_level].size();
+        if (inset_level == 1 && num_polys > 0)
         {
             logWarning("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
         }
         for (unsigned poly_idx = 0; poly_idx < num_polys; ++poly_idx)
         {
-            remaining.add(inset_polys[inset_idx][poly_idx]);
+            remaining.add(inset_polys[inset_level][poly_idx]);
         }
     }
     if (remaining.size() > 0)
