@@ -1441,12 +1441,14 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         part_outer_wall.add(inset_polys[0][0]);
         // find the level 1 insets that are inside the outer wall and consume them
         Polygons part_inner_walls;
+        int num_level_1_insets = 0;
         for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
         {
             Polygons inner;
             inner.add(inset_polys[1][inner_poly_idx]);
             if (polysIntersect(inner, part_outer_wall))
             {
+                ++num_level_1_insets;
                 part_inner_walls.add(inner[0]);
                 // consume the inset
                 inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
@@ -1496,9 +1498,9 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             else
             {
                 // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
-                // but if there is more than one outer wall inset, don't bother to move as it may actually be a waste of time because
+                // but if there is more than one outer wall level 1 inset, don't bother to move as it may actually be a waste of time because
                 // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
-                if (z_seam_type == EZSeamType::USER_SPECIFIED && part_inner_walls.size() == 1)
+                if (z_seam_type == EZSeamType::USER_SPECIFIED && num_level_1_insets == 1)
                 {
                     // determine the location of the z seam
                     const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, inset_polys[0][0]);
