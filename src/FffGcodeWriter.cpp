@@ -1211,33 +1211,6 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     gcode_layer.spiralizeWallSlice(&mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
 }
 
-static bool polysIntersect(const Polygons& poly_a, const Polygons &poly_b)
-{
-    // only do the full intersection when the polys' BBs overlap
-    AABB bba(poly_a);
-    AABB bbb(poly_b);
-    return bba.hit(bbb) && poly_a.intersection(poly_b).size() > 0;
-}
-
-static bool polyOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap)
-{
-    const coord_t max_gap2 = max_gap * max_gap;
-    const unsigned outer_poly_size = outer_poly.size();
-    for (unsigned line_index = 0; line_index < outer_poly_size; ++line_index)
-    {
-        const Point lp0 = outer_poly[line_index];
-        const Point lp1 = outer_poly[(line_index + 1) % outer_poly_size];
-        for (Point inner_poly_point : inner_poly)
-        {
-            if (LinearAlg2D::getDist2FromLineSegment(lp0, inner_poly_point, lp1) < max_gap2)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonRef>& possible_enclosing_polys, const coord_t max_gap)
 {
     // given an inset, search a collection of insets for the adjacent enclosing inset
@@ -1248,7 +1221,7 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
         Polygons enclosing;
         enclosing.add(possible_enclosing_polys[enclosing_poly_idx]);
         // as holes don't overlap, if the insets intersect, it is safe to assume that the enclosed inset is inside the enclosing inset
-        if (polysIntersect(enclosing, enclosed) && polyOutlinesAdjacent(enclosed_inset, enclosing[0], max_gap))
+        if (PolygonUtils::polygonsIntersect(enclosing, enclosed) && PolygonUtils::polygonOutlinesAdjacent(enclosed_inset, enclosing[0], max_gap))
         {
             return enclosing_poly_idx;
         }
@@ -1261,7 +1234,7 @@ static int findAdjacentPoly(const ConstPolygonRef& inset, const std::vector<Cons
     // given an inset, search a collection of insets for an adjacent inset
     for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
     {
-        if (polyOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap))
+        if (PolygonUtils::polygonOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap))
         {
             return poly_idx;
         }
@@ -1329,7 +1302,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             {
                 Polygons hole;
                 hole.add(inset_polys[0][i]);
-                if (polysIntersect(inset, hole))
+                if (PolygonUtils::polygonsIntersect(inset, hole))
                 {
                     ++num_holes_surrounded;
                 }
@@ -1446,7 +1419,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         {
             Polygons inner;
             inner.add(inset_polys[1][inner_poly_idx]);
-            if (polysIntersect(inner, part_outer_wall))
+            if (PolygonUtils::polygonsIntersect(inner, part_outer_wall))
             {
                 ++num_level_1_insets;
                 part_inner_walls.add(inner[0]);
@@ -1459,7 +1432,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
                 {
                     for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_level].size(); ++poly_idx)
                     {
-                        if (polyOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.5f))
+                        if (PolygonUtils::polygonOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.5f))
                         {
                             enclosing_inset = inset_polys[inset_level][poly_idx];
                             part_inner_walls.add(enclosing_inset);

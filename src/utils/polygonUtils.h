@@ -488,6 +488,24 @@ public:
      */
     static bool polygonCollidesWithLineSegment(const Polygons& polys, const Point& startPoint, const Point& endPoint);
 
+    /*!
+     * Checks whether two polygons intersect - does a BB hit check first and if that succeeds, the full intersection
+     *
+     * \param poly_a A polygon
+     * \param poly_b Another polygon
+     * \return true if \p poly_a and \p poly_b intersect, false otherwise
+     */
+    static bool polygonsIntersect(const Polygons& poly_a, const Polygons &poly_b);
+
+    /*!
+     * Checks whether two polygons are adjacent (closer than \p max_gap)
+     *
+     * \param inner_poly A polygon whose vertices will be tested to see if they are closer than \p max_gap to one of the lines in \p outer_poly
+     * \param outer_poly A polygon
+     * \return true if a vertex in \p inner_poly is sufficiently close to a line in \p outer_poly, false otherwise
+     */
+    static bool polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.
