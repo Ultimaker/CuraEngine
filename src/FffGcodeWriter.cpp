@@ -1316,7 +1316,8 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
             for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
                 int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.1f);
-                if (i >= 0) {
+                if (i >= 0)
+                {
                     lastInset = inset_polys[inset_level][i];
                     hole_inner_walls.add(lastInset);
                     inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
