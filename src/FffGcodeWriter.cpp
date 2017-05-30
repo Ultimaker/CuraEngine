@@ -1256,6 +1256,14 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
     return -1;
 }
 
+static int findAdjacentPoly(const ConstPolygonRef& inset, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
+{
+    // given an inset, search a collection of insets for an adjacent inset
+    for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
+    {
+        if (polyOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap))
+        {
+            return poly_idx;
         }
     }
     return -1;
