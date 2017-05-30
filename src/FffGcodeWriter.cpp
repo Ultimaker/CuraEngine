@@ -1242,7 +1242,7 @@ static int findAdjacentPoly(const ConstPolygonRef& inset, const std::vector<Cons
     return -1;
 }
 
-static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
@@ -1255,16 +1255,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
     const unsigned num_insets = part.insets.size();
     constexpr bool spiralize = false;
     constexpr float flow = 1.0;
-    // create a vector of vectors containing all the inset polys
-    std::vector<std::vector<ConstPolygonRef>> inset_polys;
-    for (unsigned inset_level = 0; inset_level < num_insets; ++inset_level)
-    {
-        inset_polys.emplace_back();
-        for (unsigned poly_idx = 0; poly_idx < part.insets[inset_level].size(); ++poly_idx)
-        {
-            inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
-        }
-    }
+
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
     PathOrderOptimizer orderOptimizer(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
@@ -1272,6 +1263,7 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         orderOptimizer.addPolygon(inset_polys[0][poly_idx]);
     }
     orderOptimizer.optimize();
+
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
     for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
     {
@@ -1408,7 +1400,23 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             }
         }
     }
-    // now process the part's outer wall and the level 1 insets that it surrounds
+}
+
+static void processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+{
+    const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
+    const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
+    const coord_t wall_0_wipe_dist = mesh->getSettingInMicrons("wall_0_wipe_dist");
+    const bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
+    const bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
+    const bool retract_before_outer_wall = mesh->getSettingBoolean("travel_retract_before_outer_wall");
+    const bool outer_inset_first = mesh->getSettingBoolean("outer_inset_first")
+                                    || (layer_nr == 0 && mesh->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
+    const unsigned num_insets = part.insets.size();
+    constexpr bool spiralize = false;
+    constexpr float flow = 1.0;
+
+    // process the part's outer wall and the level 1 insets that it surrounds
     {
         Polygons part_outer_wall; // the outermost wall of a part
         part_outer_wall.add(inset_polys[0][0]);
@@ -1523,7 +1531,28 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
             }
         }
     }
-    /* mop up all the remaining insets */
+}
+
+static void processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+{
+    const unsigned num_insets = part.insets.size();
+
+    // create a vector of vectors containing all the inset polys
+    std::vector<std::vector<ConstPolygonRef>> inset_polys;
+    for (unsigned inset_level = 0; inset_level < num_insets; ++inset_level)
+    {
+        inset_polys.emplace_back();
+        for (unsigned poly_idx = 0; poly_idx < part.insets[inset_level].size(); ++poly_idx)
+        {
+            inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
+        }
+    }
+
+    // first process all the holes and their enclosing insets
+    processHoleInsets(inset_polys, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+    // then process the part's outer wall and its enclosed insets
+    processOuterWallInsets(inset_polys, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+    // finally, mop up all the remaining insets that can occur in the gaps between holes
     Polygons remaining;
     for (unsigned inset_level = 1; inset_level < inset_polys.size(); ++inset_level)
     {
@@ -1539,9 +1568,9 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
     }
     if (remaining.size() > 0)
     {
-        if (compensate_overlap_x)
+        if (mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
         {
-            WallOverlapComputation wall_overlap_computation(remaining, wall_line_width_x);
+            WallOverlapComputation wall_overlap_computation(remaining, mesh_config.insetX_config.getLineWidth());
             gcode_layer.addPolygonsByOptimizer(remaining, &mesh_config.insetX_config, &wall_overlap_computation);
         }
         else
@@ -1587,7 +1616,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         }
         else if (mesh->getSettingBoolean("optimize_wall_printing_order"))
         {
-            processInsetsWithOptimizedOrdering(storage, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+            processInsetsWithOptimizedOrdering(gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
         }
         else
         {
