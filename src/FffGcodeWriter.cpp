@@ -1273,13 +1273,13 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
         if (inset_polys.size() > 1)
         {
             // find the adjacent poly in the level 1 insets that encloses the hole
-            adjacent_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.5f);
+            adjacent_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
             if (adjacent_poly_idx < 0 && !outer_inset_first)
             {
                 // we didn't find a level 1 inset that encloses this hole so now look to see if there is a level 1 inset that simply touches
                 // this hole and use that instead - however, as the level 1 inset will touch other holes and/or the outer wall we don't want
                 // to do this when printing the outer walls first
-                adjacent_poly_idx = findAdjacentPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.5f);
+                adjacent_poly_idx = findAdjacentPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
             }
         }
         // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
@@ -1315,7 +1315,7 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
             // now find all the insets that immediately surround this hole and consume them
             for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
-                int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.5f);
+                int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.1f);
                 if (i >= 0) {
                     lastInset = inset_polys[inset_level][i];
                     hole_inner_walls.add(lastInset);
@@ -1440,7 +1440,7 @@ static void processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
                 {
                     for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_level].size(); ++poly_idx)
                     {
-                        if (PolygonUtils::polygonOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.5f))
+                        if (PolygonUtils::polygonOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.1f))
                         {
                             enclosing_inset = inset_polys[inset_level][poly_idx];
                             part_inner_walls.add(enclosing_inset);
