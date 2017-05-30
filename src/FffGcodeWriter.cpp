@@ -1309,6 +1309,13 @@ static void processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, 
         {
             // find the adjacent poly in the level 1 insets that encloses the hole
             adjacent_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.5f);
+            if (adjacent_poly_idx < 0 && !outer_inset_first)
+            {
+                // we didn't find a level 1 inset that encloses this hole so now look to see if there is a level 1 inset that simply touches
+                // this hole and use that instead - however, as the level 1 inset will touch other holes and/or the outer wall we don't want
+                // to do this when printing the outer walls first
+                adjacent_poly_idx = findAdjacentPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.5f);
+            }
         }
         // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
         // in this situation we don't want to output the level 1 inset until after all the holes' outer walls have been printed
