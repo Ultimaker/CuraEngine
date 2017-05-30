@@ -1238,19 +1238,24 @@ static bool polyOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPo
     return false;
 }
 
-static int findAdjacentEnclosingPoly(const ConstPolygonRef& outer_inset, const std::vector<ConstPolygonRef>& inset_polys, const coord_t max_gap)
+static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonRef>& possible_enclosing_polys, const coord_t max_gap)
 {
     // given an inset, search a collection of insets for the adjacent enclosing inset
-    Polygons outer;
-    outer.add(outer_inset);
-    for (unsigned inner_poly_idx = 0; inner_poly_idx < inset_polys.size(); ++inner_poly_idx)
+    Polygons enclosed;
+    enclosed.add(enclosed_inset);
+    for (unsigned enclosing_poly_idx = 0; enclosing_poly_idx < possible_enclosing_polys.size(); ++enclosing_poly_idx)
     {
-        Polygons inner;
-        inner.add(inset_polys[inner_poly_idx]);
-        // as holes don't overlap, if the outer and inner insets intersect, it is safe to assume that the outer is inside the inner
-        if (polysIntersect(inner, outer) && polyOutlinesAdjacent(outer_inset, inset_polys[inner_poly_idx], max_gap))
+        Polygons enclosing;
+        enclosing.add(possible_enclosing_polys[enclosing_poly_idx]);
+        // as holes don't overlap, if the insets intersect, it is safe to assume that the enclosed inset is inside the enclosing inset
+        if (polysIntersect(enclosing, enclosed) && polyOutlinesAdjacent(enclosed_inset, enclosing[0], max_gap))
         {
-            return inner_poly_idx;
+            return enclosing_poly_idx;
+        }
+    }
+    return -1;
+}
+
         }
     }
     return -1;
