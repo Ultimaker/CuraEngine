@@ -1251,7 +1251,7 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
     const bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
     const bool retract_before_outer_wall = mesh->getSettingBoolean("travel_retract_before_outer_wall");
     const bool outer_inset_first = mesh->getSettingBoolean("outer_inset_first")
-                                    || (layer_nr == 0 && mesh->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
+        || (layer_nr == 0 && mesh->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM && !mesh->getSettingBoolean("brim_outside_only"));
     const unsigned num_insets = part.insets.size();
     constexpr bool spiralize = false;
     constexpr float flow = 1.0;
