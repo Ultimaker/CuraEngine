@@ -1269,47 +1269,56 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
         Polygons hole_outer_wall; // the outermost wall of a hole
         hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         std::vector<unsigned> hole_inner_wall_indices; // the indices of the innermost walls of a hole
+        const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
         if (inset_polys.size() > 1)
         {
             // find the adjacent poly in the level 1 insets that encloses the hole
-            int adjacent_enclosing_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
+            int adjacent_enclosing_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], max_gap);
             if (adjacent_enclosing_poly_idx >= 0)
             {
-                hole_inner_wall_indices.push_back(adjacent_enclosing_poly_idx);
+                // now test for the special case where we are printing the outer walls first and the level 1 inset also touches other outer walls
+                // in this situation we don't want to output the level 1 inset until after all the outer walls have been printed
+                if (outer_inset_first)
+                {
+                    // does the level 1 inset touch more than one outline?
+                    Polygons inset;
+                    inset.add(inset_polys[1][adjacent_enclosing_poly_idx]);
+                    int num_outlines_touched = 0;
+                    // does it touch the outer wall?
+                    if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][0], max_gap))
+                    {
+                        // the level 1 inset touches the part's outer wall
+                        ++num_outlines_touched;
+                    }
+                    // does it touch any holes (it should touch at least 1, the hole it's surrounding!)
+                    for (unsigned i = 1; num_outlines_touched < 2 && i < inset_polys[0].size(); ++i)
+                    {
+                        Polygons hole;
+                        hole.add(inset_polys[0][i]);
+                        if (PolygonUtils::polygonsIntersect(inset, hole) ||
+                            PolygonUtils::polygonOutlinesAdjacent(inset[0], hole[0], max_gap) ||
+                            PolygonUtils::polygonOutlinesAdjacent(hole[0], inset[0], max_gap))
+                        {
+                            ++num_outlines_touched;
+                        }
+                    }
+                    if (num_outlines_touched < 2)
+                    {
+                        // this level 1 inset only touches one outline so we can print it
+                        hole_inner_wall_indices.push_back(adjacent_enclosing_poly_idx);
+                    }
+                }
+                else
+                {
+                    hole_inner_wall_indices.push_back(adjacent_enclosing_poly_idx);
+                }
             }
             else if (!outer_inset_first)
             {
                 // we didn't find a level 1 inset that encloses this hole so now look to see if there is one or more level 1 insets that simply touch
                 // this hole and use those instead - however, as the level 1 insets will also touch other holes and/or the outer wall we don't want
                 // to do this when printing the outer walls first
-                findAdjacentPolys(hole_inner_wall_indices, hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
-            }
-        }
-        // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
-        // in this situation we don't want to output the level 1 inset until after all the holes' outer walls have been printed
-        if (outer_inset_first)
-        {
-            for (unsigned poly_idx = 0; poly_idx < hole_inner_wall_indices.size(); ++poly_idx)
-            {
-                // does the level 1 inset surround more than one hole?
-                Polygons inset;
-                inset.add(inset_polys[1][hole_inner_wall_indices[poly_idx]]);
-                int num_holes_surrounded = 0;
-                for (unsigned i = 1; num_holes_surrounded < 2 && i < inset_polys[0].size(); ++i)
-                {
-                    Polygons hole;
-                    hole.add(inset_polys[0][i]);
-                    if (PolygonUtils::polygonsIntersect(inset, hole))
-                    {
-                        ++num_holes_surrounded;
-                    }
-                }
-                if (num_holes_surrounded > 1)
-                {
-                     // yes, so defer printing the inset until all the hole outlines have been printed
-                     hole_inner_wall_indices.erase(hole_inner_wall_indices.begin() + poly_idx);
-                     --poly_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
-                }
+                findAdjacentPolys(hole_inner_wall_indices, hole_outer_wall[0], inset_polys[1], max_gap);
             }
         }
 
