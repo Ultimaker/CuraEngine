@@ -481,7 +481,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
-    
+
+    unsigned int current_extruder_nr = extruder_nr;
+
     { // raft base layer
         int layer_nr = initial_raft_layer_nr;
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
@@ -517,16 +519,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
         // and then switch back to the original extruder.
-        std::vector<uint32_t> extruder_order = calculateLayerExtruderOrder(storage, extruder_nr, layer_nr);
-        bool has_extruders_primed = false;
-        for (uint32_t each_extruder_need_prime : extruder_order)
+        std::vector<unsigned int> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
+        for (unsigned int to_be_primed_extruder_nr : extruder_order)
         {
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_extruder_need_prime);
-            has_extruders_primed = true;
-        }
-        if (has_extruders_primed)
-        {
-            gcode_layer.setExtruder(extruder_nr);
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, to_be_primed_extruder_nr);
+            current_extruder_nr = to_be_primed_extruder_nr;
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
@@ -546,10 +543,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
+        current_extruder_nr = extruder_nr;
 
         if (CommandSocket::isInstantiated())
         {
@@ -584,6 +582,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
+
+        // make sure that we are using the correct extruder to print raft
+        gcode_layer.setExtruder(extruder_nr);
+        current_extruder_nr = extruder_nr;
 
         if (CommandSocket::isInstantiated())
         {
@@ -840,13 +842,13 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<int>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<unsigned int>>& extruder_order_per_layer_here = (layer_nr < 0)? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
-        extruder_order_per_layer_here.push_back(calculateLayerExtruderOrder(storage, last_extruder, layer_nr));
+        extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
         last_extruder = extruder_order_per_layer_here.back().back();
         extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
     }
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
+std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
 {
     unsigned int extruder_count = storage.getSettingAsCount("machine_extruder_count");
     assert(static_cast<int>(extruder_count) > 0);

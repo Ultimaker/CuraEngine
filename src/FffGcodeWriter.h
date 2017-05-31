@@ -291,8 +291,8 @@ private:
     void calculateExtruderOrderPerLayer(const SliceDataStorage& storage);
 
     /*!
-     * Calculate in which order to plan the extruders.
-     * Only extruders which are (most probably) going to be used are planned
+     * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
+     * When it's on the first layer, the prime blob will also be taken into account.
      * 
      * \note At the planning stage we only have information on areas, not how those are filled.
      * If an area is too small to be filled with anything it will still get specified as being used with the extruder for that area.
@@ -301,7 +301,7 @@ private:
      * \param current_extruder The current extruder with which we last printed
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<unsigned int> calculateLayerExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const;
+    std::vector<unsigned int> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
