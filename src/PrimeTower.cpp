@@ -253,7 +253,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
         if(purge_volume > 0)
         {
             // Find out how much purging needs to be done.
-            int purge_move_length = vSize(middle - prime_start);
+            const coord_t purge_move_length = vSize(middle - prime_start);
             const unsigned int line_width = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr].getLineWidth();
             const double layer_height_mm = (layer_nr == 0)? train.getSettingInMillimeters("layer_height_0") : train.getSettingInMillimeters("layer_height");
             const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
