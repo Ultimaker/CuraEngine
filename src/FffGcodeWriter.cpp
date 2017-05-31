@@ -515,6 +515,20 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
+        // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
+        // and then switch back to the original extruder.
+        std::vector<uint32_t> extruder_order = calculateLayerExtruderOrder(storage, extruder_nr, layer_nr);
+        bool has_extruders_primed = false;
+        for (uint32_t each_extruder_need_prime : extruder_order)
+        {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, each_extruder_need_prime);
+            has_extruders_primed = true;
+        }
+        if (has_extruders_primed)
+        {
+            gcode_layer.setExtruder(extruder_nr);
+        }
+
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
