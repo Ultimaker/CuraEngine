@@ -1324,14 +1324,26 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
             }
         }
 
+        // now collect the inner walls that will be printed along with the hole outer wall
+
         Polygons hole_inner_walls; // the innermost walls of the hole
 
         for (unsigned poly_idx = 0; poly_idx < hole_inner_wall_indices.size(); ++poly_idx)
         {
-            ConstPolygonRef lastInset = inset_polys[1][hole_inner_wall_indices[poly_idx]];
+            // add the level 1 inset to the collection of inner walls to be printed and consume it, taking care to adjust
+            // those elements in hole_inner_wall_indices that are larger
+            unsigned inset_idx = hole_inner_wall_indices[poly_idx];
+            ConstPolygonRef lastInset = inset_polys[1][inset_idx];
             hole_inner_walls.add(lastInset);
-            // consume the level 1 inset
-            inset_polys[1].erase(inset_polys[1].begin() + hole_inner_wall_indices[poly_idx]);
+            inset_polys[1].erase(inset_polys[1].begin() + inset_idx);
+            // decrement any other indices in hole_inner_wall_indices that are greater than inset_idx
+            for (unsigned i = poly_idx + 1; i < hole_inner_wall_indices.size(); ++i)
+            {
+                if (hole_inner_wall_indices[i] > inset_idx)
+                {
+                    hole_inner_wall_indices[i] = hole_inner_wall_indices[i] - 1;
+                }
+            }
             // now find all the insets that immediately surround this hole and consume them
             for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
