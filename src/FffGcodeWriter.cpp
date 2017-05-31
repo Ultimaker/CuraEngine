@@ -1229,17 +1229,16 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
     return -1;
 }
 
-static int findAdjacentPoly(const ConstPolygonRef& inset, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
+static void findAdjacentPolys(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& inset, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
 {
-    // given an inset, search a collection of insets for an adjacent inset
+    // given an inset, search a collection of insets for any adjacent insets
     for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
     {
         if (PolygonUtils::polygonOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap))
         {
-            return poly_idx;
+            adjacent_poly_indices.push_back(poly_idx);
         }
     }
-    return -1;
 }
 
 static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
@@ -1269,49 +1268,59 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
     {
         Polygons hole_outer_wall; // the outermost wall of a hole
         hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
-        int adjacent_poly_idx = -1; // index of poly in inset_polys[1] that is adjacent (ideally enclosing) the hole
+        std::vector<unsigned> hole_inner_wall_indices; // the indices of the innermost walls of a hole
         if (inset_polys.size() > 1)
         {
             // find the adjacent poly in the level 1 insets that encloses the hole
-            adjacent_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
-            if (adjacent_poly_idx < 0 && !outer_inset_first)
+            int adjacent_enclosing_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
+            if (adjacent_enclosing_poly_idx >= 0)
             {
-                // we didn't find a level 1 inset that encloses this hole so now look to see if there is a level 1 inset that simply touches
-                // this hole and use that instead - however, as the level 1 inset will touch other holes and/or the outer wall we don't want
+                hole_inner_wall_indices.push_back(adjacent_enclosing_poly_idx);
+            }
+            else if (!outer_inset_first)
+            {
+                // we didn't find a level 1 inset that encloses this hole so now look to see if there is one or more level 1 insets that simply touch
+                // this hole and use those instead - however, as the level 1 insets will also touch other holes and/or the outer wall we don't want
                 // to do this when printing the outer walls first
-                adjacent_poly_idx = findAdjacentPoly(hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
+                findAdjacentPolys(hole_inner_wall_indices, hole_outer_wall[0], inset_polys[1], std::max(wall_line_width_0, wall_line_width_x) * 1.1f);
             }
         }
         // now test for the special case where we are printing the outer wall first and we have two or more holes so close together that they share a level 1 inset
         // in this situation we don't want to output the level 1 inset until after all the holes' outer walls have been printed
-        if (outer_inset_first && adjacent_poly_idx >= 0)
+        if (outer_inset_first)
         {
-            // does the level 1 inset surround more than one hole?
-            Polygons inset;
-            inset.add(inset_polys[1][adjacent_poly_idx]);
-            int num_holes_surrounded = 0;
-            for (unsigned i = 1; num_holes_surrounded < 2 && i < inset_polys[0].size(); ++i)
+            for (unsigned poly_idx = 0; poly_idx < hole_inner_wall_indices.size(); ++poly_idx)
             {
-                Polygons hole;
-                hole.add(inset_polys[0][i]);
-                if (PolygonUtils::polygonsIntersect(inset, hole))
+                // does the level 1 inset surround more than one hole?
+                Polygons inset;
+                inset.add(inset_polys[1][hole_inner_wall_indices[poly_idx]]);
+                int num_holes_surrounded = 0;
+                for (unsigned i = 1; num_holes_surrounded < 2 && i < inset_polys[0].size(); ++i)
                 {
-                    ++num_holes_surrounded;
+                    Polygons hole;
+                    hole.add(inset_polys[0][i]);
+                    if (PolygonUtils::polygonsIntersect(inset, hole))
+                    {
+                        ++num_holes_surrounded;
+                    }
+                }
+                if (num_holes_surrounded > 1)
+                {
+                     // yes, so defer printing the inset until all the hole outlines have been printed
+                     hole_inner_wall_indices.erase(hole_inner_wall_indices.begin() + poly_idx);
+                     --poly_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
                 }
             }
-            if (num_holes_surrounded > 1)
-            {
-                 // yes, so defer printing the inset until all the hole outlines have been printed
-                 adjacent_poly_idx = -1;
-            }
         }
-        if (adjacent_poly_idx >= 0)
+
+        Polygons hole_inner_walls; // the innermost walls of the hole
+
+        for (unsigned poly_idx = 0; poly_idx < hole_inner_wall_indices.size(); ++poly_idx)
         {
-            ConstPolygonRef lastInset = inset_polys[1][adjacent_poly_idx];
-            Polygons hole_inner_walls; // the innermost walls of a hole
+            ConstPolygonRef lastInset = inset_polys[1][hole_inner_wall_indices[poly_idx]];
             hole_inner_walls.add(lastInset);
             // consume the level 1 inset
-            inset_polys[1].erase(inset_polys[1].begin() + adjacent_poly_idx);
+            inset_polys[1].erase(inset_polys[1].begin() + hole_inner_wall_indices[poly_idx]);
             // now find all the insets that immediately surround this hole and consume them
             for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
@@ -1323,6 +1332,10 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
                     inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
                 }
             }
+        }
+
+        if (hole_inner_walls.size() > 0)
+        {
             // output the inset polys
             if (outer_inset_first)
             {
@@ -1388,7 +1401,7 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
         }
         else
         {
-            // just the outer wall, no level 1 inset
+            // just the outer wall, no level 1 insets
             if (compensate_overlap_0)
             {
                 WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
