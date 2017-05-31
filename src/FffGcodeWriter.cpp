@@ -1287,18 +1287,19 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
                     // does it touch the outer wall?
                     if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][0], max_gap))
                     {
-                        // the level 1 inset touches the part's outer wall
+                        // yes, the level 1 inset touches the part's outer wall
                         ++num_outlines_touched;
                     }
-                    // does it touch any holes (it should touch at least 1, the hole it's surrounding!)
+                    // does it touch any hole outlines? (it should touch at least 1, the hole it's surrounding!)
                     for (unsigned i = 1; num_outlines_touched < 2 && i < inset_polys[0].size(); ++i)
                     {
-                        Polygons hole;
-                        hole.add(inset_polys[0][i]);
-                        if (PolygonUtils::polygonsIntersect(inset, hole) ||
-                            PolygonUtils::polygonOutlinesAdjacent(inset[0], hole[0], max_gap) ||
-                            PolygonUtils::polygonOutlinesAdjacent(hole[0], inset[0], max_gap))
+                        // as we don't the shape of the outlines (straight, concave, convex, etc.) and the
+                        // adjacency test assumes that the poly's are arranged so that the first has smaller
+                        // radius curves than the second (it's "inside" the second) we need to test both combinations
+                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][i], max_gap) ||
+                            PolygonUtils::polygonOutlinesAdjacent(inset_polys[0][i], inset[0], max_gap))
                         {
+                            // yes, it touches this hole outline
                             ++num_outlines_touched;
                         }
                     }
@@ -1310,6 +1311,7 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
                 }
                 else
                 {
+                    // print this level 1 inset
                     hole_inner_wall_indices.push_back(adjacent_enclosing_poly_idx);
                 }
             }
