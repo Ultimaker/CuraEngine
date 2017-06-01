@@ -1618,6 +1618,43 @@ static void processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const Sli
     }
 }
 
+static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+{
+    const unsigned num_insets = part.insets.size();
+    if (num_insets < 2)
+    {
+        // only 1 inset, definitely not worth optimizing
+        return false;
+    }
+    const unsigned num_holes = part.insets[0].size() - 1;
+    if (num_holes == 0)
+    {
+        if (z_seam_type == EZSeamType::USER_SPECIFIED)
+        {
+            // will start the inner inset(s) near the z seam location
+            return true;
+        }
+        // no holes, definitely not worth optimizing
+        return false;
+    }
+    if (num_insets > 2)
+    {
+        // we have holes with three or more insets, good chance it's worth optimizing
+        return true;
+    }
+    if (num_holes == 1)
+    {
+        if (part.insets[1].size() > 2)
+        {
+            // there's only 1 hole but more than 2 level 1 insets - it's probably quicker to
+            // print without optimization as then all of the level 1 insets will be printed as a group
+            return false;
+        }
+    }
+    // for all other cases, the default is to optimize
+    return true;
+}
+
 void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
@@ -1652,7 +1689,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         {
             processSpiralizedWall(storage, gcode_layer, mesh_config, part, layer_nr);
         }
-        else if (mesh->getSettingBoolean("optimize_wall_printing_order"))
+        else if (mesh->getSettingBoolean("optimize_wall_printing_order") && optimizingInsetsIsWorthwhile(mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos))
         {
             processInsetsWithOptimizedOrdering(gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
         }
