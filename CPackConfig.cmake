@@ -12,7 +12,7 @@ set(MINIMAL_ARCUS_VERSION "15.05.90" CACHE STRING "Minimal Arcus Version")
 
 set(DEB_DEPENDS
     "arcus (>= ${MINIMAL_ARCUS_VERSION})"
-    "protobuf (>= 3.0.0)"
+    "python3-protobuf (>= 3.0.0)"
     "libstdc++6 (>= 4.9.0)"
     "libgcc1 (>= 4.9.0)"
 )
