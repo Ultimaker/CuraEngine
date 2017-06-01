@@ -38,6 +38,15 @@ public:
      * \brief The areas of top surface, for each layer.
      */
     Polygons areas;
+
+    /*!
+     * \brief Generate paths for sanding over the top surface.
+     *
+     * This generates an infill pattern over the top surface that is supposed to
+     * strike the surface smooth by melting it with the hot nozzle, without
+     * extruding anything.
+     */
+    bool sand(const SettingsBaseVirtual* settings, LayerPlan& layer);
 };
 
 }

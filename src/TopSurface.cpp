@@ -24,6 +24,9 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
     areas = mesh_this.difference(mesh_above);
 }
 
-
+bool TopSurface::sand(const SettingsBaseVirtual* settings, LayerPlan& layer)
+{
+    return false; //TODO.
+}
 
 }
