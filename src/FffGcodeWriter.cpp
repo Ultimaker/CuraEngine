@@ -1234,7 +1234,8 @@ static void findAdjacentPolys(std::vector<unsigned>& adjacent_poly_indices, cons
     // given an inset, search a collection of insets for any adjacent insets
     for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
     {
-        if (PolygonUtils::polygonOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap))
+        if (PolygonUtils::polygonOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap) ||
+            PolygonUtils::polygonOutlinesAdjacent(possible_adjacent_polys[poly_idx], inset, max_gap))
         {
             adjacent_poly_indices.push_back(poly_idx);
         }
