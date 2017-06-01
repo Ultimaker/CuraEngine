@@ -686,7 +686,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     {
         for (size_t part_number = 0; part_number < mesh.layers[layer_nr].parts.size(); ++part_number)
         {
-            const TopSurface* top_surface = new TopSurface(mesh, layer_nr, part_number); //Generate the top surface to sand over.
+            TopSurface* top_surface = new TopSurface(mesh, layer_nr, part_number); //Generate the top surface to sand over.
             mesh.layers[layer_nr].parts[part_number].top_surface = top_surface;
         }
     }
