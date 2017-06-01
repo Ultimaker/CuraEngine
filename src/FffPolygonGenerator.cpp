@@ -682,7 +682,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
     }
 
-    if (mesh.getSettingBoolean("sanding_enable"))
+    if (mesh.getSettingBoolean("sanding_enabled"))
     {
         for (size_t part_number = 0; part_number < mesh.layers[layer_nr].parts.size(); ++part_number)
         {
