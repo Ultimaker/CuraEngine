@@ -1,6 +1,8 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "infill.h"
+#include "LayerPlan.h"
 #include "TopSurface.h"
 
 namespace cura
@@ -26,7 +28,37 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
 
 bool TopSurface::sand(const SettingsBaseVirtual* settings, LayerPlan& layer)
 {
-    return false; //TODO.
+    if (areas.empty())
+    {
+        return false; //Nothing to do.
+    }
+    //Generate the lines to cover the surface.
+    EFillMethod pattern = settings->getSettingAsFillMethod("sanding_pattern");
+    Infill infill_generator(pattern, areas, 0, 0, 350, 0, 45.0, layer.z - 10, 0);
+    Polygons sand_polygons;
+    Polygons sand_lines;
+    infill_generator.generate(sand_polygons, sand_lines);
+
+    bool added = false;
+    //Add the lines as travel moves to the layer plan.
+    for (std::vector<Point> polygon : sand_polygons)
+    {
+        for (Point point : polygon)
+        {
+            layer.addTravel_simple(point);
+            added = true;
+        }
+    }
+    for (std::vector<Point> line : sand_lines)
+    {
+        for (Point point : line)
+        {
+            layer.addTravel_simple(point);
+            added = true;
+        }
+    }
+
+    return added;
 }
 
 }
