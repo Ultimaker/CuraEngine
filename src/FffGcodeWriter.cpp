@@ -1071,7 +1071,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
     int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
     added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, skin_overlap, skin_angle);
-    added_something |= processSanding(mesh, part, mesh_config.skin_config, gcode_layer);
+    added_something |= processSanding(mesh, part, mesh_config.sanding_config, gcode_layer);
 
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
     if (added_something && (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers")))
