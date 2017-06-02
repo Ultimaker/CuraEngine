@@ -1259,19 +1259,6 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
     return -1;
 }
 
-static void findAdjacentPolys(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& inset, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
-{
-    // given an inset, search a collection of insets for any adjacent insets
-    for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
-    {
-        if (PolygonUtils::polygonOutlinesAdjacent(inset, possible_adjacent_polys[poly_idx], max_gap) ||
-            PolygonUtils::polygonOutlinesAdjacent(possible_adjacent_polys[poly_idx], inset, max_gap))
-        {
-            adjacent_poly_indices.push_back(poly_idx);
-        }
-    }
-}
-
 bool FffGcodeWriter::processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool added_something = true;
@@ -1352,7 +1339,7 @@ bool FffGcodeWriter::processHoleInsets(std::vector<std::vector<ConstPolygonRef>>
                 // we didn't find a level 1 inset that encloses this hole so now look to see if there is one or more level 1 insets that simply touch
                 // this hole and use those instead - however, as the level 1 insets will also touch other holes and/or the outer wall we don't want
                 // to do this when printing the outer walls first
-                findAdjacentPolys(hole_inner_wall_indices, hole_outer_wall[0], inset_polys[1], max_gap);
+                PolygonUtils::findAdjacentPolygons(hole_inner_wall_indices, hole_outer_wall[0], inset_polys[1], max_gap);
             }
         }
 

@@ -1021,4 +1021,17 @@ bool PolygonUtils::polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, con
     return false;
 }
 
+void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
+{
+    // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
+    for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
+    {
+        if (polygonOutlinesAdjacent(poly, possible_adjacent_polys[poly_idx], max_gap) ||
+            polygonOutlinesAdjacent(possible_adjacent_polys[poly_idx], poly, max_gap))
+        {
+            adjacent_poly_indices.push_back(poly_idx);
+        }
+    }
+}
+
 }//namespace cura
