@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (C) 2017 Ultimaker
+//Released under terms of the AGPLv3 License
+
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
 
@@ -35,6 +37,18 @@ public:
     bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
 
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
+
+    /*!
+     * \brief Creates a new g-code path.
+     *
+     * \param config The line configuration to use when printing this path.
+     * \param space_fill_type The type of space filling of which this path is a
+     * part.
+     * \param flow The flow rate to print this path with.
+     * \param spiralize Gradually increment the z-coordinate while traversing
+     * this path.
+     */
+    GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize);
 
     /*!
      * Whether this config is the config of a travel path.

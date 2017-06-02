@@ -59,16 +59,8 @@ GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, Spa
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
         return &paths.back();
-    paths.emplace_back();
+    paths.emplace_back(config, space_fill_type, flow, spiralize);
     GCodePath* ret = &paths.back();
-    ret->retract = false;
-    ret->perform_prime = false;
-    ret->perform_z_hop = false;
-    ret->config = config;
-    ret->done = false;
-    ret->flow = flow;
-    ret->spiralize = spiralize;
-    ret->space_fill_type = space_fill_type;
     return ret;
 }
 
