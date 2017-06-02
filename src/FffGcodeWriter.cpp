@@ -1272,7 +1272,7 @@ static void findAdjacentPolys(std::vector<unsigned>& adjacent_poly_indices, cons
     }
 }
 
-bool FffGcodeWriter::processHoleInsets(const SliceDataStorage& storage, std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
+bool FffGcodeWriter::processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool added_something = true;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
@@ -1485,7 +1485,7 @@ bool FffGcodeWriter::processHoleInsets(const SliceDataStorage& storage, std::vec
     return added_something;
 }
 
-bool FffGcodeWriter::processOuterWallInsets(const SliceDataStorage& storage, std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
+bool FffGcodeWriter::processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool added_something = false;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
@@ -1648,10 +1648,10 @@ bool FffGcodeWriter::processInsetsWithOptimizedOrdering(const SliceDataStorage& 
     }
 
     // first process all the holes and their enclosing insets
-    added_something = processHoleInsets(storage, inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
+    added_something = processHoleInsets(inset_polys, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
 
     // then process the part's outer wall and its enclosed insets
-    added_something = processOuterWallInsets(storage, inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
+    added_something = processOuterWallInsets(inset_polys, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
 
     // finally, mop up all the remaining insets that can occur in the gaps between holes
     if (extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
