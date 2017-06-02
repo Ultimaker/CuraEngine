@@ -1,6 +1,7 @@
 /** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 
 #include "utils/intpoint.h" // INT2MM
+#include "utils/logoutput.h"
 #include "GCodePathConfig.h"
 
 namespace cura 

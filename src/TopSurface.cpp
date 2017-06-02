@@ -26,7 +26,7 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
     areas = mesh_this.difference(mesh_above);
 }
 
-bool TopSurface::sand(const SettingsBaseVirtual* settings, LayerPlan& layer)
+bool TopSurface::sand(const SettingsBaseVirtual* settings, const GCodePathConfig& line_config, LayerPlan& layer)
 {
     if (areas.empty())
     {
@@ -39,25 +39,19 @@ bool TopSurface::sand(const SettingsBaseVirtual* settings, LayerPlan& layer)
     Polygons sand_lines;
     infill_generator.generate(sand_polygons, sand_lines);
 
-    bool added = false;
     //Add the lines as travel moves to the layer plan.
-    for (std::vector<Point> polygon : sand_polygons)
+    bool added = false;
+    float sanding_flow = settings->getSettingAsRatio("sanding_flow");
+    if (!sand_polygons.empty())
     {
-        for (Point point : polygon)
-        {
-            layer.addTravel_simple(point);
-            added = true;
-        }
+        layer.addPolygonsByOptimizer(sand_polygons, &line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, sanding_flow);
+        added = true;
     }
-    for (std::vector<Point> line : sand_lines)
+    if (!sand_lines.empty())
     {
-        for (Point point : line)
-        {
-            layer.addTravel_simple(point);
-            added = true;
-        }
+        layer.addLinesByOptimizer(sand_lines, &line_config, SpaceFillType::PolyLines, 0, sanding_flow);
+        added = true;
     }
-
     return added;
 }
 

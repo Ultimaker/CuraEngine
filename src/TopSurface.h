@@ -45,8 +45,13 @@ public:
      * This generates an infill pattern over the top surface that is supposed to
      * strike the surface smooth by melting it with the hot nozzle, without
      * extruding anything.
+     *
+     * \param settings The settings base to get our sanding settings from.
+     * \param line_config The configuration of the sanding lines to use. Note
+     * that the flow might still get adjusted by the sanding settings.
+     * \param[out] layer The output g-code layer to put the resulting lines in.
      */
-    bool sand(const SettingsBaseVirtual* settings, LayerPlan& layer);
+    bool sand(const SettingsBaseVirtual* settings, const GCodePathConfig& line_config, LayerPlan& layer);
 };
 
 }
