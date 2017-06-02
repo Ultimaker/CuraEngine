@@ -1261,7 +1261,7 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
 
 bool FffGcodeWriter::processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
-    bool added_something = true;
+    bool added_something = false;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t wall_0_wipe_dist = mesh->getSettingInMicrons("wall_0_wipe_dist");
