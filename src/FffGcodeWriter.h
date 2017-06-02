@@ -580,6 +580,52 @@ private:
      * \return layer seam vertex index
      */
     unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
+
+    /*!
+     * Generate the insets for the holes of a given layer part after optimizing the ordering.
+     * \param[in] storage where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
+     * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
+     * \return Whether this function added anything to the layer plan
+     */
+    bool processHoleInsets(const SliceDataStorage& storage, std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
+
+    /*!
+     * Generate the insets for the outer walls of a given layer part after optimizing the ordering.
+     * \param[in] storage where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
+     * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
+     * \return Whether this function added anything to the layer plan
+     */
+    bool processOuterWallInsets(const SliceDataStorage& storage, std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
+
+    /*!
+     * Generate the insets for the walls of a given layer part after optimizing the ordering.
+     * \param[in] storage where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
+     * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
+     * \return Whether this function added anything to the layer plan
+     */
+    bool processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
+
 };
 
 }//namespace cura

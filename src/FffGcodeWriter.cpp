@@ -1272,7 +1272,7 @@ static void findAdjacentPolys(std::vector<unsigned>& adjacent_poly_indices, cons
     }
 }
 
-static bool processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+bool FffGcodeWriter::processHoleInsets(const SliceDataStorage& storage, std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool added_something = true;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
@@ -1392,6 +1392,9 @@ static bool processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
         if (hole_inner_walls.size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
         {
             // output the inset polys
+
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (outer_inset_first)
             {
                 if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
@@ -1464,6 +1467,8 @@ static bool processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
         else if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
         {
             // just the outer wall, no level 1 insets
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (compensate_overlap_0)
             {
                 WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
@@ -1480,7 +1485,7 @@ static bool processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
     return added_something;
 }
 
-static bool processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+bool FffGcodeWriter::processOuterWallInsets(const SliceDataStorage& storage, std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool added_something = false;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
@@ -1533,6 +1538,8 @@ static bool processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
 
         if (part_inner_walls.size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
         {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (outer_inset_first)
             {
                 if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
@@ -1605,6 +1612,9 @@ static bool processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
         else if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
         {
             // just the outer wall, no inners
+
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (compensate_overlap_0)
             {
                 WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
@@ -1621,7 +1631,7 @@ static bool processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
     return added_something;
 }
 
-static bool processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+bool FffGcodeWriter::processInsetsWithOptimizedOrdering(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool added_something = false;
     const unsigned num_insets = part.insets.size();
@@ -1638,10 +1648,10 @@ static bool processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const Sli
     }
 
     // first process all the holes and their enclosing insets
-    added_something = processHoleInsets(inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
+    added_something = processHoleInsets(storage, inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
 
     // then process the part's outer wall and its enclosed insets
-    added_something = processOuterWallInsets(inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
+    added_something = processOuterWallInsets(storage, inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
 
     // finally, mop up all the remaining insets that can occur in the gaps between holes
     if (extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
@@ -1661,6 +1671,8 @@ static bool processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const Sli
         }
         if (remaining.size() > 0)
         {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
             {
                 WallOverlapComputation wall_overlap_computation(remaining, mesh_config.insetX_config.getLineWidth());
@@ -1763,7 +1775,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         }
         else if (mesh->getSettingBoolean("optimize_wall_printing_order") && optimizingInsetsIsWorthwhile(mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos))
         {
-            return processInsetsWithOptimizedOrdering(gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+            return processInsetsWithOptimizedOrdering(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
         }
         else
         {
