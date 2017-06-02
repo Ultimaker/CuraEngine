@@ -1,6 +1,12 @@
 =====================================================================
 Clipper Change Log
 =====================================================================
+v6.4.2 (27 February 2017) Rev 512
+* Several minor bugfixes: #152 #160 #161 #162 
+
+v6.4 (2 July 2015) Rev 495
+* Numerous generally minor bugfixes 
+
 v6.2.1 (31 October 2014) Rev 482
 * Bugfix in ClipperOffset.Execute where the Polytree.IsHole property 
   was returning incorrect values with negative offsets
