@@ -8,8 +8,6 @@
 #include <cstdio> // sprintf
 #include <sstream> // ostringstream
 
-#include <cinttypes> // PRId64
-
 #include "logoutput.h"
 
 namespace cura
@@ -31,14 +29,18 @@ static inline int stringcasecompare(const char* a, const char* b)
 /*!
  * Efficient conversion of micron integer type to millimeter string.
  * 
+ * The integer type is half the size of the normal integer type because of implementation details.
+ * However, half the integer type should suffice, because we made the basic coord_t twice as big as necessary
+ * so as to support multiplication within the same integer type.
+ * 
  * \param coord The micron unit to convert
  * \param ss The output stream to write the string to
  */
-static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
+static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
 {
     constexpr size_t buffer_size = 24;
     char buffer[buffer_size];
-    int char_count = sprintf(buffer, "%d", int(coord)); // convert int to string
+    int char_count = sprintf(buffer, "%d", coord); // we haven't found any way for the windows compiler to accept formatting of a coord_t, so it has to be int32_t instead
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {

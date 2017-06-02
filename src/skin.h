@@ -14,11 +14,11 @@ namespace cura
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
  * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
- * \param innermost_wall_line_width The line width of the inner most wall
+ * \param wall_line_width_x The line width of the inner most wall
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
  */
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_line_width, int insetCount, bool no_small_gaps_heuristic);
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines)

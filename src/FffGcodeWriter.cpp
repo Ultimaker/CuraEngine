@@ -380,7 +380,8 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 {
     if (!CommandSocket::isInstantiated())
     {
-        std::string prefix = gcode.getFileHeader();
+        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+        std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
     }
 
@@ -480,7 +481,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
-    
+
+    unsigned int current_extruder_nr = extruder_nr;
+
     { // raft base layer
         int layer_nr = initial_raft_layer_nr;
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
@@ -514,6 +517,15 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
+        // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
+        // and then switch back to the original extruder.
+        std::vector<unsigned int> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
+        for (unsigned int to_be_primed_extruder_nr : extruder_order)
+        {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, to_be_primed_extruder_nr);
+            current_extruder_nr = to_be_primed_extruder_nr;
+        }
+
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
@@ -531,10 +543,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
+        current_extruder_nr = extruder_nr;
 
         if (CommandSocket::isInstantiated())
         {
@@ -569,6 +582,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
+
+        // make sure that we are using the correct extruder to print raft
+        gcode_layer.setExtruder(extruder_nr);
+        current_extruder_nr = extruder_nr;
 
         if (CommandSocket::isInstantiated())
         {
@@ -636,9 +653,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
 
     bool avoid_other_parts = false;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
+    const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
-        if (gcode.getExtruderIsUsed(extr_nr))
+        if (extruder_is_used[extr_nr])
         {
             ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
 
@@ -702,11 +720,12 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
                 const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
+                    assert(static_cast<int>(extruder_nr) == mesh->getSettingAsExtruderNr("wall_0_extruder_nr") && "mesh surface mode should always only be printed with the outer wall extruder!");
                     addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer, layer_nr);
                 }
                 else
                 {
-                    addMeshLayerToGCode(storage, mesh, mesh_config, gcode_layer, layer_nr);
+                    addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer, layer_nr);
                 }
             }
         }
@@ -823,13 +842,13 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<int>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<unsigned int>>& extruder_order_per_layer_here = (layer_nr < 0)? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
-        extruder_order_per_layer_here.push_back(calculateLayerExtruderOrder(storage, last_extruder, layer_nr));
+        extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
         last_extruder = extruder_order_per_layer_here.back().back();
         extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
     }
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateLayerExtruderOrder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
+std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
 {
     unsigned int extruder_count = storage.getSettingAsCount("machine_extruder_count");
     assert(static_cast<int>(extruder_count) > 0);
@@ -874,7 +893,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
+        if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
             const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
@@ -931,7 +950,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         return;
     }
 
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsExtruderNr("wall_0_extruder_nr"));
 
     const SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -967,7 +986,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, c
     gcode_layer.addLinesByOptimizer(lines, &mesh_config.inset0_config, SpaceFillType::PolyLines);
 }
 
-void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const
 {
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
@@ -988,25 +1007,8 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    { // don't switch extruder if there's nothing to print
-        bool empty = true;
-        for (const SliceLayerPart& part : layer->parts)
-        {
-            if (part.isUsed(*mesh))
-            {
-                empty = false;
-                break;
-            }
-        }
-        if (empty)
-        {
-            return;
-        }
-    }
-    unsigned int extruder_nr = mesh->getSettingAsIndex("extruder_nr");
     const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
@@ -1021,15 +1023,15 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     for (int part_idx : part_order_optimizer.polyOrder)
     {
         const SliceLayerPart& part = layer->parts[part_idx];
-        addMeshPartToGCode(storage, mesh, mesh_config, part, gcode_layer, layer_nr);
+        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer, layer_nr);
     }
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
     }
 }
 
-void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const
+void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
@@ -1042,21 +1044,21 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     
     int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
     int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
-    
-    gcode_layer.setIsInside(true); // going to print inside stuff below
-    
+
+    bool added_something = false;
+
     if (mesh->getSettingBoolean("infill_before_walls"))
     {
-        processInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
-    processInsets(storage, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
 
     if (!mesh->getSettingBoolean("infill_before_walls"))
     {
-        processInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
     int skin_angle = 45;
@@ -1068,10 +1070,10 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         skin_angle -= 45;
 
     int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
-    processSkinAndPerimeterGaps(gcode_layer, mesh, mesh_config, part, layer_nr, skin_overlap, skin_angle);
+    added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, skin_overlap, skin_angle);
 
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
+    if (added_something && (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers")))
     {
         gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
     }
@@ -1079,23 +1081,32 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     gcode_layer.setIsInside(false);
 }
 
-            
-void FffGcodeWriter::processInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
+bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
+    {
+        return false;
+    }
     if (mesh->getSettingBoolean("spaghetti_infill_enabled"))
     {
-        SpaghettiInfillPathGenerator::processSpaghettiInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
     else
     {
-        processMultiLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        processSingleLayerInfill(gcode_layer, mesh, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        return added_something;
     }
 }
 
 
-void FffGcodeWriter::processMultiLayerInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
+bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
+    {
+        return false;
+    }
+    bool added_something = false;
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     if (infill_line_distance > 0)
     {
@@ -1119,18 +1130,30 @@ void FffGcodeWriter::processMultiLayerInfill(LayerPlan& gcode_layer, const Slice
                 Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines, mesh);
             }
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[combine_idx]);
-            gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+            {
+                added_something = true;
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[combine_idx]);
+                gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            }
         }
     }
+    return added_something;
 }
 
-void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
+bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
+    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
+    {
+        return false;
+    }
     if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
     {
-        return;
+        return false;
     }
+    bool added_something = false;
     const unsigned int infill_line_width = mesh_config.infill_config[0].getLineWidth();
         
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
@@ -1175,15 +1198,22 @@ void FffGcodeWriter::processSingleLayerInfill(LayerPlan& gcode_layer, const Slic
         Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
         infill_comp.generate(infill_polygons, infill_lines, mesh);
     }
-    gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
-    if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+    if (infill_lines.size() > 0 || infill_polygons.size() > 0)
     {
-        gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
+        added_something = true;
+        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+        gcode_layer.setIsInside(true); // going to print stuff inside print object
+        gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+        {
+            gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
+        }
+        else
+        {
+            gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        }
     }
-    else 
-    {
-        gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
-    }
+    return added_something;
 }
 
 void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const
@@ -1242,8 +1272,9 @@ static void findAdjacentPolys(std::vector<unsigned>& adjacent_poly_indices, cons
     }
 }
 
-static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+static bool processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
+    bool added_something = true;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t wall_0_wipe_dist = mesh->getSettingInMicrons("wall_0_wipe_dist");
@@ -1358,20 +1389,23 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
             }
         }
 
-        if (hole_inner_walls.size() > 0)
+        if (hole_inner_walls.size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
         {
             // output the inset polys
             if (outer_inset_first)
             {
-                if (compensate_overlap_0)
+                if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                }
-                else
-                {
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    if (compensate_overlap_0)
+                    {
+                        WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
+                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
+                    else
+                    {
+                        WallOverlapComputation* wall_overlap_computation(nullptr);
+                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
                 }
                 if (compensate_overlap_x)
                 {
@@ -1411,19 +1445,23 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
                 {
                     gcode_layer.addPolygonsByOptimizer(hole_inner_walls, &mesh_config.insetX_config);
                 }
-                if (compensate_overlap_0)
+                if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                }
-                else
-                {
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    if (compensate_overlap_0)
+                    {
+                        WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
+                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
+                    else
+                    {
+                        WallOverlapComputation* wall_overlap_computation(nullptr);
+                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
                 }
             }
+            added_something = true;
         }
-        else
+        else if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
         {
             // just the outer wall, no level 1 insets
             if (compensate_overlap_0)
@@ -1436,12 +1474,15 @@ static void processHoleInsets(std::vector<std::vector<ConstPolygonRef>>& inset_p
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 gcode_layer.addPolygonsByOptimizer(hole_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             }
+            added_something = true;
         }
     }
+    return added_something;
 }
 
-static void processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+static bool processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& inset_polys, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
+    bool added_something = false;
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t wall_0_wipe_dist = mesh->getSettingInMicrons("wall_0_wipe_dist");
@@ -1490,19 +1531,22 @@ static void processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
             }
         }
 
-        if (part_inner_walls.size() > 0)
+        if (part_inner_walls.size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
         {
             if (outer_inset_first)
             {
-                if (compensate_overlap_0)
+                if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                }
-                else
-                {
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    if (compensate_overlap_0)
+                    {
+                        WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
+                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
+                    else
+                    {
+                        WallOverlapComputation* wall_overlap_computation(nullptr);
+                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
                 }
                 if (compensate_overlap_x)
                 {
@@ -1542,19 +1586,23 @@ static void processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
                 {
                     gcode_layer.addPolygonsByOptimizer(part_inner_walls, &mesh_config.insetX_config);
                 }
-                if (compensate_overlap_0)
+                if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                }
-                else
-                {
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    if (compensate_overlap_0)
+                    {
+                        WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
+                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
+                    else
+                    {
+                        WallOverlapComputation* wall_overlap_computation(nullptr);
+                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    }
                 }
             }
+            added_something = true;
         }
-        else
+        else if (extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
         {
             // just the outer wall, no inners
             if (compensate_overlap_0)
@@ -1567,12 +1615,15 @@ static void processOuterWallInsets(std::vector<std::vector<ConstPolygonRef>>& in
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 gcode_layer.addPolygonsByOptimizer(part_outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             }
+            added_something = true;
         }
     }
+    return added_something;
 }
 
-static void processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+static bool processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
+    bool added_something = false;
     const unsigned num_insets = part.insets.size();
 
     // create a vector of vectors containing all the inset polys
@@ -1587,35 +1638,42 @@ static void processInsetsWithOptimizedOrdering(LayerPlan& gcode_layer, const Sli
     }
 
     // first process all the holes and their enclosing insets
-    processHoleInsets(inset_polys, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+    added_something = processHoleInsets(inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
+
     // then process the part's outer wall and its enclosed insets
-    processOuterWallInsets(inset_polys, gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+    added_something = processOuterWallInsets(inset_polys, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos) || added_something;
+
     // finally, mop up all the remaining insets that can occur in the gaps between holes
-    Polygons remaining;
-    for (unsigned inset_level = 1; inset_level < inset_polys.size(); ++inset_level)
+    if (extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
     {
-        const unsigned num_polys = inset_polys[inset_level].size();
-        if (inset_level == 1 && num_polys > 0)
+        Polygons remaining;
+        for (unsigned inset_level = 1; inset_level < inset_polys.size(); ++inset_level)
         {
-            logWarning("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
+            const unsigned num_polys = inset_polys[inset_level].size();
+            if (inset_level == 1 && num_polys > 0)
+            {
+                logWarning("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
+            }
+            for (unsigned poly_idx = 0; poly_idx < num_polys; ++poly_idx)
+            {
+                remaining.add(inset_polys[inset_level][poly_idx]);
+            }
         }
-        for (unsigned poly_idx = 0; poly_idx < num_polys; ++poly_idx)
+        if (remaining.size() > 0)
         {
-            remaining.add(inset_polys[inset_level][poly_idx]);
+            if (mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
+            {
+                WallOverlapComputation wall_overlap_computation(remaining, mesh_config.insetX_config.getLineWidth());
+                gcode_layer.addPolygonsByOptimizer(remaining, &mesh_config.insetX_config, &wall_overlap_computation);
+            }
+            else
+            {
+                gcode_layer.addPolygonsByOptimizer(remaining, &mesh_config.insetX_config);
+            }
+            added_something = true;
         }
     }
-    if (remaining.size() > 0)
-    {
-        if (mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
-        {
-            WallOverlapComputation wall_overlap_computation(remaining, mesh_config.insetX_config.getLineWidth());
-            gcode_layer.addPolygonsByOptimizer(remaining, &mesh_config.insetX_config, &wall_overlap_computation);
-        }
-        else
-        {
-            gcode_layer.addPolygonsByOptimizer(remaining, &mesh_config.insetX_config);
-        }
-    }
+    return added_something;
 }
 
 static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
@@ -1655,8 +1713,13 @@ static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage* mesh, const Pat
     return true;
 }
 
-void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
+bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
+    if (extruder_nr != mesh->getSettingAsExtruderNr("wall_0_extruder_nr") && extruder_nr != mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
+    {
+        return false;
+    }
+    bool added_something = false;
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
     bool retract_before_outer_wall = mesh->getSettingBoolean("travel_retract_before_outer_wall");
@@ -1668,15 +1731,18 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             if (part.insets.size() == 0)
             {
                 // nothing to do
-                return;
+                return false;
             }
             const unsigned bottom_layers = mesh->getSettingAsCount("bottom_layers");
             if (layer_nr >= bottom_layers)
             {
                 spiralize = true;
             }
-            if (spiralize && layer_nr == bottom_layers)
+            if (spiralize && layer_nr == bottom_layers && !part.insets.empty() && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
+                added_something = true;
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
@@ -1687,11 +1753,17 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
         if (spiralize && &mesh->layers[layer_nr].parts[0] == &part)
         {
-            processSpiralizedWall(storage, gcode_layer, mesh_config, part, layer_nr);
+            if (part.insets.size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
+            {
+                added_something = true;
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                processSpiralizedWall(storage, gcode_layer, mesh_config, part, layer_nr);
+            }
         }
         else if (mesh->getSettingBoolean("optimize_wall_printing_order") && optimizingInsetsIsWorthwhile(mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos))
         {
-            processInsetsWithOptimizedOrdering(gcode_layer, mesh, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+            return processInsetsWithOptimizedOrdering(gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
         }
         else
         {
@@ -1709,46 +1781,65 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 {
                     constexpr bool spiralize = false;
                     constexpr float flow = 1.0;
-                    if (!compensate_overlap_0)
+                    if (part.insets[0].size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_0_extruder_nr"))
                     {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        Polygons outer_wall = part.insets[0];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                        added_something = true;
+                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                        gcode_layer.setIsInside(true); // going to print stuff inside print object
+                        if (!compensate_overlap_0)
+                        {
+                            WallOverlapComputation* wall_overlap_computation(nullptr);
+                            gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                        }
+                        else
+                        {
+                            Polygons outer_wall = part.insets[0];
+                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                            gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                        }
                     }
                 }
                 else
                 {
-                    if (!compensate_overlap_x)
+                    if (part.insets[processed_inset_number].size() > 0 && extruder_nr == mesh->getSettingAsExtruderNr("wall_x_extruder_nr"))
                     {
-                        gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
-                    }
-                    else
-                    {
-                        Polygons outer_wall = part.insets[processed_inset_number];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.insetX_config, &wall_overlap_computation);
+                        added_something = true;
+                        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                        gcode_layer.setIsInside(true); // going to print stuff inside print object
+                        if (!compensate_overlap_x)
+                        {
+                            gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh_config.insetX_config);
+                        }
+                        else
+                        {
+                            Polygons outer_wall = part.insets[processed_inset_number];
+                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                            gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.insetX_config, &wall_overlap_computation);
+                        }
                     }
                 }
             }
         }
     }
+    return added_something;
 }
 
 
-void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
+bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
+    int top_bottom_extruder_nr = mesh->getSettingAsExtruderNr("top_bottom_extruder_nr");
+    int wall_0_extruder_nr = mesh->getSettingAsExtruderNr("wall_0_extruder_nr");
+    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr)
+    {
+        return false;
+    }
+    bool added_something = false;
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
-    const unsigned int skin_line_width = mesh_config.skin_config.getLineWidth();
     const unsigned int perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
 
-    constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-                            && !getSettingBoolean("magic_spiralize");
+                            && !getSettingBoolean("magic_spiralize")
+                            && extruder_nr == wall_0_extruder_nr;
 
     Point z_seam_pos(0, 0); // not used
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
@@ -1762,64 +1853,112 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const S
     for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
     {
         const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+        added_something = added_something |
+            processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, skin_overlap, skin_angle);
+    }
 
-        Polygons skin_polygons;
-        Polygons skin_lines;
-        
-        EFillMethod pattern = (layer_nr == 0)?
-            mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-            mesh->getSettingAsFillMethod("top_bottom_pattern");
-        int bridge = -1;
-        if (layer_nr > 0)
-            bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
-        if (bridge > -1)
+    if (fill_perimeter_gaps)
+    { // handle perimeter gaps of normal insets
+        Polygons gap_polygons; // unused
+        Polygons gap_lines; // soon to be generated gap filler lines
+        int offset = 0;
+        int extra_infill_shift = 0;
+        Infill infill_comp(EFillMethod::LINES, part.perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(gap_polygons, gap_lines);
+
+        if (gap_lines.size() > 0)
         {
-            pattern = EFillMethod::LINES;
-            skin_angle = bridge;
+            assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
         }
+    }
+    return added_something;
+}
 
-        Polygons perimeter_gaps; // the perimeter gaps of the insets of this skin part
+bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
+{
+    const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
+    const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
+    const int top_bottom_extruder_nr = mesh->getSettingAsExtruderNr("top_bottom_extruder_nr");
+    const int wall_0_extruder_nr = mesh->getSettingAsExtruderNr("wall_0_extruder_nr");
+    const int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-        const Polygons* inner_skin_outline = nullptr;
-        int offset_from_inner_skin_outline = 0;
-        if (pattern != EFillMethod::CONCENTRIC)
+    const bool fill_perimeter_gaps =
+        mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        && !getSettingBoolean("magic_spiralize")
+        && extruder_nr == wall_0_extruder_nr;
+    const bool fill_concentric_perimeter_gaps =
+        mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        && !getSettingBoolean("magic_spiralize")
+        && extruder_nr == top_bottom_extruder_nr;
+
+    bool added_something = false;
+
+    Polygons skin_polygons;
+    Polygons skin_lines;
+
+    EFillMethod pattern = (layer_nr == 0)?
+        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
+        mesh->getSettingAsFillMethod("top_bottom_pattern");
+    int bridge = -1;
+    if (layer_nr > 0)
+    {
+        bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
+    }
+    if (bridge > -1)
+    {
+        pattern = EFillMethod::LINES;
+        skin_angle = bridge;
+    }
+
+    // add insets
+    const Polygons* inner_skin_outline = nullptr;
+    int offset_from_inner_skin_outline = 0;
+    if (pattern != EFillMethod::CONCENTRIC)
+    {
+        // add skin walls aka skin perimeters
+        if (extruder_nr == wall_0_extruder_nr)
         {
             for (const Polygons& skin_perimeter : skin_part.insets)
             {
-                gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
-            }
-            if (skin_part.insets.size() > 0)
-            {
-                inner_skin_outline = &skin_part.insets.back();
-                offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
-
-                if (fill_perimeter_gaps)
+                if (skin_perimeter.size() > 0)
                 {
-                    // add perimeter gaps between the outer skin inset and the innermost wall
-                    const Polygons outer = skin_part.outline;
-                    const Polygons inner = skin_part.insets[0].offset(mesh_config.insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
-                    perimeter_gaps.add(outer.difference(inner));
-
-                    for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
-                    { // add perimeter gaps between consecutive skin walls
-                        const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * mesh_config.insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
-                        const Polygons inner = skin_part.insets[inset_idx].offset(mesh_config.insetX_config.getLineWidth() / 2);
-                        perimeter_gaps.add(outer.difference(inner));
-                    }
+                    added_something = true;
+                    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                    gcode_layer.setIsInside(true); // going to print stuff inside print object
+                    gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
                 }
             }
         }
 
-        if (inner_skin_outline == nullptr)
+        // determine inner_skin_outline
+        if (skin_part.insets.size() > 0)
         {
-            inner_skin_outline = &skin_part.outline;
+            inner_skin_outline = &skin_part.insets.back();
+            offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
         }
+    }
 
-        int extra_infill_shift = 0;
-        Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &perimeter_gaps : nullptr;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
-        infill_comp.generate(skin_polygons, skin_lines);
+    if (inner_skin_outline == nullptr)
+    {
+        inner_skin_outline = &skin_part.outline;
+    }
 
+    int extra_infill_shift = 0;
+    Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
+    Polygons* perimeter_gaps_output = (fill_concentric_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+    Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
+    infill_comp.generate(skin_polygons, skin_lines);
+
+    // add skin itself!
+    if ((skin_polygons.size() > 0 || skin_lines.size() > 0) && extruder_nr == top_bottom_extruder_nr)
+    {
+        added_something = true;
+        setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+        gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh_config.skin_config);
 
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
@@ -1830,57 +1969,39 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(LayerPlan& gcode_layer, const S
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh_config.skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
+    }
 
-        if (fill_perimeter_gaps)
-        { // handle perimeter_gaps of skin insets
-            Polygons gap_polygons; // will remain empty
-            Polygons gap_lines;
-            int offset = 0;
-            Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
-            infill_comp.generate(gap_polygons, gap_lines);
+    if (fill_perimeter_gaps || fill_concentric_perimeter_gaps)
+    { // handle perimeter_gaps of concentric skin
+        const Polygons* perimeter_gaps = nullptr;
+        Polygons perimeter_gaps_recomputed;
+        if (wall_0_extruder_nr == top_bottom_extruder_nr) // then also both are equalt to extruder_nr
+        {
+            perimeter_gaps = &perimeter_gaps_recomputed;
+            perimeter_gaps_recomputed = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
+        }
+        else if (extruder_nr == wall_0_extruder_nr)
+        {
+            perimeter_gaps = &skin_part.perimeter_gaps;
+        }
+        else
+        {
+            perimeter_gaps = &concentric_perimeter_gaps;
+        }
+        Polygons gap_polygons; // will remain empty
+        Polygons gap_lines;
+        int offset = 0;
+        Infill infill_comp(EFillMethod::LINES, *perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(gap_polygons, gap_lines);
+        if (gap_lines.size() > 0)
+        {
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
             gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
         }
     }
-
-    if (fill_perimeter_gaps)
-    { // handle perimeter gaps of normal insets
-        Polygons perimeter_gaps;
-        int line_width = mesh_config.inset0_config.getLineWidth();
-        for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
-        {
-            const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-            line_width = mesh_config.insetX_config.getLineWidth();
-
-            Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
-            perimeter_gaps.add(outer.difference(inner));
-        }
-        { // gap between inner wall and skin/infill
-            if (mesh->getSettingInMicrons("infill_line_distance") > 0
-                && !mesh->getSettingBoolean("infill_hollow")
-                && mesh->getSettingInMicrons("infill_overlap_mm") >= 0
-            )
-            {
-                const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-
-                Polygons inner = part.infill_area;
-                for (const SkinPart& skin_part : part.skin_parts)
-                {
-                    inner.add(skin_part.outline);
-                }
-                inner = inner.unionPolygons();
-                perimeter_gaps.add(outer.difference(inner));
-            }
-        }
-
-        Polygons gap_polygons; // unused
-        Polygons gap_lines; // soon to be generated gap filler lines
-        int offset = 0;
-        int extra_infill_shift = 0;
-        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
-        infill_comp.generate(gap_polygons, gap_lines);
-
-        gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
-    }
+    return added_something;
 }
 
 bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr, int extruder_nr) const
@@ -1964,6 +2085,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
             if (boundary.size() > 0)
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
                 gcode_layer.addPolygonsByOptimizer(boundary, &gcode_layer.configs_storage.support_infill_config);
             }
             offset_from_outline = -support_line_width;
@@ -1981,6 +2103,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
         if (support_lines.size() > 0 || support_polygons.size() > 0)
         {
             setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+            gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
             gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_infill_config);
             gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_infill_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
             added = true;
@@ -2024,6 +2147,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         return false; //We didn't create any support roof.
     }
     setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     gcode_layer.addPolygonsByOptimizer(roof_polygons, &gcode_layer.configs_storage.support_roof_config);
     gcode_layer.addLinesByOptimizer(roof_lines, &gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -2064,6 +2188,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         return false;
     }
     setExtruder_addPrime(storage, gcode_layer, layer_nr, bottom_extruder_nr);
+    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     gcode_layer.addPolygonsByOptimizer(bottom_polygons, &gcode_layer.configs_storage.support_bottom_config);
     gcode_layer.addLinesByOptimizer(bottom_lines, &gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -2148,19 +2273,20 @@ void FffGcodeWriter::finalize()
     double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
+    std::vector<bool> extruder_is_used;
     for (int extr_nr = 0; extr_nr < getSettingAsCount("machine_extruder_count"); extr_nr++)
     {
         filament_used.emplace_back(gcode.getTotalFilamentUsed(extr_nr));
         material_ids.emplace_back(gcode.getMaterialGUID(extr_nr));
+        extruder_is_used.push_back(gcode.getExtruderIsUsed(extr_nr));
     }
-    std::string prefix = gcode.getFileHeader(&print_time, filament_used, material_ids);
+    std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
     if (CommandSocket::isInstantiated())
     {
         CommandSocket::getInstance()->sendGCodePrefix(prefix);
     }
     else
     {
-        std::string prefix = gcode.getFileHeader(&print_time, filament_used, material_ids);
         log("Gcode header after slicing:\n");
         log(prefix.c_str());
         log("End of gcode header.\n");

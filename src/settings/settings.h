@@ -219,6 +219,12 @@ public:
     int getSettingAsCount(std::string key) const;
 
     /*!
+     * Get a setting as an int, but if it's -1 then return
+     * the value of the setting "extruder_nr"
+     */
+    int getSettingAsExtruderNr(std::string key) const;
+
+    /*!
      * \brief Interprets a setting as a layer number.
      *
      * The input of the layer number is one-based. This translates it to

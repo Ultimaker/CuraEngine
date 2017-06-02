@@ -414,6 +414,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         return closest_polygon_point;
     }
     // if above fails, we perform an offset and sit directly on the offsetted polygon (and keep the result from the above moveInside)
+    // The offset is performed on the closest reference polygon in order to save computation time
     else
     {
         int offset = (is_outside_boundary)? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
@@ -425,48 +426,57 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         ClosestPolygonPoint inside = findClosest(from, insetted, penalty_function);
         if (inside.isValid())
         {
-            bool is_inside = polygons.inside(inside.location) == is_outside_boundary; // inside a hole is outside the part
+            bool is_inside = polygons.inside(inside.location);
             if (is_inside != (preferred_dist_inside > 0))
             {
-                /*
-                 * somehow the insetted polygon is not inside of [closest_poly]
-                 * Clipper seems to fuck up sometimes.
-                 */
+                // Insetting from the reference polygon ended up outside another polygon.
+                // Perform an offset on all polygons instead.
+                Polygons all_insetted = polygons.offset(-preferred_dist_inside);
+                ClosestPolygonPoint overall_inside = findClosest(from, all_insetted, penalty_function);
 #ifdef DEBUG
-                try
+                bool overall_is_inside = polygons.inside(overall_inside.location);
+                if (overall_is_inside != (preferred_dist_inside > 0))
                 {
-                    int offset_performed = offset / 2;
-                    AABB aabb(insetted);
-                    aabb.expand(std::abs(preferred_dist_inside) * 2);
-                    SVG svg("debug.html", aabb);
-                    svg.writeComment("Original polygon in black");
-                    svg.writePolygon(closest_poly, SVG::Color::BLACK);
-                    for (auto point : closest_poly)
+                    try
                     {
-                        svg.writePoint(point, true, 2);
-                    }
-                    std::stringstream ss;
-                    ss << "Offsetted polygon in blue with offset " << offset_performed;
-                    svg.writeComment(ss.str());
-                    svg.writePolygons(insetted, SVG::Color::BLUE);
-                    for (auto poly : insetted)
-                    {
-                        for (auto point : poly)
+                        int offset_performed = offset / 2;
+                        AABB aabb(polygons);
+                        aabb.expand(std::abs(preferred_dist_inside) * 2);
+                        SVG svg("debug.html", aabb);
+                        svg.writeComment("Original polygon in black");
+                        svg.writePolygons(polygons, SVG::Color::BLACK);
+                        for (auto poly : polygons)
                         {
-                            svg.writePoint(point, true, 2);
+                            for (auto point : poly)
+                            {
+                                svg.writePoint(point, true, 2);
+                            }
                         }
+                        std::stringstream ss;
+                        svg.writeComment("Reference polygon in yellow");
+                        svg.writePolygon(closest_poly, SVG::Color::YELLOW);
+                        ss << "Offsetted polygon in blue with offset " << offset_performed;
+                        svg.writeComment(ss.str());
+                        svg.writePolygons(insetted, SVG::Color::BLUE);
+                        for (auto poly : insetted)
+                        {
+                            for (auto point : poly)
+                            {
+                                svg.writePoint(point, true, 2);
+                            }
+                        }
+                        svg.writeComment("From location");
+                        svg.writePoint(from, true, 5, SVG::Color::GREEN);
+                        svg.writeComment("Location computed to be inside the black polygon");
+                        svg.writePoint(inside.location, true, 5, SVG::Color::RED);
                     }
-                    svg.writeComment("From location");
-                    svg.writePoint(from, true, 5, SVG::Color::GREEN);
-                    svg.writeComment("Location computed to be inside the black polygon");
-                    svg.writePoint(inside.location, true, 5, SVG::Color::RED);
+                    catch(...)
+                    {
+                    }
+                    logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
+                    return ClosestPolygonPoint();
                 }
-                catch(...)
-                {
-                }
-                logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
 #endif
-                return ClosestPolygonPoint();
             }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location

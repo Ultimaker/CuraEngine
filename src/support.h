@@ -38,8 +38,9 @@ private:
      * 
      * The anti_overhang areas are taken into account.
      * 
-     * \warning This function should be called only once for handling support meshes.
-     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage
+     * \warning This function should be called only once for handling support meshes with drop down and
+     * once for all support meshes without drop down.
+     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage of one support mesh with the given value of support_mesh_drop_down.
      * 
      * \param storage data storage containing the input layer outline data
      * \param infill_settings The settings base to get the settings from which are based on the infill of the support
