@@ -500,8 +500,9 @@ public:
     /*!
      * Checks whether two polygons are adjacent (closer than \p max_gap)
      *
-     * \param inner_poly A polygon whose vertices will be tested to see if they are closer than \p max_gap to one of the lines in \p outer_poly
-     * \param outer_poly A polygon
+     * \param[in] inner_poly A polygon whose vertices will be tested to see if they are closer than \p max_gap to one of the lines in \p outer_poly
+     * \param[in] outer_poly A polygon
+     * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      * \return true if a vertex in \p inner_poly is sufficiently close to a line in \p outer_poly, false otherwise
      */
     static bool polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap);
