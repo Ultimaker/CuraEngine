@@ -1426,8 +1426,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             const Point bb_middle = skin_part_bb.getMiddle();
             const Point vec(0, vSize(skin_part_bb.max - bb_middle) * 100);
             // build a couple of rotation matrices that will be used to rotate the vector so that it is normal to the skin angle
-            PointMatrix rota((double)skin_angle);
-            PointMatrix rotb((double)skin_angle + 180);
+            PointMatrix rota((double)((-skin_angle + 90) % 360));
+            PointMatrix rotb((double)((-skin_angle + 270) % 360));
             // find the pair of vertices from the outline that are closest to the ends of the two rotated vectors
             const Point pa = PolygonUtils::findNearestVert(bb_middle + rota.apply(vec), skin_part.outline).p();
             const Point pb = PolygonUtils::findNearestVert(bb_middle + rotb.apply(vec), skin_part.outline).p();
