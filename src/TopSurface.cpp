@@ -26,28 +26,28 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
     areas = mesh_this.difference(mesh_above);
 }
 
-bool TopSurface::sand(const SettingsBaseVirtual* settings, const GCodePathConfig& line_config, LayerPlan& layer)
+bool TopSurface::sand(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer)
 {
     if (areas.empty())
     {
         return false; //Nothing to do.
     }
     //Generate the lines to cover the surface.
-    const EFillMethod pattern = settings->getSettingAsFillMethod("sanding_pattern");
-    const coord_t line_spacing = settings->getSettingInMicrons("sanding_line_spacing");
-    const coord_t outline_offset = -settings->getSettingInMicrons("sanding_inset");
+    const EFillMethod pattern = mesh.getSettingAsFillMethod("sanding_pattern");
+    const coord_t line_spacing = mesh.getSettingInMicrons("sanding_line_spacing");
+    const coord_t outline_offset = -mesh.getSettingInMicrons("sanding_inset");
     const coord_t line_width = line_config.getLineWidth();
+    const double direction = 45.0;
     constexpr coord_t infill_overlap = 0;
-    constexpr double angle = 45.0;
     constexpr coord_t shift = 0;
-    Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, angle, layer.z - 10, shift);
+    Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
     Polygons sand_polygons;
     Polygons sand_lines;
     infill_generator.generate(sand_polygons, sand_lines);
 
     //Add the lines as travel moves to the layer plan.
     bool added = false;
-    float sanding_flow = settings->getSettingAsRatio("sanding_flow");
+    float sanding_flow = mesh.getSettingAsRatio("sanding_flow");
     if (!sand_polygons.empty())
     {
         layer.addPolygonsByOptimizer(sand_polygons, &line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, sanding_flow);

@@ -324,7 +324,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer, int layer_nr) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer, int layer_nr) const;
     
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -336,7 +336,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage* mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
     
     /*!
      * Add all features of a given extruder from a single layer from a single mesh-volume to the layer plan \p gcode_layer.
@@ -351,7 +351,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add all features of the given extruder from a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
@@ -367,7 +367,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
+    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add infill for a given part in a layer plan.
@@ -383,7 +383,7 @@ private:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    bool processInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
 
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
@@ -399,7 +399,7 @@ private:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
     
     /*!
      * Add normal sparse infill for a given part in a layer.
@@ -414,7 +414,7 @@ private:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle) const;
     
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -429,7 +429,7 @@ private:
      * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      * \return Whether this function added anything to the layer plan
      */
-    bool processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
+    bool processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const;
     
     /*!
      * Generate the a spiralized wall for a given layer part.
@@ -457,7 +457,7 @@ private:
      * \param infill_angle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
+    bool processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given skin part and of the perimeter gaps.
@@ -478,21 +478,22 @@ private:
      * \param infill_angle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
+    bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
 
     /*!
      * Add the g-code for sanding the top surface.
      *
      * This produces travel moves that cover the entire top surface.
      *
-     * \param settings The settings storage to get the sanding settings from.
+     * \param mesh The settings storage to get the sanding settings and skin
+     * angles from.
      * \param part The layer part to process the sanding for.
      * \param line_config The configuration of the lines to draw the sanding
      * with.
      * \param[out] gcode_layer The output layer to put the resulting paths in.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processSanding(const SettingsBaseVirtual* settings, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
+    bool processSanding(const SliceMeshStorage& mesh, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.

@@ -46,12 +46,13 @@ public:
      * strike the surface smooth by melting it with the hot nozzle, without
      * extruding anything.
      *
-     * \param settings The settings base to get our sanding settings from.
+     * \param mesh The settings base to get our sanding settings and skin angles
+     * from.
      * \param line_config The configuration of the sanding lines to use. Note
      * that the flow might still get adjusted by the sanding settings.
      * \param[out] layer The output g-code layer to put the resulting lines in.
      */
-    bool sand(const SettingsBaseVirtual* settings, const GCodePathConfig& line_config, LayerPlan& layer);
+    bool sand(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer);
 };
 
 }
