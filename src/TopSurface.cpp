@@ -32,15 +32,10 @@ bool TopSurface::sand(const SettingsBaseVirtual* settings, const GCodePathConfig
     {
         return false; //Nothing to do.
     }
-    Polygons sanding_areas = areas.offset(-settings->getSettingInMicrons("sanding_inset"));
-    if (sanding_areas.empty())
-    {
-        return false; //Now there's nothing to do.
-    }
     //Generate the lines to cover the surface.
     const EFillMethod pattern = settings->getSettingAsFillMethod("sanding_pattern");
     const coord_t line_spacing = settings->getSettingInMicrons("sanding_line_spacing");
-    const coord_t outline_offset = 0;
+    const coord_t outline_offset = -settings->getSettingInMicrons("sanding_inset");
     const coord_t line_width = line_config.getLineWidth();
     constexpr coord_t infill_overlap = 0;
     constexpr double angle = 45.0;
