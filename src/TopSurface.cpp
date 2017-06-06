@@ -38,9 +38,14 @@ bool TopSurface::sand(const SettingsBaseVirtual* settings, const GCodePathConfig
         return false; //Now there's nothing to do.
     }
     //Generate the lines to cover the surface.
-    EFillMethod pattern = settings->getSettingAsFillMethod("sanding_pattern");
-    coord_t line_spacing = settings->getSettingInMicrons("sanding_line_spacing");
-    Infill infill_generator(pattern, sanding_areas, 0, 0, line_spacing, 0, 45.0, layer.z - 10, 0);
+    const EFillMethod pattern = settings->getSettingAsFillMethod("sanding_pattern");
+    const coord_t line_spacing = settings->getSettingInMicrons("sanding_line_spacing");
+    const coord_t outline_offset = 0;
+    const coord_t line_width = line_config.getLineWidth();
+    constexpr coord_t infill_overlap = 0;
+    constexpr double angle = 45.0;
+    constexpr coord_t shift = 0;
+    Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, angle, layer.z - 10, shift);
     Polygons sand_polygons;
     Polygons sand_lines;
     infill_generator.generate(sand_polygons, sand_lines);
