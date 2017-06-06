@@ -32,10 +32,15 @@ bool TopSurface::sand(const SettingsBaseVirtual* settings, const GCodePathConfig
     {
         return false; //Nothing to do.
     }
+    Polygons sanding_areas = areas.offset(-settings->getSettingInMicrons("sanding_inset"));
+    if (sanding_areas.empty())
+    {
+        return false; //Now there's nothing to do.
+    }
     //Generate the lines to cover the surface.
     EFillMethod pattern = settings->getSettingAsFillMethod("sanding_pattern");
     coord_t line_spacing = settings->getSettingInMicrons("sanding_line_spacing");
-    Infill infill_generator(pattern, areas, 0, 0, line_spacing, 0, 45.0, layer.z - 10, 0);
+    Infill infill_generator(pattern, sanding_areas, 0, 0, line_spacing, 0, 45.0, layer.z - 10, 0);
     Polygons sand_polygons;
     Polygons sand_lines;
     infill_generator.generate(sand_polygons, sand_lines);
