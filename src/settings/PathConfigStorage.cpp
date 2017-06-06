@@ -54,7 +54,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInMicrons("skin_line_width")
     , layer_thickness
     , mesh.getSettingInPercentage("material_flow")
-    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_sanding"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_sanding"), mesh.getSettingInMillimetersPerSecond("acceleration_sanding"), mesh.getSettingInMillimetersPerSecond("jerk_sanding")}
 )
 
 , perimeter_gap_config(getPerimeterGapConfig(mesh, layer_thickness))
