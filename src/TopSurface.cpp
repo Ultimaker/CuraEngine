@@ -37,7 +37,7 @@ bool TopSurface::sand(const SliceMeshStorage& mesh, const GCodePathConfig& line_
     const coord_t line_spacing = mesh.getSettingInMicrons("sanding_line_spacing");
     const coord_t outline_offset = -mesh.getSettingInMicrons("sanding_inset");
     const coord_t line_width = line_config.getLineWidth();
-    const double direction = 45.0;
+    const double direction = mesh.skin_angles[layer.getLayerNr() % mesh.skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
     constexpr coord_t shift = 0;
     Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
