@@ -375,6 +375,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
+    if (value == "fermat_spiral")
+        return EFillMethod::FERMAT_SPIRAL;
     return EFillMethod::NONE;
 }
 

@@ -111,6 +111,7 @@ enum class EFillMethod
     CONCENTRIC,
     CONCENTRIC_3D,
     ZIG_ZAG,
+    FERMAT_SPIRAL,
     NONE
 };
 

@@ -454,6 +454,10 @@ public:
         return paths.size();
     }
 
+    ClipperLib::Paths getPaths() const {
+        return this->paths;
+    }
+
     /*!
      * Convenience function to check if the polygon has no points.
      *

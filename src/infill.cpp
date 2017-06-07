@@ -4,6 +4,9 @@
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 
+#include "infill/FermatSpiral.h"
+
+
 namespace cura {
 
 int Infill::computeScanSegmentIdx(int x, int line_width)
@@ -55,6 +58,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
             break;
         }
         generateCubicSubDivInfill(result_lines, *mesh);
+        break;
+    case EFillMethod::FERMAT_SPIRAL:
+        // TODO: fermat_spiral
+        FermatSpiralInfillGenerator generator;
+        generator.generateInfill(in_outline, result_polygons, mesh);
         break;
     default:
         logError("Fill pattern has unknown value.\n");

@@ -99,6 +99,8 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
     src/infill/SubDivCube.cpp
+    src/infill/FermatSpiralMST.cpp
+    src/infill/FermatSpiral.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp
