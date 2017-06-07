@@ -1421,17 +1421,17 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
         {
             // start with the BB of the outline
             AABB skin_part_bb(skin_part.outline);
+            PointMatrix rot((double)((-skin_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
+            const Point bb_middle = skin_part_bb.getMiddle();
             // create a vector from the middle of the BB whose length is such that it can be rotated
             // around the middle of the BB and the end will always be a long way outside of the part's outline
-            const Point bb_middle = skin_part_bb.getMiddle();
-            const Point vec(0, vSize(skin_part_bb.max - bb_middle) * 100);
-            // build a couple of rotation matrices that will be used to rotate the vector so that it is normal to the skin angle
-            PointMatrix rota((double)((-skin_angle + 90) % 360));
-            PointMatrix rotb((double)((-skin_angle + 270) % 360));
-            // find the pair of vertices from the outline that are closest to the ends of the two rotated vectors
-            const Point pa = PolygonUtils::findNearestVert(bb_middle + rota.apply(vec), skin_part.outline).p();
-            const Point pb = PolygonUtils::findNearestVert(bb_middle + rotb.apply(vec), skin_part.outline).p();
-            // now go to the vertex on the outline that is closest to where we are now
+            // and rotate the vector so that it is normal to the skin angle
+            const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max - bb_middle) * 100));
+            // find the vertex in the outline that is closest to the end of the rotated vector
+            const Point pa = PolygonUtils::findNearestVert(bb_middle + vec, skin_part.outline).p();
+            // and find another outline vertex, this time using the vector + 180 deg
+            const Point pb = PolygonUtils::findNearestVert(bb_middle - vec, skin_part.outline).p();
+            // now go to whichever of those vertices that is closest to where we are now
             gcode_layer.addTravel(vSize2(pa - gcode_layer.getLastPosition()) < vSize2(pb - gcode_layer.getLastPosition()) ? pa : pb);
             added_something = true;
         }
