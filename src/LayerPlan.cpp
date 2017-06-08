@@ -894,10 +894,36 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                     else 
                     {
+                        const PrintFeatureType type = path.config->type;
+                        const bool do_slow_start = layer_nr < 1 && storage.getSettingBoolean("slow_start_walls") && (type == PrintFeatureType::OuterWall || type == PrintFeatureType::InnerWall);
+                        int64_t slow_distance = do_slow_start ? storage.getSettingInMicrons("slow_start_wall_length") : 0;
+
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
                             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type);
+                            if (slow_distance > 0)
+                            {
+                                const double slow_speed = speed * storage.getSettingInPercentage("slow_start_wall_speed_percentage") / 100;
+                                const double slow_flow = path.getExtrusionMM3perMM() * storage.getSettingInPercentage("slow_start_wall_flow_percentage") / 100;
+                                Point p0 = gcode.getPositionXY();
+                                Point p1 = path.points[point_idx];
+                                int64_t len = vSize(p1 - p0);
+                                if (len > slow_distance)
+                                {
+                                    gcode.writeExtrusion(p0 + (p1 - p0) * slow_distance / len, slow_speed, slow_flow, path.config->type);
+                                    gcode.writeExtrusion(p1, speed, path.getExtrusionMM3perMM(), path.config->type);
+                                    slow_distance = 0;
+                                }
+                                else
+                                {
+                                    gcode.writeExtrusion(p1, slow_speed, slow_flow, path.config->type);
+                                    slow_distance -= len;
+                                }
+                            }
+                            else
+                            {
+                                gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type);
+                            }
                         }
                     }
                 }
