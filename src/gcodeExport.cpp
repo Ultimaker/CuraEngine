@@ -632,11 +632,12 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
-    Point3 diff = Point3(x,y,z) - currentPosition;
     if (isZHopped > 0)
     {
         writeZhopEnd();
     }
+
+    Point3 diff = Point3(x,y,z) - currentPosition;
 
     writeUnretractionAndPrime();
 
