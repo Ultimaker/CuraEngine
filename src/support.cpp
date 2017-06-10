@@ -332,7 +332,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
-    for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, false);
         if (!is_support_modifier_place_holder)
