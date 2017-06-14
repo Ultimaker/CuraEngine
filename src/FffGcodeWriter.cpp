@@ -1459,6 +1459,13 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
         return support_added;
     }
 
+    // when raft is enabled, we will get negative layer numbers
+    // in this case, we don't generate support
+    if (layer_nr < 0)
+    {
+        return support_added;
+    }
+
     const int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     const int support_bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
