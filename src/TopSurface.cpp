@@ -19,7 +19,7 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
     Polygons mesh_above;
     if (layer_number < mesh.layers.size() - 1)
     {
-        mesh_above = mesh.layers[layer_number].parts[part_number].print_outline;
+        mesh_above = mesh.layers[layer_number + 1].parts[part_number].print_outline;
     } //If this is the top-most layer, mesh_above stays empty.
 
     Polygons mesh_this = mesh.layers[layer_number].getOutlines();
