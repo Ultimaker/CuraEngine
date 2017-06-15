@@ -1532,7 +1532,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
 {
     bool added_something = false;
-    if (part.top_surface)
+    const bool ironing_enabled = mesh.getSettingBoolean("ironing_enabled");
+    if (ironing_enabled && part.top_surface)
     {
         added_something |= part.top_surface->ironing(mesh, line_config, gcode_layer);
     }
