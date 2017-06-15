@@ -26,36 +26,36 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
     areas = mesh_this.difference(mesh_above);
 }
 
-bool TopSurface::sand(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer)
+bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer)
 {
     if (areas.empty())
     {
         return false; //Nothing to do.
     }
     //Generate the lines to cover the surface.
-    const EFillMethod pattern = mesh.getSettingAsFillMethod("sanding_pattern");
-    const coord_t line_spacing = mesh.getSettingInMicrons("sanding_line_spacing");
-    const coord_t outline_offset = -mesh.getSettingInMicrons("sanding_inset");
+    const EFillMethod pattern = mesh.getSettingAsFillMethod("ironing_pattern");
+    const coord_t line_spacing = mesh.getSettingInMicrons("ironing_line_spacing");
+    const coord_t outline_offset = -mesh.getSettingInMicrons("ironing_inset");
     const coord_t line_width = line_config.getLineWidth();
     const double direction = mesh.skin_angles[layer.getLayerNr() % mesh.skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
     constexpr coord_t shift = 0;
     Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
-    Polygons sand_polygons;
-    Polygons sand_lines;
-    infill_generator.generate(sand_polygons, sand_lines);
+    Polygons ironing_polygons;
+    Polygons ironing_lines;
+    infill_generator.generate(ironing_polygons, ironing_lines);
 
     //Add the lines as travel moves to the layer plan.
     bool added = false;
-    float sanding_flow = mesh.getSettingAsRatio("sanding_flow");
-    if (!sand_polygons.empty())
+    const float ironing_flow = mesh.getSettingAsRatio("ironing_flow");
+    if (!ironing_polygons.empty())
     {
-        layer.addPolygonsByOptimizer(sand_polygons, &line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, sanding_flow);
+        layer.addPolygonsByOptimizer(ironing_polygons, &line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, ironing_flow);
         added = true;
     }
-    if (!sand_lines.empty())
+    if (!ironing_lines.empty())
     {
-        layer.addLinesByOptimizer(sand_lines, &line_config, SpaceFillType::PolyLines, 0, sanding_flow);
+        layer.addLinesByOptimizer(ironing_lines, &line_config, SpaceFillType::PolyLines, 0, ironing_flow);
         added = true;
     }
     return added;

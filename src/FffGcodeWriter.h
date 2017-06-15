@@ -481,19 +481,19 @@ private:
     bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
 
     /*!
-     * Add the g-code for sanding the top surface.
+     * Add the g-code for ironing the top surface.
      *
      * This produces travel moves that cover the entire top surface.
      *
-     * \param mesh The settings storage to get the sanding settings and skin
+     * \param mesh The settings storage to get the ironing settings and skin
      * angles from.
-     * \param part The layer part to process the sanding for.
-     * \param line_config The configuration of the lines to draw the sanding
+     * \param part The layer part to process the ironing for.
+     * \param line_config The configuration of the lines to draw the ironing
      * with.
      * \param[out] gcode_layer The output layer to put the resulting paths in.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processSanding(const SliceMeshStorage& mesh, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
+    bool processIroning(const SliceMeshStorage& mesh, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.

@@ -40,19 +40,19 @@ public:
     Polygons areas;
 
     /*!
-     * \brief Generate paths for sanding over the top surface.
+     * \brief Generate paths for ironing over the top surface.
      *
      * This generates an infill pattern over the top surface that is supposed to
      * strike the surface smooth by melting it with the hot nozzle, without
      * extruding anything.
      *
-     * \param mesh The settings base to get our sanding settings and skin angles
+     * \param mesh The settings base to get our ironing settings and skin angles
      * from.
-     * \param line_config The configuration of the sanding lines to use. Note
-     * that the flow might still get adjusted by the sanding settings.
+     * \param line_config The configuration of the ironing lines to use. Note
+     * that the flow might still get adjusted by the ironing settings.
      * \param[out] layer The output g-code layer to put the resulting lines in.
      */
-    bool sand(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer);
+    bool ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer);
 };
 
 }
