@@ -43,8 +43,8 @@ public:
      * \brief Generate paths for ironing over the top surface.
      *
      * This generates an infill pattern over the top surface that is supposed to
-     * strike the surface smooth by melting it with the hot nozzle, without
-     * extruding anything.
+     * strike the surface smooth by melting it with the hot nozzle and filling
+     * crevices with a minute amount of material.
      *
      * \param mesh The settings base to get our ironing settings and skin angles
      * from.
