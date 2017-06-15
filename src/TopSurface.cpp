@@ -13,13 +13,13 @@ TopSurface::TopSurface()
     //Do nothing. Areas stays empty.
 }
 
-TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_number)
+TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number)
 {
     //The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
     Polygons mesh_above;
     if (layer_number < mesh.layers.size() - 1)
     {
-        mesh_above = mesh.layers[layer_number + 1].parts[part_number].print_outline;
+        mesh_above = mesh.layers[layer_number + 1].getOutlines();
     } //If this is the top-most layer, mesh_above stays empty.
 
     areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);

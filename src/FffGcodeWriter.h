@@ -488,13 +488,13 @@ private:
      *
      * \param mesh The settings storage to get the ironing settings and skin
      * angles from.
-     * \param part The layer part to process the ironing for.
+     * \param layer The layer to process the ironing for.
      * \param line_config The configuration of the lines to draw the ironing
      * with.
      * \param[out] gcode_layer The output layer to put the resulting paths in.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processIroning(const SliceMeshStorage& mesh, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
+    bool processIroning(const SliceMeshStorage& mesh, const SliceLayer& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.

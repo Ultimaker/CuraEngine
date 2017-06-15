@@ -1000,9 +1000,9 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    const SliceLayer* layer = &mesh.layers[layer_nr];
+    const SliceLayer& layer = mesh.layers[layer_nr];
 
-    if (layer->parts.size() == 0)
+    if (layer.parts.size() == 0)
     {
         return;
     }
@@ -1014,17 +1014,18 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     Point z_seam_pos(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
     Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_pos, z_seam_type);
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
-        part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
+        part_order_optimizer.addPolygon(layer.parts[partNr].insets[0][0]);
     }
     part_order_optimizer.optimize();
 
     for (int part_idx : part_order_optimizer.polyOrder)
     {
-        const SliceLayerPart& part = layer->parts[part_idx];
+        const SliceLayerPart& part = layer.parts[part_idx];
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer, layer_nr);
     }
+    processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
@@ -1071,7 +1072,6 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
     int64_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, skin_overlap, skin_angle);
-    added_something |= processIroning(mesh, part, mesh_config.ironing_config, gcode_layer);
 
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
     if (added_something && (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers")))
@@ -1529,13 +1529,13 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     return added_something;
 }
 
-bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayerPart& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
+bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
 {
     bool added_something = false;
     const bool ironing_enabled = mesh.getSettingBoolean("ironing_enabled");
-    if (ironing_enabled && part.top_surface)
+    if (ironing_enabled && layer.top_surface)
     {
-        added_something |= part.top_surface->ironing(mesh, line_config, gcode_layer);
+        added_something |= layer.top_surface->ironing(mesh, line_config, gcode_layer);
     }
     return added_something;
 }

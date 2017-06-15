@@ -684,11 +684,8 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
 
     if (mesh.getSettingBoolean("ironing_enabled"))
     {
-        for (size_t part_number = 0; part_number < mesh.layers[layer_nr].parts.size(); ++part_number)
-        {
-            TopSurface* top_surface = new TopSurface(mesh, layer_nr, part_number); //Generate the top surface to iron over.
-            mesh.layers[layer_nr].parts[part_number].top_surface = top_surface;
-        }
+        TopSurface* top_surface = new TopSurface(mesh, layer_nr); //Generate the top surface to iron over.
+        mesh.layers[layer_nr].top_surface = top_surface;
     }
 }
 
