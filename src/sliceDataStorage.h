@@ -18,7 +18,6 @@
 
 namespace cura 
 {
-class TopSurface;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
