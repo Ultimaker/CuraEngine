@@ -483,7 +483,8 @@ private:
     /*!
      * Add the g-code for ironing the top surface.
      *
-     * This produces travel moves that cover the entire top surface.
+     * This produces additional low-extrusion moves that cover the top surface,
+     * in order to smooth the surface more.
      *
      * \param mesh The settings storage to get the ironing settings and skin
      * angles from.
