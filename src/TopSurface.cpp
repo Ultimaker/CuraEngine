@@ -22,8 +22,7 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number, size_t part_
         mesh_above = mesh.layers[layer_number + 1].parts[part_number].print_outline;
     } //If this is the top-most layer, mesh_above stays empty.
 
-    Polygons mesh_this = mesh.layers[layer_number].getOutlines();
-    areas = mesh_this.difference(mesh_above);
+    areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
 }
 
 bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer)
