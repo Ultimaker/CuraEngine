@@ -53,7 +53,7 @@ public:
      *
      * This is filled only when the top surface is needed.
      */
-    TopSurface* top_surface;
+    TopSurface* top_surface = nullptr;
 
     /*!
      * The areas inside of the mesh.
