@@ -46,15 +46,28 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
     {
         return;
     }
-    int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
-    for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
-    {
-        SliceLayerPart& part = layer.parts[partNr];
 
-        if (int(part.insets.size()) < wall_line_count)
+    for (unsigned int part_nr = 0; part_nr < layer.parts.size(); part_nr++)
+    {
+        SliceLayerPart& part = layer.parts[part_nr];
+
+        if (static_cast<int>(part.insets.size()) < wall_line_count)
         {
-            continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin.
+            continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin or infill.
         }
+        generateSkinAreas(layer_nr, mesh, part, innermost_wall_line_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
+    }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
+ */
+void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& part, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+{
+    int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
         Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
         // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
@@ -111,7 +124,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         }
 
         int expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
-        
+
         if (expand_skins_expand_distance > 0)
         {
             int pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
@@ -143,7 +156,6 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
             part.skin_parts.emplace_back();
             part.skin_parts.back().outline = skin_area_part;
         }
-    }
 }
 
 /*

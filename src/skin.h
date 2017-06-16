@@ -39,6 +39,25 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int u
 void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
 
 /*!
+ * Generate the skin areas (outlines) of one part in a layer
+ * 
+ * \param layer_nr The index of the layer for which to generate the skins.
+ * \param mesh The storage where the layer outline information (input) is stored
+ * and where the skin outline (output) is stored.
+ * \param part The part for which to generate skins.
+ * \param innermost_wall_line_width The line width of the walls around the skin, by which
+ * we must inset for each wall.
+ * \param downSkinCount The number of layers of bottom skin.
+ * \param upSkinCount The number of layers of top skin.
+ * \param wall_line_count The number of walls, i.e. the number of the wall from
+ * which to offset.
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
+ */
+void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& part, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
+
+/*!
  * Generate the skin insets.
  * 
  * \param layerNr The index of the layer for which to generate the skins.
