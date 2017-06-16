@@ -1416,8 +1416,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
         //    -------------
 
         const EFillMethod pattern = (layer_nr == 0)?
-            mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-            mesh->getSettingAsFillMethod("top_bottom_pattern");
+            mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
+            mesh.getSettingAsFillMethod("top_bottom_pattern");
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         {
             // start with the BB of the outline
