@@ -6,6 +6,20 @@
 namespace cura
 {
 
+GCodePath::GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize) :
+config(config),
+space_fill_type(space_fill_type),
+flow(flow),
+spiralize(spiralize)
+{
+    retract = false;
+    perform_z_hop = false;
+    perform_prime = false;
+    points = std::vector<Point>();
+    done = false;
+    estimates = TimeMaterialEstimates();
+}
+
 bool GCodePath::isTravelPath()
 {
     return config->isTravelPath();

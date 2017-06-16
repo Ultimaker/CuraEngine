@@ -50,7 +50,7 @@ public:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    static bool processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
+    static bool processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
 
 };
 

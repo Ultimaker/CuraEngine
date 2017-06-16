@@ -13,10 +13,12 @@
 #include "mesh.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
+#include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
 
 namespace cura 
 {
+
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
  * Surrounding each non-bridged skin area with an outline may result in better top skins.
@@ -43,6 +45,7 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
     Polygons perimeter_gaps; //!< The gaps betwee nconsecutive walls and between the inner wall and outer skin inset
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
+
     /*!
      * The areas inside of the mesh.
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
@@ -100,6 +103,14 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+
+    /*!
+     * \brief The parts of the model that are exposed at the very top of the
+     * model.
+     *
+     * This is filled only when the top surface is needed.
+     */
+    TopSurface* top_surface = nullptr;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
