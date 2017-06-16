@@ -31,7 +31,7 @@ FffGcodeWriter::FffGcodeWriter(SettingsBase* settings_)
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    gcode.preSetup(storage.meshgroup);
+    gcode.preSetup(storage, storage.meshgroup);
     
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     { // first meshgroup

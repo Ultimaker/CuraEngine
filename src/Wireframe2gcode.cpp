@@ -14,10 +14,10 @@ namespace cura
 {
 
 
-void Wireframe2gcode::writeGCode()
+void Wireframe2gcode::writeGCode(const SliceDataStorage& storage)
 {
 
-    gcode.preSetup(wireFrame.meshgroup);
+    gcode.preSetup(storage, wireFrame.meshgroup);
 
     const unsigned int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr"); // TODO: figure out how Wireframe works with dual extrusion
     gcode.setInitialTemps(*wireFrame.meshgroup, start_extruder_nr);

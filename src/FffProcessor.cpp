@@ -81,9 +81,11 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         Weaver w(this);
         w.weave(meshgroup);
         
+        SliceDataStorage storage(meshgroup);
+
         log("starting Neith Gcode generation...\n");
         Wireframe2gcode gcoder(w, gcode_writer.gcode, this);
-        gcoder.writeGCode();
+        gcoder.writeGCode(storage);
         log("finished Neith Gcode generation...\n");
         
     } else 
