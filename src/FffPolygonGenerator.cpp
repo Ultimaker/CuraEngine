@@ -551,7 +551,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 
         // combine infill
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
-        combineInfillLayers(mesh,combined_infill_layers);
+        SkinInfillAreaComputation::combineInfillLayers(mesh, combined_infill_layers);
     }
 
     // fuzzy skin
@@ -668,7 +668,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
 
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
     const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
-    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
+    SkinInfillAreaComputation::generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
 
     if (process_infill)
     { // process infill when infill density > 0
@@ -679,7 +679,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         {
             infill_skin_overlap = innermost_wall_line_width / 2;
         }
-        generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
+        SkinInfillAreaComputation::generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
     }
 
     if (mesh.getSettingBoolean("ironing_enabled"))

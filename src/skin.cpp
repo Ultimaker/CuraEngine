@@ -20,7 +20,7 @@ namespace cura
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
 {
     generateSkinAreas(layerNr, mesh, wall_line_width_x, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
@@ -38,7 +38,7 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int u
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
     SliceLayer& layer = mesh.layers[layer_nr];
     
@@ -65,7 +65,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& part, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& part, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
@@ -164,7 +164,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& par
  *
  * generateSkinInsets only read/writes the skin_parts from the current layer.
  */
-void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount)
+void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount)
 {
     if (insetCount == 0)
     {
@@ -202,7 +202,7 @@ void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int ins
  *
  * generateInfill read mesh.layers[n].parts[*].{insets,skin_parts,boundingBox} and write mesh.layers[n].parts[*].infill_area
  */
-void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count)
+void SkinInfillAreaComputation::generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count)
 {
     SliceLayer& layer = mesh.layers[layerNr];
 
@@ -333,7 +333,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
     }
 }
 
-void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
+void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
 {
     if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
     {
