@@ -75,58 +75,39 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 }
                 return result;
             };
-            
-        if (no_small_gaps_heuristic)
+
+        if (static_cast<int>(layer_nr - downSkinCount) >= 0 && downSkinCount > 0)
         {
-            if (static_cast<int>(layer_nr - downSkinCount) >= 0)
+            Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - downSkinCount]);
+            if (!no_small_gaps_heuristic)
             {
-                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - downSkinCount]);
-                if (min_infill_area > 0)
-                {
-                    not_air.removeSmallAreas(min_infill_area);
-                }
-                downskin = downskin.difference(not_air); // skin overlaps with the walls
-            }
-            
-            if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()))
-            {
-                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
-                if (min_infill_area > 0)
-                {
-                    not_air.removeSmallAreas(min_infill_area);
-                }
-                upskin = upskin.difference(not_air); // skin overlaps with the walls
-            }
-        }
-        else 
-        {
-            if (layer_nr >= downSkinCount && downSkinCount > 0)
-            {
-                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - downSkinCount]);
                 for (int downskin_layer_nr = layer_nr - downSkinCount + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
                 {
                     not_air = not_air.intersection(getInsidePolygons(mesh.layers[downskin_layer_nr]));
                 }
-                if (min_infill_area > 0)
-                {
-                    not_air.removeSmallAreas(min_infill_area);
-                }
-                downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
-            
-            if (layer_nr < static_cast<int>(mesh.layers.size()) - 1 - upSkinCount && upSkinCount > 0)
+            if (min_infill_area > 0)
             {
-                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
+                not_air.removeSmallAreas(min_infill_area);
+            }
+            downskin = downskin.difference(not_air); // skin overlaps with the walls
+        }
+
+        if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()) && upSkinCount > 0)
+        {
+            Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
+            if (!no_small_gaps_heuristic)
+            {
                 for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + upSkinCount; upskin_layer_nr++)
                 {
                     not_air = not_air.intersection(getInsidePolygons(mesh.layers[upskin_layer_nr]));
                 }
-                if (min_infill_area > 0)
-                {
-                    not_air.removeSmallAreas(min_infill_area);
-                }
-                upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
+            if (min_infill_area > 0)
+            {
+                not_air.removeSmallAreas(min_infill_area);
+            }
+            upskin = upskin.difference(not_air); // skin overlaps with the walls
         }
 
         int expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
