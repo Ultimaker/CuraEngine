@@ -102,8 +102,8 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         {
             if (layer_nr >= downSkinCount && downSkinCount > 0)
             {
-                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - 1]);
-                for (int downskin_layer_nr = layer_nr - downSkinCount; downskin_layer_nr < layer_nr - 1; downskin_layer_nr++)
+                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - downSkinCount]);
+                for (int downskin_layer_nr = layer_nr - downSkinCount + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
                 {
                     not_air = not_air.intersection(getInsidePolygons(mesh.layers[downskin_layer_nr]));
                 }
@@ -116,8 +116,8 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
             
             if (layer_nr < static_cast<int>(mesh.layers.size()) - 1 - upSkinCount && upSkinCount > 0)
             {
-                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + 1]);
-                for (int upskin_layer_nr = layer_nr + 2; upskin_layer_nr < layer_nr + upSkinCount + 1; upskin_layer_nr++)
+                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
+                for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + upSkinCount; upskin_layer_nr++)
                 {
                     not_air = not_air.intersection(getInsidePolygons(mesh.layers[upskin_layer_nr]));
                 }
