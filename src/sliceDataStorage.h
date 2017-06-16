@@ -13,7 +13,7 @@
 #include "mesh.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
-#include "gcodeExport.h" // CoastingConfig
+#include "CoastingConfig.h"
 
 namespace cura 
 {
