@@ -29,6 +29,7 @@
 #include "progress/Progress.h"
 #include "PrintFeature.h"
 #include "ConicalOverhang.h"
+#include "TopSurface.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
@@ -679,6 +680,12 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
             infill_skin_overlap = innermost_wall_line_width / 2;
         }
         generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
+    }
+
+    if (mesh.getSettingBoolean("ironing_enabled"))
+    {
+        TopSurface* top_surface = new TopSurface(mesh, layer_nr); //Generate the top surface to iron over.
+        mesh.layers[layer_nr].top_surface = top_surface;
     }
 }
 
