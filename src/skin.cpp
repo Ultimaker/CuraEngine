@@ -10,7 +10,7 @@
 namespace cura 
 {
 
-SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap)
+SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, bool process_infill)
 : layer_nr(layer_nr)
 , mesh(mesh)
 , downSkinCount(downSkinCount)
@@ -18,6 +18,7 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStor
 , wall_line_count(wall_line_count)
 , innermost_wall_line_width(innermost_wall_line_width)
 , infill_skin_overlap(infill_skin_overlap)
+, process_infill(process_infill)
 {
 }
 
@@ -44,7 +45,7 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkins(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinsAndInfill(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
 {
     generateSkinAreas(no_small_gaps_heuristic);
 
@@ -79,7 +80,7 @@ void SkinInfillAreaComputation::generateSkinAreas(bool no_small_gaps_heuristic)
         {
             continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin or infill.
         }
-        generateSkinAreas(part, no_small_gaps_heuristic);
+        generateSkinAndInfillAreas(part, no_small_gaps_heuristic);
     }
 }
 
@@ -89,7 +90,7 @@ void SkinInfillAreaComputation::generateSkinAreas(bool no_small_gaps_heuristic)
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part, bool no_small_gaps_heuristic)
 {
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
@@ -112,7 +113,13 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
     Polygons skin = upskin.unionPolygons(downskin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
-    
+
+    if (process_infill)
+    { // process infill when infill density > 0
+        // or when other infill meshes want to modify this infill
+        generateInfill(part, skin);
+    }
+
     for (PolygonsPart& skin_area_part : skin.splitIntoParts())
     {
         part.skin_parts.emplace_back();
@@ -231,10 +238,8 @@ void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const i
  *
  * generateInfill read mesh.layers[n].parts[*].{insets,skin_parts,boundingBox} and write mesh.layers[n].parts[*].infill_area
  */
-void SkinInfillAreaComputation::generateInfill()
+void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polygons& skin)
 {
-    SliceLayer& layer = mesh.layers[layer_nr];
-
     int extra_offset = 0;
     EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
     if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
@@ -245,36 +250,24 @@ void SkinInfillAreaComputation::generateInfill()
         extra_offset = -innermost_wall_line_width;
     }
 
-    for(SliceLayerPart& part : layer.parts)
+    if (int(part.insets.size()) < wall_line_count)
     {
-        if (int(part.insets.size()) < wall_line_count)
-        {
-            continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
-        }
-        Polygons infill = part.insets.back().offset(extra_offset - innermost_wall_line_width / 2 - infill_skin_overlap);
+        return; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
+    }
+    Polygons infill = part.insets.back().offset(extra_offset - innermost_wall_line_width / 2 - infill_skin_overlap);
 
-        for(SliceLayerPart& part2 : layer.parts)
-        {
-            if (part.boundaryBox.hit(part2.boundaryBox))
-            {
-                for(SkinPart& skin_part : part2.skin_parts)
-                {
-                    infill = infill.difference(skin_part.outline);
-                }
-            }
-        }
-        infill.removeSmallAreas(MIN_AREA_SIZE);
+    infill = infill.difference(skin);
+    infill.removeSmallAreas(MIN_AREA_SIZE);
 
-        Polygons final_infill = infill.offset(infill_skin_overlap);
+    Polygons final_infill = infill.offset(infill_skin_overlap);
 
-        if (mesh.getSettingBoolean("infill_hollow"))
-        {
-            part.print_outline = part.print_outline.difference(final_infill);
-        }
-        else
-        {
-            part.infill_area = final_infill;
-        }
+    if (mesh.getSettingBoolean("infill_hollow"))
+    {
+        part.print_outline = part.print_outline.difference(final_infill);
+    }
+    else
+    {
+        part.infill_area = final_infill;
     }
 }
 

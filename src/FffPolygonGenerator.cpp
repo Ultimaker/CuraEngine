@@ -674,14 +674,8 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     {
         infill_skin_overlap = innermost_wall_line_width / 2;
     }
-    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, infill_skin_overlap);
-    skin_infill_area_computation.generateSkins(mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
-
-    if (process_infill)
-    { // process infill when infill density > 0
-        // or when other infill meshes want to modify this infill
-        skin_infill_area_computation.generateInfill();
-    }
+    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, infill_skin_overlap, process_infill);
+    skin_infill_area_computation.generateSkinsAndInfill(mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
 
     if (mesh.getSettingBoolean("ironing_enabled"))
     {

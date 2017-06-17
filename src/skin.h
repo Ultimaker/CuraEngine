@@ -24,8 +24,9 @@ public:
      * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
      * \param innermost_wall_line_width width of the innermost wall lines
      * \param infill_skin_overlap overlap distance between infill and skin
+     * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
      */
-    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap);
+    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, bool process_infill);
 
     /*!
      * Generate the skin areas and its insets.
@@ -34,16 +35,7 @@ public:
      * \param insetCount The number of perimeters to surround the skin
      * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
      */
-    void generateSkins(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
-
-    /*!
-     * Generate Infill by offsetting from the last wall.
-     * 
-     * The walls should already be generated.
-     * 
-     * After this function has been called on a layer of a mesh, each SliceLayerPart of that layer should have an infill_area consisting of exactly one Polygons : the normal uncombined infill area.
-     */
-    void generateInfill();
+    void generateSkinsAndInfill(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
@@ -89,7 +81,7 @@ protected:
      * small gaps between bottom and top skin with a z size smaller than the skin
      * size itself.
      */
-    void generateSkinAreas(SliceLayerPart& part, bool no_small_gaps_heuristic);
+    void generateSkinAndInfillAreas(SliceLayerPart& part, bool no_small_gaps_heuristic);
 
     /*!
      * Calculate the basic areas which have air above
@@ -127,6 +119,14 @@ protected:
     void applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin);
 
     /*!
+     * Generate infill of a given part
+     * \param[in,out] part The part where the wall information (input) is retrieved and
+     * where the infill areas (output) are stored.
+     * \param skin The skin areas on the layer of the \p part
+     */
+    void generateInfill(SliceLayerPart& part, const Polygons& skin);
+
+    /*!
      * Generate the skin insets.
      * 
      * \param part The part where the skin outline information (input) is stored and
@@ -144,6 +144,7 @@ protected:
     const int wall_line_count;
     const int innermost_wall_line_width;
     const int infill_skin_overlap;
+    bool process_infill;
 
 private:
     /*!
