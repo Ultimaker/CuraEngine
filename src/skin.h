@@ -14,67 +14,56 @@ class SkinInfillAreaComputation
 {
 public:
 
+    /*!
+     * Initialize the parameters for skin and infill area computation.
+     * 
+     * \param layer_nr The index of the layer for which to generate the skins and infill.
+     * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
+     * \param downSkinCount The number of layers of bottom skin
+     * \param upSkinCount The number of layers of top skin
+     * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
+     * \param innermost_wall_line_width width of the innermost wall lines
+     * \param infill_skin_overlap overlap distance between infill and skin
+     */
+    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap);
+
 /*!
  * Generate the skin areas and its insets.
  * 
- * \param layerNr The index of the layer for which to generate the skins.
- * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
- * \param downSkinCount The number of layers of bottom skin
- * \param upSkinCount The number of layers of top skin
- * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  * \param wall_line_width_x The line width of the inner most wall
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
  */
-static void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
+void generateSkins(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines)
  * 
- * \param layerNr The index of the layer for which to generate the skins.
- * \param mesh The storage where the layer outline information (input) is stored
- * and where the skin outline (output) is stored.
- * \param innermost_wall_line_width The line width of the walls around the skin, by which
- * we must inset for each wall.
- * \param downSkinCount The number of layers of bottom skin.
- * \param upSkinCount The number of layers of top skin.
- * \param wall_line_count The number of walls, i.e. the number of the wall from
- * which to offset.
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no
  * small gaps between bottom and top skin with a z size smaller than the skin
  * size itself.
  */
-static void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
+void generateSkinAreas(bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines) of one part in a layer
  * 
- * \param layer_nr The index of the layer for which to generate the skins.
- * \param mesh The storage where the layer outline information (input) is stored
- * and where the skin outline (output) is stored.
  * \param part The part for which to generate skins.
- * \param innermost_wall_line_width The line width of the walls around the skin, by which
- * we must inset for each wall.
- * \param downSkinCount The number of layers of bottom skin.
- * \param upSkinCount The number of layers of top skin.
- * \param wall_line_count The number of walls, i.e. the number of the wall from
- * which to offset.
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no
  * small gaps between bottom and top skin with a z size smaller than the skin
  * size itself.
  */
-static void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& part, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
+void generateSkinAreas(SliceLayerPart& part, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin insets.
  * 
- * \param layerNr The index of the layer for which to generate the skins.
  * \param part The part where the skin outline information (input) is stored and
  * where the skin insets (output) are stored.
- * \param wall_line_width The width of the perimeters around the skin.
+ * \param wall_line_width_x The width of the perimeters around the skin.
  * \param insetCount The number of perimeters to surround the skin.
  */
-static void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount);
+void generateSkinInsets(SliceLayerPart* part, const int wall_line_width_x, int insetCount);
 
 /*!
  * Generate Infill by offsetting from the last wall.
@@ -82,14 +71,8 @@ static void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, 
  * The walls should already be generated.
  * 
  * After this function has been called on a layer of a mesh, each SliceLayerPart of that layer should have an infill_area consisting of exactly one Polygons : the normal uncombined infill area.
- * 
- * \param layerNr The index of the layer for which to generate the infill
- * \param mesh The storage where the layer outline information (input) is stored and where the skin outline (output) is stored.
- * \param innermost_wall_line_width width of the innermost wall lines
- * \param infill_skin_overlap overlap distance between infill and skin
- * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  */
-static void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count);
+void generateInfill();
 
 /*!
  * \brief Combines the infill of multiple layers for a specified mesh.
@@ -116,7 +99,15 @@ static void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount);
      * \param max_infill_steps the maximum exponent of division of infill density. At 5 the least dense infill will be 2^4 * infill_line_distance i.e. one 16th as dense
      */
     static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
-    
+
+protected:
+    const int layer_nr;
+    SliceMeshStorage& mesh;
+    const int downSkinCount;
+    const int upSkinCount;
+    const int wall_line_count;
+    const int innermost_wall_line_width;
+    const int infill_skin_overlap;
 };
 
 }//namespace cura

@@ -10,6 +10,17 @@
 namespace cura 
 {
 
+SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap)
+: layer_nr(layer_nr)
+, mesh(mesh)
+, downSkinCount(downSkinCount)
+, upSkinCount(upSkinCount)
+, wall_line_count(wall_line_count)
+, innermost_wall_line_width(innermost_wall_line_width)
+, infill_skin_overlap(infill_skin_overlap)
+{
+}
+
 
 /*
  * This function is executed in a parallel region based on layer_nr.
@@ -20,11 +31,11 @@ namespace cura
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkins(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
 {
-    generateSkinAreas(layerNr, mesh, wall_line_width_x, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
+    generateSkinAreas(no_small_gaps_heuristic);
 
-    SliceLayer* layer = &mesh.layers[layerNr];
+    SliceLayer* layer = &mesh.layers[layer_nr];
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
@@ -38,7 +49,7 @@ void SkinInfillAreaComputation::generateSkins(int layerNr, SliceMeshStorage& mes
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAreas(bool no_small_gaps_heuristic)
 {
     SliceLayer& layer = mesh.layers[layer_nr];
     
@@ -55,7 +66,7 @@ void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage
         {
             continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin or infill.
         }
-        generateSkinAreas(layer_nr, mesh, part, innermost_wall_line_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
+        generateSkinAreas(part, no_small_gaps_heuristic);
     }
 }
 
@@ -65,7 +76,7 @@ void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, SliceLayerPart& part, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_small_gaps_heuristic)
 {
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
@@ -75,7 +86,7 @@ void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage
         Polygons downskin = (downSkinCount == 0) ? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
 
-        auto getInsidePolygons = [&part, wall_line_count](SliceLayer& layer2)
+        auto getInsidePolygons = [&part, this](SliceLayer& layer2)
             {
                 Polygons result;
                 for(SliceLayerPart& part2 : layer2.parts)
@@ -164,7 +175,7 @@ void SkinInfillAreaComputation::generateSkinAreas(int layer_nr, SliceMeshStorage
  *
  * generateSkinInsets only read/writes the skin_parts from the current layer.
  */
-void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount)
+void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const int wall_line_width_x, int insetCount)
 {
     if (insetCount == 0)
     {
@@ -178,11 +189,11 @@ void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const i
             skin_part.insets.push_back(Polygons());
             if (i == 0)
             {
-                skin_part.insets[0] = skin_part.outline.offset(-wall_line_width / 2);
+                skin_part.insets[0] = skin_part.outline.offset(-wall_line_width_x / 2);
             }
             else
             {
-                skin_part.insets[i] = skin_part.insets[i - 1].offset(-wall_line_width);
+                skin_part.insets[i] = skin_part.insets[i - 1].offset(-wall_line_width_x);
             }
             
             // optimize polygons: remove unnecessary verts
@@ -202,15 +213,15 @@ void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const i
  *
  * generateInfill read mesh.layers[n].parts[*].{insets,skin_parts,boundingBox} and write mesh.layers[n].parts[*].infill_area
  */
-void SkinInfillAreaComputation::generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count)
+void SkinInfillAreaComputation::generateInfill()
 {
-    SliceLayer& layer = mesh.layers[layerNr];
+    SliceLayer& layer = mesh.layers[layer_nr];
 
     int extra_offset = 0;
     EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
     if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
         && mesh.getSettingBoolean("alternate_extra_perimeter")
-        && layerNr % 2 == 0
+        && layer_nr % 2 == 0
         && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
     {
         extra_offset = -innermost_wall_line_width;
