@@ -149,6 +149,14 @@ private:
      * \param layer2 The layer from which to gather the innermost walls
      */
     Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
+
+    /*!
+     * Helper function to get the outlines of each part which might intersect with \p part_here
+     * 
+     * \param part_here The part for which to check
+     * \param layer2_nr The layer index from which to gather the outlines
+     */
+    Polygons getOutlines(const SliceLayerPart& part_here, int layer2_nr);
 };
 
 }//namespace cura

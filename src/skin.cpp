@@ -52,6 +52,29 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+Polygons SkinInfillAreaComputation::getOutlines(const SliceLayerPart& part_here, int layer2_nr)
+{
+    Polygons result;
+    if (layer2_nr < static_cast<int>(mesh.layers.size()))
+    {
+        const SliceLayer& layer2 = mesh.layers[layer2_nr];
+        for (const SliceLayerPart& part2 : layer2.parts)
+        {
+            if (part_here.boundaryBox.hit(part2.boundaryBox))
+            {
+                result.add(part2.print_outline);
+            }
+        }
+    }
+    return result;
+};
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
  * generateSkinAreas reads data from mesh.layers.parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  * generateSkinInsets only read/writes the skin_parts from the current layer.
  *
