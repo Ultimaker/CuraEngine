@@ -108,6 +108,15 @@ protected:
     const int wall_line_count;
     const int innermost_wall_line_width;
     const int infill_skin_overlap;
+
+private:
+    /*!
+     * Helper function to get the innermost walls of each part which might intersect with \p part_here
+     * 
+     * \param part_here The part for which to check
+     * \param layer2 The layer from which to gather the innermost walls
+     */
+    Polygons getInsidePolygons(SliceLayerPart& part_here, const SliceLayer& layer2);
 };
 
 }//namespace cura

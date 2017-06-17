@@ -21,6 +21,19 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStor
 {
 }
 
+Polygons SkinInfillAreaComputation::getInsidePolygons(SliceLayerPart& part_here, const SliceLayer& layer2)
+{
+    Polygons result;
+    for (const SliceLayerPart& part2 : layer2.parts)
+    {
+        if (part_here.boundaryBox.hit(part2.boundaryBox))
+        {
+            unsigned int wall_idx = std::max(0, std::min(wall_line_count, (int) part2.insets.size()) - 1);
+            result.add(part2.insets[wall_idx]);
+        }
+    }
+    return result;
+};
 
 /*
  * This function is executed in a parallel region based on layer_nr.
@@ -84,30 +97,19 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
         // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
         Polygons original_outline = Polygons(upskin);
         Polygons downskin = (downSkinCount == 0) ? Polygons() : upskin;
-        if (upSkinCount == 0) upskin = Polygons();
-
-        auto getInsidePolygons = [&part, this](SliceLayer& layer2)
-            {
-                Polygons result;
-                for(SliceLayerPart& part2 : layer2.parts)
-                {
-                    if (part.boundaryBox.hit(part2.boundaryBox))
-                    {
-                        unsigned int wall_idx = std::max(0, std::min(wall_line_count, (int) part2.insets.size()) - 1);
-                        result.add(part2.insets[wall_idx]);
-                    }
-                }
-                return result;
-            };
+        if (upSkinCount == 0)
+        {
+            upskin = Polygons();
+        }
 
         if (static_cast<int>(layer_nr - downSkinCount) >= 0 && downSkinCount > 0)
         {
-            Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - downSkinCount]);
+            Polygons not_air = getInsidePolygons(part, mesh.layers[layer_nr - downSkinCount]);
             if (!no_small_gaps_heuristic)
             {
                 for (int downskin_layer_nr = layer_nr - downSkinCount + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
                 {
-                    not_air = not_air.intersection(getInsidePolygons(mesh.layers[downskin_layer_nr]));
+                    not_air = not_air.intersection(getInsidePolygons(part, mesh.layers[downskin_layer_nr]));
                 }
             }
             if (min_infill_area > 0)
@@ -119,12 +121,12 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
 
         if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()) && upSkinCount > 0)
         {
-            Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
+            Polygons not_air = getInsidePolygons(part, mesh.layers[layer_nr + upSkinCount]);
             if (!no_small_gaps_heuristic)
             {
                 for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + upSkinCount; upskin_layer_nr++)
                 {
-                    not_air = not_air.intersection(getInsidePolygons(mesh.layers[upskin_layer_nr]));
+                    not_air = not_air.intersection(getInsidePolygons(part, mesh.layers[upskin_layer_nr]));
                 }
             }
             if (min_infill_area > 0)
