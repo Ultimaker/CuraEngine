@@ -666,6 +666,8 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         return;
     }
 
+    int bottom_layers = mesh.getSettingAsCount("bottom_layers");
+    int top_layers = mesh.getSettingAsCount("top_layers");
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
     const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
     int infill_skin_overlap = 0;
@@ -674,8 +676,11 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     {
         infill_skin_overlap = innermost_wall_line_width / 2;
     }
-    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, infill_skin_overlap, process_infill);
-    skin_infill_area_computation.generateSkinsAndInfill(mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
+    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    int skin_outline_count = mesh.getSettingAsCount("skin_outline_count");
+    bool skin_no_small_gaps_heuristic = mesh.getSettingBoolean("skin_no_small_gaps_heuristic");
+    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, bottom_layers, top_layers, wall_line_count, innermost_wall_line_width, infill_skin_overlap, wall_line_width_x, skin_outline_count, skin_no_small_gaps_heuristic, process_infill);
+    skin_infill_area_computation.generateSkinsAndInfill();
 
     if (mesh.getSettingBoolean("ironing_enabled"))
     {

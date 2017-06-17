@@ -24,18 +24,17 @@ public:
      * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
      * \param innermost_wall_line_width width of the innermost wall lines
      * \param infill_skin_overlap overlap distance between infill and skin
-     * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
-     */
-    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, bool process_infill);
-
-    /*!
-     * Generate the skin areas and its insets.
-     * 
      * \param wall_line_width_x The line width of the inner most wall
      * \param insetCount The number of perimeters to surround the skin
      * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
+     * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
      */
-    void generateSkinsAndInfill(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
+    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic, bool process_infill);
+
+    /*!
+     * Generate the skin areas and its insets.
+     */
+    void generateSkinsAndInfill();
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
@@ -66,46 +65,33 @@ public:
 protected:
     /*!
      * Generate the skin areas (outlines)
-     * 
-     * \param no_small_gaps_heuristic A heuristic which assumes there will be no
-     * small gaps between bottom and top skin with a z size smaller than the skin
-     * size itself.
      */
-    void generateSkinAreas(bool no_small_gaps_heuristic);
+    void generateSkinAreas();
 
     /*!
      * Generate the skin areas (outlines) of one part in a layer
      * 
      * \param part The part for which to generate skins.
-     * \param no_small_gaps_heuristic A heuristic which assumes there will be no
-     * small gaps between bottom and top skin with a z size smaller than the skin
-     * size itself.
      */
-    void generateSkinAndInfillAreas(SliceLayerPart& part, bool no_small_gaps_heuristic);
+    void generateSkinAndInfillAreas(SliceLayerPart& part);
 
     /*!
      * Calculate the basic areas which have air above
      * 
      * \param part The part for which to compute the top skin areas
-     * \param no_small_gaps_heuristic A heuristic which assumes there will be no
-     * small gaps between bottom and top skin with a z size smaller than the skin
-     * size itself.
      * \param min_infill_area The minimum area to fill with skin
      * \param[in,out] upskin The areas of top skin to be pdated by the layers above.
      */
-    void calculateTopSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
 
     /*!
      * Calculate the basic areas which have air below
      * 
      * \param part The part for which to compute the bottom skin areas
-     * \param no_small_gaps_heuristic A heuristic which assumes there will be no
-     * small gaps between bottom and top skin with a z size smaller than the skin
-     * size itself.
      * \param min_infill_area The minimum area to fill with skin
-     * \param[in,out] upskin The areas of bottom skin to be pdated by the layers above.
+     * \param[in,out] downskin The areas of bottom skin to be pdated by the layers above.
      */
-    void calculateBottomSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
 
     /*!
      * Apply skin expansion:
@@ -131,20 +117,29 @@ protected:
      * 
      * \param part The part where the skin outline information (input) is stored and
      * where the skin insets (output) are stored.
-     * \param wall_line_width_x The width of the perimeters around the skin.
-     * \param insetCount The number of perimeters to surround the skin.
      */
-    void generateSkinInsets(SliceLayerPart* part, const int wall_line_width_x, int insetCount);
+    void generateSkinInsets(SliceLayerPart* part);
+
+    /*!
+     * Generate the skin insets of a skin part.
+     * 
+     * \param skin_part The part where the skin outline information (input) is stored and
+     * where the skin insets (output) are stored.
+     */
+    void generateSkinInsets(SkinPart& skin_part);
 
 protected:
-    const int layer_nr;
-    SliceMeshStorage& mesh;
-    const int downSkinCount;
-    const int upSkinCount;
-    const int wall_line_count;
-    const int innermost_wall_line_width;
-    const int infill_skin_overlap;
-    bool process_infill;
+    const int layer_nr; //!< The index of the layer for which to generate the skins and infill.
+    SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
+    const int downSkinCount; //!< The number of layers of bottom skin
+    const int upSkinCount; //!< The number of layers of top skin
+    const int wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
+    const int innermost_wall_line_width; //!< width of the innermost wall lines
+    const int infill_skin_overlap; //!< overlap distance between infill and skin
+    const int wall_line_width_x; //!< The line width of the inner most wall
+    const int insetCount; //!< The number of perimeters to surround the skin
+    const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
+    const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
 private:
     /*!

@@ -10,7 +10,7 @@
 namespace cura 
 {
 
-SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, bool process_infill)
+SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic, bool process_infill)
 : layer_nr(layer_nr)
 , mesh(mesh)
 , downSkinCount(downSkinCount)
@@ -18,10 +18,19 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStor
 , wall_line_count(wall_line_count)
 , innermost_wall_line_width(innermost_wall_line_width)
 , infill_skin_overlap(infill_skin_overlap)
+, wall_line_width_x(wall_line_width_x)
+, insetCount(insetCount)
+, no_small_gaps_heuristic(no_small_gaps_heuristic)
 , process_infill(process_infill)
 {
 }
 
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
 Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2)
 {
     Polygons result;
@@ -45,15 +54,15 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinsAndInfill(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinsAndInfill()
 {
-    generateSkinAreas(no_small_gaps_heuristic);
+    generateSkinAreas();
 
     SliceLayer* layer = &mesh.layers[layer_nr];
     for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
     {
         SliceLayerPart* part = &layer->parts[part_nr];
-        generateSkinInsets(part, wall_line_width_x, insetCount);
+        generateSkinInsets(part);
     }
 }
 
@@ -63,7 +72,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill(int wall_line_width_x, in
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinAreas(bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAreas()
 {
     SliceLayer& layer = mesh.layers[layer_nr];
     
@@ -80,7 +89,7 @@ void SkinInfillAreaComputation::generateSkinAreas(bool no_small_gaps_heuristic)
         {
             continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin or infill.
         }
-        generateSkinAndInfillAreas(part, no_small_gaps_heuristic);
+        generateSkinAndInfillAreas(part);
     }
 }
 
@@ -90,7 +99,7 @@ void SkinInfillAreaComputation::generateSkinAreas(bool no_small_gaps_heuristic)
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part, bool no_small_gaps_heuristic)
+void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
@@ -103,9 +112,9 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part,
         upskin = Polygons();
     }
 
-    calculateBottomSkin(part, no_small_gaps_heuristic, min_infill_area, downskin);
+    calculateBottomSkin(part, min_infill_area, downskin);
 
-    calculateTopSkin(part, no_small_gaps_heuristic, min_infill_area, upskin);
+    calculateTopSkin(part, min_infill_area, upskin);
 
     applySkinExpansion(original_outline, upskin, downskin);
 
@@ -127,7 +136,13 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part,
     }
 }
 
-void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& downskin)
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin)
 {
     if (static_cast<int>(layer_nr - downSkinCount) >= 0 && downSkinCount > 0)
     {
@@ -147,7 +162,7 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     }
 }
 
-void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& upskin)
+void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin)
 {
     if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()) && upSkinCount > 0)
     {
@@ -167,6 +182,12 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, con
     }
 }
 
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
     coord_t expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
@@ -194,13 +215,14 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     }
 }
 
+
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
- * generateSkinInsets only read/writes the skin_parts from the current layer.
+ * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const int wall_line_width_x, int insetCount)
+void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part)
 {
     if (insetCount == 0)
     {
@@ -209,25 +231,36 @@ void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part, const i
     
     for (SkinPart& skin_part : part->skin_parts)
     {
-        for(int i=0; i<insetCount; i++)
+        generateSkinInsets(skin_part);
+    }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
+{
+    for (int inset_idx = 0; inset_idx < insetCount; inset_idx++)
+    {
+        skin_part.insets.push_back(Polygons());
+        if (inset_idx == 0)
         {
-            skin_part.insets.push_back(Polygons());
-            if (i == 0)
-            {
-                skin_part.insets[0] = skin_part.outline.offset(-wall_line_width_x / 2);
-            }
-            else
-            {
-                skin_part.insets[i] = skin_part.insets[i - 1].offset(-wall_line_width_x);
-            }
-            
-            // optimize polygons: remove unnecessary verts
-            skin_part.insets[i].simplify();
-            if (skin_part.insets[i].size() < 1)
-            {
-                skin_part.insets.pop_back();
-                break;
-            }
+            skin_part.insets[0] = skin_part.outline.offset(-wall_line_width_x / 2);
+        }
+        else
+        {
+            skin_part.insets[inset_idx] = skin_part.insets[inset_idx - 1].offset(-wall_line_width_x);
+        }
+
+        // optimize polygons: remove unnecessary verts
+        skin_part.insets[inset_idx].simplify();
+        if (skin_part.insets[inset_idx].size() < 1)
+        {
+            skin_part.insets.pop_back();
+            break;
         }
     }
 }
