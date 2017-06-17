@@ -49,9 +49,9 @@ void SkinInfillAreaComputation::generateSkins(int wall_line_width_x, int insetCo
     generateSkinAreas(no_small_gaps_heuristic);
 
     SliceLayer* layer = &mesh.layers[layer_nr];
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
     {
-        SliceLayerPart* part = &layer->parts[partNr];
+        SliceLayerPart* part = &layer->parts[part_nr];
         generateSkinInsets(part, wall_line_width_x, insetCount);
     }
 }
