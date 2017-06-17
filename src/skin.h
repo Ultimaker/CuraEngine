@@ -19,17 +19,17 @@ public:
      * 
      * \param layer_nr The index of the layer for which to generate the skins and infill.
      * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
-     * \param downSkinCount The number of layers of bottom skin
-     * \param upSkinCount The number of layers of top skin
+     * \param bottom_layer_count The number of layers of bottom skin
+     * \param top_layer_count The number of layers of top skin
      * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
      * \param innermost_wall_line_width width of the innermost wall lines
      * \param infill_skin_overlap overlap distance between infill and skin
      * \param wall_line_width_x The line width of the inner most wall
-     * \param insetCount The number of perimeters to surround the skin
+     * \param skin_inset_count The number of perimeters to surround the skin
      * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
      * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
      */
-    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic, bool process_infill);
+    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int bottom_layer_count, int top_layer_count, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_width_x, int skin_inset_count, bool no_small_gaps_heuristic, bool process_infill);
 
     /*!
      * Generate the skin areas and its insets.
@@ -131,13 +131,13 @@ protected:
 protected:
     const int layer_nr; //!< The index of the layer for which to generate the skins and infill.
     SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
-    const int downSkinCount; //!< The number of layers of bottom skin
-    const int upSkinCount; //!< The number of layers of top skin
+    const int bottom_layer_count; //!< The number of layers of bottom skin
+    const int top_layer_count; //!< The number of layers of top skin
     const int wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
     const int innermost_wall_line_width; //!< width of the innermost wall lines
     const int infill_skin_overlap; //!< overlap distance between infill and skin
     const int wall_line_width_x; //!< The line width of the inner most wall
-    const int insetCount; //!< The number of perimeters to surround the skin
+    const int skin_inset_count; //!< The number of perimeters to surround the skin
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
