@@ -37,35 +37,6 @@ public:
 void generateSkins(int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
- * Generate the skin areas (outlines)
- * 
- * \param no_small_gaps_heuristic A heuristic which assumes there will be no
- * small gaps between bottom and top skin with a z size smaller than the skin
- * size itself.
- */
-void generateSkinAreas(bool no_small_gaps_heuristic);
-
-/*!
- * Generate the skin areas (outlines) of one part in a layer
- * 
- * \param part The part for which to generate skins.
- * \param no_small_gaps_heuristic A heuristic which assumes there will be no
- * small gaps between bottom and top skin with a z size smaller than the skin
- * size itself.
- */
-void generateSkinAreas(SliceLayerPart& part, bool no_small_gaps_heuristic);
-
-/*!
- * Generate the skin insets.
- * 
- * \param part The part where the skin outline information (input) is stored and
- * where the skin insets (output) are stored.
- * \param wall_line_width_x The width of the perimeters around the skin.
- * \param insetCount The number of perimeters to surround the skin.
- */
-void generateSkinInsets(SliceLayerPart* part, const int wall_line_width_x, int insetCount);
-
-/*!
  * Generate Infill by offsetting from the last wall.
  * 
  * The walls should already be generated.
@@ -86,19 +57,84 @@ void generateInfill();
  */
 static void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount);
 
-    /*!
-     * Generate infill areas which cause a gradually less dense infill structure from top to bottom.
-     * 
-     * The areas generated overlap, so that more dense infill adds on to less dense infill.
-     * That way you don't have infill lines which are broken when they cross a border between separated infill areas - if they would be as such.
-     * 
-     * This function also guarantees that the SliceLayerPart::infill_area_per_combine_per_density is initialized with at least one item.
-     * The last item in the list will be equal to the infill_area after this function.
-     * 
-     * \param gradual_infill_step_height // The height difference between consecutive density infill areas
-     * \param max_infill_steps the maximum exponent of division of infill density. At 5 the least dense infill will be 2^4 * infill_line_distance i.e. one 16th as dense
-     */
-    static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
+/*!
+ * Generate infill areas which cause a gradually less dense infill structure from top to bottom.
+ * 
+ * The areas generated overlap, so that more dense infill adds on to less dense infill.
+ * That way you don't have infill lines which are broken when they cross a border between separated infill areas - if they would be as such.
+ * 
+ * This function also guarantees that the SliceLayerPart::infill_area_per_combine_per_density is initialized with at least one item.
+ * The last item in the list will be equal to the infill_area after this function.
+ * 
+ * \param gradual_infill_step_height // The height difference between consecutive density infill areas
+ * \param max_infill_steps the maximum exponent of division of infill density. At 5 the least dense infill will be 2^4 * infill_line_distance i.e. one 16th as dense
+ */
+static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
+
+protected:
+/*!
+ * Generate the skin areas (outlines)
+ * 
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
+ */
+void generateSkinAreas(bool no_small_gaps_heuristic);
+
+/*!
+ * Generate the skin areas (outlines) of one part in a layer
+ * 
+ * \param part The part for which to generate skins.
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
+ */
+void generateSkinAreas(SliceLayerPart& part, bool no_small_gaps_heuristic);
+
+/*!
+ * Calculate the basic areas which have air above
+ * 
+ * \param part The part for which to compute the top skin areas
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
+ * \param min_infill_area The minimum area to fill with skin
+ * \param[in,out] upskin The areas of top skin to be pdated by the layers above.
+ */
+void calculateTopSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& upskin);
+
+/*!
+ * Calculate the basic areas which have air below
+ * 
+ * \param part The part for which to compute the bottom skin areas
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
+ * \param min_infill_area The minimum area to fill with skin
+ * \param[in,out] upskin The areas of bottom skin to be pdated by the layers above.
+ */
+void calculateBottomSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& downskin);
+
+/*!
+ * Apply skin expansion:
+ * expand skins into infill area
+ * where the skin is broad enough
+ * 
+ * \param original_outline The outline within which skin and infill lie (inner bounds of innermost walls)
+ * \param[in,out] upskin The top skin areas to grow
+ * \param[in,out] downskin The bottom skin areas to grow
+ */
+void applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin);
+
+/*!
+ * Generate the skin insets.
+ * 
+ * \param part The part where the skin outline information (input) is stored and
+ * where the skin insets (output) are stored.
+ * \param wall_line_width_x The width of the perimeters around the skin.
+ * \param insetCount The number of perimeters to surround the skin.
+ */
+void generateSkinInsets(SliceLayerPart* part, const int wall_line_width_x, int insetCount);
 
 protected:
     const int layer_nr;
@@ -116,7 +152,7 @@ private:
      * \param part_here The part for which to check
      * \param layer2 The layer from which to gather the innermost walls
      */
-    Polygons getInsidePolygons(SliceLayerPart& part_here, const SliceLayer& layer2);
+    Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
 };
 
 }//namespace cura

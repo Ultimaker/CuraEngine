@@ -21,7 +21,7 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStor
 {
 }
 
-Polygons SkinInfillAreaComputation::getInsidePolygons(SliceLayerPart& part_here, const SliceLayer& layer2)
+Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2)
 {
     Polygons result;
     for (const SliceLayerPart& part2 : layer2.parts)
@@ -102,6 +102,26 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
             upskin = Polygons();
         }
 
+        calculateBottomSkin(part, no_small_gaps_heuristic, min_infill_area, downskin);
+
+        calculateTopSkin(part, no_small_gaps_heuristic, min_infill_area, upskin);
+
+        applySkinExpansion(original_outline, upskin, downskin);
+
+        // now combine the resized upskin and downskin
+        Polygons skin = upskin.unionPolygons(downskin);
+
+        skin.removeSmallAreas(MIN_AREA_SIZE);
+        
+        for (PolygonsPart& skin_area_part : skin.splitIntoParts())
+        {
+            part.skin_parts.emplace_back();
+            part.skin_parts.back().outline = skin_area_part;
+        }
+}
+
+void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& downskin)
+{
         if (static_cast<int>(layer_nr - downSkinCount) >= 0 && downSkinCount > 0)
         {
             Polygons not_air = getInsidePolygons(part, mesh.layers[layer_nr - downSkinCount]);
@@ -118,7 +138,10 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
             }
             downskin = downskin.difference(not_air); // skin overlaps with the walls
         }
+}
 
+void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, const bool no_small_gaps_heuristic, int min_infill_area, Polygons& upskin)
+{
         if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()) && upSkinCount > 0)
         {
             Polygons not_air = getInsidePolygons(part, mesh.layers[layer_nr + upSkinCount]);
@@ -135,12 +158,17 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
             }
             upskin = upskin.difference(not_air); // skin overlaps with the walls
         }
+}
 
-        int expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
-
-        if (expand_skins_expand_distance > 0)
+void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
+{
+        coord_t expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
+        if (expand_skins_expand_distance <= 0)
         {
-            int pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
+            return;
+        }
+
+            coord_t pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
 
             // skin areas are to be enlarged by expand_skins_expand_distance but before they are expanded
             // the skin areas are shrunk by pre_shrink so that very narrow regions of skin
@@ -157,18 +185,6 @@ void SkinInfillAreaComputation::generateSkinAreas(SliceLayerPart& part, bool no_
             {
                 downskin = downskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
             }
-        }
-
-        // now combine the resized upskin and downskin
-        Polygons skin = upskin.unionPolygons(downskin);
-
-        skin.removeSmallAreas(MIN_AREA_SIZE);
-        
-        for (PolygonsPart& skin_area_part : skin.splitIntoParts())
-        {
-            part.skin_parts.emplace_back();
-            part.skin_parts.back().outline = skin_area_part;
-        }
 }
 
 /*
