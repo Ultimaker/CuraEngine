@@ -137,7 +137,8 @@ bool SettingsBase::hasSettingKey(const std::string& key) const
 const std::vector<std::string> SettingsBase::getAllLocalSettingKeys() const
 {
     std::vector<std::string> key_list;
-    for (auto pair : this->setting_values)
+    key_list.reserve(setting_values.size());
+    for (auto pair : setting_values)
     {
         key_list.push_back(pair.first);
     }
