@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
@@ -132,6 +134,15 @@ bool SettingsBase::hasSettingKey(const std::string& key) const
     return false;
 }
 
+const std::vector<std::string> SettingsBase::getAllLocalSettingKeys() const
+{
+    std::vector<std::string> key_list;
+    for (auto pair : this->setting_values)
+    {
+        key_list.push_back(pair.first);
+    }
+    return key_list;
+}
 
 void SettingsMessenger::setSetting(std::string key, std::string value)
 {

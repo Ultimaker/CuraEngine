@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
 
@@ -296,15 +298,7 @@ public:
     /*!
      * Gets a list of all keys in the local settings map.
      */
-    const std::vector<std::string> getAllLocalSettingKeys() const
-    {
-        std::vector<std::string> key_list;
-        for (auto pair : this->setting_values)
-        {
-            key_list.push_back(pair.first);
-        }
-        return key_list;
-    }
+    const std::vector<std::string> getAllLocalSettingKeys() const;
 
     std::string getAllLocalSettingsString() const
     {
