@@ -210,6 +210,13 @@ public:
      * \return whether a particular extruder is used by this mesh on a particular layer
      */
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
+
+    /*!
+     * \return the start point on each layer as specified by the user relative to centre of the mesh's bounding box
+     */
+    Point getZSeamOrigin() const {
+        return Point(middle.x + getSettingInMicrons("z_seam_x"), middle.y + getSettingInMicrons("z_seam_y"));
+    }
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
