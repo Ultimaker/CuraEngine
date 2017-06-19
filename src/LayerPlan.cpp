@@ -59,16 +59,8 @@ GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, Spa
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
         return &paths.back();
-    paths.emplace_back();
+    paths.emplace_back(config, space_fill_type, flow, spiralize);
     GCodePath* ret = &paths.back();
-    ret->retract = false;
-    ret->perform_prime = false;
-    ret->perform_z_hop = false;
-    ret->config = config;
-    ret->done = false;
-    ret->flow = flow;
-    ret->spiralize = spiralize;
-    ret->space_fill_type = space_fill_type;
     return ret;
 }
 
@@ -82,9 +74,9 @@ void LayerPlan::forceNewPathStart()
 LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
+, z(z)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
-, z(z)
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)

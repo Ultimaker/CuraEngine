@@ -6,20 +6,20 @@
 namespace cura {
 
 
-bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage* mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
+bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
-    if (extruder_nr != mesh->getSettingAsExtruderNr("infill_extruder_nr"))
+    if (extruder_nr != mesh.getSettingAsExtruderNr("infill_extruder_nr"))
     {
         return false;
     }
     bool added_something = false;
     const GCodePathConfig& config = mesh_config.infill_config[0];
-    const EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
+    const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
     const unsigned int infill_line_width = config.getLineWidth();
-    const int64_t z = layer_nr * mesh->getSettingInMicrons("layer_height");
+    const int64_t z = layer_nr * mesh.getSettingInMicrons("layer_height");
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
-    const double layer_height_mm = (layer_nr == 0)? mesh->getSettingInMillimeters("layer_height_0") : mesh->getSettingInMillimeters("layer_height");
+    const double layer_height_mm = (layer_nr == 0)? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
 
     // For each part on this layer which is used to fill that part and parts below:
     for (const std::pair<Polygons, double>& filling_area : part.spaghetti_infill_volumes)
@@ -28,7 +28,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons infill_polygons;
 
         const Polygons& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
-        const double total_volume = filling_area.second * mesh->getSettingAsRatio("spaghetti_flow"); // volume to be extruded
+        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow"); // volume to be extruded
         assert(total_volume > 0.0);
 
         // generate zigzag print head paths
@@ -36,7 +36,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         const bool connected_zigzags = true;
         const bool use_endpieces = false;
         Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces);
-        infill_comp.generate(infill_polygons, infill_lines, mesh);
+        infill_comp.generate(infill_polygons, infill_lines, &mesh);
 
         // add paths to plan with a higher flow ratio in order to extrude the required amount.
         const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();
@@ -46,7 +46,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             const double normal_volume = INT2MM(INT2MM(total_length * infill_line_width)) * layer_height_mm;
             assert(normal_volume > 0.0);
             const float flow_ratio = total_volume / normal_volume;
-            assert(flow_ratio / mesh->getSettingAsRatio("spaghetti_flow") >= 0.9);
+            assert(flow_ratio / mesh.getSettingAsRatio("spaghetti_flow") >= 0.9);
             assert(!std::isnan(flow_ratio) && !std::isinf(flow_ratio));
 
             if (!infill_polygons.empty() || !infill_lines.empty())
@@ -56,7 +56,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
                 gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
                 if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
                 {
-                    gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                    gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
                 }
                 else
                 {
