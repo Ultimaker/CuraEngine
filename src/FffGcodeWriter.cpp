@@ -886,17 +886,20 @@ std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStarti
     return ret;
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const
+std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr) const
 {
     OrderOptimizer<unsigned int> mesh_idx_order_optimizer;
 
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
             const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
+            mesh.middle.x = middle.x;
+            mesh.middle.y = middle.y;
+            mesh.middle.z = middle.z;
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }

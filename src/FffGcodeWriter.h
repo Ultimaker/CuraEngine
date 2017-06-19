@@ -312,7 +312,7 @@ private:
      * \param extruder_nr The extruder for which to determine the order
      * \return A vector of mesh indices ordered on print order for that extruder.
      */
-    std::vector<unsigned int> calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const;
+    std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int extruder_nr) const;
 
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer in mesh surface mode.
