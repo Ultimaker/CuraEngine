@@ -212,10 +212,15 @@ public:
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
 
     /*!
-     * \return the start point on each layer as specified by the user relative to centre of the mesh's bounding box
+     * \return the mesh's user specified z seam hint
      */
     Point getZSeamOrigin() const {
-        return Point(middle.x + getSettingInMicrons("z_seam_x"), middle.y + getSettingInMicrons("z_seam_y"));
+        Point pos(getSettingInMicrons("z_seam_x"), getSettingInMicrons("z_seam_y"));
+        if(getSettingBoolean("z_seam_relative"))
+        {
+            pos += Point(middle.x, middle.y);
+        }
+        return pos;
     }
 };
 
