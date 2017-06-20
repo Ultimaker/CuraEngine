@@ -464,6 +464,9 @@ void GCodeExport::writeTypeComment(PrintFeatureType type)
         case PrintFeatureType::SupportInfill:
             *output_stream << ";TYPE:SUPPORT" << new_line;
             break;
+        case PrintFeatureType::PurgeMove:
+            *output_stream << ";TYPE:FILL" << new_line;
+            break;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
         default:
@@ -666,6 +669,35 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     writeUnretractionAndPrime();
 
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
+
+    // If this is a prime tower purge movement, it can travel at a normal speed but extrude way more than
+    // what the extruder is capable of. In this case, we need to reduce the travel speed to compensate
+    // for this.
+    if (feature == PrintFeatureType::PurgeMove)
+    {
+        const double extrusion_mm3 = extrusion_mm3_per_mm * diff.vSizeMM();
+        const double extrusion_mm3_per_sec = extrusion_mm3 / (diff.vSizeMM() / speed);
+
+        // FIXME: this is a conservative constant number
+        // 3mm^3/sec for 0.4mm nozzles, but we also use it for 0.8mm nozzle for now
+        const double prime_tower_purge_max_extrusion_mm3_per_sec = 3.0;
+
+        // If the extrusion speed exceeds the possible limit, compensate the travel speed for that
+        // and adjust the extrusion speed.
+        if (extrusion_mm3_per_sec > prime_tower_purge_max_extrusion_mm3_per_sec)
+        {
+            const double min_time_needed_for_extrusion = extrusion_mm3 / prime_tower_purge_max_extrusion_mm3_per_sec;
+#ifndef NDEBUG
+            // sanity check to make sure that the newly calculated travel time is no less than the old travel time
+            // because we are trying to give time for the extrusion.
+            const double old_travel_time = diff.vSizeMM() / speed;
+            assert(old_travel_time <= min_time_needed_for_extrusion);
+#endif // NDEBUG
+
+            const double compensated_travel_speed = diff.vSizeMM() / min_time_needed_for_extrusion;
+            speed = compensated_travel_speed;
+        }
+    }
 
     *output_stream << "G1";
     writeFXYZE(speed, x, y, z, new_e_value, feature);

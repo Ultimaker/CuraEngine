@@ -261,7 +261,16 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
 
             // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
             // This has the added benefit that it will evenly spread the primed material inside the tower.
-            gcode_layer.addExtrusionMove(prime_start, &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, purge_flow);
+            const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+            // FIXME: this can cause out-of-memory issues because we are allocating memory blocks on the heap without releasing them
+            GCodePathConfig *prime_tower_purge_gcode_path_config = new GCodePathConfig(
+                PrintFeatureType::PurgeMove,
+                current_gcode_path_config->getLineWidth(),
+                current_gcode_path_config->getLayerThickness(),
+                current_gcode_path_config->getFlowPercentage(),
+                current_gcode_path_config->getSpeedDerivatives()
+            );
+            gcode_layer.addExtrusionMove(prime_start, prime_tower_purge_gcode_path_config, SpaceFillType::None, purge_flow);
         }
         else
         {
@@ -286,8 +295,17 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
             const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
             float purge_flow = purge_volume / normal_volume;
 
+            const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+            // FIXME: this can cause out-of-memory issues because we are allocating memory blocks on the heap without releasing them
+            GCodePathConfig *prime_tower_purge_gcode_path_config = new GCodePathConfig(
+                PrintFeatureType::PurgeMove,
+                current_gcode_path_config->getLineWidth(),
+                current_gcode_path_config->getLayerThickness(),
+                current_gcode_path_config->getFlowPercentage(),
+                current_gcode_path_config->getSpeedDerivatives()
+            );
             // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
-            gcode_layer.addExtrusionMove(prime_start, &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, purge_flow);
+            gcode_layer.addExtrusionMove(prime_start, prime_tower_purge_gcode_path_config, SpaceFillType::None, purge_flow);
         }
         gcode_layer.addTravel(prime_start);
     }
