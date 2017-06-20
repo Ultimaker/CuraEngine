@@ -77,6 +77,12 @@ public:
 
     double getFlowPercentage() const;
 
+    const SpeedDerivatives& getSpeedDerivatives() const;
+
+    int getLayerThickness() const;
+
+    const PrintFeatureType& getPrintFeatureType() const;
+
 private:
     double calculateExtrusion() const;
 };
