@@ -73,6 +73,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].nozzle_type = train->getSettingString("machine_nozzle_type");  // nozzle types are "AA", "BB", "unknown", etc.
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
@@ -149,7 +150,10 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             {
                 prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line;
             }
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << float(INT2MM(getNozzleSize(extr_nr))) << new_line;
+            const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.ID:"
+                << extruder_attr[extr_nr].nozzle_type << " " << nozzle_size << new_line;
         }
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
