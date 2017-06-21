@@ -1,4 +1,8 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "utils/logoutput.h"
+#include "utils/macros.h"
 #include "commandSocket.h"
 #include "FffProcessor.h"
 #include "progress/Progress.h"
@@ -34,7 +38,7 @@ CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
 class Listener : public Arcus::SocketListener
 {
 public:
-    void stateChanged(Arcus::SocketState::SocketState newState) override
+    void stateChanged(Arcus::SocketState::SocketState) override
     {
     }
 
@@ -86,6 +90,7 @@ public:
     Private()
         : socket(nullptr)
         , object_count(0)
+        , last_sent_progress(-1)
     { }
 
     std::shared_ptr<cura::proto::Layer> getLayerById(int id);
@@ -105,6 +110,8 @@ public:
 
     SliceDataStruct<cura::proto::Layer> sliced_layers;
     SliceDataStruct<cura::proto::LayerOptimized> optimized_layers;
+
+    int last_sent_progress; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
 };
 
 /*!
@@ -415,14 +422,25 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
     }
 
     { // load extruder settings
-        for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
+        int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         { // initialize remaining extruder trains and load the defaults
             meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
         }
 
+        bool logged_extra_extruders = false;
         for (auto extruder : settings_per_extruder_train)
         {
             int extruder_nr = extruder.id();
+            if (extruder_nr >= extruder_count)
+            {
+                if (!logged_extra_extruders)
+                {
+                    log("Definition has more extruder trains than extruder count suggests, ignoring extra extruder trains.\n");
+                    logged_extra_extruders = true;
+                }
+                continue;
+            }
             ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
             for (auto setting : extruder.settings().settings())
             {
@@ -583,17 +601,26 @@ void CommandSocket::setExtruderForSend(int extruder)
 void CommandSocket::sendProgress(float amount)
 {
 #ifdef ARCUS
+    int rounded_amount = 1000 * amount;
+    if (private_data->last_sent_progress == rounded_amount)
+    {
+        return;
+    }
+
     auto message = std::make_shared<cura::proto::Progress>();
     amount /= private_data->object_count;
     amount += private_data->optimized_layers.sliced_objects * (1. / private_data->object_count);
     message->set_amount(amount);
     private_data->socket->sendMessage(message);
+
+    private_data->last_sent_progress = rounded_amount;
 #endif
 }
 
 void CommandSocket::sendProgressStage(Progress::Stage stage)
 {
     // TODO
+    UNUSED_PARAM(stage);
 }
 
 void CommandSocket::sendPrintTimeMaterialEstimates()
@@ -602,7 +629,18 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
     logDebug("Sending print time and material estimates.\n");
     auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
 
-    message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
+    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
+    message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
+    message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
+    message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
+    message->set_time_none(time_estimates[static_cast<unsigned char>(PrintFeatureType::NoneType)]);
+    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetraction)]);
+    message->set_time_skin(time_estimates[static_cast<unsigned char>(PrintFeatureType::Skin)]);
+    message->set_time_skirt(time_estimates[static_cast<unsigned char>(PrintFeatureType::SkirtBrim)]);
+    message->set_time_support(time_estimates[static_cast<unsigned char>(PrintFeatureType::Support)]);
+    message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
+    message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
+    message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
     int num_extruders = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
     for (int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
     {
@@ -617,13 +655,9 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
 #endif
 }
 
-void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float print_time)
+void CommandSocket::sendPrintMaterialForObject(int, int, float)
 {
-//     socket.sendInt32(CMD_OBJECT_PRINT_MATERIAL);
-//     socket.sendInt32(12);
-//     socket.sendInt32(index);
-//     socket.sendInt32(extruder_nr);
-//     socket.sendFloat32(print_time);
+    //Do nothing.
 }
 
 void CommandSocket::sendLayerData()

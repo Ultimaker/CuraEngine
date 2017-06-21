@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
@@ -73,6 +76,13 @@ public:
      * \return the own infill area
      */
     Polygons& getOwnInfillArea();
+
+    /*!
+     * Return whether this part has printable areas / perimeters
+     */
+    bool isUsed(const SettingsBaseVirtual& mesh_settings) const;
+
+    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume to fill over the area
 };
 
 /*!
@@ -86,7 +96,6 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
-    int seam_vertex_index; //!< the index of the layer's seam vertex (only used for spiralization)
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -124,8 +133,10 @@ class SupportLayer
 {
 public:
     Polygons supportAreas; //!< normal support areas
-    Polygons skin; //!< the support areas which are to be printed as denser roofs and/or bottoms. Note that the roof/bottom areas and support areas should be mutually exclusive.
-    Polygons support_mesh; //!< Areas from support meshes
+    Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with supportAreas or support_roof.
+    Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with supportAreas or support_bottom.
+    Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
+    Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
 };
 
@@ -195,6 +206,9 @@ public:
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
     std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
 
+    std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
+    std::vector<Polygons* > spiralize_wall_outlines; //!< the wall outline polygons for each layer
+
     PrimeTower primeTower;
 
     std::vector<Polygons> oozeShield;        //oozeShield per layer
@@ -249,6 +263,14 @@ public:
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
     std::vector<bool> getExtrudersUsed(int layer_nr) const;
+
+    /*!
+     * Gets whether prime blob is enabled for the given extruder number.
+     *
+     * \param extruder_nr the extruder number to check.
+     * \return a bool indicating whether prime blob is enabled for the given extruder number.
+     */
+    bool getExtruderPrimeBlobEnabled(int extruder_nr) const;
 
 private:
     /*!

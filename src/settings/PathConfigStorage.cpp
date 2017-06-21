@@ -68,7 +68,8 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness)
 : adhesion_extruder_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr")))
 , support_infill_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr")))
-, support_interface_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr")))
+, support_roof_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_roof_extruder_nr")))
+, support_bottom_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_bottom_extruder_nr")))
 , raft_base_config(
             PrintFeatureType::SupportInterface
             , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width")
@@ -97,12 +98,19 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             , support_infill_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
         )
-, support_interface_config(
+, support_roof_config(
             PrintFeatureType::SupportInterface
-            , support_interface_train->getSettingInMicrons("support_interface_line_width")
+            , support_roof_train->getSettingInMicrons("support_roof_line_width")
             , layer_thickness
-            , support_interface_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_interface_train->getSettingInMillimetersPerSecond("speed_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("acceleration_support_interface"), support_interface_train->getSettingInMillimetersPerSecond("jerk_support_interface")}
+            , support_roof_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_roof_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("jerk_support_roof")}
+        )
+, support_bottom_config(
+            PrintFeatureType::SupportInterface
+            , support_bottom_train->getSettingInMicrons("support_bottom_line_width")
+            , layer_thickness
+            , support_bottom_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_bottom_train->getSettingInMillimetersPerSecond("speed_support_bottom"), support_bottom_train->getSettingInMillimetersPerSecond("acceleration_support_bottom"), support_bottom_train->getSettingInMillimetersPerSecond("jerk_support_bottom")}
         )
 {
     const int extruder_count = storage.meshgroup->getExtruderCount();
@@ -170,9 +178,12 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             GCodePathConfig::SpeedDerivatives& first_layer_config_infill = global_first_layer_config_per_extruder[extruder_nr_support_infill];
             support_infill_config.smoothSpeed(first_layer_config_infill, std::max(0, layer_nr), initial_speedup_layer_count);
 
-            const int extruder_nr_support_interface = storage.getSettingAsIndex("support_interface_extruder_nr");
-            GCodePathConfig::SpeedDerivatives& first_layer_config_interface = global_first_layer_config_per_extruder[extruder_nr_support_interface];
-            support_interface_config.smoothSpeed(first_layer_config_interface, std::max(0, layer_nr), initial_speedup_layer_count);
+            const int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
+            GCodePathConfig::SpeedDerivatives& first_layer_config_roof = global_first_layer_config_per_extruder[extruder_nr_support_roof];
+            support_roof_config.smoothSpeed(first_layer_config_roof, std::max(0, layer_nr), initial_speedup_layer_count);
+            const int extruder_nr_support_bottom = storage.getSettingAsIndex("support_bottom_extruder_nr");
+            GCodePathConfig::SpeedDerivatives& first_layer_config_bottom = global_first_layer_config_per_extruder[extruder_nr_support_bottom];
+            support_bottom_config.smoothSpeed(first_layer_config_bottom, std::max(0, layer_nr), initial_speedup_layer_count);
         }
     }
 

@@ -19,7 +19,7 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
         new_speed = std::min(speed * speed_mod, speed_equalize_flow_max);
     }
     sendLineTo(last_path.config->type, to, last_path.getLineWidth());
-    gcode.writeExtrusion(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
+    gcode.writeExtrusion(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod, last_path.config->type);
 }
     
 bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)

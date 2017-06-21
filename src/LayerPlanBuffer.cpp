@@ -375,6 +375,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
                 initial_print_temp = prev_extruder_plan.required_start_temperature;
             }
         }
+        assert(time_window != 0.0);
         weighted_average_extrusion_temp /= time_window;
         time_window -= heated_pre_travel_time + heated_post_travel_time;
         assert(heated_pre_travel_time != -1 && "heated_pre_travel_time must have been computed; there must have been an extruder plan!");
@@ -487,7 +488,7 @@ void LayerPlanBuffer::insertTempCommands()
         double print_temp = preheat_config.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer);
         double initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
         if (initial_print_temp == 0.0 // user doesn't want to use initial print temp feature
-            || !extruder_used_in_meshgroup[extruder] // prime poop uses print temp rather than initial print temp
+            || !extruder_used_in_meshgroup[extruder] // prime blob uses print temp rather than initial print temp
             || (overall_extruder_plan_idx > 0 && extruder_plans[overall_extruder_plan_idx - 1]->extruder == extruder  // prev plan has same extruder ..
                 && extruder_plans[overall_extruder_plan_idx - 1]->estimates.getTotalUnretractedTime() > 0.0) // and prev extruder plan already heated to printing temperature
         )

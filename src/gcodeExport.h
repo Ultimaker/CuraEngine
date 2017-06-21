@@ -42,6 +42,7 @@ private:
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
         bool use_temp; //!< Whether to insert temperature commands for this extruder
+        bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
@@ -69,6 +70,7 @@ private:
         : prime_pos(0, 0, 0)
         , prime_pos_is_abs(false)
         , is_primed(false)
+        , is_prime_blob_enabled(false)
         , is_used(false)
         , nozzle_offset(0,0)
         , extruderCharacter(0)
@@ -87,7 +89,6 @@ private:
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     unsigned int extruder_count;
     bool use_extruder_offset_to_offset_coords;
-    Point3 machine_dimensions;
     std::string machine_name;
 
     std::ostream* output_stream;
@@ -117,7 +118,7 @@ private:
     int currentFanSpeed;
     EGCodeFlavor flavor;
 
-    double totalPrintTime; //!< The total estimated print time in seconds
+    std::vector<double> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
@@ -224,11 +225,17 @@ public:
     double getTotalFilamentUsed(int extruder_nr);
 
     /*!
-     * Get the total estimated print time in seconds
+     * Get the total estimated print time in seconds for each feature
      * 
-     * \return total print time in seconds
+     * \return total print time in seconds for each feature
      */
-    double getTotalPrintTime();
+    std::vector<double> getTotalPrintTimePerFeature();
+    /*!
+     * Get the total print time in seconds for the complete print
+     * 
+     * \return total print time in seconds for the complete print
+     */
+    double getSumTotalPrintTimes();
     void updateTotalPrintTime();
     void resetTotalPrintTimeAndFilament();
     
@@ -268,8 +275,9 @@ public:
      * 
      * \param p location to go to
      * \param speed movement speed
+     * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm);
+    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -289,8 +297,9 @@ public:
      * 
      * \param p location to go to
      * \param speed movement speed
+     * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm);
+    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -313,8 +322,9 @@ private:
      * \param z build plate z
      * \param speed movement speed
      * \param extrusion_mm3_per_mm flow
+     * \param feature the print feature that's currently printing
      */
-    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
+    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 
     /*!
      * Write the F, X, Y, Z and E value (if they are not different from the last)
@@ -323,10 +333,10 @@ private:
      * 
      * This function also applies the gcode offset by calling \ref GCodeExport::getGcodePos
      * This function updates the \ref GCodeExport::total_bounding_box
-     * It estimates the time in \ref GCodeExport::estimateCalculator
+     * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(double speed, int x, int y, int z, double e);
+    void writeFXYZE(double speed, int x, int y, int z, double e, PrintFeatureType feature);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
@@ -335,13 +345,14 @@ private:
      * \param z build plate z
      * \param speed movement speed
      * \param extrusion_mm3_per_mm flow
+     * \param feature print feature to track print time for
      */
-    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
+    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 public:
     /*!
      * Get ready for extrusion moves:
      * - unretract (G11 or G1 E.)
-     * - prime poop (G1 E)
+     * - prime blob (G1 E)
      * 
      * It estimates the time in \ref GCodeExport::estimateCalculator
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed

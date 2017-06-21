@@ -424,7 +424,7 @@ public:
     GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
 
     /*!
-     * Plan a prime poop at the current location.
+     * Plan a prime blob at the current location.
      * 
      * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
@@ -449,9 +449,10 @@ public:
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, bool always_retract = false);
+    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -469,9 +470,10 @@ public:
      * \param z_seam_pos The location near where to start each part in case \p z_seam_type is 'back'
      * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, bool always_retract = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -479,8 +481,9 @@ public:
      * \param config The config of the lines
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -507,12 +510,11 @@ public:
      * Whether the current retracted path is to be an extruder switch retraction.
      * This function is used to avoid a G10 S1 after a G10.
      * 
-     * \param gcode The gcode to write the planned paths to
      * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index of the current retracted path 
      * \return Whether the path should be an extgruder switch retracted path
      */
-    bool makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx);
+    bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
     
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
