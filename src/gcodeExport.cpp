@@ -819,9 +819,9 @@ void GCodeExport::writeZhopEnd()
 
 void GCodeExport::startExtruder(int new_extruder)
 {
+    extruder_attr[new_extruder].is_used = true;
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
-        extruder_attr[new_extruder].is_used = true;
         if (flavor == EGCodeFlavor::MAKERBOT)
         {
             *output_stream << "M135 T" << new_extruder << new_line;
