@@ -73,6 +73,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].nozzle_id = train->getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
@@ -119,6 +120,7 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
+
     switch (flavor)
     {
     case EGCodeFlavor::GRIFFIN:
@@ -145,7 +147,9 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             {
                 prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line;
             }
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << float(INT2MM(getNozzleSize(extr_nr))) << new_line;
+            const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.ID:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
@@ -161,7 +165,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
         prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
         prefix << ";END_OF_HEADER" << new_line;
-        return prefix.str();
+        break;
     default:
         prefix << ";FLAVOR:" << toString(flavor) << new_line;
         prefix << ";TIME:" << ((print_time)? static_cast<int>(*print_time) : 6666) << new_line;
@@ -178,8 +182,9 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
             prefix << ";Layer height: " << layer_height << new_line;
         }
-        return prefix.str();
     }
+
+    return prefix.str();
 }
 
 
@@ -815,9 +820,9 @@ void GCodeExport::writeZhopEnd()
 
 void GCodeExport::startExtruder(int new_extruder)
 {
+    extruder_attr[new_extruder].is_used = true;
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
-        extruder_attr[new_extruder].is_used = true;
         if (flavor == EGCodeFlavor::MAKERBOT)
         {
             *output_stream << "M135 T" << new_extruder << new_line;
