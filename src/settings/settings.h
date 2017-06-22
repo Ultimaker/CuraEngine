@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
 
@@ -207,6 +209,11 @@ public:
      */
     virtual void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent) = 0;
 
+    /*!
+     * Checks if the given key exists.
+     */
+    virtual bool hasSettingKey(const std::string& key) const = 0;
+
     virtual ~SettingsBaseVirtual() {}
     
     SettingsBaseVirtual(); //!< SettingsBaseVirtual without a parent settings object
@@ -286,7 +293,13 @@ public:
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
-    
+    bool hasSettingKey(const std::string& key) const;
+
+    /*!
+     * Gets a list of all keys in the local settings map.
+     */
+    const std::vector<std::string> getAllLocalSettingKeys() const;
+
     std::string getAllLocalSettingsString() const
     {
         std::stringstream sstream;
@@ -327,6 +340,7 @@ public:
     void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     std::string getSettingString(std::string key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
+    bool hasSettingKey(const std::string& key) const;
 };
 
 

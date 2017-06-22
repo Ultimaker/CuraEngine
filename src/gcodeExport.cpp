@@ -48,7 +48,7 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(const MeshGroup* meshgroup)
+void GCodeExport::preSetup(const SliceDataStorage& storage, const MeshGroup* meshgroup)
 {
     setFlavor(meshgroup->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = meshgroup->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
@@ -67,7 +67,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
+        ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
 
         if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr) && meshgroup->getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
         {
@@ -85,6 +85,22 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
                 extruder_attr[extruder_nr].is_used = true;
             }
         }
+
+        // Cura only has the global stack when it is a single-extrusion machine.
+        // In this case, wee need to update the extruder train settings according to the global stack.
+        if (extruder_count == 1 and extruder_nr == 0)
+        {
+            for (auto setting_key : train->getAllLocalSettingKeys())
+            {
+                if (not storage.hasSettingKey(setting_key))
+                {
+                    continue;
+                }
+
+                train->setSetting(setting_key, storage.getSettingString(setting_key));
+            }
+        }
+
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));

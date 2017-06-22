@@ -31,9 +31,7 @@ public:
      */
     ExtruderTrain* createExtruderTrain(unsigned int extruder_nr);
 
-    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr);
-
-    const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
+    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
 
     std::vector<Mesh> meshes;
 

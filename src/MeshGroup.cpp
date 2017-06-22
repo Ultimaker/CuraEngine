@@ -72,16 +72,11 @@ ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
             std::exit(1);
         }
     }
+    
     return extruders[extruder_nr];
 }
 
-ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr)
-{
-    assert(extruders[extruder_nr]);
-    return extruders[extruder_nr];
-}
-
-const ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr) const
+ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr) const
 {
     assert(extruders[extruder_nr]);
     return extruders[extruder_nr];

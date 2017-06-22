@@ -15,6 +15,7 @@
 
 #include "utils/polygon.h"
 #include "Weaver.h"
+#include "sliceDataStorage.h"
 
 namespace cura
 {
@@ -69,7 +70,7 @@ public:
     
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
     
-    void writeGCode();
+    void writeGCode(const SliceDataStorage& storage);
 
 
 private:
