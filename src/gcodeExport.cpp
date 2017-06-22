@@ -73,7 +73,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        extruder_attr[extruder_nr].nozzle_type = train->getSettingString("machine_nozzle_type");  // nozzle types are "AA", "BB", "unknown", etc.
+        extruder_attr[extruder_nr].nozzle_id = train->getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
@@ -121,15 +121,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 {
     std::ostringstream prefix;
 
-    // output common headers
-    prefix << ";FLAVOR:" << toString(flavor) << new_line;
-
-    // output flavor specific headers
     switch (flavor)
     {
     case EGCodeFlavor::GRIFFIN:
         prefix << ";START_OF_HEADER" << new_line;
         prefix << ";HEADER_VERSION:0.1" << new_line;
+        prefix << ";FLAVOR:" << toString(flavor) << new_line;
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
@@ -152,8 +149,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             }
             const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.ID:"
-                << extruder_attr[extr_nr].nozzle_type << " " << nozzle_size << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.ID:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
@@ -171,6 +167,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";END_OF_HEADER" << new_line;
         break;
     default:
+        prefix << ";FLAVOR:" << toString(flavor) << new_line;
         prefix << ";TIME:" << ((print_time)? static_cast<int>(*print_time) : 6666) << new_line;
         if (flavor == EGCodeFlavor::ULTIGCODE)
         {
