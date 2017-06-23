@@ -331,7 +331,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     std::vector<Polygons> full_overhang_per_layer;
     xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
+    // simplified processing for bottom layer - just ensure support clears part by XY distance
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(supportXYDistance);
+    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
     for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
     {
