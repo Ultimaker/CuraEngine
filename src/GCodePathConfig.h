@@ -29,9 +29,10 @@ private:
     const int line_width; //!< width of the line extruded
     const int layer_thickness; //!< current layer height in micron
     const double flow; //!< extrusion flow modifier in %
+    const double extrusion_speed_factor; //! < extrusion speed factor (only used by purge moves for now)
     const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
 public:
-    GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives); // , SpeedDerivatives slowdown_speed_derivatives, int layer_nr, int max_speed_layer_nr);
+    GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives, double extrusion_speed_factor = 1.0); // , SpeedDerivatives slowdown_speed_derivatives, int layer_nr, int max_speed_layer_nr);
 
     /*!
      * copy constructor
@@ -65,6 +66,8 @@ public:
      * Get the current acceleration of this config
      */
     double getAcceleration() const;
+
+    double getExtrusionSpeedFactor() const;
 
     /*!
      * Get the current jerk of this config

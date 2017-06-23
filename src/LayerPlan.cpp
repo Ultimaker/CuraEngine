@@ -849,7 +849,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (path.config->isTravelPath())
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
+            {
                 speed *= extruder_plan.getExtrudeSpeedFactor();
+
+                // for some movements such as prime tower purge, the speed may get changed by this factor
+                speed *= path.config->getExtrusionSpeedFactor();
+            }
 
             if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
@@ -923,6 +928,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
                     GCodePath& path = paths[path_idx];
+
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         Point p1 = path.points[point_idx];
