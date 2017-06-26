@@ -413,7 +413,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             {
                  // handle perimeter gaps of normal insets
                 int line_width = wall_line_width_0;
-                for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
+                for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
                 {
                     const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
                     line_width = wall_line_width_x;
