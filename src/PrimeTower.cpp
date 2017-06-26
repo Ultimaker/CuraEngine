@@ -225,7 +225,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
 }
 
-void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
+void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
 {
     int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
