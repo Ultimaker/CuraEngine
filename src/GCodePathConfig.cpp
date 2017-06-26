@@ -18,7 +18,7 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 
 
 
-GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives)
+GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, double extrusion_speed_factor)
 : type(type)
 , speed_derivatives(speed_derivatives)
 , line_width(line_width)
@@ -59,6 +59,16 @@ double GCodePathConfig::getJerk() const
 int GCodePathConfig::getLineWidth() const
 {
     return line_width;
+}
+
+int GCodePathConfig::getLayerThickness() const
+{
+    return this->layer_thickness;
+}
+
+const PrintFeatureType& GCodePathConfig::getPrintFeatureType() const
+{
+    return this->type;
 }
 
 bool GCodePathConfig::isTravelPath() const
