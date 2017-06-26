@@ -299,7 +299,7 @@ void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder
 
     const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
-    const coord_t purge_move_length_mm = INT2MM(purge_move_length);
+    const double purge_move_length_mm = INT2MM(purge_move_length);
     const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
     const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
     const double max_possible_extursion_speed_mm3_per_sec = 3.0;
