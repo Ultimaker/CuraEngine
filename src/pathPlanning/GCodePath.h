@@ -49,9 +49,10 @@ public:
      * part.
      * \param flow The flow rate to print this path with.
      * \param spiralize Gradually increment the z-coordinate while traversing
+     * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize);
+    GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.
