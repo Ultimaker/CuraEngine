@@ -18,7 +18,7 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 
 
 
-GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, double extrusion_speed_factor)
+GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives)
 : type(type)
 , speed_derivatives(speed_derivatives)
 , line_width(line_width)
