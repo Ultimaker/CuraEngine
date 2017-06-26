@@ -1420,11 +1420,6 @@ bool FffGcodeWriter::processHoleInsets(std::vector<std::vector<ConstPolygonRef>>
                     // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
                     const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
                     gcode_layer.addTravel(dest);
-                    if (outer_poly_order_idx == 0)
-                    {
-                        // FIXME: adding the above travel move for the first hole in the part triggers an assertion unless we follow it with this bogus zero length extrude
-                        gcode_layer.addExtrusionMove(dest, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
-                    }
                 }
                 std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
                 if (compensate_overlap_x)
@@ -1566,11 +1561,6 @@ bool FffGcodeWriter::processOuterWallInsets(std::vector<std::vector<ConstPolygon
                     // move to the location of the vertex in the level 1 inset that's closest to the z seam location
                     const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
-                    if (part.insets[0].size() == 1) // part has no holes, just an outer wall
-                    {
-                        // FIXME: adding the above travel move triggers an assertion unless we follow it with this bogus zero length extrude
-                        gcode_layer.addExtrusionMove(dest, &mesh_config.insetX_config, SpaceFillType::Polygons, flow, spiralize);
-                    }
                 }
                 if (compensate_overlap_x)
                 {
