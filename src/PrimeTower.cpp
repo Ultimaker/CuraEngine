@@ -297,7 +297,7 @@ void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder
     const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
     float purge_flow = purge_volume / normal_volume;
 
-    const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+    const GCodePathConfig* current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
     const double purge_move_length_mm = INT2MM(purge_move_length);
     const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
