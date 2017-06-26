@@ -585,6 +585,14 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
         walls_computation.generateInsets(layer);
     }
+    else
+    {
+        for (SliceLayerPart& part : layer->parts)
+        {
+            part.insets.push_back(part.outline); // Fake an inset
+            part.print_outline = part.outline;
+        }
+    }
 }
 
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
