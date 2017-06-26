@@ -149,7 +149,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             }
             const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.ID:" << extruder_attr[extr_nr].nozzle_id << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
