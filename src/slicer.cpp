@@ -734,7 +734,7 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
     return ret;
 }
 
-void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
+void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching, bool is_initial_layer)
 {
     Polygons open_polylines;
 
@@ -780,6 +780,9 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     int xy_offset = mesh->getSettingInMicrons("xy_offset");
+    if(is_initial_layer)
+        xy_offset = mesh->getSettingInMicrons("xy_offset_layer_0");
+
     if (xy_offset != 0)
     {
         polygons = polygons.offset(xy_offset);
@@ -892,7 +895,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
 #pragma omp parallel for default(none) shared(mesh,layers_ref) firstprivate(keep_none_closed, extensive_stitching)
     for(unsigned int layer_nr=0; layer_nr<layers_ref.size(); layer_nr++)
     {
-        layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
+        layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching, layer_nr == 0);
     }
 
     mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
