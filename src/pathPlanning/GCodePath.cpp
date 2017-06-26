@@ -6,6 +6,11 @@
 namespace cura
 {
 
+GCodePath::GCodePath()
+    : speed_factor(1.0)
+{
+}
+
 bool GCodePath::isTravelPath()
 {
     return config->isTravelPath();

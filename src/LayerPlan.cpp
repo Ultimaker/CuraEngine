@@ -54,10 +54,10 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
         return &paths.back();
     paths.emplace_back();
     GCodePath* ret = &paths.back();
@@ -69,6 +69,7 @@ GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, Spa
     ret->flow = flow;
     ret->spiralize = spiralize;
     ret->space_fill_type = space_fill_type;
+    ret->speed_factor = speed_factor;
     return ret;
 }
 
@@ -388,9 +389,9 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
+    getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
     last_planned_position = p;
 }
 
@@ -845,16 +846,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             double speed = path.config->getSpeed();
 
+            // for some movements such as prime tower purge, the speed may get changed by this factor
+            speed *= path.speed_factor;
+
             // Apply the relevant factor
             if (path.config->isTravelPath())
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
-            {
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-
-                // for some movements such as prime tower purge, the speed may get changed by this factor
-                speed *= path.config->getExtrusionSpeedFactor();
-            }
 
             if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!

@@ -230,14 +230,14 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
     int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
 
-    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-    const int inward_dist = train.getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
-    const int start_dist = train.getSettingInMicrons("machine_nozzle_size") * 2;
+    const ExtruderTrain *train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const int inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
+    const int start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
     const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - prime_end;
     const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
 
-    const double purge_volume = train.getSettingInCubicMillimeters("prime_tower_purge_volume"); // Volume to be primed
+    const double purge_volume = train->getSettingInCubicMillimeters("prime_tower_purge_volume"); // Volume to be primed
     if (wipe_from_middle)
     {
         // for hollow wipe tower:
@@ -252,50 +252,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
 
         if (purge_volume > 0)
         {
-            // Find out how much purging needs to be done.
-            const coord_t purge_move_length = vSize(middle - prime_start);
-            const unsigned int line_width = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr].getLineWidth();
-            const double layer_height_mm = (layer_nr == 0) ? train.getSettingInMillimeters("layer_height_0") : train.getSettingInMillimeters("layer_height");
-            const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
-            float purge_flow = purge_volume / normal_volume;
-
-            const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-
-            const coord_t purge_move_length_mm = INT2MM(purge_move_length);
-            const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
-            const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
-            const double max_possible_extursion_speed_mm3_per_sec = 3.0;
-
-            const double speed = current_gcode_path_config->getSpeed();
-            double extrusion_speed_factor = 1.0;
-
-            if (purge_extrusion_speed_mm3_per_sec > max_possible_extursion_speed_mm3_per_sec)
-            {
-                // compensate the travel speed for the large extrusion amount
-                const double min_time_needed_for_extrusion = purge_volume / max_possible_extursion_speed_mm3_per_sec;
-#ifndef NDEBUG
-                // sanity check to make sure that the newly calculated travel time is no less than the old travel time
-                // because we are trying to give time for the extrusion.
-                const double old_travel_time = purge_move_length_mm / speed;
-                assert(old_travel_time <= min_time_needed_for_extrusion);
-#endif // NDEBUG
-
-                const double compensated_speed = purge_move_length_mm / min_time_needed_for_extrusion;
-                extrusion_speed_factor = compensated_speed / speed;
-            }
-
-            // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
-            // This has the added benefit that it will evenly spread the primed material inside the tower.
-            // FIXME: this can cause out-of-memory issues because we are allocating memory blocks on the heap without releasing them
-            GCodePathConfig *prime_tower_purge_gcode_path_config = new GCodePathConfig(
-                current_gcode_path_config->getPrintFeatureType(),
-                current_gcode_path_config->getLineWidth(),
-                current_gcode_path_config->getLayerThickness(),
-                current_gcode_path_config->getFlowPercentage(),
-                current_gcode_path_config->getSpeedDerivatives(),
-                extrusion_speed_factor
-            );
-            gcode_layer.addExtrusionMove(prime_start, prime_tower_purge_gcode_path_config, SpaceFillType::None, purge_flow);
+            addPurgeMove(gcode_layer, layer_nr, extruder_nr, train, middle, prime_start, purge_volume);
         }
         else
         {
@@ -313,48 +270,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
             const Point purge_start = prime_start + normal(outward_dir, start_dist);
             gcode_layer.addTravel(purge_start);
 
-            // Calculate how much we need to purge
-            const coord_t purge_move_length = vSize(purge_start - prime_start);
-            const unsigned int line_width = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr].getLineWidth();
-            const double layer_height_mm = (layer_nr == 0)? train.getSettingInMillimeters("layer_height_0") : train.getSettingInMillimeters("layer_height");
-            const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
-            float purge_flow = purge_volume / normal_volume;
-
-            const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-            const coord_t purge_move_length_mm = INT2MM(purge_move_length);
-            const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
-            const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
-            const double max_possible_extursion_speed_mm3_per_sec = 3.0;
-
-            const double speed = current_gcode_path_config->getSpeed();
-            double extrusion_speed_factor = 1.0;
-
-            if (purge_extrusion_speed_mm3_per_sec > max_possible_extursion_speed_mm3_per_sec)
-            {
-                // compensate the travel speed for the large extrusion amount
-                const double min_time_needed_for_extrusion = purge_volume / max_possible_extursion_speed_mm3_per_sec;
-#ifndef NDEBUG
-                // sanity check to make sure that the newly calculated travel time is no less than the old travel time
-                // because we are trying to give time for the extrusion.
-                const double old_travel_time = purge_move_length_mm / speed;
-                assert(old_travel_time <= min_time_needed_for_extrusion);
-#endif // NDEBUG
-
-                const double compensated_speed = purge_move_length_mm / min_time_needed_for_extrusion;
-                extrusion_speed_factor = compensated_speed / speed;
-            }
-
-            // FIXME: this can cause out-of-memory issues because we are allocating memory blocks on the heap without releasing them
-            GCodePathConfig *prime_tower_purge_gcode_path_config = new GCodePathConfig(
-                current_gcode_path_config->getPrintFeatureType(),
-                current_gcode_path_config->getLineWidth(),
-                current_gcode_path_config->getLayerThickness(),
-                current_gcode_path_config->getFlowPercentage(),
-                current_gcode_path_config->getSpeedDerivatives(),
-                extrusion_speed_factor
-            );
-            // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
-            gcode_layer.addExtrusionMove(prime_start, prime_tower_purge_gcode_path_config, SpaceFillType::None, purge_flow);
+            addPurgeMove(gcode_layer, layer_nr, extruder_nr, train, purge_start, prime_start, purge_volume);
         }
         gcode_layer.addTravel(prime_start);
     }
@@ -370,6 +286,45 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     {
         storage.support.supportLayers[layer].supportAreas = storage.support.supportLayers[layer].supportAreas.difference(outside_polygon);
     }
+}
+
+void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const
+{
+    // Find out how much purging needs to be done.
+    const coord_t purge_move_length = vSize(start_pos - end_pos);
+    const unsigned int line_width = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr].getLineWidth();
+    const double layer_height_mm = (layer_nr == 0) ? train->getSettingInMillimeters("layer_height_0") : train->getSettingInMillimeters("layer_height");
+    const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
+    float purge_flow = purge_volume / normal_volume;
+
+    const GCodePathConfig *current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+
+    const coord_t purge_move_length_mm = INT2MM(purge_move_length);
+    const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
+    const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
+    const double max_possible_extursion_speed_mm3_per_sec = 3.0;
+
+    const double speed = current_gcode_path_config->getSpeed();
+    double speed_factor = 1.0;
+
+    if (purge_extrusion_speed_mm3_per_sec > max_possible_extursion_speed_mm3_per_sec)
+    {
+        // compensate the travel speed for the large extrusion amount
+        const double min_time_needed_for_extrusion = purge_volume / max_possible_extursion_speed_mm3_per_sec;
+#ifndef NDEBUG
+        // sanity check to make sure that the newly calculated travel time is no less than the old travel time
+        // because we are trying to give time for the extrusion.
+        const double old_travel_time = purge_move_length_mm / speed;
+        assert(old_travel_time <= min_time_needed_for_extrusion);
+#endif // NDEBUG
+
+        const double compensated_speed = purge_move_length_mm / min_time_needed_for_extrusion;
+        speed_factor = compensated_speed / speed;
+    }
+
+    // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
+    // This has the added benefit that it will evenly spread the primed material inside the tower.
+    gcode_layer.addExtrusionMove(end_pos, current_gcode_path_config, SpaceFillType::None, purge_flow, false, speed_factor);
 }
 
 

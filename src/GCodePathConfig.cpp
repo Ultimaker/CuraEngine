@@ -13,7 +13,6 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 , layer_thickness(other.layer_thickness)
 , flow(other.flow)
 , extrusion_mm3_per_mm(other.extrusion_mm3_per_mm)
-, extrusion_speed_factor(other.extrusion_speed_factor)
 {
 }
 
@@ -26,7 +25,6 @@ GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int laye
 , layer_thickness(layer_height)
 , flow(flow)
 , extrusion_mm3_per_mm(calculateExtrusion())
-, extrusion_speed_factor(extrusion_speed_factor)
 {
 }
 
@@ -36,11 +34,6 @@ void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_
     speed_derivatives.speed = (speed_derivatives.speed * layer_nr) / max_speed_layer + (first_layer_config.speed * (max_speed_layer - layer_nr) / max_speed_layer);
     speed_derivatives.acceleration = (speed_derivatives.acceleration * layer_nr) / max_speed_layer + (first_layer_config.acceleration * (max_speed_layer - layer_nr) / max_speed_layer);
     speed_derivatives.jerk = (speed_derivatives.jerk * layer_nr) / max_speed_layer + (first_layer_config.jerk * (max_speed_layer - layer_nr) / max_speed_layer);
-}
-
-const GCodePathConfig::SpeedDerivatives& GCodePathConfig::getSpeedDerivatives() const
-{
-    return this->speed_derivatives;
 }
 
 double GCodePathConfig::getExtrusionMM3perMM() const
@@ -61,11 +54,6 @@ double GCodePathConfig::getAcceleration() const
 double GCodePathConfig::getJerk() const
 {
     return speed_derivatives.jerk;
-}
-
-double GCodePathConfig::getExtrusionSpeedFactor() const
-{
-    return this->extrusion_speed_factor;
 }
 
 int GCodePathConfig::getLineWidth() const

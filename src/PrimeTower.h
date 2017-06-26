@@ -147,6 +147,23 @@ private:
      * \param extruder_nr The current extruder
      */
     void preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const;
+
+    /*!
+     * Plan a purge move using the prime tower.
+     *
+     * The purge move starts from the center of the prime tower and moves outwards towards the prime tower.
+     * This is an extrusion move so the nozzle will extrude a certain amount of material during the move,
+     * and this is called "purge". This feature can be enabled when prime tower wipe is enabled.
+     *
+     * \param gcode_layer the layer plan to used
+     * \param layer_nr the current layer number
+     * \param extruder_nr the extruder number that will be purged
+     * \param train the extruder train of the extruder what will be purged
+     * \param start_pos the start position of the purge move
+     * \param end_pos the end position of the purge move
+     * \param purge_volume the purge volume in mm^3
+     */
+    void addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const;
 };
 
 
