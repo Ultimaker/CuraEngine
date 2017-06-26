@@ -549,13 +549,16 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 
 void Wireframe2gcode::processStartingCode()
 {
+    int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+
     if (!CommandSocket::isInstantiated())
     {
-        std::string prefix = gcode.getFileHeader();
+        std::vector<bool> extruder_is_used;
+        extruder_is_used.resize(getSettingAsCount("machine_extruder_count"), false);
+        extruder_is_used[start_extruder_nr] = true;
+        std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
     }
-
-    int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 

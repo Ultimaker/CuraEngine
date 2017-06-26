@@ -20,15 +20,15 @@ namespace cura
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_line_width, int insetCount, bool no_small_gaps_heuristic)
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int wall_line_width_x, int insetCount, bool no_small_gaps_heuristic)
 {
-    generateSkinAreas(layerNr, mesh, innermost_wall_line_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
+    generateSkinAreas(layerNr, mesh, wall_line_width_x, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
     SliceLayer* layer = &mesh.layers[layerNr];
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
-        generateSkinInsets(part, innermost_wall_line_width, insetCount);
+        generateSkinInsets(part, wall_line_width_x, insetCount);
     }
 }
 

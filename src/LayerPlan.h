@@ -232,13 +232,11 @@ private:
 
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
+    int z;
 
 private:
     int layer_nr; //!< The layer number of this layer plan
     int is_initial_layer; //!< Whether this is the first layer (which might be raft)
-    
-    int z; 
-    
     int layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder

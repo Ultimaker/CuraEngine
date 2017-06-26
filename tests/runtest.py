@@ -193,6 +193,7 @@ class Setting:
         if self._type == "polygons":
             return [self._default]
         print("Unknown setting type:", self._type)
+        return []
 
     ## Return a random value for this setting. The returned value will be a valid value according to the settings json file.
     def getRandomValue(self):

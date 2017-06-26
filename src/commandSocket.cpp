@@ -349,7 +349,7 @@ void CommandSocket::connect(const std::string& ip, int port)
                 for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
                 {
                     if (extruder_nr < 0 || extruder_nr >= meshgroup->getExtruderCount()) //We obtained an invalid value from the front-end. Ignore.
-                    {
+                    { // if extruder_nr == -1 then that means the setting should be handled as if it has no limit_to_extruder, so we can skip it
                         continue;
                     }
                     const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.

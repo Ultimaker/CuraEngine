@@ -12,6 +12,11 @@ namespace cura
 
 Polygons& SliceLayerPart::getOwnInfillArea()
 {
+    return const_cast<Polygons&>(const_cast<const SliceLayerPart*>(this)->getOwnInfillArea());
+}
+
+const Polygons& SliceLayerPart::getOwnInfillArea() const
+{
     if (infill_area_own)
     {
         return *infill_area_own;
@@ -20,39 +25,6 @@ Polygons& SliceLayerPart::getOwnInfillArea()
     {
         return infill_area;
     }
-}
-
-bool SliceLayerPart::isUsed(const SettingsBaseVirtual& mesh_settings) const
-{
-    if (mesh_settings.getSettingAsCount("wall_line_count") > 0 && insets.size() > 0)
-    { // note that in case wall line count is zero, the outline was pushed onto the insets
-        return true;
-    }
-    if (skin_parts.size() > 0)
-    {
-        return true;
-    }
-    if (mesh_settings.getSettingBoolean("spaghetti_infill_enabled"))
-    {
-        if (spaghetti_infill_volumes.size() > 0)
-        {
-            return true;
-        }
-    }
-    else if (mesh_settings.getSettingInMicrons("infill_line_distance") > 0)
-    {
-        for (const std::vector<Polygons>& infill_area_per_combine : infill_area_per_combine_per_density)
-        {
-            for (const Polygons& area : infill_area_per_combine)
-            {
-                if (area.size() > 0)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
 }
 
 Polygons SliceLayer::getOutlines(bool external_polys_only) const
@@ -111,6 +83,113 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
+}
+
+bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
+{
+    if (getSettingBoolean("magic_spiralize"))
+    {
+        if (getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter") || getSettingBoolean("fill_perimeter_gaps"))
+        && getSettingAsExtruderNr("wall_x_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsExtruderNr("infill_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers") > 0) && getSettingAsExtruderNr("top_bottom_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
+{
+    if (layer_nr < 0 || layer_nr >= static_cast<int>(layers.size()))
+    {
+        return false;
+    }
+    if (getSettingBoolean("anti_overhang_mesh")
+        || getSettingBoolean("support_mesh"))
+    { // object is not printed as object, but as support.
+        return false;
+    }
+    const SliceLayer& layer = layers[layer_nr];
+    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.insets.size() > 0 && part.insets[0].size() > 0)
+            {
+                return true;
+            }
+        }
+    }
+    if (getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        && (getSettingAsCount("wall_line_count") > 0 || getSettingAsCount("skin_outline_count") > 0)
+        && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.perimeter_gaps.size() > 0)
+            {
+                return true;
+            }
+            for (const SkinPart& skin_part : part.skin_parts)
+            {
+                if (skin_part.perimeter_gaps.size() > 0)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter")) && getSettingAsExtruderNr("wall_x_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.insets.size() > 1 && part.insets[1].size() > 0)
+            {
+                return true;
+            }
+        }
+    }
+    if (getSettingInMicrons("infill_line_distance") > 0 && getSettingAsExtruderNr("infill_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.getOwnInfillArea().size() > 0)
+            {
+                return true;
+            }
+        }
+    }
+    if (getSettingAsExtruderNr("top_bottom_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (!part.skin_parts.empty())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
@@ -283,11 +362,9 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // all meshes are presupposed to actually have content
     for (const SliceMeshStorage& mesh : meshes)
     {
-        if (!mesh.getSettingBoolean("anti_overhang_mesh")
-            && !mesh.getSettingBoolean("support_mesh")
-        )
+        for (unsigned int extruder_nr = 0; extruder_nr <= ret.size(); extruder_nr++)
         {
-            ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+            ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr);
         }
     }
     return ret;
@@ -372,18 +449,9 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         for (const SliceMeshStorage& mesh : meshes)
         {
-            if (layer_nr >= int(mesh.layers.size()))
+            for (unsigned int extruder_nr = 0; extruder_nr <= ret.size(); extruder_nr++)
             {
-                continue;
-            }
-            const SliceLayer& layer = mesh.layers[layer_nr];
-            for (const SliceLayerPart& part : layer.parts)
-            {
-                if (part.isUsed(mesh))
-                {
-                    ret[mesh.getSettingAsIndex("extruder_nr")] = true;
-                    break;
-                }
+                ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr, layer_nr);
             }
         }
     }

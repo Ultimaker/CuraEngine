@@ -135,6 +135,16 @@ int SettingsBaseVirtual::getSettingAsIndex(std::string key) const
     return atoi(value.c_str());
 }
 
+int SettingsBaseVirtual::getSettingAsExtruderNr(std::string key) const
+{
+    int extruder_nr = getSettingAsIndex(key);
+    if (extruder_nr == -1)
+    {
+        extruder_nr = getSettingAsIndex("extruder_nr");
+    }
+    return extruder_nr;
+}
+
 int SettingsBaseVirtual::getSettingAsCount(std::string key) const
 {
     std::string value = getSettingString(key);

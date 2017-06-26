@@ -55,36 +55,9 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
 
-    for (const Mesh& mesh : meshgroup->meshes)
-    {
-        if (!mesh.getSettingBoolean("anti_overhang_mesh")
-            && !mesh.getSettingBoolean("support_mesh")
-        )
-        {
-            extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
-        }
-    }
-
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-
-        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr) && meshgroup->getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
-        {
-            extruder_attr[extruder_nr].is_used = true;
-        }
-        for (const Mesh& mesh : meshgroup->meshes)
-        {
-            if ((mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_mesh")) && (
-                       (mesh.getSettingBoolean("support_bottom_enable") && meshgroup->getSettingAsIndex("support_bottom_extruder_nr") == int(extruder_nr))
-                    || (mesh.getSettingBoolean("support_roof_enable") && meshgroup->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
-                    || (meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
-                    || (meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
-                ))
-            {
-                extruder_attr[extruder_nr].is_used = true;
-            }
-        }
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
@@ -100,6 +73,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].nozzle_id = train->getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
@@ -143,9 +117,10 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 }
 
 
-std::string GCodeExport::getFileHeader(const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
+
     switch (flavor)
     {
     case EGCodeFlavor::GRIFFIN:
@@ -159,7 +134,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
-            if (!extruder_attr[extr_nr].is_used)
+            if (!extruder_is_used[extr_nr])
             {
                 continue;
             }
@@ -172,7 +147,9 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             {
                 prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line;
             }
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << float(INT2MM(getNozzleSize(extr_nr))) << new_line;
+            const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.ID:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
@@ -188,7 +165,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
         prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
         prefix << ";END_OF_HEADER" << new_line;
-        return prefix.str();
+        break;
     default:
         prefix << ";FLAVOR:" << toString(flavor) << new_line;
         prefix << ";TIME:" << ((print_time)? static_cast<int>(*print_time) : 6666) << new_line;
@@ -205,8 +182,9 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
             prefix << ";Layer height: " << layer_height << new_line;
         }
-        return prefix.str();
     }
+
+    return prefix.str();
 }
 
 
@@ -220,14 +198,16 @@ void GCodeExport::setOutputStream(std::ostream* stream)
     *output_stream << std::fixed;
 }
 
+bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
+{
+    assert(extruder_nr >= 0);
+    assert(extruder_nr < MAX_EXTRUDERS);
+    return extruder_attr[extruder_nr].is_used;
+}
+
 bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const
 {
     return extruder_attr[extruder_nr].use_temp;
-}
-
-bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].is_used;
 }
 
 int GCodeExport::getNozzleSize(const int extruder_nr) const
@@ -652,16 +632,17 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
     if (extrusion_mm3_per_mm < 0.0)
     {
-        logWarning("Warning! Negative extrusion move!");
+        logWarning("Warning! Negative extrusion move!\n");
     }
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
-    Point3 diff = Point3(x,y,z) - currentPosition;
     if (isZHopped > 0)
     {
         writeZhopEnd();
     }
+
+    Point3 diff = Point3(x,y,z) - currentPosition;
 
     writeUnretractionAndPrime();
 
@@ -839,6 +820,7 @@ void GCodeExport::writeZhopEnd()
 
 void GCodeExport::startExtruder(int new_extruder)
 {
+    extruder_attr[new_extruder].is_used = true;
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
