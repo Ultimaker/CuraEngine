@@ -121,7 +121,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcodeLay
     // pre-wipe:
     if (pre_wipe)
     {
-        preWipe(storage, gcodeLayer, layer_nr, new_extruder);
+        preWipeAndPurge(storage, gcodeLayer, layer_nr, new_extruder);
     }
 
     addToGcode_denseInfill(gcodeLayer, layer_nr, new_extruder);
@@ -230,7 +230,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
     int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
 
-    const ExtruderTrain *train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     const int inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
     const int start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
     const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
