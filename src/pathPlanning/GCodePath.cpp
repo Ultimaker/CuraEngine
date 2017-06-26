@@ -6,10 +6,11 @@
 namespace cura
 {
 
-GCodePath::GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize) :
+GCodePath::GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor) :
 config(config),
 space_fill_type(space_fill_type),
 flow(flow),
+speed_factor(speed_factor),
 spiralize(spiralize)
 {
     retract = false;

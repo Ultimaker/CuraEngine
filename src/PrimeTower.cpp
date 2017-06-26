@@ -121,7 +121,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcodeLay
     // pre-wipe:
     if (pre_wipe)
     {
-        preWipe(storage, gcodeLayer, layer_nr, new_extruder);
+        preWipeAndPurge(storage, gcodeLayer, layer_nr, new_extruder);
     }
 
     addToGcode_denseInfill(gcodeLayer, layer_nr, new_extruder);
@@ -225,17 +225,19 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
 }
 
-void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
+void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
 {
     int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
 
-    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-    const int inward_dist = train.getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
-    const int start_dist = train.getSettingInMicrons("machine_nozzle_size") * 2;
-    const Point end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-    const Point outward_dir = wipe_location.location - end;
-    const Point start = wipe_location.location + normal(outward_dir, start_dist);
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const int inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
+    const int start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
+    const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+    const Point outward_dir = wipe_location.location - prime_end;
+    const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
+
+    const double purge_volume = train->getSettingInCubicMillimeters("prime_tower_purge_volume"); // Volume to be primed
     if (wipe_from_middle)
     {
         // for hollow wipe tower:
@@ -247,16 +249,34 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, LayerPlan& gcode_layer
         GCodePath& toward_middle = gcode_layer.addTravel(middle);
         toward_middle.perform_z_hop = true;
         gcode_layer.forceNewPathStart();
-        GCodePath& toward_wipe_start = gcode_layer.addTravel_simple(start);
-        toward_wipe_start.perform_z_hop = false;
-        toward_wipe_start.retract = true;
+
+        if (purge_volume > 0)
+        {
+            addPurgeMove(gcode_layer, layer_nr, extruder_nr, train, middle, prime_start, purge_volume);
+        }
+        else
+        {
+            // Normal move behavior to wipe start location.
+            GCodePath& toward_wipe_start = gcode_layer.addTravel_simple(prime_start);
+            toward_wipe_start.perform_z_hop = false;
+            toward_wipe_start.retract = true;
+        }
     }
     else
     {
-        gcode_layer.addTravel(start);
+        if (purge_volume > 0)
+        {
+            // Find location to start purge (we're purging right outside of the tower)
+            const Point purge_start = prime_start + normal(outward_dir, start_dist);
+            gcode_layer.addTravel(purge_start);
+
+            addPurgeMove(gcode_layer, layer_nr, extruder_nr, train, purge_start, prime_start, purge_volume);
+        }
+        gcode_layer.addTravel(prime_start);
     }
-    float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
-    gcode_layer.addExtrusionMove(end, &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
+
+    float flow = 0.0001; // Force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
+    gcode_layer.addExtrusionMove(prime_end, &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
@@ -266,6 +286,38 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     {
         storage.support.supportLayers[layer].supportAreas = storage.support.supportLayers[layer].supportAreas.difference(outside_polygon);
     }
+}
+
+void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const
+{
+    // Find out how much purging needs to be done.
+    const coord_t purge_move_length = vSize(start_pos - end_pos);
+    const unsigned int line_width = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr].getLineWidth();
+    const double layer_height_mm = (layer_nr == 0) ? train->getSettingInMillimeters("layer_height_0") : train->getSettingInMillimeters("layer_height");
+    const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
+    float purge_flow = purge_volume / normal_volume;
+
+    const GCodePathConfig* current_gcode_path_config = &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+
+    const double purge_move_length_mm = INT2MM(purge_move_length);
+    const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
+    const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
+    const double max_possible_extursion_speed_mm3_per_sec = 3.0;
+
+    const double speed = current_gcode_path_config->getSpeed();
+    double speed_factor = 1.0;
+
+    if (purge_extrusion_speed_mm3_per_sec > max_possible_extursion_speed_mm3_per_sec)
+    {
+        // compensate the travel speed for the large extrusion amount
+        const double min_time_needed_for_extrusion = purge_volume / max_possible_extursion_speed_mm3_per_sec;
+        const double compensated_speed = purge_move_length_mm / min_time_needed_for_extrusion;
+        speed_factor = compensated_speed / speed;
+    }
+
+    // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
+    // This has the added benefit that it will evenly spread the primed material inside the tower.
+    gcode_layer.addExtrusionMove(end_pos, current_gcode_path_config, SpaceFillType::None, purge_flow, false, speed_factor);
 }
 
 

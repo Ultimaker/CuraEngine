@@ -54,12 +54,12 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
         return &paths.back();
-    paths.emplace_back(config, space_fill_type, flow, spiralize);
+    paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     return ret;
 }
@@ -381,9 +381,9 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
+    getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
     last_planned_position = p;
 }
 
@@ -838,6 +838,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             double speed = path.config->getSpeed();
 
+            // for some movements such as prime tower purge, the speed may get changed by this factor
+            speed *= path.speed_factor;
+
             // Apply the relevant factor
             if (path.config->isTravelPath())
                 speed *= extruder_plan.getTravelSpeedFactor();
@@ -916,6 +919,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
                     GCodePath& path = paths[path_idx];
+
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         Point p1 = path.points[point_idx];
