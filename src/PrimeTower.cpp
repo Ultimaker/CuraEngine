@@ -311,12 +311,12 @@ void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder
     {
         // compensate the travel speed for the large extrusion amount
         const double min_time_needed_for_extrusion = purge_volume / max_possible_extursion_speed_mm3_per_sec;
-#ifndef NDEBUG
+#ifdef DEBUG
         // sanity check to make sure that the newly calculated travel time is no less than the old travel time
         // because we are trying to give time for the extrusion.
         const double old_travel_time = purge_move_length_mm / speed;
         assert(old_travel_time <= min_time_needed_for_extrusion);
-#endif // NDEBUG
+#endif // DEBUG
 
         const double compensated_speed = purge_move_length_mm / min_time_needed_for_extrusion;
         speed_factor = compensated_speed / speed;
