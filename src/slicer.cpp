@@ -766,7 +766,9 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     for (PolygonRef polyline : open_polylines)
     {
         if (polyline.size() > 0)
+        {
             openPolylines.add(polyline);
+        }
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
@@ -780,8 +782,10 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     int xy_offset = mesh->getSettingInMicrons("xy_offset");
-    if(is_initial_layer)
+    if (is_initial_layer)
+    {
         xy_offset = mesh->getSettingInMicrons("xy_offset_layer_0");
+    }
 
     if (xy_offset != 0)
     {
