@@ -80,7 +80,7 @@ protected:
      * 
      * \param part The part for which to compute the top skin areas
      * \param min_infill_area The minimum area to fill with skin
-     * \param[in,out] upskin The areas of top skin to be pdated by the layers above.
+     * \param[in,out] upskin The areas of top skin to be pdated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
     void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
 
@@ -89,7 +89,7 @@ protected:
      * 
      * \param part The part for which to compute the bottom skin areas
      * \param min_infill_area The minimum area to fill with skin
-     * \param[in,out] downskin The areas of bottom skin to be pdated by the layers above.
+     * \param[in,out] downskin The areas of bottom skin to be updated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
     void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
 
