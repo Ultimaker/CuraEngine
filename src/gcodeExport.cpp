@@ -1014,7 +1014,7 @@ void GCodeExport::writeJerk(double jerk)
         }
         else
         {
-            *output_stream << "M205 X";
+            *output_stream << "M205 X" << PrecisionedDouble{2, jerk} << " Y";
         }
         *output_stream << PrecisionedDouble{2, jerk} << new_line;
         current_jerk = jerk;
