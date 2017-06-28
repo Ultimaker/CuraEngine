@@ -89,6 +89,19 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         new_line = "\n";
     }
 
+    // initialize current_max_z_feedrate to firmware defaults
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
+        if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") <= 0.0)
+        {
+            // only initialize if firmware default for z feedrate is used by any extruder
+            // that way we don't omit the M203 if Cura thinks the firmware is already at that feedrate, but it isn't the case
+            current_max_z_feedrate = meshgroup->getSettingInMillimetersPerSecond("machine_max_feedrate_z");
+            break;
+        }
+    }
+
     estimateCalculator.setFirmwareDefaults(meshgroup);
 }
 
