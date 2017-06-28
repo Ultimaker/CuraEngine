@@ -803,7 +803,7 @@ void GCodeExport::writeZhopStart(int hop_height)
     if (hop_height > 0)
     {
         isZHopped = hop_height;
-        *output_stream << "G1 Z" << MMtoStream{current_layer_z + isZHopped} << new_line;
+        *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z + isZHopped} << new_line;
         total_bounding_box.includeZ(current_layer_z + isZHopped);
     }
 }
@@ -814,7 +814,7 @@ void GCodeExport::writeZhopEnd()
     {
         isZHopped = 0;
         currentPosition.z = current_layer_z;
-        *output_stream << "G1 Z" << MMtoStream{current_layer_z} << new_line;
+        *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
     }
 }
 
@@ -1014,7 +1014,7 @@ void GCodeExport::writeJerk(double jerk)
         }
         else
         {
-            *output_stream << "M205 X";
+            *output_stream << "M205 X" << PrecisionedDouble{2, jerk} << " Y";
         }
         *output_stream << PrecisionedDouble{2, jerk} << new_line;
         current_jerk = jerk;
