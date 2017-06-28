@@ -181,6 +181,10 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
     int scanline_idx = 0;
     for(int64_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
     {
+        if (scanline_idx >= cut_list.size())
+        {
+            break;
+        }
         std::vector<int64_t>& crossings = cut_list[scanline_idx];
         qsort(crossings.data(), crossings.size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
