@@ -48,6 +48,123 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
+void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_support_steps)
+{
+    //
+    // # How gradual support infill works:
+    // The gradual support infill uses the same technic as the gradual infill. Here is an illustration
+    //
+    //          A part of the model |
+    //                              V
+    //              __________________________       <-- each gradual support infill step consists of 2 actual layers
+    //            / |                         |      <-- each step halfs the infill density.
+    //          /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _|      <-- infill density 1 x 1/(2^2) (25%)
+    //        / |   |                         |      <-- infill density 1 x 1/(2^1) (50%)
+    //      /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
+    //    / |   |   |                         |      <-- infill density 1 x 1/(2^0) (100%)
+    //  /_____________________________________|      <-- the current layer, the layer which we are processing right now.
+    //
+    //  | 0 | 1 | 2 |              3          |      <-- areas with different densities, where densities (or sparsities) are represented by numbers 0, 1, 2, etc.
+    //  more dense    ---->      less dense
+    //
+    // In the example above, it shows a part of the model. For the gradual support infill, we process each layer in the following way:
+    //  -> Separate the generated support areas into isolated islands, and we process those islands one by one
+    //     so that the outlines and the gradual infill areas of an island can be printed together.
+    //
+    //  -> Calculate a number of layer groups, each group consists of layers that will be infilled with the same density.
+    //     The maximum number of densities is defined by the parameter "max graudual support steps". For example, it the <max steps> is 5,
+    //     It means that we can have at most 5 different densities, each is 1/2 than the other. So, it will looks like below:
+    //           |  step  |    density    |  description              |
+    //           |    0   |   1 / (2^0)   |  100% the most dense      |
+    //           |    1   |   1 / (2^1)   |                           |
+    //           |    2   |   1 / (2^2)   |                           |
+    //           |    3   |   1 / (2^3)   |                           |
+    //           |    4   |   1 / (2^4)   |                           |
+    //           |    5   |   1 / (2^5)   |  3.125% the least dense   |
+    //
+    //  -> With those layer groups, we can project areas with different densities onto the layer we are currently processing.
+    //     Like in the illustration above, you can see 4 different areas with densities ranging from 0 to 3.
+    //
+    //  -> We save those areas with different densities into the SupportInfillPart data structure, which holds all the support infill
+    //     information of a support island on a specific layer.
+    //
+    //  -> Note that this function only does the above, which is identifying and storing support infill areas with densities.
+    //     The actual printing part is done in FffGcodeWriter.
+    //
+
+    // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
+    float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
+    unsigned int gradual_support_step_layer_count = round_divide(gradual_support_step_height, storage.getSettingInMicrons("layer_height")); // The difference in layer count between consecutive density infill areas
+
+    // make gradual_support_step_height divisable by layer_skip_count
+    float n_skip_steps_per_gradual_step = std::max(1.0f, std::ceil(gradual_support_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_support_step_layer_count
+    layer_skip_count = gradual_support_step_layer_count / n_skip_steps_per_gradual_step;
+
+    size_t min_layer = 0;
+    size_t max_layer = total_layer_count - 1;
+
+    for (uint32_t layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    {
+        assert(storage.support.supportLayers[layer_nr].support_infill_part_list.empty() && "support infill part list is supposed to be uninitialized");
+
+        // this is the complete support areas on this layer
+        const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
+
+        if (whole_support_areas.size() == 0 or layer_nr < min_layer or layer_nr > max_layer)
+        {
+            // initialize support_infill_part_list empty
+            storage.support.supportLayers[layer_nr].support_infill_part_list.clear();
+            continue;
+        }
+
+        // generate separate support islands and calculate density areas for each island
+        std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
+        for (uint32_t i = 0; i < support_islands.size(); ++i)
+        {
+            storage.support.supportLayers[layer_nr].support_infill_part_list.emplace_back();
+            SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_part_list.back();
+            support_infill_part.gradual_infill_areas.clear();
+            support_infill_part.outline = support_islands[i];
+
+            // calculate density areas for this island
+            Polygons less_dense_support = support_infill_part.outline; // one step less dense with each support_step
+            for (unsigned int support_step = 0; support_step < max_support_steps; ++support_step)
+            {
+                size_t min_layer = layer_nr + support_step * gradual_support_step_layer_count + layer_skip_count;
+                size_t max_layer = layer_nr + (support_step + 1) * gradual_support_step_layer_count;
+
+                for (float upper_layer_idx = min_layer; static_cast<unsigned int>(upper_layer_idx) <= max_layer; upper_layer_idx += layer_skip_count)
+                {
+                    if (static_cast<unsigned int>(upper_layer_idx) >= total_layer_count)
+                    {
+                        less_dense_support.clear();
+                        break;
+                    }
+                    const Polygons& relevent_upper_polygons = storage.support.supportLayers[upper_layer_idx].supportAreas;
+                    less_dense_support = less_dense_support.intersection(relevent_upper_polygons);
+                }
+                if (less_dense_support.size() == 0)
+                {
+                    break;
+                }
+
+                // add new gradual_infill_areas for the current density
+                support_infill_part.gradual_infill_areas.emplace_back();
+                std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas.back();
+                const Polygons more_dense_support = support_infill_part.outline.difference(less_dense_support);
+                support_area_current_density.push_back(more_dense_support);
+            }
+
+            support_infill_part.gradual_infill_areas.emplace_back();
+            std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas.back();
+            support_area_current_density.push_back(support_infill_part.outline);
+
+            assert(support_infill_part.gradual_infill_areas.size() != 0 && "support_infill_part.gradual_infill_areas should now be initialized");
+        }
+    }
+}
+
+
 Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;

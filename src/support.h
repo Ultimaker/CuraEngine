@@ -30,6 +30,17 @@ public:
      * \param layer_count total number of layers
      */
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
+
+    /*!
+     * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
+     * This uses the same technic as the gradual infill.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param total_layer_count total number of layers
+     * \param gradual_support_step_height The height difference between consecutive density support areas
+     * \param max_support_steps the maximum exponent of division of support density. At 5 the least dense support will be 2^4 * infill_line_distance i.e. one 16th as dense
+     */
+    static void generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_support_steps);
+
 private:
     /*!
      * Generate support polygons over all layers for one object.

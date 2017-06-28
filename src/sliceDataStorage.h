@@ -31,6 +31,23 @@ public:
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
     Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
 };
+
+/*!
+ * A SupportInfillPart represents an connected area for support infill on a layer.
+ * The support infill areas on a layer can be isolated islands, and in this case, a SupportInfillPart represents a single island.
+ *
+ * This data structure is required for gradual support, which needs to partition a support area into a number of sub-areas with different density.
+ * Because support is handled as a whole in the engine, that is, we have a global support areas instead of support areas for each mesh.
+ * With this data structure, we can keep track of which gradual support infill areas belongs to which support area, so we can print them together.
+ */
+class SupportInfillPart
+{
+public:
+    Polygons outline;  //!< outline of this support infill area
+    std::vector<std::vector<Polygons>> gradual_infill_areas;  //!< a list of separated sub-areas which requires different infill densities
+};
+
+
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
     It's filled during the FffProcessor.processSliceData(.), where each step uses data from the previous steps.
@@ -67,8 +84,18 @@ public:
     /*!
      * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.
      * The infill_area is an array to support thicker layers of sparse infill and areas of different infill density.
+     *
+     * Take an example of infill_area[x][n], the meanings of the indexes are as follows:
+     *   x  -  The sparsity of the infill area (0 - 99 in percentage). So, the areas in infill_area[x] are the most dense ones.
+     *   n  -  The thickness (in number of layers) of the infill area. See example below:
+     *          / ------ -- /         <- layer 3
+     *        /-- ------ /            <- layer 2
+     *          1   2     3
+     * LEGEND: "-" means infill areas.
+     * Numbers 1, 2 and 3 identifies 3 different infill areas. Infill areas 1 and 3 have a tickness of 1 layer, while area 2 has a thickness of 2.
+     *
      * infill_area[x][n] is infill_area of (n+1) layers thick. 
-     * 
+     *
      * infill_area[0] corresponds to the most dense infill area.
      * infill_area[x] will lie fully inside infill_area[x+1].
      * infill_area_per_combine_per_density.back()[0] == part.infill area initially
@@ -147,6 +174,7 @@ public:
 class SupportLayer
 {
 public:
+    std::vector<SupportInfillPart> support_infill_part_list;  //!< a list of support infill parts
     Polygons supportAreas; //!< normal support areas
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with supportAreas or support_roof.
     Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with supportAreas or support_bottom.

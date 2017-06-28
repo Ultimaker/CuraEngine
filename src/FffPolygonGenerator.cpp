@@ -289,6 +289,11 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processDerivedWallsSkinInfill(mesh);
     }
+
+    AreaSupport::generateGradualSupport(storage,
+        storage.print_layer_count,
+        storage.getSettingInMicrons("gradual_support_infill_step_height"),
+        storage.getSettingAsCount("gradual_support_infill_steps"));
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
@@ -539,7 +544,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
-
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 

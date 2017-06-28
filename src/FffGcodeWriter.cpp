@@ -1640,6 +1640,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     return support_added;
 }
 
+
 bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)]; // account for negative layer numbers for raft filler layers
@@ -1660,57 +1661,93 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
     EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern"); // first layer pattern must be same as other layers
     if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
 
-    int infill_extruder_nr_here = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    int infill_extruder_nr_here = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     const ExtruderTrain& infill_extr_here = *storage.meshgroup->getExtruderTrain(infill_extruder_nr_here);
 
-    const Polygons& support = support_layer.supportAreas;
-
-    std::vector<PolygonsPart> support_islands = support.splitIntoParts();
-
-    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
-    for(unsigned int n=0; n<support_islands.size(); n++)
+    // create a list of outlines and use PathOrderOptimizer to optimize the travel move
+    std::vector<Polygons> infill_outline_list;
+    for (unsigned int i = 0; i < support_layer.support_infill_part_list.size(); ++i)
     {
-        island_order_optimizer.addPolygon(support_islands[n][0]);
+        infill_outline_list.push_back(support_layer.support_infill_part_list[i].outline);
+    }
+    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
+    for (unsigned int i = 0; i < infill_outline_list.size(); ++i)
+    {
+        island_order_optimizer.addPolygon(infill_outline_list[i][0]);
     }
     island_order_optimizer.optimize();
 
-    for(unsigned int n=0; n<support_islands.size(); n++)
+    // process each support infill islands
+    for (int support_infill_part_idx : island_order_optimizer.polyOrder)
     {
-        PolygonsPart& island = support_islands[island_order_optimizer.polyOrder[n]];
+        const SupportInfillPart& support_infill_part = support_layer.support_infill_part_list[support_infill_part_idx];
 
-        int support_infill_overlap = 0; // support infill should not be expanded outward
-        
-        int offset_from_outline = 0;
+        // add outline (boundary)
+        const Polygons& outline = support_infill_part.outline;
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
-            Polygons boundary = island.offset(-support_line_width / 2);
+            Polygons boundary = outline.offset(-support_line_width / 2);
             if (boundary.size() > 0)
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
                 gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
                 gcode_layer.addPolygonsByOptimizer(boundary, &gcode_layer.configs_storage.support_infill_config);
             }
-            offset_from_outline = -support_line_width;
-            support_infill_overlap = infill_extr_here.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
 
-        int extra_infill_shift = 0;
-        bool use_endpieces = true;
-        Polygons* perimeter_gaps = nullptr;
-        double fill_angle = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, infill_extr.getSettingBoolean("support_connect_zigzags"), use_endpieces);
-        Polygons support_polygons;
-        Polygons support_lines;
-        infill_comp.generate(support_polygons, support_lines);
-        if (support_lines.size() > 0 || support_polygons.size() > 0)
+        // process sub-areas in this support infill area with different densities
+        for (uint32_t density_idx = 0; density_idx < support_infill_part.gradual_infill_areas.size(); ++density_idx)
         {
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
-            gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-            gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_infill_config);
-            gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_infill_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
-            added = true;
+            if (support_infill_part.gradual_infill_areas[density_idx].empty())
+            {
+                continue;
+            }
+            const Polygons& support = support_infill_part.gradual_infill_areas[density_idx][0];
+
+            unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
+            int support_line_distance_here = support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
+            int support_shift = support_line_distance_here / 2;
+            if (density_idx == support_infill_part.gradual_infill_areas.size() - 1)
+            {
+                support_line_distance_here /= 2;
+            }
+
+            std::vector<PolygonsPart> support_islands = support.splitIntoParts();
+
+            for (unsigned int n = 0; n < support_islands.size(); ++n)
+            {
+                PolygonsPart& island = support_islands[n];
+
+                int offset_from_outline = 0;
+                int support_infill_overlap = 0; // support infill should not be expanded outward
+                if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
+                {
+                    offset_from_outline = -support_line_width;
+                    support_infill_overlap = infill_extr_here.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
+                }
+
+                int extra_infill_shift = 0;
+                extra_infill_shift = support_shift;
+
+                bool use_endpieces = true;
+                Polygons* perimeter_gaps = nullptr;
+                double fill_angle = 0;
+                Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance_here, support_infill_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, infill_extr.getSettingBoolean("support_connect_zigzags"), use_endpieces);
+                Polygons support_polygons;
+                Polygons support_lines;
+                infill_comp.generate(support_polygons, support_lines);
+                if (support_lines.size() > 0 || support_polygons.size() > 0)
+                {
+                    setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+                    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+                    gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_infill_config);
+                    gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_infill_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+                    added = true;
+                }
+            }
         }
     }
+
     return added;
 }
 
