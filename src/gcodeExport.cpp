@@ -818,6 +818,7 @@ void GCodeExport::writeZhopStart(int hop_height)
         isZHopped = hop_height;
         *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z + isZHopped} << new_line;
         total_bounding_box.includeZ(current_layer_z + isZHopped);
+        assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
     }
 }
 
@@ -828,6 +829,7 @@ void GCodeExport::writeZhopEnd()
         isZHopped = 0;
         currentPosition.z = current_layer_z;
         *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
+        assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
     }
 }
 
