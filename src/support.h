@@ -41,6 +41,29 @@ public:
      */
     static void generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_support_steps);
 
+    /*!
+     * \brief Combines the support infill of multiple layers.
+     * 
+     * The support infill layers are combined while the thickness of each layer is
+     * multiplied such that the infill should fill up again to the full height of
+     * all combined layers.
+     * 
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param total_layer_count The total number of layers.
+     * \param combine_layers_amount The number of layers to combine.
+     */
+    static void combineSupportInfillLayers(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int combine_layers_amount);
+
+    /*!
+     * Generate the insets of the given support infill outline.
+     *
+     * \param insets The insets result to output.
+     * \param outline The given support infill outline.
+     * \param inset_count The number of perimeters to surround the support infill outline.
+     * \param wall_line_width_x The wall line width in microns on the X axis.
+     */
+    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x);
+
 private:
     /*!
      * Generate support polygons over all layers for one object.

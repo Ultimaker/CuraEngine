@@ -32,21 +32,6 @@ public:
     Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
 };
 
-/*!
- * A SupportInfillPart represents an connected area for support infill on a layer.
- * The support infill areas on a layer can be isolated islands, and in this case, a SupportInfillPart represents a single island.
- *
- * This data structure is required for gradual support, which needs to partition a support area into a number of sub-areas with different density.
- * Because support is handled as a whole in the engine, that is, we have a global support areas instead of support areas for each mesh.
- * With this data structure, we can keep track of which gradual support infill areas belongs to which support area, so we can print them together.
- */
-class SupportInfillPart
-{
-public:
-    Polygons outline;  //!< outline of this support infill area
-    std::vector<std::vector<Polygons>> gradual_infill_areas;  //!< a list of separated sub-areas which requires different infill densities
-};
-
 
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
@@ -171,6 +156,24 @@ public:
 };
 
 /******************/
+
+/*!
+ * A SupportInfillPart represents an connected area for support infill on a layer.
+ * The support infill areas on a layer can be isolated islands, and in this case, a SupportInfillPart represents a single island.
+ *
+ * This data structure is required for gradual support, which needs to partition a support area into a number of sub-areas with different density.
+ * Because support is handled as a whole in the engine, that is, we have a global support areas instead of support areas for each mesh.
+ * With this data structure, we can keep track of which gradual support infill areas belongs to which support area, so we can print them together.
+ */
+class SupportInfillPart
+{
+public:
+    Polygons outline;  //!< outline of this support infill area
+    std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
+    std::vector<std::vector<Polygons>> gradual_infill_areas;  //!< a list of separated sub-areas which requires different infill densities
+};
+
+
 class SupportLayer
 {
 public:

@@ -103,6 +103,9 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
+    const coord_t wall_line_width_x = storage.getSettingInMicrons("wall_line_width_x");
+    const int skin_outline_count = 1;  // we only have 1 skin for support infill
+
     for (uint32_t layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         assert(storage.support.supportLayers[layer_nr].support_infill_part_list.empty() && "support infill part list is supposed to be uninitialized");
@@ -125,9 +128,18 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_part_list.back();
             support_infill_part.gradual_infill_areas.clear();
             support_infill_part.outline = support_islands[i];
+            support_infill_part.insets.clear();
+            // generate insets and use the first inset as the infill area
+            AreaSupport::generateOutlineInsets(
+                support_infill_part.insets,
+                support_infill_part.outline,
+                skin_outline_count,
+                wall_line_width_x);
+            assert(support_infill_part.gradual_infill_areas.size() == 0);
+            assert(support_infill_part.insets.size() >= 1);
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.outline; // one step less dense with each support_step
+            Polygons less_dense_support = support_infill_part.insets[0]; // one step less dense with each support_step
             for (unsigned int support_step = 0; support_step < max_support_steps; ++support_step)
             {
                 size_t min_layer = layer_nr + support_step * gradual_support_step_layer_count + layer_skip_count;
@@ -151,15 +163,125 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 // add new gradual_infill_areas for the current density
                 support_infill_part.gradual_infill_areas.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas.back();
-                const Polygons more_dense_support = support_infill_part.outline.difference(less_dense_support);
+                const Polygons more_dense_support = support_infill_part.insets[0].difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
             support_infill_part.gradual_infill_areas.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas.back();
-            support_area_current_density.push_back(support_infill_part.outline);
+            support_area_current_density.push_back(support_infill_part.insets[0]);
 
             assert(support_infill_part.gradual_infill_areas.size() != 0 && "support_infill_part.gradual_infill_areas should now be initialized");
+            for (auto tmp_i = 0; tmp_i < support_infill_part.gradual_infill_areas.size(); ++tmp_i)
+            {
+                assert(support_infill_part.gradual_infill_areas[tmp_i].size() != 0);
+            }
+        }
+    }
+}
+
+
+void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int combine_layers_amount)
+{
+    if (combine_layers_amount <= 1)
+    {
+        return;
+    }
+
+    /* We need to round down the layer index we start at to the nearest
+    divisible index. Otherwise we get some parts that have infill at divisible
+    layers and some at non-divisible layers. Those layers would then miss each
+    other. */
+    size_t min_layer = combine_layers_amount - 1;
+    min_layer -= min_layer % combine_layers_amount;  // Round upwards to the nearest layer divisible by infill_sparse_combine.
+    size_t max_layer = total_layer_count < storage.support.supportLayers.size() ? total_layer_count : storage.support.supportLayers.size();
+    max_layer = max_layer - 1;
+    max_layer -= max_layer % combine_layers_amount;  // Round downwards to the nearest layer divisible by infill_sparse_combine.
+
+    for (size_t layer_idx = min_layer; layer_idx <= max_layer; layer_idx += combine_layers_amount) //Skip every few layers, but extrude more.
+    {
+        if (layer_idx >= storage.support.supportLayers.size())
+        {
+            break;
+        }
+
+        SupportLayer& layer = storage.support.supportLayers[layer_idx];
+        for (unsigned int combine_count_here = 1; combine_count_here < combine_layers_amount; ++combine_count_here)
+        {
+            if (layer_idx < combine_count_here)
+            {
+                break;
+            }
+
+            size_t lower_layer_idx = layer_idx - combine_count_here;
+            if (lower_layer_idx < min_layer)
+            {
+                break;
+            }
+            SupportLayer& lower_layer = storage.support.supportLayers[lower_layer_idx];
+
+            for (SupportInfillPart& part : layer.support_infill_part_list)
+            {
+                AABB part_boundary_box(part.insets[0]);
+
+                for (unsigned int density_idx = 0; density_idx < part.gradual_infill_areas.size(); ++density_idx)
+                { // go over each density of gradual infill (these density areas overlap!)
+                    std::vector<Polygons>& infill_area_per_combine = part.gradual_infill_areas[density_idx];
+                    Polygons result;
+                    for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_part_list)
+                    {
+                        AABB lower_part_boundary_box(lower_layer_part.insets[0]);
+                        if (not part_boundary_box.hit(lower_part_boundary_box))
+                        {
+                            continue;
+                        }
+
+                        Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.insets[0]).offset(-200).offset(200);
+                        if (intersection.size() <= 0)
+                        {
+                            continue;
+                        }
+
+                        result.add(intersection); // add area to be thickened
+                        infill_area_per_combine[combine_count_here - 1] = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
+                        if (density_idx < lower_layer_part.gradual_infill_areas.size())
+                        { // only remove from *same density* areas on layer below
+                            // If there are no same density areas, then it's ok to print them anyway
+                            // Don't remove other density areas
+                            unsigned int lower_density_idx = density_idx;
+                            std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.gradual_infill_areas[lower_density_idx];
+                            lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (thickened) layer
+                        }
+                    }
+
+                    infill_area_per_combine.push_back(result);
+                }
+            }
+        }
+    }
+}
+
+
+void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x)
+{
+    for (int inset_idx = 0; inset_idx < inset_count; inset_idx++)
+    {
+        insets.push_back(Polygons());
+        if (inset_idx == 0)
+        {
+            insets[0] = outline.offset(-wall_line_width_x / 2);
+        }
+        else
+        {
+            insets[inset_idx] = insets[inset_idx - 1].offset(-wall_line_width_x);
+        }
+
+        // optimize polygons: remove unnecessary verts
+        insets[inset_idx].simplify();
+        if (insets[inset_idx].size() < 1)
+        {
+            insets.pop_back();
+            break;
         }
     }
 }

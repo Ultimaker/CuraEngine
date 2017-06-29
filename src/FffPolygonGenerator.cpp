@@ -290,10 +290,18 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processDerivedWallsSkinInfill(mesh);
     }
 
-    AreaSupport::generateGradualSupport(storage,
+    AreaSupport::generateGradualSupport(
+        storage,
         storage.print_layer_count,
         storage.getSettingInMicrons("gradual_support_infill_step_height"),
         storage.getSettingAsCount("gradual_support_infill_steps"));
+
+    // combine support infill
+    unsigned int combined_infill_layers = std::max(1U, round_divide(storage.getSettingInMicrons("support_infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many support infill layers to combine to obtain the requested sparse thickness.
+    AreaSupport::combineSupportInfillLayers(
+        storage,
+        storage.print_layer_count,
+        combined_infill_layers);
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
