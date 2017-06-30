@@ -1712,7 +1712,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
 }
 
 
-bool FffGcodeWriter::processSingleLayerSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
+bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)]; // account for negative layer numbers for raft filler layers
 
