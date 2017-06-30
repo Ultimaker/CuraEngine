@@ -1672,6 +1672,10 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
     for (uint64_t part_idx = 0; part_idx < part_list.size(); ++part_idx)
     {
         const SupportInfillPart& part = part_list[part_idx];
+        if (part.gradual_infill_areas.empty())
+        {
+            continue;
+        }
 
         for (unsigned int combine_idx = 1; combine_idx < part.gradual_infill_areas[0].size(); ++combine_idx)
         {

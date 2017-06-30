@@ -136,7 +136,10 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 skin_outline_count,
                 wall_line_width_x);
             assert(support_infill_part.gradual_infill_areas.size() == 0);
-            assert(support_infill_part.insets.size() >= 1);
+            if (support_infill_part.insets.empty())
+            {
+                continue;
+            }
 
             // calculate density areas for this island
             Polygons less_dense_support = support_infill_part.insets[0]; // one step less dense with each support_step
@@ -222,14 +225,21 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned
 
             for (SupportInfillPart& part : layer.support_infill_part_list)
             {
+                if (part.insets.empty())
+                {
+                    continue;
+                }
                 AABB part_boundary_box(part.insets[0]);
-
                 for (unsigned int density_idx = 0; density_idx < part.gradual_infill_areas.size(); ++density_idx)
                 { // go over each density of gradual infill (these density areas overlap!)
                     std::vector<Polygons>& infill_area_per_combine = part.gradual_infill_areas[density_idx];
                     Polygons result;
                     for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_part_list)
                     {
+                        if (lower_layer_part.insets.empty())
+                        {
+                            continue;
+                        }
                         AABB lower_part_boundary_box(lower_layer_part.insets[0]);
                         if (not part_boundary_box.hit(lower_part_boundary_box))
                         {
