@@ -702,6 +702,13 @@ public:
     Polygon convexHull() const;
 
     /*!
+     * Compute the area enclosed within the polygons (minus holes)
+     * 
+     * \return The area in square micron
+     */
+    double area() const;
+
+    /*!
      * Smooth out small perpendicular segments
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
      * which has an angle with the next and previous line segment smaller than roughly 150*
@@ -1012,8 +1019,6 @@ public:
         }
         return true;
     }
-
-    double area() const;
 };
 
 /*!
