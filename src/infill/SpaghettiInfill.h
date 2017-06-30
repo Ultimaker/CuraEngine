@@ -47,6 +47,7 @@ protected:
         PolygonsPart top_part; //!< The top area of this pillar
         double total_volume_mm3; //!< The total volume of the pillar
         coord_t connection_inset_dist; //!< Horizontal component of the spaghetti_max_infill_angle: the distance insetted corresponding to the maximum angle which can be filled by spaghetti infill.
+        double spaghetti_infill_extra_volume; //!< A compensation term to adjust the spagetti filling volume by a static amount
         coord_t bottom_z; //!< The z coordinate of the bottom of the first layer this pillar is present in
         int last_layer_added = -1; //!< The last layer from which areas got added to this pillar
 
@@ -58,10 +59,11 @@ protected:
          * \param layer_height The layer height of the layer which contains the \p _top_part
          * \param bottom_z The z coordinate of the bottom of layer which contains \p _top_part
          */
-        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, int layer_height, coord_t bottom_z)
+        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, double spaghetti_infill_extra_volume, int layer_height, coord_t bottom_z)
         : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
         , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
         , connection_inset_dist(connection_inset_dist)
+        , spaghetti_infill_extra_volume(spaghetti_infill_extra_volume)
         , bottom_z(bottom_z)
         {
         }
@@ -106,10 +108,11 @@ private:
      * \param infill_part The area to add to the base
      * \param pillar_base The collection of pillars used up till the current layer
      * \param connection_inset_dist The distance insetted corresponding to the maximum angle which can be filled by spaghetti infill
+     * \param spaghetti_infill_extra_volume An static correction term to adjust the total amount of filament to be spaghetti-filled
      * \param layer_height The layer height of the added area
      * \param bottom_z The z coordinate of the bottom of the layer which contains the \p infill_part
      */
-    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, int layer_height, coord_t bottom_z);
+    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, double spaghetti_infill_extra_volume, int layer_height, coord_t bottom_z);
 };
 
 }//namespace cura

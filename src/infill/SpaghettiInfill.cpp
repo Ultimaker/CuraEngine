@@ -55,8 +55,13 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
     const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
     const Polygons filling_area = SpaghettiInfill::getFillingArea(top_infill_part, filling_area_inset, line_width);
 
+    total_volume_mm3 -= mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume");
+
     // add total volume spaghetti infill to top of print
-    top_filling_layer_part->spaghetti_infill_volumes.emplace_back(filling_area, total_volume_mm3);
+    if (total_volume_mm3 > 0.0)
+    {
+        top_filling_layer_part->spaghetti_infill_volumes.emplace_back(filling_area, total_volume_mm3);
+    }
 }
 
 void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
@@ -73,7 +78,9 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     coord_t spaghetti_max_height = mesh.getSettingInMicrons("spaghetti_max_height");
 
     coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
-    
+
+    double spaghetti_infill_extra_volume = mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume");
+
     coord_t connection_inset_dist;
     if (mesh.getSettingInAngleDegrees("spaghetti_max_infill_angle") >= 90)
     {
@@ -107,7 +114,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
             for (PolygonsPart& infill_part : part_infill_parts)
             {
                 coord_t bottom_z = current_z - layer_height;
-                SpaghettiInfill::InfillPillar& pillar = addPartToPillarBase(infill_part, pillar_base, connection_inset_dist, layer_height, bottom_z);
+                SpaghettiInfill::InfillPillar& pillar = addPartToPillarBase(infill_part, pillar_base, connection_inset_dist, spaghetti_infill_extra_volume, layer_height, bottom_z);
                 pillar.top_slice_layer_part = &slice_layer_part;
                 pillar.last_layer_added = layer_idx;
             }
@@ -165,6 +172,11 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_
     SliceLayerPart& slice_layer_part = *top_slice_layer_part;
     double volume = total_volume_mm3;
     assert(volume > 0.0);
+    volume -= spaghetti_infill_extra_volume;
+    if (volume <= 0.0)
+    {
+        return;
+    }
 
     // get filling area
     Polygons filling_area = SpaghettiInfill::getFillingArea(top_part, filling_area_inset, line_width);
@@ -184,7 +196,7 @@ bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
     }
 }
 
-SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist, int layer_height, coord_t bottom_z)
+SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist, double spaghetti_infill_extra_volume, int layer_height, coord_t bottom_z)
 {
     std::list<SpaghettiInfill::InfillPillar>::iterator ret = pillar_base.end();
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
@@ -204,7 +216,7 @@ SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const Polygo
     }
     if (ret == pillar_base.end())
     { // couldn't connect to any existing pillar
-        pillar_base.emplace_back(infill_part, connection_inset_dist, layer_height, bottom_z);
+        pillar_base.emplace_back(infill_part, connection_inset_dist, spaghetti_infill_extra_volume, layer_height, bottom_z);
         return pillar_base.back();
     }
     return *ret;
