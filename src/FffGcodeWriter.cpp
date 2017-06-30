@@ -1773,7 +1773,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
             {
                 continue;
             }
-            const Polygons& support = support_infill_part.gradual_infill_areas[density_idx][0];
+            const Polygons& support_area = support_infill_part.gradual_infill_areas[density_idx][0];
 
             unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
             int support_line_distance_here = support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
@@ -1783,7 +1783,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
                 support_line_distance_here /= 2;
             }
 
-            std::vector<PolygonsPart> support_islands = support.splitIntoParts();
+            std::vector<PolygonsPart> support_islands = support_area.splitIntoParts();
 
             for (unsigned int n = 0; n < support_islands.size(); ++n)
             {
