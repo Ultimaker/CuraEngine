@@ -106,14 +106,14 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     const coord_t wall_line_width_x = storage.getSettingInMicrons("wall_line_width_x");
     const int skin_outline_count = 1;  // we only have 1 skin for support infill
 
-    for (uint32_t layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
         // this is the complete support areas on this layer
         const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
 
-        if (whole_support_areas.size() == 0 or layer_nr < min_layer or layer_nr > max_layer)
+        if (whole_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
         {
             // initialize support_infill_parts empty
             storage.support.supportLayers[layer_nr].support_infill_parts.clear();

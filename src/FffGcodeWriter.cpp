@@ -1696,7 +1696,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
                                    infill_line_distance_here, support_infill_overlap, support_infill_angle, z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines);
             }
-            if (infill_lines.size() > 0 or infill_polygons.size() > 0)
+            if (infill_lines.size() > 0 || infill_polygons.size() > 0)
             {
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
