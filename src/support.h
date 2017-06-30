@@ -57,7 +57,7 @@ public:
     /*!
      * Generate the insets of the given support infill outline.
      *
-     * \param insets The insets result to output.
+     * \param[out] insets The insets result to output.
      * \param outline The given support infill outline.
      * \param inset_count The number of perimeters to surround the support infill outline.
      * \param wall_line_width_x The wall line width in microns on the X axis.
