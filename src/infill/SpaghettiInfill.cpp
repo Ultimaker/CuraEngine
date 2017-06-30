@@ -46,6 +46,7 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
 
     if (!top_filling_layer_part)
     { // there is no infill in the whole mesh!
+        logError("Spaghetti Infill mesh doesn't have any volume!\n");
         return;
     }
     assert(top_filling_layer_part->getOwnInfillArea().size() > 0);
