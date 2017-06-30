@@ -1767,7 +1767,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         }
 
         // process sub-areas in this support infill area with different densities
-        for (uint32_t density_idx = 0; density_idx < support_infill_part.gradual_infill_areas.size(); ++density_idx)
+        for (unsigned int density_idx = 0; density_idx < support_infill_part.gradual_infill_areas.size(); ++density_idx)
         {
             if (support_infill_part.gradual_infill_areas[density_idx].empty())
             {
