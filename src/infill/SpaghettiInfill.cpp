@@ -62,7 +62,7 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
 
 void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 {
-    const bool total_volume_at_once = true; // mesh.getSettingBoolean("spaghetti_infill_total_volume_at_once"); TODO
+    const bool total_volume_at_once = !mesh.getSettingBoolean("spaghetti_infill_stepped");
 
     if (total_volume_at_once)
     {
