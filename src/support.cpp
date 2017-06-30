@@ -175,10 +175,12 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             support_area_current_density.push_back(support_infill_part.insets[0]);
 
             assert(support_infill_part.gradual_infill_areas.size() != 0 && "support_infill_part.gradual_infill_areas should now be initialized");
-            for (auto tmp_i = 0; tmp_i < support_infill_part.gradual_infill_areas.size(); ++tmp_i)
+#ifdef DEBUG
+            for (auto part_i = 0; part_i < support_infill_part.gradual_infill_areas.size(); ++part_i)
             {
-                assert(support_infill_part.gradual_infill_areas[tmp_i].size() != 0);
+                assert(support_infill_part.gradual_infill_areas[part_i].size() != 0);
             }
+#endif // DEBUG
         }
     }
 }
