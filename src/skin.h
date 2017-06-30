@@ -64,9 +64,9 @@ public:
 
 protected:
     /*!
-     * Generate the skin areas (outlines)
+     * Generate the skin areas (outlines) and the infill areas
      */
-    void generateSkinAreas();
+    void generateSkinAndInfillAreas();
 
     /*!
      * Generate the skin areas (outlines) of one part in a layer
