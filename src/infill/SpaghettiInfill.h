@@ -32,6 +32,14 @@ public:
     static void generateSpaghettiInfill(SliceMeshStorage& mesh);
 
 protected:
+    /*!
+     * Generate spaghetti infill for the total volume of the mesh,
+     * extrude all filament from the top of the print.
+     * 
+     * \param mesh The mesh for which to generate spaghetti infill
+     */
+    static void generateTotalSpaghettiInfill(SliceMeshStorage& mesh);
+
     class InfillPillar
     {
     public:

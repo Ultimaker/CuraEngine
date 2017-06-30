@@ -4,8 +4,71 @@
 namespace cura {
 
 
+void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
+{
+    double total_volume_mm3 = 0.0;
+
+    const int max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
+    for (int layer_idx = 0; layer_idx <= max_layer; layer_idx++)
+    {
+        const coord_t layer_height = (layer_idx == 0)? mesh.getSettingInMicrons("layer_height_0") : mesh.getSettingInMicrons("layer_height");
+        if (static_cast<int>(layer_idx) < mesh.getSettingAsCount("bottom_layers"))
+        { // nothing to add
+            continue;
+        }
+        const SliceLayer& layer = mesh.layers[layer_idx];
+        // add infill parts to pillar_base
+        for (const SliceLayerPart& slice_layer_part : layer.parts)
+        {
+            const Polygons& part_infill = slice_layer_part.getOwnInfillArea();
+            total_volume_mm3 += INT2MM(INT2MM(part_infill.area())) * INT2MM(layer_height);
+        }
+    }
+
+    // find top most filling area
+    SliceLayerPart* top_filling_layer_part = nullptr;
+    for (int layer_idx = mesh.layers.size() - 1; layer_idx >= 0; layer_idx--)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        for (SliceLayerPart& part : layer.parts)
+        {
+            if (part.getOwnInfillArea().size() > 0)
+            { // TODO: don't choose the first area we encounter on a layer
+                top_filling_layer_part = &part;
+                break;
+            }
+        }
+        if (top_filling_layer_part)
+        {
+            break; // it's already found
+        }
+    }
+
+    if (!top_filling_layer_part)
+    { // there is no infill in the whole mesh!
+        return;
+    }
+    assert(top_filling_layer_part->getOwnInfillArea().size() > 0);
+    const PolygonsPart top_infill_part = top_filling_layer_part->getOwnInfillArea().splitIntoParts()[0]; // TODO: don't choose first polygonspart we encounter
+
+    coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
+    const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
+    const Polygons filling_area = SpaghettiInfill::getFillingArea(top_infill_part, filling_area_inset, line_width);
+
+    // add total volume spaghetti infill to top of print
+    top_filling_layer_part->spaghetti_infill_volumes.emplace_back(filling_area, total_volume_mm3);
+}
+
 void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 {
+    const bool total_volume_at_once = true; // mesh.getSettingBoolean("spaghetti_infill_total_volume_at_once"); TODO
+
+    if (total_volume_at_once)
+    {
+        generateTotalSpaghettiInfill(mesh);
+        return;
+    }
+
     const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
     coord_t spaghetti_max_height = mesh.getSettingInMicrons("spaghetti_max_height");
 
