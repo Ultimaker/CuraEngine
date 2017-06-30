@@ -48,7 +48,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
-void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_support_steps)
+void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps)
 {
     //
     // # How gradual support infill works:
@@ -122,7 +122,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
         // generate separate support islands and calculate density areas for each island
         std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
-        for (uint32_t i = 0; i < support_islands.size(); ++i)
+        for (unsigned int i = 0; i < support_islands.size(); ++i)
         {
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back();
             SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_parts.back();
@@ -142,11 +142,11 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             }
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.insets[0]; // one step less dense with each support_step
-            for (unsigned int support_step = 0; support_step < max_support_steps; ++support_step)
+            Polygons less_dense_support = support_infill_part.insets[0]; // one step less dense with each density_step
+            for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
-                size_t min_layer = layer_nr + support_step * gradual_support_step_layer_count + layer_skip_count;
-                size_t max_layer = layer_nr + (support_step + 1) * gradual_support_step_layer_count;
+                size_t min_layer = layer_nr + density_step * gradual_support_step_layer_count + layer_skip_count;
+                size_t max_layer = layer_nr + (density_step + 1) * gradual_support_step_layer_count;
 
                 for (float upper_layer_idx = min_layer; static_cast<unsigned int>(upper_layer_idx) <= max_layer; upper_layer_idx += layer_skip_count)
                 {
