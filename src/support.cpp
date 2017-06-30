@@ -108,15 +108,15 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
     for (uint32_t layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
-        assert(storage.support.supportLayers[layer_nr].support_infill_part_list.empty() && "support infill part list is supposed to be uninitialized");
+        assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
         // this is the complete support areas on this layer
         const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
 
         if (whole_support_areas.size() == 0 or layer_nr < min_layer or layer_nr > max_layer)
         {
-            // initialize support_infill_part_list empty
-            storage.support.supportLayers[layer_nr].support_infill_part_list.clear();
+            // initialize support_infill_parts empty
+            storage.support.supportLayers[layer_nr].support_infill_parts.clear();
             continue;
         }
 
@@ -124,8 +124,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
         for (uint32_t i = 0; i < support_islands.size(); ++i)
         {
-            storage.support.supportLayers[layer_nr].support_infill_part_list.emplace_back();
-            SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_part_list.back();
+            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back();
+            SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_parts.back();
             support_infill_part.gradual_infill_areas.clear();
             support_infill_part.outline = support_islands[i];
             support_infill_part.insets.clear();
@@ -223,7 +223,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned
             }
             SupportLayer& lower_layer = storage.support.supportLayers[lower_layer_idx];
 
-            for (SupportInfillPart& part : layer.support_infill_part_list)
+            for (SupportInfillPart& part : layer.support_infill_parts)
             {
                 if (part.insets.empty())
                 {
@@ -234,7 +234,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned
                 { // go over each density of gradual infill (these density areas overlap!)
                     std::vector<Polygons>& infill_area_per_combine = part.gradual_infill_areas[density_idx];
                     Polygons result;
-                    for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_part_list)
+                    for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
                     {
                         if (lower_layer_part.insets.empty())
                         {

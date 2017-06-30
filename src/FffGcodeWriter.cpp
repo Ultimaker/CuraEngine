@@ -1668,7 +1668,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
     }
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    const std::vector<SupportInfillPart>& part_list = storage.support.supportLayers[layer_nr].support_infill_part_list;
+    const std::vector<SupportInfillPart>& part_list = storage.support.supportLayers[layer_nr].support_infill_parts;
     for (uint64_t part_idx = 0; part_idx < part_list.size(); ++part_idx)
     {
         const SupportInfillPart& part = part_list[part_idx];
@@ -1737,9 +1737,9 @@ bool FffGcodeWriter::processSingleLayerSupportInfillToGCode(const SliceDataStora
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     std::vector<Polygons> infill_outline_list;
-    for (unsigned int i = 0; i < support_layer.support_infill_part_list.size(); ++i)
+    for (unsigned int i = 0; i < support_layer.support_infill_parts.size(); ++i)
     {
-        infill_outline_list.push_back(support_layer.support_infill_part_list[i].outline);
+        infill_outline_list.push_back(support_layer.support_infill_parts[i].outline);
     }
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for (unsigned int i = 0; i < infill_outline_list.size(); ++i)
@@ -1751,7 +1751,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfillToGCode(const SliceDataStora
     // process each support infill islands
     for (int support_infill_part_idx : island_order_optimizer.polyOrder)
     {
-        const SupportInfillPart& support_infill_part = support_layer.support_infill_part_list[support_infill_part_idx];
+        const SupportInfillPart& support_infill_part = support_layer.support_infill_parts[support_infill_part_idx];
 
         // add outline (boundary)
         const Polygons& outline = support_infill_part.outline;
