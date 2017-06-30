@@ -75,8 +75,8 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 void SkinInfillAreaComputation::generateSkinAndInfillAreas()
 {
     SliceLayer& layer = mesh.layers[layer_nr];
-    
-    if (bottom_layer_count == 0 && top_layer_count == 0)
+
+    if (!process_infill && bottom_layer_count == 0 && top_layer_count == 0)
     {
         return;
     }
