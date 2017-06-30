@@ -77,20 +77,15 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     }
 }
 
-void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
+Polygons SpaghettiInfill::getFillingArea(const PolygonsPart& infill_area, coord_t filling_area_inset, coord_t line_width)
 {
-    SliceLayerPart& slice_layer_part = *top_slice_layer_part;
-    double volume = total_volume_mm3;
-    assert(volume > 0.0);
-
-    // get filling area
-    Polygons filling_area = top_part.offset(-filling_area_inset);
-    assert(top_part.size() > 0 && top_part[0].size() > 0 && "the top part must be a non-zero area!");
+    Polygons filling_area = infill_area.offset(-filling_area_inset);
+    assert(infill_area.size() > 0 && infill_area[0].size() > 0 && "the top part must be a non-zero area!");
     if (filling_area.size() == 0)
     {
-        AABB aabb(top_part);
+        AABB aabb(infill_area);
         Point inside = (aabb.min + aabb.max) / 2;
-        PolygonUtils::moveInside(top_part, inside);
+        PolygonUtils::moveInside(infill_area, inside);
 
         filling_area = PolygonsPart();
         PolygonRef poly = filling_area.newPoly();
@@ -99,6 +94,17 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_
         poly.emplace_back(inside + Point(line_width / 2 + 10, -line_width / 2 - 10));
         poly.emplace_back(inside + Point(-line_width / 2 - 10, -line_width / 2 - 10));
     }
+    return filling_area;
+}
+
+void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
+{
+    SliceLayerPart& slice_layer_part = *top_slice_layer_part;
+    double volume = total_volume_mm3;
+    assert(volume > 0.0);
+
+    // get filling area
+    Polygons filling_area = SpaghettiInfill::getFillingArea(top_part, filling_area_inset, line_width);
     slice_layer_part.spaghetti_infill_volumes.emplace_back(filling_area, volume);
 }
 
