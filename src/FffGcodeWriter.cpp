@@ -1644,7 +1644,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
 
 bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int layer_nr, const int extruder_nr) const
 {
-    if (extruder_nr != getSettingAsIndex("support_infill_extruder_nr"))
+    if (extruder_nr != storage.getSettingAsIndex("support_infill_extruder_nr"))
     {
         return false;
     }
