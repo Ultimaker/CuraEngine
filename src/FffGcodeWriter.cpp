@@ -1483,20 +1483,9 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 
     bool added_something = false;
 
-
     EFillMethod pattern = (layer_nr == 0)?
         mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
         mesh.getSettingAsFillMethod("top_bottom_pattern");
-    int bridge = -1;
-    if (layer_nr > 0)
-    {
-        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr-1]);
-    }
-    if (bridge > -1)
-    {
-        pattern = EFillMethod::LINES;
-        skin_angle = bridge;
-    }
 
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -1511,6 +1500,20 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         // only generate infill if we're going to print it with this extruder
         // or when we need to compute the perimeter gaps
         // TODO: only compute this once when the infill is concentric and the perimeter gpas are printed with a different extruder
+
+        // calculate bridging angle
+        int bridge = -1;
+        if (layer_nr > 0)
+        {
+            bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr-1]);
+        }
+        if (bridge > -1)
+        {
+            pattern = EFillMethod::LINES; // force lines pattern when bridging
+            skin_angle = bridge;
+        }
+
+        // calculate polygons and lines
         int extra_infill_shift = 0;
         coord_t offset_from_inner_skin_infill = 0;
         Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
