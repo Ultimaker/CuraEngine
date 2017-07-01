@@ -1437,6 +1437,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             added_something = true;
         }
 
+        processSkinInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, added_something);
+
         added_something = added_something |
             processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, skin_overlap, skin_angle);
     }
@@ -1494,25 +1496,6 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     {
         pattern = EFillMethod::LINES;
         skin_angle = bridge;
-    }
-
-    // add insets
-    if (pattern != EFillMethod::CONCENTRIC)
-    {
-        // add skin walls aka skin perimeters
-        if (extruder_nr == wall_0_extruder_nr)
-        {
-            for (const Polygons& skin_perimeter : skin_part.insets)
-            {
-                if (skin_perimeter.size() > 0)
-                {
-                    added_something = true;
-                    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                    gcode_layer.setIsInside(true); // going to print stuff inside print object
-                    gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
-                }
-            }
-        }
     }
 
     Polygons skin_polygons;
@@ -1585,6 +1568,25 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         }
     }
     return added_something;
+}
+
+void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, bool& added_something) const
+{
+    const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
+    // add skin walls aka skin perimeters
+    if (extruder_nr == wall_0_extruder_nr)
+    {
+        for (const Polygons& skin_perimeter : skin_part.insets)
+        {
+            if (skin_perimeter.size() > 0)
+            {
+                added_something = true;
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh_config.insetX_config); // add polygons to gcode in inward order
+            }
+        }
+    }
 }
 
 bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
