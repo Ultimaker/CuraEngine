@@ -1506,33 +1506,31 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize")
         && extruder_nr == wall_0_extruder_nr;
-    const bool fill_concentric_perimeter_gaps =
+
+    const bool fill_top_bottom_concentric_perimeter_gaps =
         mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize")
         && extruder_nr == top_bottom_extruder_nr;
+    EFillMethod top_bottom_pattern = (layer_nr == 0)?
+        mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
+        mesh.getSettingAsFillMethod("top_bottom_pattern");
+    const bool generate_top_bottom_perimeter_gaps = fill_top_bottom_concentric_perimeter_gaps && top_bottom_pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the skinfill area
+
 
     bool added_something = false;
 
-    EFillMethod pattern = (layer_nr == 0)?
-        mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
-        mesh.getSettingAsFillMethod("top_bottom_pattern");
 
-    Polygons skin_polygons;
-    Polygons skin_lines;
-    Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
+    Polygons top_bottom_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
+    processSkinPartInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, skin_overlap, skin_angle, top_bottom_pattern, z, generate_top_bottom_perimeter_gaps, top_bottom_concentric_perimeter_gaps, added_something);
 
-    const bool generate_perimeter_gaps = fill_concentric_perimeter_gaps && pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the skinfill area
-
-    processSkinPartInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, skin_overlap, skin_angle, pattern, z, generate_perimeter_gaps, concentric_perimeter_gaps, added_something);
-
-    if (fill_perimeter_gaps || generate_perimeter_gaps)
+    if (fill_perimeter_gaps || generate_top_bottom_perimeter_gaps)
     { // handle perimeter_gaps of concentric skin
         const Polygons* perimeter_gaps = nullptr;
         Polygons perimeter_gaps_recomputed;
         if (wall_0_extruder_nr == top_bottom_extruder_nr) // then also both are equalt to extruder_nr
         {
             perimeter_gaps = &perimeter_gaps_recomputed;
-            perimeter_gaps_recomputed = concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
+            perimeter_gaps_recomputed = top_bottom_concentric_perimeter_gaps.unionPolygons(skin_part.perimeter_gaps);
         }
         else if (extruder_nr == wall_0_extruder_nr)
         {
@@ -1540,7 +1538,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         }
         else
         {
-            perimeter_gaps = &concentric_perimeter_gaps;
+            perimeter_gaps = &top_bottom_concentric_perimeter_gaps;
         }
         Polygons gap_polygons; // will remain empty
         Polygons gap_lines;
