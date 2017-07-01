@@ -1530,8 +1530,6 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     }
 
     // add insets
-    const Polygons* inner_skin_outline = nullptr;
-    int offset_from_inner_skin_outline = 0;
     if (pattern != EFillMethod::CONCENTRIC)
     {
         // add skin walls aka skin perimeters
@@ -1548,24 +1546,13 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
                 }
             }
         }
-
-        // determine inner_skin_outline
-        if (skin_part.insets.size() > 0)
-        {
-            inner_skin_outline = &skin_part.insets.back();
-            offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
-        }
-    }
-
-    if (inner_skin_outline == nullptr)
-    {
-        inner_skin_outline = &skin_part.outline;
     }
 
     int extra_infill_shift = 0;
+    coord_t offset_from_inner_skin_infill = 0;
     Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
     Polygons* perimeter_gaps_output = (fill_concentric_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-    Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
+    Infill infill_comp(pattern, skin_part.inner_infill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
     infill_comp.generate(skin_polygons, skin_lines);
 
     // add skin itself!
