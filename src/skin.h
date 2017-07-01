@@ -113,6 +113,14 @@ protected:
     void generateInfill(SliceLayerPart& part, const Polygons& skin);
 
     /*!
+     * Calculate the areas which are directly under air,
+     * remove them from the \ref SkinPart::inner_infill and save them in the \ref SkinPart::top_most_skinfill of the \p part
+     * 
+     * \param[in,out] part Where to get the sSkinParts to get the outline info from and to store the topmost skin areas
+     */
+    void generateTopMostSkin(SliceLayerPart& part);
+
+    /*!
      * Generate the skin insets and the inner infill area
      * 
      * \param part The part where the skin outline information (input) is stored and

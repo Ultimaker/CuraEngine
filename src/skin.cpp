@@ -87,8 +87,10 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     SliceLayer* layer = &mesh.layers[layer_nr];
     for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
     {
-        SliceLayerPart* part = &layer->parts[part_nr];
-        generateSkinInsetsAndInnerSkinInfill(part);
+        SliceLayerPart& part = layer->parts[part_nr];
+        generateSkinInsetsAndInnerSkinInfill(&part);
+
+        generateTopMostSkin(part);
     }
 }
 
@@ -338,6 +340,36 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     else
     {
         part.infill_area = final_infill;
+    }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+void SkinInfillAreaComputation::generateTopMostSkin(SliceLayerPart& part)
+{
+    int topmost_skin_layer_count = mesh.getSettingAsCount("topmost_skin_layer_count");
+
+    for (SkinPart& skin_part : part.skin_parts)
+    {
+        Polygons topmost_skin;
+        if (topmost_skin_layer_count > 0)
+        {
+            Polygons no_air_above = getOutlines(part, layer_nr + topmost_skin_layer_count);
+            if (!no_small_gaps_heuristic)
+            {
+                for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + topmost_skin_layer_count; layer_nr_above++)
+                {
+                    Polygons outlines_above = getOutlines(part, layer_nr_above);
+                    no_air_above = no_air_above.intersection(outlines_above);
+                }
+            }
+            skin_part.top_most_skinfill = skin_part.inner_infill.difference(no_air_above);
+            skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+        }
     }
 }
 
