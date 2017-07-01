@@ -130,13 +130,20 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
         return false;
     }
     const SliceLayer& layer = layers[layer_nr];
-    if (getSettingAsCount("wall_line_count") > 0 && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
+    if (getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr && (getSettingAsCount("wall_line_count") > 0 || getSettingAsCount("skin_outline_count") > 0))
     {
         for (const SliceLayerPart& part : layer.parts)
         {
             if (part.insets.size() > 0 && part.insets[0].size() > 0)
             {
                 return true;
+            }
+            for (const SkinPart& skin_part : part.skin_parts)
+            {
+                if (!skin_part.insets.empty())
+                {
+                    return true;
+                }
             }
         }
     }
@@ -195,9 +202,12 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (!part.skin_parts.empty())
+            for (const SkinPart& skin_part : part.skin_parts)
             {
-                return true;
+                if (!skin_part.inner_infill.empty())
+                {
+                    return true;
+                }
             }
         }
     }
