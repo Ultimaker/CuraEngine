@@ -54,7 +54,7 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::getOutlines(const SliceLayerPart& part_here, int layer2_nr)
+Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx)
 {
     Polygons result;
     if (layer2_nr < static_cast<int>(mesh.layers.size()))
@@ -64,7 +64,14 @@ Polygons SkinInfillAreaComputation::getOutlines(const SliceLayerPart& part_here,
         {
             if (part_here.boundaryBox.hit(part2.boundaryBox))
             {
-                result.add(part2.print_outline);
+                if (wall_idx == 0)
+                {
+                    result.add(part2.outline);
+                }
+                else if (part2.insets.size() >= wall_idx)
+                {
+                    result.add(part2.insets[wall_idx - 1]);
+                }
             }
         }
     }
@@ -352,18 +359,19 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
 void SkinInfillAreaComputation::generateTopMostSkin(SliceLayerPart& part)
 {
     int topmost_skin_layer_count = mesh.getSettingAsCount("topmost_skin_layer_count");
+    const unsigned int wall_idx = std::min(2, mesh.getSettingAsCount("wall_line_count"));
 
     for (SkinPart& skin_part : part.skin_parts)
     {
         Polygons topmost_skin;
         if (topmost_skin_layer_count > 0)
         {
-            Polygons no_air_above = getOutlines(part, layer_nr + topmost_skin_layer_count);
+            Polygons no_air_above = getWalls(part, layer_nr + topmost_skin_layer_count, wall_idx);
             if (!no_small_gaps_heuristic)
             {
                 for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + topmost_skin_layer_count; layer_nr_above++)
                 {
-                    Polygons outlines_above = getOutlines(part, layer_nr_above);
+                    Polygons outlines_above = getWalls(part, layer_nr_above, wall_idx);
                     no_air_above = no_air_above.intersection(outlines_above);
                 }
             }
