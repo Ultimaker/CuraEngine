@@ -509,7 +509,29 @@ private:
     void processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, bool& added_something) const;
 
     /*!
-     * Add the normal skinfill which is the area inside the innermost skin inset
+     * Add the topmost skin which is the area inside the innermost skin inset which has air directly above
+     * 
+     * Perimeter gaps are generated when the pattern is concentric
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
+     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * \param mesh_config the line config with which to print a print feature
+     * \param skin_part The skin part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param skin_overlap The distance by which the skin overlaps with the wall insets and the distance by which the perimeter gaps overlap with adjacent print features.
+     * \param skin_angle The angle in the XY plane at which the infill is generated.
+     * \param pattern The pattern with which we'd like to fill topmost skin area
+     * \param z The (approximate) height at which we are adding gcode plans
+     * \param generate_perimeter_gaps Whether we need to generate perimeter gaps for concentric infill of the skinfill area
+     * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
+     * \param[out] added_something Whether this function added anything to the layer plan
+     */
+    void processSkinPartTopMostInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int skin_angle, EFillMethod pattern, const coord_t z, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+
+    /*!
+     * Add the normal skinfill which is the area inside the innermost skin inset which doesn't have air directly above it
      * 
      * Perimeter gaps are generated when the pattern is concentric
      * 
