@@ -1512,8 +1512,6 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 
     bool added_something = false;
 
-    Polygons skin_polygons;
-    Polygons skin_lines;
 
     EFillMethod pattern = (layer_nr == 0)?
         mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
@@ -1548,15 +1546,28 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         }
     }
 
-    int extra_infill_shift = 0;
-    coord_t offset_from_inner_skin_infill = 0;
+    Polygons skin_polygons;
+    Polygons skin_lines;
     Polygons concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
-    Polygons* perimeter_gaps_output = (fill_concentric_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-    Infill infill_comp(pattern, skin_part.inner_infill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
-    infill_comp.generate(skin_polygons, skin_lines);
+
+    const bool process_skin_infill = extruder_nr == top_bottom_extruder_nr;
+    const bool generate_perimeter_gaps = fill_concentric_perimeter_gaps && pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the skinfill area
+
+    // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
+    if (process_skin_infill || generate_perimeter_gaps)
+    {
+        // only generate infill if we're going to print it with this extruder
+        // or when we need to compute the perimeter gaps
+        // TODO: only compute this once when the infill is concentric and the perimeter gpas are printed with a different extruder
+        int extra_infill_shift = 0;
+        coord_t offset_from_inner_skin_infill = 0;
+        Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+        Infill infill_comp(pattern, skin_part.inner_infill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
+        infill_comp.generate(skin_polygons, skin_lines);
+    }
 
     // add skin itself!
-    if ((skin_polygons.size() > 0 || skin_lines.size() > 0) && extruder_nr == top_bottom_extruder_nr)
+    if (process_skin_infill && (skin_polygons.size() > 0 || skin_lines.size() > 0))
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
@@ -1573,7 +1584,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         }
     }
 
-    if (fill_perimeter_gaps || fill_concentric_perimeter_gaps)
+    if (fill_perimeter_gaps || generate_perimeter_gaps)
     { // handle perimeter_gaps of concentric skin
         const Polygons* perimeter_gaps = nullptr;
         Polygons perimeter_gaps_recomputed;
@@ -1593,6 +1604,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         Polygons gap_polygons; // will remain empty
         Polygons gap_lines;
         int offset = 0;
+        int extra_infill_shift = 0;
         Infill infill_comp(EFillMethod::LINES, *perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
         infill_comp.generate(gap_polygons, gap_lines);
         if (gap_lines.size() > 0)
