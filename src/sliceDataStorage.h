@@ -51,7 +51,6 @@ public:
     Polygons perimeter_gaps; //!< The gaps between consecutive walls and between the inner wall and outer skin inset
     Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
-    std::vector<SkinPart> topmost_skin_parts;     //!< The top-most skin parts which are filled for 100% with lines and/or insets. Directly above these parts there's air.
 
     /*!
      * The areas inside of the mesh.
