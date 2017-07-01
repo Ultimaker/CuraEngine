@@ -38,9 +38,10 @@ public:
         GCodePathConfig inset0_config;
         GCodePathConfig insetX_config;
         GCodePathConfig skin_config;
-        GCodePathConfig perimeter_gap_config;
+        GCodePathConfig topmost_skin_config;
         std::vector<GCodePathConfig> infill_config;
         GCodePathConfig ironing_config;
+        GCodePathConfig perimeter_gap_config;
 
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, const std::vector<double>& line_width_factor_per_extruder);
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);

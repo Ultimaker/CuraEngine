@@ -115,6 +115,10 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
     {
         return true;
     }
+    if ((getSettingAsCount("top_layers") > 0 || getSettingAsCount("bottom_layers") > 0) && getSettingAsCount("topmost_skin_layer_count") > 0 && getSettingAsExtruderNr("topmost_skin_extruder_nr") == extruder_nr)
+    {
+        return true;
+    }
     return false;
 }
 
@@ -205,6 +209,19 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             for (const SkinPart& skin_part : part.skin_parts)
             {
                 if (!skin_part.inner_infill.empty())
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    if (getSettingAsExtruderNr("topmost_skin_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            for (const SkinPart& skin_part : part.skin_parts)
+            {
+                if (!skin_part.top_most_skinfill.empty())
                 {
                     return true;
                 }

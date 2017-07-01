@@ -69,7 +69,13 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
-, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness))
+, topmost_skin_config(
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("topmost_skin_line_width")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topmost_skin"), mesh.getSettingInMillimetersPerSecond("acceleration_topmost_skin"), mesh.getSettingInMillimetersPerSecond("jerk_topmost_skin")}
+)
 , ironing_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width")
@@ -77,6 +83,8 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
 )
+
+, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness))
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
@@ -277,6 +285,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             };
 
             mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_configs[mesh_idx].topmost_skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }
 }
