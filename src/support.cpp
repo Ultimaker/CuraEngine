@@ -104,7 +104,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     size_t max_layer = total_layer_count - 1;
 
     const coord_t wall_line_width_x = storage.getSettingInMicrons("wall_line_width_x");
-    const int wall_line_count = 1;  // we only have 1 wall line for support infill
+    const int wall_line_count = 1;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
 
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
