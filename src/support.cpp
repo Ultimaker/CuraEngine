@@ -126,7 +126,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         {
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back();
             SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_parts.back();
-            support_infill_part.gradual_infill_areas.clear();
+            support_infill_part.gradual_infill_areas_per_combine_per_density.clear();
             support_infill_part.outline = support_islands[i];
             support_infill_part.insets.clear();
             // generate insets and use the first inset as the infill area
@@ -135,7 +135,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 support_infill_part.outline,
                 skin_outline_count,
                 wall_line_width_x);
-            assert(support_infill_part.gradual_infill_areas.size() == 0);
+            assert(support_infill_part.gradual_infill_areas_per_combine_per_density.size() == 0);
             if (support_infill_part.insets.empty())
             {
                 continue;
@@ -163,22 +163,22 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                     break;
                 }
 
-                // add new gradual_infill_areas for the current density
-                support_infill_part.gradual_infill_areas.emplace_back();
-                std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas.back();
+                // add new gradual_infill_areas_per_combine_per_density for the current density
+                support_infill_part.gradual_infill_areas_per_combine_per_density.emplace_back();
+                std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas_per_combine_per_density.back();
                 const Polygons more_dense_support = support_infill_part.insets[0].difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
-            support_infill_part.gradual_infill_areas.emplace_back();
-            std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas.back();
+            support_infill_part.gradual_infill_areas_per_combine_per_density.emplace_back();
+            std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas_per_combine_per_density.back();
             support_area_current_density.push_back(support_infill_part.insets[0]);
 
-            assert(support_infill_part.gradual_infill_areas.size() != 0 && "support_infill_part.gradual_infill_areas should now be initialized");
+            assert(support_infill_part.gradual_infill_areas_per_combine_per_density.size() != 0 && "support_infill_part.gradual_infill_areas_per_combine_per_density should now be initialized");
 #ifdef DEBUG
-            for (auto part_i = 0; part_i < support_infill_part.gradual_infill_areas.size(); ++part_i)
+            for (auto part_i = 0; part_i < support_infill_part.gradual_infill_areas_per_combine_per_density.size(); ++part_i)
             {
-                assert(support_infill_part.gradual_infill_areas[part_i].size() != 0);
+                assert(support_infill_part.gradual_infill_areas_per_combine_per_density[part_i].size() != 0);
             }
 #endif // DEBUG
         }
@@ -232,9 +232,9 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned
                     continue;
                 }
                 AABB part_boundary_box(part.insets[0]);
-                for (unsigned int density_idx = 0; density_idx < part.gradual_infill_areas.size(); ++density_idx)
+                for (unsigned int density_idx = 0; density_idx < part.gradual_infill_areas_per_combine_per_density.size(); ++density_idx)
                 { // go over each density of gradual infill (these density areas overlap!)
-                    std::vector<Polygons>& infill_area_per_combine = part.gradual_infill_areas[density_idx];
+                    std::vector<Polygons>& infill_area_per_combine = part.gradual_infill_areas_per_combine_per_density[density_idx];
                     Polygons result;
                     for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
                     {
@@ -256,12 +256,12 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned
 
                         result.add(intersection); // add area to be thickened
                         infill_area_per_combine[combine_count_here - 1] = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
-                        if (density_idx < lower_layer_part.gradual_infill_areas.size())
+                        if (density_idx < lower_layer_part.gradual_infill_areas_per_combine_per_density.size())
                         { // only remove from *same density* areas on layer below
                             // If there are no same density areas, then it's ok to print them anyway
                             // Don't remove other density areas
                             unsigned int lower_density_idx = density_idx;
-                            std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.gradual_infill_areas[lower_density_idx];
+                            std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.gradual_infill_areas_per_combine_per_density[lower_density_idx];
                             lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (thickened) layer
                         }
                     }

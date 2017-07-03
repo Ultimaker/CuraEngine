@@ -170,7 +170,7 @@ class SupportInfillPart
 public:
     Polygons outline;  //!< outline of this support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
-    std::vector<std::vector<Polygons>> gradual_infill_areas;  //!< a list of separated sub-areas which requires different infill densities
+    std::vector<std::vector<Polygons>> gradual_infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
 };
 
 
