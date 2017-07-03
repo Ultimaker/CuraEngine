@@ -171,6 +171,7 @@ public:
     Polygons outline;  //!< outline of this support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
     Polygons inner_infill_areas; //!< The areas for generating infill pattern
+    int infill_overlap; //!< How much the support lines area should be expanded outward to overlap with the support area boundary polygon
     std::vector<std::vector<Polygons>> infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
 };

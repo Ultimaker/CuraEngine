@@ -1786,13 +1786,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
             }
 
             int offset_from_outline = 0;
-            int support_infill_overlap = 0; // support infill should not be expanded outward
-
-            if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
-            {
-                support_infill_overlap = infill_extr_here.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
-            }
-
+            int support_infill_overlap = support_infill_part.infill_overlap; // support infill should not be expanded outward
             int extra_infill_shift = 0;
             extra_infill_shift = support_shift;
 
