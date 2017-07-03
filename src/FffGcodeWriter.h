@@ -517,7 +517,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \return whether any support infill was added to the layer plan
      */
-    bool processSingleLayerSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const;
+    bool processSingleLayerSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add the support roofs to the layer plan \p gcodeLayer of the current

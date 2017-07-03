@@ -1628,7 +1628,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     if (extruder_nr == support_infill_extruder_nr)
     {
         support_added |= processMultiLayerSupportInfill(storage, gcode_layer, layer_nr, extruder_nr);
-        support_added |= processSingleLayerSupportInfillToGCode(storage, gcode_layer, layer_nr);
+        support_added |= processSingleLayerSupportInfill(storage, gcode_layer, layer_nr);
     }
     if (extruder_nr == support_roof_extruder_nr)
     {
