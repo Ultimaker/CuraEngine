@@ -1672,27 +1672,27 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
     for (unsigned int part_idx = 0; part_idx < part_list.size(); ++part_idx)
     {
         const SupportInfillPart& part = part_list[part_idx];
-        if (part.gradual_infill_areas_per_combine_per_density.empty())
+        if (part.infill_areas_per_combine_per_density.empty())
         {
             continue;
         }
 
-        for (unsigned int combine_idx = 1; combine_idx < part.gradual_infill_areas_per_combine_per_density[0].size(); ++combine_idx)
+        for (unsigned int combine_idx = 1; combine_idx < part.infill_areas_per_combine_per_density[0].size(); ++combine_idx)
         {
             const unsigned int support_line_width = storage.getSettingInMicrons("support_line_width") * (combine_idx + 1);
             Polygons infill_polygons;
             Polygons infill_lines;
-            for (unsigned int density_idx = 0; density_idx < part.gradual_infill_areas_per_combine_per_density.size(); ++density_idx)
+            for (unsigned int density_idx = 0; density_idx < part.infill_areas_per_combine_per_density.size(); ++density_idx)
             { // combine different density infill areas (for gradual infill)
                 unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int infill_line_distance_here = support_infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 int infill_shift = infill_line_distance_here / 2;
-                if (density_idx == part.gradual_infill_areas_per_combine_per_density.size() - 1)
+                if (density_idx == part.infill_areas_per_combine_per_density.size() - 1)
                 {
                     infill_line_distance_here /= 2;
                 }
 
-                Infill infill_comp(support_pattern, part.gradual_infill_areas_per_combine_per_density[density_idx][combine_idx], 0, support_line_width,
+                Infill infill_comp(support_pattern, part.infill_areas_per_combine_per_density[density_idx][combine_idx], 0, support_line_width,
                                    infill_line_distance_here, support_infill_overlap, support_infill_angle, z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines);
             }
@@ -1767,18 +1767,18 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         }
 
         // process sub-areas in this support infill area with different densities
-        for (unsigned int density_idx = 0; density_idx < support_infill_part.gradual_infill_areas_per_combine_per_density.size(); ++density_idx)
+        for (unsigned int density_idx = 0; density_idx < support_infill_part.infill_areas_per_combine_per_density.size(); ++density_idx)
         {
-            if (support_infill_part.gradual_infill_areas_per_combine_per_density[density_idx].empty())
+            if (support_infill_part.infill_areas_per_combine_per_density[density_idx].empty())
             {
                 continue;
             }
-            const Polygons& support_area = support_infill_part.gradual_infill_areas_per_combine_per_density[density_idx][0];
+            const Polygons& support_area = support_infill_part.infill_areas_per_combine_per_density[density_idx][0];
 
             unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
             int support_line_distance_here = support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
             int support_shift = support_line_distance_here / 2;
-            if (density_idx == support_infill_part.gradual_infill_areas_per_combine_per_density.size() - 1)
+            if (density_idx == support_infill_part.infill_areas_per_combine_per_density.size() - 1)
             {
                 support_line_distance_here /= 2;
             }
