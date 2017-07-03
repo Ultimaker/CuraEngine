@@ -104,7 +104,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     size_t max_layer = total_layer_count - 1;
 
     const coord_t wall_line_width_x = storage.getSettingInMicrons("wall_line_width_x");
-    const int skin_outline_count = 1;  // we only have 1 skin for support infill
+    const int wall_line_count = 1;  // we only have 1 wall line for support infill
 
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
@@ -133,7 +133,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             AreaSupport::generateOutlineInsets(
                 support_infill_part.insets,
                 support_infill_part.outline,
-                skin_outline_count,
+                wall_line_count,
                 wall_line_width_x);
             assert(support_infill_part.gradual_infill_areas_per_combine_per_density.size() == 0);
             if (support_infill_part.insets.empty())
