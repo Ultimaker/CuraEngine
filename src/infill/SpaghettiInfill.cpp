@@ -17,7 +17,6 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
             continue;
         }
         const SliceLayer& layer = mesh.layers[layer_idx];
-        // add infill parts to pillar_base
         for (const SliceLayerPart& slice_layer_part : layer.parts)
         {
             const Polygons& part_infill = slice_layer_part.getOwnInfillArea();
@@ -33,7 +32,7 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
         for (SliceLayerPart& part : layer.parts)
         {
             if (part.getOwnInfillArea().size() > 0)
-            { // TODO: don't choose the first area we encounter on a layer
+            { // WARNING: we just use the very first part we encounter; there's no way for the user to choose which filling area will be used
                 top_filling_layer_part = &part;
                 break;
             }
@@ -50,7 +49,7 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
         return;
     }
     assert(top_filling_layer_part->getOwnInfillArea().size() > 0);
-    const PolygonsPart top_infill_part = top_filling_layer_part->getOwnInfillArea().splitIntoParts()[0]; // TODO: don't choose first polygonspart we encounter
+    const PolygonsPart top_infill_part = top_filling_layer_part->getOwnInfillArea().splitIntoParts()[0]; // WARNING: we just use the very first part we encounter; there's no way for the user to choose which filling area will be used
 
     coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
     const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
