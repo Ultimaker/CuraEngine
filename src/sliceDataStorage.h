@@ -182,6 +182,7 @@ class SupportLayer
 public:
     std::vector<SupportInfillPart> support_infill_parts;  //!< a list of support infill parts
     Polygons supportAreas; //!< normal support areas
+    Polygons inner_support_areas; //!< the areas where support infill patterns will be generated
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with supportAreas or support_roof.
     Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with supportAreas or support_bottom.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support

@@ -111,9 +111,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     // we don't want a wall for zig zag
     const int wall_line_count = support_pattern == EFillMethod::ZIG_ZAG ? 0 : 1;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
 
+    // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
+
+        Polygons& global_inner_support_areas = storage.support.supportLayers[layer_nr].inner_support_areas;
+        global_inner_support_areas.clear();
 
         // this is the complete support areas on this layer
         const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
@@ -125,7 +129,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             continue;
         }
 
-        // generate separate support islands and calculate density areas for each island
         std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
         for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
         {
@@ -163,6 +166,26 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 support_infill_part.inner_infill_areas = support_infill_part.outline;
             }
 
+            // also generate the global inner_infill_area
+            global_inner_support_areas.add(support_infill_part.inner_infill_areas);
+        }
+        global_inner_support_areas = global_inner_support_areas.unionPolygons();
+    }
+
+    // compute different density areas for each support island
+    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    {
+        if (layer_nr < min_layer || layer_nr > max_layer)
+        {
+            continue;
+        }
+
+        // generate separate support islands and calculate density areas for each island
+        std::vector<SupportInfillPart>& support_infill_parts = storage.support.supportLayers[layer_nr].support_infill_parts;
+        for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
+        {
+            SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
+
             // calculate density areas for this island
             Polygons less_dense_support = support_infill_part.inner_infill_areas; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
@@ -177,7 +200,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                         less_dense_support.clear();
                         break;
                     }
-                    const Polygons& relevent_upper_polygons = storage.support.supportLayers[upper_layer_idx].supportAreas;
+                    const Polygons& relevent_upper_polygons = storage.support.supportLayers[upper_layer_idx].inner_support_areas;
                     less_dense_support = less_dense_support.intersection(relevent_upper_polygons);
                 }
                 if (less_dense_support.size() == 0)
