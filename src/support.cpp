@@ -103,7 +103,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
-    const coord_t wall_line_width_x = storage.getSettingInMicrons("wall_line_width_x");
+    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
     const int wall_line_count = 1;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
 
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
@@ -134,15 +135,18 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 support_infill_part.insets,
                 support_infill_part.outline,
                 wall_line_count,
-                wall_line_width_x);
+                support_line_width);
             assert(support_infill_part.gradual_infill_areas_per_combine_per_density.size() == 0);
+
+            support_infill_part.inner_infill_areas.clear();
             if (support_infill_part.insets.empty())
             {
                 continue;
             }
+            support_infill_part.inner_infill_areas = support_infill_part.insets[0];
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.insets[0]; // one step less dense with each density_step
+            Polygons less_dense_support = support_infill_part.inner_infill_areas; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 size_t min_layer = layer_nr + density_step * gradual_support_step_layer_count + layer_skip_count;
@@ -166,13 +170,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 // add new gradual_infill_areas_per_combine_per_density for the current density
                 support_infill_part.gradual_infill_areas_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas_per_combine_per_density.back();
-                const Polygons more_dense_support = support_infill_part.insets[0].difference(less_dense_support);
+                const Polygons more_dense_support = support_infill_part.inner_infill_areas.difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
             support_infill_part.gradual_infill_areas_per_combine_per_density.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.gradual_infill_areas_per_combine_per_density.back();
-            support_area_current_density.push_back(support_infill_part.insets[0]);
+            support_area_current_density.push_back(support_infill_part.inner_infill_areas);
 
             assert(support_infill_part.gradual_infill_areas_per_combine_per_density.size() != 0 && "support_infill_part.gradual_infill_areas_per_combine_per_density should now be initialized");
 #ifdef DEBUG
