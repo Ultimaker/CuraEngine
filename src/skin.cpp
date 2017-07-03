@@ -56,7 +56,7 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
  */
 void SkinInfillAreaComputation::generateSkinsAndInfill()
 {
-    generateSkinAreas();
+    generateSkinAndInfillAreas();
 
     SliceLayer* layer = &mesh.layers[layer_nr];
     for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
@@ -72,11 +72,11 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinAreas()
+void SkinInfillAreaComputation::generateSkinAndInfillAreas()
 {
     SliceLayer& layer = mesh.layers[layer_nr];
-    
-    if (bottom_layer_count == 0 && top_layer_count == 0)
+
+    if (!process_infill && bottom_layer_count == 0 && top_layer_count == 0)
     {
         return;
     }
