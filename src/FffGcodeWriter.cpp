@@ -1737,14 +1737,14 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     std::vector<Polygons> infill_outline_list;
-    for (unsigned int i = 0; i < support_layer.support_infill_parts.size(); ++i)
+    for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
-        infill_outline_list.push_back(support_layer.support_infill_parts[i].outline);
+        infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].outline);
     }
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
-    for (unsigned int i = 0; i < infill_outline_list.size(); ++i)
+    for (unsigned int wall_idx = 0; wall_idx < infill_outline_list.size(); ++wall_idx)
     {
-        island_order_optimizer.addPolygon(infill_outline_list[i][0]);
+        island_order_optimizer.addPolygon(infill_outline_list[wall_idx][0]);
     }
     island_order_optimizer.optimize();
 

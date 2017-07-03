@@ -123,12 +123,12 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
         // generate separate support islands and calculate density areas for each island
         std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
-        for (unsigned int i = 0; i < support_islands.size(); ++i)
+        for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
         {
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back();
             SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_parts.back();
             support_infill_part.gradual_infill_areas_per_combine_per_density.clear();
-            support_infill_part.outline = support_islands[i];
+            support_infill_part.outline = support_islands[island_idx];
             support_infill_part.insets.clear();
             // generate insets and use the first inset as the infill area
             AreaSupport::generateOutlineInsets(
