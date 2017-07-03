@@ -1753,7 +1753,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     {
         const SupportInfillPart& support_infill_part = support_layer.support_infill_parts[support_infill_part_idx];
 
-        // add outline (boundary)
+        // add outline (boundary) if the infill pattern is not Zig-Zag
         const Polygons& outline = support_infill_part.outline;
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
