@@ -1679,7 +1679,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
 
         for (unsigned int combine_idx = 1; combine_idx < part.gradual_infill_areas_per_combine_per_density[0].size(); ++combine_idx)
         {
-            const unsigned int support_line_width = storage.getSettingInMicrons("infill_line_width") * (combine_idx + 1);
+            const unsigned int support_line_width = storage.getSettingInMicrons("support_line_width") * (combine_idx + 1);
             Polygons infill_polygons;
             Polygons infill_lines;
             for (unsigned int density_idx = 0; density_idx < part.gradual_infill_areas_per_combine_per_density.size(); ++density_idx)
