@@ -481,6 +481,31 @@ private:
     bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int infill_angle) const;
 
     /*!
+     *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
+     *  a start point that would increase the chance that the skin will be printed in a single segment.
+     *  Obviously, if the skin part contains holes then it will have to be printed in multiple segments anyway but
+     *  doing this may still produce fewer skin seams or move a seam that would be across the middle of the part
+     *  to a less noticeable position
+     *
+     * So, instead of this \/         We get this \/
+     *                +------+               +------+
+     *                |2///#1|               |1/////|
+     *                |///#//|               |//////|
+     *                |//#///|               |//////|
+     *                |/#////|               |//////|
+     *                |#/////|               |//////|
+     *                +------+               +------+
+     *     1, 2 = start locations of skin segments
+     *     # = seam
+     * 
+     * \param filling_part The part which we are going to fill with a linear filling type
+     * \param filling_angle The angle of the filling lines
+     * \param last_position The position the print head is in before going to fill the part
+     * \return The location near where to start filling the part
+     */
+    Point getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const;
+
+    /*!
      * Add the g-code for ironing the top surface.
      *
      * This produces additional low-extrusion moves that cover the top surface,

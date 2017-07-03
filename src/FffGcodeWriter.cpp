@@ -1349,6 +1349,30 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     return added_something;
 }
 
+Point FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
+{
+    // start with the BB of the outline
+    AABB skin_part_bb(filling_part);
+    PointMatrix rot((double)((-filling_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
+    const Point bb_middle = skin_part_bb.getMiddle();
+    // create a vector from the middle of the BB whose length is such that it can be rotated
+    // around the middle of the BB and the end will always be a long way outside of the part's outline
+    // and rotate the vector so that it is normal to the skin angle
+    const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max - bb_middle) * 100));
+    // find the vertex in the outline that is closest to the end of the rotated vector
+    const Point pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part).p();
+    // and find another outline vertex, this time using the vector + 180 deg
+    const Point pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part).p();
+    // now go to whichever of those vertices that is closest to where we are now
+    if (vSize2(pa - last_position) < vSize2(pb - last_position))
+    {
+        return pa;
+    }
+    else
+    {
+        return pb;
+    }
+}
 
 bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
@@ -1379,61 +1403,13 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     {
         const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
 
-        //  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
-        //  a start point that would increase the chance that the skin will be printed in a single segment.
-        //  Obviously, if the skin part contains holes then it will have to be printed in multiple segments anyway but
-        //  doing this may still produce fewer skin seams or move a seam that would be across the middle of the part
-        //  to a less noticeable position
-
-        // So, instead of having this...
-        //
-        //    -------------
-        //    |2////////#1|
-        //    |////////#//|
-        //    |///////#///|
-        //    |//////#////|
-        //    |/////#/////|
-        //    |////#//////|  1, 2 = start locations of skin segments, # = seam
-        //    |///#///////|
-        //    |//#////////|
-        //    |/#/////////|
-        //    |#//////////|
-        //    -------------
-        //
-        //    We get this....
-        //
-        //    -------------
-        //    |1//////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    |///////////|
-        //    -------------
-
         const EFillMethod pattern = (layer_nr == 0)?
             mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
             mesh.getSettingAsFillMethod("top_bottom_pattern");
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         {
-            // start with the BB of the outline
-            AABB skin_part_bb(skin_part.outline);
-            PointMatrix rot((double)((-skin_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
-            const Point bb_middle = skin_part_bb.getMiddle();
-            // create a vector from the middle of the BB whose length is such that it can be rotated
-            // around the middle of the BB and the end will always be a long way outside of the part's outline
-            // and rotate the vector so that it is normal to the skin angle
-            const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max - bb_middle) * 100));
-            // find the vertex in the outline that is closest to the end of the rotated vector
-            const Point pa = PolygonUtils::findNearestVert(bb_middle + vec, skin_part.outline).p();
-            // and find another outline vertex, this time using the vector + 180 deg
-            const Point pb = PolygonUtils::findNearestVert(bb_middle - vec, skin_part.outline).p();
-            // now go to whichever of those vertices that is closest to where we are now
-            gcode_layer.addTravel(vSize2(pa - gcode_layer.getLastPosition()) < vSize2(pb - gcode_layer.getLastPosition()) ? pa : pb);
+            Point seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, skin_angle, gcode_layer.getLastPosition());
+            gcode_layer.addTravel(seam_avoiding_location);
             added_something = true;
         }
 
