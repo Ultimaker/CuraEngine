@@ -1700,7 +1700,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
             {
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
                 gcode_layer.addPolygonsByOptimizer(infill_polygons, &gcode_layer.configs_storage.support_infill_config_list[combine_idx]);
                 gcode_layer.addLinesByOptimizer(infill_lines,  &gcode_layer.configs_storage.support_infill_config_list[combine_idx],
                                                 (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
