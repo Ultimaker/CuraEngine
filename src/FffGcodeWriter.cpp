@@ -1650,7 +1650,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
     }
     bool added_something = false;
 
-    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    coord_t z = layer_nr * getSettingInMicrons("layer_height");
 
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
     int support_infill_line_distance = infill_extr.getSettingInMicrons("support_line_distance");
