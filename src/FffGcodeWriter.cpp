@@ -1349,8 +1349,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     return added_something;
 }
 
-Point FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
+std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
 {
+    if (filling_part.empty())
+    {
+        return std::optional<Point>();
+    }
     // start with the BB of the outline
     AABB skin_part_bb(filling_part);
     PointMatrix rot((double)((-filling_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
@@ -1360,17 +1364,23 @@ Point FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int 
     // and rotate the vector so that it is normal to the skin angle
     const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
-    const Point pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part).p();
+    const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
-    const Point pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part).p();
-    // now go to whichever of those vertices that is closest to where we are now
-    if (vSize2(pa - last_position) < vSize2(pb - last_position))
+    const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
+    if (!pa || !pb)
     {
-        return pa;
+        return std::optional<Point>();
+    }
+    // now go to whichever of those vertices that is closest to where we are now
+    if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
+    {
+        bool bs_arg = true;
+        return std::optional<Point>(bs_arg, pa.p());
     }
     else
     {
-        return pb;
+        bool bs_arg = true;
+        return std::optional<Point>(bs_arg, pb.p());
     }
 }
 
@@ -1408,9 +1418,12 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             mesh.getSettingAsFillMethod("top_bottom_pattern");
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         {
-            Point seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, skin_angle, gcode_layer.getLastPosition());
-            gcode_layer.addTravel(seam_avoiding_location);
-            added_something = true;
+            std::optional<Point> seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, skin_angle, gcode_layer.getLastPosition());
+            if (seam_avoiding_location)
+            {
+                gcode_layer.addTravel(*seam_avoiding_location);
+                added_something = true;
+            }
         }
 
         added_something = added_something |

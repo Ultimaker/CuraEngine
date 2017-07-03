@@ -43,6 +43,10 @@ public:
         }
         return (*polygons)[poly_idx][point_idx];
     }
+    operator bool() const
+    {
+        return polygons;
+    }
     /*!
      * Get the polygon to which this PolygonsPointIndex refers
      */
