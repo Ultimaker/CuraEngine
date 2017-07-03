@@ -1767,6 +1767,8 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         }
 
         // process sub-areas in this support infill area with different densities
+        Polygons support_polygons;
+        Polygons support_lines;
         for (unsigned int density_idx = 0; density_idx < support_infill_part.infill_areas_per_combine_per_density.size(); ++density_idx)
         {
             if (support_infill_part.infill_areas_per_combine_per_density[density_idx].empty())
@@ -1798,17 +1800,15 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
             Polygons* perimeter_gaps = nullptr;
             double fill_angle = 0;
             Infill infill_comp(support_pattern, support_area, offset_from_outline, support_line_width, support_line_distance_here, support_infill_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, infill_extr.getSettingBoolean("support_connect_zigzags"), use_endpieces);
-            Polygons support_polygons;
-            Polygons support_lines;
             infill_comp.generate(support_polygons, support_lines);
-            if (support_lines.size() > 0 || support_polygons.size() > 0)
-            {
-                setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
-                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_infill_config);
-                gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_infill_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
-                added = true;
-            }
+        }
+        if (support_lines.size() > 0 || support_polygons.size() > 0)
+        {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+            gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+            gcode_layer.addPolygonsByOptimizer(support_polygons, &gcode_layer.configs_storage.support_infill_config);
+            gcode_layer.addLinesByOptimizer(support_lines, &gcode_layer.configs_storage.support_infill_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            added = true;
         }
     }
 
