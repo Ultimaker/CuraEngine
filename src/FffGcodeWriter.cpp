@@ -1669,7 +1669,7 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     const std::vector<SupportInfillPart>& part_list = storage.support.supportLayers[layer_nr].support_infill_parts;
-    for (uint64_t part_idx = 0; part_idx < part_list.size(); ++part_idx)
+    for (unsigned int part_idx = 0; part_idx < part_list.size(); ++part_idx)
     {
         const SupportInfillPart& part = part_list[part_idx];
         if (part.gradual_infill_areas_per_combine_per_density.empty())
