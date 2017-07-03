@@ -105,7 +105,10 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
-    const int wall_line_count = 1;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+
+    const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
+    // we don't want a wall for zig zag
+    const int wall_line_count = support_pattern == EFillMethod::ZIG_ZAG ? 0 : 1;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
 
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
@@ -130,20 +133,28 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             support_infill_part.infill_areas_per_combine_per_density.clear();
             support_infill_part.outline = support_islands[island_idx];
             support_infill_part.insets.clear();
-            // generate insets and use the first inset as the infill area
-            AreaSupport::generateOutlineInsets(
-                support_infill_part.insets,
-                support_infill_part.outline,
-                wall_line_count,
-                support_line_width);
-            assert(support_infill_part.infill_areas_per_combine_per_density.size() == 0);
-
             support_infill_part.inner_infill_areas.clear();
-            if (support_infill_part.insets.empty())
+
+            assert(support_infill_part.infill_areas_per_combine_per_density.size() == 0);
+            if (wall_line_count > 0)
             {
-                continue;
+                // generate insets and use the first inset as the infill area
+                AreaSupport::generateOutlineInsets(
+                    support_infill_part.insets,
+                    support_infill_part.outline,
+                    wall_line_count,
+                    support_line_width);
+                if (support_infill_part.insets.empty())
+                {
+                    continue;
+                }
+                support_infill_part.inner_infill_areas = support_infill_part.insets[0];
             }
-            support_infill_part.inner_infill_areas = support_infill_part.insets[0];
+            else
+            {
+                // for zig zag, we don't want a wall, so we use the outline as the inner infill areas
+                support_infill_part.inner_infill_areas = support_infill_part.outline;
+            }
 
             // calculate density areas for this island
             Polygons less_dense_support = support_infill_part.inner_infill_areas; // one step less dense with each density_step
