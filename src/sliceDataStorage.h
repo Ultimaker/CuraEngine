@@ -89,7 +89,7 @@ public:
      *   /0 1 22222222/                                  /0 1 ......../         <--  the 3 layers in the middle part are combined into a single layer
      *                                                      ^
      *                                                      |-- ideally, those two layer can be combined as well, but it is not the case now.
-     *                                                          (TODO) this can a good future work.
+     *                                                          (TODO) this can be a good future work.
      *
      * NOTES:
      *   - numbers represent the density levels of each infill
