@@ -12,7 +12,7 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
     for (int layer_idx = 0; layer_idx <= max_layer; layer_idx++)
     {
         const coord_t layer_height = (layer_idx == 0)? mesh.getSettingInMicrons("layer_height_0") : mesh.getSettingInMicrons("layer_height");
-        if (static_cast<int>(layer_idx) < mesh.getSettingAsCount("bottom_layers"))
+        if (layer_idx < mesh.getSettingAsCount("bottom_layers"))
         { // nothing to add
             continue;
         }
