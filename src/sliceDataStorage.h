@@ -79,6 +79,21 @@ public:
      * LEGEND: "-" means infill areas.
      * Numbers 1, 2 and 3 identifies 3 different infill areas. Infill areas 1 and 3 have a tickness of 1 layer, while area 2 has a thickness of 2.
      *
+     * After the areas have been categoried into different densities, overlapping parts with the same density on multiple layers
+     * will be combined into a single layer. Here is an illustration:
+     *
+     *       NOT COMBINED                                   COMBINED
+     *
+     *       /22222222 2 2/                                  /22222222 2 2/     <--  the 2 layers next to the middle part are combined into a single layer
+     *     /0 22222222 2/              ====>               /0 ........ ./
+     *   /0 1 22222222/                                  /0 1 ......../         <--  the 3 layers in the middle part are combined into a single layer
+     *
+     * NOTES:
+     *   - numbers represent the density levels of each infill
+     *
+     * This maximum number of layers we can combine is a user setting. This number, say "n", means the maximum number of layers we can combine into one.
+     * On the combined layers, the extrusion amount will be higher than the normal extrusion amount because it needs to extrude for multiple layers instead of one.
+     *
      * infill_area[x][n] is infill_area of (n+1) layers thick. 
      *
      * infill_area[0] corresponds to the most dense infill area.
