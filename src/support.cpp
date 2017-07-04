@@ -223,7 +223,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
                     // compute intersections with relevent upper parts
                     const std::vector<SupportInfillPart> upper_infill_parts = storage.support.supportLayers[upper_layer_idx].support_infill_parts;
-                    Polygons relevent_upper_polygons;
+                    Polygons relevant_upper_polygons;
                     for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
                     {
                         if (support_infill_part.infill_area.empty())
@@ -235,11 +235,11 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                         const AABB& upper_part_boundary_box = upper_infill_parts[upper_part_idx].outline_boundary_box;
                         if (upper_part_boundary_box.hit(this_part_boundary_box))
                         {
-                            relevent_upper_polygons.add(upper_infill_parts[upper_part_idx].infill_area);
+                            relevant_upper_polygons.add(upper_infill_parts[upper_part_idx].infill_area);
                         }
                     }
 
-                    less_dense_support = less_dense_support.intersection(relevent_upper_polygons);
+                    less_dense_support = less_dense_support.intersection(relevant_upper_polygons);
                 }
                 if (less_dense_support.size() == 0)
                 {
