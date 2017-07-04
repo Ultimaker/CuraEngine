@@ -103,6 +103,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
+    const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
+
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
     int infill_overlap = 0;
@@ -112,7 +114,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
     }
 
-    const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
     // we don't want a wall for zig zag
     int wall_line_count = 0;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
                               // no wall for zig zag
