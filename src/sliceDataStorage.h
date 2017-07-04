@@ -184,7 +184,6 @@ class SupportInfillPart
 {
 public:
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
-    Polygons infill_wall; //!< The wall outline for the support infill area
     Polygons infill_area; //!< The support infill area
     int infill_overlap; //!< How much the support lines area should be expanded outward to overlap with the support area boundary polygon
     std::vector<std::vector<Polygons>> infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses

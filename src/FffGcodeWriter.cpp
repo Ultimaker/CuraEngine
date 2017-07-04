@@ -1738,7 +1738,15 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     std::vector<Polygons> infill_outline_list;
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
-        infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].infill_wall);
+        const bool has_wall = !support_layer.support_infill_parts[part_idx].insets.empty();
+        if (has_wall)
+        {
+            infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].insets[0]);
+        }
+        else
+        {
+            infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].infill_area);
+        }
     }
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for (unsigned int wall_idx = 0; wall_idx < infill_outline_list.size(); ++wall_idx)
@@ -1755,12 +1763,16 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         // add outline (boundary) if the infill pattern is not Zig-Zag
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
-            const Polygons& boundary = support_infill_part.infill_wall;
-            if (boundary.size() > 0)
+            const std::vector<Polygons>& insets = support_infill_part.insets;
+            for (unsigned int inset_idx = 0; inset_idx < insets.size(); ++inset_idx)
             {
-                setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
-                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                gcode_layer.addPolygonsByOptimizer(boundary, &gcode_layer.configs_storage.support_infill_config);
+                const Polygons& boundary = insets[inset_idx];
+                if (boundary.size() > 0)
+                {
+                    setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+                    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+                    gcode_layer.addPolygonsByOptimizer(boundary, &gcode_layer.configs_storage.support_infill_config);
+                }
             }
         }
 

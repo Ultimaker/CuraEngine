@@ -115,14 +115,14 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     }
 
     // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    int wall_line_count = 1;  // no wall for zig zag. count = 1 because we will generate zig-zag infill pattern in the wall line
+    int wall_line_count = 0;  // no wall for zig zag.
     if (support_pattern == EFillMethod::GRID
         || support_pattern == EFillMethod::TRIANGLES
         || support_pattern == EFillMethod::CONCENTRIC)
     {
         // for other patterns which require a wall, we will generate 2 insets.
         // the first inset is the wall line, and the second inset is the infill area
-        wall_line_count = 2;
+        wall_line_count = 1;
     }
 
     // generate separate support islands
@@ -148,7 +148,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             SupportInfillPart support_infill_part;
             support_infill_part.infill_areas_per_combine_per_density.clear();
             support_infill_part.insets.clear();
-            support_infill_part.infill_wall.clear();
             support_infill_part.infill_area.clear();
             support_infill_part.infill_overlap = infill_overlap;
 
@@ -160,17 +159,26 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 island_outline,
                 wall_line_count,
                 support_line_width);
-            if (support_infill_part.insets.empty())
+            if (wall_line_count > 0 && support_infill_part.insets.empty())
             {
                 continue;
             }
 
-            // we will still print the wall if there is room to print wall
-            support_infill_part.infill_wall = support_infill_part.insets[0];
-            // the area for generating infill patterns may or may not be there
-            if (wall_line_count == support_infill_part.insets.size())
+            // get infill area
+            if (wall_line_count == 0)
             {
-                support_infill_part.infill_area = support_infill_part.insets[wall_line_count - 1];
+                // if there is no wall, we use the original outline as the infill area
+                support_infill_part.infill_area = island_outline;
+            }
+            else
+            {
+                // if there are walls, we use the inner area as the infill area
+                support_infill_part.infill_area = support_infill_part.insets.back().offset(-support_line_width / 2);
+                if (!support_infill_part.infill_area.empty())
+                {
+                    // optimize polygons: remove unnecessary verts
+                    support_infill_part.infill_area.simplify();
+                }
             }
 
             storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
