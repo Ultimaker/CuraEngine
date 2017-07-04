@@ -180,6 +180,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                     support_infill_part.infill_area.simplify();
                 }
             }
+            // also create the boundary box using the outline
+            support_infill_part.outline_boundary_box = AABB(island_outline);
 
             storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
         }
@@ -198,7 +200,11 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
-            AABB thisPartBoundaryBox(support_infill_part.infill_area);
+            if (support_infill_part.infill_area.empty())
+            {
+                continue;
+            }
+            const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
             Polygons less_dense_support = support_infill_part.infill_area; // one step less dense with each density_step
@@ -220,10 +226,14 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                     Polygons relevent_upper_polygons;
                     for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
                     {
-                        // we compute intersection based on support infill areas
-                        AABB upperPartBoundaryBox(upper_infill_parts[upper_part_idx].infill_area);
+                        if (support_infill_part.infill_area.empty())
+                        {
+                            continue;
+                        }
 
-                        if (upperPartBoundaryBox.hit(thisPartBoundaryBox))
+                        // we compute intersection based on support infill areas
+                        const AABB& upper_part_boundary_box = upper_infill_parts[upper_part_idx].outline_boundary_box;
+                        if (upper_part_boundary_box.hit(this_part_boundary_box))
                         {
                             relevent_upper_polygons.add(upper_infill_parts[upper_part_idx].infill_area);
                         }
