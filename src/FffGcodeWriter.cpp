@@ -1367,7 +1367,7 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
     const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
     const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
-    if (!pa || !pb)
+    if (!pa.initialized() || !pb.initialized())
     {
         return std::optional<Point>();
     }
