@@ -105,7 +105,12 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
-    const int infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
+    int infill_overlap = 0;
+    if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
+    {
+        // support lines area should be expanded outward to overlap with the boundary polygon
+        infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
+    }
 
     const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
     // we don't want a wall for zig zag
@@ -145,12 +150,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             support_infill_part.outline = support_islands[island_idx];
             support_infill_part.insets.clear();
             support_infill_part.inner_infill_areas.clear();
-
-            support_infill_part.infill_overlap = 0;
-            if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
-            {
-                support_infill_part.infill_overlap = infill_overlap; // support lines area should be expanded outward to overlap with the boundary polygon
-            }
+            support_infill_part.infill_overlap = infill_overlap;
 
             assert(support_infill_part.infill_areas_per_combine_per_density.size() == 0);
             if (wall_line_count > 0)
