@@ -109,7 +109,14 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
     const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
     // we don't want a wall for zig zag
-    const int wall_line_count = support_pattern == EFillMethod::ZIG_ZAG ? 0 : 1;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+    int wall_line_count = 0;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+                              // no wall for zig zag
+    if (support_pattern == EFillMethod::GRID
+        || support_pattern == EFillMethod::TRIANGLES
+        || support_pattern == EFillMethod::CONCENTRIC)
+    {
+        wall_line_count = 1;
+    }
 
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
