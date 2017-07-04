@@ -1730,7 +1730,11 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     int support_line_distance = infill_extr.getSettingInMicrons("support_line_distance"); // first layer line distance must be the same as the second layer line distance
     const int support_line_width = gcode_layer.configs_storage.support_infill_config.getLineWidth();
     EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern"); // first layer pattern must be same as other layers
-    if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
+    if (layer_nr <= 0
+        && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
+    {
+        support_pattern = EFillMethod::GRID;
+    }
 
     int infill_extruder_nr_here = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
