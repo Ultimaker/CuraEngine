@@ -184,13 +184,13 @@ public:
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
-    Point3 middle; //!< the middle of the mesh's AABB
+    AABB3D bounding_box; //!< the mesh's bounding box
     SubDivCube* base_subdiv_cube;
 
-    SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
-    : SettingsMessenger(settings)
+    SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+    : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
-    , middle(0, 0, 0)
+    , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
     {
         layers.resize(slice_layer_count);
@@ -212,11 +212,9 @@ public:
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
 
     /*!
-     * \return the start point on each layer as specified by the user relative to centre of the mesh's bounding box
+     * \return the mesh's user specified z seam hint
      */
-    Point getZSeamOrigin() const {
-        return Point(middle.x + getSettingInMicrons("z_seam_x"), middle.y + getSettingInMicrons("z_seam_y"));
-    }
+    Point getZSeamHint() const;
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy

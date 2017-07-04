@@ -160,7 +160,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         Point seam_pos(0, 0);
         if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
         {
-            seam_pos = mesh.getZSeamOrigin();
+            seam_pos = mesh.getZSeamHint();
         }
         return PolygonUtils::findClosest(seam_pos, layer.parts[0].insets[0][0]).point_idx;
     }
@@ -886,20 +886,17 @@ std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStarti
     return ret;
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr) const
+std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const
 {
     OrderOptimizer<unsigned int> mesh_idx_order_optimizer;
 
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
             const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
-            mesh.middle.x = middle.x;
-            mesh.middle.y = middle.y;
-            mesh.middle.z = middle.z;
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }
@@ -965,7 +962,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     }
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, mesh.getZSeamOrigin(), mesh.getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, mesh.getZSeamHint(), mesh.getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
 }
@@ -1014,7 +1011,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
     Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
-    PathOrderOptimizer part_order_optimizer(layer_start_position, mesh.getZSeamOrigin(), z_seam_type);
+    PathOrderOptimizer part_order_optimizer(layer_start_position, mesh.getZSeamHint(), z_seam_type);
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer.parts[partNr].insets[0][0]);
@@ -1055,7 +1052,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     }
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, mesh.getZSeamOrigin());
+    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, mesh.getZSeamHint());
 
     if (!mesh.getSettingBoolean("infill_before_walls"))
     {
