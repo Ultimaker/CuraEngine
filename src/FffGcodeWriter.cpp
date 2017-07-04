@@ -1739,23 +1739,18 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     int infill_extruder_nr_here = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
-    std::vector<Polygons> infill_outline_list;
+    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
         const bool has_wall = !support_layer.support_infill_parts[part_idx].insets.empty();
         if (has_wall)
         {
-            infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].insets[0]);
+            island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].insets[0][0]);
         }
         else
         {
-            infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].infill_area);
+            island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].infill_area[0]);
         }
-    }
-    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
-    for (unsigned int wall_idx = 0; wall_idx < infill_outline_list.size(); ++wall_idx)
-    {
-        island_order_optimizer.addPolygon(infill_outline_list[wall_idx][0]);
     }
     island_order_optimizer.optimize();
 
