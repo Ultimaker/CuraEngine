@@ -192,6 +192,17 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
     return false;
 }
 
+Point SliceMeshStorage::getZSeamHint() const
+{
+    Point pos(getSettingInMicrons("z_seam_x"), getSettingInMicrons("z_seam_y"));
+    if (getSettingBoolean("z_seam_relative"))
+    {
+        Point3 middle = bounding_box.getMiddle();
+        pos += Point(middle.x, middle.y);
+    }
+    return pos;
+}
+
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
 {
     std::vector<RetractionConfig> ret;

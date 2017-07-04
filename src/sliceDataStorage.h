@@ -214,14 +214,7 @@ public:
     /*!
      * \return the mesh's user specified z seam hint
      */
-    Point getZSeamOrigin() const {
-        Point pos(getSettingInMicrons("z_seam_x"), getSettingInMicrons("z_seam_y"));
-        if(getSettingBoolean("z_seam_relative"))
-        {
-            pos += Point(middle.x, middle.y);
-        }
-        return pos;
-    }
+    Point getZSeamHint() const;
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
