@@ -1012,7 +1012,9 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
     {
         if (current_acceleration != acceleration)
         {
-            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
+            // S is understood by legacy Marlin and it sets both print and travel acceleration
+            // P and T are understood by RepRap 1.18 onwards and recent Marlin to set print and travel accelerations, respectively
+            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << " P" << PrecisionedDouble{0, acceleration} << " T" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
             current_acceleration = acceleration;
             estimateCalculator.setAcceleration(acceleration);
         }
