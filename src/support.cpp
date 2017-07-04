@@ -233,6 +233,22 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
                         // we compute intersection based on support infill areas
                         const AABB& upper_part_boundary_box = upper_infill_parts[upper_part_idx].outline_boundary_box;
+                        //
+                        // Here we are comparing the **outlines** of the infill areas
+                        //
+                        // legend:
+                        //   ^ support roof
+                        //   | support wall
+                        //   # dense support
+                        //   + less dense support
+                        //
+                        // comparing infill        comparing with outline (this is our approach)
+                        //    ^^^^^^               ^^^^^^
+                        //    ####||^^             ####||^^
+                        //    ######||^^           ######||^^
+                        //    ++++####||           ++++++##||
+                        //    ++++++####           ++++++++##
+                        //
                         if (upper_part_boundary_box.hit(this_part_boundary_box))
                         {
                             relevant_upper_polygons.add(upper_infill_parts[upper_part_idx].infill_area);
