@@ -183,9 +183,9 @@ public:
 class SupportInfillPart
 {
 public:
-    Polygons outline;  //!< outline of this support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
-    Polygons inner_infill_areas; //!< The areas for generating infill pattern
+    Polygons infill_wall; //!< The wall outline for the support infill area
+    Polygons infill_area; //!< The support infill area
     int infill_overlap; //!< How much the support lines area should be expanded outward to overlap with the support area boundary polygon
     std::vector<std::vector<Polygons>> infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
@@ -197,7 +197,6 @@ class SupportLayer
 public:
     std::vector<SupportInfillPart> support_infill_parts;  //!< a list of support infill parts
     Polygons supportAreas; //!< normal support areas
-    Polygons inner_support_areas; //!< the areas where support infill patterns will be generated
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with supportAreas or support_roof.
     Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with supportAreas or support_bottom.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support

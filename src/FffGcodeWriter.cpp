@@ -1733,13 +1733,12 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
 
     int infill_extruder_nr_here = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
-    const ExtruderTrain& infill_extr_here = *storage.meshgroup->getExtruderTrain(infill_extruder_nr_here);
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     std::vector<Polygons> infill_outline_list;
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
-        infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].inner_infill_areas);
+        infill_outline_list.push_back(support_layer.support_infill_parts[part_idx].infill_wall);
     }
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for (unsigned int wall_idx = 0; wall_idx < infill_outline_list.size(); ++wall_idx)
@@ -1756,7 +1755,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         // add outline (boundary) if the infill pattern is not Zig-Zag
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
-            const Polygons& boundary = support_infill_part.inner_infill_areas;
+            const Polygons& boundary = support_infill_part.infill_wall;
             if (boundary.size() > 0)
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch

@@ -114,23 +114,21 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
     }
 
-    // we don't want a wall for zig zag
-    int wall_line_count = 0;  // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-                              // no wall for zig zag
+    // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+    int wall_line_count = 1;  // no wall for zig zag. count = 1 because we will generate zig-zag infill pattern in the wall line
     if (support_pattern == EFillMethod::GRID
         || support_pattern == EFillMethod::TRIANGLES
         || support_pattern == EFillMethod::CONCENTRIC)
     {
-        wall_line_count = 1;
+        // for other patterns which require a wall, we will generate 2 insets.
+        // the first inset is the wall line, and the second inset is the infill area
+        wall_line_count = 2;
     }
 
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
-
-        Polygons& global_inner_support_areas = storage.support.supportLayers[layer_nr].inner_support_areas;
-        global_inner_support_areas.clear();
 
         // this is the complete support areas on this layer
         const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
@@ -145,39 +143,38 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
         for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
         {
-            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back();
-            SupportInfillPart& support_infill_part = storage.support.supportLayers[layer_nr].support_infill_parts.back();
+            Polygons& island_outline = support_islands[island_idx];
+
+            SupportInfillPart support_infill_part;
             support_infill_part.infill_areas_per_combine_per_density.clear();
-            support_infill_part.outline = support_islands[island_idx];
             support_infill_part.insets.clear();
-            support_infill_part.inner_infill_areas.clear();
+            support_infill_part.infill_wall.clear();
+            support_infill_part.infill_area.clear();
             support_infill_part.infill_overlap = infill_overlap;
 
             assert(support_infill_part.infill_areas_per_combine_per_density.size() == 0);
-            if (wall_line_count > 0)
+
+            // generate insets, use the first inset as the wall line, and the second as the infill area
+            AreaSupport::generateOutlineInsets(
+                support_infill_part.insets,
+                island_outline,
+                wall_line_count,
+                support_line_width);
+            if (support_infill_part.insets.empty())
             {
-                // generate insets and use the first inset as the infill area
-                AreaSupport::generateOutlineInsets(
-                    support_infill_part.insets,
-                    support_infill_part.outline,
-                    wall_line_count,
-                    support_line_width);
-                if (support_infill_part.insets.empty())
-                {
-                    continue;
-                }
-                support_infill_part.inner_infill_areas = support_infill_part.insets[0];
-            }
-            else
-            {
-                // for zig zag, we don't want a wall, so we use the outline as the inner infill areas
-                support_infill_part.inner_infill_areas = support_infill_part.outline;
+                continue;
             }
 
-            // also generate the global inner_infill_area
-            global_inner_support_areas.add(support_infill_part.inner_infill_areas);
+            // we will still print the wall if there is room to print wall
+            support_infill_part.infill_wall = support_infill_part.insets[0];
+            // the area for generating infill patterns may or may not be there
+            if (wall_line_count == support_infill_part.insets.size())
+            {
+                support_infill_part.infill_area = support_infill_part.insets[wall_line_count - 1];
+            }
+
+            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
         }
-        global_inner_support_areas = global_inner_support_areas.unionPolygons();
     }
 
     // compute different density areas for each support island
@@ -193,9 +190,10 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
+            AABB thisPartBoundaryBox(support_infill_part.infill_area);
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.inner_infill_areas; // one step less dense with each density_step
+            Polygons less_dense_support = support_infill_part.infill_area; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 size_t min_layer = layer_nr + density_step * gradual_support_step_layer_count + layer_skip_count;
@@ -208,7 +206,21 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                         less_dense_support.clear();
                         break;
                     }
-                    const Polygons& relevent_upper_polygons = storage.support.supportLayers[upper_layer_idx].inner_support_areas;
+
+                    // compute intersections with relevent upper parts
+                    const std::vector<SupportInfillPart> upper_infill_parts = storage.support.supportLayers[upper_layer_idx].support_infill_parts;
+                    Polygons relevent_upper_polygons;
+                    for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
+                    {
+                        // we compute intersection based on support infill areas
+                        AABB upperPartBoundaryBox(upper_infill_parts[upper_part_idx].infill_area);
+
+                        if (upperPartBoundaryBox.hit(thisPartBoundaryBox))
+                        {
+                            relevent_upper_polygons.add(upper_infill_parts[upper_part_idx].infill_area);
+                        }
+                    }
+
                     less_dense_support = less_dense_support.intersection(relevent_upper_polygons);
                 }
                 if (less_dense_support.size() == 0)
@@ -219,13 +231,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 // add new infill_areas_per_combine_per_density for the current density
                 support_infill_part.infill_areas_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_areas_per_combine_per_density.back();
-                const Polygons more_dense_support = support_infill_part.inner_infill_areas.difference(less_dense_support);
+                const Polygons more_dense_support = support_infill_part.infill_area.difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
             support_infill_part.infill_areas_per_combine_per_density.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_areas_per_combine_per_density.back();
-            support_area_current_density.push_back(support_infill_part.inner_infill_areas);
+            support_area_current_density.push_back(support_infill_part.infill_area);
 
             assert(support_infill_part.infill_areas_per_combine_per_density.size() != 0 && "support_infill_part.infill_areas_per_combine_per_density should now be initialized");
 #ifdef DEBUG
