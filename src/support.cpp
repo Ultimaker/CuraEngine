@@ -428,16 +428,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
     {
         const SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
-        if (support_layer.supportAreas.size() > 0)
+        if (support_layer.support_mesh.size() > 0 || support_layer.support_mesh_drop_down.size() > 0)
         {
             break;
         }
     }
-    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, max_layer_nr_support_mesh_filled);
-    // FIXME: This looks buggy. This should loop over all layers that have support polygons.
-    //        Judging from the line above, looks like "storage.support.layer_nr_max_filled_layer" should be the maximum layer number
-    //        which contains support polygon(s). But the loop below uses "max_layer_nr_support_mesh_filled" as the max.
-    //        Wonder what the reason was for this.
+    storage.support.layer_nr_max_filled_layer = max_layer_nr_support_mesh_filled;
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
