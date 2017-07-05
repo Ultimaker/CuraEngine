@@ -1742,15 +1742,7 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
-        const bool has_wall = !support_layer.support_infill_parts[part_idx].insets.empty();
-        if (has_wall)
-        {
-            island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].insets[0][0]);
-        }
-        else
-        {
-            island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].infill_area[0]);
-        }
+        island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].outline[0]);
     }
     island_order_optimizer.optimize();
 

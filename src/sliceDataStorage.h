@@ -186,6 +186,7 @@ public:
 class SupportInfillPart
 {
 public:
+    Polygons outline;  //!< The outline of the support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
     Polygons infill_area; //!< The support infill area
     AABB outline_boundary_box;  //!< The boundary box for the infill area

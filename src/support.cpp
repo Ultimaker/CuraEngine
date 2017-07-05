@@ -146,6 +146,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             Polygons& island_outline = support_islands[island_idx];
 
             SupportInfillPart support_infill_part;
+            support_infill_part.outline = island_outline;
             support_infill_part.infill_areas_per_combine_per_density.clear();
             support_infill_part.insets.clear();
             support_infill_part.infill_area.clear();
