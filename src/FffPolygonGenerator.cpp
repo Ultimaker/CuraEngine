@@ -254,18 +254,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-    
-    /*
-    if (storage.support.generated)
-    {
-        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
-        {
-            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); // infill_extr->getSettingInMicrons("support_line_width"));
-        }
-    }
-    */
 
     computePrintHeightStatistics(storage);
 
