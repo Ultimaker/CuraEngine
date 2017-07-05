@@ -69,8 +69,14 @@ bool SupportInfillPart::initializeWithOutline(const Polygons& outline)
 }
 
 
-void SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart> smaller_parts, Polygons excluding_areas)
+bool SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart>& smaller_parts, const Polygons& excluding_areas, const AABB& excluding_area_boundary_box) const
 {
+    // if the areas don't overlap, do nothing
+    if (!excluding_area_boundary_box.hit(this->outline_boundary_box))
+    {
+        return false;
+    }
+
     smaller_parts.clear();
 
     Polygons result_polygons = outline.difference(excluding_areas);
@@ -85,11 +91,13 @@ void SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart> sma
 
         // create a new part
         SupportInfillPart support_infill_part(this->support_line_width, this->infill_overlap, this->inset_count_to_generate);
-        if (support_infill_part.initializeWithOutline(island_outline))
+        if (!support_infill_part.initializeWithOutline(island_outline))
         {
             continue;
         }
 
         smaller_parts.push_back(support_infill_part);
     }
+
+    return true;
 }
