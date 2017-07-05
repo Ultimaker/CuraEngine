@@ -82,12 +82,20 @@ public:
      * After the areas have been categoried into different densities, overlapping parts with the same density on multiple layers
      * will be combined into a single layer. Here is an illustration:
      *
+     *                        *a group of 3 layers*
      *       NOT COMBINED                                   COMBINED
      *
      *       /22222222 2 2/                                  /22222222 2 2/     <--  the 2 layers next to the middle part are combined into a single layer
-     *     /0 22222222 2/              ====>               /0 ........ ./
+     *     /0 22222222 2/              ====>               /0 ........ 2/
      *   /0 1 22222222/                                  /0 1 ......../         <--  the 3 layers in the middle part are combined into a single layer
-     *                                                      ^
+     *                                                      ^          ^
+     *                                                      |          |
+     *                                                      |          |-- those two density level 2 layers cannot not be combined in the current implementation.
+     *                                                      |              this is because we separate every N layers into groups, and try to combine the layers
+     *                                                      |              in each group starting from the bottom one. In this case, those two layers don't have a
+     *                                                      |              bottom layer in this group, so they cannot be combined.
+     *                                                      |              (TODO) this can be a good future work.
+     *                                                      |
      *                                                      |-- ideally, those two layer can be combined as well, but it is not the case now.
      *                                                          (TODO) this can be a good future work.
      *
