@@ -1754,15 +1754,19 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         // add outline (boundary) if the infill pattern is not Zig-Zag
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
         {
-            const std::vector<Polygons>& insets = support_infill_part.insets;
-            for (unsigned int inset_idx = 0; inset_idx < insets.size(); ++inset_idx)
+            if (!support_infill_part.insets.empty())
             {
-                const Polygons& boundary = insets[inset_idx];
-                if (boundary.size() > 0)
+                Polygons all_insets;
+                for (const Polygons& inset : support_infill_part.insets)
+                {
+                    all_insets.add(inset);
+                }
+
+                if (all_insets.size() > 0)
                 {
                     setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
                     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                    gcode_layer.addPolygonsByOptimizer(boundary, &gcode_layer.configs_storage.support_infill_config);
+                    gcode_layer.addPolygonsByOptimizer(all_insets, &gcode_layer.configs_storage.support_infill_config);
                 }
             }
         }
