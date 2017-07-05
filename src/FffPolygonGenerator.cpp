@@ -290,6 +290,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processDerivedWallsSkinInfill(mesh);
     }
 
+    AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
+        storage,
+        storage.print_layer_count);
+
     AreaSupport::generateGradualSupport(
         storage,
         storage.print_layer_count,

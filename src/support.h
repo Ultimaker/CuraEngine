@@ -32,6 +32,14 @@ public:
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
 
     /*!
+     * Splits the global support areas into separete SupportInfillParts.
+     * This is required before generating the gradual support infill.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param total_layer_count total number of layers
+     */
+    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, unsigned int total_layer_count);
+
+    /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
      * This uses the same technic as the gradual infill.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer

@@ -48,6 +48,64 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
+void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, unsigned int total_layer_count)
+{
+    size_t min_layer = 0;
+    size_t max_layer = total_layer_count - 1;
+
+    const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
+    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
+    int infill_overlap = 0;
+    if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
+    {
+        // support lines area should be expanded outward to overlap with the boundary polygon
+        infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
+    }
+
+    // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+    int wall_line_count = 0;  // no wall for zig zag.
+    if (support_pattern == EFillMethod::GRID
+        || support_pattern == EFillMethod::TRIANGLES
+        || support_pattern == EFillMethod::CONCENTRIC)
+    {
+        // for other patterns which require a wall, we will generate 2 insets.
+        // the first inset is the wall line, and the second inset is the infill area
+        wall_line_count = 1;
+    }
+
+    // generate separate support islands
+    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    {
+        assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
+
+        // this is the complete support areas on this layer
+        const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
+
+        if (whole_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
+        {
+            // initialize support_infill_parts empty
+            storage.support.supportLayers[layer_nr].support_infill_parts.clear();
+            continue;
+        }
+
+        std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
+        for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
+        {
+            Polygons& island_outline = support_islands[island_idx];
+
+            SupportInfillPart support_infill_part(support_line_width, infill_overlap, wall_line_count);
+            if (!support_infill_part.initializeWithOutline(island_outline))
+            {
+                continue;
+            }
+
+            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+        }
+    }
+}
+
+
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps)
 {
     //
@@ -102,58 +160,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
-
-    const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
-
-    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-    const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
-    int infill_overlap = 0;
-    if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
-    {
-        // support lines area should be expanded outward to overlap with the boundary polygon
-        infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
-    }
-
-    // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    int wall_line_count = 0;  // no wall for zig zag.
-    if (support_pattern == EFillMethod::GRID
-        || support_pattern == EFillMethod::TRIANGLES
-        || support_pattern == EFillMethod::CONCENTRIC)
-    {
-        // for other patterns which require a wall, we will generate 2 insets.
-        // the first inset is the wall line, and the second inset is the infill area
-        wall_line_count = 1;
-    }
-
-    // generate separate support islands
-    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
-    {
-        assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
-
-        // this is the complete support areas on this layer
-        const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
-
-        if (whole_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
-        {
-            // initialize support_infill_parts empty
-            storage.support.supportLayers[layer_nr].support_infill_parts.clear();
-            continue;
-        }
-
-        std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
-        for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
-        {
-            Polygons& island_outline = support_islands[island_idx];
-
-            SupportInfillPart support_infill_part(support_line_width, infill_overlap, wall_line_count);
-            if (!support_infill_part.initializeWithOutline(island_outline))
-            {
-                continue;
-            }
-
-            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
-        }
-    }
 
     // compute different density areas for each support island
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
