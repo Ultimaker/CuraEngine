@@ -469,4 +469,31 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
     return train->getSettingBoolean("prime_blob_enable");
 }
 
+
+void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
+{
+    // take the differences of the support infill parts and the exclude polygons
+    for (auto part_itr = this->support_infill_parts.begin(); part_itr != this->support_infill_parts.end(); ++part_itr)
+    {
+        const SupportInfillPart& support_infill_part = *part_itr;
+        std::vector<SupportInfillPart> smaller_infill_parts;
+        bool splitted = support_infill_part.splitIntoSmallerParts(smaller_infill_parts, exclude_polygons, exclude_polygons_boundary_box);
+        if (splitted)
+        {
+            // remove this part and add the smaller parts
+            if (smaller_infill_parts.empty())
+            {
+                continue;
+            }
+
+            // remove this part and add smaller parts if any
+            this->support_infill_parts.erase(part_itr);
+            this->support_infill_parts.insert(part_itr, smaller_infill_parts.begin(), smaller_infill_parts.end());
+            // go pass the inserted parts
+            part_itr += smaller_infill_parts.size();
+            --part_itr;
+        }
+    }
+}
+
 } // namespace cura

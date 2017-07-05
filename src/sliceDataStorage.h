@@ -197,6 +197,14 @@ public:
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
+
+    /*!
+     * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
+     *
+     * \param exclude_polygons The polygons to exclude
+     * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
+     */
+    void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 };
 
 class SupportStorage
