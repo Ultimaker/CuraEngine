@@ -243,6 +243,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     AreaSupport::generateSupportAreas(storage, storage.print_layer_count);
 
+    AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, storage.print_layer_count);
+
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
@@ -277,10 +279,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processDerivedWallsSkinInfill(mesh);
     }
-
-    AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
-        storage,
-        storage.print_layer_count);
 
     AreaSupport::generateGradualSupport(
         storage,
@@ -608,7 +606,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
         {
             SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-            if (!support_layer.supportAreas.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+            if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
             {
                 layer_is_empty = false;
                 break;
