@@ -1012,7 +1012,15 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
     {
         if (current_acceleration != acceleration)
         {
-            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
+            // Print and Travel acceleration
+            if (getFlavor() == EGCodeFlavor::REPRAP)
+            {
+                *output_stream << "M201" << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
+            }
+            else
+            {
+                *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
+            }
             current_acceleration = acceleration;
             estimateCalculator.setAcceleration(acceleration);
         }
