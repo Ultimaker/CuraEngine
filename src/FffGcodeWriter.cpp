@@ -477,9 +477,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const int initial_raft_layer_nr = -Raft::getTotalExtraLayers(storage);
 
     // some infill config for all lines infill generation below
-    int offset_from_poly_outline = 0;
-    double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
-    int extra_infill_shift = 0;
+    constexpr int offset_from_poly_outline = 0;
+    constexpr double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
+    constexpr int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
 
     unsigned int current_extruder_nr = extruder_nr;
@@ -1447,8 +1447,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     { // handle perimeter gaps of normal insets
         Polygons gap_polygons; // unused
         Polygons gap_lines; // soon to be generated gap filler lines
-        int offset = 0;
-        int extra_infill_shift = 0;
+        constexpr int offset = 0;
+        constexpr int extra_infill_shift = 0;
         Infill infill_comp(EFillMethod::LINES, part.perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
         infill_comp.generate(gap_polygons, gap_lines);
 
@@ -1511,8 +1511,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         }
         Polygons gap_polygons; // will remain empty
         Polygons gap_lines;
-        int offset = 0;
-        int extra_infill_shift = 0;
+        constexpr int offset = 0;
+        constexpr int extra_infill_shift = 0;
         Infill infill_comp(EFillMethod::LINES, *perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
         infill_comp.generate(gap_polygons, gap_lines);
         if (gap_lines.size() > 0)
@@ -1575,8 +1575,8 @@ void FffGcodeWriter::processSkinPartInfillGeneratePerimeterGaps(const SliceDataS
         }
 
         // calculate polygons and lines
-        int extra_infill_shift = 0;
-        coord_t offset_from_inner_skin_infill = 0;
+        constexpr int extra_infill_shift = 0;
+        constexpr coord_t offset_from_inner_skin_infill = 0;
         Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
         Infill infill_comp(pattern, skin_part.inner_infill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
         infill_comp.generate(skin_polygons, skin_lines);
@@ -1707,10 +1707,10 @@ bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, La
             support_infill_overlap = infill_extr_here.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
 
-        int extra_infill_shift = 0;
-        bool use_endpieces = true;
-        Polygons* perimeter_gaps = nullptr;
-        double fill_angle = 0;
+        constexpr int extra_infill_shift = 0;
+        constexpr bool use_endpieces = true;
+        constexpr Polygons* perimeter_gaps = nullptr;
+        constexpr double fill_angle = 0;
         Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, infill_extr.getSettingBoolean("support_connect_zigzags"), use_endpieces);
         Polygons support_polygons;
         Polygons support_lines;
