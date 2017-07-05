@@ -145,44 +145,11 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         {
             Polygons& island_outline = support_islands[island_idx];
 
-            SupportInfillPart support_infill_part;
-            support_infill_part.outline = island_outline;
-            support_infill_part.infill_areas_per_combine_per_density.clear();
-            support_infill_part.insets.clear();
-            support_infill_part.infill_area.clear();
-            support_infill_part.infill_overlap = infill_overlap;
-
-            assert(support_infill_part.infill_areas_per_combine_per_density.size() == 0);
-
-            // generate insets, use the first inset as the wall line, and the second as the infill area
-            AreaSupport::generateOutlineInsets(
-                support_infill_part.insets,
-                island_outline,
-                wall_line_count,
-                support_line_width);
-            if (wall_line_count > 0 && support_infill_part.insets.empty())
+            SupportInfillPart support_infill_part(support_line_width, infill_overlap, wall_line_count);
+            if (!support_infill_part.initializeWithOutline(island_outline))
             {
                 continue;
             }
-
-            // get infill area
-            if (wall_line_count == 0)
-            {
-                // if there is no wall, we use the original outline as the infill area
-                support_infill_part.infill_area = island_outline;
-            }
-            else
-            {
-                // if there are walls, we use the inner area as the infill area
-                support_infill_part.infill_area = support_infill_part.insets.back().offset(-support_line_width / 2);
-                if (!support_infill_part.infill_area.empty())
-                {
-                    // optimize polygons: remove unnecessary verts
-                    support_infill_part.infill_area.simplify();
-                }
-            }
-            // also create the boundary box using the outline
-            support_infill_part.outline_boundary_box = AABB(island_outline);
 
             storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
         }

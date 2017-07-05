@@ -15,6 +15,7 @@
 #include "PrimeTower.h"
 #include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
+#include "SupportInfillPart.h"
 
 namespace cura 
 {
@@ -183,25 +184,7 @@ public:
 
 /******************/
 
-/*!
- * A SupportInfillPart represents an connected area for support infill on a layer.
- * The support infill areas on a layer can be isolated islands, and in this case, a SupportInfillPart represents a single island.
- *
- * This data structure is required for gradual support, which needs to partition a support area into a number of sub-areas with different density.
- * Because support is handled as a whole in the engine, that is, we have a global support areas instead of support areas for each mesh.
- * With this data structure, we can keep track of which gradual support infill areas belongs to which support area, so we can print them together.
- */
-class SupportInfillPart
-{
-public:
-    Polygons outline;  //!< The outline of the support infill area
-    std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
-    Polygons infill_area;  //!< The support infill area for generating patterns
-    AABB outline_boundary_box;  //!< The boundary box for the infill area
-    int infill_overlap; //!< How much the support lines area should be expanded outward to overlap with the support area boundary polygon
-    std::vector<std::vector<Polygons>> infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
-                                                                              //   for infill_areas[x][n], x means the density level and n means the thickness
-};
+
 
 
 class SupportLayer
