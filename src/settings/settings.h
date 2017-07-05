@@ -88,6 +88,11 @@ enum class EGCodeFlavor
     GRIFFIN = 6,
 
     REPETIER = 7,
+
+/**
+ * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
+ **/
+    REPRAP_REPRAP = 8,
 };
 
 /*!
