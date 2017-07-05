@@ -533,7 +533,12 @@ private:
     /*!
      * Add the normal skinfill which is the area inside the innermost skin inset which doesn't have air directly above it
      * 
-     * Perimeter gaps are generated when the pattern is concentric
+     * Perimeter gaps are generated when the pattern is concentric.
+     * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.
+     * There are already some perimeter gaps from the normal walls.
+     * This function adds more perimeter gaps for the skin outlines.
+     * The gaps will be filled in \ref processSkinAndPerimeterGaps
+     * That way we can choose the fastest route between all perimeter gaps.
      * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
