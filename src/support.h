@@ -32,14 +32,6 @@ public:
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
 
     /*!
-     * Splits the global support areas into separete SupportInfillParts.
-     * This is required before generating the gradual support infill.
-     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param total_layer_count total number of layers
-     */
-    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, unsigned int total_layer_count);
-
-    /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
      * This uses the same technic as the gradual infill.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
@@ -74,6 +66,15 @@ public:
 
 private:
     /*!
+     * Splits the global support areas into separete SupportInfillParts.
+     * This is required before generating the gradual support infill.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param global_support_areas_per_layer the global support areas per layer
+     * \param total_layer_count total number of layers
+     */
+    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
+
+    /*!
      * Generate support polygons over all layers for one object.
      * 
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
@@ -91,7 +92,7 @@ private:
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
     /*!
      * Generate support bottom areas for a given mesh.
@@ -103,8 +104,9 @@ private:
      * \param storage Where to find the previously generated support areas and
      * where to output the new support bottom areas.
      * \param mesh The mesh to generate support for.
+     * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer);
 
     /*!
      * Generate support roof areas for a given mesh.
@@ -116,8 +118,9 @@ private:
      * \param storage Where to find the previously generated support areas and
      * where to output the new support roof areas.
      * \param mesh The mesh to generate support roof for.
+     * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer);
 
     /*!
      * \brief Generate a single layer of support interface.

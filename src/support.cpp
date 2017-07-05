@@ -48,7 +48,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
-void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, unsigned int total_layer_count)
+void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
@@ -79,17 +79,15 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     {
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
-        // this is the complete support areas on this layer
-        const Polygons& whole_support_areas = storage.support.supportLayers[layer_nr].supportAreas;
-
-        if (whole_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
+        const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
+        if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
         {
             // initialize support_infill_parts empty
             storage.support.supportLayers[layer_nr].support_infill_parts.clear();
             continue;
         }
 
-        std::vector<PolygonsPart> support_islands = whole_support_areas.splitIntoParts();
+        std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
         for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
         {
             Polygons& island_outline = support_islands[island_idx];
@@ -424,6 +422,9 @@ Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLay
 
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
+    std::vector<Polygons> global_support_areas_per_layer;
+    global_support_areas_per_layer.resize(layer_count);
+
     int max_layer_nr_support_mesh_filled;
     for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
     {
@@ -486,19 +487,19 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
                 support_meshes_handled = true;
             }
         }
-        std::vector<Polygons> supportAreas;
-        supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, supportAreas);
+        std::vector<Polygons> mesh_support_areas_per_layer;
+        mesh_support_areas_per_layer.resize(layer_count, Polygons());
+        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, mesh_support_areas_per_layer);
 
         for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
         {
-            storage.support.supportLayers[layer_idx].supportAreas.add(supportAreas[layer_idx]);
+            global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
     }
 
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
     {
-        Polygons& support_areas = storage.support.supportLayers[layer_idx].supportAreas;
+        Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
     }
 
@@ -513,13 +514,16 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            generateSupportRoof(storage, mesh);
+            generateSupportRoof(storage, mesh, global_support_areas_per_layer);
         }
         if (mesh.getSettingBoolean("support_bottom_enable"))
         {
-            generateSupportBottom(storage, mesh);
+            generateSupportBottom(storage, mesh, global_support_areas_per_layer);
         }
     }
+
+    // split the global support areas into parts for later gradual support infill generation
+    AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, global_support_areas_per_layer, storage.print_layer_count);
 }
 
 /* 
@@ -533,7 +537,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
+void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
     const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
@@ -1110,7 +1114,7 @@ void AreaSupport::handleWallStruts(
     }
 }
 
-void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
 {
     const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support bottom.
     if (bottom_layer_count <= 0)
@@ -1134,12 +1138,12 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
             mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
         Polygons bottoms;
-        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, bottom_line_width, bottoms);
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottoms);
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
 
-void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
 {
     const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support roof.
     if (roof_layer_count <= 0)
@@ -1163,7 +1167,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
             mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }
         Polygons roofs;
-        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, roof_line_width, roofs);
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }

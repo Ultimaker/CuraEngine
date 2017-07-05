@@ -243,8 +243,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     AreaSupport::generateSupportAreas(storage, storage.print_layer_count);
 
-    AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, storage.print_layer_count);
-
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty

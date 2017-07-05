@@ -79,7 +79,7 @@ bool SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart>& sm
 
     smaller_parts.clear();
 
-    Polygons result_polygons = outline.difference(excluding_areas);
+    Polygons result_polygons = this->outline.difference(excluding_areas);
     std::vector<PolygonsPart> support_islands = result_polygons.splitIntoParts();
 
     for (const PolygonsPart& island_outline : support_islands)
