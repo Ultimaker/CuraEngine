@@ -256,11 +256,15 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         }
         if (include_helper_parts)
         {
+            const SupportLayer& support_layer = support.supportLayers[std::max(0, layer_nr)];
             if (support.generated) 
             {
-                total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
-                total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
-                total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
+                for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
+                {
+                    total.add(support_infill_part.outline);
+                }
+                total.add(support_layer.support_bottom);
+                total.add(support_layer.support_roof);
             }
             if (primeTower.enabled)
             {
@@ -303,7 +307,11 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
         {
             if (support.generated) 
             {
-                total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
+                const SupportLayer& support_layer = support.supportLayers[std::max(0, layer_nr)];
+                for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
+                {
+                    total.add(support_infill_part.outline);
+                }
                 total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
                 total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
             }
@@ -422,14 +430,14 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
             const SupportLayer& support_layer = support.supportLayers[layer_nr];
             if (layer_nr == 0)
             {
-                if (!support_layer.supportAreas.empty())
+                if (!support_layer.support_infill_parts.empty())
                 {
                     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
                 }
             }
             else
             {
-                if (!support_layer.supportAreas.empty())
+                if (!support_layer.support_infill_parts.empty())
                 {
                     ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
                 }
