@@ -88,10 +88,8 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         }
 
         std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
-        for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
+        for (const PolygonsPart& island_outline : support_islands)
         {
-            const Polygons& island_outline = support_islands[island_idx];
-
             // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
             // tower will remove themselves from the support, so the outlines of the parts can be changed.
             SupportInfillPart support_infill_part(island_outline, support_line_width, infill_overlap, wall_line_count);

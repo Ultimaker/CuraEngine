@@ -7,7 +7,7 @@
 using namespace cura;
 
 
-SupportInfillPart::SupportInfillPart(const Polygons& outline, coord_t support_line_width, int infill_overlap, int inset_count_to_generate)
+SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int infill_overlap, int inset_count_to_generate)
     : outline(outline)
     , support_line_width(support_line_width)
     , infill_overlap(infill_overlap)

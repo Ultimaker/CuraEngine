@@ -24,7 +24,7 @@ namespace cura
 class SupportInfillPart
 {
 public:
-    Polygons outline;  //!< The outline of the support infill area
+    PolygonsPart outline;  //!< The outline of the support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
     Polygons infill_area;  //!< The support infill area for generating patterns
     AABB outline_boundary_box;  //!< The boundary box for the infill area
@@ -34,7 +34,7 @@ public:
     std::vector<std::vector<Polygons>> infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
 
-    SupportInfillPart(const Polygons& outline, coord_t support_line_width, int infill_overlap = 0, int inset_count_to_generate = 0);
+    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int infill_overlap = 0, int inset_count_to_generate = 0);
     ~SupportInfillPart();
 
     /*!
