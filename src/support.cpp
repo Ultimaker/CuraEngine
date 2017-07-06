@@ -102,7 +102,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 }
 
 
-void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps)
+void AreaSupport::generateFeaturesForSupportInfillParts(SliceDataStorage& storage)
 {
     // at this stage, the outlines are final, and we can generate insets and infill area
     for (SupportLayer& support_layer : storage.support.supportLayers)
@@ -118,7 +118,11 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
             }
         }
     }
+}
 
+
+void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps)
+{
     //
     // # How gradual support infill works:
     // The gradual support infill uses the same technic as the gradual infill. Here is an illustration

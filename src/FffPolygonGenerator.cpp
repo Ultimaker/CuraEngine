@@ -278,6 +278,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processDerivedWallsSkinInfill(mesh);
     }
 
+    // at this stage, the outlines of all support infill parts are finalized, and we can generate features for
+    // SupportInfillParts for gradual support generation.
+    AreaSupport::generateFeaturesForSupportInfillParts(storage);
     AreaSupport::generateGradualSupport(
         storage,
         storage.print_layer_count,
