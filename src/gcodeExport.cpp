@@ -36,7 +36,7 @@ GCodeExport::GCodeExport()
     current_max_z_feedrate = -1;
 
     isZHopped = 0;
-    setFlavor(EGCodeFlavor::REPRAP);
+    setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
 
     extruder_count = 0;
@@ -190,7 +190,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
             // TODO: the second nozzle size isn't always initiated! ";NOZZLE_DIAMETER2:"
         }
-        else if (flavor == EGCodeFlavor::REPRAP)
+        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN)
         {
             prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
             prefix << ";Layer height: " << layer_height << new_line;
@@ -254,7 +254,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     else
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruder_attr[n].extruderCharacter = 'E';
-    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
         is_volumatric = true;
     }
@@ -263,7 +263,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
         is_volumatric = false;
     }
 
-    if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
+    if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
     {
         firmware_retract = true;
     }
@@ -1012,7 +1012,15 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
     {
         if (current_acceleration != acceleration)
         {
-            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line; // Print and Travel acceleration
+            // Print and Travel acceleration
+            if (getFlavor() == EGCodeFlavor::REPRAP)
+            {
+                *output_stream << "M204" << " P" << PrecisionedDouble{0, acceleration} << " T" << PrecisionedDouble{0, acceleration} << new_line;
+            }
+            else
+            {
+                *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
+            }
             current_acceleration = acceleration;
             estimateCalculator.setAcceleration(acceleration);
         }
@@ -1023,15 +1031,18 @@ void GCodeExport::writeJerk(double jerk)
 {
     if (current_jerk != jerk)
     {
-        if (getFlavor() == EGCodeFlavor::REPETIER)
+        switch (getFlavor())
         {
-            *output_stream << "M207 X";
+            case EGCodeFlavor::REPETIER:
+                *output_stream << "M207 X" << PrecisionedDouble{2, jerk} << new_line;
+                break;
+            case EGCodeFlavor::REPRAP:
+                *output_stream << "M566 X" << PrecisionedDouble{2, jerk * 60} << " Y" << PrecisionedDouble{2, jerk * 60} << new_line;
+                break;
+            default:
+                *output_stream << "M205 X" << PrecisionedDouble{2, jerk} << " Y" << PrecisionedDouble{2, jerk} << new_line;
+                break;
         }
-        else
-        {
-            *output_stream << "M205 X" << PrecisionedDouble{2, jerk} << " Y";
-        }
-        *output_stream << PrecisionedDouble{2, jerk} << new_line;
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
@@ -1041,7 +1052,14 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
+        if (getFlavor() == EGCodeFlavor::REPRAP)
+        {
+            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
+        }
+        else
+        {
+            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
+        }
         current_max_z_feedrate = max_z_feedrate;
         estimateCalculator.setMaxZFeedrate(max_z_feedrate);
     }

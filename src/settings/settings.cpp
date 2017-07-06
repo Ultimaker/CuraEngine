@@ -29,15 +29,17 @@ std::string toString(EGCodeFlavor flavor)
             return "Makerbot";
         case EGCodeFlavor::ULTIGCODE:
             return "UltiGCode";
-        case EGCodeFlavor::REPRAP_VOLUMATRIC:
-            return "RepRap(Volumetric)";
+        case EGCodeFlavor::MARLIN_VOLUMATRIC:
+            return "Marlin(Volumetric)";
         case EGCodeFlavor::GRIFFIN:
             return "Griffin";
         case EGCodeFlavor::REPETIER:
             return "Repetier";
         case EGCodeFlavor::REPRAP:
-        default:
             return "RepRap";
+        case EGCodeFlavor::MARLIN:
+        default:
+            return "Marlin";
     }
 }
 
@@ -348,10 +350,12 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
     else if (value == "MACH3")
         return EGCodeFlavor::MACH3;
     else if (value == "RepRap (Volumatric)")
-        return EGCodeFlavor::REPRAP_VOLUMATRIC;
+        return EGCodeFlavor::MARLIN_VOLUMATRIC;
     else if (value == "Repetier")
         return EGCodeFlavor::REPETIER;
-    return EGCodeFlavor::REPRAP;
+    else if (value == "RepRap (RepRap)")
+        return EGCodeFlavor::REPRAP;
+    return EGCodeFlavor::MARLIN;
 }
 
 EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
