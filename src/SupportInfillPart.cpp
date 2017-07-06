@@ -86,6 +86,7 @@ bool SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart>& sm
         return false;
     }
 
+    smaller_parts.reserve(support_islands.size());
     for (const PolygonsPart& island_outline : support_islands)
     {
         if (island_outline.empty())
