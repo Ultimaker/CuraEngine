@@ -265,7 +265,8 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
 {
     for (SkinPart& skin_part : part->skin_parts)
     {
-        generateSkinInsetsAndInnerSkinInfill(skin_part);
+        generateSkinInsets(skin_part);
+        generateInnerSkinInfill(skin_part);
     }
 }
 
@@ -275,11 +276,10 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SkinPart& skin_part)
+void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
 {
     if (skin_inset_count <= 0)
     {
-        skin_part.inner_infill = skin_part.outline;
         return;
     }
     for (int inset_idx = 0; inset_idx < skin_inset_count; inset_idx++)
@@ -301,6 +301,21 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SkinPart& s
             skin_part.insets.pop_back();
             return; // don't generate inner_infill areas if the innermost inset was too small
         }
+    }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
+{
+    if (skin_inset_count <= 0)
+    {
+        skin_part.inner_infill = skin_part.outline;
+        return;
     }
     const Polygons& innermost_inset = skin_part.insets.back();
     skin_part.inner_infill = innermost_inset.offset(-wall_line_width_x / 2);

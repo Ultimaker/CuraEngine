@@ -129,12 +129,20 @@ protected:
     void generateSkinInsetsAndInnerSkinInfill(SliceLayerPart* part);
 
     /*!
-     * Generate the skin insets of a skin part and the inner infill area
+     * Generate the skin insets of a skin part
      * 
      * \param skin_part The part where the skin outline information (input) is stored and
      * where the skin insets (output) are stored.
      */
-    void generateSkinInsetsAndInnerSkinInfill(SkinPart& skin_part);
+    void generateSkinInsets(SkinPart& skin_part);
+
+    /*!
+     * Generate the inner_infill_area of a skin part
+     * 
+     * \param skin_part The part where the skin outline information (input) is stored and
+     * where the inner infill area (output) is stored.
+     */
+    void generateInnerSkinInfill(SkinPart& skin_part);
 
 protected:
     const int layer_nr; //!< The index of the layer for which to generate the skins and infill.
