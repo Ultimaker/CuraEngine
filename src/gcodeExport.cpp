@@ -1015,7 +1015,7 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
             // Print and Travel acceleration
             if (getFlavor() == EGCodeFlavor::REPRAP)
             {
-                *output_stream << "M201" << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
+                *output_stream << "M204" << " P" << PrecisionedDouble{0, acceleration} << " T" << PrecisionedDouble{0, acceleration} << new_line;
             }
             else
             {
