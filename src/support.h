@@ -40,6 +40,26 @@ public:
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
      * This uses the same technic as the gradual infill.
+     *
+     * This densities of the infill areas are determined by comparing the **outlines** of each support infill part.
+     * Take the following as an example:
+     *
+     *       comparing infill        comparing with outline (this is our approach)
+     *           ^^^^^^               ^^^^^^
+     *           ####||^^             ####||^^
+     *           ######||^^           ######||^^
+     *           ++++####||           ++++++##||
+     *           ++++++####           ++++++++##
+     *
+     * LEGEND:
+     *  ^ support roof
+     *   | support wall
+     *   # dense support
+     *   + less dense support
+     *
+     * In this example, comparing with outlines makes sure that the walls will always be printed upon the most dense area and at the same time
+     * we don't generate unnecessary dense infill areas. This saves print time and material and also insures that the walls can be safely printed.
+     *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      * \param total_layer_count total number of layers
      * \param gradual_support_step_height The height difference between consecutive density support areas
