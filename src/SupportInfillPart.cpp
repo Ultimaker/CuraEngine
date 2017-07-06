@@ -95,11 +95,6 @@ bool SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart>& sm
 
         // create a new part
         SupportInfillPart support_infill_part(island_outline, this->support_line_width, this->infill_overlap, this->inset_count_to_generate);
-        if (!support_infill_part.generateInsetsAndInfillAreas())
-        {
-            continue;
-        }
-
         smaller_parts.push_back(support_infill_part);
     }
 
