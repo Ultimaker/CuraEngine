@@ -32,6 +32,14 @@ public:
     static void generateSpaghettiInfill(SliceMeshStorage& mesh);
 
 protected:
+    /*!
+     * Generate spaghetti infill for the total volume of the mesh,
+     * extrude all filament from the top of the print.
+     * 
+     * \param mesh The mesh for which to generate spaghetti infill
+     */
+    static void generateTotalSpaghettiInfill(SliceMeshStorage& mesh);
+
     class InfillPillar
     {
     public:
@@ -78,6 +86,16 @@ protected:
          */
         void addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width);
     };
+
+    /*!
+     * Compute the area within which to generate the spaghetti infill.
+     * 
+     * \param infill_area The area of normal infill
+     * \param fill_area_inset The distance between the normal infill and the spaghetti infill area
+     * \param line_width The line width of the infill lines
+     * \return The offsetted area, or a generated area as small as possible
+     */
+    static Polygons getFillingArea(const PolygonsPart& infill_area, coord_t filling_area_inset, coord_t line_width);
 private:
     /*!
      * Add an area to the pillar base:

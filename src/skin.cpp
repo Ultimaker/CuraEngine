@@ -273,21 +273,26 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
  */
 void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polygons& skin)
 {
-    int extra_offset = 0;
-    EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
-    if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
-        && mesh.getSettingBoolean("alternate_extra_perimeter")
-        && layer_nr % 2 == 0
-        && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
-    {
-        extra_offset = -innermost_wall_line_width;
-    }
-
     if (int(part.insets.size()) < wall_line_count)
     {
         return; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
     }
-    Polygons infill = part.insets.back().offset(extra_offset - innermost_wall_line_width / 2 - infill_skin_overlap);
+
+    coord_t offset_from_inner_wall = -infill_skin_overlap;
+    if (mesh.getSettingAsCount("wall_line_count") > 0)
+    { // calculate offset_from_inner_wall
+        coord_t extra_perimeter_offset = 0; // to account for alternate_extra_perimeter
+        EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
+        if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
+            && mesh.getSettingBoolean("alternate_extra_perimeter")
+            && layer_nr % 2 == 0
+            && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
+        {
+            extra_perimeter_offset = -innermost_wall_line_width;
+        }
+        offset_from_inner_wall += extra_perimeter_offset - innermost_wall_line_width / 2;
+    }
+    Polygons infill = part.insets.back().offset(offset_from_inner_wall);
 
     infill = infill.difference(skin);
     infill.removeSmallAreas(MIN_AREA_SIZE);
