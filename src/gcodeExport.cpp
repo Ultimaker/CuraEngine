@@ -36,7 +36,7 @@ GCodeExport::GCodeExport()
     current_max_z_feedrate = -1;
 
     isZHopped = 0;
-    setFlavor(EGCodeFlavor::REPRAP);
+    setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
 
     extruder_count = 0;
@@ -254,7 +254,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     else
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruder_attr[n].extruderCharacter = 'E';
-    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
         is_volumatric = true;
     }
@@ -263,7 +263,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
         is_volumatric = false;
     }
 
-    if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
+    if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
     {
         firmware_retract = true;
     }
@@ -1013,8 +1013,7 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
         if (current_acceleration != acceleration)
         {
             // Print and Travel acceleration
-
-            if (getFlavor() == EGCodeFlavor::REPRAP_REPRAP)
+            if (getFlavor() == EGCodeFlavor::REPRAP)
             {
                 *output_stream << "M201" << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
             }
@@ -1036,7 +1035,7 @@ void GCodeExport::writeJerk(double jerk)
         {
             *output_stream << "M207 X";
         }
-        else if(getFlavor() == EGCodeFlavor::REPRAP_REPRAP)
+        else if(getFlavor() == EGCodeFlavor::REPRAP)
         {
             *output_stream << "M566 X" << PrecisionedDouble{2, jerk * 60} << " Y" << PrecisionedDouble{2, jerk * 60} << new_line;
         }
@@ -1054,7 +1053,7 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        if (getFlavor() == EGCodeFlavor::REPRAP_REPRAP)
+        if (getFlavor() == EGCodeFlavor::REPRAP)
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
         }

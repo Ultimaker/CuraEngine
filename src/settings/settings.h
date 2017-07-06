@@ -25,14 +25,14 @@ namespace cura
 enum class EGCodeFlavor
 {
 /**
- * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
+ * Marlin flavored GCode is Marlin/Sprinter based GCode.
  *  This is the most commonly used GCode set.
  *  G0 for moves, G1 for extrusion.
  *  E values give mm of filament extrusion.
  *  Retraction is done on E values with G1. Start/end code is added.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-    REPRAP = 0,
+    MARLIN = 0,
 /**
  * UltiGCode flavored is Marlin based GCode.
  *  UltiGCode uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
@@ -75,7 +75,7 @@ enum class EGCodeFlavor
  *  Retraction is done with G10 and G11. Retraction settings are ignored. G10 S1 is used for multi-extruder switch retraction.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-    REPRAP_VOLUMATRIC = 5,
+    MARLIN_VOLUMATRIC = 5,
 /**
  * Griffin flavored is Marlin based GCode.
  *  This is a type of RepRap used for machines with multiple extruder trains.
@@ -92,7 +92,7 @@ enum class EGCodeFlavor
 /**
  * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
  **/
-    REPRAP_REPRAP = 8,
+    REPRAP = 8,
 };
 
 /*!
