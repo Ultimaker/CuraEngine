@@ -34,18 +34,15 @@ public:
     std::vector<std::vector<Polygons>> infill_areas_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
 
-    SupportInfillPart(coord_t support_line_width, int infill_overlap = 0, int inset_count_to_generate = 0);
+    SupportInfillPart(const Polygons& outline, coord_t support_line_width, int infill_overlap = 0, int inset_count_to_generate = 0);
     ~SupportInfillPart();
 
     /*!
-     * Initializes this SupportInfillPart with the given infill outline.
+     * Initializes this SupportInfillPart by generating its insets and infill area.
      *
-     * Sets outline and outline_boundary_box, and generate insets and infill_area.
-     *
-     * \param outline The infill area outline for this part.
-     * \return true if the initialized area contains data; false if the area is too small to generate any insets and infill area.
+     * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
      */
-    bool initializeWithOutline(const Polygons& outline);
+    bool generateInsetsAndInfillAreas();
 
     /*!
      * Split this SupportInfillPart into smaller part(s) to exclude the given areas.

@@ -90,13 +90,11 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
         for (unsigned int island_idx = 0; island_idx < support_islands.size(); ++island_idx)
         {
-            Polygons& island_outline = support_islands[island_idx];
+            const Polygons& island_outline = support_islands[island_idx];
 
-            SupportInfillPart support_infill_part(support_line_width, infill_overlap, wall_line_count);
-            if (!support_infill_part.initializeWithOutline(island_outline))
-            {
-                continue;
-            }
+            // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
+            // tower will remove themselves from the support, so the outlines of the parts can be changed.
+            SupportInfillPart support_infill_part(island_outline, support_line_width, infill_overlap, wall_line_count);
 
             storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
         }
@@ -106,6 +104,21 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps)
 {
+    // at this stage, the outlines are final, and we can generate insets and infill area
+    for (SupportLayer& support_layer : storage.support.supportLayers)
+    {
+        for (auto part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end(); ++part_itr)
+        {
+            SupportInfillPart& part = *part_itr;
+            const bool is_not_empty_part = part.generateInsetsAndInfillAreas();
+            if (!is_not_empty_part)
+            {
+                support_layer.support_infill_parts.erase(part_itr);
+                --part_itr;
+            }
+        }
+    }
+
     //
     // # How gradual support infill works:
     // The gradual support infill uses the same technic as the gradual infill. Here is an illustration

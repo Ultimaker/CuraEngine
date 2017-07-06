@@ -7,12 +7,12 @@
 using namespace cura;
 
 
-SupportInfillPart::SupportInfillPart(coord_t support_line_width, int infill_overlap, int inset_count_to_generate)
-    : support_line_width(support_line_width)
+SupportInfillPart::SupportInfillPart(const Polygons& outline, coord_t support_line_width, int infill_overlap, int inset_count_to_generate)
+    : outline(outline)
+    , support_line_width(support_line_width)
     , infill_overlap(infill_overlap)
     , inset_count_to_generate(inset_count_to_generate)
 {
-    outline.clear();
     insets.clear();
     infill_area.clear();
     infill_areas_per_combine_per_density.clear();
@@ -31,10 +31,8 @@ SupportInfillPart::~SupportInfillPart()
 }
 
 
-bool SupportInfillPart::initializeWithOutline(const Polygons& outline)
+bool SupportInfillPart::generateInsetsAndInfillAreas()
 {
-    this->outline = outline;
-
     // generate insets, use the first inset as the wall line, and the second as the infill area
     AreaSupport::generateOutlineInsets(
         this->insets,
@@ -90,8 +88,8 @@ bool SupportInfillPart::splitIntoSmallerParts(std::vector<SupportInfillPart>& sm
         }
 
         // create a new part
-        SupportInfillPart support_infill_part(this->support_line_width, this->infill_overlap, this->inset_count_to_generate);
-        if (!support_infill_part.initializeWithOutline(island_outline))
+        SupportInfillPart support_infill_part(island_outline, this->support_line_width, this->infill_overlap, this->inset_count_to_generate);
+        if (!support_infill_part.generateInsetsAndInfillAreas())
         {
             continue;
         }
