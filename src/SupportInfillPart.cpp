@@ -54,11 +54,8 @@ bool SupportInfillPart::generateInsetsAndInfillAreas()
     {
         // if there are walls, we use the inner area as the infill area
         this->infill_area = this->insets.back().offset(-support_line_width / 2);
-        if (!this->infill_area.empty())
-        {
-            // optimize polygons: remove unnecessary verts
-            this->infill_area.simplify();
-        }
+        // optimize polygons: remove unnecessary verts
+        this->infill_area.simplify();
     }
     // also create the boundary box using the outline
     this->outline_boundary_box = AABB(this->outline);
