@@ -31,6 +31,13 @@ SupportInfillPart::~SupportInfillPart()
 }
 
 
+const Polygons& SupportInfillPart::getInfillArea() const
+{
+    // if there is no wall, we use the original outline as the infill area
+    return (this->inset_count_to_generate == 0) ? this->outline : this->infill_area;
+}
+
+
 bool SupportInfillPart::generateInsetsAndInfillAreas()
 {
     // generate insets, use the first inset as the wall line, and the second as the infill area
@@ -44,13 +51,8 @@ bool SupportInfillPart::generateInsetsAndInfillAreas()
         return false;
     }
 
-    // get infill area
-    if (this->inset_count_to_generate == 0)
-    {
-        // if there is no wall, we use the original outline as the infill area
-        this->infill_area = this->outline;
-    }
-    else
+    // calculate infill area if there are insets
+    if (this->inset_count_to_generate > 0)
     {
         // if there are walls, we use the inner area as the infill area
         this->infill_area = this->insets.back().offset(-support_line_width / 2);

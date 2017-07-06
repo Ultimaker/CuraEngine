@@ -44,6 +44,8 @@ public:
      */
     bool generateInsetsAndInfillAreas();
 
+    inline const Polygons& getInfillArea() const;
+
     /*!
      * Split this SupportInfillPart into smaller part(s) to exclude the given areas.
      *
