@@ -4,8 +4,71 @@
 namespace cura {
 
 
+void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
+{
+    double total_volume_mm3 = 0.0;
+
+    const int max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
+    for (int layer_idx = 0; layer_idx <= max_layer; layer_idx++)
+    {
+        const coord_t layer_height = (layer_idx == 0)? mesh.getSettingInMicrons("layer_height_0") : mesh.getSettingInMicrons("layer_height");
+        if (layer_idx < mesh.getSettingAsCount("bottom_layers"))
+        { // nothing to add
+            continue;
+        }
+        const SliceLayer& layer = mesh.layers[layer_idx];
+        for (const SliceLayerPart& slice_layer_part : layer.parts)
+        {
+            const Polygons& part_infill = slice_layer_part.getOwnInfillArea();
+            total_volume_mm3 += INT2MM(INT2MM(part_infill.area())) * INT2MM(layer_height);
+        }
+    }
+
+    // find top most filling area
+    SliceLayerPart* top_filling_layer_part = nullptr;
+    for (int layer_idx = mesh.layers.size() - 1; layer_idx >= 0; layer_idx--)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        for (SliceLayerPart& part : layer.parts)
+        {
+            if (part.getOwnInfillArea().size() > 0)
+            { // WARNING: we just use the very first part we encounter; there's no way for the user to choose which filling area will be used
+                top_filling_layer_part = &part;
+                break;
+            }
+        }
+        if (top_filling_layer_part)
+        {
+            break; // it's already found
+        }
+    }
+
+    if (!top_filling_layer_part)
+    { // there is no infill in the whole mesh!
+        logError("Spaghetti Infill mesh doesn't have any volume!\n");
+        return;
+    }
+    assert(top_filling_layer_part->getOwnInfillArea().size() > 0);
+    const PolygonsPart top_infill_part = top_filling_layer_part->getOwnInfillArea().splitIntoParts()[0]; // WARNING: we just use the very first part we encounter; there's no way for the user to choose which filling area will be used
+
+    coord_t filling_area_inset = mesh.getSettingInMicrons("spaghetti_inset");
+    const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
+    const Polygons filling_area = SpaghettiInfill::getFillingArea(top_infill_part, filling_area_inset, line_width);
+
+    // add total volume spaghetti infill to top of print
+    top_filling_layer_part->spaghetti_infill_volumes.emplace_back(filling_area, total_volume_mm3);
+}
+
 void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 {
+    const bool total_volume_at_once = !mesh.getSettingBoolean("spaghetti_infill_stepped");
+
+    if (total_volume_at_once)
+    {
+        generateTotalSpaghettiInfill(mesh);
+        return;
+    }
+
     const coord_t line_width = mesh.getSettingInMicrons("infill_line_width");
     coord_t spaghetti_max_height = mesh.getSettingInMicrons("spaghetti_max_height");
 
@@ -77,20 +140,15 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     }
 }
 
-void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
+Polygons SpaghettiInfill::getFillingArea(const PolygonsPart& infill_area, coord_t filling_area_inset, coord_t line_width)
 {
-    SliceLayerPart& slice_layer_part = *top_slice_layer_part;
-    double volume = total_volume_mm3;
-    assert(volume > 0.0);
-
-    // get filling area
-    Polygons filling_area = top_part.offset(-filling_area_inset);
-    assert(top_part.size() > 0 && top_part[0].size() > 0 && "the top part must be a non-zero area!");
+    Polygons filling_area = infill_area.offset(-filling_area_inset);
+    assert(infill_area.size() > 0 && infill_area[0].size() > 0 && "the top part must be a non-zero area!");
     if (filling_area.size() == 0)
     {
-        AABB aabb(top_part);
+        AABB aabb(infill_area);
         Point inside = (aabb.min + aabb.max) / 2;
-        PolygonUtils::moveInside(top_part, inside);
+        PolygonUtils::moveInside(infill_area, inside);
 
         filling_area = PolygonsPart();
         PolygonRef poly = filling_area.newPoly();
@@ -99,6 +157,17 @@ void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_
         poly.emplace_back(inside + Point(line_width / 2 + 10, -line_width / 2 - 10));
         poly.emplace_back(inside + Point(-line_width / 2 - 10, -line_width / 2 - 10));
     }
+    return filling_area;
+}
+
+void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
+{
+    SliceLayerPart& slice_layer_part = *top_slice_layer_part;
+    double volume = total_volume_mm3;
+    assert(volume > 0.0);
+
+    // get filling area
+    Polygons filling_area = SpaghettiInfill::getFillingArea(top_part, filling_area_inset, line_width);
     slice_layer_part.spaghetti_infill_volumes.emplace_back(filling_area, volume);
 }
 
