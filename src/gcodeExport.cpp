@@ -1035,7 +1035,7 @@ void GCodeExport::writeJerk(double jerk)
         {
             *output_stream << "M207 X";
         }
-        else if(getFlavor() == EGCodeFlavor::REPRAP)
+        else if (getFlavor() == EGCodeFlavor::REPRAP)
         {
             *output_stream << "M566 X" << PrecisionedDouble{2, jerk * 60} << " Y" << PrecisionedDouble{2, jerk * 60} << new_line;
         }
