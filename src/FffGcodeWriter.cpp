@@ -1501,18 +1501,21 @@ bool FffGcodeWriter::processOuterWallInsets(std::vector<std::vector<ConstPolygon
                 // consume the inset
                 inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
                 --inner_poly_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
-                // now find all the insets that immediately fill the level 1 inset and consume them
-                ConstPolygonRef enclosing_inset = inner[0];
-                for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
+                if (!outer_inset_first)
                 {
-                    for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_level].size(); ++poly_idx)
+                    // now find all the insets that immediately fill the level 1 inset and consume them
+                    ConstPolygonRef enclosing_inset = inner[0];
+                    for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
                     {
-                        if (PolygonUtils::polygonOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.1f))
+                        for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_level].size(); ++poly_idx)
                         {
-                            enclosing_inset = inset_polys[inset_level][poly_idx];
-                            part_inner_walls.add(enclosing_inset);
-                            inset_polys[inset_level].erase(inset_polys[inset_level].begin() + poly_idx);
-                            break;
+                            if (PolygonUtils::polygonOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.1f))
+                            {
+                                enclosing_inset = inset_polys[inset_level][poly_idx];
+                                part_inner_walls.add(enclosing_inset);
+                                inset_polys[inset_level].erase(inset_polys[inset_level].begin() + poly_idx);
+                                break;
+                            }
                         }
                     }
                 }
