@@ -260,7 +260,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 
             assert(support_infill_part.infill_areas_per_combine_per_density.size() != 0 && "support_infill_part.infill_areas_per_combine_per_density should now be initialized");
 #ifdef DEBUG
-            for (auto part_i = 0; part_i < support_infill_part.infill_areas_per_combine_per_density.size(); ++part_i)
+            for (unsigned int part_i = 0; part_i < support_infill_part.infill_areas_per_combine_per_density.size(); ++part_i)
             {
                 assert(support_infill_part.infill_areas_per_combine_per_density[part_i].size() != 0);
             }
