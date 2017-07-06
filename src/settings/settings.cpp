@@ -35,6 +35,8 @@ std::string toString(EGCodeFlavor flavor)
             return "Griffin";
         case EGCodeFlavor::REPETIER:
             return "Repetier";
+        case EGCodeFlavor::REPRAP_REPRAP:
+            return "RepRap(RepRap)";
         case EGCodeFlavor::REPRAP:
         default:
             return "RepRap";
@@ -351,6 +353,8 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
         return EGCodeFlavor::REPRAP_VOLUMATRIC;
     else if (value == "Repetier")
         return EGCodeFlavor::REPETIER;
+    else if (value == "RepRap (RepRap)")
+        return EGCodeFlavor::REPRAP_REPRAP;
     return EGCodeFlavor::REPRAP;
 }
 

@@ -1013,7 +1013,8 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
         if (current_acceleration != acceleration)
         {
             // Print and Travel acceleration
-            if (getFlavor() == EGCodeFlavor::REPRAP)
+
+            if (getFlavor() == EGCodeFlavor::REPRAP_REPRAP)
             {
                 *output_stream << "M201" << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
             }
@@ -1035,6 +1036,10 @@ void GCodeExport::writeJerk(double jerk)
         {
             *output_stream << "M207 X";
         }
+        else if(getFlavor() == EGCodeFlavor::REPRAP_REPRAP)
+        {
+            *output_stream << "M566 X" << PrecisionedDouble{2, jerk * 60} << " Y" << PrecisionedDouble{2, jerk * 60} << new_line;
+        }
         else
         {
             *output_stream << "M205 X" << PrecisionedDouble{2, jerk} << " Y";
@@ -1049,7 +1054,14 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
+        if (getFlavor() == EGCodeFlavor::REPRAP_REPRAP)
+        {
+            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
+        }
+        else
+        {
+            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
+        }
         current_max_z_feedrate = max_z_feedrate;
         estimateCalculator.setMaxZFeedrate(max_z_feedrate);
     }
