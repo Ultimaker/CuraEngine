@@ -57,7 +57,7 @@ public:
      * \param excluding_area_boundary_box the boundary box of the excluding areas
      * \return true if this part has overlap with the excluding areas and is splitted into smaller part(s); false if there is no overlapping areas, so no need to spit.
      */
-    bool splitIntoSmallerParts(std::vector<SupportInfillPart>& smaller_parts, const Polygons& excluding_areas, const AABB& excluding_area_boundary_box) const;
+    bool splitIntoSmallerParts(std::vector<SupportInfillPart>& smaller_parts, const Polygons& excluding_areas, const AABB& excluding_area_boundary_box);
 };
 
 } // namespace cura
