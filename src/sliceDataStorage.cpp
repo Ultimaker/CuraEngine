@@ -481,9 +481,9 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after
-    std::vector<size_t> to_remove_indexes;  // FIFO for replacing, LIFO for removing
-    to_remove_indexes.reserve(this->support_infill_parts.size());
-    size_t to_remove_indexes_front_idx = 0;
+    std::vector<size_t> to_remove_indices;  // FIFO for replacing, LIFO for removing
+    to_remove_indices.reserve(this->support_infill_parts.size());
+    size_t to_remove_indices_front_idx = 0;
 
     std::vector<PolygonsPart> new_smaller_islands;
     new_smaller_islands.reserve(this->support_infill_parts.size());
@@ -508,7 +508,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
             if (new_smaller_islands.empty())
             {
                 // there is no islands to add, append this into the to_remove list
-                to_remove_indexes.push_back(part_idx);
+                to_remove_indices.push_back(part_idx);
             }
             else
             {
@@ -535,7 +535,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         {
             const PolygonsPart& smaller_island = smaller_support_islands[support_island_idx];
 
-            if (to_remove_indexes_front_idx == to_remove_indexes.size())
+            if (to_remove_indices_front_idx == to_remove_indices.size())
             {
                 // there is no parts that need to be removed, so we just add this as a new part
                 new_smaller_islands.push_back(smaller_island);
@@ -543,7 +543,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
             else
             {
                 // replace the part that needs to be removed (FIFO) with this new part
-                const size_t to_replace_idx = to_remove_indexes[to_remove_indexes_front_idx++];
+                const size_t to_replace_idx = to_remove_indices[to_remove_indices_front_idx++];
                 SupportInfillPart& to_replace_part = this->support_infill_parts[to_replace_idx];
                 to_replace_part.outline = new_smaller_islands.back();
                 new_smaller_islands.pop_back();
@@ -552,22 +552,22 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
     }
 
 #ifdef DEBUG
-    if (!to_remove_indexes.empty())
+    if (!to_remove_indices.empty())
     {
         assert(new_smaller_islands.empty() && "to_remove and new_islands cannot both be non-empty");
     }
     if (!new_smaller_islands.empty())
     {
-        assert(to_remove_indexes.empty() && "to_remove and new_islands cannot both be non-empty");
+        assert(to_remove_indices.empty() && "to_remove and new_islands cannot both be non-empty");
     }
 #endif // DEBUG
 
     // remove the ones that need to be removed (LIFO)
-    while (!to_remove_indexes.empty())
+    while (!to_remove_indices.empty())
     {
-        for (size_t remove_idx_idx = to_remove_indexes.size() - 1; remove_idx_idx >= to_remove_indexes_front_idx; --remove_idx_idx)
+        for (size_t remove_idx_idx = to_remove_indices.size() - 1; remove_idx_idx >= to_remove_indices_front_idx; --remove_idx_idx)
         {
-            const size_t remove_idx = to_remove_indexes[remove_idx_idx];
+            const size_t remove_idx = to_remove_indices[remove_idx_idx];
             this->support_infill_parts.erase(this->support_infill_parts.begin() + remove_idx);
         }
     }
