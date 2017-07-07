@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (c) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cmath> // std::ceil
 
 #include "skin.h"
@@ -103,13 +106,17 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
-    Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
+    Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
-    Polygons original_outline = Polygons(upskin);
-    Polygons downskin = (bottom_layer_count == 0) ? Polygons() : upskin;
-    if (top_layer_count == 0)
+    Polygons upskin;
+    if (top_layer_count > 0)
     {
-        upskin = Polygons();
+        upskin = Polygons(original_outline);
+    }
+    Polygons downskin;
+    if (bottom_layer_count > 0)
+    {
+        downskin = Polygons(original_outline);
     }
 
     calculateBottomSkin(part, min_infill_area, downskin);
