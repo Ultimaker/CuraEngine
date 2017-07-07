@@ -581,7 +581,6 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         {
             this->support_infill_parts.emplace_back(smaller_island,
                                                     reference_part.support_line_width,
-                                                    reference_part.infill_overlap,
                                                     reference_part.inset_count_to_generate);
         }
     }

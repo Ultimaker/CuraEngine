@@ -1736,6 +1736,13 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         support_pattern = EFillMethod::GRID;
     }
 
+    int support_infill_overlap = 0; // support infill should not be expanded outward
+    if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
+    {
+        // support lines area should be expanded outward to overlap with the boundary polygon
+        support_infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
+    }
+
     int infill_extruder_nr_here = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
@@ -1791,7 +1798,6 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
             }
 
             int offset_from_outline = 0;
-            int support_infill_overlap = support_infill_part.infill_overlap; // support infill should not be expanded outward
             int extra_infill_shift = 0;
             extra_infill_shift = support_shift;
 

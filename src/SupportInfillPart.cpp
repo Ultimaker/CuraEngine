@@ -7,10 +7,9 @@
 using namespace cura;
 
 
-SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int infill_overlap, int inset_count_to_generate)
+SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate)
     : outline(outline)
     , support_line_width(support_line_width)
-    , infill_overlap(infill_overlap)
     , inset_count_to_generate(inset_count_to_generate)
 {
     insets.clear();
@@ -22,7 +21,6 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
 SupportInfillPart::~SupportInfillPart()
 {
     support_line_width = 0;
-    infill_overlap = 0;
     inset_count_to_generate = 0;
     outline.clear();
     insets.clear();
