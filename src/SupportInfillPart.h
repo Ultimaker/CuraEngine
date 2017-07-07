@@ -26,7 +26,6 @@ class SupportInfillPart
 public:
     PolygonsPart outline;  //!< The outline of the support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
-    Polygons infill_area;  //!< The support infill area for generating patterns
     AABB outline_boundary_box;  //!< The boundary box for the infill area
     coord_t support_line_width;  //!< The support line width
     int infill_overlap;  //!< How much the support lines area should be expanded outward to overlap with the support area boundary polygon
@@ -44,7 +43,7 @@ public:
      */
     bool generateInsetsAndInfillAreas();
 
-    inline const Polygons& getInfillArea() const;
+    const Polygons& getInfillArea() const;
 
     /*!
      * Split this SupportInfillPart into smaller part(s) to exclude the given areas.
@@ -58,7 +57,16 @@ public:
      * \return true if this part has overlap with the excluding areas and is splitted into smaller part(s); false if there is no overlapping areas, so no need to spit.
      */
     bool splitIntoSmallerParts(std::vector<SupportInfillPart>& smaller_parts, const Polygons& excluding_areas, const AABB& excluding_area_boundary_box);
+
+private:
+    Polygons infill_area;  //!< The support infill area for generating patterns
 };
+
+inline const Polygons& SupportInfillPart::getInfillArea() const
+{
+    // if there is no wall, we use the original outline as the infill area
+    return (this->inset_count_to_generate == 0) ? this->outline : this->infill_area;
+}
 
 } // namespace cura
 

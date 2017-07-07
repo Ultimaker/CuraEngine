@@ -199,14 +199,14 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
         for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
-            if (support_infill_part.infill_area.empty())
+            if (support_infill_part.getInfillArea().empty())
             {
                 continue;
             }
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.infill_area; // one step less dense with each density_step
+            Polygons less_dense_support = support_infill_part.getInfillArea(); // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 size_t min_layer = layer_nr + density_step * gradual_support_step_layer_count + layer_skip_count;
@@ -225,7 +225,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                     Polygons relevant_upper_polygons;
                     for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
                     {
-                        if (support_infill_part.infill_area.empty())
+                        if (support_infill_part.outline.empty())
                         {
                             continue;
                         }
@@ -250,7 +250,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                         //
                         if (upper_part_boundary_box.hit(this_part_boundary_box))
                         {
-                            relevant_upper_polygons.add(upper_infill_parts[upper_part_idx].infill_area);
+                            relevant_upper_polygons.add(upper_infill_parts[upper_part_idx].outline);
                         }
                     }
 
@@ -264,13 +264,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
                 // add new infill_areas_per_combine_per_density for the current density
                 support_infill_part.infill_areas_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_areas_per_combine_per_density.back();
-                const Polygons more_dense_support = support_infill_part.infill_area.difference(less_dense_support);
+                const Polygons more_dense_support = support_infill_part.getInfillArea().difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
             support_infill_part.infill_areas_per_combine_per_density.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_areas_per_combine_per_density.back();
-            support_area_current_density.push_back(support_infill_part.infill_area);
+            support_area_current_density.push_back(support_infill_part.getInfillArea());
 
             assert(support_infill_part.infill_areas_per_combine_per_density.size() != 0 && "support_infill_part.infill_areas_per_combine_per_density should now be initialized");
 #ifdef DEBUG
