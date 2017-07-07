@@ -100,7 +100,19 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 }
 
 
-void AreaSupport::generateFeaturesForSupportInfillParts(SliceDataStorage& storage)
+void AreaSupport::generateGradualSupportFeatures(SliceDataStorage& storage, unsigned int total_layer_count,
+    unsigned int gradual_support_step_height, unsigned int max_density_steps, coord_t layer_height)
+{
+    AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
+    AreaSupport::generateGradualSupport(storage, total_layer_count, gradual_support_step_height, max_density_steps);
+
+    // combine support infill layers
+    unsigned int combine_layer_amount = std::max(1U, round_divide(storage.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1))); //How many support infill layers to combine to obtain the requested sparse thickness.
+    AreaSupport::combineSupportInfillLayers(storage, total_layer_count, combine_layer_amount);
+}
+
+
+void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
 {
     // at this stage, the outlines are final, and we can generate insets and infill area
     for (SupportLayer& support_layer : storage.support.supportLayers)

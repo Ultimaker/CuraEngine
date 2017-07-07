@@ -32,10 +32,50 @@ public:
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
 
     /*!
+     * Generates all gradual support infill features.
+     * It does the following:
+     *  - initialize insets and infill areas for all support infill parts
+     *  - generated support infill areas with different density levels
+     *  - combine multiple support infill areas layers into single layers
+     *
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param total_layer_count total number of layers
+     * \param gradual_support_step_height The height difference between consecutive density support areas
+     * \param max_density_steps the maximum exponent of division of support density. At 5 the least dense support will be 2^4 * infill_line_distance i.e. one 16th as dense
+     * \param layer_height the layer height in microns.
+     */
+    static void generateGradualSupportFeatures(
+        SliceDataStorage& storage,
+        unsigned int total_layer_count,
+        unsigned int gradual_support_step_height,
+        unsigned int max_density_steps,
+        coord_t layer_height);
+
+    /*!
+     * Generate the insets of the given support infill outline.
+     *
+     * \param[out] insets The insets result to output.
+     * \param outline The given support infill outline.
+     * \param inset_count The number of perimeters to surround the support infill outline.
+     * \param wall_line_width_x The wall line width in microns on the X axis.
+     */
+    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x);
+
+private:
+    /*!
+     * Splits the global support areas into separete SupportInfillParts.
+     * This is required before generating the gradual support infill.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param global_support_areas_per_layer the global support areas per layer
+     * \param total_layer_count total number of layers
+     */
+    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
+
+    /*!
      * Generate insets and infill areas for all support infill parts.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void generateFeaturesForSupportInfillParts(SliceDataStorage& storage);
+    static void prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
@@ -79,26 +119,6 @@ public:
      * \param combine_layers_amount The number of layers to combine.
      */
     static void combineSupportInfillLayers(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int combine_layers_amount);
-
-    /*!
-     * Generate the insets of the given support infill outline.
-     *
-     * \param[out] insets The insets result to output.
-     * \param outline The given support infill outline.
-     * \param inset_count The number of perimeters to surround the support infill outline.
-     * \param wall_line_width_x The wall line width in microns on the X axis.
-     */
-    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x);
-
-private:
-    /*!
-     * Splits the global support areas into separete SupportInfillParts.
-     * This is required before generating the gradual support infill.
-     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param global_support_areas_per_layer the global support areas per layer
-     * \param total_layer_count total number of layers
-     */
-    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
      * Generate support polygons over all layers for one object.
