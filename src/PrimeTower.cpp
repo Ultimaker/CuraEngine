@@ -237,7 +237,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
     const Point outward_dir = wipe_location.location - prime_end;
     const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
 
-    const double purge_volume = train->getSettingInCubicMillimeters("prime_tower_purge_volume"); // Volume to be primed
+    const double purge_volume = std::max(0.0, train->getSettingInCubicMillimeters("prime_tower_purge_volume")); // Volume to be primed
     if (wipe_from_middle)
     {
         // for hollow wipe tower:

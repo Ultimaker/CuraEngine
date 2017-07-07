@@ -28,8 +28,11 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons infill_polygons;
 
         const Polygons& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
-        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow"); // volume to be extruded
-        assert(total_volume > 0.0);
+        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow") + mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume"); // volume to be extruded
+        if (total_volume <= 0.0)
+        {
+            continue;
+        }
 
         // generate zigzag print head paths
         Polygons* perimeter_gaps_output = nullptr;
