@@ -45,9 +45,9 @@ private:
     const int extruder_nr;
     const PathConfigStorage::MeshPathConfigs& mesh_config;
     const SliceLayerPart& part;
-    unsigned int layer_nr;
-    EZSeamType z_seam_type;
-    Point z_seam_pos;
+    const unsigned int layer_nr;
+    const EZSeamType z_seam_type;
+    const Point z_seam_pos;
     bool added_something;
     std::vector<std::vector<ConstPolygonRef>> inset_polys; // vector of vectors holding the inset polygons
 
