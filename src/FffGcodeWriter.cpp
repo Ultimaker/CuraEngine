@@ -291,8 +291,8 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
         CoastingConfig& coasting_config = storage.coasting_config.back();
         coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable"); 
-        coasting_config.coasting_volume = train->getSettingInCubicMillimeters("coasting_volume"); 
-        coasting_config.coasting_min_volume = train->getSettingInCubicMillimeters("coasting_min_volume"); 
+        coasting_config.coasting_volume = std::max(0.0, train->getSettingInCubicMillimeters("coasting_volume"));
+        coasting_config.coasting_min_volume = std::max(0.0, train->getSettingInCubicMillimeters("coasting_min_volume"));
         coasting_config.coasting_speed = train->getSettingInPercentage("coasting_speed") / 100.0; 
     }
 }
@@ -305,7 +305,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
         retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? train->getSettingInMillimeters("retraction_amount") : 0;
-        retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        retraction_config.prime_volume = std::max(0.0, train->getSettingInCubicMillimeters("retraction_extra_prime_amount"));
         retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
         retraction_config.zHop = train->getSettingInMicrons("retraction_hop");

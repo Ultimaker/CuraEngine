@@ -215,7 +215,7 @@ double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key) co
 double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key) const
 {
     std::string value = getSettingString(key);
-    return std::max(0.0, atof(value.c_str()));
+    return atof(value.c_str());
 }
 
 double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
