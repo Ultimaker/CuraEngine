@@ -1881,7 +1881,8 @@ void FffGcodeWriter::finalize()
     }
     if (getSettingBoolean("acceleration_enabled"))
     {
-        gcode.writeAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
+        gcode.writePrintAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
+        gcode.writeTravelAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
     }
     if (getSettingBoolean("jerk_enabled"))
     {

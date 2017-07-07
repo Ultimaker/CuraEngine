@@ -30,7 +30,7 @@ GCodeExport::GCodeExport()
     total_print_times = std::vector<double>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
     currentSpeed = 1;
-    current_acceleration = -1;
+    current_print_acceleration = -1;
     current_travel_acceleration = -1;
     current_jerk = -1;
     current_max_z_feedrate = -1;
@@ -981,50 +981,57 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
-void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
+void GCodeExport::writePrintAcceleration(double acceleration)
 {
-    if (getFlavor() == EGCodeFlavor::REPETIER)
+    switch (getFlavor())
     {
-        int m_code = 0;
-        if (for_travel_moves)
-        {
-            if (current_travel_acceleration != acceleration)
+        case EGCodeFlavor::REPETIER:
+            if (current_print_acceleration != acceleration)
             {
-                m_code = 202;   // set travel acceleration
-                current_travel_acceleration = acceleration;
+                *output_stream << "M201 X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
             }
-        }
-        else
-        {
-            if (current_acceleration != acceleration)
+            break;
+        case EGCodeFlavor::REPRAP:
+            if (current_print_acceleration != acceleration)
             {
-                m_code = 201;  // set print acceleration
-                current_acceleration = acceleration;
+                *output_stream << "M204 P" << PrecisionedDouble{0, acceleration} << new_line;
             }
-        }
-        if (m_code != 0)
-        {
-            *output_stream << "M" << m_code << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
-            estimateCalculator.setAcceleration(acceleration);
-        }
-    }
-    else
-    {
-        if (current_acceleration != acceleration)
-        {
-            // Print and Travel acceleration
-            if (getFlavor() == EGCodeFlavor::REPRAP)
-            {
-                *output_stream << "M204" << " P" << PrecisionedDouble{0, acceleration} << " T" << PrecisionedDouble{0, acceleration} << new_line;
-            }
-            else
+            break;
+        default:
+            // MARLIN, etc. only have one acceleration for both print and travel
+            if (current_print_acceleration != acceleration)
             {
                 *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
             }
-            current_acceleration = acceleration;
-            estimateCalculator.setAcceleration(acceleration);
-        }
+            break;
     }
+    current_print_acceleration = acceleration;
+    estimateCalculator.setAcceleration(acceleration);
+}
+
+void GCodeExport::writeTravelAcceleration(double acceleration)
+{
+    switch (getFlavor())
+    {
+        case EGCodeFlavor::REPETIER:
+            if (current_travel_acceleration != acceleration)
+            {
+                *output_stream << "M202 X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
+            }
+            break;
+        case EGCodeFlavor::REPRAP:
+            if (current_travel_acceleration != acceleration)
+            {
+                *output_stream << "M204 T" << PrecisionedDouble{0, acceleration} << new_line;
+            }
+            break;
+        default:
+            // MARLIN, etc. only have one acceleration for both print and travel
+            writePrintAcceleration(acceleration);
+            break;
+    }
+    current_travel_acceleration = acceleration;
+    estimateCalculator.setAcceleration(acceleration);
 }
 
 void GCodeExport::writeJerk(double jerk)
