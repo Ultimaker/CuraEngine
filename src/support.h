@@ -39,17 +39,8 @@ public:
      *  - combine multiple support infill areas layers into single layers
      *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param total_layer_count total number of layers
-     * \param gradual_support_step_height The height difference between consecutive density support areas
-     * \param max_density_steps the maximum exponent of division of support density. At 5 the least dense support will be 2^4 * infill_line_distance i.e. one 16th as dense
-     * \param layer_height the layer height in microns.
      */
-    static void generateGradualSupportFeatures(
-        SliceDataStorage& storage,
-        unsigned int total_layer_count,
-        unsigned int gradual_support_step_height,
-        unsigned int max_density_steps,
-        coord_t layer_height);
+    static void generateGradualSupportFeatures(SliceDataStorage& storage);
 
     /*!
      * Generate the insets of the given support infill outline.

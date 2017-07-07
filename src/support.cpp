@@ -94,9 +94,13 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 }
 
 
-void AreaSupport::generateGradualSupportFeatures(SliceDataStorage& storage, unsigned int total_layer_count,
-    unsigned int gradual_support_step_height, unsigned int max_density_steps, coord_t layer_height)
+void AreaSupport::generateGradualSupportFeatures(SliceDataStorage& storage)
 {
+    const unsigned int total_layer_count = storage.print_layer_count;
+    const unsigned int gradual_support_step_height = storage.getSettingInMicrons("gradual_support_infill_step_height");
+    const unsigned int max_density_steps = storage.getSettingAsCount("gradual_support_infill_steps");
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+
     AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
     AreaSupport::generateGradualSupport(storage, total_layer_count, gradual_support_step_height, max_density_steps);
 
