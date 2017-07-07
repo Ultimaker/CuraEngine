@@ -45,19 +45,6 @@ public:
 
     const Polygons& getInfillArea() const;
 
-    /*!
-     * Split this SupportInfillPart into smaller part(s) to exclude the given areas.
-     *
-     * Use case: When generating Skirt/Brim or Prime Tower, it is necessary to make the support areas to exclude the
-     *           Skirt/Brim/Prime Tower. This function splits a given part into smaller parts to exclude those areas.
-     *
-     * \param[out] smaller_parts a list of generated smaller parts
-     * \param excluding_areas areas that needs to be excluded
-     * \param excluding_area_boundary_box the boundary box of the excluding areas
-     * \return true if this part has overlap with the excluding areas and is splitted into smaller part(s); false if there is no overlapping areas, so no need to spit.
-     */
-    bool splitIntoSmallerParts(std::vector<SupportInfillPart>& smaller_parts, const Polygons& excluding_areas, const AABB& excluding_area_boundary_box);
-
 private:
     Polygons infill_area;  //!< The support infill area for generating patterns
 };
