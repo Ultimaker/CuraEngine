@@ -480,26 +480,109 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
 
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
-    // take the differences of the support infill parts and the exclude polygons
-    for (auto part_itr = this->support_infill_parts.begin(); part_itr != this->support_infill_parts.end(); ++part_itr)
-    {
-        SupportInfillPart& support_infill_part = *part_itr;
-        std::vector<SupportInfillPart> smaller_infill_parts;
-        bool splitted = support_infill_part.splitIntoSmallerParts(smaller_infill_parts, exclude_polygons, exclude_polygons_boundary_box);
-        if (splitted)
-        {
-            // remove this part and add the smaller parts
-            if (smaller_infill_parts.empty())
-            {
-                continue;
-            }
+    // record the indexes that need to be removed and do that after
+    std::vector<size_t> to_remove_indexes;  // FIFO for replacing, LIFO for removing
+    to_remove_indexes.reserve(this->support_infill_parts.size());
+    size_t to_remove_indexes_front_idx = 0;
 
-            // remove this part and add smaller parts if any
-            this->support_infill_parts.erase(part_itr);
-            this->support_infill_parts.insert(part_itr, smaller_infill_parts.begin(), smaller_infill_parts.end());
-            // go pass the inserted parts
-            part_itr += smaller_infill_parts.size();
-            --part_itr;
+    std::vector<PolygonsPart> new_smaller_islands;
+    new_smaller_islands.reserve(this->support_infill_parts.size());
+
+    for (size_t part_idx = 0; part_idx < this->support_infill_parts.size(); ++part_idx)
+    {
+        SupportInfillPart& support_infill_part = this->support_infill_parts[part_idx];
+
+        // if the areas don't overlap, do nothing
+        if (!exclude_polygons_boundary_box.hit(support_infill_part.outline_boundary_box))
+        {
+            continue;
+        }
+
+        Polygons result_polygons = support_infill_part.outline.difference(exclude_polygons);
+        std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
+
+        // if no smaller parts get generated, this mean this part should be removed.
+        // instead of directly removing it, we replace it with a pending newly generated part if there is one.
+        if (smaller_support_islands.empty())
+        {
+            if (new_smaller_islands.empty())
+            {
+                // there is no islands to add, append this into the to_remove list
+                to_remove_indexes.push_back(part_idx);
+            }
+            else
+            {
+                // replace the current part with a newly generated part
+                support_infill_part.outline = new_smaller_islands.back();
+                new_smaller_islands.pop_back();
+            }
+            continue;
+        }
+
+        // there are one or more smaller parts.
+        // we first replace the current part with one of the smaller parts, for the rest, we keep replacing the
+        // parts that need to be removed until there is none, and then we put the rest into the newly generated
+        // parts list.
+        support_infill_part.outline = smaller_support_islands[0];
+
+        // reserve space beforehand
+        if (new_smaller_islands.capacity() < new_smaller_islands.size() + smaller_support_islands.size())
+        {
+            new_smaller_islands.reserve(new_smaller_islands.size() + smaller_support_islands.size());
+        }
+
+        for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
+        {
+            const PolygonsPart& smaller_island = smaller_support_islands[support_island_idx];
+
+            if (to_remove_indexes_front_idx == to_remove_indexes.size())
+            {
+                // there is no parts that need to be removed, so we just add this as a new part
+                new_smaller_islands.push_back(smaller_island);
+            }
+            else
+            {
+                // replace the part that needs to be removed (FIFO) with this new part
+                const size_t to_replace_idx = to_remove_indexes[to_remove_indexes_front_idx++];
+                SupportInfillPart& to_replace_part = this->support_infill_parts[to_replace_idx];
+                to_replace_part.outline = new_smaller_islands.back();
+                new_smaller_islands.pop_back();
+            }
+        }
+    }
+
+#ifdef DEBUG
+    if (!to_remove_indexes.empty())
+    {
+        assert(new_smaller_islands.empty() && "to_remove and new_islands cannot both be non-empty");
+    }
+    if (!new_smaller_islands.empty())
+    {
+        assert(to_remove_indexes.empty() && "to_remove and new_islands cannot both be non-empty");
+    }
+#endif // DEBUG
+
+    // remove the ones that need to be removed (LIFO)
+    while (!to_remove_indexes.empty())
+    {
+        for (size_t remove_idx_idx = to_remove_indexes.size() - 1; remove_idx_idx >= to_remove_indexes_front_idx; --remove_idx_idx)
+        {
+            const size_t remove_idx = to_remove_indexes[remove_idx_idx];
+            this->support_infill_parts.erase(this->support_infill_parts.begin() + remove_idx);
+        }
+    }
+
+    // add new parts to the end if there is any
+    if (!new_smaller_islands.empty())
+    {
+        const SupportInfillPart& reference_part = this->support_infill_parts[0];
+        this->support_infill_parts.reserve(this->support_infill_parts.size() + new_smaller_islands.size());
+        for (const PolygonsPart& smaller_island : new_smaller_islands)
+        {
+            this->support_infill_parts.emplace_back(smaller_island,
+                                                    reference_part.support_line_width,
+                                                    reference_part.infill_overlap,
+                                                    reference_part.inset_count_to_generate);
         }
     }
 }
