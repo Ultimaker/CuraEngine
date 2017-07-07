@@ -83,4 +83,4 @@ public:
 
 } //namespace cura
 
-#endif // INSET_ORDER_OPTIMIZE_H
+#endif // INSET_ORDER_OPTIMIZER_H
