@@ -1005,26 +1005,40 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
         if (m_code != 0)
         {
             *output_stream << "M" << m_code << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
-            estimateCalculator.setAcceleration(acceleration);
+        }
+    }
+    else if (getFlavor() == EGCodeFlavor::REPRAP)
+    {
+        if (for_travel_moves)
+        {
+            if (current_travel_acceleration != acceleration)
+            {
+                // set travel acceleration
+                *output_stream << "M204 T" << PrecisionedDouble{0, acceleration} << new_line;
+                current_travel_acceleration = acceleration;
+            }
+        }
+        else
+        {
+            if (current_acceleration != acceleration)
+            {
+                // set print acceleration
+                *output_stream << "M204 P" << PrecisionedDouble{0, acceleration} << new_line;
+                current_acceleration = acceleration;
+            }
         }
     }
     else
     {
+        // MARLIN, etc.
         if (current_acceleration != acceleration)
         {
             // Print and Travel acceleration
-            if (getFlavor() == EGCodeFlavor::REPRAP)
-            {
-                *output_stream << "M204" << " P" << PrecisionedDouble{0, acceleration} << " T" << PrecisionedDouble{0, acceleration} << new_line;
-            }
-            else
-            {
-                *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
-            }
+            *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
             current_acceleration = acceleration;
-            estimateCalculator.setAcceleration(acceleration);
         }
     }
+    estimateCalculator.setAcceleration(acceleration);
 }
 
 void GCodeExport::writeJerk(double jerk)
