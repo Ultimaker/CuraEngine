@@ -1654,12 +1654,8 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
 
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
     int support_infill_line_distance = infill_extr.getSettingInMicrons("support_line_distance");
-    int support_infill_overlap = 0; // support infill should not be expanded outward
+
     EFillMethod support_pattern = storage.meshgroup->getSettingAsFillMethod("support_pattern");
-    if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
-    {
-        support_infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
-    }
     double support_infill_angle = 0;
 
     if (support_infill_line_distance <= 0)
@@ -1675,6 +1671,13 @@ bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& stor
         if (part.infill_areas_per_combine_per_density.empty())
         {
             continue;
+        }
+
+        int support_infill_overlap = 0; // support infill should not be expanded outward
+        // always process the wall overlap if walls are generated.
+        if (part.inset_count_to_generate > 0)
+        {
+            support_infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
 
         for (unsigned int combine_idx = 1; combine_idx < part.infill_areas_per_combine_per_density[0].size(); ++combine_idx)
@@ -1736,13 +1739,6 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
         support_pattern = EFillMethod::GRID;
     }
 
-    int support_infill_overlap = 0; // support infill should not be expanded outward
-    if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
-    {
-        // support lines area should be expanded outward to overlap with the boundary polygon
-        support_infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm");
-    }
-
     int infill_extruder_nr_here = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
@@ -1758,23 +1754,27 @@ bool FffGcodeWriter::processSingleLayerSupportInfill(const SliceDataStorage& sto
     {
         const SupportInfillPart& support_infill_part = support_layer.support_infill_parts[support_infill_part_idx];
 
-        // add outline (boundary) if the infill pattern is not Zig-Zag
-        if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES || support_pattern == EFillMethod::CONCENTRIC)
+        int support_infill_overlap = 0; // support infill should not be expanded outward
+        // always process the wall overlap if walls are generated.
+        if (support_infill_part.inset_count_to_generate > 0)
         {
-            if (!support_infill_part.insets.empty())
-            {
-                Polygons all_insets;
-                for (const Polygons& inset : support_infill_part.insets)
-                {
-                    all_insets.add(inset);
-                }
+            support_infill_overlap = infill_extr.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
+        }
 
-                if (all_insets.size() > 0)
-                {
-                    setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
-                    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                    gcode_layer.addPolygonsByOptimizer(all_insets, &gcode_layer.configs_storage.support_infill_config);
-                }
+        // add outline (boundary) if any wall is generated
+        if (!support_infill_part.insets.empty())
+        {
+            Polygons all_insets;
+            for (const Polygons& inset : support_infill_part.insets)
+            {
+                all_insets.add(inset);
+            }
+
+            if (all_insets.size() > 0)
+            {
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
+                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+                gcode_layer.addPolygonsByOptimizer(all_insets, &gcode_layer.configs_storage.support_infill_config);
             }
         }
 
