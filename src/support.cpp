@@ -96,17 +96,11 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
 void AreaSupport::generateGradualSupportFeatures(SliceDataStorage& storage)
 {
-    const unsigned int total_layer_count = storage.print_layer_count;
-    const unsigned int gradual_support_step_height = storage.getSettingInMicrons("gradual_support_infill_step_height");
-    const unsigned int max_density_steps = storage.getSettingAsCount("gradual_support_infill_steps");
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-
     AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
-    AreaSupport::generateGradualSupport(storage, total_layer_count, gradual_support_step_height, max_density_steps);
+    AreaSupport::generateGradualSupport(storage);
 
     // combine support infill layers
-    unsigned int combine_layer_amount = std::max(1U, round_divide(storage.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1))); //How many support infill layers to combine to obtain the requested sparse thickness.
-    AreaSupport::combineSupportInfillLayers(storage, total_layer_count, combine_layer_amount);
+    AreaSupport::combineSupportInfillLayers(storage);
 }
 
 
@@ -129,7 +123,7 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
 }
 
 
-void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps)
+void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 {
     //
     // # How gradual support infill works:
@@ -172,6 +166,9 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
     //  -> Note that this function only does the above, which is identifying and storing support infill areas with densities.
     //     The actual printing part is done in FffGcodeWriter.
     //
+    const unsigned int total_layer_count = storage.print_layer_count;
+    const unsigned int gradual_support_step_height = storage.getSettingInMicrons("gradual_support_infill_step_height");
+    const unsigned int max_density_steps = storage.getSettingAsCount("gradual_support_infill_steps");
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -282,8 +279,12 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage, unsigned int
 }
 
 
-void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int combine_layers_amount)
+void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 {
+    const unsigned int total_layer_count = storage.print_layer_count;
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    // How many support infill layers to combine to obtain the requested sparse thickness.
+    const unsigned int combine_layers_amount = std::max(1U, round_divide(storage.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1)));
     if (combine_layers_amount <= 1)
     {
         return;

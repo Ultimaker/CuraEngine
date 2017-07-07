@@ -92,11 +92,8 @@ private:
      * we don't generate unnecessary dense infill areas. This saves print time and material and also insures that the walls can be safely printed.
      *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param total_layer_count total number of layers
-     * \param gradual_support_step_height The height difference between consecutive density support areas
-     * \param max_density_steps the maximum exponent of division of support density. At 5 the least dense support will be 2^4 * infill_line_distance i.e. one 16th as dense
      */
-    static void generateGradualSupport(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int gradual_support_step_height, unsigned int max_density_steps);
+    static void generateGradualSupport(SliceDataStorage& storage);
 
     /*!
      * \brief Combines the support infill of multiple layers.
@@ -106,10 +103,8 @@ private:
      * all combined layers.
      * 
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param total_layer_count The total number of layers.
-     * \param combine_layers_amount The number of layers to combine.
      */
-    static void combineSupportInfillLayers(SliceDataStorage& storage, unsigned int total_layer_count, unsigned int combine_layers_amount);
+    static void combineSupportInfillLayers(SliceDataStorage& storage);
 
     /*!
      * Generate support polygons over all layers for one object.
