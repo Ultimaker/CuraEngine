@@ -811,7 +811,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                gcode.writeAcceleration(path.config->getAcceleration(), path.config->isTravelPath());
+                if (path.config->isTravelPath())
+                {
+                    gcode.writeTravelAcceleration(path.config->getAcceleration());
+                }
+                else
+                {
+                    gcode.writePrintAcceleration(path.config->getAcceleration());
+                }
             }
             if (jerk_enabled)
             {
