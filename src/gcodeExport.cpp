@@ -1030,6 +1030,7 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
     }
     else
     {
+        // MARLIN, etc.
         if (current_acceleration != acceleration)
         {
             // Print and Travel acceleration
