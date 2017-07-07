@@ -1005,7 +1005,6 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
         if (m_code != 0)
         {
             *output_stream << "M" << m_code << " X" << PrecisionedDouble{0, acceleration} << " Y" << PrecisionedDouble{0, acceleration} << new_line;
-            estimateCalculator.setAcceleration(acceleration);
         }
     }
     else
@@ -1022,9 +1021,9 @@ void GCodeExport::writeAcceleration(double acceleration, bool for_travel_moves)
                 *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
             }
             current_acceleration = acceleration;
-            estimateCalculator.setAcceleration(acceleration);
         }
     }
+    estimateCalculator.setAcceleration(acceleration);
 }
 
 void GCodeExport::writeJerk(double jerk)
