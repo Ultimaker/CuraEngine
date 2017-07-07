@@ -64,6 +64,8 @@ private:
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
+        std::string nozzle_id; //!< Type of the printcore, such as "AA 0.4", "BB 0.8", etc.
+
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
@@ -84,6 +86,7 @@ private:
         , retraction_e_amount_at_e_start(0.0)
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
+        , nozzle_id("")
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -97,10 +100,10 @@ private:
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
-    double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
-    double current_travel_acceleration; //!< The current acceleration in the XY direction used for travel moves if different from current_acceleration (in mm/s^2) (Only used for Repetier flavor)
+    double current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
+    double current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
-    double current_max_z_feedrate; //!< The current max z speed
+    double current_max_z_feedrate; //!< The current max z speed (in mm/s)
 
     AABB3D total_bounding_box; //!< The bounding box of all g-code.
 
@@ -412,9 +415,14 @@ public:
     void writeBedTemperatureCommand(double temperature, bool wait = false);
 
     /*!
-     * Write the command for setting the acceleration to a specific value
+     * Write the command for setting the acceleration for print moves to a specific value
      */
-    void writeAcceleration(double acceleration, bool for_travel_moves = false);
+    void writePrintAcceleration(double acceleration);
+
+    /*!
+     * Write the command for setting the acceleration for travel moves to a specific value
+     */
+    void writeTravelAcceleration(double acceleration);
 
     /*!
      * Write the command for setting the jerk to a specific value

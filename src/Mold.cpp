@@ -91,6 +91,11 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         // carve molds out of all other models
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
+            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            if (!mesh.getSettingBoolean("mold_enabled"))
+            {
+                continue; // only cut original models out of all molds
+            }
             Slicer& slicer = *slicer_list[mesh_idx];
             SlicerLayer& layer = slicer.layers[layer_nr];
             layer.polygons = layer.polygons.difference(all_original_mold_outlines);

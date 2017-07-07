@@ -413,7 +413,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             {
                  // handle perimeter gaps of normal insets
                 int line_width = wall_line_width_0;
-                for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
+                for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
                 {
                     const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
                     line_width = wall_line_width_x;
@@ -551,7 +551,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 
         // combine infill
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
-        combineInfillLayers(mesh,combined_infill_layers);
+        SkinInfillAreaComputation::combineInfillLayers(mesh, combined_infill_layers);
     }
 
     // fuzzy skin
@@ -584,6 +584,14 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable");
         WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
         walls_computation.generateInsets(layer);
+    }
+    else
+    {
+        for (SliceLayerPart& part : layer->parts)
+        {
+            part.insets.push_back(part.outline); // Fake an inset
+            part.print_outline = part.outline;
+        }
     }
 }
 
@@ -666,21 +674,21 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         return;
     }
 
+    int bottom_layers = mesh.getSettingAsCount("bottom_layers");
+    int top_layers = mesh.getSettingAsCount("top_layers");
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
     const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
-    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
-
-    if (process_infill)
-    { // process infill when infill density > 0
-        // or when other infill meshes want to modify this infill
-        int infill_skin_overlap = 0;
-        bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
-        if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
-        {
-            infill_skin_overlap = innermost_wall_line_width / 2;
-        }
-        generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
+    int infill_skin_overlap = 0;
+    bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
+    if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
+    {
+        infill_skin_overlap = innermost_wall_line_width / 2;
     }
+    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    int skin_outline_count = mesh.getSettingAsCount("skin_outline_count");
+    bool skin_no_small_gaps_heuristic = mesh.getSettingBoolean("skin_no_small_gaps_heuristic");
+    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, bottom_layers, top_layers, wall_line_count, innermost_wall_line_width, infill_skin_overlap, wall_line_width_x, skin_outline_count, skin_no_small_gaps_heuristic, process_infill);
+    skin_infill_area_computation.generateSkinsAndInfill();
 
     if (mesh.getSettingBoolean("ironing_enabled"))
     {

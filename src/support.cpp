@@ -110,9 +110,13 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         }
     }
     storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, max_layer_nr_support_mesh_filled);
+    // FIXME: This looks buggy. This should loop over all layers that have support polygons.
+    //        Judging from the line above, looks like "storage.support.layer_nr_max_filled_layer" should be the maximum layer number
+    //        which contains support polygon(s). But the loop below uses "max_layer_nr_support_mesh_filled" as the max.
+    //        Wonder what the reason was for this.
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
-        SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
         support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
@@ -331,6 +335,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const Settings
     std::vector<Polygons> full_overhang_per_layer;
     xy_disallowed_per_layer.resize(support_layer_count);
     full_overhang_per_layer.resize(support_layer_count);
+    // simplified processing for bottom layer - just ensure support clears part by XY distance
+    xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(supportXYDistance);
+    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
     for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
     {

@@ -538,7 +538,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     
     
     standard_retraction_config.distance = getSettingInMillimeters("retraction_amount");
-    standard_retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
+    standard_retraction_config.prime_volume = std::max(0.0, getSettingInCubicMillimeters("retraction_extra_prime_amount"));
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");

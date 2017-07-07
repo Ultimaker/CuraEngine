@@ -61,6 +61,16 @@ int GCodePathConfig::getLineWidth() const
     return line_width;
 }
 
+int GCodePathConfig::getLayerThickness() const
+{
+    return this->layer_thickness;
+}
+
+const PrintFeatureType& GCodePathConfig::getPrintFeatureType() const
+{
+    return this->type;
+}
+
 bool GCodePathConfig::isTravelPath() const
 {
     return line_width == 0;

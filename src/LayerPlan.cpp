@@ -54,12 +54,12 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
         return &paths.back();
-    paths.emplace_back(config, space_fill_type, flow, spiralize);
+    paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     return ret;
 }
@@ -274,6 +274,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
+        forceNewPathStart(); // force a new travel path after this first bogus move
     }
     else if (force_comb_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
@@ -380,9 +381,9 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
+    getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
     last_planned_position = p;
 }
 
@@ -810,7 +811,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                gcode.writeAcceleration(path.config->getAcceleration(), path.config->isTravelPath());
+                if (path.config->isTravelPath())
+                {
+                    gcode.writeTravelAcceleration(path.config->getAcceleration());
+                }
+                else
+                {
+                    gcode.writePrintAcceleration(path.config->getAcceleration());
+                }
             }
             if (jerk_enabled)
             {
@@ -836,6 +844,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
 
             double speed = path.config->getSpeed();
+
+            // for some movements such as prime tower purge, the speed may get changed by this factor
+            speed *= path.speed_factor;
 
             // Apply the relevant factor
             if (path.config->isTravelPath())
@@ -915,6 +926,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
                     GCodePath& path = paths[path_idx];
+
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         Point p1 = path.points[point_idx];
@@ -1109,7 +1121,8 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
     // write coasting path
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        gcode.writeTravel(path.points[point_idx], coasting_speed * path.config->getSpeed());
+        double speed = coasting_speed * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor();
+        gcode.writeTravel(path.points[point_idx], speed);
     }
 
     gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));

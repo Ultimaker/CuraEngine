@@ -44,6 +44,26 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);
 
+    if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+    {
+        //Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
+        const AABB bounding_box(areas);
+        PointMatrix rotate(-direction + 90);
+        const Point center = bounding_box.getMiddle();
+        const Point far_away = rotate.apply(Point(0, vSize(bounding_box.max - center) * 100)); //Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
+        //Two options to start, both perpendicular to the ironing lines. Which is closer?
+        const Point front_side = PolygonUtils::findNearestVert(center + far_away, areas).p();
+        const Point back_side = PolygonUtils::findNearestVert(center - far_away, areas).p();
+        if (vSize2(layer.getLastPosition() - front_side) < vSize2(layer.getLastPosition() - back_side))
+        {
+            layer.addTravel(front_side);
+        }
+        else
+        {
+            layer.addTravel(back_side);
+        }
+    }
+
     //Add the lines as travel moves to the layer plan.
     bool added = false;
     const float ironing_flow = mesh.getSettingAsRatio("ironing_flow");

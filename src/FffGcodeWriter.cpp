@@ -160,7 +160,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         Point seam_pos(0, 0);
         if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
         {
-            seam_pos = Point(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
+            seam_pos = mesh.getZSeamHint();
         }
         return PolygonUtils::findClosest(seam_pos, layer.parts[0].insets[0][0]).point_idx;
     }
@@ -291,8 +291,8 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
         CoastingConfig& coasting_config = storage.coasting_config.back();
         coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable"); 
-        coasting_config.coasting_volume = train->getSettingInCubicMillimeters("coasting_volume"); 
-        coasting_config.coasting_min_volume = train->getSettingInCubicMillimeters("coasting_min_volume"); 
+        coasting_config.coasting_volume = std::max(0.0, train->getSettingInCubicMillimeters("coasting_volume"));
+        coasting_config.coasting_min_volume = std::max(0.0, train->getSettingInCubicMillimeters("coasting_min_volume"));
         coasting_config.coasting_speed = train->getSettingInPercentage("coasting_speed") / 100.0; 
     }
 }
@@ -305,7 +305,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
         retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? train->getSettingInMillimeters("retraction_amount") : 0;
-        retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        retraction_config.prime_volume = std::max(0.0, train->getSettingInCubicMillimeters("retraction_extra_prime_amount"));
         retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
         retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
@@ -962,8 +962,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     }
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    Point z_seam_pos(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, mesh.getZSeamHint(), mesh.getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
 }
@@ -1011,9 +1010,8 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    Point z_seam_pos(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
     Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
-    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_pos, z_seam_type);
+    PathOrderOptimizer part_order_optimizer(layer_start_position, mesh.getZSeamHint(), z_seam_type);
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer.parts[partNr].insets[0][0]);
@@ -1054,8 +1052,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     }
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    Point z_seam_pos(mesh.getSettingInMicrons("z_seam_x"), mesh.getSettingInMicrons("z_seam_y"));
-    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, z_seam_pos);
+    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, mesh.getZSeamHint());
 
     if (!mesh.getSettingBoolean("infill_before_walls"))
     {
@@ -1822,6 +1819,40 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     return added_something;
 }
 
+std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
+{
+    if (filling_part.empty())
+    {
+        return std::optional<Point>();
+    }
+    // start with the BB of the outline
+    AABB skin_part_bb(filling_part);
+    PointMatrix rot((double)((-filling_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
+    const Point bb_middle = skin_part_bb.getMiddle();
+    // create a vector from the middle of the BB whose length is such that it can be rotated
+    // around the middle of the BB and the end will always be a long way outside of the part's outline
+    // and rotate the vector so that it is normal to the skin angle
+    const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max - bb_middle) * 100));
+    // find the vertex in the outline that is closest to the end of the rotated vector
+    const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
+    // and find another outline vertex, this time using the vector + 180 deg
+    const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
+    if (!pa.initialized() || !pb.initialized())
+    {
+        return std::optional<Point>();
+    }
+    // now go to whichever of those vertices that is closest to where we are now
+    if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
+    {
+        bool bs_arg = true;
+        return std::optional<Point>(bs_arg, pa.p());
+    }
+    else
+    {
+        bool bs_arg = true;
+        return std::optional<Point>(bs_arg, pb.p());
+    }
+}
 
 bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
@@ -1851,6 +1882,20 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
     {
         const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+
+        const EFillMethod pattern = (layer_nr == 0)?
+            mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
+            mesh.getSettingAsFillMethod("top_bottom_pattern");
+        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+        {
+            std::optional<Point> seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, skin_angle, gcode_layer.getLastPosition());
+            if (seam_avoiding_location)
+            {
+                gcode_layer.addTravel(*seam_avoiding_location);
+                added_something = true;
+            }
+        }
+
         added_something = added_something |
             processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, layer_nr, skin_overlap, skin_angle);
     }
@@ -2309,7 +2354,8 @@ void FffGcodeWriter::finalize()
     }
     if (getSettingBoolean("acceleration_enabled"))
     {
-        gcode.writeAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
+        gcode.writePrintAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
+        gcode.writeTravelAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
     }
     if (getSettingBoolean("jerk_enabled"))
     {

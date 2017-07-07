@@ -89,7 +89,7 @@ public:
      */
     const Polygons& getOwnInfillArea() const;
 
-    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume to fill over the area
+    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume (in mm3) to fill over the area
 };
 
 /*!
@@ -184,11 +184,13 @@ public:
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
+    AABB3D bounding_box; //!< the mesh's bounding box
     SubDivCube* base_subdiv_cube;
 
-    SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
-    : SettingsMessenger(settings)
+    SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+    : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
+    , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
     {
         layers.resize(slice_layer_count);
@@ -208,6 +210,11 @@ public:
      * \return whether a particular extruder is used by this mesh on a particular layer
      */
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
+
+    /*!
+     * \return the mesh's user specified z seam hint
+     */
+    Point getZSeamHint() const;
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
