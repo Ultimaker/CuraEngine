@@ -1120,7 +1120,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
         {
-            const unsigned int infill_line_width = mesh_config.infill_config[combine_idx].getLineWidth();
+            const unsigned int infill_line_width = mesh_config.getInfillConfig(layer_nr, combine_idx)->getLineWidth();
             EFillMethod infill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
             Polygons infill_polygons;
             Polygons infill_lines;
@@ -1142,8 +1142,8 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[combine_idx]);
-                gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.getInfillConfig(layer_nr, combine_idx));
+                gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.getInfillConfig(layer_nr, combine_idx), (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
             }
         }
     }
@@ -1161,7 +1161,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         return false;
     }
     bool added_something = false;
-    const unsigned int infill_line_width = mesh_config.infill_config[0].getLineWidth();
+    const unsigned int infill_line_width = mesh_config.getInfillConfig(layer_nr, 0)->getLineWidth();
         
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
@@ -1210,14 +1210,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
-        gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh_config.infill_config[0]);
+        gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.getInfillConfig(layer_nr, 0));
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
         {
-            gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
+            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.getInfillConfig(layer_nr, 0), SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
         }
         else
         {
-            gcode_layer.addLinesByOptimizer(infill_lines, &mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.getInfillConfig(layer_nr, 0), (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
     }
     return added_something;

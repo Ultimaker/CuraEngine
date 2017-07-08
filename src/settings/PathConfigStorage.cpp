@@ -86,9 +86,15 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
 )
-
 , perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness, false))
 , perimeter_gap_config_layer0(createPerimeterGapConfig(mesh, layer_thickness, true))
+, infill_config_layer0(
+    PrintFeatureType::Infill
+    , mesh.getSettingInMicrons("infill_line_width") * mesh.getSettingAsRatio("infill_line_width")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill")}
+)
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
@@ -214,6 +220,11 @@ const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getPerimeterGapConfig
     return (layer_nr == 0)? &perimeter_gap_config_layer0 : &perimeter_gap_config;
 }
 
+const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInfillConfig(const int layer_nr, const int combine_count) const
+{
+    return (layer_nr == 0)? &infill_config_layer0 : &infill_config[combine_count];
+}
+
 void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count)
 {
     std::vector<GCodePathConfig::SpeedDerivatives> global_first_layer_config_per_extruder;
@@ -303,6 +314,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
                 //Infill speed (per combine part per mesh).
                 mesh_config.infill_config[idx].smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
             }
+            mesh_config.infill_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }
 }
