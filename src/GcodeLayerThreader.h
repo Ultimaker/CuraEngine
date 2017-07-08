@@ -148,7 +148,7 @@ void GcodeLayerThreader<T>::produce(int item_argument_index)
     #pragma omp critical
     {
         produced[item_idx] = produced_item;
-        if (item_idx == last_consumed_idx + 1 && item_idx < end_item_argument_index)
+        if (item_idx == last_consumed_idx + 1 && item_idx < end_item_argument_index - start_item_argument_index)
         {
             assert(!to_be_consumed_item_idx && "the just produced item shouldn't be consumable already!");
             to_be_consumed_item_idx = item_idx;
@@ -165,7 +165,7 @@ void GcodeLayerThreader<T>::consume(int item_idx)
     {
         assert(item_idx == last_consumed_idx + 1);
         last_consumed_idx = item_idx;
-        if (produced[last_consumed_idx + 1] && last_consumed_idx + 1 < end_item_argument_index)
+        if (produced[last_consumed_idx + 1] && last_consumed_idx + 1 < end_item_argument_index - start_item_argument_index)
         {
             assert(!to_be_consumed_item_idx && "The next produced item shouldn't already be noted as being consumable because of the lock!");
             to_be_consumed_item_idx = last_consumed_idx + 1;

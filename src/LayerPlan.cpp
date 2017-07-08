@@ -54,21 +54,13 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
         return &paths.back();
-    paths.emplace_back();
+    paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
-    ret->retract = false;
-    ret->perform_prime = false;
-    ret->perform_z_hop = false;
-    ret->config = config;
-    ret->done = false;
-    ret->flow = flow;
-    ret->spiralize = spiralize;
-    ret->space_fill_type = space_fill_type;
     return ret;
 }
 
@@ -82,9 +74,9 @@ void LayerPlan::forceNewPathStart()
 LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
+, z(z)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
-, z(z)
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)
@@ -282,6 +274,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
+        forceNewPathStart(); // force a new travel path after this first bogus move
     }
     else if (force_comb_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
@@ -386,16 +379,16 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 void LayerPlan::planPrime()
 {
     forceNewPathStart();
-    constexpr float prime_poop_wipe_length = 10.0;
-    GCodePath& prime_travel = addTravel_simple(getLastPosition() + Point(0, MM2INT(prime_poop_wipe_length)));
+    constexpr float prime_blob_wipe_length = 10.0;
+    GCodePath& prime_travel = addTravel_simple(getLastPosition() + Point(0, MM2INT(prime_blob_wipe_length)));
     prime_travel.retract = false;
     prime_travel.perform_prime = true;
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
+    getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
     last_planned_position = p;
 }
 
@@ -501,6 +494,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRe
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
     const int max_dist2 = config->getLineWidth() * config->getLineWidth() * 4; // (2 * lineWidth)^2;
+    const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
 
     double total_length = 0.0; // determine the length of the complete wall
     Point p0 = origin;
@@ -525,20 +519,28 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRe
     {
         // p is a point from the current wall polygon
         const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
-        wall_length += vSizeMM(p - p0);
-        p0 = p;
-
-        // now find the point on the last wall that is closest to p
-        ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
-        // if we found a point and it's not further away than max_dist2, use it
-        if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+        if (smooth_contours)
         {
-            // interpolate between cpp.location and p depending on how far we have progressed along wall
-            addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+            wall_length += vSizeMM(p - p0);
+            p0 = p;
+
+            // now find the point on the last wall that is closest to p
+            ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+            // if we found a point and it's not further away than max_dist2, use it
+            if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+            {
+                // interpolate between cpp.location and p depending on how far we have progressed along wall
+                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+            }
+            else
+            {
+                // no point in the last wall was found close enough to the current wall point so don't interpolate
+                addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+            }
         }
         else
         {
-            // no point in the last wall was found close enough to the current wall point so don't interpolate
+            // no smoothing, use point verbatim
             addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
         }
     }
@@ -814,7 +816,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                gcode.writeAcceleration(path.config->getAcceleration(), path.config->isTravelPath());
+                if (path.config->isTravelPath())
+                {
+                    gcode.writeTravelAcceleration(path.config->getAcceleration());
+                }
+                else
+                {
+                    gcode.writePrintAcceleration(path.config->getAcceleration());
+                }
             }
             if (jerk_enabled)
             {
@@ -840,6 +849,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
 
             double speed = path.config->getSpeed();
+
+            // for some movements such as prime tower purge, the speed may get changed by this factor
+            speed *= path.speed_factor;
 
             // Apply the relevant factor
             if (path.config->isTravelPath())
@@ -885,7 +897,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     )
                     {
                         sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth());
-                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
+                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM(), paths[path_idx+2].config->type);
                         path_idx += 2;
                     }
                     else 
@@ -893,7 +905,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
                             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type);
                         }
                     }
                 }
@@ -919,6 +931,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
                     GCodePath& path = paths[path_idx];
+
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         Point p1 = path.points[point_idx];
@@ -926,8 +939,18 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(z + layer_thickness * length / totalLength);
                         sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type);
                     }
+                    // for layer display only - the loop finished at the seam vertex but as we started from
+                    // the location of the previous layer's seam vertex the loop may have a gap if this layer's
+                    // seam vertex is "behind" the previous layer's seam vertex. So output another line segment
+                    // that joins this layer's seam vertex to the following vertex. If the layers have been blended
+                    // then this can cause a visible ridge (on the screen, not on the print) because the first vertex
+                    // would have been shifted in x/y to make it nearer to the previous layer outline but the seam
+                    // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
+                    // the less the vertices are shifted and the less obvious is the ridge. If the layer display
+                    // really displayed a spiral rather than slices of a spiral, this would not be required.
+                    sendLineTo(path.config->type, path.points[0], path.getLineWidth());
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
@@ -1094,16 +1117,17 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
         }
         sendLineTo(path.config->type, start, path.getLineWidth());
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM());
+        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
     }
 
     // write coasting path
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        gcode.writeTravel(path.points[point_idx], coasting_speed * path.config->getSpeed());
+        double speed = coasting_speed * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor();
+        gcode.writeTravel(path.points[point_idx], speed);
     }
 
     gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));

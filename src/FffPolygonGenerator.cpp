@@ -29,6 +29,7 @@
 #include "progress/Progress.h"
 #include "PrintFeature.h"
 #include "ConicalOverhang.h"
+#include "TopSurface.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
@@ -114,18 +115,18 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
 
-    for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
+    Mold::process(storage, slicerList, layer_thickness);
+
+    for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
-        if (mesh.getSettingBoolean("mold_enabled"))
-        {
-            Mold::process(*slicerList[meshIdx], layer_thickness, mesh.getSettingInAngleDegrees("mold_angle"), mesh.getSettingInMicrons("mold_width"), mesh.getSettingInMicrons("wall_line_width_0"), mesh.getSettingInMicrons("wall_line_width_0") * mesh.getSettingAsRatio("initial_layer_line_width_factor"));
-        }
+        Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
-            ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
+            ConicalOverhang::apply(slicerList[mesh_idx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
         }
     }
+
+    MultiVolumes::carveCuttingMeshes(slicerList, storage.meshgroup->meshes);
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
@@ -160,6 +161,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
 
+        if (!is_support_modifier)
+        { // only create layer parts for normal meshes
+            createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
+        }
+
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
         //Add the raft offset to each layer.
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
@@ -180,11 +186,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
-        }
-
-        if (!is_support_modifier)
-        { // only create layer parts for normal meshes
-            createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         }
 
         delete slicerList[meshIdx];
@@ -234,27 +235,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-    {
-        SliceLayer* layer = nullptr;
-        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-        { // find first mesh which has this layer
-            SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-            if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
-            {
-                layer = &mesh.layers[layer_nr];
-                break;
-            }
-        }
-        if (layer != nullptr)
-        {
-            if (CommandSocket::isInstantiated())
-            { // send layer info
-                CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
-            }
-        }
-    }
-
     log("Layer count: %i\n", storage.print_layer_count);
 
     //layerparts2HTML(storage, "output/output.html");
@@ -301,7 +281,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
-    
+
+    processPerimeterGaps(storage);
+
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -408,6 +390,75 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         }
 }
 
+void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
+{
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+        bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+                                    && !getSettingBoolean("magic_spiralize");
+        if (!fill_perimeter_gaps)
+        {
+            continue;
+        }
+        bool fill_gaps_between_inner_wall_and_skin_or_infill =
+            mesh.getSettingInMicrons("infill_line_distance") > 0
+            && !mesh.getSettingBoolean("infill_hollow")
+            && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
+        coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+        for (SliceLayer& layer : mesh.layers)
+        {
+            for (SliceLayerPart& part : layer.parts)
+            {
+                 // handle perimeter gaps of normal insets
+                int line_width = wall_line_width_0;
+                for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
+                {
+                    const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+                    line_width = wall_line_width_x;
+
+                    Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
+
+                // gap between inner wall and skin/infill
+                if (fill_gaps_between_inner_wall_and_skin_or_infill)
+                {
+                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+
+                    Polygons inner = part.infill_area;
+                    for (const SkinPart& skin_part : part.skin_parts)
+                    {
+                        inner.add(skin_part.outline);
+                    }
+                    inner = inner.unionPolygons();
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
+
+                // add perimeter gaps for skin insets
+                for (SkinPart& skin_part : part.skin_parts)
+                {
+                    if (skin_part.insets.size() > 0)
+                    {
+                        // add perimeter gaps between the outer skin inset and the innermost wall
+                        const Polygons outer = skin_part.outline;
+                        const Polygons inner = skin_part.insets[0].offset(wall_line_width_x / 2 + perimeter_gaps_extra_offset);
+                        skin_part.perimeter_gaps.add(outer.difference(inner));
+
+                        for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
+                        { // add perimeter gaps between consecutive skin walls
+                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * wall_line_width_x / 2 - perimeter_gaps_extra_offset);
+                            const Polygons inner = skin_part.insets[inset_idx].offset(wall_line_width_x / 2);
+                            skin_part.perimeter_gaps.add(outer.difference(inner));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order)
 {
     unsigned int mesh_idx = mesh_order[mesh_order_idx];
@@ -500,7 +551,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 
         // combine infill
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
-        combineInfillLayers(mesh,combined_infill_layers);
+        SkinInfillAreaComputation::combineInfillLayers(mesh, combined_infill_layers);
     }
 
     // fuzzy skin
@@ -538,6 +589,14 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable");
         WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
         walls_computation.generateInsets(layer);
+    }
+    else
+    {
+        for (SliceLayerPart& part : layer->parts)
+        {
+            part.insets.push_back(part.outline); // Fake an inset
+            part.print_outline = part.outline;
+        }
     }
 }
 
@@ -620,30 +679,37 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         return;
     }
 
+    int bottom_layers = mesh.getSettingAsCount("bottom_layers");
+    int top_layers = mesh.getSettingAsCount("top_layers");
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    double line_width_factor = 1;
     if (layer_nr == 0)
     {
-        innermost_wall_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+        line_width_factor = mesh.getSettingAsRatio("initial_layer_line_width_factor");
     }
-    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
+    const int innermost_wall_line_width = ((wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x")) * line_width_factor;
+    int infill_skin_overlap = 0;
+    bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") * line_width_factor + 10;
+    if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
+    {
+        infill_skin_overlap = innermost_wall_line_width / 2;
+    }
+    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    int skin_outline_count = mesh.getSettingAsCount("skin_outline_count");
+    bool skin_no_small_gaps_heuristic = mesh.getSettingBoolean("skin_no_small_gaps_heuristic");
+    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, bottom_layers, top_layers, wall_line_count, innermost_wall_line_width, infill_skin_overlap, wall_line_width_x, skin_outline_count, skin_no_small_gaps_heuristic, process_infill);
+    skin_infill_area_computation.generateSkinsAndInfill();
 
-    if (process_infill)
-    { // process infill when infill density > 0
-        // or when other infill meshes want to modify this infill
-        int infill_skin_overlap = 0;
-        bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
-        if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
-        {
-            infill_skin_overlap = innermost_wall_line_width / 2;
-        }
-        generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
+    if (mesh.getSettingBoolean("ironing_enabled"))
+    {
+        TopSurface* top_surface = new TopSurface(mesh, layer_nr); //Generate the top surface to iron over.
+        mesh.layers[layer_nr].top_surface = top_surface;
     }
 }
 
 void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
 {
-    int extruder_count = storage.meshgroup->getExtruderCount();
+    unsigned int extruder_count = storage.meshgroup->getExtruderCount();
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
@@ -656,8 +722,17 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             {
                 continue; //Special type of mesh that doesn't get printed.
             }
-            const unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            max_print_height_per_extruder[extr_nr] = std::max(max_print_height_per_extruder[extr_nr], mesh.layer_nr_max_filled_layer);
+            for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+            {
+                for (int layer_nr = mesh.layers.size() - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
+                {
+                    if (mesh.getExtruderIsUsed(extruder_nr, layer_nr))
+                    {
+                        assert(max_print_height_per_extruder[extruder_nr] <= layer_nr);
+                        max_print_height_per_extruder[extruder_nr] = layer_nr;
+                    }
+                }
+            }
         }
 
         //Height of where the support reaches.

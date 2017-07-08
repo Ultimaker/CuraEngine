@@ -13,10 +13,12 @@
 #include "mesh.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
+#include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
 
 namespace cura 
 {
+
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
  * Surrounding each non-bridged skin area with an outline may result in better top skins.
@@ -27,6 +29,7 @@ class SkinPart
 public:
     PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
+    Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
 };
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
@@ -40,7 +43,9 @@ public:
     PolygonsPart outline;       //!< The outline is the first member that is filled, and it's filled with polygons that match a cross section of the 3D model. The first polygon is the outer boundary polygon and the rest are holes.
     Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall. Too small parts will be omitted compared to the outline.
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
+    Polygons perimeter_gaps; //!< The gaps betwee nconsecutive walls and between the inner wall and outer skin inset
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
+
     /*!
      * The areas inside of the mesh.
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
@@ -78,11 +83,13 @@ public:
     Polygons& getOwnInfillArea();
 
     /*!
-     * Return whether this part has printable areas / perimeters
+     * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
+     * \see SliceLayerPart::infill_area_own
+     * \return the own infill area
      */
-    bool isUsed(const SettingsBaseVirtual& mesh_settings) const;
+    const Polygons& getOwnInfillArea() const;
 
-    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume to fill over the area
+    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume (in mm3) to fill over the area
 };
 
 /*!
@@ -96,6 +103,14 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+
+    /*!
+     * \brief The parts of the model that are exposed at the very top of the
+     * model.
+     *
+     * This is filled only when the top surface is needed.
+     */
+    TopSurface* top_surface = nullptr;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -169,17 +184,37 @@ public:
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
+    AABB3D bounding_box; //!< the mesh's bounding box
     SubDivCube* base_subdiv_cube;
 
-    SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
-    : SettingsMessenger(settings)
+    SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+    : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
+    , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
     {
         layers.resize(slice_layer_count);
     }
 
     virtual ~SliceMeshStorage();
+
+    /*!
+     * \param extruder_nr The extruder for which to check
+     * \return whether a particular extruder is used by this mesh
+     */
+    bool getExtruderIsUsed(int extruder_nr) const;
+
+    /*!
+     * \param extruder_nr The extruder for which to check
+     * \param layer_nr the layer for which to check
+     * \return whether a particular extruder is used by this mesh on a particular layer
+     */
+    bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
+
+    /*!
+     * \return the mesh's user specified z seam hint
+     */
+    Point getZSeamHint() const;
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
@@ -263,6 +298,14 @@ public:
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
     std::vector<bool> getExtrudersUsed(int layer_nr) const;
+
+    /*!
+     * Gets whether prime blob is enabled for the given extruder number.
+     *
+     * \param extruder_nr the extruder number to check.
+     * \return a bool indicating whether prime blob is enabled for the given extruder number.
+     */
+    bool getExtruderPrimeBlobEnabled(int extruder_nr) const;
 
 private:
     /*!

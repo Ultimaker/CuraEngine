@@ -42,6 +42,7 @@ private:
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
         bool use_temp; //!< Whether to insert temperature commands for this extruder
+        bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
@@ -63,12 +64,15 @@ private:
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
+        std::string nozzle_id; //!< Type of the printcore, such as "AA 0.4", "BB 0.8", etc.
+
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
         : prime_pos(0, 0, 0)
         , prime_pos_is_abs(false)
         , is_primed(false)
+        , is_prime_blob_enabled(false)
         , is_used(false)
         , nozzle_offset(0,0)
         , extruderCharacter(0)
@@ -82,6 +86,7 @@ private:
         , retraction_e_amount_at_e_start(0.0)
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
+        , nozzle_id("")
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -95,10 +100,10 @@ private:
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
-    double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
-    double current_travel_acceleration; //!< The current acceleration in the XY direction used for travel moves if different from current_acceleration (in mm/s^2) (Only used for Repetier flavor)
+    double current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
+    double current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
-    double current_max_z_feedrate; //!< The current max z speed
+    double current_max_z_feedrate; //!< The current max z speed (in mm/s)
 
     AABB3D total_bounding_box; //!< The bounding box of all g-code.
 
@@ -116,7 +121,7 @@ private:
     int currentFanSpeed;
     EGCodeFlavor flavor;
 
-    double totalPrintTime; //!< The total estimated print time in seconds
+    std::vector<double> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
@@ -167,20 +172,21 @@ public:
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
      * 
+     * \param extruder_is_used For each extruder whether it is used in the print
      * \param print_time The total print time in seconds of the whole gcode (if known)
      * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
      * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
+    std::string getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
 
-    bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
+    bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
-    bool getExtruderIsUsed(const int extruder_nr) const; //!< Returns whether the extruder with the given index is used up until the current meshgroup
+    bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
 
     int getNozzleSize(const int extruder_nr) const;
 
@@ -223,11 +229,17 @@ public:
     double getTotalFilamentUsed(int extruder_nr);
 
     /*!
-     * Get the total estimated print time in seconds
+     * Get the total estimated print time in seconds for each feature
      * 
-     * \return total print time in seconds
+     * \return total print time in seconds for each feature
      */
-    double getTotalPrintTime();
+    std::vector<double> getTotalPrintTimePerFeature();
+    /*!
+     * Get the total print time in seconds for the complete print
+     * 
+     * \return total print time in seconds for the complete print
+     */
+    double getSumTotalPrintTimes();
     void updateTotalPrintTime();
     void resetTotalPrintTimeAndFilament();
     
@@ -267,8 +279,9 @@ public:
      * 
      * \param p location to go to
      * \param speed movement speed
+     * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm);
+    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -288,8 +301,9 @@ public:
      * 
      * \param p location to go to
      * \param speed movement speed
+     * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm);
+    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -312,8 +326,9 @@ private:
      * \param z build plate z
      * \param speed movement speed
      * \param extrusion_mm3_per_mm flow
+     * \param feature the print feature that's currently printing
      */
-    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
+    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 
     /*!
      * Write the F, X, Y, Z and E value (if they are not different from the last)
@@ -322,10 +337,10 @@ private:
      * 
      * This function also applies the gcode offset by calling \ref GCodeExport::getGcodePos
      * This function updates the \ref GCodeExport::total_bounding_box
-     * It estimates the time in \ref GCodeExport::estimateCalculator
+     * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(double speed, int x, int y, int z, double e);
+    void writeFXYZE(double speed, int x, int y, int z, double e, PrintFeatureType feature);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
@@ -334,13 +349,14 @@ private:
      * \param z build plate z
      * \param speed movement speed
      * \param extrusion_mm3_per_mm flow
+     * \param feature print feature to track print time for
      */
-    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
+    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 public:
     /*!
      * Get ready for extrusion moves:
      * - unretract (G11 or G1 E.)
-     * - prime poop (G1 E)
+     * - prime blob (G1 E)
      * 
      * It estimates the time in \ref GCodeExport::estimateCalculator
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
@@ -399,9 +415,14 @@ public:
     void writeBedTemperatureCommand(double temperature, bool wait = false);
 
     /*!
-     * Write the command for setting the acceleration to a specific value
+     * Write the command for setting the acceleration for print moves to a specific value
      */
-    void writeAcceleration(double acceleration, bool for_travel_moves = false);
+    void writePrintAcceleration(double acceleration);
+
+    /*!
+     * Write the command for setting the acceleration for travel moves to a specific value
+     */
+    void writeTravelAcceleration(double acceleration);
 
     /*!
      * Write the command for setting the jerk to a specific value

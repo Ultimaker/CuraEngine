@@ -12,7 +12,7 @@ GCodePathConfig getPerimeterGapConfig(const SliceMeshStorage& mesh, int layer_th
 {
     // The perimeter gap config follows the skin config, but has a different line width:
     // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
-    const int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_x") / 2;
+    const int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_0") / 2;
     double perimeter_gaps_speed = mesh.getSettingInMillimetersPerSecond("speed_topbottom");
     if (mesh.getSettingBoolean("speed_equalize_flow_enabled"))
     {
@@ -50,11 +50,11 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
 )
 , insetX_config_layer0(
-PrintFeatureType::InnerWall
-, mesh.getSettingInMicrons("wall_line_width_x") * mesh.getSettingAsRatio("initial_layer_line_width_factor")
-, layer_thickness
-, mesh.getSettingInPercentage("material_flow")
-, GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
+    PrintFeatureType::InnerWall
+    , mesh.getSettingInMicrons("wall_line_width_x") * mesh.getSettingAsRatio("initial_layer_line_width_factor")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
 )
 , skin_config(
     PrintFeatureType::Skin
@@ -64,11 +64,18 @@ PrintFeatureType::InnerWall
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
 , skin_config_layer0(
-PrintFeatureType::Skin
-, mesh.getSettingInMicrons("skin_line_width") * mesh.getSettingAsRatio("initial_layer_line_width_factor")
-, layer_thickness
-, mesh.getSettingInPercentage("material_flow")
-, GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width") * mesh.getSettingAsRatio("initial_layer_line_width_factor")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+)
+, ironing_config(
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
 )
 
 , perimeter_gap_config(getPerimeterGapConfig(mesh, layer_thickness))
@@ -272,6 +279,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             //Skin speed (per mesh).
             mesh_config.skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
             mesh_config.skin_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_config.ironing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
             mesh_config.perimeter_gap_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
 
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)

@@ -38,16 +38,18 @@ private:
      * 
      * The anti_overhang areas are taken into account.
      * 
-     * \warning This function should be called only once for handling support meshes.
-     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage
+     * \warning This function should be called only once for handling support meshes with drop down and
+     * once for all support meshes without drop down.
+     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage of one support mesh with the given value of support_mesh_drop_down.
      * 
      * \param storage data storage containing the input layer outline data
      * \param infill_settings The settings base to get the settings from which are based on the infill of the support
-     * \param interface_settings The settings base to get the settings from which are based on the interface of the support
+     * \param roof_settings The settings base to get the settings from which are based on the top interface of the support
+     * \param bottom_settings The settings base to get the settings from which are based on the bottom interface of the support
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& interface_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
     /*!
      * Generate support bottom areas for a given mesh.

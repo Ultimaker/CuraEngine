@@ -1140,13 +1140,13 @@ Polygons Polygons::smooth2(int remove_length, int min_area) const
     return ret;
 }
 
-double PolygonsPart::area() const
+double Polygons::area() const
 {
-    double area = 0;
+    double area = 0.0;
     for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
     {
         area += operator[](poly_idx).area();
-        // note: holes have negative area
+        // note: holes already have negative area
     }
     return area;
 }

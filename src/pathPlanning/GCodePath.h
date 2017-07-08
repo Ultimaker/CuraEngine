@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (C) 2017 Ultimaker
+//Released under terms of the AGPLv3 License
+
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
 
@@ -23,18 +25,34 @@ namespace cura
 class GCodePath
 {
 public:
+    GCodePath();
+
     const GCodePathConfig* config; //!< The configuration settings of the path.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
+    double speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
-    bool perform_prime; //!< Whether this path is preceded by a prime (poop)
+    bool perform_prime; //!< Whether this path is preceded by a prime (blob)
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
     bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
 
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
+
+    /*!
+     * \brief Creates a new g-code path.
+     *
+     * \param config The line configuration to use when printing this path.
+     * \param space_fill_type The type of space filling of which this path is a
+     * part.
+     * \param flow The flow rate to print this path with.
+     * \param spiralize Gradually increment the z-coordinate while traversing
+     * \param speed_factor The factor that the travel speed will be multiplied with
+     * this path.
+     */
+    GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.

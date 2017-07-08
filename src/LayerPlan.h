@@ -232,13 +232,11 @@ private:
 
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
+    int z;
 
 private:
     int layer_nr; //!< The layer number of this layer plan
     int is_initial_layer; //!< Whether this is the first layer (which might be raft)
-    
-    int z; 
-    
     int layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
@@ -277,9 +275,10 @@ private:
      * \param space_fill_type The type of space filling which this path employs
      * \param flow (optional) A ratio for the extrusion speed
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
+     * \param speed_factor (optional) a factor which the speed will be multiplied by.
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
-    GCodePath* getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
+    GCodePath* getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
 
 public:
     /*!
@@ -424,7 +423,7 @@ public:
     GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
 
     /*!
-     * Plan a prime poop at the current location.
+     * Plan a prime blob at the current location.
      * 
      * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
@@ -437,9 +436,10 @@ public:
      * \param config The config with which to extrude
      * \param space_fill_type Of what space filling type this extrusion move is a part
      * \param flow A modifier of the extrusion width which would follow from the \p config
+     * \param speed_factor (optional) A factor the travel speed will be multipled by.
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      */
-    void addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
+    void addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
