@@ -36,12 +36,14 @@ public:
         GCodePathConfig skin_config_layer0;
         GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;
+        GCodePathConfig perimeter_gap_config_layer0;
         std::vector<GCodePathConfig> infill_config;
 
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
         const GCodePathConfig *getInset0Config(const int layer_nr) const;
         const GCodePathConfig *getInsetXConfig(const int layer_nr) const;
         const GCodePathConfig *getSkinConfig(const int layer_nr) const;
+        const GCodePathConfig *getPerimeterGapConfig(const int layer_nr) const;
     };
     
     GCodePathConfig raft_base_config;

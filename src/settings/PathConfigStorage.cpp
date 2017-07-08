@@ -8,15 +8,24 @@
 namespace cura
 {
 
-GCodePathConfig getPerimeterGapConfig(const SliceMeshStorage& mesh, int layer_thickness)
+GCodePathConfig createPerimeterGapConfig(const SliceMeshStorage& mesh, int layer_thickness, bool first_layer)
 {
     // The perimeter gap config follows the skin config, but has a different line width:
     // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
-    const int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_0") / 2;
+    int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_0") / 2;
+    if (first_layer)
+    {
+        perimeter_gaps_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+    }
     double perimeter_gaps_speed = mesh.getSettingInMillimetersPerSecond("speed_topbottom");
     if (mesh.getSettingBoolean("speed_equalize_flow_enabled"))
     {
-        perimeter_gaps_speed = perimeter_gaps_speed * mesh.getSettingInMicrons("skin_line_width") / perimeter_gaps_line_width;
+        int skin_line_width = mesh.getSettingInMicrons("skin_line_width");
+        if (first_layer)
+        {
+            skin_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+        }
+        perimeter_gaps_speed *= skin_line_width / perimeter_gaps_line_width;
     }
     return GCodePathConfig(
             PrintFeatureType::Skin
@@ -78,7 +87,8 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
 )
 
-, perimeter_gap_config(getPerimeterGapConfig(mesh, layer_thickness))
+, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness, false))
+, perimeter_gap_config_layer0(createPerimeterGapConfig(mesh, layer_thickness, true))
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
@@ -199,6 +209,11 @@ const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getSkinConfig(int lay
     return (layer_nr == 0)? &skin_config_layer0 : &skin_config;
 }
 
+const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getPerimeterGapConfig(const int layer_nr) const
+{
+    return (layer_nr == 0)? &perimeter_gap_config_layer0 : &perimeter_gap_config;
+}
+
 void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count)
 {
     std::vector<GCodePathConfig::SpeedDerivatives> global_first_layer_config_per_extruder;
@@ -281,6 +296,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             mesh_config.skin_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
             mesh_config.ironing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
             mesh_config.perimeter_gap_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_config.perimeter_gap_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
 
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {

@@ -1400,7 +1400,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     }
     bool added_something = false;
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
-    const unsigned int perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
+    const unsigned int perimeter_gaps_line_width = mesh_config.getPerimeterGapConfig(layer_nr)->getLineWidth();
 
     bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
                             && !getSettingBoolean("magic_spiralize")
@@ -1451,7 +1451,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
+            gcode_layer.addLinesByOptimizer(gap_lines, mesh_config.getPerimeterGapConfig(layer_nr), SpaceFillType::Lines);
         }
     }
     return added_something;
@@ -1460,7 +1460,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
     const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
-    const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
+    const coord_t perimeter_gaps_line_width = mesh_config.getPerimeterGapConfig(layer_nr)->getLineWidth();
     const int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
     const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
     const int64_t z = layer_nr * getSettingInMicrons("layer_height");
@@ -1577,7 +1577,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addLinesByOptimizer(gap_lines, &mesh_config.perimeter_gap_config, SpaceFillType::Lines);
+            gcode_layer.addLinesByOptimizer(gap_lines, mesh_config.getPerimeterGapConfig(layer_nr), SpaceFillType::Lines);
         }
     }
     return added_something;
