@@ -114,6 +114,34 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
 , support_infill_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr")))
 , support_roof_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_roof_extruder_nr")))
 , support_bottom_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_bottom_extruder_nr")))
+, support_infill_config(
+            PrintFeatureType::Support
+            , support_infill_train->getSettingInMicrons("support_line_width")
+            , layer_thickness
+            , support_infill_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
+        )
+, support_infill_config_layer0(
+            PrintFeatureType::Support
+            , support_infill_train->getSettingInMicrons("support_line_width") * support_infill_train->getSettingAsRatio("initial_layer_line_width_factor")
+            , layer_thickness
+            , support_infill_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
+        )
+, support_roof_config(
+            PrintFeatureType::SupportInterface
+            , support_roof_train->getSettingInMicrons("support_roof_line_width")
+            , layer_thickness
+            , support_roof_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_roof_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("jerk_support_roof")}
+        )
+, support_roof_config_layer0(
+            PrintFeatureType::SupportInterface
+            , support_roof_train->getSettingInMicrons("support_roof_line_width") * support_roof_train->getSettingAsRatio("initial_layer_line_width_factor")
+            , layer_thickness
+            , support_roof_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_roof_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("jerk_support_roof")}
+        )
 , raft_base_config(
             PrintFeatureType::SupportInterface
             , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width")
@@ -134,20 +162,6 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             , adhesion_extruder_train->getSettingInMicrons("raft_surface_thickness")
             , adhesion_extruder_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_surface_speed"), adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_surface_acceleration"), adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_surface_jerk")}
-        )
-, support_infill_config(
-            PrintFeatureType::Support
-            , support_infill_train->getSettingInMicrons("support_line_width")
-            , layer_thickness
-            , support_infill_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
-        )
-, support_roof_config(
-            PrintFeatureType::SupportInterface
-            , support_roof_train->getSettingInMicrons("support_roof_line_width")
-            , layer_thickness
-            , support_roof_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_roof_train->getSettingInMillimetersPerSecond("speed_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), support_roof_train->getSettingInMillimetersPerSecond("jerk_support_roof")}
         )
 , support_bottom_config(
             PrintFeatureType::SupportInterface
@@ -236,6 +250,16 @@ const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInfillConfig(const
 const GCodePathConfig *PathConfigStorage::getPrimeTowerConfig(const int layer_nr, const int extruder_nr) const
 {
     return (layer_nr == 0)? &prime_tower_config_per_extruder_layer0[extruder_nr] : &prime_tower_config_per_extruder[extruder_nr];
+}
+
+const GCodePathConfig *PathConfigStorage::getSupportInfillConfig(const int layer_nr) const
+{
+    return (layer_nr == 0)? &support_infill_config_layer0 : &support_infill_config;
+}
+
+const GCodePathConfig *PathConfigStorage::getSupportRoofConfig(const int layer_nr) const
+{
+    return (layer_nr == 0)? &support_roof_config_layer0 : &support_roof_config;
 }
 
 void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer)
