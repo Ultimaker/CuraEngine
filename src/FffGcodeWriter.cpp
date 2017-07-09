@@ -1325,7 +1325,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         else
                         {
                             Polygons outer_wall = part.insets[0];
-                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh.getSettingInMicrons("wall_line_width_0"));
+                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.getInset0Config(layer_nr)->getLineWidth());
                             gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.getInset0Config(layer_nr), &wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                         }
                     }
@@ -1344,7 +1344,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         else
                         {
                             Polygons outer_wall = part.insets[processed_inset_number];
-                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh.getSettingInMicrons("wall_line_width_x"));
+                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.getInsetXConfig(layer_nr)->getLineWidth());
                             gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.getInsetXConfig(layer_nr), &wall_overlap_computation);
                         }
                     }
