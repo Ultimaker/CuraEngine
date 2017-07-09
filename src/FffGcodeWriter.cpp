@@ -1459,7 +1459,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
 bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
-    const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
+    const coord_t skin_line_width = mesh_config.getSkinConfig(layer_nr)->getLineWidth();
     const coord_t perimeter_gaps_line_width = mesh_config.getPerimeterGapConfig(layer_nr)->getLineWidth();
     const int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
     const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
@@ -1517,7 +1517,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         if (skin_part.insets.size() > 0)
         {
             inner_skin_outline = &skin_part.insets.back();
-            offset_from_inner_skin_outline = -mesh_config.insetX_config.getLineWidth() / 2;
+            offset_from_inner_skin_outline = -mesh_config.getInsetXConfig(layer_nr)->getLineWidth() / 2;
         }
     }
 

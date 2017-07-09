@@ -27,26 +27,29 @@ private:
 public:
     class MeshPathConfigs
     {
-    public:
+    private:
         GCodePathConfig inset0_config;
         GCodePathConfig inset0_config_layer0;
         GCodePathConfig insetX_config;
         GCodePathConfig insetX_config_layer0;
         GCodePathConfig skin_config;
         GCodePathConfig skin_config_layer0;
-        GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;
         GCodePathConfig perimeter_gap_config_layer0;
         GCodePathConfig infill_config_layer0; // combined infill layers can't be printed on the first layer
         std::vector<GCodePathConfig> infill_config;
 
+    public:
+        GCodePathConfig ironing_config;
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
         const GCodePathConfig *getInset0Config(const int layer_nr) const;
         const GCodePathConfig *getInsetXConfig(const int layer_nr) const;
         const GCodePathConfig *getSkinConfig(const int layer_nr) const;
         const GCodePathConfig *getPerimeterGapConfig(const int layer_nr) const;
         const GCodePathConfig *getInfillConfig(const int layer_nr, const int combine_count) const;
+        void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
     };
+    friend class MeshPathConfigs;
     
     GCodePathConfig raft_base_config;
     GCodePathConfig raft_interface_config;

@@ -79,13 +79,6 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
-, ironing_config(
-    PrintFeatureType::Skin
-    , mesh.getSettingInMicrons("skin_line_width")
-    , layer_thickness
-    , mesh.getSettingInPercentage("material_flow")
-    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
-)
 , perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness, false))
 , perimeter_gap_config_layer0(createPerimeterGapConfig(mesh, layer_thickness, true))
 , infill_config_layer0(
@@ -94,6 +87,13 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , layer_thickness
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill")}
+)
+, ironing_config(
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
 )
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
@@ -225,6 +225,25 @@ const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInfillConfig(const
     return (layer_nr == 0)? &infill_config_layer0 : &infill_config[combine_count];
 }
 
+void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer)
+{
+    inset0_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
+    inset0_config_layer0.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
+    insetX_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
+    insetX_config_layer0.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
+    skin_config.smoothSpeed(                first_layer_config, layer_nr, max_speed_layer);
+    skin_config_layer0.smoothSpeed(         first_layer_config, layer_nr, max_speed_layer);
+    ironing_config.smoothSpeed(             first_layer_config, layer_nr, max_speed_layer);
+    perimeter_gap_config.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
+    perimeter_gap_config_layer0.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
+    infill_config_layer0.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
+    for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+    {
+        //Infill speed (per combine part per mesh).
+        infill_config[idx].smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
+    }
+}
+
 void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count)
 {
     std::vector<GCodePathConfig::SpeedDerivatives> global_first_layer_config_per_extruder;
@@ -293,28 +312,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
                     , mesh.getSettingInMillimetersPerSecond("jerk_print_layer_0")
             };
 
-            MeshPathConfigs& mesh_config = mesh_configs[mesh_idx];
-            //Outer wall speed (per mesh).
-            mesh_config.inset0_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_config.inset0_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-
-            //Inner wall speed (per mesh).
-            mesh_config.insetX_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_config.insetX_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-
-            //Skin speed (per mesh).
-            mesh_config.skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_config.skin_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_config.ironing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_config.perimeter_gap_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_config.perimeter_gap_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-
-            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
-            {
-                //Infill speed (per combine part per mesh).
-                mesh_config.infill_config[idx].smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            }
-            mesh_config.infill_config_layer0.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }
 }
