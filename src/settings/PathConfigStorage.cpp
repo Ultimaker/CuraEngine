@@ -83,7 +83,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 , perimeter_gap_config_layer0(createPerimeterGapConfig(mesh, layer_thickness, true))
 , infill_config_layer0(
     PrintFeatureType::Infill
-    , mesh.getSettingInMicrons("infill_line_width") * mesh.getSettingAsRatio("infill_line_width")
+    , mesh.getSettingInMicrons("infill_line_width") * mesh.getSettingAsRatio("initial_layer_line_width_factor")
     , layer_thickness
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill")}
