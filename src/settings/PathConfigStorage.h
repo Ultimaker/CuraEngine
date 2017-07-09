@@ -24,6 +24,9 @@ private:
     const ExtruderTrain* support_infill_train;
     const ExtruderTrain* support_roof_train;
     const ExtruderTrain* support_bottom_train;
+
+    std::vector<GCodePathConfig> prime_tower_config_per_extruder; //!< Configuration for the prime tower per extruder.
+    std::vector<GCodePathConfig> prime_tower_config_per_extruder_layer0; //!< Configuration for the first layer of the prime tower per extruder.
 public:
     class MeshPathConfigs
     {
@@ -57,7 +60,6 @@ public:
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
     std::vector<GCodePathConfig> skirt_brim_config_per_extruder; //!< Configuration for skirt and brim per extruder.
-    std::vector<GCodePathConfig> prime_tower_config_per_extruder; //!< Configuration for the prime tower per extruder.
 
     GCodePathConfig support_infill_config; //!< The config used to print the normal support, rather than the support interface
     GCodePathConfig support_roof_config; //!< The config used to print the dense roofs of support.
@@ -69,6 +71,7 @@ public:
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
     PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness);
+    const GCodePathConfig *getPrimeTowerConfig(const int layer_nr, const int extruder_nr) const;
 
 private:
     void handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count);

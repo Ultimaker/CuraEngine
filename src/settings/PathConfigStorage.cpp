@@ -161,6 +161,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     travel_config_per_extruder.reserve(extruder_count);
     skirt_brim_config_per_extruder.reserve(extruder_count);
     prime_tower_config_per_extruder.reserve(extruder_count);
+    prime_tower_config_per_extruder_layer0.reserve(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
@@ -181,6 +182,13 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
         prime_tower_config_per_extruder.emplace_back(
                 PrintFeatureType::SupportInfill
                 , train->getSettingInMicrons("prime_tower_line_width")
+                , layer_thickness
+                , train->getSettingInPercentage("prime_tower_flow")
+                , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMillimetersPerSecond("acceleration_prime_tower"), train->getSettingInMillimetersPerSecond("jerk_prime_tower")}
+            );
+        prime_tower_config_per_extruder_layer0.emplace_back(
+                PrintFeatureType::SupportInfill
+                , train->getSettingInMicrons("prime_tower_line_width") * train->getSettingAsRatio("initial_layer_line_width_factor")
                 , layer_thickness
                 , train->getSettingInPercentage("prime_tower_flow")
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMillimetersPerSecond("acceleration_prime_tower"), train->getSettingInMillimetersPerSecond("jerk_prime_tower")}
@@ -223,6 +231,11 @@ const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getPerimeterGapConfig
 const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInfillConfig(const int layer_nr, const int combine_count) const
 {
     return (layer_nr == 0)? &infill_config_layer0 : &infill_config[combine_count];
+}
+
+const GCodePathConfig *PathConfigStorage::getPrimeTowerConfig(const int layer_nr, const int extruder_nr) const
+{
+    return (layer_nr == 0)? &prime_tower_config_per_extruder_layer0[extruder_nr] : &prime_tower_config_per_extruder[extruder_nr];
 }
 
 void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer)
@@ -294,8 +307,9 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             const GCodePathConfig::SpeedDerivatives& initial_layer_print_speed_config = global_first_layer_config_per_extruder[extruder_nr];
 
             GCodePathConfig& prime_tower = prime_tower_config_per_extruder[extruder_nr];
-
             prime_tower.smoothSpeed(initial_layer_print_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
+            GCodePathConfig& prime_tower_layer0 = prime_tower_config_per_extruder_layer0[extruder_nr];
+            prime_tower_layer0.smoothSpeed(initial_layer_print_speed_config, std::max(0, layer_nr), initial_speedup_layer_count);
         }
 
     }
