@@ -1660,7 +1660,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
 
-    EFillMethod support_pattern = storage.meshgroup->getSettingAsFillMethod("support_pattern");
+    EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
     if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
     {
         support_pattern = EFillMethod::GRID;
