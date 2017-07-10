@@ -449,10 +449,9 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
-     * \param infill_angle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_angle) const;
+    bool processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given skin part and of the perimeter gaps.

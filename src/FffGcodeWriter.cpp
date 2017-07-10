@@ -1041,8 +1041,6 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
 void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer) const
 {
-    bool skin_alternate_rotation = mesh.getSettingBoolean("skin_alternate_rotation") && (mesh.getSettingAsCount("top_layers") >= 4 || mesh.getSettingAsCount("bottom_layers") >= 4 );
-
     int infill_angle = 45; // original default, this will get updated to an element from mesh->infill_angles
     if (mesh.infill_angles.size() > 0)
     {
@@ -1070,15 +1068,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle);
     }
 
-    int skin_angle = 45;
-    if (mesh.skin_angles.size() > 0)
-    {
-        skin_angle = mesh.skin_angles.at(gcode_layer.getLayerNr() % mesh.skin_angles.size());
-    }
-    if (skin_alternate_rotation && ( gcode_layer.getLayerNr() / 2 ) & 1)
-        skin_angle -= 45;
-
-    added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, skin_angle);
+    added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
     if (added_something && (!getSettingBoolean("magic_spiralize") || static_cast<int>(gcode_layer.getLayerNr()) < mesh.getSettingAsCount("bottom_layers")))
@@ -1425,7 +1415,7 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
     }
 }
 
-bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int skin_angle) const
+bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
 {
     int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
     int topmost_skin_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
@@ -1440,6 +1430,17 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
                             && !getSettingBoolean("magic_spiralize")
                             && extruder_nr == wall_0_extruder_nr;
+
+    int skin_angle = 45;
+    bool skin_alternate_rotation = mesh.getSettingBoolean("skin_alternate_rotation") && (mesh.getSettingAsCount("top_layers") >= 4 || mesh.getSettingAsCount("bottom_layers") >= 4 );
+    if (mesh.skin_angles.size() > 0)
+    {
+        skin_angle = mesh.skin_angles.at(gcode_layer.getLayerNr() % mesh.skin_angles.size());
+    }
+    if (skin_alternate_rotation && ( gcode_layer.getLayerNr() / 2 ) & 1)
+    {
+        skin_angle -= 45;
+    }
 
     Point z_seam_pos(0, 0); // not used
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
