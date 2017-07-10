@@ -372,7 +372,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                         for (unsigned int lower_density_idx = density_idx; lower_density_idx <= max_lower_density_idx && lower_density_idx < lower_layer_part.infill_areas_per_combine_per_density.size(); lower_density_idx++)
                         {
                             std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.infill_areas_per_combine_per_density[lower_density_idx];
-                            lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (thickened) layer
+                            lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (single thickness) layer
                         }
                     }
 
