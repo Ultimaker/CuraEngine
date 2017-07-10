@@ -6,7 +6,7 @@
 namespace cura {
 
 
-bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
+bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int infill_angle)
 {
     if (extruder_nr != mesh.getSettingAsExtruderNr("infill_extruder_nr"))
     {
@@ -18,7 +18,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
     const unsigned int infill_line_width = config.getLineWidth();
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
-    const double layer_height_mm = (layer_nr == 0)? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
+    const double layer_height_mm = (gcode_layer.getLayerNr() == 0) ? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
 
     // For each part on this layer which is used to fill that part and parts below:
     for (const std::pair<Polygons, double>& filling_area : part.spaghetti_infill_volumes)
@@ -54,7 +54,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             if (!infill_polygons.empty() || !infill_lines.empty())
             {
                 added_something = true;
-                fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+                fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
                 if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
                 {

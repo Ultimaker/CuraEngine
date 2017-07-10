@@ -105,18 +105,18 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const
+void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const
 {
     if (!enabled)
     {
         return;
     }
-    if (gcodeLayer.getPrimeTowerIsPlanned())
+    if (gcode_layer.getPrimeTowerIsPlanned())
     { // don't print the prime tower if it has been printed already
         return;
     }
 
-    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
+    if (gcode_layer.getLayerNr() > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }
@@ -132,25 +132,25 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcodeLay
     // pre-wipe:
     if (pre_wipe)
     {
-        preWipeAndPurge(storage, gcodeLayer, layer_nr, new_extruder);
+        preWipeAndPurge(storage, gcode_layer, new_extruder);
     }
 
-    addToGcode_denseInfill(storage, gcodeLayer, layer_nr, new_extruder);
+    addToGcode_denseInfill(storage, gcode_layer, new_extruder);
 
     // post-wipe:
     if (post_wipe)
     { //Make sure we wipe the old extruder on the prime tower.
-        gcodeLayer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
+        gcode_layer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }
 
-    gcodeLayer.setPrimeTowerIsPlanned();
+    gcode_layer.setPrimeTowerIsPlanned();
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
+void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    const ExtrusionMoves& pattern = (layer_nr == -Raft::getFillerLayerCount(storage))
+    const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount(storage))
         ? pattern_per_extruder_layer0[extruder_nr]
-        : patterns_per_extruder[extruder_nr][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+        : patterns_per_extruder[extruder_nr][((gcode_layer.getLayerNr() % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
@@ -238,9 +238,9 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
 }
 
-void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const
+void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
+    int current_pre_wipe_location_idx = (pre_wipe_location_skip * gcode_layer.getLayerNr()) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
 
     const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
@@ -265,7 +265,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
 
         if (purge_volume > 0)
         {
-            addPurgeMove(gcode_layer, layer_nr, extruder_nr, train, middle, prime_start, purge_volume);
+            addPurgeMove(gcode_layer, extruder_nr, train, middle, prime_start, purge_volume);
         }
         else
         {
@@ -283,7 +283,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
             const Point purge_start = prime_start + normal(outward_dir, start_dist);
             gcode_layer.addTravel(purge_start);
 
-            addPurgeMove(gcode_layer, layer_nr, extruder_nr, train, purge_start, prime_start, purge_volume);
+            addPurgeMove(gcode_layer, extruder_nr, train, purge_start, prime_start, purge_volume);
         }
         gcode_layer.addTravel(prime_start);
     }
@@ -304,13 +304,13 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     }
 }
 
-void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const
+void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const
 {
     // Find out how much purging needs to be done.
     const GCodePathConfig& current_gcode_path_config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
     const coord_t purge_move_length = vSize(start_pos - end_pos);
     const unsigned int line_width = current_gcode_path_config.getLineWidth();
-    const double layer_height_mm = (layer_nr == 0) ? train->getSettingInMillimeters("layer_height_0") : train->getSettingInMillimeters("layer_height");
+    const double layer_height_mm = (gcode_layer.getLayerNr() == 0) ? train->getSettingInMillimeters("layer_height_0") : train->getSettingInMillimeters("layer_height");
     const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
     float purge_flow = purge_volume / normal_volume;
 
