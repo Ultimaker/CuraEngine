@@ -1521,7 +1521,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     const bool generate_topmost_skin_perimeter_gaps = fill_topmost_skin_concentric_perimeter_gaps && topmost_skin_pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the topmost skin area
 
     Polygons topmost_skin_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
-    processSkinPartTopMostInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, skin_angle, topmost_skin_pattern, generate_topmost_skin_perimeter_gaps, topmost_skin_concentric_perimeter_gaps, added_something);
+    processSkinPartTopMostInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, skin_angle, generate_topmost_skin_perimeter_gaps, topmost_skin_concentric_perimeter_gaps, added_something);
 
 
     // add normal skinfill
@@ -1535,7 +1535,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     const bool generate_top_bottom_perimeter_gaps = fill_top_bottom_concentric_perimeter_gaps && top_bottom_pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the skinfill area
 
     Polygons top_bottom_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
-    processSkinPartInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, skin_angle, top_bottom_pattern, generate_top_bottom_perimeter_gaps, top_bottom_concentric_perimeter_gaps, added_something);
+    processSkinPartInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, skin_angle, generate_top_bottom_perimeter_gaps, top_bottom_concentric_perimeter_gaps, added_something);
 
 
     // handle perimeter_gaps of concentric skin
@@ -1593,9 +1593,10 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
     }
 }
 
-void FffGcodeWriter::processSkinPartTopMostInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int skin_angle, EFillMethod pattern, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const
+void FffGcodeWriter::processSkinPartTopMostInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int skin_angle, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const
 {
     coord_t skin_overlap = 0; // skinfill already expanded over the topmost skin; don't overlap with perimeters
+    EFillMethod pattern = mesh.getSettingAsFillMethod("topmost_skin_pattern");
 
     const coord_t skin_line_width = mesh_config.topmost_skin_config.getLineWidth();
     const int topmost_skin_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
@@ -1639,10 +1640,14 @@ void FffGcodeWriter::processSkinPartTopMostInfillGeneratePerimeterGaps(const Sli
     }
 }
 
-void FffGcodeWriter::processSkinPartInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int skin_angle, EFillMethod pattern, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const
+void FffGcodeWriter::processSkinPartInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int skin_angle, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const
 {
     const coord_t skin_line_width = mesh_config.skin_config.getLineWidth();
     const int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
+
+    EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
+        mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
+        mesh.getSettingAsFillMethod("top_bottom_pattern");
 
     Polygons skin_polygons;
     Polygons skin_lines;
