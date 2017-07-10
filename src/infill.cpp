@@ -178,7 +178,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
         return 0;
     };
 
-    int scanline_idx = 0;
+    unsigned int scanline_idx = 0;
     for(int64_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
     {
         if (scanline_idx >= cut_list.size())
