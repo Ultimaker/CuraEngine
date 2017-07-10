@@ -1627,7 +1627,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
 
     if (extruder_nr == support_infill_extruder_nr)
     {
-        support_added |= processMultiLayerSupportInfill(storage, gcode_layer, layer_nr);
+        support_added |= processSupportInfill(storage, gcode_layer, layer_nr);
     }
     if (extruder_nr == support_roof_extruder_nr)
     {
@@ -1641,7 +1641,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
 }
 
 
-bool FffGcodeWriter::processMultiLayerSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
+bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const
 {
     bool added_something = false;
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)]; // account for negative layer numbers for raft filler layers
