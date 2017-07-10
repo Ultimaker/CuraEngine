@@ -14,7 +14,7 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
 {
     insets.clear();
     infill_area.clear();
-    infill_areas_per_combine_per_density.clear();
+    infill_area_per_combine_per_density.clear();
 }
 
 
@@ -25,7 +25,7 @@ SupportInfillPart::~SupportInfillPart()
     outline.clear();
     insets.clear();
     infill_area.clear();
-    infill_areas_per_combine_per_density.clear();
+    infill_area_per_combine_per_density.clear();
 }
 
 

@@ -1684,7 +1684,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     for (int part_idx : island_order_optimizer.polyOrder)
     {
         const SupportInfillPart& part = part_list[part_idx];
-        if (part.infill_areas_per_combine_per_density.empty())
+        if (part.infill_area_per_combine_per_density.empty())
         {
             continue;
         }
@@ -1710,24 +1710,24 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         }
 
         // process sub-areas in this support infill area with different densities
-        for (unsigned int combine_idx = 0; combine_idx < part.infill_areas_per_combine_per_density[0].size(); ++combine_idx)
+        for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); ++combine_idx)
         {
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
             Polygons support_polygons;
             Polygons support_lines;
-            for (unsigned int density_idx = 0; density_idx < part.infill_areas_per_combine_per_density.size(); ++density_idx)
+            for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); ++density_idx)
             {
-                if (combine_idx >= part.infill_areas_per_combine_per_density[density_idx].size())
+                if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
                 {
                     continue;
                 }
-                const Polygons& support_area = part.infill_areas_per_combine_per_density[density_idx][combine_idx];
+                const Polygons& support_area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 const unsigned int density_factor = 1 << density_idx; // 2 ^ density_idx
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
-                if (density_idx == part.infill_areas_per_combine_per_density.size() - 1)
+                if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
                 {
                     support_line_distance_here /= 2;
                 }
