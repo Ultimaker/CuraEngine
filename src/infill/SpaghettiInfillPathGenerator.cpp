@@ -16,7 +16,6 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
     const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
     const unsigned int infill_line_width = config.getLineWidth();
-    const int64_t z = layer_nr * mesh.getSettingInMicrons("layer_height");
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
     const double layer_height_mm = (layer_nr == 0)? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
@@ -38,7 +37,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons* perimeter_gaps_output = nullptr;
         const bool connected_zigzags = true;
         const bool use_endpieces = false;
-        Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces);
+        Infill infill_comp(pattern, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces);
         infill_comp.generate(infill_polygons, infill_lines, &mesh);
 
         // add paths to plan with a higher flow ratio in order to extrude the required amount.
