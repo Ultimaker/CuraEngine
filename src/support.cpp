@@ -237,12 +237,12 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                         //   # dense support
                         //   + less dense support
                         //
-                        // comparing infill        comparing with outline (this is our approach)
-                        //    ^^^^^^               ^^^^^^
-                        //    ####||^^             ####||^^
-                        //    ######||^^           ######||^^
-                        //    ++++####||           ++++++##||
-                        //    ++++++####           ++++++++##
+                        //     comparing infill            comparing with outline (this is our approach)
+                        //    ^^^^^^        ^^^^^^            ^^^^^^            ^^^^^^
+                        //    ####||^^      ####||^^          ####||^^          ####||^^
+                        //    ######||^^    #####||^^         ######||^^        #####||^^
+                        //    ++++####||    ++++##||^         ++++++##||        ++++++||^
+                        //    ++++++####    +++++##||         ++++++++##        +++++++||
                         //
                         if (upper_part_boundary_box.hit(this_part_boundary_box))
                         {
