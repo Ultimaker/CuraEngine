@@ -1012,9 +1012,11 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
     Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     PathOrderOptimizer part_order_optimizer(layer_start_position, mesh.getZSeamHint(), z_seam_type);
-    for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
+    for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
     {
-        part_order_optimizer.addPolygon(layer.parts[partNr].insets[0][0]);
+        const SliceLayerPart& part = layer.parts[part_idx];
+        ConstPolygonRef part_representative = (part.insets.size() > 0) ? part.insets[0][0] : part.outline[0];
+        part_order_optimizer.addPolygon(part_representative);
     }
     part_order_optimizer.optimize();
 
