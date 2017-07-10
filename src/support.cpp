@@ -53,8 +53,8 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
-    const EFillMethod support_pattern = storage.getSettingAsFillMethod("support_pattern");
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern");
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
 
     // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
@@ -167,8 +167,9 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     //     The actual printing part is done in FffGcodeWriter.
     //
     const unsigned int total_layer_count = storage.print_layer_count;
-    const unsigned int gradual_support_step_height = storage.getSettingInMicrons("gradual_support_infill_step_height");
-    const unsigned int max_density_steps = storage.getSettingAsCount("gradual_support_infill_steps");
+    const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));    
+    const unsigned int gradual_support_step_height = infill_extruder.getSettingInMicrons("gradual_support_infill_step_height");
+    const unsigned int max_density_steps = infill_extruder.getSettingAsCount("gradual_support_infill_steps");
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -284,7 +285,8 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     const unsigned int total_layer_count = storage.print_layer_count;
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     // How many support infill layers to combine to obtain the requested sparse thickness.
-    const unsigned int combine_layers_amount = std::max(1U, round_divide(storage.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1)));
+    const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const unsigned int combine_layers_amount = std::max(1U, round_divide(infill_extruder.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1)));
     if (combine_layers_amount <= 1)
     {
         return;

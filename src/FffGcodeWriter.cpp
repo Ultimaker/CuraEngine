@@ -1656,7 +1656,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
     coord_t z_of_this_layer = layer_nr * getSettingInMicrons("layer_height");
     const coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
-    const coord_t default_support_line_width = storage.getSettingInMicrons("support_line_width");
+    const coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
 
