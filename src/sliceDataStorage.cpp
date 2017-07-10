@@ -481,14 +481,10 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after
-    std::vector<size_t> to_remove_indices;  // FIFO for replacing, LIFO for removing
-    to_remove_indices.reserve(this->support_infill_parts.size());
-    size_t to_remove_indices_front_idx = 0;
+    std::list<size_t> to_remove_part_indices;  // LIFO for removing
 
-    std::vector<PolygonsPart> new_smaller_islands;
-    new_smaller_islands.reserve(this->support_infill_parts.size());
-
-    for (size_t part_idx = 0; part_idx < this->support_infill_parts.size(); ++part_idx)
+    unsigned int part_count_to_check = this->support_infill_parts.size(); // note that support_infill_parts.size() changes during the computation below
+    for (size_t part_idx = 0; part_idx < part_count_to_check; ++part_idx)
     {
         SupportInfillPart& support_infill_part = this->support_infill_parts[part_idx];
 
@@ -499,90 +495,39 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         }
 
         Polygons result_polygons = support_infill_part.outline.difference(exclude_polygons);
-        std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
 
         // if no smaller parts get generated, this mean this part should be removed.
-        // instead of directly removing it, we replace it with a pending newly generated part if there is one.
-        if (smaller_support_islands.empty())
+        if (result_polygons.empty())
         {
-            if (new_smaller_islands.empty())
-            {
-                // there is no islands to add, append this into the to_remove list
-                to_remove_indices.push_back(part_idx);
-            }
-            else
-            {
-                // replace the current part with a newly generated part
-                support_infill_part.outline = new_smaller_islands.back();
-                new_smaller_islands.pop_back();
-            }
+            to_remove_part_indices.push_back(part_idx);
             continue;
         }
 
-        // there are one or more smaller parts.
-        // we first replace the current part with one of the smaller parts, for the rest, we keep replacing the
-        // parts that need to be removed until there is none, and then we put the rest into the newly generated
-        // parts list.
-        support_infill_part.outline = smaller_support_islands[0];
+        std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
 
-        // reserve space beforehand
-        if (new_smaller_islands.capacity() < new_smaller_islands.size() + smaller_support_islands.size())
-        {
-            new_smaller_islands.reserve(new_smaller_islands.size() + smaller_support_islands.size());
-        }
+        // there are one or more smaller parts.
+        // we first replace the current part with one of the smaller parts,
+        // the rest we add to the support_infill_parts (but after part_count_to_check)
+        support_infill_part.outline = smaller_support_islands[0];
 
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
             const PolygonsPart& smaller_island = smaller_support_islands[support_island_idx];
-
-            if (to_remove_indices_front_idx == to_remove_indices.size())
-            {
-                // there is no parts that need to be removed, so we just add this as a new part
-                new_smaller_islands.push_back(smaller_island);
-            }
-            else
-            {
-                // replace the part that needs to be removed (FIFO) with this new part
-                const size_t to_replace_idx = to_remove_indices[to_remove_indices_front_idx++];
-                SupportInfillPart& to_replace_part = this->support_infill_parts[to_replace_idx];
-                to_replace_part.outline = new_smaller_islands.back();
-                new_smaller_islands.pop_back();
-            }
+            this->support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width, support_infill_part.inset_count_to_generate);
         }
     }
-
-#ifdef DEBUG
-    if (!to_remove_indices.empty())
-    {
-        assert(new_smaller_islands.empty() && "to_remove and new_islands cannot both be non-empty");
-    }
-    if (!new_smaller_islands.empty())
-    {
-        assert(to_remove_indices.empty() && "to_remove and new_islands cannot both be non-empty");
-    }
-#endif // DEBUG
 
     // remove the ones that need to be removed (LIFO)
-    while (!to_remove_indices.empty())
+    while (!to_remove_part_indices.empty())
     {
-        for (size_t remove_idx_idx = to_remove_indices.size() - 1; remove_idx_idx >= to_remove_indices_front_idx; --remove_idx_idx)
-        {
-            const size_t remove_idx = to_remove_indices[remove_idx_idx];
-            this->support_infill_parts.erase(this->support_infill_parts.begin() + remove_idx);
-        }
-    }
+        const size_t remove_idx = to_remove_part_indices.back();
+        to_remove_part_indices.pop_back();
 
-    // add new parts to the end if there is any
-    if (!new_smaller_islands.empty())
-    {
-        const SupportInfillPart& reference_part = this->support_infill_parts[0];
-        this->support_infill_parts.reserve(this->support_infill_parts.size() + new_smaller_islands.size());
-        for (const PolygonsPart& smaller_island : new_smaller_islands)
-        {
-            this->support_infill_parts.emplace_back(smaller_island,
-                                                    reference_part.support_line_width,
-                                                    reference_part.inset_count_to_generate);
+        if (remove_idx < this->support_infill_parts.size() - 1)
+        { // move last element to the to-be-removed element so that we can erase the last place in the vector
+            this->support_infill_parts[remove_idx] = std::move(this->support_infill_parts.back());
         }
+        this->support_infill_parts.pop_back(); // always erase last place in the vector
     }
 }
 
