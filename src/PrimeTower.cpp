@@ -282,9 +282,12 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     const Polygons outside_polygon = ground_poly.getOutsidePolygons();
+    AABB outside_polygon_boundary_box(outside_polygon);
     for(size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
-        storage.support.supportLayers[layer].supportAreas = storage.support.supportLayers[layer].supportAreas.difference(outside_polygon);
+        SupportLayer& support_layer = storage.support.supportLayers[layer];
+        // take the differences of the support infill parts and the prime tower area
+        support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
     }
 }
 

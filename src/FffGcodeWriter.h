@@ -529,14 +529,15 @@ private:
      * \return whether any support was added to the layer plan
      */
     bool addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr, int extruder_nr) const;
+
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param gcode_layer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \return whether any support infill was added to the layer plan
      */
-    bool addSupportInfillToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int layer_nr) const;
+    bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, int layer_nr) const;
 
     /*!
      * Add the support roofs to the layer plan \p gcodeLayer of the current

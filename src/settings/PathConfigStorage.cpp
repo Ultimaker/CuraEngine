@@ -161,6 +161,18 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     {
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
     }
+
+    support_infill_config_list.reserve(MAX_INFILL_COMBINE);
+    for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
+    {
+        support_infill_config_list.emplace_back(
+            PrintFeatureType::Support
+            , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1)
+            , layer_thickness
+            , support_infill_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
+        );
+    }
 }
 
 void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count)

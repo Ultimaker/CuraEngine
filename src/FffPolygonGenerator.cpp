@@ -254,18 +254,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-    
-    /*
-    if (storage.support.generated)
-    {
-        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
-        {
-            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); // infill_extr->getSettingInMicrons("support_line_width"));
-        }
-    }
-    */
 
     computePrintHeightStatistics(storage);
 
@@ -289,6 +277,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processDerivedWallsSkinInfill(mesh);
     }
+
+    // generate gradual suppport
+    AreaSupport::generateGradualSupportFeatures(storage);
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
@@ -539,7 +530,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
-
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
@@ -604,7 +594,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
         {
             SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-            if (!support_layer.supportAreas.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+            if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
             {
                 layer_is_empty = false;
                 break;
