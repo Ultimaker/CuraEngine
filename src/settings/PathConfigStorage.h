@@ -55,15 +55,16 @@ public:
         GCodePathConfig perimeter_gap_config_layer0;
         GCodePathConfig infill_config_layer0; // combined infill layers can't be printed on the first layer
         std::vector<GCodePathConfig> infill_config;
+        GCodePathConfig ironing_config;
 
     public:
-        GCodePathConfig ironing_config;
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
         const GCodePathConfig *getInset0Config(const int layer_nr) const;
         const GCodePathConfig *getInsetXConfig(const int layer_nr) const;
         const GCodePathConfig *getSkinConfig(const int layer_nr) const;
         const GCodePathConfig *getPerimeterGapConfig(const int layer_nr) const;
         const GCodePathConfig *getInfillConfig(const int layer_nr, const int combine_count) const;
+        const GCodePathConfig *getIroningConfig() const;
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
     };
     friend class MeshPathConfigs;

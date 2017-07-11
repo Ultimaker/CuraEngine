@@ -1029,7 +1029,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         const SliceLayerPart& part = layer.parts[part_idx];
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer, layer_nr);
     }
-    processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
+    processIroning(mesh, layer, *mesh_config.getIroningConfig(), gcode_layer);
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);

@@ -252,6 +252,11 @@ const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInfillConfig(const
     return (layer_nr == 0)? &infill_config_layer0 : &infill_config[combine_count];
 }
 
+const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getIroningConfig() const
+{
+    return &ironing_config;
+}
+
 const GCodePathConfig *PathConfigStorage::getPrimeTowerConfig(const int layer_nr, const int extruder_nr) const
 {
     return (layer_nr == 0)? &prime_tower_config_per_extruder_layer0[extruder_nr] : &prime_tower_config_per_extruder[extruder_nr];
