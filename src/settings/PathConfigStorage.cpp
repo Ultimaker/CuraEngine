@@ -144,7 +144,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
         )
 , raft_base_config(
             PrintFeatureType::SupportInterface
-            , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width")
+            , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width") * adhesion_extruder_train->getSettingAsRatio("initial_layer_line_width_factor")
             , adhesion_extruder_train->getSettingInMicrons("raft_base_thickness")
             , adhesion_extruder_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_base_speed"), adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_base_acceleration"), adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_base_jerk")}
@@ -181,7 +181,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             );
         skirt_brim_config_per_extruder.emplace_back(
                 PrintFeatureType::SkirtBrim
-                , train->getSettingInMicrons("skirt_brim_line_width")
+                , train->getSettingInMicrons("skirt_brim_line_width") * train->getSettingAsRatio("initial_layer_line_width_factor")
                 , layer_thickness
                 , train->getSettingInPercentage("material_flow")
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("skirt_brim_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt_brim"), train->getSettingInMillimetersPerSecond("jerk_skirt_brim")}

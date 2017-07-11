@@ -106,7 +106,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     const int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
     const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
-    const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width");
+    const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor");
     const int64_t primary_extruder_minimal_length = adhesion_extruder->getSettingInMicrons("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
@@ -188,7 +188,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
                 continue;
             }
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-            const int width = train->getSettingInMicrons("skirt_brim_line_width");
+            const int width = train->getSettingInMicrons("skirt_brim_line_width") * train->getSettingAsRatio("initial_layer_line_width_factor");
             const int64_t minimal_length = train->getSettingInMicrons("skirt_brim_minimal_length");
             offset_distance += last_width / 2 + width/2;
             last_width = width;
