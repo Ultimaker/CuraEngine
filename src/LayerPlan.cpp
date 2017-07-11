@@ -254,10 +254,10 @@ std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState(
 
 GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
 {
-    const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
+    const GCodePathConfig* travel_config = configs_storage.getTravelConfig(getExtruder());
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
 
-    GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
+    GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None);
 
     bool combed = false;
 
@@ -369,7 +369,7 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
     }
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(&configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+        path = getLatestPathWithConfig(configs_storage.getTravelConfig(getExtruder()), SpaceFillType::None);
     }
     path->points.push_back(p);
     last_planned_position = p;
@@ -859,7 +859,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
 
-            if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
+            if (MergeInfillLines(gcode, paths, extruder_plan, *configs_storage.getTravelConfig(extruder), nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
@@ -965,7 +965,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
                 // or do it anyway when we switch extruder in-place
                 gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-                gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder].getSpeed());
+                gcode.writeTravel(gcode.getPositionXY(), configs_storage.getTravelConfig(extruder)->getSpeed());
 
                 const Point current_pos = gcode.getPositionXY();
                 Point machine_middle (0, 0);
@@ -975,7 +975,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     machine_middle.Y = storage.getSettingInMicrons("machine_depth") / 2;
                 }
                 const Point toward_middle_of_bed = current_pos - normal(current_pos - machine_middle, MM2INT(20.0));
-                gcode.writeTravel(toward_middle_of_bed, configs_storage.travel_config_per_extruder[extruder].getSpeed());
+                gcode.writeTravel(toward_middle_of_bed, configs_storage.getTravelConfig(extruder)->getSpeed());
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }

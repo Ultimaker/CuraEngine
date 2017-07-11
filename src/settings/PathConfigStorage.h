@@ -32,6 +32,15 @@ private:
     GCodePathConfig support_infill_config_layer0; //!< The config used to print the first layer of the normal support
     GCodePathConfig support_roof_config; //!< The config used to print the dense roofs of support.
     GCodePathConfig support_roof_config_layer0; //!< The config used to print the dense roofs of support if they are on the first layer
+    GCodePathConfig support_bottom_config; //!< The config to use to print the dense bottoms of support
+
+    GCodePathConfig raft_base_config;
+    GCodePathConfig raft_interface_config;
+    GCodePathConfig raft_surface_config;
+
+    std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
+    std::vector<GCodePathConfig> skirt_brim_config_per_extruder; //!< Configuration for skirt and brim per extruder.
+
 public:
     class MeshPathConfigs
     {
@@ -58,15 +67,6 @@ public:
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
     };
     friend class MeshPathConfigs;
-    
-    GCodePathConfig raft_base_config;
-    GCodePathConfig raft_interface_config;
-    GCodePathConfig raft_surface_config;
-
-    std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
-    std::vector<GCodePathConfig> skirt_brim_config_per_extruder; //!< Configuration for skirt and brim per extruder.
-
-    GCodePathConfig support_bottom_config; //!< The config to use to print the dense bottoms of support
 
     std::vector<MeshPathConfigs> mesh_configs; //!< For each meash the config for all its feature types
     
@@ -77,6 +77,12 @@ public:
     const GCodePathConfig *getPrimeTowerConfig(const int layer_nr, const int extruder_nr) const;
     const GCodePathConfig *getSupportInfillConfig(const int layer_nr, const int combine_count) const;
     const GCodePathConfig *getSupportRoofConfig(const int layer_nr) const;
+    const GCodePathConfig *getSupportBottomConfig() const;
+    const GCodePathConfig *getRaftBaseConfig() const;
+    const GCodePathConfig *getRaftInterfaceConfig() const;
+    const GCodePathConfig *getRaftSurfaceConfig() const;
+    const GCodePathConfig *getTravelConfig(const int extruder_nr) const;
+    const GCodePathConfig *getSkirtBrimConfig(const int extruder_nr) const;
 
 private:
     void handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count);
