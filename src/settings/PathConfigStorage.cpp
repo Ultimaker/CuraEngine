@@ -227,17 +227,17 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     }
 }
 
-const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInset0Config(int layer_nr) const
+const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInset0Config(const int layer_nr) const
 {
     return (layer_nr == 0)? &inset0_config_layer0 : &inset0_config;
 }
 
-const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInsetXConfig(int layer_nr) const
+const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getInsetXConfig(const int layer_nr) const
 {
     return (layer_nr == 0)? &insetX_config_layer0 : &insetX_config;
 }
 
-const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getSkinConfig(int layer_nr) const
+const GCodePathConfig *PathConfigStorage::MeshPathConfigs::getSkinConfig(const int layer_nr) const
 {
     return (layer_nr == 0)? &skin_config_layer0 : &skin_config;
 }
