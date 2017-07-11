@@ -48,6 +48,367 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
+void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count)
+{
+    size_t min_layer = 0;
+    size_t max_layer = total_layer_count - 1;
+
+    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern");
+    const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
+
+    // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+    int wall_line_count = 0;  // no wall for zig zag.
+    if (support_pattern == EFillMethod::GRID
+        || support_pattern == EFillMethod::TRIANGLES
+        || support_pattern == EFillMethod::CONCENTRIC)
+    {
+        // for other patterns which require a wall, we will generate 2 insets.
+        // the first inset is the wall line, and the second inset is the infill area
+        wall_line_count = 1;
+    }
+
+    // generate separate support islands
+    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    {
+        assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
+
+        const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
+        if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
+        {
+            // initialize support_infill_parts empty
+            storage.support.supportLayers[layer_nr].support_infill_parts.clear();
+            continue;
+        }
+
+        std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
+        for (const PolygonsPart& island_outline : support_islands)
+        {
+            // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
+            // tower will remove themselves from the support, so the outlines of the parts can be changed.
+            SupportInfillPart support_infill_part(island_outline, support_line_width, wall_line_count);
+
+            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+        }
+    }
+}
+
+
+void AreaSupport::generateGradualSupportFeatures(SliceDataStorage& storage)
+{
+    AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
+    AreaSupport::generateGradualSupport(storage);
+
+    // combine support infill layers
+    AreaSupport::combineSupportInfillLayers(storage);
+}
+
+
+void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
+{
+    // at this stage, the outlines are final, and we can generate insets and infill area
+    for (SupportLayer& support_layer : storage.support.supportLayers)
+    {
+        for (auto part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end(); ++part_itr)
+        {
+            SupportInfillPart& part = *part_itr;
+            const bool is_not_empty_part = part.generateInsetsAndInfillAreas();
+            if (!is_not_empty_part)
+            {
+                support_layer.support_infill_parts.erase(part_itr);
+                --part_itr;
+            }
+        }
+    }
+}
+
+
+void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
+{
+    //
+    // # How gradual support infill works:
+    // The gradual support infill uses the same technic as the gradual infill. Here is an illustration
+    //
+    //          A part of the model |
+    //                              V
+    //              __________________________       <-- each gradual support infill step consists of 2 actual layers
+    //            / |                         |      <-- each step halfs the infill density.
+    //          /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _|      <-- infill density 1 x 1/(2^2) (25%)
+    //        / |   |                         |      <-- infill density 1 x 1/(2^1) (50%)
+    //      /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _|
+    //    / |   |   |                         |      <-- infill density 1 x 1/(2^0) (100%)
+    //  /_____________________________________|      <-- the current layer, the layer which we are processing right now.
+    //
+    //  | 0 | 1 | 2 |              3          |      <-- areas with different densities, where densities (or sparsities) are represented by numbers 0, 1, 2, etc.
+    //  more dense    ---->      less dense
+    //
+    // In the example above, it shows a part of the model. For the gradual support infill, we process each layer in the following way:
+    //  -> Separate the generated support areas into isolated islands, and we process those islands one by one
+    //     so that the outlines and the gradual infill areas of an island can be printed together.
+    //
+    //  -> Calculate a number of layer groups, each group consists of layers that will be infilled with the same density.
+    //     The maximum number of densities is defined by the parameter "max graudual support steps". For example, it the <max steps> is 5,
+    //     It means that we can have at most 5 different densities, each is 1/2 than the other. So, it will looks like below:
+    //           |  step  |    density    |  description              |
+    //           |    0   |   1 / (2^0)   |  100% the most dense      |
+    //           |    1   |   1 / (2^1)   |                           |
+    //           |    2   |   1 / (2^2)   |                           |
+    //           |    3   |   1 / (2^3)   |                           |
+    //           |    4   |   1 / (2^4)   |                           |
+    //           |    5   |   1 / (2^5)   |  3.125% the least dense   |
+    //
+    //  -> With those layer groups, we can project areas with different densities onto the layer we are currently processing.
+    //     Like in the illustration above, you can see 4 different areas with densities ranging from 0 to 3.
+    //
+    //  -> We save those areas with different densities into the SupportInfillPart data structure, which holds all the support infill
+    //     information of a support island on a specific layer.
+    //
+    //  -> Note that this function only does the above, which is identifying and storing support infill areas with densities.
+    //     The actual printing part is done in FffGcodeWriter.
+    //
+    const unsigned int total_layer_count = storage.print_layer_count;
+    const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));    
+    const unsigned int gradual_support_step_height = infill_extruder.getSettingInMicrons("gradual_support_infill_step_height");
+    const unsigned int max_density_steps = infill_extruder.getSettingAsCount("gradual_support_infill_steps");
+
+    // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
+    float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
+    unsigned int gradual_support_step_layer_count = round_divide(gradual_support_step_height, storage.getSettingInMicrons("layer_height")); // The difference in layer count between consecutive density infill areas
+
+    // make gradual_support_step_height divisable by layer_skip_count
+    float n_skip_steps_per_gradual_step = std::max(1.0f, std::ceil(gradual_support_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_support_step_layer_count
+    layer_skip_count = gradual_support_step_layer_count / n_skip_steps_per_gradual_step;
+
+    size_t min_layer = 0;
+    size_t max_layer = total_layer_count - 1;
+
+    // compute different density areas for each support island
+    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    {
+        if (layer_nr < min_layer || layer_nr > max_layer)
+        {
+            continue;
+        }
+
+        // generate separate support islands and calculate density areas for each island
+        std::vector<SupportInfillPart>& support_infill_parts = storage.support.supportLayers[layer_nr].support_infill_parts;
+        for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
+        {
+            SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
+            if (support_infill_part.getInfillArea().empty())
+            {
+                continue;
+            }
+            const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
+
+            // calculate density areas for this island
+            Polygons less_dense_support = support_infill_part.getInfillArea(); // one step less dense with each density_step
+            for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
+            {
+                size_t min_layer = layer_nr + density_step * gradual_support_step_layer_count + layer_skip_count;
+                size_t max_layer = layer_nr + (density_step + 1) * gradual_support_step_layer_count;
+
+                for (float upper_layer_idx = min_layer; static_cast<unsigned int>(upper_layer_idx) <= max_layer; upper_layer_idx += layer_skip_count)
+                {
+                    if (static_cast<unsigned int>(upper_layer_idx) >= total_layer_count)
+                    {
+                        less_dense_support.clear();
+                        break;
+                    }
+
+                    // compute intersections with relevent upper parts
+                    const std::vector<SupportInfillPart> upper_infill_parts = storage.support.supportLayers[upper_layer_idx].support_infill_parts;
+                    Polygons relevant_upper_polygons;
+                    for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
+                    {
+                        if (support_infill_part.outline.empty())
+                        {
+                            continue;
+                        }
+
+                        // we compute intersection based on support infill areas
+                        const AABB& upper_part_boundary_box = upper_infill_parts[upper_part_idx].outline_boundary_box;
+                        //
+                        // Here we are comparing the **outlines** of the infill areas
+                        //
+                        // legend:
+                        //   ^ support roof
+                        //   | support wall
+                        //   # dense support
+                        //   + less dense support
+                        //
+                        //     comparing infill            comparing with outline (this is our approach)
+                        //    ^^^^^^        ^^^^^^            ^^^^^^            ^^^^^^
+                        //    ####||^^      ####||^^          ####||^^          ####||^^
+                        //    ######||^^    #####||^^         ######||^^        #####||^^
+                        //    ++++####||    ++++##||^         ++++++##||        ++++++||^
+                        //    ++++++####    +++++##||         ++++++++##        +++++++||
+                        //
+                        if (upper_part_boundary_box.hit(this_part_boundary_box))
+                        {
+                            relevant_upper_polygons.add(upper_infill_parts[upper_part_idx].outline);
+                        }
+                    }
+
+                    less_dense_support = less_dense_support.intersection(relevant_upper_polygons);
+                }
+                if (less_dense_support.size() == 0)
+                {
+                    break;
+                }
+
+                // add new infill_area_per_combine_per_density for the current density
+                support_infill_part.infill_area_per_combine_per_density.emplace_back();
+                std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density.back();
+                const Polygons more_dense_support = support_infill_part.getInfillArea().difference(less_dense_support);
+                support_area_current_density.push_back(more_dense_support);
+            }
+
+            support_infill_part.infill_area_per_combine_per_density.emplace_back();
+            std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density.back();
+            support_area_current_density.push_back(support_infill_part.getInfillArea());
+
+            assert(support_infill_part.infill_area_per_combine_per_density.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
+#ifdef DEBUG
+            for (unsigned int part_i = 0; part_i < support_infill_part.infill_area_per_combine_per_density.size(); ++part_i)
+            {
+                assert(support_infill_part.infill_area_per_combine_per_density[part_i].size() != 0);
+            }
+#endif // DEBUG
+        }
+    }
+}
+
+
+void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
+{
+    const unsigned int total_layer_count = storage.print_layer_count;
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    // How many support infill layers to combine to obtain the requested sparse thickness.
+    const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const unsigned int combine_layers_amount = std::max(1U, round_divide(infill_extruder.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1)));
+    if (combine_layers_amount <= 1)
+    {
+        return;
+    }
+
+    /* We need to round down the layer index we start at to the nearest
+    divisible index. Otherwise we get some parts that have infill at divisible
+    layers and some at non-divisible layers. Those layers would then miss each
+    other. */
+    size_t min_layer = combine_layers_amount - 1;
+    min_layer -= min_layer % combine_layers_amount;  // Round upwards to the nearest layer divisible by infill_sparse_combine.
+    size_t max_layer = total_layer_count < storage.support.supportLayers.size() ? total_layer_count : storage.support.supportLayers.size();
+    max_layer = max_layer - 1;
+    max_layer -= max_layer % combine_layers_amount;  // Round downwards to the nearest layer divisible by infill_sparse_combine.
+
+    for (size_t layer_idx = min_layer; layer_idx <= max_layer; layer_idx += combine_layers_amount) //Skip every few layers, but extrude more.
+    {
+        if (layer_idx >= storage.support.supportLayers.size())
+        {
+            break;
+        }
+
+        SupportLayer& layer = storage.support.supportLayers[layer_idx];
+        for (unsigned int combine_count_here = 1; combine_count_here < combine_layers_amount; ++combine_count_here)
+        {
+            if (layer_idx < combine_count_here)
+            {
+                break;
+            }
+
+            size_t lower_layer_idx = layer_idx - combine_count_here;
+            if (lower_layer_idx < min_layer)
+            {
+                break;
+            }
+            SupportLayer& lower_layer = storage.support.supportLayers[lower_layer_idx];
+
+            for (SupportInfillPart& part : layer.support_infill_parts)
+            {
+                if (part.insets.empty())
+                {
+                    continue;
+                }
+                AABB part_boundary_box(part.insets[0]);
+                for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); ++density_idx)
+                { // go over each density of gradual infill (these density areas overlap!)
+                    std::vector<Polygons>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
+                    Polygons result;
+                    for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
+                    {
+                        if (lower_layer_part.insets.empty())
+                        {
+                            continue;
+                        }
+                        AABB lower_part_boundary_box(lower_layer_part.insets[0]);
+                        if (not part_boundary_box.hit(lower_part_boundary_box))
+                        {
+                            continue;
+                        }
+
+                        Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.insets[0]).offset(-200).offset(200);
+                        if (intersection.size() <= 0)
+                        {
+                            continue;
+                        }
+
+                        result.add(intersection); // add area to be thickened
+                        infill_area_per_combine[combine_count_here - 1] = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
+
+                        unsigned int max_lower_density_idx = density_idx;
+                        // Generally: remove only from *same density* areas on layer below
+                        // If there are no same density areas, then it's ok to print them anyway
+                        // Don't remove other density areas
+                        if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                        {
+                            // For the most dense areas on a given layer the density of that area is doubled.
+                            // This means that - if the lower layer has more densities -
+                            // all those lower density lines are included in the most dense of this layer.
+                            // We therefore compare the most dense are on this layer with all densities
+                            // of the lower layer with the same or higher density index
+                            max_lower_density_idx = lower_layer_part.infill_area_per_combine_per_density.size() - 1;
+                        }
+                        for (unsigned int lower_density_idx = density_idx; lower_density_idx <= max_lower_density_idx && lower_density_idx < lower_layer_part.infill_area_per_combine_per_density.size(); lower_density_idx++)
+                        {
+                            std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
+                            lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (single thickness) layer
+                        }
+                    }
+
+                    infill_area_per_combine.push_back(result);
+                }
+            }
+        }
+    }
+}
+
+
+void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x)
+{
+    for (int inset_idx = 0; inset_idx < inset_count; inset_idx++)
+    {
+        insets.push_back(Polygons());
+        if (inset_idx == 0)
+        {
+            insets[0] = outline.offset(-wall_line_width_x / 2);
+        }
+        else
+        {
+            insets[inset_idx] = insets[inset_idx - 1].offset(-wall_line_width_x);
+        }
+
+        // optimize polygons: remove unnecessary verts
+        insets[inset_idx].simplify();
+        if (insets[inset_idx].size() < 1)
+        {
+            insets.pop_back();
+            break;
+        }
+    }
+}
+
+
 Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
@@ -100,20 +461,19 @@ Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLay
 
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
+    std::vector<Polygons> global_support_areas_per_layer;
+    global_support_areas_per_layer.resize(layer_count);
+
     int max_layer_nr_support_mesh_filled;
     for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
     {
         const SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
-        if (support_layer.supportAreas.size() > 0)
+        if (support_layer.support_mesh.size() > 0 || support_layer.support_mesh_drop_down.size() > 0)
         {
             break;
         }
     }
-    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, max_layer_nr_support_mesh_filled);
-    // FIXME: This looks buggy. This should loop over all layers that have support polygons.
-    //        Judging from the line above, looks like "storage.support.layer_nr_max_filled_layer" should be the maximum layer number
-    //        which contains support polygon(s). But the loop below uses "max_layer_nr_support_mesh_filled" as the max.
-    //        Wonder what the reason was for this.
+    storage.support.layer_nr_max_filled_layer = max_layer_nr_support_mesh_filled;
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
@@ -166,19 +526,19 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
                 support_meshes_handled = true;
             }
         }
-        std::vector<Polygons> supportAreas;
-        supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, supportAreas);
+        std::vector<Polygons> mesh_support_areas_per_layer;
+        mesh_support_areas_per_layer.resize(layer_count, Polygons());
+        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, mesh_support_areas_per_layer);
 
         for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
         {
-            storage.support.supportLayers[layer_idx].supportAreas.add(supportAreas[layer_idx]);
+            global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
     }
 
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
     {
-        Polygons& support_areas = storage.support.supportLayers[layer_idx].supportAreas;
+        Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
     }
 
@@ -193,13 +553,16 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            generateSupportRoof(storage, mesh);
+            generateSupportRoof(storage, mesh, global_support_areas_per_layer);
         }
         if (mesh.getSettingBoolean("support_bottom_enable"))
         {
-            generateSupportBottom(storage, mesh);
+            generateSupportBottom(storage, mesh, global_support_areas_per_layer);
         }
     }
+
+    // split the global support areas into parts for later gradual support infill generation
+    AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, global_support_areas_per_layer, storage.print_layer_count);
 }
 
 /* 
@@ -213,7 +576,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
+void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
     const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
@@ -790,7 +1153,7 @@ void AreaSupport::handleWallStruts(
     }
 }
 
-void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
 {
     const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support bottom.
     if (bottom_layer_count <= 0)
@@ -814,12 +1177,12 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
             mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
         Polygons bottoms;
-        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, bottom_line_width, bottoms);
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottoms);
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
 
-void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh)
+void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
 {
     const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height")); //Number of layers in support roof.
     if (roof_layer_count <= 0)
@@ -843,7 +1206,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
             mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }
         Polygons roofs;
-        generateSupportInterfaceLayer(support_layers[layer_idx].supportAreas, mesh_outlines, roof_line_width, roofs);
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }

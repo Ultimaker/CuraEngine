@@ -254,18 +254,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-    
-    /*
-    if (storage.support.generated)
-    {
-        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
-        {
-            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); // infill_extr->getSettingInMicrons("support_line_width"));
-        }
-    }
-    */
 
     computePrintHeightStatistics(storage);
 
@@ -289,6 +277,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processDerivedWallsSkinInfill(mesh);
     }
+
+    // generate gradual suppport
+    AreaSupport::generateGradualSupportFeatures(storage);
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
@@ -418,6 +409,20 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             }
             for (SliceLayerPart& part : layer.parts)
             {
+                // handle outline gaps
+                if (mesh.getSettingBoolean("fill_outline_gaps"))
+                {
+                    const Polygons& outer = part.outline;
+                    Polygons inner;
+                    if (part.insets.size() > 0)
+                    {
+                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset));
+                    }
+                    Polygons outline_gaps = outer.difference(inner);
+                    outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                    part.perimeter_gaps.add(outline_gaps);
+                }
+
                  // handle perimeter gaps of normal insets
                 int line_width = wall_line_width_0;
                 for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
@@ -430,7 +435,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 }
 
                 // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill)
+                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
                 {
                     const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
@@ -546,7 +551,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
-
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
@@ -593,8 +597,9 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         {
             inset_count += ((layer_nr % 2) + 2) % 2;
         }
-        bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable");
-        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
+        bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("fill_outline_gaps");
+        bool remove_parts_with_no_insets = !mesh.getSettingBoolean("fill_outline_gaps");
+        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
         walls_computation.generateInsets(layer);
     }
     else
@@ -616,7 +621,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
         {
             SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-            if (!support_layer.supportAreas.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+            if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
             {
                 layer_is_empty = false;
                 break;

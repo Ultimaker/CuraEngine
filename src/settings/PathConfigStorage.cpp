@@ -114,13 +114,6 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
 , support_infill_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr")))
 , support_roof_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_roof_extruder_nr")))
 , support_bottom_train(storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_bottom_extruder_nr")))
-, support_infill_config(
-            PrintFeatureType::Support
-            , support_infill_train->getSettingInMicrons("support_line_width")
-            , layer_thickness
-            , support_infill_train->getSettingInPercentage("material_flow")
-            , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
-        )
 , support_infill_config_layer0(
             PrintFeatureType::Support
             , support_infill_train->getSettingInMicrons("support_line_width") * support_infill_train->getSettingAsRatio("initial_layer_line_width_factor")
@@ -215,6 +208,18 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
         mesh_configs.emplace_back(mesh_storage, layer_thickness);
     }
 
+    support_infill_config.reserve(MAX_INFILL_COMBINE);
+    for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
+    {
+        support_infill_config.emplace_back(
+            PrintFeatureType::Support
+            , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1)
+            , layer_thickness
+            , support_infill_train->getSettingInPercentage("material_flow")
+            , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
+        );
+    }
+
     const int initial_speedup_layer_count = storage.getSettingAsCount("speed_slowdown_layers");
     if (layer_nr < initial_speedup_layer_count)
     {
@@ -252,9 +257,9 @@ const GCodePathConfig *PathConfigStorage::getPrimeTowerConfig(const int layer_nr
     return (layer_nr == 0)? &prime_tower_config_per_extruder_layer0[extruder_nr] : &prime_tower_config_per_extruder[extruder_nr];
 }
 
-const GCodePathConfig *PathConfigStorage::getSupportInfillConfig(const int layer_nr) const
+const GCodePathConfig *PathConfigStorage::getSupportInfillConfig(const int layer_nr, const int combine_count) const
 {
-    return (layer_nr == 0)? &support_infill_config_layer0 : &support_infill_config;
+    return (layer_nr == 0)? &support_infill_config_layer0 : &support_infill_config[combine_count];
 }
 
 const GCodePathConfig *PathConfigStorage::getSupportRoofConfig(const int layer_nr) const
@@ -301,7 +306,10 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
         {
             const int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr <= 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
             GCodePathConfig::SpeedDerivatives& first_layer_config_infill = global_first_layer_config_per_extruder[extruder_nr_support_infill];
-            support_infill_config.smoothSpeed(first_layer_config_infill, std::max(0, layer_nr), initial_speedup_layer_count);
+            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+            {
+                support_infill_config[idx].smoothSpeed(first_layer_config_infill, std::max(0, layer_nr), initial_speedup_layer_count);
+            }
 
             const int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
             GCodePathConfig::SpeedDerivatives& first_layer_config_roof = global_first_layer_config_per_extruder[extruder_nr_support_roof];

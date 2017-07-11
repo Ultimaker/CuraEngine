@@ -390,11 +390,6 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
                 std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
                 infill_area_per_combine_current_density.push_back(more_dense_infill);
-
-                if (less_dense_infill.size() == 0)
-                {
-                    break;
-                }
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
@@ -453,13 +448,23 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh, unsi
                             Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
                             result.add(intersection); // add area to be thickened
                             infill_area_per_combine[combine_count_here - 1] = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
-                            if (density_idx < lower_layer_part.infill_area_per_combine_per_density.size())
-                            { // only remove from *same density* areas on layer below
-                                // If there are no same density areas, then it's ok to print them anyway
-                                // Don't remove other density areas
-                                unsigned int lower_density_idx = density_idx;
+                            unsigned int max_lower_density_idx = density_idx;
+                            // Generally: remove only from *same density* areas on layer below
+                            // If there are no same density areas, then it's ok to print them anyway
+                            // Don't remove other density areas
+                            if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                            {
+                                // For the most dense areas on a given layer the density of that area is doubled.
+                                // This means that - if the lower layer has more densities -
+                                // all those lower density lines are included in the most dense of this layer.
+                                // We therefore compare the most dense are on this layer with all densities
+                                // of the lower layer with the same or higher density index
+                                max_lower_density_idx = lower_layer_part.infill_area_per_combine_per_density.size() - 1;
+                            }
+                            for (unsigned int lower_density_idx = density_idx; lower_density_idx <= max_lower_density_idx && lower_density_idx < lower_layer_part.infill_area_per_combine_per_density.size(); lower_density_idx++)
+                            {
                                 std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
-                                lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (thickened) layer
+                                lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (single thickness) layer
                             }
                         }
                     }

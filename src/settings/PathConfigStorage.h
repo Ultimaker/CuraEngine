@@ -28,7 +28,7 @@ private:
     std::vector<GCodePathConfig> prime_tower_config_per_extruder; //!< Configuration for the prime tower per extruder.
     std::vector<GCodePathConfig> prime_tower_config_per_extruder_layer0; //!< Configuration for the first layer of the prime tower per extruder.
 
-    GCodePathConfig support_infill_config; //!< The config used to print the normal support, rather than the support interface
+    std::vector<GCodePathConfig> support_infill_config; //!< The config used to print the normal support, rather than the support interface
     GCodePathConfig support_infill_config_layer0; //!< The config used to print the first layer of the normal support
     GCodePathConfig support_roof_config; //!< The config used to print the dense roofs of support.
     GCodePathConfig support_roof_config_layer0; //!< The config used to print the dense roofs of support if they are on the first layer
@@ -75,7 +75,7 @@ public:
      */
     PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness);
     const GCodePathConfig *getPrimeTowerConfig(const int layer_nr, const int extruder_nr) const;
-    const GCodePathConfig *getSupportInfillConfig(const int layer_nr) const;
+    const GCodePathConfig *getSupportInfillConfig(const int layer_nr, const int combine_count) const;
     const GCodePathConfig *getSupportRoofConfig(const int layer_nr) const;
 
 private:

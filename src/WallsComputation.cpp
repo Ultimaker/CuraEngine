@@ -3,12 +3,13 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall)
+WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
 : wall_0_inset(wall_0_inset)
 , line_width_0(line_width_0)
 , line_width_x(line_width_x)
 , insetCount(insetCount)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
+, remove_parts_with_no_insets(remove_parts_with_no_insets)
 {
 }
 
@@ -26,7 +27,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->print_outline = part->outline;
         return;
     }
-    
+
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
@@ -40,8 +41,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         {
             part->insets[i] = part->insets[i-1].offset(-line_width_x);
         }
-        
-        
+
         //Finally optimize all the polygons. Every point removed saves time in the long run.
         part->insets[i].simplify();
         part->insets[i].removeDegenerateVerts();
@@ -76,15 +76,19 @@ void WallsComputation::generateInsets(SliceLayer* layer)
     {
         generateInsets(&layer->parts[partNr]);
     }
-    
+
     //Remove the parts which did not generate an inset. As these parts are too small to print,
     // and later code can now assume that there is always minimal 1 inset line.
-    for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
+    for (unsigned int part_idx = 0; part_idx < layer->parts.size(); part_idx++)
     {
-        if (layer->parts[partNr].insets.size() < 1)
+        if (layer->parts[part_idx].insets.size() == 0 && remove_parts_with_no_insets)
         {
-            layer->parts.erase(layer->parts.begin() + partNr);
-            partNr -= 1;
+            if (part_idx != layer->parts.size() - 1)
+            { // move existing part into part to be deleted
+                layer->parts[part_idx] = std::move(layer->parts.back());
+            }
+            layer->parts.pop_back(); // always remove last element from array (is more efficient)
+            part_idx -= 1; // check the part we just moved here
         }
     }
 }
