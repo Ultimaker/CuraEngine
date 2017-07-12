@@ -1722,7 +1722,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
                 const Polygons& support_area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
-                const unsigned int density_factor = 1 << density_idx; // 2 ^ density_idx
+                const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
                 if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
