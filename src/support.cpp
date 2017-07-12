@@ -326,28 +326,26 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 
             for (SupportInfillPart& part : layer.support_infill_parts)
             {
-                if (part.insets.empty())
+                if (part.insets.empty() && part.inset_count_to_generate > 0)
                 {
                     continue;
                 }
-                AABB part_boundary_box(part.insets[0]);
                 for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); ++density_idx)
                 { // go over each density of gradual infill (these density areas overlap!)
                     std::vector<Polygons>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
                     Polygons result;
                     for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
                     {
-                        if (lower_layer_part.insets.empty())
+                        if (lower_layer_part.insets.empty() && part.inset_count_to_generate > 0)
                         {
                             continue;
                         }
-                        AABB lower_part_boundary_box(lower_layer_part.insets[0]);
-                        if (not part_boundary_box.hit(lower_part_boundary_box))
+                        if (not part.outline_boundary_box.hit(lower_layer_part.outline_boundary_box))
                         {
                             continue;
                         }
 
-                        Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.insets[0]).offset(-200).offset(200);
+                        Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.getInfillArea()).offset(-200).offset(200);
                         if (intersection.size() <= 0)
                         {
                             continue;
