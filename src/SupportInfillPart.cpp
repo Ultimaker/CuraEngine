@@ -9,6 +9,7 @@ using namespace cura;
 
 SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate)
     : outline(outline)
+    , outline_boundary_box(outline)
     , support_line_width(support_line_width)
     , inset_count_to_generate(inset_count_to_generate)
 {
@@ -50,8 +51,6 @@ bool SupportInfillPart::generateInsetsAndInfillAreas()
         // optimize polygons: remove unnecessary verts
         this->infill_area.simplify();
     }
-    // also create the boundary box using the outline
-    this->outline_boundary_box = AABB(this->outline);
 
     return true;
 }
