@@ -279,7 +279,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     // generate gradual suppport
-    AreaSupport::generateGradualSupportFeatures(storage);
+    AreaSupport::generateSupportInfillFeatures(storage);
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)

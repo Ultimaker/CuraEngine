@@ -40,7 +40,7 @@ public:
      *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void generateGradualSupportFeatures(SliceDataStorage& storage);
+    static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
     /*!
      * Generate the insets of the given support infill outline.

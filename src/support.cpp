@@ -94,7 +94,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 }
 
 
-void AreaSupport::generateGradualSupportFeatures(SliceDataStorage& storage)
+void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 {
     AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
     AreaSupport::generateGradualSupport(storage);
