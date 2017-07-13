@@ -375,7 +375,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
                 initial_print_temp = prev_extruder_plan.required_start_temperature;
             }
         }
-        assert(time_window != 0.0);
+        assert(time_window != 0.0 && "ExtruderPlans have been added while they weren't needed! Current code cannot handle this situation. SliceDataStorage::getExtrudersUsed should probably be updated!");
         weighted_average_extrusion_temp /= time_window;
         time_window -= heated_pre_travel_time + heated_post_travel_time;
         assert(heated_pre_travel_time != -1 && "heated_pre_travel_time must have been computed; there must have been an extruder plan!");
