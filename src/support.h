@@ -274,6 +274,16 @@ private:
         int supportMinAreaSqrt,
         int supportTowerDiameter
     );
+
+    /*!
+     * Clean up the SupportInfillParts.
+     * Remove parts which have nothing to be printed.
+     * 
+     * Remove parts which are too small for the first wall.
+     * For parts without walls: remove if combined into upper layers.
+     * 
+     */
+    static void cleanup(SliceDataStorage& storage);
 };
 
 
