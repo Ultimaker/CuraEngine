@@ -1664,11 +1664,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         support_pattern = EFillMethod::GRID;
     }
 
-    if (default_support_line_distance <= 0)
-    {
-        return false;
-    }
-
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
@@ -1682,10 +1677,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     for (int part_idx : island_order_optimizer.polyOrder)
     {
         const SupportInfillPart& part = part_list[part_idx];
-        if (part.infill_area_per_combine_per_density.empty())
-        {
-            continue;
-        }
 
         // always process the wall overlap if walls are generated
         const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;
@@ -1708,6 +1699,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         }
 
         // process sub-areas in this support infill area with different densities
+        if (default_support_line_distance <= 0
+            || part.infill_area_per_combine_per_density.empty())
+        {
+            assert(!part.insets.empty() && "No empty support infill parts may exist.");
+            continue;
+        }
+
         for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); ++combine_idx)
         {
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
