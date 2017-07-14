@@ -59,36 +59,37 @@ void InsetOrderOptimizer::processHoleInsets()
             int adjacent_enclosing_poly_idx = findAdjacentEnclosingPoly(hole_outer_wall[0], inset_polys[1], max_gap);
             if (adjacent_enclosing_poly_idx >= 0)
             {
-                // now test for the special case where we are printing the outer walls first and the level 1 inset also touches other outer walls
+                // now test for the case where we are printing the outer walls first and this level 1 inset also touches other outer walls
                 // in this situation we don't want to output the level 1 inset until after all the outer walls have been printed
                 if (outer_inset_first)
                 {
                     // does the level 1 inset touch more than one outline?
                     Polygons inset;
                     inset.add(inset_polys[1][adjacent_enclosing_poly_idx]);
-                    int num_outlines_touched = 0;
+                    int num_future_outlines_touched = 0; // number of outlines that have yet to be output that are touched by this level 1 inset
                     // does it touch the outer wall?
                     if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][0], max_gap))
                     {
                         // yes, the level 1 inset touches the part's outer wall
-                        ++num_outlines_touched;
+                        ++num_future_outlines_touched;
                     }
-                    // does it touch any hole outlines? (it should touch at least 1, the hole it's surrounding!)
-                    for (unsigned i = 1; num_outlines_touched < 2 && i < inset_polys[0].size(); ++i)
+                    // does it touch any yet to be processed hole outlines?
+                    for (unsigned order_index = outer_poly_order_idx + 1; num_future_outlines_touched < 1 && order_index < orderOptimizer.polyOrder.size(); ++order_index)
                     {
-                        // as we don't the shape of the outlines (straight, concave, convex, etc.) and the
+                        int outline_index = orderOptimizer.polyOrder[order_index] + 1; // +1 because first element (part outer wall) wasn't included
+                        // as we don't know the shape of the outlines (straight, concave, convex, etc.) and the
                         // adjacency test assumes that the poly's are arranged so that the first has smaller
                         // radius curves than the second (it's "inside" the second) we need to test both combinations
-                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][i], max_gap) ||
-                            PolygonUtils::polygonOutlinesAdjacent(inset_polys[0][i], inset[0], max_gap))
+                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][outline_index], max_gap) ||
+                            PolygonUtils::polygonOutlinesAdjacent(inset_polys[0][outline_index], inset[0], max_gap))
                         {
-                            // yes, it touches this hole outline
-                            ++num_outlines_touched;
+                            // yes, it touches this yet to be processed hole outline
+                            ++num_future_outlines_touched;
                         }
                     }
-                    if (num_outlines_touched < 2)
+                    if (num_future_outlines_touched < 1)
                     {
-                        // this level 1 inset only touches one outline so we can print it
+                        // this level 1 inset only touches outlines that have already been processed so we can print it
                         hole_inner_wall_indices.push_back(adjacent_enclosing_poly_idx);
                     }
                 }
@@ -133,6 +134,26 @@ void InsetOrderOptimizer::processHoleInsets()
                 int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.1f);
                 if (i >= 0)
                 {
+                    if (outer_inset_first)
+                    {
+                        // we have found an enclosing inset but when printing outer insets first
+                        // we don't want to print this enclosing inset if it also encloses other holes that
+                        // haven't yet been processed
+                        Polygons enclosing_inset;
+                        enclosing_inset.add(inset_polys[inset_level][i]);
+                        bool encloses_future_hole = false; // set true if this inset also encloses another hole that hasn't yet been processed
+                        for (unsigned hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < orderOptimizer.polyOrder.size(); ++hole_order_index)
+                        {
+                            Polygons enclosed_inset;
+                            enclosed_inset.add(inset_polys[0][orderOptimizer.polyOrder[hole_order_index] + 1]); // +1 because first element (part outer wall) wasn't included
+                            encloses_future_hole = PolygonUtils::polygonsIntersect(enclosing_inset, enclosed_inset);
+                        }
+                        if (encloses_future_hole)
+                        {
+                            // give up finding the insets that surround this hole
+                            break;
+                        }
+                    }
                     lastInset = inset_polys[inset_level][i];
                     hole_inner_walls.add(lastInset);
                     inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
