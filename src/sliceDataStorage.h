@@ -46,7 +46,8 @@ public:
     PolygonsPart outline;       //!< The outline is the first member that is filled, and it's filled with polygons that match a cross section of the 3D model. The first polygon is the outer boundary polygon and the rest are holes.
     Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall. Too small parts will be omitted compared to the outline.
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
-    Polygons perimeter_gaps; //!< The gaps betwee nconsecutive walls and between the inner wall and outer skin inset
+    Polygons perimeter_gaps; //!< The gaps between consecutive walls and between the inner wall and outer skin inset
+    Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
 
     /*!

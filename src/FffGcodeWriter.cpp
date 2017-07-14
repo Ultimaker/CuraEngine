@@ -1060,6 +1060,8 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
     added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, z_seam_type, mesh.getZSeamHint());
 
+    processOutlineGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, added_something);
+
     if (!mesh.getSettingBoolean("infill_before_walls"))
     {
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
@@ -1389,6 +1391,37 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
     {
         bool bs_arg = true;
         return std::optional<Point>(bs_arg, pb.p());
+    }
+}
+
+void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, bool& added_something) const
+{
+    int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
+    if (extruder_nr != wall_0_extruder_nr || !mesh.getSettingBoolean("fill_outline_gaps"))
+    {
+        return;
+    }
+    const unsigned int perimeter_gaps_line_width = mesh_config.getPerimeterGapConfig(gcode_layer.getLayerNr())->getLineWidth();
+    int skin_angle = 45;
+    if (mesh.skin_angles.size() > 0)
+    {
+        skin_angle = mesh.skin_angles.at(gcode_layer.getLayerNr() % mesh.skin_angles.size());
+    }
+    Polygons gap_polygons; // unused
+    Polygons gap_lines; // soon to be generated gap filler lines
+    int offset = 0;
+    int extra_infill_shift = 0;
+    constexpr coord_t outline_gap_overlap = 0;
+    Infill infill_comp(EFillMethod::LINES, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, skin_angle, gcode_layer.z, extra_infill_shift);
+    infill_comp.generate(gap_polygons, gap_lines);
+
+    if (gap_lines.size() > 0)
+    {
+        assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
+        added_something = true;
+        setExtruder_addPrime(storage, gcode_layer, gcode_layer.getLayerNr(), extruder_nr);
+        gcode_layer.setIsInside(false); // going to print stuff outside print object
+        gcode_layer.addLinesByOptimizer(gap_lines, mesh_config.getPerimeterGapConfig(gcode_layer.getLayerNr()), SpaceFillType::Lines);
     }
 }
 
