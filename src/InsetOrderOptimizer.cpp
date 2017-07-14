@@ -60,7 +60,7 @@ void InsetOrderOptimizer::processHoleInsets()
             if (adjacent_enclosing_poly_idx >= 0)
             {
                 // now test for the case where we are printing the outer walls first and this level 1 inset also touches other outer walls
-                // in this situation we don't want to output the level 1 inset until after all the outer walls have been printed
+                // in this situation we don't want to output the level 1 inset until after all the outer walls (that it touches) have been printed
                 if (outer_inset_first)
                 {
                     // does the level 1 inset touch more than one outline?
@@ -110,35 +110,36 @@ void InsetOrderOptimizer::processHoleInsets()
 
         // now collect the inner walls that will be printed along with the hole outer wall
 
-        Polygons hole_inner_walls; // the innermost walls of the hole
+        Polygons hole_inner_walls; // the hole's inner walls
 
-        for (unsigned poly_idx = 0; poly_idx < hole_level_1_wall_indices.size(); ++poly_idx)
+        for (unsigned level_1_wall_idx = 0; level_1_wall_idx < hole_level_1_wall_indices.size(); ++level_1_wall_idx)
         {
             // add the level 1 inset to the collection of inner walls to be printed and consume it, taking care to adjust
             // those elements in hole_level_1_wall_indices that are larger
-            unsigned inset_idx = hole_level_1_wall_indices[poly_idx];
+            unsigned inset_idx = hole_level_1_wall_indices[level_1_wall_idx];
             ConstPolygonRef lastInset = inset_polys[1][inset_idx];
             hole_inner_walls.add(lastInset);
             inset_polys[1].erase(inset_polys[1].begin() + inset_idx);
             // decrement any other indices in hole_level_1_wall_indices that are greater than inset_idx
-            for (unsigned i = poly_idx + 1; i < hole_level_1_wall_indices.size(); ++i)
+            for (unsigned i = level_1_wall_idx + 1; i < hole_level_1_wall_indices.size(); ++i)
             {
                 if (hole_level_1_wall_indices[i] > inset_idx)
                 {
                     hole_level_1_wall_indices[i] = hole_level_1_wall_indices[i] - 1;
                 }
             }
-            // now find all the insets that immediately surround this hole and consume them
+            // now find all the insets that immediately surround the level 1 wall and consume them
             for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
                 int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.1f);
                 if (i >= 0)
                 {
+                    // we have found an enclosing inset
                     if (outer_inset_first)
                     {
-                        // we have found an enclosing inset but when printing outer insets first
-                        // we don't want to print this enclosing inset if it also encloses other holes that
-                        // haven't yet been processed
+                        // when printing outer insets first we don't want to print this enclosing inset
+                        // if it also encloses other holes that haven't yet been processed so check the holes
+                        // that haven't yet been processed to see if they are also enclosed by this enclosing inset
                         Polygons enclosing_inset;
                         enclosing_inset.add(inset_polys[inset_level][i]);
                         bool encloses_future_hole = false; // set true if this inset also encloses another hole that hasn't yet been processed
@@ -154,6 +155,7 @@ void InsetOrderOptimizer::processHoleInsets()
                             break;
                         }
                     }
+                    // it's OK to print the enclosing inset and see if any further enclosing insets can also be printed
                     lastInset = inset_polys[inset_level][i];
                     hole_inner_walls.add(lastInset);
                     inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
