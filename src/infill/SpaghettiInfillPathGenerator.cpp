@@ -13,13 +13,14 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         return false;
     }
     bool added_something = false;
-    const GCodePathConfig& config = mesh_config.infill_config[0];
+    const GCodePathConfig* config = mesh_config.getInfillConfig(layer_nr, 0);
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
-    const unsigned int infill_line_width = config.getLineWidth();
+    const unsigned int infill_line_width = config->getLineWidth();
     const int64_t z = layer_nr * mesh.getSettingInMicrons("layer_height");
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
     const double layer_height_mm = (layer_nr == 0)? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
+    const double default_spaghetti_infill_extra_volume = mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume");
 
     // For each part on this layer which is used to fill that part and parts below:
     for (const std::pair<Polygons, double>& filling_area : part.spaghetti_infill_volumes)
@@ -28,7 +29,9 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons infill_polygons;
 
         const Polygons& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
-        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow") + mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume"); // volume to be extruded
+        // the extra infill volume will be spread out proportionally to each step
+        const double extra_infill_volume = filling_area.second / mesh.total_infill_volume_mm3 * default_spaghetti_infill_extra_volume;
+        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow") + extra_infill_volume; // volume to be extruded
         if (total_volume <= 0.0)
         {
             continue;
@@ -56,14 +59,14 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             {
                 added_something = true;
                 fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, &config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, flow_ratio);
                 if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
                 {
-                    gcode_layer.addLinesByOptimizer(infill_lines, &config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                    gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
                 }
                 else
                 {
-                    gcode_layer.addLinesByOptimizer(infill_lines, &config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
+                    gcode_layer.addLinesByOptimizer(infill_lines, config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
                 }
             }
         }
@@ -80,7 +83,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             const double normal_volume = INT2MM(INT2MM(path_length * infill_line_width)) * layer_height_mm;
             const float flow_ratio = total_volume / normal_volume;
             gcode_layer.addTravel(middle);
-            gcode_layer.addExtrusionMove(middle + Point(0, path_length), &config, SpaceFillType::Lines, flow_ratio);
+            gcode_layer.addExtrusionMove(middle + Point(0, path_length), config, SpaceFillType::Lines, flow_ratio);
         }
     }
     return added_something;

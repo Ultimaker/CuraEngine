@@ -267,11 +267,15 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         }
         if (include_helper_parts)
         {
+            const SupportLayer& support_layer = support.supportLayers[std::max(0, layer_nr)];
             if (support.generated) 
             {
-                total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
-                total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
-                total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
+                for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
+                {
+                    total.add(support_infill_part.outline);
+                }
+                total.add(support_layer.support_bottom);
+                total.add(support_layer.support_roof);
             }
             if (primeTower.enabled)
             {
@@ -314,7 +318,11 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
         {
             if (support.generated) 
             {
-                total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
+                const SupportLayer& support_layer = support.supportLayers[std::max(0, layer_nr)];
+                for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
+                {
+                    total.add(support_infill_part.outline);
+                }
                 total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
                 total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
             }
@@ -433,14 +441,14 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
             const SupportLayer& support_layer = support.supportLayers[layer_nr];
             if (layer_nr == 0)
             {
-                if (!support_layer.supportAreas.empty())
+                if (!support_layer.support_infill_parts.empty())
                 {
                     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
                 }
             }
             else
             {
-                if (!support_layer.supportAreas.empty())
+                if (!support_layer.support_infill_parts.empty())
                 {
                     ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
                 }
@@ -478,6 +486,60 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
 
     const ExtruderTrain *train = meshgroup->getExtruderTrain(extruder_nr);
     return train->getSettingBoolean("prime_blob_enable");
+}
+
+
+void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
+{
+    // record the indexes that need to be removed and do that after
+    std::list<size_t> to_remove_part_indices;  // LIFO for removing
+
+    unsigned int part_count_to_check = this->support_infill_parts.size(); // note that support_infill_parts.size() changes during the computation below
+    for (size_t part_idx = 0; part_idx < part_count_to_check; ++part_idx)
+    {
+        SupportInfillPart& support_infill_part = this->support_infill_parts[part_idx];
+
+        // if the areas don't overlap, do nothing
+        if (!exclude_polygons_boundary_box.hit(support_infill_part.outline_boundary_box))
+        {
+            continue;
+        }
+
+        Polygons result_polygons = support_infill_part.outline.difference(exclude_polygons);
+
+        // if no smaller parts get generated, this mean this part should be removed.
+        if (result_polygons.empty())
+        {
+            to_remove_part_indices.push_back(part_idx);
+            continue;
+        }
+
+        std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
+
+        // there are one or more smaller parts.
+        // we first replace the current part with one of the smaller parts,
+        // the rest we add to the support_infill_parts (but after part_count_to_check)
+        support_infill_part.outline = smaller_support_islands[0];
+
+        for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
+        {
+            const PolygonsPart& smaller_island = smaller_support_islands[support_island_idx];
+            this->support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width, support_infill_part.inset_count_to_generate);
+        }
+    }
+
+    // remove the ones that need to be removed (LIFO)
+    while (!to_remove_part_indices.empty())
+    {
+        const size_t remove_idx = to_remove_part_indices.back();
+        to_remove_part_indices.pop_back();
+
+        if (remove_idx < this->support_infill_parts.size() - 1)
+        { // move last element to the to-be-removed element so that we can erase the last place in the vector
+            this->support_infill_parts[remove_idx] = std::move(this->support_infill_parts.back());
+        }
+        this->support_infill_parts.pop_back(); // always erase last place in the vector
+    }
 }
 
 } // namespace cura

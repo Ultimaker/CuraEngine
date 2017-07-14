@@ -40,6 +40,13 @@ protected:
      */
     static void generateTotalSpaghettiInfill(SliceMeshStorage& mesh);
 
+    /*!
+     * Calculates the total infill volume in mm3 for the given mesh.
+     *
+     * \param mesh The mesh for which to generate spaghetti infill
+     */
+    static void calculateTotalInfillVolumeForMesh(SliceMeshStorage& mesh);
+
     class InfillPillar
     {
     public:

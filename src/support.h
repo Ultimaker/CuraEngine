@@ -30,7 +30,82 @@ public:
      * \param layer_count total number of layers
      */
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
+
+    /*!
+     * Generates all gradual support infill features.
+     * It does the following:
+     *  - initialize insets and infill areas for all support infill parts
+     *  - generated support infill areas with different density levels
+     *  - combine multiple support infill areas layers into single layers
+     *
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     */
+    static void generateSupportInfillFeatures(SliceDataStorage& storage);
+
+    /*!
+     * Generate the insets of the given support infill outline.
+     *
+     * \param[out] insets The insets result to output.
+     * \param outline The given support infill outline.
+     * \param inset_count The number of perimeters to surround the support infill outline.
+     * \param wall_line_width_x The wall line width in microns on the X axis.
+     */
+    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x);
+
 private:
+    /*!
+     * Splits the global support areas into separete SupportInfillParts.
+     * This is required before generating the gradual support infill.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param global_support_areas_per_layer the global support areas per layer
+     * \param total_layer_count total number of layers
+     */
+    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
+
+    /*!
+     * Generate insets and infill areas for all support infill parts.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     */
+    static void prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage);
+
+    /*!
+     * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
+     * This uses the same technic as the gradual infill.
+     *
+     * This densities of the infill areas are determined by comparing the **outlines** of each support infill part.
+     * Take the following as an example:
+     *
+     *       comparing infill        comparing with outline (this is our approach)
+     *           ^^^^^^               ^^^^^^
+     *           ####||^^             ####||^^
+     *           ######||^^           ######||^^
+     *           ++++####||           ++++++##||
+     *           ++++++####           ++++++++##
+     *
+     * LEGEND:
+     *  ^ support roof
+     *   | support wall
+     *   # dense support
+     *   + less dense support
+     *
+     * In this example, comparing with outlines makes sure that the walls will always be printed upon the most dense area and at the same time
+     * we don't generate unnecessary dense infill areas. This saves print time and material and also insures that the walls can be safely printed.
+     *
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     */
+    static void generateGradualSupport(SliceDataStorage& storage);
+
+    /*!
+     * \brief Combines the support infill of multiple layers.
+     * 
+     * The support infill layers are combined while the thickness of each layer is
+     * multiplied such that the infill should fill up again to the full height of
+     * all combined layers.
+     * 
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     */
+    static void combineSupportInfillLayers(SliceDataStorage& storage);
+
     /*!
      * Generate support polygons over all layers for one object.
      * 
@@ -49,7 +124,7 @@ private:
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreas(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
     /*!
      * Generate support bottom areas for a given mesh.
@@ -61,8 +136,9 @@ private:
      * \param storage Where to find the previously generated support areas and
      * where to output the new support bottom areas.
      * \param mesh The mesh to generate support for.
+     * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer);
 
     /*!
      * Generate support roof areas for a given mesh.
@@ -74,8 +150,9 @@ private:
      * \param storage Where to find the previously generated support areas and
      * where to output the new support roof areas.
      * \param mesh The mesh to generate support roof for.
+     * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh);
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer);
 
     /*!
      * \brief Generate a single layer of support interface.
@@ -197,6 +274,16 @@ private:
         int supportMinAreaSqrt,
         int supportTowerDiameter
     );
+
+    /*!
+     * Clean up the SupportInfillParts.
+     * Remove parts which have nothing to be printed.
+     * 
+     * Remove parts which are too small for the first wall.
+     * For parts without walls: remove if combined into upper layers.
+     * 
+     */
+    static void cleanup(SliceDataStorage& storage);
 };
 
 
