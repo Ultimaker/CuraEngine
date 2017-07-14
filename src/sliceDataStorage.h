@@ -232,7 +232,6 @@ public:
     std::vector<SliceLayer> layers;
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
-    double total_infill_volume_mm3;  //!< the total infill volume of this mesh in mm3
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
@@ -242,7 +241,6 @@ public:
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
     : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
-    , total_infill_volume_mm3(0.0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
     {
