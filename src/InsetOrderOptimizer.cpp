@@ -274,34 +274,42 @@ void InsetOrderOptimizer::processOuterWallInsets()
         // find the level 1 insets that are inside the outer wall and consume them
         Polygons part_inner_walls;
         int num_level_1_insets = 0;
-        for (unsigned inner_poly_idx = 0; inset_polys.size() > 1 && inner_poly_idx < inset_polys[1].size(); ++inner_poly_idx)
+        for (unsigned level_1_wall_idx = 0; inset_polys.size() > 1 && level_1_wall_idx < inset_polys[1].size(); ++level_1_wall_idx)
         {
             Polygons inner;
-            inner.add(inset_polys[1][inner_poly_idx]);
+            inner.add(inset_polys[1][level_1_wall_idx]);
             if (PolygonUtils::polygonsIntersect(inner, part_outer_wall))
             {
                 ++num_level_1_insets;
                 part_inner_walls.add(inner[0]);
-                // consume the inset
-                inset_polys[1].erase(inset_polys[1].begin() + inner_poly_idx);
-                --inner_poly_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
-                if (!outer_inset_first)
+                // consume the level 1 inset
+                inset_polys[1].erase(inset_polys[1].begin() + level_1_wall_idx);
+                --level_1_wall_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
+
+                // now find all the insets that immediately fill the level 1 inset and consume them also
+                Polygons enclosing_insets; // the set of insets that we are trying to "fill in"
+                enclosing_insets.add(inner[0]);
+                Polygons next_level_enclosing_insets;
+                for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
                 {
-                    // now find all the insets that immediately fill the level 1 inset and consume them
-                    ConstPolygonRef enclosing_inset = inner[0];
-                    for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
+                    // test the level N insets to see if they are adjacent to any of the level N-1 insets
+                    for (unsigned level_n_wall_idx = 0; level_n_wall_idx < inset_polys[inset_level].size(); ++level_n_wall_idx)
                     {
-                        for (unsigned poly_idx = 0; poly_idx < inset_polys[inset_level].size(); ++poly_idx)
+                        for (ConstPolygonRef enclosing_inset : enclosing_insets)
                         {
-                            if (PolygonUtils::polygonOutlinesAdjacent(inset_polys[inset_level][poly_idx], enclosing_inset, wall_line_width_x * 1.1f))
+                            ConstPolygonRef level_n_inset = inset_polys[inset_level][level_n_wall_idx];
+                            if (PolygonUtils::polygonOutlinesAdjacent(level_n_inset, enclosing_inset, wall_line_width_x * 1.1f))
                             {
-                                enclosing_inset = inset_polys[inset_level][poly_idx];
-                                part_inner_walls.add(enclosing_inset);
-                                inset_polys[inset_level].erase(inset_polys[inset_level].begin() + poly_idx);
+                                next_level_enclosing_insets.add(level_n_inset);
+                                part_inner_walls.add(level_n_inset);
+                                inset_polys[inset_level].erase(inset_polys[inset_level].begin() + level_n_wall_idx);
+                                --level_n_wall_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
                                 break;
                             }
                         }
                     }
+                    enclosing_insets = next_level_enclosing_insets;
+                    next_level_enclosing_insets.clear();
                 }
             }
         }
