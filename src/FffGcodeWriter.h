@@ -442,6 +442,18 @@ private:
     void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) const;
 
     /*!
+     * Add the gcode of the outline gaps: the areas for thin parts in which a single perimter doesnt fit.
+     * 
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
+     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * \param mesh_config the line config with which to print a print feature
+     * \param part The part for which to create gcode
+     * \param[out] added_something Whether this function added anything to the layer plan
+     */
+    void processOutlineGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, bool& added_something) const;
+
+    /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
      * 
      * Perimeter gaps are handled for skin outlines and printed after the skin fill of the skin part is printed by calling \ref processSkinPart.

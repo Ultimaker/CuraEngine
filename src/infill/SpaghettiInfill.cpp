@@ -4,19 +4,15 @@
 namespace cura {
 
 
-void SpaghettiInfill::calculateTotalInfillVolumeForMesh(SliceMeshStorage& mesh)
+void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
 {
     double total_volume_mm3 = 0.0;
 
     const int max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
-    const coord_t layer_height_0 = mesh.getSettingInMicrons("layer_height_0");
-    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
-    const int bottom_layers = mesh.getSettingAsCount("bottom_layers");
-
     for (int layer_idx = 0; layer_idx <= max_layer; layer_idx++)
     {
-        const coord_t this_layer_height = (layer_idx == 0) ? layer_height_0 : layer_height;
-        if (layer_idx < bottom_layers)
+        const coord_t layer_height = (layer_idx == 0)? mesh.getSettingInMicrons("layer_height_0") : mesh.getSettingInMicrons("layer_height");
+        if (layer_idx < mesh.getSettingAsCount("bottom_layers"))
         { // nothing to add
             continue;
         }
@@ -24,18 +20,9 @@ void SpaghettiInfill::calculateTotalInfillVolumeForMesh(SliceMeshStorage& mesh)
         for (const SliceLayerPart& slice_layer_part : layer.parts)
         {
             const Polygons& part_infill = slice_layer_part.getOwnInfillArea();
-            total_volume_mm3 += INT2MM(INT2MM(part_infill.area())) * INT2MM(this_layer_height);
+            total_volume_mm3 += INT2MM(INT2MM(part_infill.area())) * INT2MM(layer_height);
         }
     }
-
-    // set total infill volume
-    mesh.total_infill_volume_mm3 = total_volume_mm3;
-}
-
-
-void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
-{
-    const double total_volume_mm3 = mesh.total_infill_volume_mm3;
 
     // find top most filling area
     SliceLayerPart* top_filling_layer_part = nullptr;
@@ -76,7 +63,6 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
 {
     const bool total_volume_at_once = !mesh.getSettingBoolean("spaghetti_infill_stepped");
 
-    calculateTotalInfillVolumeForMesh(mesh);
     if (total_volume_at_once)
     {
         generateTotalSpaghettiInfill(mesh);

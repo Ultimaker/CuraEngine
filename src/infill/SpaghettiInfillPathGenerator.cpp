@@ -13,14 +13,13 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         return false;
     }
     bool added_something = false;
-    const GCodePathConfig* config = mesh_config.getInfillConfig(layer_nr, 0);
+    const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
-    const unsigned int infill_line_width = config->getLineWidth();
+    const unsigned int infill_line_width = config.getLineWidth();
     const int64_t z = layer_nr * mesh.getSettingInMicrons("layer_height");
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
     const double layer_height_mm = (layer_nr == 0)? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
-    const double default_spaghetti_infill_extra_volume = mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume");
 
     // For each part on this layer which is used to fill that part and parts below:
     for (const std::pair<Polygons, double>& filling_area : part.spaghetti_infill_volumes)
@@ -29,9 +28,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons infill_polygons;
 
         const Polygons& area = filling_area.first; // Area of the top within which to move while extruding (might be empty if the spaghetti_inset was too large)
-        // the extra infill volume will be spread out proportionally to each step
-        const double extra_infill_volume = filling_area.second / mesh.total_infill_volume_mm3 * default_spaghetti_infill_extra_volume;
-        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow") + extra_infill_volume; // volume to be extruded
+        const double total_volume = filling_area.second * mesh.getSettingAsRatio("spaghetti_flow") + mesh.getSettingInCubicMillimeters("spaghetti_infill_extra_volume"); // volume to be extruded
         if (total_volume <= 0.0)
         {
             continue;

@@ -159,6 +159,18 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
             }
         }
     }
+    if (getSettingBoolean("fill_outline_gaps")
+        && getSettingAsCount("wall_line_count") > 0
+        && getSettingAsExtruderNr("wall_0_extruder_nr") == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.outline_gaps.size() > 0)
+            {
+                return true;
+            }
+        }
+    }
     if ((getSettingAsCount("wall_line_count") > 1 || getSettingBoolean("alternate_extra_perimeter")) && getSettingAsExtruderNr("wall_x_extruder_nr") == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)

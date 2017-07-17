@@ -278,7 +278,7 @@ private:
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
-    GCodePath* getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
+    GCodePath* getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
 
 public:
     /*!
@@ -439,7 +439,7 @@ public:
      * \param speed_factor (optional) A factor the travel speed will be multipled by.
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      */
-    void addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
+    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -452,7 +452,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -473,7 +473,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -483,7 +483,7 @@ public:
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -496,7 +496,7 @@ public:
      * \param seam_vertex_idx The index of this wall slice's seam vertex
      * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
      */
-    void spiralizeWallSlice(const GCodePathConfig* config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
+    void spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
 
 
     /*!
