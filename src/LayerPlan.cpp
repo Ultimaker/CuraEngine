@@ -156,7 +156,7 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
                         // for infill mesh parts, add the outlines of its skin parts to the comb boundary
                         for (const SkinPart& skin_part : part.skin_parts)
                         {
-                            comb_boundary.add(skin_part.outline[0]);
+                            comb_boundary.add(skin_part.outline.outerPolygon());
                         }
                     }
                     else
