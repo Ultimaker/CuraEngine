@@ -69,7 +69,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
-, topmost_skin_config(
+, roofing_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("topmost_skin_line_width")
     , layer_thickness
@@ -285,7 +285,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             };
 
             mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
-            mesh_configs[mesh_idx].topmost_skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_configs[mesh_idx].roofing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }
 }

@@ -38,7 +38,7 @@ public:
         GCodePathConfig inset0_config;
         GCodePathConfig insetX_config;
         GCodePathConfig skin_config;
-        GCodePathConfig topmost_skin_config;
+        GCodePathConfig roofing_config;
         std::vector<GCodePathConfig> infill_config;
         GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;

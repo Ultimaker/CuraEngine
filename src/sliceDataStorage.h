@@ -32,7 +32,7 @@ public:
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
     Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
     Polygons inner_infill; //!< The inner infill of the skin with which the area within the innermost inset is filled
-    Polygons top_most_skinfill; //!< The inner infill which has air directly above
+    Polygons roofing_fill; //!< The inner infill which has air directly above
 };
 
 
@@ -237,7 +237,7 @@ public:
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
-    std::vector<int> topmost_skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
+    std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
     AABB3D bounding_box; //!< the mesh's bounding box
     SubDivCube* base_subdiv_cube;

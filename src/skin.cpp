@@ -97,7 +97,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
         SliceLayerPart& part = layer->parts[part_nr];
         generateSkinInsetsAndInnerSkinInfill(&part);
 
-        generateTopMostSkin(part);
+        generateRoofing(part);
     }
 }
 
@@ -371,26 +371,26 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateTopMostSkin(SliceLayerPart& part)
+void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
-    int topmost_skin_layer_count = mesh.getSettingAsCount("topmost_skin_layer_count");
+    int roofing_layer_count = mesh.getSettingAsCount("topmost_skin_layer_count");
     const unsigned int wall_idx = std::min(2, mesh.getSettingAsCount("wall_line_count"));
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        Polygons topmost_skin;
-        if (topmost_skin_layer_count > 0)
+        Polygons roofing;
+        if (roofing_layer_count > 0)
         {
-            Polygons no_air_above = getWalls(part, layer_nr + topmost_skin_layer_count, wall_idx);
+            Polygons no_air_above = getWalls(part, layer_nr + roofing_layer_count, wall_idx);
             if (!no_small_gaps_heuristic)
             {
-                for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + topmost_skin_layer_count; layer_nr_above++)
+                for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + roofing_layer_count; layer_nr_above++)
                 {
                     Polygons outlines_above = getWalls(part, layer_nr_above, wall_idx);
                     no_air_above = no_air_above.intersection(outlines_above);
                 }
             }
-            skin_part.top_most_skinfill = skin_part.inner_infill.difference(no_air_above);
+            skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
             skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
         }
     }

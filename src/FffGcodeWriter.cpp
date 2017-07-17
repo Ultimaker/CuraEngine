@@ -362,14 +362,14 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
         }
     }
 
-    if (mesh.topmost_skin_angles.size() == 0)
+    if (mesh.roofing_angles.size() == 0)
     {
-        mesh.topmost_skin_angles = mesh.getSettingAsIntegerList("roofing_angles");
-        if (mesh.topmost_skin_angles.size() == 0)
+        mesh.roofing_angles = mesh.getSettingAsIntegerList("roofing_angles");
+        if (mesh.roofing_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
-            mesh.topmost_skin_angles.push_back(45);
-            mesh.topmost_skin_angles.push_back(135);
+            mesh.roofing_angles.push_back(45);
+            mesh.roofing_angles.push_back(135);
         }
     }
 
@@ -1429,10 +1429,10 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
 bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
 {
     int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
-    int topmost_skin_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
+    int roofing_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
     int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
     if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr
-        && (extruder_nr != topmost_skin_extruder_nr || mesh.getSettingAsCount("topmost_skin_layer_count") <= 0))
+        && (extruder_nr != roofing_extruder_nr || mesh.getSettingAsCount("topmost_skin_layer_count") <= 0))
     {
         return false;
     }
@@ -1460,12 +1460,12 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
             mesh.getSettingAsFillMethod("top_bottom_pattern");
         if ((pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
-            && (mesh.getSettingAsCount("topmost_skin_layer_count") == 0 || skin_part.top_most_skinfill.size() > 0))
+            && (mesh.getSettingAsCount("topmost_skin_layer_count") == 0 || skin_part.roofing_fill.size() > 0))
         {
-            const std::vector<int>& top_most_angles = (mesh.getSettingAsCount("topmost_skin_layer_count") > 0) ? mesh.topmost_skin_angles : mesh.skin_angles;
+            const std::vector<int>& top_most_angles = (mesh.getSettingAsCount("topmost_skin_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
             assert(top_most_angles.size() > 0);
-            int topmost_skin_angle = top_most_angles[gcode_layer.getLayerNr() % top_most_angles.size()]; // use topmost skin angles for perimeter gaps
-            std::optional<Point> seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, topmost_skin_angle, gcode_layer.getLastPosition());
+            int top_most_skin_angle = top_most_angles[gcode_layer.getLayerNr() % top_most_angles.size()]; // use top most skin angles for perimeter gaps
+            std::optional<Point> seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, top_most_skin_angle, gcode_layer.getLastPosition());
             if (seam_avoiding_location)
             {
                 gcode_layer.addTravel(*seam_avoiding_location);
@@ -1481,8 +1481,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
     if (fill_perimeter_gaps)
     { // handle perimeter gaps of normal insets
-        assert(mesh.topmost_skin_angles.size() > 0);
-        int perimeter_gaps_angle = mesh.topmost_skin_angles[gcode_layer.getLayerNr() % mesh.topmost_skin_angles.size()]; // use topmost skin angles for perimeter gaps
+        assert(mesh.roofing_angles.size() > 0);
+        int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
         Polygons gap_polygons; // unused
         Polygons gap_lines; // soon to be generated gap filler lines
         constexpr int offset = 0;
@@ -1507,7 +1507,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 {
     const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
     const int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
-    const int topmost_skin_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
+    const int roofing_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
     const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
 
     const bool fill_perimeter_gaps =
@@ -1519,16 +1519,16 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     bool added_something = false;
 
 
-    // add topmost skin
-    const bool fill_topmost_skin_concentric_perimeter_gaps =
+    // add roofing
+    const bool fill_roofing_concentric_perimeter_gaps =
         mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize")
-        && extruder_nr == topmost_skin_extruder_nr;
-    EFillMethod topmost_skin_pattern = mesh.getSettingAsFillMethod("topmost_skin_pattern");
-    const bool generate_topmost_skin_perimeter_gaps = fill_topmost_skin_concentric_perimeter_gaps && topmost_skin_pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the topmost skin area
+        && extruder_nr == roofing_extruder_nr;
+    EFillMethod roofing_pattern = mesh.getSettingAsFillMethod("topmost_skin_pattern");
+    const bool generate_roofing_perimeter_gaps = fill_roofing_concentric_perimeter_gaps && roofing_pattern == EFillMethod::CONCENTRIC; // whether we need to generate perimeter gaps for concentric infill of the roofing area
 
-    Polygons topmost_skin_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
-    processSkinPartTopMostInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, generate_topmost_skin_perimeter_gaps, topmost_skin_concentric_perimeter_gaps, added_something);
+    Polygons roofing_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
+    processSkinPartRoofingInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, generate_roofing_perimeter_gaps, roofing_concentric_perimeter_gaps, added_something);
 
 
     // add normal skinfill
@@ -1563,8 +1563,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
         {
             perimeter_gaps = &top_bottom_concentric_perimeter_gaps;
         }
-        assert(mesh.topmost_skin_angles.size() > 0);
-        int perimeter_gaps_angle = mesh.topmost_skin_angles[gcode_layer.getLayerNr() % mesh.topmost_skin_angles.size()]; // use topmost skin angles for perimeter gaps
+        assert(mesh.roofing_angles.size() > 0);
+        int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
         Polygons gap_polygons; // will remain empty
         Polygons gap_lines;
         constexpr int offset = 0;
@@ -1602,24 +1602,24 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
     }
 }
 
-void FffGcodeWriter::processSkinPartTopMostInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const
+void FffGcodeWriter::processSkinPartRoofingInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const
 {
-    coord_t skin_overlap = 0; // skinfill already expanded over the topmost skin; don't overlap with perimeters
+    coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     EFillMethod pattern = mesh.getSettingAsFillMethod("topmost_skin_pattern");
 
-    const coord_t skin_line_width = mesh_config.topmost_skin_config.getLineWidth();
-    const int topmost_skin_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
+    const coord_t skin_line_width = mesh_config.roofing_config.getLineWidth();
+    const int roofing_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
 
-    int topmost_skin_angle = 45;
-    if (mesh.topmost_skin_angles.size() > 0)
+    int roofing_angle = 45;
+    if (mesh.roofing_angles.size() > 0)
     {
-        topmost_skin_angle = mesh.topmost_skin_angles.at(gcode_layer.getLayerNr() % mesh.topmost_skin_angles.size());
+        roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
     }
 
     Polygons skin_polygons;
     Polygons skin_lines;
 
-    const bool process_fill = extruder_nr == topmost_skin_extruder_nr;
+    const bool process_fill = extruder_nr == roofing_extruder_nr;
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
     if (process_fill || generate_perimeter_gaps)
@@ -1632,7 +1632,7 @@ void FffGcodeWriter::processSkinPartTopMostInfillGeneratePerimeterGaps(const Sli
         constexpr int extra_infill_shift = 0;
         constexpr coord_t offset_from_inner_skin_infill = 0;
         Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-        Infill infill_comp(pattern, skin_part.top_most_skinfill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, topmost_skin_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
+        Infill infill_comp(pattern, skin_part.roofing_fill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, roofing_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
         infill_comp.generate(skin_polygons, skin_lines);
     }
 
@@ -1642,15 +1642,15 @@ void FffGcodeWriter::processSkinPartTopMostInfillGeneratePerimeterGaps(const Sli
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
-        gcode_layer.addPolygonsByOptimizer(skin_polygons, mesh_config.topmost_skin_config);
+        gcode_layer.addPolygonsByOptimizer(skin_polygons, mesh_config.roofing_config);
 
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, mesh_config.topmost_skin_config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
+            gcode_layer.addLinesByOptimizer(skin_lines, mesh_config.roofing_config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
         }
         else
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, mesh_config.topmost_skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            gcode_layer.addLinesByOptimizer(skin_lines, mesh_config.roofing_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
     }
 }
