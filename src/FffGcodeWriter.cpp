@@ -1639,18 +1639,11 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
         return support_added;
     }
 
-    // when raft is enabled, we will get negative layer numbers
-    // in this case, we don't generate support
-    if (layer_nr < 0)
-    {
-        return support_added;
-    }
-
     const int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     const int support_bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
-    const SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+    const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
     if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty())
     {
         return support_added;
@@ -1685,7 +1678,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const int extruder_nr = (layer_nr <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(extruder_nr);
 
-    coord_t z_of_this_layer = layer_nr * getSettingInMicrons("layer_height");
     const coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
     const double line_width_factor = (layer_nr == -Raft::getFillerLayerCount(storage))? infill_extruder.getSettingAsRatio("initial_layer_line_width_factor") : 1;
     const coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width") * line_width_factor;
@@ -1767,7 +1759,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 bool use_endpieces = true;
                 Polygons* perimeter_gaps = nullptr;
                 Infill infill_comp(support_pattern, support_area, offset_from_outline, support_line_width,
-                                   support_line_distance_here, current_support_infill_overlap, support_infill_angle, z_of_this_layer, support_shift,
+                                   support_line_distance_here, current_support_infill_overlap, support_infill_angle, gcode_layer.z, support_shift,
                                    perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces);
                 infill_comp.generate(support_polygons, support_lines);
             }
@@ -1840,8 +1832,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         return false; //No need to generate support bottoms if there's no support.
     }
 
-    const coord_t z = layer_nr * getSettingInMicrons("layer_height");
-
     const int bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
     const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
 
@@ -1855,7 +1845,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool connected_zigzags = false;
 
     const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance");
-    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
