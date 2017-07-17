@@ -27,23 +27,15 @@ std::vector<double> PathConfigStorage::getLineWidthFactorPerExtruder(const Slice
     return ret;
 }
 
-GCodePathConfig createPerimeterGapConfig(const SliceMeshStorage& mesh, int layer_thickness, bool first_layer)
+GCodePathConfig createPerimeterGapConfig(const SliceMeshStorage& mesh, int layer_thickness)
 {
     // The perimeter gap config follows the skin config, but has a different line width:
     // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
     int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_0") / 2;
-    if (first_layer)
-    {
-        perimeter_gaps_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
-    }
     double perimeter_gaps_speed = mesh.getSettingInMillimetersPerSecond("speed_topbottom");
     if (mesh.getSettingBoolean("speed_equalize_flow_enabled"))
     {
         int skin_line_width = mesh.getSettingInMicrons("skin_line_width");
-        if (first_layer)
-        {
-            skin_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
-        }
         perimeter_gaps_speed *= skin_line_width / perimeter_gaps_line_width;
     }
     return GCodePathConfig(
@@ -77,7 +69,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
-, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness, false))
+, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness))
 , ironing_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width")
