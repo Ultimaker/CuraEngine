@@ -468,10 +468,9 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param infill_angle The angle in the XY plane at which the infill is generated.
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int infill_angle) const;
+    bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part) const;
 
     /*!
      * Add the extra skin walls
@@ -497,12 +496,11 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param skin_angle The angle in the XY plane at which the infill is generated.
      * \param generate_perimeter_gaps Whether we need to generate perimeter gaps for concentric infill of the skinfill area
      * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processSkinPartTopMostInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int skin_angle, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+    void processSkinPartTopMostInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
 
     /*!
      * Add the normal skinfill which is the area inside the innermost skin inset which doesn't have air directly above it
@@ -520,12 +518,11 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param skin_angle The angle in the XY plane at which the infill is generated.
      * \param generate_perimeter_gaps Whether we need to generate perimeter gaps for concentric infill of the skinfill area
      * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processSkinPartInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, int skin_angle, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+    void processSkinPartInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
