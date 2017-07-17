@@ -52,6 +52,10 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
             }
             coord_t width = mesh.getSettingInMicrons("mold_width");
             coord_t open_polyline_width = mesh.getSettingInMicrons("wall_line_width_0");
+            if (layer_nr == 0)
+            {
+                open_polyline_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+            }
             double angle = mesh.getSettingInAngleDegrees("mold_angle");
             coord_t roof_height = mesh.getSettingInMicrons("mold_roof_height");
 

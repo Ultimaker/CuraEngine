@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (c) 2013 David Braam
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cmath> // std::ceil
 
 #include "skin.h"
@@ -103,13 +106,17 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
-    Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
+    Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
-    Polygons original_outline = Polygons(upskin);
-    Polygons downskin = (bottom_layer_count == 0) ? Polygons() : upskin;
-    if (top_layer_count == 0)
+    Polygons upskin;
+    if (top_layer_count > 0)
     {
-        upskin = Polygons();
+        upskin = Polygons(original_outline);
+    }
+    Polygons downskin;
+    if (bottom_layer_count > 0)
+    {
+        downskin = Polygons(original_outline);
     }
 
     calculateBottomSkin(part, min_infill_area, downskin);
@@ -283,10 +290,15 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     { // calculate offset_from_inner_wall
         coord_t extra_perimeter_offset = 0; // to account for alternate_extra_perimeter
         EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
+        double line_width_factor = 1;
+        if (layer_nr == 0)
+        {
+            mesh.getSettingAsRatio("initial_layer_line_width_factor");
+        }
         if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
             && mesh.getSettingBoolean("alternate_extra_perimeter")
             && layer_nr % 2 == 0
-            && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
+            && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * line_width_factor * 2)
         {
             extra_perimeter_offset = -innermost_wall_line_width;
         }
@@ -378,11 +390,6 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
                 std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
                 infill_area_per_combine_current_density.push_back(more_dense_infill);
-
-                if (less_dense_infill.size() == 0)
-                {
-                    break;
-                }
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
@@ -441,13 +448,23 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh, unsi
                             Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
                             result.add(intersection); // add area to be thickened
                             infill_area_per_combine[combine_count_here - 1] = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
-                            if (density_idx < lower_layer_part.infill_area_per_combine_per_density.size())
-                            { // only remove from *same density* areas on layer below
-                                // If there are no same density areas, then it's ok to print them anyway
-                                // Don't remove other density areas
-                                unsigned int lower_density_idx = density_idx;
+                            unsigned int max_lower_density_idx = density_idx;
+                            // Generally: remove only from *same density* areas on layer below
+                            // If there are no same density areas, then it's ok to print them anyway
+                            // Don't remove other density areas
+                            if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                            {
+                                // For the most dense areas on a given layer the density of that area is doubled.
+                                // This means that - if the lower layer has more densities -
+                                // all those lower density lines are included in the most dense of this layer.
+                                // We therefore compare the most dense are on this layer with all densities
+                                // of the lower layer with the same or higher density index
+                                max_lower_density_idx = lower_layer_part.infill_area_per_combine_per_density.size() - 1;
+                            }
+                            for (unsigned int lower_density_idx = density_idx; lower_density_idx <= max_lower_density_idx && lower_density_idx < lower_layer_part.infill_area_per_combine_per_density.size(); lower_density_idx++)
+                            {
                                 std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
-                                lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (thickened) layer
+                                lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (single thickness) layer
                             }
                         }
                     }

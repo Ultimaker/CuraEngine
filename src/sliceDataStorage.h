@@ -15,6 +15,7 @@
 #include "PrimeTower.h"
 #include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
+#include "SupportInfillPart.h"
 
 namespace cura 
 {
@@ -31,6 +32,8 @@ public:
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
     Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
 };
+
+
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
     It's filled during the FffProcessor.processSliceData(.), where each step uses data from the previous steps.
@@ -67,8 +70,44 @@ public:
     /*!
      * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.
      * The infill_area is an array to support thicker layers of sparse infill and areas of different infill density.
+     *
+     * Take an example of infill_area[x][n], the meanings of the indexes are as follows:
+     *   x  -  The sparsity of the infill area (0 - 99 in percentage). So, the areas in infill_area[x] are the most dense ones.
+     *   n  -  The thickness (in number of layers) of the infill area. See example below:
+     *          / ------ -- /         <- layer 3
+     *        /-- ------ /            <- layer 2
+     *          1   2     3
+     * LEGEND: "-" means infill areas.
+     * Numbers 1, 2 and 3 identifies 3 different infill areas. Infill areas 1 and 3 have a tickness of 1 layer, while area 2 has a thickness of 2.
+     *
+     * After the areas have been categoried into different densities, overlapping parts with the same density on multiple layers
+     * will be combined into a single layer. Here is an illustration:
+     *
+     *                        *a group of 3 layers*
+     *       NOT COMBINED                                   COMBINED
+     *
+     *       /22222222 2 2/                                  /22222222 2 2/     <--  the 2 layers next to the middle part are combined into a single layer
+     *     /0 22222222 2/              ====>               /0 ........ 2/
+     *   /0 1 22222222/                                  /0 1 ......../         <--  the 3 layers in the middle part are combined into a single layer
+     *                                                      ^          ^
+     *                                                      |          |
+     *                                                      |          |-- those two density level 2 layers cannot not be combined in the current implementation.
+     *                                                      |              this is because we separate every N layers into groups, and try to combine the layers
+     *                                                      |              in each group starting from the bottom one. In this case, those two layers don't have a
+     *                                                      |              bottom layer in this group, so they cannot be combined.
+     *                                                      |              (TODO) this can be a good future work.
+     *                                                      |
+     *                                                      |-- ideally, those two layer can be combined as well, but it is not the case now.
+     *                                                          (TODO) this can be a good future work.
+     *
+     * NOTES:
+     *   - numbers represent the density levels of each infill
+     *
+     * This maximum number of layers we can combine is a user setting. This number, say "n", means the maximum number of layers we can combine into one.
+     * On the combined layers, the extrusion amount will be higher than the normal extrusion amount because it needs to extrude for multiple layers instead of one.
+     *
      * infill_area[x][n] is infill_area of (n+1) layers thick. 
-     * 
+     *
      * infill_area[0] corresponds to the most dense infill area.
      * infill_area[x] will lie fully inside infill_area[x+1].
      * infill_area_per_combine_per_density.back()[0] == part.infill area initially
@@ -144,15 +183,27 @@ public:
 };
 
 /******************/
+
+
+
+
 class SupportLayer
 {
 public:
-    Polygons supportAreas; //!< normal support areas
-    Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with supportAreas or support_roof.
-    Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with supportAreas or support_bottom.
+    std::vector<SupportInfillPart> support_infill_parts;  //!< a list of support infill parts
+    Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
+    Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
+
+    /*!
+     * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
+     *
+     * \param exclude_polygons The polygons to exclude
+     * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
+     */
+    void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 };
 
 class SupportStorage
@@ -181,6 +232,7 @@ public:
     std::vector<SliceLayer> layers;
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
+    double total_infill_volume_mm3;  //!< the total infill volume of this mesh in mm3
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
@@ -190,6 +242,7 @@ public:
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
     : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
+    , total_infill_volume_mm3(0.0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
     {

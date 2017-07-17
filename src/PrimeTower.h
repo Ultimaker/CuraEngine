@@ -47,11 +47,12 @@ private:
     const unsigned int number_of_pre_wipe_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
     // note that the above are two consecutive numbers in the Fibonacci sequence
 
+    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< For each extruder a vector of patterns to alternate between, over the layers
+    std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
+
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
-
-    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< For each extruder a vector of patterns to alternate between, over the layers
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
@@ -134,7 +135,7 @@ private:
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(LayerPlan& gcode_layer, const int layer_nr, const int extruder) const;
+    void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder) const;
 
     /*!
      * Plan the moves for wiping and purging (if enabled) the current nozzles oozed material before starting

@@ -44,8 +44,12 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
                 model_brim_covered_area.add(first_layer_empty_holes);
             }
             SupportLayer& support_layer = storage.support.supportLayers[0];
-            support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
-            first_layer_outline.add(support_layer.supportAreas);
+            AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
+            support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
+            for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
+            {
+                first_layer_outline.add(support_infill_part.outline);
+            }
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
         }
@@ -102,7 +106,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     const int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
     const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
-    const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width");
+    const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor");
     const int64_t primary_extruder_minimal_length = adhesion_extruder->getSettingInMicrons("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
@@ -184,7 +188,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
                 continue;
             }
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-            const int width = train->getSettingInMicrons("skirt_brim_line_width");
+            const int width = train->getSettingInMicrons("skirt_brim_line_width") * train->getSettingAsRatio("initial_layer_line_width_factor");
             const int64_t minimal_length = train->getSettingInMicrons("skirt_brim_minimal_length");
             offset_distance += last_width / 2 + width/2;
             last_width = width;

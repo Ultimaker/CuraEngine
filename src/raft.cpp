@@ -11,7 +11,8 @@ void Raft::generate(SliceDataStorage& storage, int distance)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
-    const int shield_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"))->getSettingInMicrons("skirt_brim_line_width");
+    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    const int shield_line_width = train->getSettingInMicrons("skirt_brim_line_width") * train->getSettingAsRatio("initial_layer_line_width_factor");
     if (storage.draft_protection_shield.size() > 0)
     {
         Polygons draft_shield_raft = storage.draft_protection_shield.offset(shield_line_width) // start half a line width outside shield

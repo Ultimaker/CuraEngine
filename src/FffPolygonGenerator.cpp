@@ -254,18 +254,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-    
-    /*
-    if (storage.support.generated)
-    {
-        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
-        {
-            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); // infill_extr->getSettingInMicrons("support_line_width"));
-        }
-    }
-    */
 
     computePrintHeightStatistics(storage);
 
@@ -289,6 +277,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processDerivedWallsSkinInfill(mesh);
     }
+
+    // generate gradual suppport
+    AreaSupport::generateSupportInfillFeatures(storage);
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
@@ -405,12 +396,33 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             mesh.getSettingInMicrons("infill_line_distance") > 0
             && !mesh.getSettingBoolean("infill_hollow")
             && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
-        coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
-        coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
-        for (SliceLayer& layer : mesh.layers)
+        for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
         {
+            SliceLayer& layer = mesh.layers[layer_nr];
+            coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+            coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+            if (layer_nr == 0)
+            {
+                double initial_layer_line_width_factor = mesh.getSettingAsRatio("initial_layer_line_width_factor");
+                wall_line_width_0 *= initial_layer_line_width_factor;
+                wall_line_width_x *= initial_layer_line_width_factor;
+            }
             for (SliceLayerPart& part : layer.parts)
             {
+                // handle outline gaps
+                if (mesh.getSettingBoolean("fill_outline_gaps"))
+                {
+                    const Polygons& outer = part.outline;
+                    Polygons inner;
+                    if (part.insets.size() > 0)
+                    {
+                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset));
+                    }
+                    Polygons outline_gaps = outer.difference(inner);
+                    outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                    part.perimeter_gaps.add(outline_gaps);
+                }
+
                  // handle perimeter gaps of normal insets
                 int line_width = wall_line_width_0;
                 for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
@@ -423,7 +435,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 }
 
                 // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill)
+                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
                 {
                     const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
@@ -539,7 +551,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
-
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
@@ -577,12 +588,18 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
             inset_count += 5;
         int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
         int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        if (layer_nr == 0)
+        {
+            line_width_x *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_0 *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+        }
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
         {
             inset_count += ((layer_nr % 2) + 2) % 2;
         }
-        bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable");
-        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
+        bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("fill_outline_gaps");
+        bool remove_parts_with_no_insets = !mesh.getSettingBoolean("fill_outline_gaps");
+        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
         walls_computation.generateInsets(layer);
     }
     else
@@ -604,7 +621,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
         {
             SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-            if (!support_layer.supportAreas.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+            if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
             {
                 layer_is_empty = false;
                 break;
@@ -677,14 +694,19 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     int bottom_layers = mesh.getSettingAsCount("bottom_layers");
     int top_layers = mesh.getSettingAsCount("top_layers");
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    double line_width_factor = 1;
+    if (layer_nr == 0)
+    {
+        line_width_factor = mesh.getSettingAsRatio("initial_layer_line_width_factor");
+    }
+    int innermost_wall_line_width = ((wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x")) * line_width_factor;
     int infill_skin_overlap = 0;
-    bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
+    bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") * line_width_factor + 10;
     if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
     {
         infill_skin_overlap = innermost_wall_line_width / 2;
     }
-    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x") * line_width_factor;
     int skin_outline_count = mesh.getSettingAsCount("skin_outline_count");
     bool skin_no_small_gaps_heuristic = mesh.getSettingBoolean("skin_no_small_gaps_heuristic");
     SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, bottom_layers, top_layers, wall_line_count, innermost_wall_line_width, infill_skin_overlap, wall_line_width_x, skin_outline_count, skin_no_small_gaps_heuristic, process_infill);

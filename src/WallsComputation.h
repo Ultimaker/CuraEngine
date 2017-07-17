@@ -33,6 +33,7 @@ public:
      * Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
      */
     bool recompute_outline_based_on_outer_wall;
+    bool remove_parts_with_no_insets; // Whether to remove parts which have no insets.
 
     /*!
      * Basic constructor initializing the parameters with which to perform the walls computation
@@ -42,8 +43,9 @@ public:
      * \param line_width_x line width of other walls
      * \param insetCount The number of insets to to generate
      * \param recompute_outline_based_on_outer_wall Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
+     * \param remove_parts_with_no_insets Whether to remove parts if they get no single inset
      */
-    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall);
+    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
