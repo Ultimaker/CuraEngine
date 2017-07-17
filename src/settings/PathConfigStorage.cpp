@@ -71,10 +71,10 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 )
 , roofing_config(
     PrintFeatureType::Skin
-    , mesh.getSettingInMicrons("topmost_skin_line_width")
+    , mesh.getSettingInMicrons("roofing_line_width")
     , layer_thickness
     , mesh.getSettingInPercentage("material_flow")
-    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topmost_skin"), mesh.getSettingInMillimetersPerSecond("acceleration_topmost_skin"), mesh.getSettingInMillimetersPerSecond("jerk_topmost_skin")}
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_roofing"), mesh.getSettingInMillimetersPerSecond("acceleration_roofing"), mesh.getSettingInMillimetersPerSecond("jerk_roofing")}
 )
 , ironing_config(
     PrintFeatureType::Skin

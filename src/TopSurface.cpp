@@ -36,7 +36,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const coord_t line_spacing = mesh.getSettingInMicrons("ironing_line_spacing");
     const coord_t outline_offset = -mesh.getSettingInMicrons("ironing_inset");
     const coord_t line_width = line_config.getLineWidth();
-    const std::vector<int>& top_most_skin_angles = (mesh.getSettingAsCount("topmost_skin_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
+    const std::vector<int>& top_most_skin_angles = (mesh.getSettingAsCount("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
     const double direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;

@@ -373,7 +373,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
  */
 void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
-    int roofing_layer_count = mesh.getSettingAsCount("topmost_skin_layer_count");
+    int roofing_layer_count = mesh.getSettingAsCount("roofing_layer_count");
     const unsigned int wall_idx = std::min(2, mesh.getSettingAsCount("wall_line_count"));
 
     for (SkinPart& skin_part : part.skin_parts)
