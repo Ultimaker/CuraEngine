@@ -69,12 +69,12 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const float ironing_flow = mesh.getSettingAsRatio("ironing_flow");
     if (!ironing_polygons.empty())
     {
-        layer.addPolygonsByOptimizer(ironing_polygons, &line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, ironing_flow);
+        layer.addPolygonsByOptimizer(ironing_polygons, line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, ironing_flow);
         added = true;
     }
     if (!ironing_lines.empty())
     {
-        layer.addLinesByOptimizer(ironing_lines, &line_config, SpaceFillType::PolyLines, 0, ironing_flow);
+        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, 0, ironing_flow);
         added = true;
     }
     return added;

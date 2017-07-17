@@ -152,7 +152,7 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPl
         ? pattern_per_extruder_layer0[extruder_nr]
         : patterns_per_extruder[extruder_nr][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
-    const GCodePathConfig* config = gcode_layer.configs_storage.getPrimeTowerConfig(layer_nr, extruder_nr);
+    const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
     gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
@@ -289,7 +289,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
     }
 
     float flow = 0.0001; // Force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
-    gcode_layer.addExtrusionMove(prime_end, gcode_layer.configs_storage.getPrimeTowerConfig(layer_nr, extruder_nr), SpaceFillType::None, flow);
+    gcode_layer.addExtrusionMove(prime_end, gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
@@ -307,19 +307,19 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const
 {
     // Find out how much purging needs to be done.
-    const GCodePathConfig* current_gcode_path_config = gcode_layer.configs_storage.getPrimeTowerConfig(layer_nr, extruder_nr);
+    const GCodePathConfig& current_gcode_path_config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
     const coord_t purge_move_length = vSize(start_pos - end_pos);
-    const unsigned int line_width = current_gcode_path_config->getLineWidth();
+    const unsigned int line_width = current_gcode_path_config.getLineWidth();
     const double layer_height_mm = (layer_nr == 0) ? train->getSettingInMillimeters("layer_height_0") : train->getSettingInMillimeters("layer_height");
     const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
     float purge_flow = purge_volume / normal_volume;
 
     const double purge_move_length_mm = INT2MM(purge_move_length);
-    const double purge_move_time = purge_move_length_mm / current_gcode_path_config->getSpeed();
+    const double purge_move_time = purge_move_length_mm / current_gcode_path_config.getSpeed();
     const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
     const double max_possible_extursion_speed_mm3_per_sec = 3.0;
 
-    const double speed = current_gcode_path_config->getSpeed();
+    const double speed = current_gcode_path_config.getSpeed();
     double speed_factor = 1.0;
 
     if (purge_extrusion_speed_mm3_per_sec > max_possible_extursion_speed_mm3_per_sec)

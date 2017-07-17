@@ -141,24 +141,26 @@ private:
 
     /*!
      * Generate the inset polygons which form the walls.
+     * \param[in] storage extruder train storage
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processInsets(SliceMeshStorage& mesh, unsigned int layer_nr);
+    void processInsets(const SliceDataStorage& storage, SliceMeshStorage& mesh, unsigned int layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      */
     void processOozeShield(SliceDataStorage& storage);
-    
+
     /*!
      * Generate the skin areas.
+     * \param[in] storage extruder train storage
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill); 
+    void processSkinsAndInfill(const SliceDataStorage& storage, SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.

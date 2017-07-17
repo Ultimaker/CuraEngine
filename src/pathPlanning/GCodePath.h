@@ -52,7 +52,7 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
+    GCodePath(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.
