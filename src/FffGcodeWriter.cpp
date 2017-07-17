@@ -1431,7 +1431,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
     int topmost_skin_extruder_nr = mesh.getSettingAsExtruderNr("topmost_skin_extruder_nr");
     int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
-    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr && extruder_nr != topmost_skin_extruder_nr)
+    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr
+        && (extruder_nr != topmost_skin_extruder_nr || mesh.getSettingAsCount("topmost_skin_layer_count") <= 0))
     {
         return false;
     }
