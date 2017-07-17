@@ -111,7 +111,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
 , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(storage, layer_nr))
 , raft_base_config(
             PrintFeatureType::SupportInterface
-            , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width") * line_width_factor_per_extruder[adhesion_extruder_nr]
+            , adhesion_extruder_train->getSettingInMicrons("raft_base_line_width")
             , adhesion_extruder_train->getSettingInMicrons("raft_base_thickness")
             , adhesion_extruder_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_base_speed"), adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_base_acceleration"), adhesion_extruder_train->getSettingInMillimetersPerSecond("raft_base_jerk")}
