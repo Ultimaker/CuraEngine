@@ -13,7 +13,7 @@ std::vector<double> PathConfigStorage::getLineWidthFactorPerExtruder(const Slice
     std::vector<double> ret;
     for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
-        if (layer_nr == 0)
+        if (layer_nr <= 0)
         {
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
             double factor = train->getSettingAsRatio("initial_layer_line_width_factor");
