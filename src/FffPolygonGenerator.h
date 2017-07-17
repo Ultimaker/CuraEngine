@@ -89,6 +89,14 @@ private:
     void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
 
     /*!
+     * Generate areas for the gaps between outer wall and the outline where the first wall doesn't fit.
+     * These areas should be filled with a skin-like pattern, so that these skin lines get combined into one line with gradual changing width.
+     * 
+     * \param[in,out] storage fetches the SliceLayerPart::insets and SliceLayerPart::outline and generates the outline_gaps in SliceLayerPart
+     */
+    void processOutlineGaps(SliceDataStorage& storage);
+
+    /*!
      * Generate areas for the gaps between walls where the next inset doesn't fit.
      * These areas should be filled with a skin-like pattern, so that these skin lines get combined into one line with gradual changing width.
      * 

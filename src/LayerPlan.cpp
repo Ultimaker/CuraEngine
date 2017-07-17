@@ -146,19 +146,28 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
         for (const SliceMeshStorage& mesh : storage.meshes)
         {
             const SliceLayer& layer = mesh.layers[layer_nr];
+            const bool is_infill_mesh = mesh.getSettingBoolean("infill_mesh");
             if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
             {
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    comb_boundary.add(part.infill_area);
+                    if (is_infill_mesh)
+                    {
+                        // for infill mesh parts, add the outlines of its skin parts to the comb boundary
+                        for (const SkinPart& skin_part : part.skin_parts)
+                        {
+                            comb_boundary.add(skin_part.outline[0]);
+                        }
+                    }
+                    else
+                    {
+                        // for non-infill mesh parts, add the outline of its infill to the comb boundary
+                        comb_boundary.add(part.infill_area);
+                    }
                 }
             }
-            else
+            else if (!is_infill_mesh)
             {
-                if (mesh.getSettingBoolean("infill_mesh"))
-                {
-                    continue;
-                }
                 layer.getSecondOrInnermostWalls(comb_boundary);
             }
         }
