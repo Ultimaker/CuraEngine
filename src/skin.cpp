@@ -290,15 +290,10 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     { // calculate offset_from_inner_wall
         coord_t extra_perimeter_offset = 0; // to account for alternate_extra_perimeter
         EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
-        double line_width_factor = 1;
-        if (layer_nr == 0)
-        {
-            mesh.getSettingAsRatio("initial_layer_line_width_factor");
-        }
         if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
             && mesh.getSettingBoolean("alternate_extra_perimeter")
             && layer_nr % 2 == 0
-            && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * line_width_factor * 2)
+            && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
         {
             extra_perimeter_offset = -innermost_wall_line_width;
         }

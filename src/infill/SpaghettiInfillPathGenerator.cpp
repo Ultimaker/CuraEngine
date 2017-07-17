@@ -13,9 +13,9 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         return false;
     }
     bool added_something = false;
-    const GCodePathConfig* config = mesh_config.getInfillConfig(layer_nr, 0);
+    const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
-    const unsigned int infill_line_width = config->getLineWidth();
+    const unsigned int infill_line_width = config.getLineWidth();
     const int64_t z = layer_nr * mesh.getSettingInMicrons("layer_height");
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
