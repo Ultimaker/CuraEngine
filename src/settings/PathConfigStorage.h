@@ -29,6 +29,8 @@ private:
     const ExtruderTrain* support_roof_train;
     const ExtruderTrain* support_bottom_train;
 
+    const std::vector<double> line_width_factor_per_extruder;
+    static std::vector<double> getLineWidthFactorPerExtruder(const SliceDataStorage& storage, int layer_nr);
 public:
     class MeshPathConfigs
     {
@@ -40,10 +42,10 @@ public:
         std::vector<GCodePathConfig> infill_config;
         GCodePathConfig ironing_config;
 
-        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
+        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, const std::vector<double>& line_width_factor_per_extruder);
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
     };
-    
+
     GCodePathConfig raft_base_config;
     GCodePathConfig raft_interface_config;
     GCodePathConfig raft_surface_config;
