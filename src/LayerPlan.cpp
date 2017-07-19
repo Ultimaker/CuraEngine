@@ -146,6 +146,9 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
         for (const SliceMeshStorage& mesh : storage.meshes)
         {
             const SliceLayer& layer = mesh.layers[layer_nr];
+            if (mesh.getSettingBoolean("infill_mesh")) {
+                continue;
+            }
             if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
             {
                 for (const SliceLayerPart& part : layer.parts)
@@ -155,10 +158,6 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
             }
             else
             {
-                if (mesh.getSettingBoolean("infill_mesh"))
-                {
-                    continue;
-                }
                 layer.getSecondOrInnermostWalls(comb_boundary);
             }
         }
