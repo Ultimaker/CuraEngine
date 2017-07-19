@@ -1505,7 +1505,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
 bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part) const
 {
-    const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
     const int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
     const int roofing_extruder_nr = mesh.getSettingAsExtruderNr("roofing_extruder_nr");
     const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
@@ -1544,10 +1543,21 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     Polygons top_bottom_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
     processSkinPartInfillGeneratePerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, generate_top_bottom_perimeter_gaps, top_bottom_concentric_perimeter_gaps, added_something);
 
-
     // handle perimeter_gaps of concentric skin
     if (fill_perimeter_gaps || generate_top_bottom_perimeter_gaps)
     {
+        processSkinPartPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, skin_part, top_bottom_concentric_perimeter_gaps, mesh_config.perimeter_gap_config, added_something);
+    }
+    return added_something;
+}
+
+void FffGcodeWriter::processSkinPartPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const SkinPart& skin_part, const Polygons& top_bottom_concentric_perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const
+{
+    const int top_bottom_extruder_nr = mesh.getSettingAsExtruderNr("top_bottom_extruder_nr");
+    const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
+
+    const coord_t perimeter_gaps_line_width = perimeter_gap_config.getLineWidth();
+
         const Polygons* perimeter_gaps = nullptr;
         Polygons perimeter_gaps_recomputed;
         if (wall_0_extruder_nr == top_bottom_extruder_nr) // then also both are equalt to extruder_nr
@@ -1577,10 +1587,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addLinesByOptimizer(gap_lines, mesh_config.perimeter_gap_config, SpaceFillType::Lines);
+            gcode_layer.addLinesByOptimizer(gap_lines, perimeter_gap_config, SpaceFillType::Lines);
         }
-    }
-    return added_something;
 }
 
 void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const
