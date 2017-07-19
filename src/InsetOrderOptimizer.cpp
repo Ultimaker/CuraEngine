@@ -467,6 +467,12 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
         // optimization disabled
         return false;
     }
+    if (mesh.getSettingBoolean("infill_before_walls"))
+    {
+        // apparently, when printing infill before walls, the insets have to be ordered from infill to outer wall
+        // to avoid introducing visible artifacts - the optimiser doesn't guarantee that ordering so don't optimise
+        return false;
+    }
     const unsigned num_insets = part.insets.size();
     if (num_insets < 2)
     {
