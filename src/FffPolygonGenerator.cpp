@@ -723,25 +723,17 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
     int bottom_layers = mesh.getSettingAsCount("bottom_layers");
     int top_layers = mesh.getSettingAsCount("top_layers");
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    int innermost_wall_line_width;
-    if (wall_line_count == 1)
+    coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    if (layer_nr == 0)
     {
-        innermost_wall_line_width = mesh.getSettingInMicrons("wall_line_width_0");
-        if (layer_nr == 0)
-        {
-            const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
-            innermost_wall_line_width *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
-        }
+        const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+        wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
+        const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+        wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
     }
-    else
-    {
-        innermost_wall_line_width = mesh.getSettingInMicrons("wall_line_width_x");
-        if (layer_nr == 0)
-        {
-            const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
-            innermost_wall_line_width *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
-        }
-    }
+    const coord_t innermost_wall_line_width = (wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x;
+
     int infill_skin_overlap = 0;
     { // compute infill_skin_overlap
         const ExtruderTrain& train_infill = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("infill_extruder_nr"));
@@ -752,7 +744,6 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
             infill_skin_overlap = innermost_wall_line_width / 2;
         }
     }
-    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
     if (layer_nr == 0)
     {
         const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
