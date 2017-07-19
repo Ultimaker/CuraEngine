@@ -432,10 +432,6 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
         {
             continue;
         }
-        bool fill_gaps_between_inner_wall_and_skin_or_infill =
-            mesh.getSettingInMicrons("infill_line_distance") > 0
-            && !mesh.getSettingBoolean("infill_hollow")
-            && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
         for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
@@ -462,18 +458,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 }
 
                 // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
-                {
-                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-
-                    Polygons inner = part.infill_area;
-                    for (const SkinPart& skin_part : part.skin_parts)
-                    {
-                        inner.add(skin_part.outline);
-                    }
-                    inner = inner.unionPolygons();
-                    part.perimeter_gaps.add(outer.difference(inner));
-                }
+                // are note handled. There might be gaps due to alternate extra perimeter or due to initial layer line width multiplier
 
                 // add perimeter gaps for skin insets
                 for (SkinPart& skin_part : part.skin_parts)
