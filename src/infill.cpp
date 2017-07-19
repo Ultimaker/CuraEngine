@@ -59,7 +59,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         generateConcentric3DInfill(result_polygons);
         break;
     case EFillMethod::ZIG_ZAG:
-        generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
+        generateZigZagInfill(result_lines, line_distance, fill_angle);
         break;
     case EFillMethod::CUBICSUBDIV:
         if (!mesh)
@@ -221,7 +221,7 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
 }
 
 
-void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces)
+void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle)
 {
 
     PointMatrix rotation_matrix(fill_angle);

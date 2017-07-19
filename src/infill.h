@@ -236,10 +236,8 @@ private:
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
-     * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
-     * \param use_endpieces Whether to include zigzag segments connecting a scanline to itself
      */
-    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces);
+    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle);
 };
 
 }//namespace cura
