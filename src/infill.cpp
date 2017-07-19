@@ -4,9 +4,20 @@
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 
-namespace cura {
+/*!
+ * Function which returns the scanline_idx for a given x coordinate
+ *
+ * For negative \p x this is different from simple division.
+ *
+ * \warning \p line_width is assumed to be positive
+ *
+ * \param x the point to get the scansegment index for
+ * \param line_width the width of the scan segments
+ */
+static inline int computeScanSegmentIdx(int x, int line_width);
 
-int Infill::computeScanSegmentIdx(int x, int line_width)
+
+static inline int computeScanSegmentIdx(int x, int line_width)
 {
     if (x < 0)
     {
@@ -16,6 +27,8 @@ int Infill::computeScanSegmentIdx(int x, int line_width)
     }
     return x / line_width;
 }
+
+namespace cura {
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh)
 {

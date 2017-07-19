@@ -86,18 +86,6 @@ public:
 
 private:
     /*!
-     * Function which returns the scanline_idx for a given x coordinate
-     * 
-     * For negative \p x this is different from simple division.
-     * 
-     * \warning \p line_distance is assumed to be positive
-     * 
-     * \param x the point to get the scansegment index for
-     * \param line_distance the width of the scan segments
-     */
-    static inline int computeScanSegmentIdx(int x, int line_distance);
-
-    /*!
      * Generate sparse concentric infill
      * 
      * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
