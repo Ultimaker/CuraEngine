@@ -1679,10 +1679,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(extruder_nr);
 
     const coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
-    const double line_width_factor = (layer_nr == -Raft::getFillerLayerCount(storage))? infill_extruder.getSettingAsRatio("initial_layer_line_width_factor") : 1;
-    const coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width") * line_width_factor;
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
+    coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
+    if (layer_nr == 0 && storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        default_support_line_width *= infill_extruder.getSettingAsRatio("initial_layer_line_width_factor");
+    }
 
     EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
     if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))

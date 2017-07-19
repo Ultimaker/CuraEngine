@@ -153,14 +153,16 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             );
         skirt_brim_config_per_extruder.emplace_back(
                 PrintFeatureType::SkirtBrim
-                , train->getSettingInMicrons("skirt_brim_line_width") * line_width_factor_per_extruder[extruder_nr]
+                , train->getSettingInMicrons("skirt_brim_line_width")
+                    * ((storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[extruder_nr]) // cause it's also used for the draft/ooze shield
                 , layer_thickness
                 , train->getSettingInPercentage("material_flow")
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("skirt_brim_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt_brim"), train->getSettingInMillimetersPerSecond("jerk_skirt_brim")}
             );
         prime_tower_config_per_extruder.emplace_back(
                 PrintFeatureType::SupportInfill
-                , train->getSettingInMicrons("prime_tower_line_width") * line_width_factor_per_extruder[extruder_nr]
+                , train->getSettingInMicrons("prime_tower_line_width")
+                    * ((storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[extruder_nr])
                 , layer_thickness
                 , train->getSettingInPercentage("prime_tower_flow")
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMillimetersPerSecond("acceleration_prime_tower"), train->getSettingInMillimetersPerSecond("jerk_prime_tower")}
@@ -174,11 +176,12 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     }
 
     support_infill_config.reserve(MAX_INFILL_COMBINE);
+    const float support_infill_line_width_factor = (storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[support_infill_extruder_nr];
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         support_infill_config.emplace_back(
             PrintFeatureType::Support
-            , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1) * line_width_factor_per_extruder[support_infill_extruder_nr]
+            , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1) * support_infill_line_width_factor
             , layer_thickness
             , support_infill_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
