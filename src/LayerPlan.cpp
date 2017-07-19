@@ -342,12 +342,12 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
             assert (extr != nullptr);
-            int line_width = extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+            int innermost_wall_line_width = extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
             if (layer_nr == 0)
             {
-                line_width *= extr->getSettingAsRatio("initial_layer_line_width_factor");
+                innermost_wall_line_width *= extr->getSettingAsRatio("initial_layer_line_width_factor");
             }
-            moveInsideCombBoundary(line_width);
+            moveInsideCombBoundary(innermost_wall_line_width);
         }
         path->retract = true;
         path->perform_z_hop = perform_z_hops;

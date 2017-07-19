@@ -432,10 +432,6 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
         {
             continue;
         }
-        bool fill_gaps_between_inner_wall_and_skin_or_infill =
-            mesh.getSettingInMicrons("infill_line_distance") > 0
-            && !mesh.getSettingBoolean("infill_hollow")
-            && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
         for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
@@ -462,18 +458,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 }
 
                 // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
-                {
-                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-
-                    Polygons inner = part.infill_area;
-                    for (const SkinPart& skin_part : part.skin_parts)
-                    {
-                        inner.add(skin_part.outline);
-                    }
-                    inner = inner.unionPolygons();
-                    part.perimeter_gaps.add(outer.difference(inner));
-                }
+                // are note handled. There might be gaps due to alternate extra perimeter or due to initial layer line width multiplier
 
                 // add perimeter gaps for skin insets
                 for (SkinPart& skin_part : part.skin_parts)
@@ -723,32 +708,27 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
     int bottom_layers = mesh.getSettingAsCount("bottom_layers");
     int top_layers = mesh.getSettingAsCount("top_layers");
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    int innermost_wall_line_width;
-    if (wall_line_count == 1)
-    {
-        innermost_wall_line_width = mesh.getSettingInMicrons("wall_line_width_0");
-        if (layer_nr == 0)
-        {
-            const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
-            innermost_wall_line_width *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
-        }
-    }
-    else
-    {
-        innermost_wall_line_width = mesh.getSettingInMicrons("wall_line_width_x");
-        if (layer_nr == 0)
-        {
-            const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
-            innermost_wall_line_width *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
-        }
-    }
-    int infill_skin_overlap = 0;
-    bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
-    if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
-    {
-        infill_skin_overlap = innermost_wall_line_width / 2;
-    }
+    coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
     coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    if (layer_nr == 0)
+    {
+        const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+        wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
+        const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+        wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
+    }
+    const coord_t innermost_wall_line_width = (wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x;
+
+    int infill_skin_overlap = 0;
+    { // compute infill_skin_overlap
+        const ExtruderTrain& train_infill = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("infill_extruder_nr"));
+        const coord_t infill_line_width_factor = (layer_nr == 0) ? train_infill.getSettingAsRatio("initial_layer_line_width_factor") : 1.0;
+        const bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") * infill_line_width_factor + 10;
+        if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
+        {
+            infill_skin_overlap = innermost_wall_line_width / 2;
+        }
+    }
     if (layer_nr == 0)
     {
         const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));

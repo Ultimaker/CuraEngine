@@ -349,7 +349,7 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
         return EGCodeFlavor::BFB;
     else if (value == "MACH3")
         return EGCodeFlavor::MACH3;
-    else if (value == "RepRap (Volumatric)")
+    else if (value == "RepRap (Volumetric)")
         return EGCodeFlavor::MARLIN_VOLUMATRIC;
     else if (value == "Repetier")
         return EGCodeFlavor::REPETIER;
