@@ -743,10 +743,14 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
         }
     }
     int infill_skin_overlap = 0;
-    bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
-    if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
-    {
-        infill_skin_overlap = innermost_wall_line_width / 2;
+    { // compute infill_skin_overlap
+        const ExtruderTrain& train_infill = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("infill_extruder_nr"));
+        const coord_t infill_line_width_factor = (layer_nr == 0) ? train_infill.getSettingAsRatio("initial_layer_line_width_factor") : 1.0;
+        const bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") * infill_line_width_factor + 10;
+        if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
+        {
+            infill_skin_overlap = innermost_wall_line_width / 2;
+        }
     }
     coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
     if (layer_nr == 0)
