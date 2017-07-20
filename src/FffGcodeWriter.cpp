@@ -1719,7 +1719,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
     coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
-    if (layer_nr == 0 && storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (gcode_layer.getLayerNr() == 0 && storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         default_support_line_width *= infill_extruder.getSettingAsRatio("initial_layer_line_width_factor");
     }
