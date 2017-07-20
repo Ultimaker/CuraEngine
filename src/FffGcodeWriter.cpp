@@ -1530,28 +1530,6 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     return added_something;
 }
 
-void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const
-{
-    const coord_t perimeter_gaps_line_width = perimeter_gap_config.getLineWidth();
-
-    assert(mesh.roofing_angles.size() > 0);
-    int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
-    Polygons gap_polygons; // will remain empty
-    Polygons gap_lines;
-    constexpr int offset = 0;
-    constexpr int extra_infill_shift = 0;
-    const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-    Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift);
-    infill_comp.generate(gap_polygons, gap_lines);
-    if (gap_lines.size() > 0)
-    {
-        added_something = true;
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-        gcode_layer.setIsInside(true); // going to print stuff inside print object
-        gcode_layer.addLinesByOptimizer(gap_lines, perimeter_gap_config, SpaceFillType::Lines);
-    }
-}
-
 void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const
 {
     const int wall_0_extruder_nr = mesh.getSettingAsExtruderNr("wall_0_extruder_nr");
@@ -1695,6 +1673,28 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         {
             gcode_layer.addLinesByOptimizer(skin_lines, mesh_config.skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
+    }
+}
+
+void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const
+{
+    const coord_t perimeter_gaps_line_width = perimeter_gap_config.getLineWidth();
+    
+    assert(mesh.roofing_angles.size() > 0);
+    int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
+    Polygons gap_polygons; // will remain empty
+    Polygons gap_lines;
+    constexpr int offset = 0;
+    constexpr int extra_infill_shift = 0;
+    const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
+    Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift);
+    infill_comp.generate(gap_polygons, gap_lines);
+    if (gap_lines.size() > 0)
+    {
+        added_something = true;
+        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        gcode_layer.setIsInside(true); // going to print stuff inside print object
+        gcode_layer.addLinesByOptimizer(gap_lines, perimeter_gap_config, SpaceFillType::Lines);
     }
 }
 
