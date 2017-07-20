@@ -1599,11 +1599,11 @@ void FffGcodeWriter::processSkinPartRoofingInfillGeneratePerimeterGaps(const Sli
 
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
-        constexpr int extra_infill_shift = 0;
-        constexpr coord_t offset_from_inner_skin_infill = 0;
-        Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-        Infill infill_comp(pattern, skin_part.roofing_fill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, roofing_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
-        infill_comp.generate(skin_polygons, skin_lines);
+    constexpr int extra_infill_shift = 0;
+    constexpr coord_t offset_from_inner_skin_infill = 0;
+    Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+    Infill infill_comp(pattern, skin_part.roofing_fill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, roofing_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
+    infill_comp.generate(skin_polygons, skin_lines);
 
     // add skin itself!
     if (skin_polygons.size() > 0 || skin_lines.size() > 0)
@@ -1657,8 +1657,9 @@ void FffGcodeWriter::processSkinPartInfillGeneratePerimeterGaps(const SliceDataS
     Polygons skin_lines;
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
+    int bridge = -1;
+    {
         // calculate bridging angle
-        int bridge = -1;
         if (gcode_layer.getLayerNr() > 0)
         {
             bridge = bridgeAngle(skin_part.outline, &mesh.layers[gcode_layer.getLayerNr() - 1]);
@@ -1668,14 +1669,15 @@ void FffGcodeWriter::processSkinPartInfillGeneratePerimeterGaps(const SliceDataS
             pattern = EFillMethod::LINES; // force lines pattern when bridging
             skin_angle = bridge;
         }
+    }
 
-        // calculate polygons and lines
-        constexpr int extra_infill_shift = 0;
-        constexpr coord_t offset_from_inner_skin_infill = 0;
-        const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-        Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-        Infill infill_comp(pattern, skin_part.inner_infill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
-        infill_comp.generate(skin_polygons, skin_lines);
+    // calculate polygons and lines
+    constexpr int extra_infill_shift = 0;
+    constexpr coord_t offset_from_inner_skin_infill = 0;
+    const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
+    Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+    Infill infill_comp(pattern, skin_part.inner_infill, offset_from_inner_skin_infill, skin_line_width, skin_line_width, skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
+    infill_comp.generate(skin_polygons, skin_lines);
 
     // add skin itself!
     if (skin_polygons.size() > 0 || skin_lines.size() > 0)
