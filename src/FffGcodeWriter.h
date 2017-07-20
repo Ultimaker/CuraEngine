@@ -490,7 +490,7 @@ private:
     void processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
 
     /*!
-     * Add the roofing which is the area inside the innermost skin inset which has air directly above
+     * Add the roofing which is the area inside the innermost skin inset which has air 'directly' above
      * 
      * Perimeter gaps are generated when the pattern is concentric
      * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.
@@ -511,7 +511,8 @@ private:
     void processRoofing(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const;
 
     /*!
-     * Add the normal skinfill which is the area inside the innermost skin inset which doesn't have air directly above it
+     * Add the normal skinfill which is the area inside the innermost skin inset
+     * which doesn't have air directly above it if we're printing roofing
      * 
      * Perimeter gaps are generated when the pattern is concentric.
      * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.

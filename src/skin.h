@@ -113,7 +113,7 @@ protected:
     void generateInfill(SliceLayerPart& part, const Polygons& skin);
 
     /*!
-     * Calculate the areas which are directly under air,
+     * Calculate the areas which are 'directly' under air,
      * remove them from the \ref SkinPart::inner_infill and save them in the \ref SkinPart::roofing_fill of the \p part
      * 
      * \param[in,out] part Where to get the sSkinParts to get the outline info from and to store the roofing areas
