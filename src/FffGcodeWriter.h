@@ -532,6 +532,23 @@ private:
     void processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const;
 
     /*!
+     * Process a dense skin feature like roofing or top/bottom
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
+     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * \param area The area to fill
+     * \param config the line config with which to print the print feature
+     * \param pattern the pattern with which to fill the print feature
+     * \param skin_angle the angle to use for linear infill types
+     * \param skin_overlap The amount by which to expand the \p area
+     * \param[out] perimeter_gaps_output Optional output to store the gaps which occur if the pattern is concentric
+     * \param[out] added_something Whether this function added anything to the layer plan
+     */
+    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, Polygons* perimeter_gaps_output, bool& added_something) const;
+
+    /*!
      * Add perimeter gaps of a mesh with the given extruder.
      * 
      * \param[in] storage where the slice data is stored.
