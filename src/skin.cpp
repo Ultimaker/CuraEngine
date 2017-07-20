@@ -57,21 +57,22 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
 Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx)
 {
     Polygons result;
-    if (layer2_nr < static_cast<int>(mesh.layers.size()))
+    if (layer2_nr >= static_cast<int>(mesh.layers.size()))
     {
-        const SliceLayer& layer2 = mesh.layers[layer2_nr];
-        for (const SliceLayerPart& part2 : layer2.parts)
+        return result;
+    }
+    const SliceLayer& layer2 = mesh.layers[layer2_nr];
+    for (const SliceLayerPart& part2 : layer2.parts)
+    {
+        if (part_here.boundaryBox.hit(part2.boundaryBox))
         {
-            if (part_here.boundaryBox.hit(part2.boundaryBox))
+            if (wall_idx == 0)
             {
-                if (wall_idx == 0)
-                {
-                    result.add(part2.outline);
-                }
-                else if (part2.insets.size() >= wall_idx)
-                {
-                    result.add(part2.insets[wall_idx - 1]);
-                }
+                result.add(part2.outline);
+            }
+            else if (part2.insets.size() >= wall_idx)
+            {
+                result.add(part2.insets[wall_idx - 1]);
             }
         }
     }
