@@ -1437,7 +1437,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
         return false;
     }
     bool added_something = false;
-    const unsigned int perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
 
     bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
                             && !getSettingBoolean("magic_spiralize")
@@ -1481,24 +1480,8 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
 
     if (fill_perimeter_gaps)
     { // handle perimeter gaps of normal insets
-        assert(mesh.roofing_angles.size() > 0);
-        int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
-        Polygons gap_polygons; // unused
-        Polygons gap_lines; // soon to be generated gap filler lines
-        constexpr int offset = 0;
-        constexpr int extra_infill_shift = 0;
-        const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-        Infill infill_comp(EFillMethod::LINES, part.perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift);
-        infill_comp.generate(gap_polygons, gap_lines);
-
-        if (gap_lines.size() > 0)
-        {
-            assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
-            added_something = true;
-            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-            gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addLinesByOptimizer(gap_lines, mesh_config.perimeter_gap_config, SpaceFillType::Lines);
-        }
+        assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
+        processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, part.perimeter_gaps, mesh_config.perimeter_gap_config, added_something);
     }
     return added_something;
 }
