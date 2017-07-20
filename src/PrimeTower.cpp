@@ -91,7 +91,11 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
             infill_comp.generate(result_polygons, result_lines);
         }
-        int line_width_layer0 = line_width * storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("initial_layer_line_width_factor");
+        int line_width_layer0 = line_width;
+        if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+        {
+            line_width_layer0 *= storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("initial_layer_line_width_factor");
+        }
         pattern_per_extruder_layer0.emplace_back();
         ExtrusionMoves& pattern = pattern_per_extruder_layer0.back();
         pattern.polygons = ground_poly.offset(-line_width_layer0 / 2);

@@ -1084,12 +1084,12 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
     if (added_something && (!getSettingBoolean("magic_spiralize") || static_cast<int>(gcode_layer.getLayerNr()) < mesh.getSettingAsCount("bottom_layers")))
     {
-        int line_width = mesh.getSettingInMicrons((mesh.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+        int innermost_wall_line_width = mesh.getSettingInMicrons((mesh.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
         {
-            line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
+            innermost_wall_line_width *= mesh.getSettingAsRatio("initial_layer_line_width_factor");
         }
-        gcode_layer.moveInsideCombBoundary(line_width);
+        gcode_layer.moveInsideCombBoundary(innermost_wall_line_width);
     }
 
     gcode_layer.setIsInside(false);
@@ -1716,10 +1716,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(extruder_nr);
 
     const coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
-    const double line_width_factor = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount(storage))? infill_extruder.getSettingAsRatio("initial_layer_line_width_factor") : 1;
-    const coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width") * line_width_factor;
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
+    coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
+    if (layer_nr == 0 && storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        default_support_line_width *= infill_extruder.getSettingAsRatio("initial_layer_line_width_factor");
+    }
 
     EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
     if (gcode_layer.getLayerNr() <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))

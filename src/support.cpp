@@ -85,7 +85,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         for (const PolygonsPart& island_outline : support_islands)
         {
             coord_t support_line_width_here = support_line_width;
-            if (layer_nr == 0)
+            if (layer_nr == 0 && storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
             {
                 support_line_width_here *= infill_extr.getSettingAsRatio("initial_layer_line_width_factor");
             }
