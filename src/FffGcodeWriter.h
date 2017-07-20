@@ -456,11 +456,15 @@ private:
     /*!
      * Add the gcode of the top/bottom skin of the given skin part and of the perimeter gaps.
      * 
-     * Perimeter gaps are handled for skin outlines and printed after the skin fill of the skin part is printed.
+     * Perimeter gaps are handled for the current extruder for the following features if they are printed with this extruder.
+     * - skin outlines
+     * - roofing (if concentric)
+     * - top/bottom (if concentric)
+     * They are all printed at the end of printing the skin part features which are printed with this extruder.
      * 
      * Note that the normal perimeter gaps are printed with the outer wall extruder,
-     * while newly generated perimeter gaps between consecutive insets of a concentric top/bottom pattern
-     * are printed with the top bottom extruder.
+     * while newly generated perimeter gaps
+     * are printed with the extruder with which the feature was printed which generated the gaps.
      * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -489,6 +493,11 @@ private:
      * Add the roofing which is the area inside the innermost skin inset which has air directly above
      * 
      * Perimeter gaps are generated when the pattern is concentric
+     * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.
+     * There are already some perimeter gaps from the skin outline walls.
+     * This function adds more perimeter gaps for the roofing concentric pattern.
+     * The gaps will be filled in \ref concentric_perimeter_gaps
+     * That way we can choose the fastest route between all perimeter gaps of this skin part.
      * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -496,36 +505,33 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param generate_perimeter_gaps Whether we need to generate perimeter gaps for concentric infill of the skinfill area
      * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processSkinPartRoofingInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+    void processSkinPartRoofingInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const;
 
     /*!
-     * Add the perimeter gaps introduced by roofing and top/bottom skin
-     * if either has concentric pattern which caused it to generate perimeter gaps
+     * Add perimeter gaps of a mesh with the given extruder.
      * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param skin_part The skin part for which to create gcode
      * \param top_bottom_concentric_perimeter_gaps The generated perimeter gaps to fill
      * \param perimeter_gap_config the line config with which to print the perimeter gaps print feature
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processSkinPartPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const SkinPart& skin_part, const Polygons& top_bottom_concentric_perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const;
+    void processSkinPartPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& top_bottom_concentric_perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const;
 
     /*!
      * Add the normal skinfill which is the area inside the innermost skin inset which doesn't have air directly above it
      * 
      * Perimeter gaps are generated when the pattern is concentric.
      * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.
-     * There are already some perimeter gaps from the normal walls.
-     * This function adds more perimeter gaps for the skin outlines.
-     * The gaps will be filled in \ref processSkinAndPerimeterGaps
-     * That way we can choose the fastest route between all perimeter gaps.
+     * There are already some perimeter gaps from the skin outline walls.
+     * This function adds more perimeter gaps for the skin concentric pattern.
+     * The gaps will be filled in \ref concentric_perimeter_gaps
+     * That way we can choose the fastest route between all perimeter gaps of this skin part.
      * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -533,11 +539,10 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param generate_perimeter_gaps Whether we need to generate perimeter gaps for concentric infill of the skinfill area
      * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processSkinPartInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, const bool generate_perimeter_gaps, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+    void processSkinPartInfillGeneratePerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
