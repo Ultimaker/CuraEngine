@@ -1687,11 +1687,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         default_support_line_width *= infill_extruder.getSettingAsRatio("initial_layer_line_width_factor");
     }
 
-    EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
-    if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
-    {
-        support_pattern = EFillMethod::GRID;
-    }
+    const EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
