@@ -161,14 +161,6 @@ protected:
 
 private:
     /*!
-     * Helper function to get the innermost walls of each part which might intersect with \p part_here
-     * 
-     * \param part_here The part for which to check
-     * \param layer2 The layer from which to gather the innermost walls
-     */
-    Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
-
-    /*!
      * Helper function to get the walls of each part which might intersect with \p part_here
      * 
      * \param part_here The part for which to check
