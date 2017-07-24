@@ -87,5 +87,16 @@ void AABB::expand(int dist)
     max.Y += dist;
 }
 
+Polygon AABB::toPolygon()
+{
+    Polygon ret;
+    // TODO: verify that this is the correct order (CW vs CCW)
+    ret.add(min);
+    ret.add(Point(min.X, max.Y));
+    ret.add(max);
+    ret.add(Point(max.X, min.Y));
+    return ret;
+}
+
 }//namespace cura
 
