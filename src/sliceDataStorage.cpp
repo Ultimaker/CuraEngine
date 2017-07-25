@@ -393,7 +393,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // all meshes are presupposed to actually have content
     for (const SliceMeshStorage& mesh : meshes)
     {
-        for (unsigned int extruder_nr = 0; extruder_nr <= ret.size(); extruder_nr++)
+        for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
         {
             ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr);
         }
@@ -480,7 +480,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         for (const SliceMeshStorage& mesh : meshes)
         {
-            for (unsigned int extruder_nr = 0; extruder_nr <= ret.size(); extruder_nr++)
+            for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
             {
                 ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr, layer_nr);
             }
