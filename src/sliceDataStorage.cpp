@@ -91,6 +91,10 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
+    if (cross_fill_pattern)
+    {
+        delete cross_fill_pattern;
+    }
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const

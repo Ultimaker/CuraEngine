@@ -72,6 +72,15 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         }
         generateCubicSubDivInfill(result_lines, *mesh);
         break;
+    case EFillMethod::CROSS:
+    case EFillMethod::CROSS_3D:
+        if (!mesh)
+        {
+            logError("Cannot generate Cross infill without a mesh!\n");
+            break;
+        }
+        generateCrossInfill(*mesh, result_polygons, result_lines);
+        break;
     default:
         logError("Fill pattern has unknown value.\n");
         break;
@@ -175,6 +184,26 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
     addLineSegmentsInfill(result, uncropped);
+}
+
+void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_polygons, Polygons& result_lines)
+{
+    assert(mesh.cross_fill_pattern);
+    if (zig_zaggify)
+    {
+        outline_offset += -infill_line_width / 2;
+    }
+    coord_t shift = line_distance / 2;
+    if (pattern == EFillMethod::CROSS_3D)
+    {
+        coord_t period = line_distance * 2;
+        shift = z % period;
+        shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
+        shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
+        shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
+    }
+    Polygons outline = in_outline.offset(outline_offset);
+    mesh.cross_fill_pattern->generate(outline, shift, zig_zaggify, result_polygons, result_lines);
 }
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)

@@ -10,6 +10,7 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"
+#include "infill/SpaceFillingTreeFill.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 
@@ -159,6 +160,14 @@ private:
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
     void generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage& mesh);
+
+    /*!
+     * Generate a 3d pattern of subdivided cubes on their points
+     * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
+     * \param[out] result_polygons The resulting polygons
+     * \param[out] result_lines The resulting lines
+     */
+    void generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_polygons, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

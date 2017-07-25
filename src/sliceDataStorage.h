@@ -230,6 +230,7 @@ public:
 /******************/
 
 class SubDivCube; // forward declaration to prevent dependency loop
+class SpaceFillingTreeFill; // forward declaration to prevent dependency loop
 
 class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
@@ -242,13 +243,16 @@ public:
     std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
     AABB3D bounding_box; //!< the mesh's bounding box
+
     SubDivCube* base_subdiv_cube;
+    SpaceFillingTreeFill* cross_fill_pattern;
 
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
     : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
+    , cross_fill_pattern(nullptr)
     {
         layers.resize(slice_layer_count);
     }
