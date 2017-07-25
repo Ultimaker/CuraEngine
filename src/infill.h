@@ -21,14 +21,15 @@ class Infill
     static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
 
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
+    bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
     const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
-    int outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
-    int infill_line_width; //!< The line width of the infill lines to generate
-    int line_distance; //!< The distance between two infill lines / polygons
-    int infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
+    coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
+    coord_t infill_line_width; //!< The line width of the infill lines to generate
+    coord_t line_distance; //!< The distance between two infill lines / polygons
+    coord_t infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
-    int64_t z; //!< height of the layer for which we generate infill
-    int64_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    coord_t z; //!< height of the layer for which we generate infill
+    coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
@@ -46,6 +47,7 @@ public:
      * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
      */
     Infill(EFillMethod pattern
+        , bool zig_zaggify
         , const Polygons& in_outline
         , int outline_offset
         , int infill_line_width
@@ -61,6 +63,7 @@ public:
         , int zag_skip_count = 0
     )
     : pattern(pattern)
+    , zig_zaggify(zig_zaggify)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
     , infill_line_width(infill_line_width)

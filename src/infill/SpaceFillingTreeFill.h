@@ -15,7 +15,7 @@ class SpaceFillingTreeFill
 public:
     SpaceFillingTreeFill()
     : aabb(AABB(Point(0, 0), Point(10000, 10000)))
-    , tree(aabb, 3)
+    , tree(Point(5000, 5000), 5000, 3)
     {
         {
             SVG svg("debug.html", aabb);
