@@ -97,8 +97,8 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
 
 void Infill::generateConcentric3DInfill(Polygons& result)
 {
-    int period = line_distance * 2;
-    int shift = int64_t(one_over_sqrt_2 * z) % period;
+    coord_t period = line_distance * 2;
+    coord_t shift = int64_t(one_over_sqrt_2 * z) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
@@ -126,8 +126,8 @@ void Infill::generateCubicInfill(Polygons& result)
 
 void Infill::generateTetrahedralInfill(Polygons& result)
 {
-    int period = line_distance * 2;
-    int shift = int64_t(one_over_sqrt_2 * z) % period;
+    coord_t period = line_distance * 2;
+    coord_t shift = int64_t(one_over_sqrt_2 * z) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other

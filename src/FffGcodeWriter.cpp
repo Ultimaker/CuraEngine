@@ -524,7 +524,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Polygons raftLines;
         double fill_angle = 0;
-        Infill infill_comp(EFillMethod::LINES, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+        constexpr bool zig_zaggify_infill = false;
+        Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
@@ -568,7 +569,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
-        Infill infill_comp(EFillMethod::ZIG_ZAG, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+        constexpr bool zig_zaggify_infill = true;
+        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
@@ -606,7 +608,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         double fill_angle = 90 * raftSurfaceLayer;
-        Infill infill_comp(EFillMethod::ZIG_ZAG, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+        constexpr bool zig_zaggify_infill = true;
+        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 
@@ -1128,6 +1131,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         {
             const unsigned int infill_line_width = mesh_config.infill_config[combine_idx].getLineWidth();
             EFillMethod infill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
+            const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
             Polygons infill_polygons;
             Polygons infill_lines;
             for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
@@ -1140,7 +1144,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                     infill_line_distance_here /= 2;
                 }
                 
-                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
+                Infill infill_comp(infill_pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines, &mesh);
             }
             if (infill_lines.size() > 0 || infill_polygons.size() > 0)
@@ -1174,6 +1178,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     Polygons infill_lines;
 
     EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
+    const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
     for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
     {
         unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
@@ -1206,7 +1211,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 //     ^   highest density line dist
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
+        Infill infill_comp(pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
         infill_comp.generate(infill_polygons, infill_lines, &mesh);
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)
@@ -1413,7 +1418,8 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
     int offset = 0;
     int extra_infill_shift = 0;
     constexpr coord_t outline_gap_overlap = 0;
-    Infill infill_comp(EFillMethod::LINES, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, skin_angle, gcode_layer.z, extra_infill_shift);
+    constexpr bool zig_zaggify_infill = false;
+    Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, skin_angle, gcode_layer.z, extra_infill_shift);
     infill_comp.generate(gap_polygons, gap_lines);
 
     if (gap_lines.size() > 0)
@@ -1612,7 +1618,8 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
     constexpr int extra_infill_shift = 0;
     constexpr coord_t offset_from_inner_skin_infill = 0;
-    Infill infill_comp(pattern, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth(), skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
+    Infill infill_comp(pattern, zig_zaggify_infill, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth(), skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps_output);
     infill_comp.generate(skin_polygons, skin_lines);
 
     // add paths
@@ -1639,13 +1646,14 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     const coord_t perimeter_gaps_line_width = perimeter_gap_config.getLineWidth();
     
     assert(mesh.roofing_angles.size() > 0);
+    const bool zig_zaggify_infill = false;
     int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
     Polygons gap_polygons; // will remain empty
     Polygons gap_lines;
     constexpr int offset = 0;
     constexpr int extra_infill_shift = 0;
     const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-    Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift);
+    Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift);
     infill_comp.generate(gap_polygons, gap_lines);
     if (gap_lines.size() > 0)
     {
@@ -1729,6 +1737,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     {
         support_pattern = EFillMethod::GRID;
     }
+    const bool zig_zaggify_infill = support_pattern == EFillMethod::ZIG_ZAG;
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
@@ -1798,7 +1807,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
                 bool use_endpieces = true;
                 Polygons* perimeter_gaps = nullptr;
-                Infill infill_comp(support_pattern, support_area, offset_from_outline, support_line_width,
+                Infill infill_comp(support_pattern, zig_zaggify_infill, support_area, offset_from_outline, support_line_width,
                                    support_line_distance_here, current_support_infill_overlap, support_infill_angle, gcode_layer.z, support_shift,
                                    perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces);
                 infill_comp.generate(support_polygons, support_lines);
@@ -1836,6 +1845,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
 
     const EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
     const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_roof_height", gcode_layer.getLayerNr());
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr int support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr int outline_offset =  0;
     constexpr int extra_infill_shift = 0;
@@ -1848,7 +1858,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     { // if roof is dense
         support_roof_line_distance *= roof_extr.getSettingAsRatio("initial_layer_line_width_factor");
     }
-    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill roof_computation(pattern, zig_zaggify_infill, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
@@ -1879,6 +1889,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
 
     const EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
     const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_bottom_height", gcode_layer.getLayerNr());
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr int support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr int outline_offset =  0;
     constexpr int extra_infill_shift = 0;
@@ -1887,7 +1898,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool connected_zigzags = false;
 
     const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
-    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill bottom_computation(pattern, zig_zaggify_infill, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
