@@ -363,5 +363,12 @@ void LinearAlg2DTest::getPointOnLineWithDistAssert(const Point p, const Point a,
     CPPUNIT_ASSERT_MESSAGE(ss.str(), (!actual_returned && !supposed_returned) || (actual_returned && vSize2(actual_result - supposed_result) < 10 * 10 && std::abs(returned_dist - dist) < 10));
 }
 
+void LinearAlg2DTest::rotateAroundTest()
+{
+    Point3Matrix mat = LinearAlg2D::rotateAround(Point(10, 17), 90);
+    Point p(25, 30);
+    Point result = mat.apply(p);
+    CPPUNIT_ASSERT_MESSAGE("LinearAlg2D::rotateAround failed", result == Point(-3, 32));
+}
 
 }

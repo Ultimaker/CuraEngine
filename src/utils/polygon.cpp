@@ -511,6 +511,21 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     ListPolyIt::convertListPolygonToPolygon(result_list_poly, *this);
 }
 
+void PolygonRef::applyMatrix(const PointMatrix& matrix)
+{
+    for (unsigned int path_idx = 0; path_idx < path->size(); path_idx++)
+    {
+        (*path)[path_idx] = matrix.apply((*path)[path_idx]);
+    }
+}
+void PolygonRef::applyMatrix(const Point3Matrix& matrix)
+{
+    for (unsigned int path_idx = 0; path_idx < path->size(); path_idx++)
+    {
+        (*path)[path_idx] = matrix.apply((*path)[path_idx]);
+    }
+}
+
 Polygons Polygons::getOutsidePolygons() const
 {
     Polygons ret;

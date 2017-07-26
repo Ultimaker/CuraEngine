@@ -137,6 +137,7 @@ set(engine_TEST_INFILL
 )
 set(engine_TEST_UTILS
     SparseGridTest
+    IntPointTest
     LinearAlg2DTest
     PolygonUtilsTest
     PolygonTest
