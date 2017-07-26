@@ -60,10 +60,12 @@ void ZigzagConnectorProcessorNoEndPieces::registerScanlineSegmentIntersection(co
 
 void ZigzagConnectorProcessorNoEndPieces::registerPolyFinished()
 {
-    const bool is_last_piece_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
-    const bool add_last_piece = !is_last_piece_end_piece && last_scanline_is_even;
+    const bool last_piece_is_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
 
-    if (add_last_piece)
+    // decides whether to add this zag according to the following rules:
+    //  - if this zag lays in an even-numbered scanline segment,
+    //  - and it is not an end piece
+    if (!last_piece_is_end_piece && last_scanline_is_even)
     { // only if it's a normal zigzag connector; not when the whole boundary didn't cross any scanlines
         for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); ++point_idx)
         {
@@ -81,8 +83,9 @@ void ZigzagConnectorProcessorNoEndPieces::registerPolyFinished()
     // reset member variables
     is_first_zigzag_connector = true;
     first_zigzag_connector_ends_in_even_scanline = true;
-    last_scanline_is_even = false; 
+    last_scanline_is_even = false;
     first_zigzag_connector.clear();
+    current_zag_count = 0;
     zigzag_connector.clear();
 }
 

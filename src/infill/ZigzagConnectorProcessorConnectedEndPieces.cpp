@@ -20,10 +20,10 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
     }
     else
     {
-        bool add_connection = previous_scanline_is_even;  // add connections on even segments
-        add_connection |= previous_scanline_is_even == this_scanline_is_even;  // end piece
-
-        if (add_connection)
+        // add this zag connection is the following cases:
+        //  - if this zag lays in an even-numbered scanline segment
+        //  - if this zag is an endpiece (check if the previous and the current scanlines are the same)
+        if (previous_scanline_is_even && previous_scanline_is_even == this_scanline_is_even)
         {
             if (skip_some_zags && ++current_zag_count >= zag_skip_count)
             {
@@ -48,11 +48,13 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
 
 void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
 {
-    const bool is_last_piece_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
+    const bool last_piece_is_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
     const bool need_to_skip_this_piece = skip_some_zags && ++current_zag_count >= zag_skip_count;
-    const bool add_last_piece = is_last_piece_end_piece || (last_scanline_is_even && !need_to_skip_this_piece);
 
-    if (add_last_piece)
+    // decides whether to add this zag according to the following rules:
+    //  - if this zag lays in an even-numbered scanline segment, or
+    //  - if this zag is an endpiece (check if the previous and the current scanlines are the same)
+    if (last_piece_is_end_piece || (last_scanline_is_even && !need_to_skip_this_piece))
     {
         for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
         {
@@ -71,7 +73,8 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
     // reset member variables
     is_first_zigzag_connector = true;
     first_zigzag_connector_ends_in_even_scanline = true;
-    last_scanline_is_even = false; 
+    last_scanline_is_even = false;
+    current_zag_count = 0;
     first_zigzag_connector.clear();
     zigzag_connector.clear();
 }
