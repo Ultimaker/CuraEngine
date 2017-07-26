@@ -21,7 +21,7 @@ SpaceFillingTree::SpaceFillingTree(
     // construct 1st order children
     for (Direction dir = static_cast<Direction>(0); dir < Direction::DIRECTION_COUNT; dir = static_cast<Direction>(dir + 1))
     {
-        root->addChild(dir, first_offset);
+        root->constructNode(dir, first_offset);
     }
     root->prune();
 }
@@ -56,7 +56,9 @@ void SpaceFillingTree::debugOutput(SVG& out, bool output_dfs_order)
 
 void SpaceFillingTree::debugCheck()
 {
+#ifdef DEBUG
     root->debugCheck();
+#endif // DEBUG
 }
 
 SpaceFillingTree::Node::Node(SpaceFillingTree::Node* parent, int depth, Point middle, Direction parent_to_here_direction)
@@ -82,7 +84,7 @@ SpaceFillingTree::Node::~Node()
     }
 }
 
-void SpaceFillingTree::Node::addChild(Direction direction, coord_t child_offset)
+void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_offset)
 {
     Point child_middle_offset = Point(child_offset, child_offset);
     if (direction == Direction::LD || direction == Direction::RD)
@@ -143,7 +145,7 @@ void SpaceFillingTree::Node::addChild(Direction direction, coord_t child_offset)
     }
     for (Direction child_dir = static_cast<Direction>(0); child_dir < Direction::DIRECTION_COUNT; child_dir = static_cast<Direction>(child_dir + 1))
     {
-        new_node->addChild(child_dir, child_offset / 2);
+        new_node->constructNode(child_dir, child_offset / 2);
     }
 }
 
