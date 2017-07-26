@@ -19,14 +19,20 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     generateTreePath(tree_path);
     Polygon infill_poly = offsetTreePath(tree_path, shift);
 
-    Polygons infill_pattern;
-    infill_pattern.add(infill_poly);
     if (zig_zaggify)
     {
+        Polygons infill_pattern;
+        infill_pattern.add(infill_poly);
         result_polygons = infill_pattern.intersection(outlines);
     }
     else
     {
+        if (infill_poly.size() > 0)
+        {
+            infill_poly.add(infill_poly[0]);
+        }
+        Polygons infill_pattern;
+        infill_pattern.add(infill_poly);
         Polygons poly_lines = outlines.intersectionPolyLines(infill_pattern);
         for (PolygonRef poly_line : poly_lines)
         {
