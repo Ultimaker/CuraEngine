@@ -19,10 +19,7 @@ SpaceFillingTree::SpaceFillingTree(
     // therefore the initial width = .5 * radius
     coord_t first_offset = radius / 2; // horizontal/vertical distance from the middle to the end of the first line segment
     // construct 1st order children
-    for (Direction dir = static_cast<Direction>(0); dir < Direction::DIRECTION_COUNT; dir = static_cast<Direction>(dir + 1))
-    {
-        root->constructNode(dir, first_offset);
-    }
+    root->construct(first_offset);
     root->prune();
 }
 
@@ -81,6 +78,14 @@ SpaceFillingTree::Node::~Node()
         {
             delete child;
         }
+    }
+}
+
+void SpaceFillingTree::Node::construct(coord_t child_offset)
+{
+    for (Direction child_dir = static_cast<Direction>(0); child_dir < Direction::DIRECTION_COUNT; child_dir = static_cast<Direction>(child_dir + 1))
+    {
+        constructNode(child_dir, child_offset);
     }
 }
 
@@ -143,10 +148,7 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
     {
         return;
     }
-    for (Direction child_dir = static_cast<Direction>(0); child_dir < Direction::DIRECTION_COUNT; child_dir = static_cast<Direction>(child_dir + 1))
-    {
-        new_node->constructNode(child_dir, child_offset / 2);
-    }
+    new_node->construct(child_offset / 2);
 }
 
 void SpaceFillingTree::Node::prune()
