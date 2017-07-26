@@ -27,54 +27,54 @@ public:
         Point middle,
         coord_t radius,
         int depth)
-    : root(getRoot(middle, depth))
+    : root(nullptr)
     {
+        root = new Node(nullptr
+            , depth
+            , middle
+            , Direction::DIRECTION_COUNT); // TODO: what should be the direction?
+
         // total width = radius becase 1 + .5 + .25 + ... = 2
         // therefore the initial width = .5 * radius
         coord_t first_offset = radius / 2; // horizontal/vertical distance from the middle to the end of the first line segment
         // construct 1st order children
         for (Direction dir = static_cast<Direction>(0); dir < Direction::DIRECTION_COUNT; dir = static_cast<Direction>(dir + 1))
         {
-            root.addChild(dir, first_offset);
+            root->addChild(dir, first_offset);
         }
-        root.prune();
+        root->prune();
     }
 
     SpaceFillingTree(SpaceFillingTree&& other)
     : aabb(other.aabb)
     , root(other.root)
     { // move constructor
-        for (Node*& child : other.root.children)
-        {
-            child = nullptr;
-        }
+        other.root = nullptr;
     }
 
     ~SpaceFillingTree()
     {
-        for (Node* child : root.children)
+        if (root)
         {
-            delete child;
+            delete root;
         }
     }
 
     void walk(LocationVisitor& visitor) const
     {
-        root.walk(visitor);
+        root->walk(visitor);
     }
 
     void debugOutput(SVG& out, bool output_dfs_order = false)
     {
-        debugCheck();
-
         out.writePolygon(aabb.toPolygon());
         int root_order = 0;
-        root.debugOutput(out, root.middle, output_dfs_order, root_order); // root will draw line from its middle to the same middle
+        root->debugOutput(out, root->middle, output_dfs_order, root_order); // root will draw line from its middle to the same middle
     }
 
     void debugCheck()
     {
-        root.debugCheck();
+        root->debugCheck();
     }
 protected:
     /*!
@@ -88,6 +88,7 @@ protected:
         LD = 3,
         DIRECTION_COUNT = 4
     };
+
     /*!
      * TODO
      */
@@ -98,7 +99,7 @@ protected:
         int depth;
         Point middle;
         Direction parent_to_here_direction;
-        Node* children[4];
+        Node* children[4]; //!< connected junction points ordered on absolute direction
 
         Node(Node* parent, int depth, Point middle, Direction parent_to_here_direction)
         : parent(parent)
@@ -116,7 +117,10 @@ protected:
         {
             for (Node* child : children)
             {
-                delete child;
+                if (child)
+                {
+                    delete child;
+                }
             }
         }
 
@@ -143,12 +147,10 @@ protected:
                  * parent------------->this
                  *         new_node<---'
                  */
-                assert(parent);
                 new_node = new Node(parent, depth - 1, child_middle, parent_to_here_direction);
-                new_node->children[parent_to_here_direction] = this;
                 parent->children[parent_to_here_direction] = new_node;
+                new_node->children[parent_to_here_direction] = this;
                 parent = new_node;
-                new_node = new_node;
             }
             else
             {
@@ -163,10 +165,20 @@ protected:
                     * this-->new_node-->child
                     */
                     new_node->children[direction] = this->children[direction];
+                    new_node->children[direction]->parent = new_node;
                 }
                 this->children[direction] = new_node;
             }
+            if (parent)
+            {
+                parent->debugCheck();
+            }
+            else
+            {
+                debugCheck();
+            }
 
+            assert(new_node->parent == this || new_node == parent);
             if (depth <= 0)
             {
                 return;
@@ -179,9 +191,9 @@ protected:
 
         void prune()
         {
-            for (Direction child_dir = static_cast<Direction>(0); child_dir < Direction::DIRECTION_COUNT; child_dir = static_cast<Direction>(child_dir + 1))
+            for (int child_dir = 0; child_dir < Direction::DIRECTION_COUNT; child_dir++)
             {
-                Node* child = children[child_dir];
+                Node*& child = children[child_dir];
                 if (!child)
                 {
                     continue;
@@ -191,11 +203,20 @@ protected:
                 Node* left = child->children[(child_dir + 3) % Direction::DIRECTION_COUNT];
                 if (front && !left && !right)
                 {
-                    children[child_dir] = front;
-                    child->children[child_dir] = nullptr; // so that it won't be deleted
-                    delete child;
+                    Node* original_child = child;
+                    child = front; // move grandchild to children
+                    child->parent = this;
+                    original_child->children[child_dir] = nullptr; // so that it won't be deleted
+                    assert(!original_child->children[0]);
+                    assert(!original_child->children[1]);
+                    assert(!original_child->children[2]);
+                    assert(!original_child->children[3]);
+                    delete original_child;
+                    child_dir--; // make the next iteration of this loop handle this new child again
+                    debugCheck();
                 }
-                children[child_dir]->prune(); // prune new or existing child recursively
+                child->prune(); // prune new or existing child recursively
+                assert(child->parent == this);
             }
         }
 
@@ -208,6 +229,7 @@ protected:
                 Node* child = children[direction];
                 if (child)
                 {
+                    assert(child->parent == this);
                     child->walk(visitor);
                     visitor.visit(middle);
                 }
@@ -239,26 +261,23 @@ protected:
 
         void debugCheck()
         {
-            for (Direction child_dir = static_cast<Direction>(0); child_dir < Direction::DIRECTION_COUNT; child_dir = static_cast<Direction>(child_dir + 1))
+#ifdef DEBUG
+            for (int child_dir = 0; child_dir < Direction::DIRECTION_COUNT; child_dir++)
             {
                 Node* child = children[child_dir];
                 if (child)
                 {
                     assert(child->children[(child_dir + 2) % Direction::DIRECTION_COUNT] == nullptr);
+                    assert(child->parent == this);
+                    assert(child->parent_to_here_direction == static_cast<Direction>(child_dir));
+                    child->debugCheck();
                 }
             }
+#endif // DEBUG
         }
     };
     AABB aabb;
-    Node getRoot(Point middle, int depth)
-    {
-        Node root(nullptr
-            , depth
-            , middle
-            , Direction::DIRECTION_COUNT); // TODO: what should be the direction?
-        return root;
-    }
-    Node root;
+    Node* root;
 };
 } // namespace cura
 
