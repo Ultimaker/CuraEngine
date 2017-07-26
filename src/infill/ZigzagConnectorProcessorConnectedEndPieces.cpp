@@ -25,7 +25,8 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
         //  - if this zag is an endpiece (check if the previous and the current scanlines are the same)
         if (previous_scanline_is_even || previous_scanline_is_even == this_scanline_is_even)
         {
-            if (skip_some_zags && ++current_zag_count >= zag_skip_count)
+            ++current_zag_count;
+            if (skip_some_zags && current_zag_count >= zag_skip_count)
             {
                 // skip this zag and reset the count
                 current_zag_count = 0;
@@ -48,7 +49,8 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
 void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
 {
     const bool last_piece_is_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
-    const bool need_to_skip_this_piece = skip_some_zags && ++current_zag_count >= zag_skip_count;
+    ++current_zag_count;
+    const bool need_to_skip_this_piece = skip_some_zags && current_zag_count >= zag_skip_count;
 
     // decides whether to add this zag according to the following rules:
     //  - if this zag lays in an even-numbered scanline segment, or
