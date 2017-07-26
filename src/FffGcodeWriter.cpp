@@ -1843,7 +1843,11 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
 
-    const coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
+    coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
+    if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * roof_extr.getSettingInMicrons("support_roof_line_width"))
+    { // if roof is dense
+        support_roof_line_distance *= roof_extr.getSettingAsRatio("initial_layer_line_width_factor");
+    }
     Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
@@ -1882,7 +1886,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
 
-    const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance");
+    const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
     Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
