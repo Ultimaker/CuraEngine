@@ -42,7 +42,6 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
     }
     zigzag_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
     zigzag_connector.push_back(intersection);
-    last_connector_point = intersection;
 }
 
 

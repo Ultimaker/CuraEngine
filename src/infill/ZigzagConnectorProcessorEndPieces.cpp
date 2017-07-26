@@ -15,7 +15,6 @@ void ZigzagConnectorProcessorEndPieces::registerVertex(const Point& vertex)
     { // it's yet unclear whether the line segment should be included, so we store it until we know
         zigzag_connector.push_back(vertex);
     }
-    last_connector_point = vertex;
 }
 
 
