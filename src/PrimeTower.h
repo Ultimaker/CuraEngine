@@ -83,11 +83,10 @@ public:
      * 
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
-     * \param layer_nr The layer for which to generate the prime tower paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const;
+    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -131,11 +130,10 @@ private:
      * Add path plans for the prime tower to the \p gcode_layer
      *
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
-     * \param layer_nr The layer for which to generate the prime tower paths
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder) const;
+    void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
 
     /*!
      * Plan the moves for wiping and purging (if enabled) the current nozzles oozed material before starting
@@ -145,10 +143,9 @@ private:
      * 
      * \param storage where to get settings from
      * \param[out] gcode_layer where to add the planned paths for wiping
-     * \param layer_nr The layer number of the \p gcode_layer
      * \param extruder_nr The current extruder
      */
-    void preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int layer_nr, const int extruder_nr) const;
+    void preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const;
 
     /*!
      * Plan a purge move using the prime tower.
@@ -158,14 +155,13 @@ private:
      * and this is called "purge". This feature can be enabled when prime tower wipe is enabled.
      *
      * \param gcode_layer the layer plan to used
-     * \param layer_nr the current layer number
      * \param extruder_nr the extruder number that will be purged
      * \param train the extruder train of the extruder what will be purged
      * \param start_pos the start position of the purge move
      * \param end_pos the end position of the purge move
      * \param purge_volume the purge volume in mm^3
      */
-    void addPurgeMove(LayerPlan& gcode_layer, int layer_nr, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const;
+    void addPurgeMove(LayerPlan& gcode_layer, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const;
 };
 
 

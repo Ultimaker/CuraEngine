@@ -113,20 +113,36 @@ protected:
     void generateInfill(SliceLayerPart& part, const Polygons& skin);
 
     /*!
-     * Generate the skin insets.
+     * Calculate the areas which are 'directly' under air,
+     * remove them from the \ref SkinPart::inner_infill and save them in the \ref SkinPart::roofing_fill of the \p part
+     * 
+     * \param[in,out] part Where to get the sSkinParts to get the outline info from and to store the roofing areas
+     */
+    void generateRoofing(SliceLayerPart& part);
+
+    /*!
+     * Generate the skin insets and the inner infill area
      * 
      * \param part The part where the skin outline information (input) is stored and
      * where the skin insets (output) are stored.
      */
-    void generateSkinInsets(SliceLayerPart* part);
+    void generateSkinInsetsAndInnerSkinInfill(SliceLayerPart* part);
 
     /*!
-     * Generate the skin insets of a skin part.
+     * Generate the skin insets of a skin part
      * 
      * \param skin_part The part where the skin outline information (input) is stored and
      * where the skin insets (output) are stored.
      */
     void generateSkinInsets(SkinPart& skin_part);
+
+    /*!
+     * Generate the inner_infill_area of a skin part
+     * 
+     * \param skin_part The part where the skin outline information (input) is stored and
+     * where the inner infill area (output) is stored.
+     */
+    void generateInnerSkinInfill(SkinPart& skin_part);
 
 protected:
     const int layer_nr; //!< The index of the layer for which to generate the skins and infill.
@@ -149,6 +165,15 @@ private:
      * \param layer2 The layer from which to gather the innermost walls
      */
     Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
+
+    /*!
+     * Helper function to get the walls of each part which might intersect with \p part_here
+     * 
+     * \param part_here The part for which to check
+     * \param layer2_nr The layer index from which to gather the outlines
+     * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
+     */
+    Polygons getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx);
 };
 
 }//namespace cura
