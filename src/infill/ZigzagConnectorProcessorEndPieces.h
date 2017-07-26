@@ -14,8 +14,8 @@ class ZigzagConnectorProcessorEndPieces : public ActualZigzagConnectorProcessor
 protected:
     Point last_connector_point; //!< last registered boundary vertex or scanline-coundary intersection
 
-    ZigzagConnectorProcessorEndPieces(const PointMatrix& rotation_matrix, Polygons& result)
-    : ActualZigzagConnectorProcessor(rotation_matrix, result)
+    ZigzagConnectorProcessorEndPieces(const PointMatrix& rotation_matrix, Polygons& result, bool skip_some_zags = false, int zag_skip_count = 0)
+    : ActualZigzagConnectorProcessor(rotation_matrix, result, skip_some_zags, zag_skip_count)
     , last_connector_point(0,0)
     {
     }

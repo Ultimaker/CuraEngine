@@ -37,6 +37,8 @@ class Infill
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
+    bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
+    int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -60,6 +62,8 @@ public:
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
+        , bool skip_some_zags = false
+        , int zag_skip_count = 0
     )
     : pattern(pattern)
     , in_outline(in_outline)
@@ -73,6 +77,8 @@ public:
     , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
+    , skip_some_zags(skip_some_zags)
+    , zag_skip_count(zag_skip_count)
     {
     }
     /*!

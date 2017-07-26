@@ -19,21 +19,28 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentInter
     }
     else
     {
-        if (previous_scanline_is_even && !this_scanline_is_even)
-        { // if we left from an even scanline, but not if this is the line segment connecting that zigzag_connector to an even scanline
-            for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
+        const bool is_end_piece = previous_scanline_is_even == this_scanline_is_even;
+        const bool add_connection = previous_scanline_is_even || is_end_piece;  // add connections on even segments or it is an endpiece
+
+        if (add_connection)
+        {
+            if (skip_some_zags && ++current_zag_count >= zag_skip_count)
             {
-                addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
+                // skip this zag and reset the count
+                current_zag_count = 0;
             }
-            addLine(zigzag_connector.back(), intersection);
-        }
-        else if (!previous_scanline_is_even && !this_scanline_is_even) // if we end an odd boundary in an odd segment
-        { // add whole oddBoundarySegment (including the just obtained point)
-            for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
+            else
             {
-                addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
+                for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
+                {
+                    addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
+                }
+                // if it is an end piece, the last line will not be connected
+                if (zigzag_connector.size() > 0 && !is_end_piece)
+                {
+                    addLine(zigzag_connector.back(), intersection);
+                }
             }
-            // skip the last segment to the [intersection]
         }
     }
     zigzag_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
@@ -45,7 +52,8 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentInter
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
 {
     const bool is_last_piece_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
-    const bool add_last_piece = is_last_piece_end_piece || last_scanline_is_even;
+    const bool need_to_skip_this_piece = skip_some_zags && ++current_zag_count >= zag_skip_count;
+    const bool add_last_piece = is_last_piece_end_piece || (last_scanline_is_even && !need_to_skip_this_piece);
 
     if (add_last_piece)
     {

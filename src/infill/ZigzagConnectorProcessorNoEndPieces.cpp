@@ -33,13 +33,20 @@ void ZigzagConnectorProcessorNoEndPieces::registerScanlineSegmentIntersection(co
     else
     {
         if (previous_scanline_is_even && !this_scanline_is_even)
-        { // add whole zigzag_connector (including the just obtained point)
-            for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
+        {
+            if (skip_some_zags && ++current_zag_count >= zag_skip_count)
             {
-                addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
+                // skip this zag and reset the count
+                current_zag_count = 0;
             }
-            addLine(zigzag_connector.back(), intersection);
-            zigzag_connector.clear();
+            else
+            {   // add whole zigzag_connector (including the just obtained point)
+                for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
+                {
+                    addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
+                }
+                addLine(zigzag_connector.back(), intersection);
+            }
         }
     }
     zigzag_connector.clear(); // we're starting a new zigzag connector, so clear the old one

@@ -12,8 +12,8 @@ namespace cura
 class ZigzagConnectorProcessorNoEndPieces : public ActualZigzagConnectorProcessor
 {
 public:
-    ZigzagConnectorProcessorNoEndPieces(const PointMatrix& rotation_matrix, Polygons& result)
-    : ActualZigzagConnectorProcessor(rotation_matrix, result)
+    ZigzagConnectorProcessorNoEndPieces(const PointMatrix& rotation_matrix, Polygons& result, bool skip_some_zags = false, int zag_skip_count = 0)
+    : ActualZigzagConnectorProcessor(rotation_matrix, result, skip_some_zags, zag_skip_count)
     {
     }
 

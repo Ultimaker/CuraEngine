@@ -229,18 +229,18 @@ void Infill::generateZigZagInfill(Polygons& result, const int line_distance, con
     {
         if (connected_zigzags)
         {
-            ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
+            ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result, skip_some_zags, zag_skip_count);
             generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
         }
         else
         {
-            ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
+            ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result, skip_some_zags, zag_skip_count);
             generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
         }
     }
     else 
     {
-        ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
+        ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result, skip_some_zags, zag_skip_count);
         generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
     }
 }
