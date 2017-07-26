@@ -154,6 +154,13 @@ protected:
         ~Node();
 
         /*!
+         * Construct the sub-tree of this node recursively.
+         * 
+         * \param child_offset The horizontal and vertical offset from this middle to create a child
+         */
+        void construct(coord_t child_offset);
+
+        /*!
          * Construct the child and its sub-tree of a given direction.
          * 
          * \param direction The direction in which to construct a child
