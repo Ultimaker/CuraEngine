@@ -6,7 +6,7 @@ namespace cura {
 SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_aabb)
 : model_aabb(model_aabb)
 , line_distance(line_distance)
-, tree_params(getTreeParams(model_aabb))
+, tree_params(getTreeParams(line_distance, model_aabb))
 , tree(tree_params.middle, tree_params.radius, tree_params.depth)
 {
 }
@@ -38,7 +38,7 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     }
 }
 
-SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(AABB3D model_aabb)
+SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t line_distance, AABB3D model_aabb)
 {
     TreeParams ret;
     AABB aabb(Point(model_aabb.min.x, model_aabb.min.y), Point(model_aabb.max.x, model_aabb.max.y));
