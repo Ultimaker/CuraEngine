@@ -203,7 +203,7 @@ void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_
         shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
     }
     Polygons outline = in_outline.offset(outline_offset);
-    mesh.cross_fill_pattern->generate(outline, shift, zig_zaggify, result_polygons, result_lines);
+    mesh.cross_fill_pattern->generate(outline, shift, zig_zaggify, fill_angle, result_polygons, result_lines);
 }
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)

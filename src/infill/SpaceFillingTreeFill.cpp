@@ -1,6 +1,8 @@
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SpaceFillingTreeFill.h"
 
+#include "../utils/linearAlg2D.h" // rotateAround
+
 namespace cura {
 
 SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_aabb)
@@ -11,13 +13,15 @@ SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_a
 {
 }
 
-void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, Polygons& result_polygons, Polygons& result_lines) const
+void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, Polygons& result_polygons, Polygons& result_lines) const
 {
-    AABB aabb(Point(model_aabb.min.x, model_aabb.min.y), Point(model_aabb.max.x, model_aabb.max.y));
+    Point3 model_middle = model_aabb.getMiddle();
+    Point3Matrix transformation = LinearAlg2D::rotateAround(Point(model_middle.x, model_middle.y), fill_angle + 45);
 
     Polygon tree_path;
     generateTreePath(tree_path);
     Polygon infill_poly = offsetTreePath(tree_path, shift);
+    infill_poly.applyMatrix(transformation); // apply rotation
 
     if (zig_zaggify)
     {
@@ -48,8 +52,9 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
 {
     TreeParams ret;
     AABB aabb(Point(model_aabb.min.x, model_aabb.min.y), Point(model_aabb.max.x, model_aabb.max.y));
-    Point aabb_size = aabb.max - aabb.min;
-    coord_t minimal_radius = std::min(aabb_size.X, aabb_size.Y) / 2;
+    const Point aabb_size = aabb.max - aabb.min;
+    coord_t minimal_radius = std::max(aabb_size.X, aabb_size.Y) / 2;
+    minimal_radius *= sqrt(2.0); // to account for any possible infill angle
 
     /*
      * For the normal cross infill the width of the cross is equal to the width of the crosses which are left out.

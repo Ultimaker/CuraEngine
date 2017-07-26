@@ -64,10 +64,11 @@ public:
      * \param outlines The area by which to cut the infill pattern.
      * \param shift The shift of the infill pattern from the cross fractal toward the square region
      * \param zig_zaggify Whether to connect the cross lines via the \p outlines
+     * \param fill_angle The direction of the main crosses (modulo 90degrees)
      * \param[out] result_polygons The output when \p zig_zaggify
      * \param[out] result_lines The output when not \p zig_zaggify
      */
-    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, Polygons& result_polygons, Polygons& result_lines) const;
+    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, Polygons& result_polygons, Polygons& result_lines) const;
 private:
     AABB3D model_aabb; //!< The AABB of the boundary to cover
     coord_t line_distance; //!< The width of the crosses and of the straight part of the anti-crosses
