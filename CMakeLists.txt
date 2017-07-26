@@ -94,6 +94,7 @@ set(engine_SRCS # Except main.cpp.
     src/Wireframe2gcode.cpp
 
     src/infill/NoZigZagConnectorProcessor.cpp
+    src/infill/SpaceFillingTreeFill.cpp
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
@@ -129,6 +130,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
+    src/utils/SpaceFillingTree.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
