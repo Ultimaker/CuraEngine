@@ -23,7 +23,7 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
         // add this zag connection is the following cases:
         //  - if this zag lays in an even-numbered scanline segment
         //  - if this zag is an endpiece (check if the previous and the current scanlines are the same)
-        if (previous_scanline_is_even && previous_scanline_is_even == this_scanline_is_even)
+        if (previous_scanline_is_even || previous_scanline_is_even == this_scanline_is_even)
         {
             if (skip_some_zags && ++current_zag_count >= zag_skip_count)
             {
