@@ -53,8 +53,8 @@ void ZigzagConnectorProcessorNoEndPieces::registerScanlineSegmentIntersection(co
 
 void ZigzagConnectorProcessorNoEndPieces::registerPolyFinished()
 {
-    const bool is_last_piece_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
-    const bool add_last_piece = !is_last_piece_end_piece && last_scanline_is_even;
+    const bool last_piece_is_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
+    const bool add_last_piece = !last_piece_is_end_piece && last_scanline_is_even;
 
     if (add_last_piece)
     { // only if it's a normal zigzag connector; not when the whole boundary didn't cross any scanlines
