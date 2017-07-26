@@ -62,6 +62,8 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getPointOnLineWithDistTest5);
     CPPUNIT_TEST(getPointOnLineWithDistTest6);
     CPPUNIT_TEST(getPointOnLineWithDistTest7);
+
+    CPPUNIT_TEST(rotateAroundTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -130,6 +132,8 @@ public:
     void getPointOnLineWithDistTest5();
     void getPointOnLineWithDistTest6();
     void getPointOnLineWithDistTest7();
+
+    void rotateAroundTest();
 
 private:
     /*!

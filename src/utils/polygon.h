@@ -421,6 +421,12 @@ public:
     { 
         path->pop_back();
     }
+
+    /*!
+     * Apply a matrix to each vertex in this polygon
+     */
+    void applyMatrix(const PointMatrix& matrix);
+    void applyMatrix(const Point3Matrix& matrix);
 };
 
 class Polygon : public PolygonRef
