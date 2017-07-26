@@ -568,14 +568,16 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
         //SubDivCube Pre-compute Octree
-        if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
+        if (mesh.getSettingInMicrons("infill_line_distance") > 0
+            && mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
         {
             SubDivCube::precomputeOctree(mesh);
         }
 
         //SubDivCube Pre-compute Octree
-        if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS
-            || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D
+        if (mesh.getSettingInMicrons("infill_line_distance") > 0
+            && (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS
+                || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)
         )
         {
             mesh.cross_fill_pattern = new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance"), mesh.bounding_box);
