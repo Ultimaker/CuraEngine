@@ -165,7 +165,7 @@ void GcodeLayerThreader<T>::consume(int item_idx)
     {
         assert(item_idx == last_consumed_idx + 1);
         last_consumed_idx = item_idx;
-        if (produced[last_consumed_idx + 1] && last_consumed_idx + 1 < end_item_argument_index - start_item_argument_index)
+        if (last_consumed_idx + 1 < end_item_argument_index - start_item_argument_index && produced[last_consumed_idx + 1])
         {
             assert(!to_be_consumed_item_idx && "The next produced item shouldn't already be noted as being consumable because of the lock!");
             to_be_consumed_item_idx = last_consumed_idx + 1;

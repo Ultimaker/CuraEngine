@@ -52,6 +52,37 @@ Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx)
+{
+    Polygons result;
+    if (layer2_nr >= static_cast<int>(mesh.layers.size()))
+    {
+        return result;
+    }
+    const SliceLayer& layer2 = mesh.layers[layer2_nr];
+    for (const SliceLayerPart& part2 : layer2.parts)
+    {
+        if (part_here.boundaryBox.hit(part2.boundaryBox))
+        {
+            if (wall_idx == 0)
+            {
+                result.add(part2.outline);
+            }
+            else if (part2.insets.size() >= wall_idx)
+            {
+                result.add(part2.insets[wall_idx - 1]);
+            }
+        }
+    }
+    return result;
+};
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
  * generateSkinAreas reads data from mesh.layers.parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  * generateSkinInsets only read/writes the skin_parts from the current layer.
  *
@@ -64,8 +95,10 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     SliceLayer* layer = &mesh.layers[layer_nr];
     for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
     {
-        SliceLayerPart* part = &layer->parts[part_nr];
-        generateSkinInsets(part);
+        SliceLayerPart& part = layer->parts[part_nr];
+        generateSkinInsetsAndInnerSkinInfill(&part);
+
+        generateRoofing(part);
     }
 }
 
@@ -229,16 +262,12 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part)
+void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerPart* part)
 {
-    if (skin_inset_count == 0)
-    {
-        return;
-    }
-    
     for (SkinPart& skin_part : part->skin_parts)
     {
         generateSkinInsets(skin_part);
+        generateInnerSkinInfill(skin_part);
     }
 }
 
@@ -250,6 +279,10 @@ void SkinInfillAreaComputation::generateSkinInsets(SliceLayerPart* part)
  */
 void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
 {
+    if (skin_inset_count <= 0)
+    {
+        return;
+    }
     for (int inset_idx = 0; inset_idx < skin_inset_count; inset_idx++)
     {
         skin_part.insets.push_back(Polygons());
@@ -267,9 +300,26 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
         if (skin_part.insets[inset_idx].size() < 1)
         {
             skin_part.insets.pop_back();
-            break;
+            return; // don't generate inner_infill areas if the innermost inset was too small
         }
     }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
+{
+    if (skin_inset_count <= 0)
+    {
+        skin_part.inner_infill = skin_part.outline;
+        return;
+    }
+    const Polygons& innermost_inset = skin_part.insets.back();
+    skin_part.inner_infill = innermost_inset.offset(-wall_line_width_x / 2);
 }
 
 /*
@@ -329,6 +379,37 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     else
     {
         part.infill_area = final_infill;
+    }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
+{
+    int roofing_layer_count = mesh.getSettingAsCount("roofing_layer_count");
+    const unsigned int wall_idx = std::min(2, mesh.getSettingAsCount("wall_line_count"));
+
+    for (SkinPart& skin_part : part.skin_parts)
+    {
+        Polygons roofing;
+        if (roofing_layer_count > 0)
+        {
+            Polygons no_air_above = getWalls(part, layer_nr + roofing_layer_count, wall_idx);
+            if (!no_small_gaps_heuristic)
+            {
+                for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + roofing_layer_count; layer_nr_above++)
+                {
+                    Polygons outlines_above = getWalls(part, layer_nr_above, wall_idx);
+                    no_air_above = no_air_above.intersection(outlines_above);
+                }
+            }
+            skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
+            skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+        }
     }
 }
 
