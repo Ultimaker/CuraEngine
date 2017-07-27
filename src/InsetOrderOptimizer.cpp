@@ -167,7 +167,7 @@ void InsetOrderOptimizer::processHoleInsets()
         {
             // output the inset polys
 
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (outer_inset_first)
             {
@@ -236,7 +236,7 @@ void InsetOrderOptimizer::processHoleInsets()
         else if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
         {
             // just the outer wall, no level 1 insets
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (compensate_overlap_0)
             {
@@ -316,7 +316,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
 
         if (part_inner_walls.size() > 0 && extruder_nr == mesh.getSettingAsExtruderNr("wall_x_extruder_nr"))
         {
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (outer_inset_first)
             {
@@ -386,7 +386,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
         {
             // just the outer wall, no inners
 
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (compensate_overlap_0)
             {
@@ -443,7 +443,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         }
         if (remaining.size() > 0)
         {
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (mesh.getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
             {
