@@ -19,7 +19,7 @@ void ZigzagConnectorProcessor::registerVertex(const Point& vertex)
 
 bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx, int direction) const
 {
-    assert((direction != 1 || direction != -1) && "direction should be either +1 or -1");
+    assert((direction == 1 || direction == -1) && "direction should be either +1 or -1");
     //
     // Decide whether we should add this connection or not.
     // Add this zag connection in the following cases:
