@@ -8,16 +8,19 @@
 namespace cura
 {
 
+/*!
+ * This processor adds no connection. This is for line infill pattern.
+ */
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
     NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
-    : ZigzagConnectorProcessor(rotation_matrix, result)
+    : ZigzagConnectorProcessor(rotation_matrix, result, false, false)
     {
     }
 
     void registerVertex(const Point& vertex);
-    void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
+    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index, int direction);
     void registerPolyFinished();
 };
 

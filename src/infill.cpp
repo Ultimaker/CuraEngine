@@ -223,26 +223,9 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
 
 void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle)
 {
-
     PointMatrix rotation_matrix(fill_angle);
-    if (use_endpieces)
-    {
-        if (connected_zigzags)
-        {
-            ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result, skip_some_zags, zag_skip_count);
-            generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
-        }
-        else
-        {
-            ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result, skip_some_zags, zag_skip_count);
-            generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
-        }
-    }
-    else 
-    {
-        ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result, skip_some_zags, zag_skip_count);
-        generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
-    }
+    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
+    generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
 }
 
 /* 
@@ -367,7 +350,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
-                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx % 2 == 0);
+                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx, direction);
             }
             zigzag_connector_processor.registerVertex(p1);
             p0 = p1;
