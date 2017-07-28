@@ -22,7 +22,7 @@ bool ZigzagConnectorProcessor::shouldAddThisConnector(int start_scanline_idx, in
     assert((direction != 1 || direction != -1) && "direction should be either +1 or -1");
     //
     // Decide whether we should add this connection or not.
-    // Add this zag connection is the following cases:
+    // Add this zag connection in the following cases:
     //  - if this zag lays in an even-numbered scanline segment
     //  - if this zag is an end piece (check if the previous and the current scanlines are the same)
     //    and "use end piece" is enabled
@@ -85,9 +85,9 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
         // add this connector if needed
         if (this->shouldAddThisConnector(this->last_connector_index, scanline_index, direction))
         {
-            for (unsigned int point_idx = 1; point_idx < this->current_connector.size(); ++point_idx)
+            for (unsigned int point_idx = 0; point_idx < this->current_connector.size() - 1; ++point_idx)
             {
-                addLine(this->current_connector[point_idx - 1], this->current_connector[point_idx]);
+                addLine(this->current_connector[point_idx], this->current_connector[point_idx]);
             }
             // only add the last line if:
             //  - it is not an end piece, or
