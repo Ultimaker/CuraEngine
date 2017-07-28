@@ -76,7 +76,7 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
         // process as the first connector if we haven't found one yet
         // this will be processed with the last remaining piece at the end (when the polygon finishes)
         this->first_connector.push_back(intersection);
-        this->first_connector_index = scanline_index;
+        this->first_connector_end_scanline_index = scanline_index;
         this->first_connector_direction = direction;
         this->is_first_connector = false;
     }
@@ -111,7 +111,7 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
 void ZigzagConnectorProcessor::registerPolyFinished()
 {
     int scanline_start_index = this->last_connector_index;
-    int scanline_end_index = this->first_connector_index;
+    int scanline_end_index = this->first_connector_end_scanline_index;
     int direction = scanline_end_index > scanline_start_index ? 1 : -1;
     const bool is_endpiece = this->is_first_connector || (!this->is_first_connector && scanline_start_index == scanline_end_index);
 
