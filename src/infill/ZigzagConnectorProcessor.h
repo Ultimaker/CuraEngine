@@ -88,8 +88,8 @@ public:
      * \param result The resulting line segments (Each line segment is a Polygon with 2 points)
      * \param use_endpieces Whether to include end pieces or not
      * \param connected_endpieces Whether the end pieces should be connected with the rest part of the infill
-     * \param skip_some_zags; //!< Whether to skip some zags
-     * \param zag_skip_count; //!< Skip 1 zag in every N zags
+     * \param skip_some_zags Whether to skip some zags
+     * \param zag_skip_count Skip 1 zag in every N zags
      */
     ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result,
                              bool use_endpieces, bool connected_endpieces,
