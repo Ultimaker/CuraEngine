@@ -10,12 +10,13 @@
 namespace cura {
 
 
-ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
+ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bool is_raft_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , heated_pre_travel_time(0)
 , required_start_temperature(-1)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
+, is_raft_layer(is_raft_layer)
 , layer_thickness(layer_thickness)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 , retraction_config(retraction_config)
@@ -77,6 +78,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , z(z)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
+, is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount(storage))
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)
@@ -103,7 +105,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
         layer_start_pos_per_extruder.emplace_back(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     }
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
-    extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
+    extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
 
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { //Skirt and brim.
@@ -198,7 +200,7 @@ bool LayerPlan::setExtruder(int extruder)
     }
     else 
     {
-        extruder_plans.emplace_back(extruder, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
+        extruder_plans.emplace_back(extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
         assert((int)extruder_plans.size() <= storage.meshgroup->getExtruderCount() && "Never use the same extruder twice on one layer!");
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
@@ -701,7 +703,10 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
                      layer nr >
 
     */
-    if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer)
+    if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer
+        && fan_speed_layer_time_settings.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
+        && !this->is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
+    )
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(0, layer_nr) / fan_speed_layer_time_settings.cool_fan_full_layer;
