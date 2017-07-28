@@ -192,7 +192,10 @@ inline void ZigzagConnectorProcessor::reset()
 
 inline void ZigzagConnectorProcessor::addLine(Point from, Point to)
 {
-    assert(from != to);
+    if (from == to)
+    {
+        return;
+    }
     result.addLine(rotation_matrix.unapply(from), rotation_matrix.unapply(to));
 }
 
