@@ -102,9 +102,7 @@ public:
     , zag_skip_count(zag_skip_count)
     , is_first_connector(true)
     , first_connector_end_scanline_index(0)
-    , first_connector_direction(0)
     , last_connector_index(0)
-    , last_connector_direction(0)
     {}
 
     virtual ~ZigzagConnectorProcessor()
@@ -147,9 +145,7 @@ protected:
 
     bool is_first_connector; //!< indicating whether we are still looking for the first connector or not
     int first_connector_end_scanline_index; //!< scanline segment index of the first connector
-    int first_connector_direction; //!< direction of the first connector
     int last_connector_index; //!< scanline segment index of the last connector
-    int last_connector_direction; //!< direction of the last connector
 
     /*!
      * The line segments belonging the zigzag connector to which the very first vertex belongs. 
@@ -189,9 +185,7 @@ inline void ZigzagConnectorProcessor::reset()
 {
     this->is_first_connector = true;
     this->first_connector_end_scanline_index = 0;
-    this->first_connector_direction = 0;
     this->last_connector_index = 0;
-    this->last_connector_direction = 0;
     this->first_connector.clear();
     this->current_connector.clear();
 }

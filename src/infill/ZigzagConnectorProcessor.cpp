@@ -77,7 +77,6 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
         // this will be processed with the last remaining piece at the end (when the polygon finishes)
         this->first_connector.push_back(intersection);
         this->first_connector_end_scanline_index = scanline_index;
-        this->first_connector_direction = direction;
         this->is_first_connector = false;
     }
     else
@@ -104,7 +103,6 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
     this->current_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
     this->current_connector.push_back(intersection);
     this->last_connector_index = scanline_index;
-    this->last_connector_direction = direction;
 }
 
 
