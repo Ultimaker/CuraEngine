@@ -11,7 +11,7 @@ void ZigzagConnectorProcessor::registerVertex(const Point& vertex)
         this->first_connector.push_back(vertex);
     }
     else
-    { // it's yet unclear whether the line segment should be included, so we store it until we know
+    { // it's yet unclear whether the polygon segment should be included, so we store it until we know
         this->current_connector.push_back(vertex);
     }
 }

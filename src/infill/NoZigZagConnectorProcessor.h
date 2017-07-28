@@ -14,6 +14,8 @@ namespace cura
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
+    // The two "false"s are settings for zig-zag end pieces, which is not applicable here
+    // because this processor doesn't do anything.
     NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
     : ZigzagConnectorProcessor(rotation_matrix, result, false, false)
     {
