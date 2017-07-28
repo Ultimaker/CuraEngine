@@ -17,7 +17,7 @@ void ZigzagConnectorProcessor::registerVertex(const Point& vertex)
 }
 
 
-bool ZigzagConnectorProcessor::shouldAddThisConnector(int start_scanline_idx, int end_scanline_idx, int direction) const
+bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx, int direction) const
 {
     assert((direction != 1 || direction != -1) && "direction should be either +1 or -1");
     //

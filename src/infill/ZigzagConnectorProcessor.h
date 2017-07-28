@@ -168,13 +168,13 @@ protected:
     void addLine(Point from, Point to);
 
     /*!
-     * Checks whether this connector should be added or not.
+     * Checks whether the current connector should be added or not.
      *
      * \param start_scanline_idx the start scanline index of this scanline segment
      * \param end_scanline_idx The the end scanline index of this scanline segment
      * \param direction The direction of this scanline segment
      */
-    bool shouldAddThisConnector(int start_scanline_idx, int end_scanline_idx, int direction) const;
+    bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx, int direction) const;
 };
 
 //
