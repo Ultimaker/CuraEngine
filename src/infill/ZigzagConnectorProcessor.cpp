@@ -87,7 +87,7 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
         {
             for (unsigned int point_idx = 0; point_idx < this->current_connector.size() - 1; ++point_idx)
             {
-                addLine(this->current_connector[point_idx], this->current_connector[point_idx]);
+                addLine(this->current_connector[point_idx], this->current_connector[point_idx + 1]);
             }
             // only add the last line if:
             //  - it is not an end piece, or
