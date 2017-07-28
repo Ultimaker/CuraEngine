@@ -1,5 +1,5 @@
 #include <cassert>
-#include "ZigZagConnectorProcessor.h"
+#include "ZigzagConnectorProcessor.h"
 
 using namespace cura;
 
