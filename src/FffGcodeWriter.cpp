@@ -655,6 +655,19 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
             }
             layer_thickness = getSettingInMicrons("layer_height_0");
         }
+        int64_t z_offset = getSettingInMicrons("z_offset_layer_0");
+        if (z_offset != 0)
+        {
+            int z_offset_taper_layers = getSettingAsCount("z_offset_taper_layers");
+            if (z_offset_taper_layers == 0)
+            {
+                z += z_offset;
+            }
+            else if (layer_nr < z_offset_taper_layers)
+            {
+                z += z_offset - z_offset * layer_nr / z_offset_taper_layers;
+            }
+        }
     }
 
     if (CommandSocket::isInstantiated())

@@ -80,18 +80,20 @@ protected:
      * 
      * \param part The part for which to compute the top skin areas
      * \param min_infill_area The minimum area to fill with skin
+     * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] upskin The areas of top skin to be pdated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, unsigned int wall_idx, Polygons& upskin);
 
     /*!
      * Calculate the basic areas which have air below
      * 
      * \param part The part for which to compute the bottom skin areas
      * \param min_infill_area The minimum area to fill with skin
+     * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] downskin The areas of bottom skin to be updated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, unsigned int wall_idx, Polygons& downskin);
 
     /*!
      * Apply skin expansion:
@@ -158,14 +160,6 @@ protected:
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
 private:
-    /*!
-     * Helper function to get the innermost walls of each part which might intersect with \p part_here
-     * 
-     * \param part_here The part for which to check
-     * \param layer2 The layer from which to gather the innermost walls
-     */
-    Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
-
     /*!
      * Helper function to get the walls of each part which might intersect with \p part_here
      * 
