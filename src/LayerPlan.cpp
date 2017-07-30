@@ -673,7 +673,16 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
 
     */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
+    if (layer_nr < fan_speed_layer_time_settings.cool_fan_min_layer)
+    {
+        // fan is normally off for layers below cool_fan_min_layer
+        fan_speed = 0;
+    }
+    else
+    {
+        // once cool_fan_min_layer has been reached, the fan runs no slower than cool_fan_speed_min
+        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
+    }
     double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
     if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
     {
@@ -691,25 +700,27 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     Supposing no influence of minimal layer time;
     i.e. layer time > min layer time fan speed min:
 
-              max..   fan 'full' on layer
-                   |  :
-                   |  :
-      ^       min..|..:________________
-     fan           |  /
-    speed          | /
-          speed_0..|/
-                   |
-                   |__________________
-                     layer nr >
 
+              max..       fan 'full' on layer
+                   |      :
+                   |      :
+      ^       min..|    ..:________________
+     fan           |      /
+    speed          |     /
+          speed_0..|    /
+                   |    |
+                0__|____|_________________
+                        :         layer nr >
+                  fan 'min' layer
     */
     if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer
+        && layer_nr >= fan_speed_layer_time_settings.cool_fan_min_layer
         && fan_speed_layer_time_settings.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
         && !this->is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
     )
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(0, layer_nr) / fan_speed_layer_time_settings.cool_fan_full_layer;
+        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(0, layer_nr - fan_speed_layer_time_settings.cool_fan_min_layer) / (fan_speed_layer_time_settings.cool_fan_full_layer - fan_speed_layer_time_settings.cool_fan_min_layer);
     }
 }
 
