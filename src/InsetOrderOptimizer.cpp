@@ -39,18 +39,18 @@ void InsetOrderOptimizer::processHoleInsets()
     constexpr float flow = 1.0;
 
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
-    PathOrderOptimizer orderOptimizer(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
+    PathOrderOptimizer order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
-        orderOptimizer.addPolygon(inset_polys[0][poly_idx]);
+        order_optimizer.addPolygon(inset_polys[0][poly_idx]);
     }
-    orderOptimizer.optimize();
+    order_optimizer.optimize();
 
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
-    for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < orderOptimizer.polyOrder.size(); ++outer_poly_order_idx)
+    for (unsigned outer_poly_order_idx = 0; outer_poly_order_idx < order_optimizer.polyOrder.size(); ++outer_poly_order_idx)
     {
         Polygons hole_outer_wall; // the outermost wall of a hole
-        hole_outer_wall.add(inset_polys[0][orderOptimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
+        hole_outer_wall.add(inset_polys[0][order_optimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         std::vector<unsigned> hole_level_1_wall_indices; // the indices of the walls that touch the hole's outer wall
         const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
         if (inset_polys.size() > 1)
@@ -74,9 +74,9 @@ void InsetOrderOptimizer::processHoleInsets()
                         ++num_future_outlines_touched;
                     }
                     // does it touch any yet to be processed hole outlines?
-                    for (unsigned order_index = outer_poly_order_idx + 1; num_future_outlines_touched < 1 && order_index < orderOptimizer.polyOrder.size(); ++order_index)
+                    for (unsigned order_index = outer_poly_order_idx + 1; num_future_outlines_touched < 1 && order_index < order_optimizer.polyOrder.size(); ++order_index)
                     {
-                        int outline_index = orderOptimizer.polyOrder[order_index] + 1; // +1 because first element (part outer wall) wasn't included
+                        int outline_index = order_optimizer.polyOrder[order_index] + 1; // +1 because first element (part outer wall) wasn't included
                         // as we don't know the shape of the outlines (straight, concave, convex, etc.) and the
                         // adjacency test assumes that the poly's are arranged so that the first has smaller
                         // radius curves than the second (it's "inside" the second) we need to test both combinations
@@ -143,10 +143,10 @@ void InsetOrderOptimizer::processHoleInsets()
                         Polygons enclosing_inset;
                         enclosing_inset.add(inset_polys[inset_level][i]);
                         bool encloses_future_hole = false; // set true if this inset also encloses another hole that hasn't yet been processed
-                        for (unsigned hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < orderOptimizer.polyOrder.size(); ++hole_order_index)
+                        for (unsigned hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < order_optimizer.polyOrder.size(); ++hole_order_index)
                         {
                             Polygons enclosed_inset;
-                            enclosed_inset.add(inset_polys[0][orderOptimizer.polyOrder[hole_order_index] + 1]); // +1 because first element (part outer wall) wasn't included
+                            enclosed_inset.add(inset_polys[0][order_optimizer.polyOrder[hole_order_index] + 1]); // +1 because first element (part outer wall) wasn't included
                             encloses_future_hole = PolygonUtils::polygonsIntersect(enclosing_inset, enclosed_inset);
                         }
                         if (encloses_future_hole)
@@ -202,7 +202,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 // that is close to the z seam and at a vertex of the first inset we want to be printed
                 if (z_seam_type == EZSeamType::USER_SPECIFIED)
                 {
-                    const Point z_seam_location = hole_outer_wall[0][orderOptimizer.polyStart[orderOptimizer.polyOrder[outer_poly_order_idx]]];
+                    const Point z_seam_location = hole_outer_wall[0][order_optimizer.polyStart[order_optimizer.polyOrder[outer_poly_order_idx]]];
                     // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
                     const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
                     gcode_layer.addTravel(dest);
