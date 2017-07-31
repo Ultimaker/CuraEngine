@@ -461,7 +461,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     return added_something;
 }
 
-bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part, EZSeamType z_seam_type)
+bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part)
 {
     if (!mesh.getSettingBoolean("optimize_wall_printing_order"))
     {
@@ -484,7 +484,7 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
     const unsigned int num_holes = part.insets[0].size() - 1;
     if (num_holes == 0)
     {
-        if (z_seam_type == EZSeamType::USER_SPECIFIED)
+        if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
         {
             // will start the inner inset(s) near the z seam location
             return true;
