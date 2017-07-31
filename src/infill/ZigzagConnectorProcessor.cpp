@@ -97,18 +97,9 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& 
         // add this connector if needed
         if (this->shouldAddCurrentConnector(this->last_connector_index, scanline_index, direction))
         {
-            for (unsigned int point_idx = 0; point_idx < this->current_connector.size() - 1; ++point_idx)
-            {
-                addLine(this->current_connector[point_idx], this->current_connector[point_idx + 1]);
-            }
-            // only add the last line if:
-            //  - it is not an end piece, or
-            //  - it is an end piece and "connected end pieces" is enabled
             const bool is_this_endpiece = scanline_index == this->last_connector_index;
-            if (!is_this_endpiece || (is_this_endpiece && this->connected_endpieces))
-            {
-                addLine(this->current_connector.back(), intersection);
-            }
+            this->current_connector.push_back(intersection);
+            this->addZagConnector(this->current_connector, is_this_endpiece);
         }
     }
 
@@ -137,20 +128,29 @@ void ZigzagConnectorProcessor::registerPolyFinished()
         }
         this->first_connector.clear();
 
-        for (unsigned int point_idx = 1; point_idx < this->current_connector.size() - 1; ++point_idx)
-        {
-            addLine(this->current_connector[point_idx - 1], this->current_connector[point_idx]);
-        }
-        // only add the last line if:
-        //  - it is not an end piece, or
-        //  - it is an end piece and "connected end pieces" is enabled
-        if (!is_endpiece || (is_endpiece && this->connected_endpieces && this->current_connector.size() >= 2))
-        {
-            addLine(this->current_connector[current_connector.size() - 2],
-                    this->current_connector[current_connector.size() - 1]);
-        }
+        this->addZagConnector(this->current_connector, is_endpiece);
     }
 
     // reset member variables
     this->reset();
+}
+
+
+void ZigzagConnectorProcessor::addZagConnector(const std::vector<Point>& points, bool is_endpiece)
+{
+    // don't include the last line yet
+    if (points.size() >= 3)
+    {
+        for (size_t point_idx = 1; point_idx <= points.size() - 2; ++point_idx)
+        {
+            addLine(points[point_idx - 1], points[point_idx]);
+        }
+    }
+    // only add the last line if:
+    //  - it is not an end piece, or
+    //  - it is an end piece and "connected end pieces" is enabled
+    if ((!is_endpiece || (is_endpiece && this->connected_endpieces)) && points.size() >= 2)
+    {
+        addLine(points[points.size() - 2], points[points.size() - 1]);
+    }
 }

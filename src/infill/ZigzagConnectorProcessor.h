@@ -175,6 +175,15 @@ protected:
      * \param direction The direction of this scanline segment
      */
     bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx, int direction) const;
+
+    /*!
+     * Adds a Zag connector represented by the given points. The last line of the connector will not be
+     * added if the given connector is an end piece and "connected_endpieces" is not enabled.
+     *
+     * \param points All the points on this connector
+     * \param is_endpiece Whether this connector is an end piece
+     */
+    void addZagConnector(const std::vector<Point>& points, bool is_endpiece);
 };
 
 //
