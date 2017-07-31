@@ -461,7 +461,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     return added_something;
 }
 
-bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part, EZSeamType z_seam_type)
 {
     if (!mesh.getSettingBoolean("optimize_wall_printing_order"))
     {

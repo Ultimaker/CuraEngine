@@ -71,14 +71,11 @@ public:
     /*!
      * Test whether it looks to be worthwhile to optimize the inset order of a given layer part.
      * \param mesh The mesh to be added to the layer plan.
-     * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
-     * \param layer_nr The current layer number.
      * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
-     * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      * \return true if it is worth optimizing the inset order, false if not
      */
-    static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos);
+    static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part, EZSeamType z_seam_type);
 };
 
 } //namespace cura

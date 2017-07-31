@@ -1302,7 +1302,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part);
             }
         }
-        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, mesh_config, part, gcode_layer.getLayerNr(), z_seam_type, z_seam_pos))
+        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part, z_seam_type))
         {
             InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr(), z_seam_type, z_seam_pos);
             return ioo.processInsetsWithOptimizedOrdering();
