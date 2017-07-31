@@ -55,6 +55,17 @@ bool ConstPolygonRef::_inside(Point p, bool border_result) const
     return (crossings % 2) == 1;
 }
 
+
+Polygons ConstPolygonRef::intersection(const ConstPolygonRef& other) const
+{
+    Polygons ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    clipper.AddPath(*path, ClipperLib::ptSubject, true);
+    clipper.AddPath(*other.path, ClipperLib::ptClip, true);
+    clipper.Execute(ClipperLib::ctIntersection, ret.paths);
+    return ret;
+}
+
 bool Polygons::empty() const
 {
     return paths.empty();

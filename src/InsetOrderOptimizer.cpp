@@ -9,14 +9,11 @@ namespace cura
 static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonRef>& possible_enclosing_polys, const coord_t max_gap)
 {
     // given an inset, search a collection of insets for the adjacent enclosing inset
-    Polygons enclosed;
-    enclosed.add(enclosed_inset);
     for (unsigned enclosing_poly_idx = 0; enclosing_poly_idx < possible_enclosing_polys.size(); ++enclosing_poly_idx)
     {
-        Polygons enclosing;
-        enclosing.add(possible_enclosing_polys[enclosing_poly_idx]);
+        const ConstPolygonRef& enclosing = possible_enclosing_polys[enclosing_poly_idx];
         // as holes don't overlap, if the insets intersect, it is safe to assume that the enclosed inset is inside the enclosing inset
-        if (PolygonUtils::polygonsIntersect(enclosing, enclosed) && PolygonUtils::polygonOutlinesAdjacent(enclosed_inset, enclosing[0], max_gap))
+        if (PolygonUtils::polygonsIntersect(enclosing, enclosed_inset) && PolygonUtils::polygonOutlinesAdjacent(enclosed_inset, enclosing, max_gap))
         {
             return enclosing_poly_idx;
         }
@@ -140,13 +137,11 @@ void InsetOrderOptimizer::processHoleInsets()
                         // when printing outer insets first we don't want to print this enclosing inset
                         // if it also encloses other holes that haven't yet been processed so check the holes
                         // that haven't yet been processed to see if they are also enclosed by this enclosing inset
-                        Polygons enclosing_inset;
-                        enclosing_inset.add(inset_polys[inset_level][i]);
+                        const ConstPolygonRef& enclosing_inset = inset_polys[inset_level][i];
                         bool encloses_future_hole = false; // set true if this inset also encloses another hole that hasn't yet been processed
                         for (unsigned hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < order_optimizer.polyOrder.size(); ++hole_order_index)
                         {
-                            Polygons enclosed_inset;
-                            enclosed_inset.add(inset_polys[0][order_optimizer.polyOrder[hole_order_index] + 1]); // +1 because first element (part outer wall) wasn't included
+                            const ConstPolygonRef& enclosed_inset = inset_polys[0][order_optimizer.polyOrder[hole_order_index] + 1]; // +1 because first element (part outer wall) wasn't included
                             encloses_future_hole = PolygonUtils::polygonsIntersect(enclosing_inset, enclosed_inset);
                         }
                         if (encloses_future_hole)
@@ -269,6 +264,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
 
     // process the part's outer wall and the level 1 insets that it surrounds
     {
+        const ConstPolygonRef& outer_wall = inset_polys[0][0];
         Polygons part_outer_wall; // the outermost wall of a part
         part_outer_wall.add(inset_polys[0][0]);
         // find the level 1 insets that are inside the outer wall and consume them
@@ -276,19 +272,18 @@ void InsetOrderOptimizer::processOuterWallInsets()
         int num_level_1_insets = 0;
         for (unsigned level_1_wall_idx = 0; inset_polys.size() > 1 && level_1_wall_idx < inset_polys[1].size(); ++level_1_wall_idx)
         {
-            Polygons inner;
-            inner.add(inset_polys[1][level_1_wall_idx]);
-            if (PolygonUtils::polygonsIntersect(inner, part_outer_wall))
+            const ConstPolygonRef& inner = inset_polys[1][level_1_wall_idx];
+            if (PolygonUtils::polygonsIntersect(inner, outer_wall))
             {
                 ++num_level_1_insets;
-                part_inner_walls.add(inner[0]);
+                part_inner_walls.add(inner);
                 // consume the level 1 inset
                 inset_polys[1].erase(inset_polys[1].begin() + level_1_wall_idx);
                 --level_1_wall_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
 
                 // now find all the insets that immediately fill the level 1 inset and consume them also
                 Polygons enclosing_insets; // the set of insets that we are trying to "fill in"
-                enclosing_insets.add(inner[0]);
+                enclosing_insets.add(inner);
                 Polygons next_level_enclosing_insets;
                 for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
                 {
@@ -322,6 +317,8 @@ void InsetOrderOptimizer::processOuterWallInsets()
             {
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
+                    Polygons part_outer_wall;
+                    part_outer_wall.add(inset_polys[0][0]);
                     if (compensate_overlap_0)
                     {
                         WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
@@ -368,6 +365,8 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 }
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
+                    Polygons part_outer_wall;
+                    part_outer_wall.add(inset_polys[0][0]);
                     if (compensate_overlap_0)
                     {
                         WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
@@ -388,6 +387,8 @@ void InsetOrderOptimizer::processOuterWallInsets()
 
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
+            Polygons part_outer_wall;
+            part_outer_wall.add(inset_polys[0][0]);
             if (compensate_overlap_0)
             {
                 WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);

@@ -994,7 +994,7 @@ bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const P
     return polygonCollidesWithLineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
-bool PolygonUtils::polygonsIntersect(const Polygons& poly_a, const Polygons &poly_b)
+bool PolygonUtils::polygonsIntersect(const ConstPolygonRef& poly_a, const ConstPolygonRef& poly_b)
 {
     // only do the full intersection when the polys' BBs overlap
     AABB bba(poly_a);
