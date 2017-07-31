@@ -93,7 +93,7 @@ public:
      */
     ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result,
                              bool use_endpieces, bool connected_endpieces,
-                             bool skip_some_zags = false, int zag_skip_count = 0)
+                             bool skip_some_zags, int zag_skip_count)
     : rotation_matrix(rotation_matrix)
     , result(result)
     , use_endpieces(use_endpieces)
