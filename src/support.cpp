@@ -50,6 +50,11 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 
 void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
+    if (total_layer_count == 0)
+    {
+        return;
+    }
+
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
