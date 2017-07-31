@@ -994,5 +994,44 @@ bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const P
     return polygonCollidesWithLineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
+bool PolygonUtils::polygonsIntersect(const Polygons& poly_a, const Polygons &poly_b)
+{
+    // only do the full intersection when the polys' BBs overlap
+    AABB bba(poly_a);
+    AABB bbb(poly_b);
+    return bba.hit(bbb) && poly_a.intersection(poly_b).size() > 0;
+}
+
+bool PolygonUtils::polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap)
+{
+    const coord_t max_gap2 = max_gap * max_gap;
+    const unsigned outer_poly_size = outer_poly.size();
+    for (unsigned line_index = 0; line_index < outer_poly_size; ++line_index)
+    {
+        const Point lp0 = outer_poly[line_index];
+        const Point lp1 = outer_poly[(line_index + 1) % outer_poly_size];
+        for (Point inner_poly_point : inner_poly)
+        {
+            if (LinearAlg2D::getDist2FromLineSegment(lp0, inner_poly_point, lp1) < max_gap2)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
+{
+    // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
+    for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
+    {
+        if (polygonOutlinesAdjacent(poly, possible_adjacent_polys[poly_idx], max_gap) ||
+            polygonOutlinesAdjacent(possible_adjacent_polys[poly_idx], poly, max_gap))
+        {
+            adjacent_poly_indices.push_back(poly_idx);
+        }
+    }
+}
 
 }//namespace cura

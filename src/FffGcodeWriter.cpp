@@ -12,6 +12,7 @@
 #include "utils/orderOptimizer.h"
 #include "GcodeLayerThreader.h"
 #include "infill/SpaghettiInfillPathGenerator.h"
+#include "InsetOrderOptimizer.h"
 
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
@@ -1300,6 +1301,11 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part);
             }
+        }
+        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, mesh_config, part, gcode_layer.getLayerNr(), z_seam_type, z_seam_pos))
+        {
+            InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr(), z_seam_type, z_seam_pos);
+            return ioo.processInsetsWithOptimizedOrdering();
         }
         else
         {
