@@ -22,13 +22,13 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
     assert((direction == 1 || direction == -1) && "direction should be either +1 or -1");
     //
     // Decide whether we should add this connection or not.
-    // Add this zag connection in the following cases:
-    //  - if this zag lays in an even-numbered scanline segment
-    //  - if this zag is an end piece (check if the previous and the current scanlines are the same)
+    // Add the current zag connection in the following cases:
+    //  - if the current zag starts on an even scanline and ends on an odd scanline
+    //  - if the current zag is an end piece (check if the previous and the current scanlines are the same)
     //    and "use end piece" is enabled
     // Don't add a zag if:
-    //  - this zag is NOT an end piece, "skip some zags" is enabled, and this zag lays in a segment
-    //    which needs to be skipped.
+    //  - the current zag is NOT an end piece, "skip some zags" is enabled, and the current zag lays in a
+    //    segment which needs to be skipped.
     // Moreover:
     //  - if a "connected end pieces" is not enabled and this is an end piece, the last line
     //    of this end piece will not be added.
@@ -41,14 +41,27 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
     if (this->skip_some_zags && this->zag_skip_count > 0)
     {
         //
-        // Skipping some zags is done in the following way:
-        //  > direction: negative number means from <right> -> <left>
-        //               positive number means from <left> -> <right>
-        //  > for a connection:
-        //    - if it comes from <left> -> <right> (direction >= 0), we skip connections that
-        //      lay in segments which mean the condition: "index mod skip_count = 0"
-        //    - for connections that come from the other direction, we skip on
-        //      "(index - 1) mod skip_count = 0"
+        // Here is an illustration of how the zags will be removed.
+        // ***We use skip_count = 3 as an example:***
+        //
+        // segment numbers:    0     1     2     3     4     5     6     7     8     9     10
+        //    top zags ->   |     |-----|     |--x--|     |-----|     |-----|     |--x--|     |
+        //                  |     |     |     |     |     |     |     |     |     |     |     |
+        // bottom zags ->   |--x--|     |-----|     |-----|     |--x--|     |-----|     |-----|
+        //
+        // LEGEND:  |  :    zigs
+        //          -  :    zags
+        //
+        // Following the line from left to right, we want to remove a zag in every 3. So here we
+        // are removing zags 0, 3, 6, 9, ..., which is (n * 3), where n = 0, 1, 2, ...
+        //
+        // We treat top and bottom zags differently:
+        //   - a bottom zag goes from left -> right. Example: for zag 6, it goes from scanline 6 to 7.
+        //   - a top zag goes from right -> left. Example: for zag 3, it goes from scanline 4 to 3.
+        // We call the start and end scanline indices <start> and <end> separately.
+        // So, to get the results described above, we skip zags in the following way:
+        //   - if direction > 0 (bottom zags: left -> right), skip zags whose <start> mod 3 == 0
+        //   - if direction < 0 (top zags: right -> left), skip zags whose <end> mod 3 == 0
         //
         if (direction > 0)
         {
