@@ -117,8 +117,8 @@ void InsetOrderOptimizer::processHoleInsets()
             // add the level 1 inset to the collection of inner walls to be printed and consume it, taking care to adjust
             // those elements in hole_level_1_wall_indices that are larger
             unsigned inset_idx = hole_level_1_wall_indices[level_1_wall_idx];
-            ConstPolygonRef lastInset = inset_polys[1][inset_idx];
-            hole_inner_walls.add(lastInset);
+            ConstPolygonRef last_inset = inset_polys[1][inset_idx];
+            hole_inner_walls.add(last_inset);
             inset_polys[1].erase(inset_polys[1].begin() + inset_idx);
             // decrement any other indices in hole_level_1_wall_indices that are greater than inset_idx
             for (unsigned i = level_1_wall_idx + 1; i < hole_level_1_wall_indices.size(); ++i)
@@ -131,7 +131,7 @@ void InsetOrderOptimizer::processHoleInsets()
             // now find all the insets that immediately surround the level 1 wall and consume them
             for (unsigned inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
-                int i = findAdjacentEnclosingPoly(lastInset, inset_polys[inset_level], wall_line_width_x * 1.1f);
+                int i = findAdjacentEnclosingPoly(last_inset, inset_polys[inset_level], wall_line_width_x * 1.1f);
                 if (i >= 0)
                 {
                     // we have found an enclosing inset
@@ -156,8 +156,8 @@ void InsetOrderOptimizer::processHoleInsets()
                         }
                     }
                     // it's OK to print the enclosing inset and see if any further enclosing insets can also be printed
-                    lastInset = inset_polys[inset_level][i];
-                    hole_inner_walls.add(lastInset);
+                    last_inset = inset_polys[inset_level][i];
+                    hole_inner_walls.add(last_inset);
                     inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
                 }
             }
