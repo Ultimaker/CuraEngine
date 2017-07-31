@@ -1004,6 +1004,17 @@ bool PolygonUtils::polygonsIntersect(const ConstPolygonRef& poly_a, const ConstP
 
 bool PolygonUtils::polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap)
 {
+    //Heuristic check if their AABBs are near first.
+    AABB inner_aabb(inner_poly);
+    AABB outer_aabb(outer_poly);
+    inner_aabb.max += Point(max_gap, max_gap); //Expand one of them by way of a "distance" by checking intersection with the expanded rectangle.
+    inner_aabb.min -= Point(max_gap, max_gap);
+    if (!inner_aabb.hit(outer_aabb))
+    {
+        return false;
+    }
+
+    //Heuristic says they are near. Now check for real.
     const coord_t max_gap2 = max_gap * max_gap;
     const unsigned outer_poly_size = outer_poly.size();
     for (unsigned line_index = 0; line_index < outer_poly_size; ++line_index)
