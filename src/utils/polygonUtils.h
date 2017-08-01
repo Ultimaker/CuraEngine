@@ -495,7 +495,7 @@ public:
      * \param poly_b Another polygon group
      * \return true if \p poly_a and \p poly_b intersect, false otherwise
      */
-    static bool polygonsIntersect(const Polygons& poly_a, const Polygons &poly_b);
+    static bool polygonsIntersect(const ConstPolygonRef& poly_a, const ConstPolygonRef& poly_b);
 
     /*!
      * Checks whether two polygons are adjacent (closer than \p max_gap)
