@@ -69,7 +69,13 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
-, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness))
+, roofing_config(
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("roofing_line_width")
+    , layer_thickness
+    , mesh.getSettingInPercentage("material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_roofing"), mesh.getSettingInMillimetersPerSecond("acceleration_roofing"), mesh.getSettingInMillimetersPerSecond("jerk_roofing")}
+)
 , ironing_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width")
@@ -77,6 +83,8 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_ironing"), mesh.getSettingInMillimetersPerSecond("acceleration_ironing"), mesh.getSettingInMillimetersPerSecond("jerk_ironing")}
 )
+
+, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness))
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
@@ -153,14 +161,16 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             );
         skirt_brim_config_per_extruder.emplace_back(
                 PrintFeatureType::SkirtBrim
-                , train->getSettingInMicrons("skirt_brim_line_width") * line_width_factor_per_extruder[extruder_nr]
+                , train->getSettingInMicrons("skirt_brim_line_width")
+                    * ((storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[extruder_nr]) // cause it's also used for the draft/ooze shield
                 , layer_thickness
                 , train->getSettingInPercentage("material_flow")
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("skirt_brim_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt_brim"), train->getSettingInMillimetersPerSecond("jerk_skirt_brim")}
             );
         prime_tower_config_per_extruder.emplace_back(
                 PrintFeatureType::SupportInfill
-                , train->getSettingInMicrons("prime_tower_line_width") * line_width_factor_per_extruder[extruder_nr]
+                , train->getSettingInMicrons("prime_tower_line_width")
+                    * ((storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[extruder_nr])
                 , layer_thickness
                 , train->getSettingInPercentage("prime_tower_flow")
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMillimetersPerSecond("acceleration_prime_tower"), train->getSettingInMillimetersPerSecond("jerk_prime_tower")}
@@ -174,11 +184,12 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     }
 
     support_infill_config.reserve(MAX_INFILL_COMBINE);
+    const float support_infill_line_width_factor = (storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[support_infill_extruder_nr];
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         support_infill_config.emplace_back(
             PrintFeatureType::Support
-            , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1) * line_width_factor_per_extruder[support_infill_extruder_nr]
+            , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1) * support_infill_line_width_factor
             , layer_thickness
             , support_infill_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
@@ -277,6 +288,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             };
 
             mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            mesh_configs[mesh_idx].roofing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }
 }

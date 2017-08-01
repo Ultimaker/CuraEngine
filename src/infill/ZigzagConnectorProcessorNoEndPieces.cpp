@@ -53,9 +53,20 @@ void ZigzagConnectorProcessorNoEndPieces::registerScanlineSegmentIntersection(co
 
 void ZigzagConnectorProcessorNoEndPieces::registerPolyFinished()
 {
-    if (!is_first_zigzag_connector && last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
+    const bool last_piece_is_end_piece = last_scanline_is_even == first_zigzag_connector_ends_in_even_scanline;
+    const bool add_last_piece = !last_piece_is_end_piece && last_scanline_is_even;
+
+    if (add_last_piece)
     { // only if it's a normal zigzag connector; not when the whole boundary didn't cross any scanlines
-        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size() ; point_idx++)
+        for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); ++point_idx)
+        {
+            addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
+        }
+        if (zigzag_connector.size() > 0 && first_zigzag_connector.size() > 0)
+        {
+            addLine(zigzag_connector.back(), first_zigzag_connector[0]);
+        }
+        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size(); point_idx++)
         {
             addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
         }
