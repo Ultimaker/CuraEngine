@@ -265,8 +265,6 @@ void InsetOrderOptimizer::processOuterWallInsets()
     // process the part's outer wall and the level 1 insets that it surrounds
     {
         const ConstPolygonRef& outer_wall = inset_polys[0][0];
-        Polygons part_outer_wall; // the outermost wall of a part
-        part_outer_wall.add(inset_polys[0][0]);
         // find the level 1 insets that are inside the outer wall and consume them
         Polygons part_inner_walls;
         int num_level_1_insets = 0;
