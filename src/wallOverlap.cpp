@@ -133,21 +133,11 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
     // check whether the line segment overlaps with the point if one of the line segments is just a point
     if (from == to)
     {
-        if (LinearAlg2D::pointIsProjectedBeyondLine(from, other_from, other_to) != 0)
-        {
-            return 0;
-        }
-        const int64_t overlap_length_2 = vSize(other_to - other_from); //Twice the length of the overlap area, alongside the lines.
-        return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
+        return 0;
     }
     if (other_from == other_to)
     {
-        if (LinearAlg2D::pointIsProjectedBeyondLine(other_from, from, to) != 0)
-        {
-            return 0;
-        }
-        const int64_t overlap_length_2 = vSize(from - to); //Twice the length of the overlap area, alongside the lines.
-        return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
+        return 0;
     }
 
     short from_rel = LinearAlg2D::pointIsProjectedBeyondLine(from, other_from, other_to);
