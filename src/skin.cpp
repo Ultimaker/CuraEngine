@@ -34,6 +34,26 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStor
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
+Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2)
+{
+    Polygons result;
+    for (const SliceLayerPart& part2 : layer2.parts)
+    {
+        if (part_here.boundaryBox.hit(part2.boundaryBox))
+        {
+            unsigned int wall_idx = std::max(0, std::min(wall_line_count, (int) part2.insets.size()) - 1);
+            result.add(part2.insets[wall_idx]);
+        }
+    }
+    return result;
+};
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
 Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx)
 {
     Polygons result;
