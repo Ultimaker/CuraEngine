@@ -195,11 +195,8 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
 
-    //More complex case.
-    const Point from_middle = other_to + from; // don't divide by two just yet
-    const Point to_middle = other_from + to; // don't divide by two just yet
-
-    const int64_t overlap_length_2 = vSize(from_middle - to_middle); //(An approximation of) twice the length of the overlap area, alongside the lines.
+    // use the length of whichever segment is shortest
+    const int64_t overlap_length_2 = 2 * std::min(vSize(to - from), vSize(other_to - other_from));
     return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
 }
 
