@@ -62,6 +62,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         //           to other
 
         bool are_in_same_general_direction = dot(from - to, to_other_it.p() - to_other_next_it.p()) > 0;
+#if 0
         // handle multiple points  linked to [to]
         //   o<<<T<<<F
         //     / |
@@ -85,7 +86,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         {
             overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_it);
         }
-
+#endif
         // handle normal case where the segment from-to overlaps with another segment
         //   o<<<T<<<F
         //       |   |
