@@ -119,9 +119,8 @@ public:
      * 
      * \param intersection The intersection
      * \param scanline_index Index of the current scanline
-     * \param direction Direction of this line segment
      */
-    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index, int direction);
+    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
 
     /*!
      * Handle the end of a polygon and prepare for the next.
@@ -172,9 +171,8 @@ protected:
      *
      * \param start_scanline_idx the start scanline index of this scanline segment
      * \param end_scanline_idx The the end scanline index of this scanline segment
-     * \param direction The direction of this scanline segment
      */
-    bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx, int direction) const;
+    bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const;
 
     /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
