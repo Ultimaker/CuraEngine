@@ -197,9 +197,21 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
 
-    // use the length of whichever segment is shortest
-    const int64_t overlap_length_2 = 2 * std::min(vSize(to - from), vSize(other_to - other_from));
-    return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
+    // shortest segment is overlapped completely - use the length of whichever segment is shortest
+    const int64_t len = vSize(to - from);
+    const int64_t other_len = vSize(other_to - other_from);
+    if (len <= other_len)
+    {
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
+        const int64_t overlap_length_2 = len * 2;
+        return overlap_length_2 * overlap_width_2 / 4;
+    }
+    else
+    {
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to));
+        const int64_t overlap_length_2 = other_len * 2;
+        return overlap_length_2 * overlap_width_2 / 4;
+    }
 }
 
 bool WallOverlapComputation::getIsPassed(const ProximityPointLink& link_a, const ProximityPointLink& link_b)
