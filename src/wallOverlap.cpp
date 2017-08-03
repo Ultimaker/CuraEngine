@@ -128,8 +128,6 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
 
 int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist)
 {
-    const int64_t overlap_width_2 = line_width * 2 - from_dist - to_dist; //Twice the width of the overlap area, perpendicular to the lines.
-
     // check whether the line segment overlaps with the point if one of the line segments is just a point
     if (from == to)
     {
