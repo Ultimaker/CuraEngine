@@ -13,7 +13,7 @@ parallel_nodes(["linux && cura", "windows && cura"]) {
                     branch = "master"
                 }
 
-                cmake '..', "-DCMAKE_PREFIX_PATH=\"${env.CURA_ENVIRONMENT_PATH}/${branch}\" -DCMAKE_BUILD_TYPE=Release"
+                cmake '..', "-DCMAKE_PREFIX_PATH=\"${env.CURA_ENVIRONMENT_PATH}/${branch}\" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON"
                 make
             }
             // Try and run the unit tests. If this stage fails, we consider the build to be "unstable".
