@@ -150,7 +150,54 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         // O<------O   .            O------>O
         //         :   :                     \_
         //         '   O------->O             O------>O
-        return 0;
+
+        // It used to return 0 here but that doesn't work very well when you have a curved wall that overlaps
+        // with another wall that has a smaller radius (i.e. when you have concentric circular walls one inside the other.
+
+        // It was reducing the width of the segments between the "corners" but at each corner there was a spike because
+        // the width was not being reduced at all, so it looked like this: ____/\____/\____ (this shows the ___ segments in
+        // a straight line but, of course, in reality their orientation would be changing as they progress around the curved wall).
+
+        // So I have this "theory" that at each of the corners, there's a little diamond shaped area that wasn't getting flow reduced
+        // when 0 was being returned and, therefore, the code below tries to approximate an area for that little diamond shape.
+
+        // It's pure speculation but does appear to remove almost all of the spikes.
+
+        const int64_t len = vSize(to - from);
+        const int64_t other_len = vSize(other_to - other_from);
+        int64_t overlap_width_2 = line_width * 2;
+        if (len <= other_len)
+        {
+            // use length of from -> to
+            if (from_rel < 0)
+            {
+                // segment is closer to other_from
+                overlap_width_2 -= 2 * std::min(vSize(to - other_from), vSize(from - other_from));
+            }
+            else
+            {
+                // segment is closer to other_to
+                overlap_width_2 -= 2 * std::min(vSize(to - other_to), vSize(from - other_to));
+            }
+            const int64_t overlap_length_2 = len * 2;
+            return overlap_length_2 * overlap_width_2 / 4;
+        }
+        else
+        {
+            // use length of other_from -> other_to
+            if (other_from_rel < 0)
+            {
+                // segment is closer to from
+                overlap_width_2 -= 2 * std::min(vSize(other_to - from), vSize(other_from - from));
+            }
+            else
+            {
+                // segment is closer to to
+                overlap_width_2 -= 2 * std::min(vSize(other_to - to), vSize(other_from - to));
+            }
+            const int64_t overlap_length_2 = other_len * 2;
+            return overlap_length_2 * overlap_width_2 / 4;
+        }
     }
 
     if (from_rel != 0 && from_rel == other_from_rel && to_rel == 0 && other_to_rel == 0)
