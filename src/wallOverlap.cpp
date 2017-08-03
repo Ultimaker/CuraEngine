@@ -172,6 +172,7 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         const int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
 
         const int64_t overlap_length_2 = to_proj + other_to_proj; //Twice the length of the overlap area, alongside the lines.
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
     if (to_rel != 0 && to_rel == other_to_rel && from_rel == 0 && other_from_rel == 0)
@@ -192,6 +193,7 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         const int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
 
         const int64_t overlap_length_2 = from_proj + other_from_proj; //Twice the length of the overlap area, alongside the lines.
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
 
