@@ -260,6 +260,16 @@ public:
      */
     void smooth2(int remove_length, PolygonRef result) const;
 
+    /*!
+     * Compute the morphological intersection between this polygon and another.
+     *
+     * Note that the result may consist of multiple polygons, if you have bad
+     * luck.
+     *
+     * \param other The polygon with which to intersect this polygon.
+     */
+    Polygons intersection(const ConstPolygonRef& other) const;
+
 
 private:
     /*!
