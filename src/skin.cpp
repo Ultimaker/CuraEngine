@@ -313,7 +313,7 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
  */
 void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
 {
-    if (skin_inset_count <= 0)
+    if (skin_inset_count <= 0 || skin_part.insets.empty())
     {
         skin_part.inner_infill = skin_part.outline;
         return;
