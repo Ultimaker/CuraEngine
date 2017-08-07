@@ -129,35 +129,11 @@ public:
      */
     void registerPolyFinished();
 
+protected:
     /*!
      * Reset the state so it can be used for processing another polygon.
      */
     void reset();
-
-protected:
-    const PointMatrix& rotation_matrix; //!< The rotation matrix used to enforce the infill angle
-    Polygons& result; //!< The result of the computation
-
-    bool use_endpieces; //!< Whether to include end pieces or not
-    bool connected_endpieces; //!< Whether the end pieces should be connected with the rest part of the infill
-    int skip_some_zags; //!< Whether to skip some zags
-    int zag_skip_count; //!< Skip 1 zag in every N zags
-
-    bool is_first_connector; //!< indicating whether we are still looking for the first connector or not
-    int first_connector_end_scanline_index; //!< scanline segment index of the first connector
-    int last_connector_index; //!< scanline segment index of the last connector
-
-    /*!
-     * The line segments belonging the zigzag connector to which the very first vertex belongs. 
-     * This will be combined with the last handled zigzag_connector, which combine to a whole zigzag connector.
-     * 
-     * Because the boundary polygon may start in in the middle of a zigzag connector, 
-     */
-    std::vector<Point> first_connector; 
-    /*!
-     * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
-     */
-    std::vector<Point> current_connector; 
 
     /*!
      * Add a line to the result bu unapplying the rotation rotation_matrix.
@@ -183,6 +159,31 @@ protected:
      * \param is_endpiece Whether this connector is an end piece
      */
     void addZagConnector(const std::vector<Point>& points, bool is_endpiece);
+
+protected:
+    const PointMatrix& rotation_matrix; //!< The rotation matrix used to enforce the infill angle
+    Polygons& result; //!< The result of the computation
+
+    bool use_endpieces; //!< Whether to include end pieces or not
+    bool connected_endpieces; //!< Whether the end pieces should be connected with the rest part of the infill
+    int skip_some_zags; //!< Whether to skip some zags
+    int zag_skip_count; //!< Skip 1 zag in every N zags
+
+    bool is_first_connector; //!< indicating whether we are still looking for the first connector or not
+    int first_connector_end_scanline_index; //!< scanline segment index of the first connector
+    int last_connector_index; //!< scanline segment index of the last connector
+
+    /*!
+     * The line segments belonging the zigzag connector to which the very first vertex belongs.
+     * This will be combined with the last handled zigzag_connector, which combine to a whole zigzag connector.
+     *
+     * Because the boundary polygon may start in in the middle of a zigzag connector,
+     */
+    std::vector<Point> first_connector;
+    /*!
+     * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
+     */
+    std::vector<Point> current_connector;
 };
 
 //
