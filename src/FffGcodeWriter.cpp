@@ -400,6 +400,11 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
+    if (gcode.getFlavor() == EGCodeFlavor::REPRAP)
+    {
+        gcode.writeCode("T0"); // required before any temperature setting commands
+    }
+
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
