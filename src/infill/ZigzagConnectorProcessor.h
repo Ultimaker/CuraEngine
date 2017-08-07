@@ -42,6 +42,7 @@ namespace cura
  * - without endpieces
  * - with disconnected endpieces
  * - with connected endpieces
+ *  <<extra>> there is also a NoZigzagConnector which creates no zags. It is used for the Line infill pattern
  * 
  *      v   v   zigzag connectors
  *     <--
