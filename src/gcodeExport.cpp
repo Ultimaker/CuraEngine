@@ -271,6 +271,14 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     {
         firmware_retract = false;
     }
+    if (flavor == EGCodeFlavor::REPRAP)
+    {
+        relative_extrusion = true;
+    }
+    else
+    {
+        relative_extrusion = false;
+    }
 }
 
 EGCodeFlavor GCodeExport::getFlavor() const
@@ -481,6 +489,18 @@ void GCodeExport::writeLine(const char* line)
     *output_stream << line << new_line;
 }
 
+void GCodeExport::writeExtruderMode()
+{
+    if (relative_extrusion)
+    {
+        *output_stream << "M83 ; relative extrusion mode" << new_line;
+    }
+    else
+    {
+        *output_stream << "M82 ; absolute extrusion mode" << new_line;
+    }
+}
+
 void GCodeExport::resetExtrusionValue()
 {
     if (flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
@@ -683,7 +703,15 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e, PrintF
     }
     if (e != current_e_value)
     {
-        *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, e};
+        *output_stream << " " << extruder_attr[current_extruder].extruderCharacter;
+        if (relative_extrusion)
+        {
+            *output_stream << PrecisionedDouble{5, e - current_e_value};
+        }
+        else
+        {
+            *output_stream << PrecisionedDouble{5, e};
+        }
     }
     *output_stream << new_line;
     
@@ -711,8 +739,17 @@ void GCodeExport::writeUnretractionAndPrime()
         }
         else
         {
-            current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
-            *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+            *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter;
+            if (relative_extrusion)
+            {
+                *output_stream << PrecisionedDouble{5, extruder_attr[current_extruder].retraction_e_amount_current + mm3ToE(prime_volume)} << new_line;
+                current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
+            }
+            else
+            {
+                current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
+                *output_stream << PrecisionedDouble{5, current_e_value} << new_line;
+            }
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         }
@@ -724,7 +761,15 @@ void GCodeExport::writeUnretractionAndPrime()
     }
     else if (prime_volume > 0.0)
     {
-        *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+        *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter;
+        if (relative_extrusion)
+        {
+            *output_stream << PrecisionedDouble{5, mm3ToE(prime_volume)} << new_line;
+        }
+        else
+        {
+            *output_stream << PrecisionedDouble{5, current_e_value} << new_line;
+        }
         currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::NoneType);
     }
@@ -799,8 +844,15 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     {
         double speed = ((retraction_diff_e_amount < 0.0)? config.speed : extr_attr.last_retraction_prime_speed) * 60;
         current_e_value += retraction_diff_e_amount;
-        *output_stream << "G1 F" << PrecisionedDouble{1, speed} << " "
-            << extr_attr.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+        *output_stream << "G1 F" << PrecisionedDouble{1, speed} << " " << extr_attr.extruderCharacter;
+        if (relative_extrusion)
+        {
+            *output_stream << PrecisionedDouble{5, retraction_diff_e_amount} << new_line;
+        }
+        else
+        {
+            *output_stream << PrecisionedDouble{5, current_e_value} << new_line;
+        }
         currentSpeed = speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         extr_attr.last_retraction_prime_speed = config.primeSpeed;
