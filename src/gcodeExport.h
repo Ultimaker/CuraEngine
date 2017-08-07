@@ -126,6 +126,7 @@ private:
     
     bool is_volumatric;
     bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
+    bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
 
     unsigned int layer_nr; //!< for sending travel data
 
@@ -245,6 +246,11 @@ public:
     
     void writeComment(std::string comment);
     void writeTypeComment(PrintFeatureType type);
+
+    /*!
+     * Write an M82 (absolute) or M83 (relative) depending on what extruder mode is in use
+     */
+    void writeExtruderMode();
 
     /*!
      * Write a comment saying what (estimated) time has passed up to this point

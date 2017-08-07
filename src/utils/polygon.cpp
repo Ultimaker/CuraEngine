@@ -226,10 +226,6 @@ coord_t Polygons::polyLineLength() const
 
 Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
-    if (distance == 0)
-    {
-        return *this;
-    }
     Polygons ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
     clipper.AddPaths(unionPolygons().paths, join_type, ClipperLib::etClosedPolygon);
@@ -240,12 +236,6 @@ Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double m
 
 Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
-    if (distance == 0)
-    {
-        Polygons ret;
-        ret.add(*this);
-        return ret;
-    }
     Polygons ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
     clipper.AddPath(*path, join_type, ClipperLib::etClosedPolygon);
