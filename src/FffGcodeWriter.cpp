@@ -705,6 +705,11 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
+            //Make helper layer start point closer to the extruder_prime_pos
+            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+            gcode_layer.setLastPosition(prime_pos);
+
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
