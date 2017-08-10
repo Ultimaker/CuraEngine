@@ -23,6 +23,11 @@ struct AABB3D
     AABB3D();
 
     /*!
+     * Create an AABB3D with given limits
+     */
+    AABB3D(Point3 min, Point3 max);
+
+    /*!
      * Get the middle of the bounding box
      */
     Point3 getMiddle() const;

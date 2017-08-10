@@ -321,6 +321,15 @@ public:
         return dot(ba, bc);
     }
 
+    /*!
+     * Get the rotation matrix for rotating around a specific point in place.
+     */
+    static Point3Matrix rotateAround(Point middle, double rotation)
+    {
+        PointMatrix rotation_matrix(rotation);
+        Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
+        return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
+    }
 };
 
 

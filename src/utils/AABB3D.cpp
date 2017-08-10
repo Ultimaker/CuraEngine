@@ -13,6 +13,12 @@ AABB3D::AABB3D()
 {
 }
 
+AABB3D::AABB3D(Point3 min, Point3 max) 
+: min(min)
+, max(max)
+{
+}
+
 Point3 AABB3D::getMiddle() const
 {
     return (min + max) / 2;

@@ -431,6 +431,12 @@ public:
     { 
         path->pop_back();
     }
+
+    /*!
+     * Apply a matrix to each vertex in this polygon
+     */
+    void applyMatrix(const PointMatrix& matrix);
+    void applyMatrix(const Point3Matrix& matrix);
 };
 
 class Polygon : public PolygonRef
@@ -576,6 +582,12 @@ public:
 
     bool operator==(const Polygons& other) const =delete;
 
+    /*!
+     * Convert ClipperLib::PolyTree to a Polygons object,
+     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
+     */
+    static Polygons toPolygons(ClipperLib::PolyTree& poly_tree);
+
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
@@ -610,6 +622,12 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
         return ret;
     }
+
+    /*!
+     * Intersect polylines with this area Polygons object.
+     */
+    Polygons intersectionPolyLines(const Polygons& polylines) const;
+
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
@@ -797,6 +815,12 @@ private:
      */
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+
+    /*!
+     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
+     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
+     */
+    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
