@@ -650,7 +650,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
 
 void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position)
 {
-    TimeMaterialEstimates estimates = computeNaiveTimeEstimates(starting_position);
+    computeNaiveTimeEstimates(starting_position);
     totalPrintTime = estimates.getTotalTime();
     if (force_minimal_layer_time)
     {
