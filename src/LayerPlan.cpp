@@ -687,7 +687,8 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     {
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max;
     }
-    else if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
+    else if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max &&
+             fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max > fan_speed_layer_time_settings.cool_min_layer_time)
     { 
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
         double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_layer_time_settings.cool_fan_speed_min;
