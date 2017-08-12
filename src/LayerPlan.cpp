@@ -594,7 +594,6 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
 }
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
 {
-    TimeMaterialEstimates ret;
     Point p0 = starting_position;
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
