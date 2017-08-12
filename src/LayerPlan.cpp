@@ -715,7 +715,7 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     */
     if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer
         && layer_nr >= fan_speed_layer_time_settings.cool_fan_min_layer
-        && totalLayerTime > fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max
+        && (!force_minimal_layer_time || totalLayerTime > fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
         && fan_speed_layer_time_settings.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
         && !this->is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
     )
