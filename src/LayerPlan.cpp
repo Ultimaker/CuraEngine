@@ -720,7 +720,7 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
         && !this->is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
     )
     {
-        //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
+        // Slow down the fan on the layers below the [cool_fan_full_layer], where layer cool_fan_min_layer is speed cool_fan_speed_0.
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(0, layer_nr - fan_speed_layer_time_settings.cool_fan_min_layer) / (fan_speed_layer_time_settings.cool_fan_full_layer - fan_speed_layer_time_settings.cool_fan_min_layer);
     }
 }
