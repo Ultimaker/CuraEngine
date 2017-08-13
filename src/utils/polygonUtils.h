@@ -488,6 +488,35 @@ public:
      */
     static bool polygonCollidesWithLineSegment(const Polygons& polys, const Point& startPoint, const Point& endPoint);
 
+    /*!
+     * Checks whether two polygon groups intersect - does a BB hit check first and if that succeeds, the full intersection
+     *
+     * \param poly_a A polygon group
+     * \param poly_b Another polygon group
+     * \return true if \p poly_a and \p poly_b intersect, false otherwise
+     */
+    static bool polygonsIntersect(const ConstPolygonRef& poly_a, const ConstPolygonRef& poly_b);
+
+    /*!
+     * Checks whether two polygons are adjacent (closer than \p max_gap)
+     *
+     * \param[in] inner_poly A polygon whose vertices will be tested to see if they are closer than \p max_gap to one of the lines in \p outer_poly
+     * \param[in] outer_poly A polygon
+     * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
+     * \return true if a vertex in \p inner_poly is sufficiently close to a line in \p outer_poly, false otherwise
+     */
+    static bool polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap);
+
+    /*!
+     * Searches \p possible_adjacent_polys for polygons that are closer to \p poly than \p max_gap. The indices of adjacent polygons are stored in \p adjacent_poly_indices.
+     *
+     * \param[out] adjacent_poly_indices A vector that will contain the indices of the polygons that are adjacent to \p poly.
+     * \param[in] poly The polygon that we are testing adjacency to.
+     * \param[in] possible_adjacent_polys The vector of polygons we are testing.
+     * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
+     */
+    static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.

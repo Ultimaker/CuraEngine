@@ -68,6 +68,7 @@ set(engine_SRCS # Except main.cpp.
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
     src/infill.cpp
+    src/InsetOrderOptimizer.cpp
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
@@ -165,6 +166,9 @@ target_link_libraries(CuraEngine _CuraEngine)
 # Compiling the test environment.
 if (BUILD_TESTS)
     message(STATUS "Building tests...")
+
+    find_package(cppunit)
+
     enable_testing()
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)

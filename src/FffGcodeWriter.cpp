@@ -12,6 +12,7 @@
 #include "utils/orderOptimizer.h"
 #include "GcodeLayerThreader.h"
 #include "infill/SpaghettiInfillPathGenerator.h"
+#include "InsetOrderOptimizer.h"
 
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
@@ -706,6 +707,11 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
+            //Make helper layer start point closer to the extruder_prime_pos
+            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+            gcode_layer.setLastPosition(prime_pos);
+
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
@@ -1070,8 +1076,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle);
     }
 
-    EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, z_seam_type, mesh.getZSeamHint());
+    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, mesh.getZSeamHint());
 
     processOutlineGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, added_something);
 
@@ -1254,7 +1259,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
 }
 
-bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, EZSeamType z_seam_type, Point z_seam_pos) const
+bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, Point z_seam_pos) const
 {
     if (extruder_nr != mesh.getSettingAsExtruderNr("wall_0_extruder_nr") && extruder_nr != mesh.getSettingAsExtruderNr("wall_x_extruder_nr"))
     {
@@ -1302,6 +1307,11 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part);
             }
         }
+        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
+        {
+            InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr(), z_seam_pos);
+            return ioo.processInsetsWithOptimizedOrdering();
+        }
         else
         {
             const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
@@ -1323,6 +1333,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         added_something = true;
                         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                         gcode_layer.setIsInside(true); // going to print stuff inside print object
+                        const EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
