@@ -1460,23 +1460,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     {
         const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
 
-        const EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
-            mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
-            mesh.getSettingAsFillMethod("top_bottom_pattern");
-        if ((pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
-            && (mesh.getSettingAsCount("roofing_layer_count") == 0 || skin_part.roofing_fill.size() > 0))
-        {
-            const std::vector<int>& top_most_skin_angles = (mesh.getSettingAsCount("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
-            assert(top_most_skin_angles.size() > 0);
-            int top_most_skin_angle = top_most_skin_angles[gcode_layer.getLayerNr() % top_most_skin_angles.size()]; // use top most skin angles for perimeter gaps
-            std::optional<Point> seam_avoiding_location = getSeamAvoidingLocation(skin_part.outline, top_most_skin_angle, gcode_layer.getLastPosition());
-            if (seam_avoiding_location)
-            {
-                gcode_layer.addTravel(*seam_avoiding_location);
-                added_something = true;
-            }
-        }
-
         processSkinInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
         added_something = added_something |
@@ -1628,13 +1611,25 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
 
+        std::optional<Point> near_start_location;
+        const EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
+            mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
+            mesh.getSettingAsFillMethod("top_bottom_pattern");
+        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+        { // update near_start_location to a location which tries to avoid seams in skin
+            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPosition());
+        }
+
+        constexpr float flow = 1.0;
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
+            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow, near_start_location);
         }
         else
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines;
+            constexpr coord_t wipe_dist = 0;
+            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, wipe_dist, flow, near_start_location);
         }
     }
 }
