@@ -18,18 +18,18 @@ void PathOrderOptimizer::optimize()
     
     for (ConstPolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
     {
-        int best = -1;
+        int best_points_idx = -1;
         float bestDist = std::numeric_limits<float>::infinity();
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
         {
             float dist = vSize2f(poly[point_idx] - startPoint);
             if (dist < bestDist)
             {
-                best = point_idx;
+                best_points_idx = point_idx;
                 bestDist = dist;
             }
         }
-        polyStart.push_back(best);
+        polyStart.push_back(best_points_idx);
         //picked.push_back(false); /// initialize all picked values as false
 
         assert(poly.size() != 2);
