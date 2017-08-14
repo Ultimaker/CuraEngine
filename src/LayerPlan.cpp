@@ -458,9 +458,9 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
     }
 }
-void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist, float flow_ratio)
+void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
-    LineOrderOptimizer orderOptimizer(getLastPosition());
+    LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPosition()));
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
