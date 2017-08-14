@@ -1058,7 +1058,7 @@ void AreaSupport::detectOverhangPoints(
 )
 {
     ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-    const unsigned int support_line_width = infill_extr->getSettingInMicrons("support_line_width");
+    const coord_t support_line_width = infill_extr->getSettingInMicrons("support_line_width");
 
     overhang_points.resize(layer_count);
 
