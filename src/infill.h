@@ -9,11 +9,6 @@
 #include "settings/settings.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/ActualZigzagConnectorProcessor.h"
-#include "infill/ZigzagConnectorProcessorNoEndPieces.h"
-#include "infill/ZigzagConnectorProcessorEndPieces.h"
-#include "infill/ZigzagConnectorProcessorConnectedEndPieces.h"
-#include "infill/ZigzagConnectorProcessorDisconnectedEndPieces.h"
 #include "infill/SubDivCube.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
@@ -37,6 +32,8 @@ class Infill
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
+    bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
+    int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -60,6 +57,8 @@ public:
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
+        , bool skip_some_zags = false
+        , int zag_skip_count = 0
     )
     : pattern(pattern)
     , in_outline(in_outline)
@@ -73,6 +72,8 @@ public:
     , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
+    , skip_some_zags(skip_some_zags)
+    , zag_skip_count(zag_skip_count)
     {
     }
     /*!
@@ -85,18 +86,6 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh = nullptr);
 
 private:
-    /*!
-     * Function which returns the scanline_idx for a given x coordinate
-     * 
-     * For negative \p x this is different from simple division.
-     * 
-     * \warning \p line_distance is assumed to be positive
-     * 
-     * \param x the point to get the scansegment index for
-     * \param line_distance the width of the scan segments
-     */
-    static inline int computeScanSegmentIdx(int x, int line_distance);
-
     /*!
      * Generate sparse concentric infill
      * 
@@ -248,10 +237,8 @@ private:
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
-     * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
-     * \param use_endpieces Whether to include zigzag segments connecting a scanline to itself
      */
-    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces);
+    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle);
 };
 
 }//namespace cura

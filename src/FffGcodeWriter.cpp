@@ -1735,6 +1735,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     {
         support_pattern = EFillMethod::GRID;
     }
+    const bool skip_some_zags = infill_extruder.getSettingBoolean("support_skip_some_zags");
+    const int zag_skip_count = infill_extruder.getSettingAsCount("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
@@ -1806,7 +1808,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 Polygons* perimeter_gaps = nullptr;
                 Infill infill_comp(support_pattern, support_area, offset_from_outline, support_line_width,
                                    support_line_distance_here, current_support_infill_overlap, support_infill_angle, gcode_layer.z, support_shift,
-                                   perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces);
+                                   perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces,
+                                   skip_some_zags, zag_skip_count);
                 infill_comp.generate(support_polygons, support_lines);
             }
 
