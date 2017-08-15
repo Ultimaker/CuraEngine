@@ -22,7 +22,7 @@ public:
     }
 
     void registerVertex(const Point& vertex);
-    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index, int direction);
+    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
     void registerPolyFinished();
 };
 

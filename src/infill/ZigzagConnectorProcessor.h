@@ -113,7 +113,7 @@ public:
      * Handle the next vertex on the outer boundary.
      * \param vertex The vertex
      */
-    void registerVertex(const Point& vertex);
+    virtual void registerVertex(const Point& vertex);
 
     /*!
      * Handle the next intersection between a scanline and the outer boundary.
@@ -121,13 +121,13 @@ public:
      * \param intersection The intersection
      * \param scanline_index Index of the current scanline
      */
-    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
+    virtual void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
 
     /*!
      * Handle the end of a polygon and prepare for the next.
      * This function should reset all member variables.
      */
-    void registerPolyFinished();
+    virtual void registerPolyFinished();
 
 protected:
     /*!
