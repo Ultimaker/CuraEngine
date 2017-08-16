@@ -61,6 +61,10 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, const SliceDa
 , skin_inset_count(mesh.getSettingAsCount("skin_outline_count"))
 , no_small_gaps_heuristic(mesh.getSettingBoolean("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)
+, top_reference_wall_expansion(mesh.getSettingInMicrons("top_skin_preshrink"))
+, bottom_reference_wall_expansion(mesh.getSettingInMicrons("bottom_skin_preshrink"))
+, top_reference_wall_idx(getReferenceWallIdx(top_reference_wall_expansion))
+, bottom_reference_wall_idx(getReferenceWallIdx(bottom_reference_wall_expansion))
 {
 }
 
@@ -94,6 +98,28 @@ Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, in
     }
     return result;
 };
+
+int SkinInfillAreaComputation::getReferenceWallIdx(coord_t& preshrink) const
+{
+    for (int wall_idx = wall_line_count; wall_idx > 0; wall_idx--)
+    {
+        coord_t wall_line_width = (wall_idx > 1)? wall_line_width_x : wall_line_width_0;
+        int next_wall_idx = wall_idx - 1;
+        coord_t next_wall_line_width = (next_wall_idx > 1)? wall_line_width_x : (next_wall_idx == 0)? 0 : wall_line_width_0;
+        coord_t diff_to_next_wall = (wall_line_width + next_wall_line_width) / 2;
+        if (std::abs(preshrink - diff_to_next_wall) <= 10)
+        { // snap preshrink to closest wall
+            preshrink = 0;
+            return next_wall_idx;
+        }
+        if (preshrink < diff_to_next_wall)
+        {
+            return wall_idx;
+        }
+        preshrink -= diff_to_next_wall;
+    }
+    return 0;
+}
 
 /*
  * This function is executed in a parallel region based on layer_nr.
@@ -157,9 +183,6 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 
     Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
 
-    int bottom_skin_reference_wall_idx = mesh.getSettingAsIndex("bottom_reference_wall");
-    int top_skin_reference_wall_idx = mesh.getSettingAsIndex("top_reference_wall");
-
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
     Polygons upskin;
     if (top_layer_count > 0)
@@ -172,9 +195,9 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         downskin = Polygons(original_outline);
     }
 
-    calculateBottomSkin(part, min_infill_area, bottom_skin_reference_wall_idx, downskin);
+    calculateBottomSkin(part, min_infill_area, downskin);
 
-    calculateTopSkin(part, min_infill_area, top_skin_reference_wall_idx, upskin);
+    calculateTopSkin(part, min_infill_area, upskin);
 
     applySkinExpansion(original_outline, upskin, downskin);
 
@@ -202,16 +225,16 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, unsigned int wall_idx, Polygons& downskin)
+void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin)
 {
     if (static_cast<int>(layer_nr - bottom_layer_count) >= 0 && bottom_layer_count > 0)
     {
-        Polygons not_air = getWalls(part, layer_nr - bottom_layer_count, wall_idx);
+        Polygons not_air = getWalls(part, layer_nr - bottom_layer_count, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
         if (!no_small_gaps_heuristic)
         {
             for (int downskin_layer_nr = layer_nr - bottom_layer_count + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
             {
-                not_air = not_air.intersection(getWalls(part, downskin_layer_nr, wall_idx));
+                not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
             }
         }
         if (min_infill_area > 0)
@@ -222,16 +245,16 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     }
 }
 
-void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int min_infill_area, unsigned int wall_idx, Polygons& upskin)
+void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin)
 {
     if (static_cast<int>(layer_nr + top_layer_count) < static_cast<int>(mesh.layers.size()) && top_layer_count > 0)
     {
-        Polygons not_air = getWalls(part, layer_nr + top_layer_count, wall_idx);
+        Polygons not_air = getWalls(part, layer_nr + top_layer_count, top_reference_wall_idx).offset(top_reference_wall_expansion);
         if (!no_small_gaps_heuristic)
         {
             for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + top_layer_count; upskin_layer_nr++)
             {
-                not_air = not_air.intersection(getWalls(part, upskin_layer_nr, wall_idx));
+                not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
             }
         }
         if (min_infill_area > 0)

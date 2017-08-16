@@ -75,7 +75,7 @@ protected:
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] upskin The areas of top skin to be pdated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, unsigned int wall_idx, Polygons& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
 
     /*!
      * Calculate the basic areas which have air below
@@ -85,7 +85,7 @@ protected:
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] downskin The areas of bottom skin to be updated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, unsigned int wall_idx, Polygons& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
 
     /*!
      * Apply skin expansion:
@@ -152,6 +152,10 @@ protected:
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
+    coord_t top_reference_wall_expansion; //!< The horizontal expansion to apply to the top reference wall in order to shrink the top skin
+    coord_t bottom_reference_wall_expansion; //!< The horizontal expansion to apply to the bottom reference wall in order to shrink the bottom skin
+    const int top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
+    const int bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:
     static coord_t getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
     static coord_t getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
@@ -165,6 +169,19 @@ private:
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      */
     Polygons getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx);
+
+    /*!
+     * Get the wall index of the reference wall for either the top or bottom skin.
+     * With larger user specified preshrink come lower reference wall indices.
+     * 
+     * The \p preshrink is updated to be relative to be the offset from the resulting reference wall.
+     * A preshrink distance close to an existing wall will snap to that wall so that no offset has to be computed.
+     * 
+     * \param[in,out] preshrink The expansion to be applied to the reference wall. The input is the expansion to be applied to the innermost wall, the output is the expansion applied to the returned reference wall.
+     * \return The index of the reference wall to view as being inside the model for the skin area computation.
+     */
+    int getReferenceWallIdx(coord_t& preshrink) const;
+
 };
 
 }//namespace cura
