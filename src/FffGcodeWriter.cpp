@@ -1844,20 +1844,36 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr bool connected_zigzags = false;
 
     coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
-    if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * roof_extr.getSettingInMicrons("support_roof_line_width"))
+    const coord_t support_roof_line_width = roof_extr.getSettingInMicrons("support_roof_line_width");
+    if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * support_roof_line_width)
     { // if roof is dense
         support_roof_line_distance *= roof_extr.getSettingAsRatio("initial_layer_line_width_factor");
     }
-    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+
+    Polygons outline = support_layer.support_roof;
+    Polygons wall;
+    wall.clear();
+    // make sure there is a wall if this is on the first layer
+    if (gcode_layer.getLayerNr() == 0)
+    {
+        wall = support_layer.support_roof.offset(-support_roof_line_width / 2);
+        outline = wall.offset(-support_roof_line_width / 2);
+    }
+
+    Infill roof_computation(pattern, outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
-    if (roof_polygons.empty() && roof_lines.empty())
+    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (roof_polygons.empty() && roof_lines.empty()))
     {
         return false; //We didn't create any support roof.
     }
     setExtruder_addPrime(storage, gcode_layer, roof_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+    if (gcode_layer.getLayerNr() == 0)
+    {
+        gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_roof_config);
+    }
     gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
     gcode_layer.addLinesByOptimizer(roof_lines, gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -1886,17 +1902,37 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
 
-    const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
-    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance");
+    const coord_t support_bottom_line_width = bottom_extr.getSettingInMicrons("support_bottom_line_width");
+    if (gcode_layer.getLayerNr() == 0 && support_bottom_line_distance < 2 * support_bottom_line_width)
+    { // if bottom is dense
+        support_bottom_line_distance *= bottom_extr.getSettingAsRatio("initial_layer_line_width_factor");
+    }
+
+    Polygons outline = support_layer.support_bottom;
+    Polygons wall;
+    wall.clear();
+    // make sure there is a wall if this is on the first layer
+    if (gcode_layer.getLayerNr() == 0)
+    {
+        wall = support_layer.support_bottom.offset(-support_bottom_line_width / 2);
+        outline = wall.offset(-support_bottom_line_width / 2);
+    }
+
+    Infill bottom_computation(pattern, outline, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
-    if (bottom_polygons.empty() && bottom_lines.empty())
+    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (bottom_polygons.empty() && bottom_lines.empty()))
     {
         return false;
     }
     setExtruder_addPrime(storage, gcode_layer, bottom_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+    if (gcode_layer.getLayerNr() == 0)
+    {
+        gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_bottom_config);
+    }
     gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage.support_bottom_config);
     gcode_layer.addLinesByOptimizer(bottom_lines, gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
