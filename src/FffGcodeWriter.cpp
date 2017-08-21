@@ -1850,17 +1850,16 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         support_roof_line_distance *= roof_extr.getSettingAsRatio("initial_layer_line_width_factor");
     }
 
-    Polygons outline = support_layer.support_roof;
+    Polygons infill_outline = support_layer.support_roof;
     Polygons wall;
-    wall.clear();
     // make sure there is a wall if this is on the first layer
     if (gcode_layer.getLayerNr() == 0)
     {
         wall = support_layer.support_roof.offset(-support_roof_line_width / 2);
-        outline = wall.offset(-support_roof_line_width / 2);
+        infill_outline = wall.offset(-support_roof_line_width / 2);
     }
 
-    Infill roof_computation(pattern, outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill roof_computation(pattern, infill_outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
@@ -1902,37 +1901,17 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
 
-    coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance");
-    const coord_t support_bottom_line_width = bottom_extr.getSettingInMicrons("support_bottom_line_width");
-    if (gcode_layer.getLayerNr() == 0 && support_bottom_line_distance < 2 * support_bottom_line_width)
-    { // if bottom is dense
-        support_bottom_line_distance *= bottom_extr.getSettingAsRatio("initial_layer_line_width_factor");
-    }
-
-    Polygons outline = support_layer.support_bottom;
-    Polygons wall;
-    wall.clear();
-    // make sure there is a wall if this is on the first layer
-    if (gcode_layer.getLayerNr() == 0)
-    {
-        wall = support_layer.support_bottom.offset(-support_bottom_line_width / 2);
-        outline = wall.offset(-support_bottom_line_width / 2);
-    }
-
-    Infill bottom_computation(pattern, outline, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
+    Infill bottom_computation(pattern, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
-    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (bottom_polygons.empty() && bottom_lines.empty()))
+    if (bottom_polygons.empty() && bottom_lines.empty())
     {
         return false;
     }
     setExtruder_addPrime(storage, gcode_layer, bottom_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-    if (gcode_layer.getLayerNr() == 0)
-    {
-        gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_bottom_config);
-    }
     gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage.support_bottom_config);
     gcode_layer.addLinesByOptimizer(bottom_lines, gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
