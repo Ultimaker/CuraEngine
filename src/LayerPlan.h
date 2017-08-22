@@ -431,8 +431,6 @@ public:
 
     /*!
      * Plan a prime blob at the current location.
-     * 
-     * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
     void planPrime();
 
