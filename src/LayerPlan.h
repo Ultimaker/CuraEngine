@@ -327,7 +327,12 @@ public:
         return layer_nr;
     }
 
-    Point getLastPosition() const
+    /*!
+     * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
+     * 
+     * \warning The layer start position might be outside of the build plate!
+     */
+    Point getLastPlannedPositionOrStartingPosition() const
     {
         return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
     }

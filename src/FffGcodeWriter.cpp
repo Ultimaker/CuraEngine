@@ -804,11 +804,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
         Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-        start_close_to = prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos;
+        start_close_to = prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
     }
     else
     {
-        start_close_to = gcode_layer.getLastPosition();
+        start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
     gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
     gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
@@ -1456,7 +1456,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                             && extruder_nr == wall_0_extruder_nr;
 
     Point z_seam_pos(0, 0); // not used
-    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
+    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_pos, EZSeamType::SHORTEST);
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
         const PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
@@ -1625,7 +1625,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             mesh.getSettingAsFillMethod("top_bottom_pattern");
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         { // update near_start_location to a location which tries to avoid seams in skin
-            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPosition());
+            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
         }
 
         constexpr float flow = 1.0;
@@ -1739,7 +1739,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
-    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
+    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
         island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].outline[0]);
@@ -1972,7 +1972,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
                 // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
                 bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
                 Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
+                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
 
                 gcode_layer.planPrime();
             }
