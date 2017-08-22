@@ -797,7 +797,20 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    gcode_layer.addTravel(skirt_brim.back().closestPointTo(gcode_layer.getLastPosition()));
+    // Start brim close to the prime location
+    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    Point start_close_to;
+    if (train->getSettingBoolean("prime_blob_enable"))
+    {
+        bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+        Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+        start_close_to = prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos;
+    }
+    else
+    {
+        start_close_to = gcode_layer.getLastPosition();
+    }
+    gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
     gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
 }
 
