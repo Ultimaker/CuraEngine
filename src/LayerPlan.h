@@ -332,11 +332,6 @@ public:
         return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
     }
 
-    void setLastPosition(Point p)
-    {
-        last_planned_position = p;
-    }
-
     /*!
      * return whether the last position planned was inside the mesh (used in combing)
      */
