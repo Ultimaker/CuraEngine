@@ -455,7 +455,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
     }
-    gcode.writeExtruderMode();
+    gcode.writeExtrusionMode();
 }
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)

@@ -483,7 +483,7 @@ void GCodeExport::writeLine(const char* line)
     *output_stream << line << new_line;
 }
 
-void GCodeExport::writeExtruderMode()
+void GCodeExport::writeExtrusionMode()
 {
     if (relative_extrusion)
     {

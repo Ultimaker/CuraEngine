@@ -248,9 +248,9 @@ public:
     void writeTypeComment(PrintFeatureType type);
 
     /*!
-     * Write an M82 (absolute) or M83 (relative) depending on what extruder mode is in use
+     * Write an M82 (absolute) or M83 (relative) depending on what extrusion mode is in use
      */
-    void writeExtruderMode();
+    void writeExtrusionMode();
 
     /*!
      * Write a comment saying what (estimated) time has passed up to this point
