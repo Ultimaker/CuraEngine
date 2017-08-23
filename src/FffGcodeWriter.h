@@ -248,7 +248,7 @@ private:
      * This function should be called for only one layer;
      * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      * 
-     * \param Storage where the slice data is stored.
+     * \param storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.

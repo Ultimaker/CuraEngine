@@ -285,21 +285,21 @@ void GCodeExport::setZ(int z)
     this->current_layer_z = z;
 }
 
-Point3 GCodeExport::getPosition()
+Point3 GCodeExport::getPosition() const
 {
     return currentPosition;
 }
-Point GCodeExport::getPositionXY()
+Point GCodeExport::getPositionXY() const
 {
     return Point(currentPosition.x, currentPosition.y);
 }
 
-int GCodeExport::getPositionZ()
+int GCodeExport::getPositionZ() const
 {
     return currentPosition.z;
 }
 
-int GCodeExport::getExtruderNr()
+int GCodeExport::getExtruderNr() const
 {
     return current_extruder;
 }
@@ -311,7 +311,7 @@ void GCodeExport::setFilamentDiameter(unsigned int extruder, int diameter)
     extruder_attr[extruder].filament_area = area;
 }
 
-double GCodeExport::getCurrentExtrudedVolume()
+double GCodeExport::getCurrentExtrudedVolume() const
 {
     double extrusion_amount = current_e_value;
     if (!firmware_retract)

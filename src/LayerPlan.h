@@ -327,14 +327,14 @@ public:
         return layer_nr;
     }
 
-    Point getLastPosition() const
+    /*!
+     * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
+     * 
+     * \warning The layer start position might be outside of the build plate!
+     */
+    Point getLastPlannedPositionOrStartingPosition() const
     {
         return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
-    }
-
-    void setLastPosition(Point p)
-    {
-        last_planned_position = p;
     }
 
     /*!
@@ -431,8 +431,6 @@ public:
 
     /*!
      * Plan a prime blob at the current location.
-     * 
-     * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
     void planPrime();
 

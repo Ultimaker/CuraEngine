@@ -207,17 +207,17 @@ public:
         extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
     }
     
-    Point3 getPosition();
+    Point3 getPosition() const;
     
-    Point getPositionXY();
+    Point getPositionXY() const;
 
-    int getPositionZ();
+    int getPositionZ() const;
 
-    int getExtruderNr();
+    int getExtruderNr() const;
     
     void setFilamentDiameter(unsigned int n, int diameter);
     
-    double getCurrentExtrudedVolume();
+    double getCurrentExtrudedVolume() const;
 
     /*!
      * Get the total extruded volume for a specific extruder in mm^3

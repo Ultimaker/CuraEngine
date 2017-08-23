@@ -56,7 +56,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         //Two options to start, both perpendicular to the ironing lines. Which is closer?
         const Point front_side = PolygonUtils::findNearestVert(center + far_away, areas).p();
         const Point back_side = PolygonUtils::findNearestVert(center - far_away, areas).p();
-        if (vSize2(layer.getLastPosition() - front_side) < vSize2(layer.getLastPosition() - back_side))
+        if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
         {
             layer.addTravel(front_side);
         }
