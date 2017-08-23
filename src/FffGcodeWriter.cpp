@@ -400,7 +400,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
-    if (gcode.getFlavor() == EGCodeFlavor::REPRAP)
+    if (gcode.getFlavor() == EGCodeFlavor::REPRAP || gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
         gcode.writeCode("T0"); // required before any temperature setting commands
     }
@@ -448,7 +448,6 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
-        gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
         CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
