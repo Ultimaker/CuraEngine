@@ -706,11 +706,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
-            //Make helper layer start point closer to the extruder_prime_pos
-            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-            gcode_layer.setLastPosition(prime_pos);
-
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
@@ -803,7 +798,20 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    gcode_layer.addTravel(skirt_brim.back().closestPointTo(gcode_layer.getLastPosition()));
+    // Start brim close to the prime location
+    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    Point start_close_to;
+    if (train->getSettingBoolean("prime_blob_enable"))
+    {
+        bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+        Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+        start_close_to = prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
+    }
+    else
+    {
+        start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
+    }
+    gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
     gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
 }
 
@@ -1454,7 +1462,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                             && extruder_nr == wall_0_extruder_nr;
 
     Point z_seam_pos(0, 0); // not used
-    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
+    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_pos, EZSeamType::SHORTEST);
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
         const PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
@@ -1623,7 +1631,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             mesh.getSettingAsFillMethod("top_bottom_pattern");
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         { // update near_start_location to a location which tries to avoid seams in skin
-            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPosition());
+            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
         }
 
         constexpr float flow = 1.0;
@@ -1739,7 +1747,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const int zag_skip_count = infill_extruder.getSettingAsCount("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
-    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
+    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (unsigned int part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
     {
         island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].outline[0]);
@@ -1853,20 +1861,35 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr bool connected_zigzags = false;
 
     coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
-    if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * roof_extr.getSettingInMicrons("support_roof_line_width"))
+    const coord_t support_roof_line_width = roof_extr.getSettingInMicrons("support_roof_line_width");
+    if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * support_roof_line_width)
     { // if roof is dense
         support_roof_line_distance *= roof_extr.getSettingAsRatio("initial_layer_line_width_factor");
     }
-    Infill roof_computation(pattern, support_layer.support_roof, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+
+    Polygons infill_outline = support_layer.support_roof;
+    Polygons wall;
+    // make sure there is a wall if this is on the first layer
+    if (gcode_layer.getLayerNr() == 0)
+    {
+        wall = support_layer.support_roof.offset(-support_roof_line_width / 2);
+        infill_outline = wall.offset(-support_roof_line_width / 2);
+    }
+
+    Infill roof_computation(pattern, infill_outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
-    if (roof_polygons.empty() && roof_lines.empty())
+    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (roof_polygons.empty() && roof_lines.empty()))
     {
         return false; //We didn't create any support roof.
     }
     setExtruder_addPrime(storage, gcode_layer, roof_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+    if (gcode_layer.getLayerNr() == 0)
+    {
+        gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_roof_config);
+    }
     gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
     gcode_layer.addLinesByOptimizer(roof_lines, gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -1958,7 +1981,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
                 // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
                 bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
                 Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
+                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
 
                 gcode_layer.planPrime();
             }
