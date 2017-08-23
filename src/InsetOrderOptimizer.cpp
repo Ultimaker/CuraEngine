@@ -36,7 +36,7 @@ void InsetOrderOptimizer::processHoleInsets()
     constexpr float flow = 1.0;
 
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
-    PathOrderOptimizer order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, z_seam_type);
+    PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_pos, z_seam_type);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(inset_polys[0][poly_idx]);
