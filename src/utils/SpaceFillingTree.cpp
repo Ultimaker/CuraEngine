@@ -189,7 +189,7 @@ void SpaceFillingTree::Node::prune()
 
 void SpaceFillingTree::Node::walk(SpaceFillingTree::LocationVisitor& visitor) const
 {
-    visitor.visit(middle);
+    visitor.visit(middle, depth);
     for (int dir_offset = 0; dir_offset < Direction::DIRECTION_COUNT; dir_offset++)
     {
         int direction = (parent_to_here_direction + dir_offset + 2) % Direction::DIRECTION_COUNT;
@@ -198,7 +198,7 @@ void SpaceFillingTree::Node::walk(SpaceFillingTree::LocationVisitor& visitor) co
         {
             assert(child->parent == this);
             child->walk(visitor);
-            visitor.visit(middle);
+            visitor.visit(middle, depth);
         }
     }
 }

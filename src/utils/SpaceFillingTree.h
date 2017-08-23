@@ -53,8 +53,10 @@ public:
     public:
         /*!
          * Register a location being crossed during the walk.
+         * \param junction The location visited
+         * \param depth The distance from the root node.
          */
-        virtual void visit(Point junction) = 0;
+        virtual void visit(Point junction, unsigned int depth) = 0;
     };
 
     /*!

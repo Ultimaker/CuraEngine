@@ -98,7 +98,7 @@ void SpaceFillingTreeFill::generateTreePath(PolygonRef path) const
         Visitor(PolygonRef path)
         : path(path)
         {}
-        void visit(Point c)
+        void visit(Point c, unsigned int)
         {
             if (is_first_point)
             { // skip first point because it is the same as the last
