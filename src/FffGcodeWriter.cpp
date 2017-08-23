@@ -460,10 +460,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
     }
-    else if (gcode.getFlavor() == EGCodeFlavor::REPRAP)
-    {
-        gcode.writeExtruderMode();
-    }
+    gcode.writeExtruderMode();
 }
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
