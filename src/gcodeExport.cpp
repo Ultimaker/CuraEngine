@@ -80,6 +80,8 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
+    relative_extrusion = meshgroup->getSettingBoolean("relative_extrusion");
+
     if (flavor == EGCodeFlavor::BFB)
     {
         new_line = "\r\n";
@@ -270,14 +272,6 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     else 
     {
         firmware_retract = false;
-    }
-    if (flavor == EGCodeFlavor::REPRAP)
-    {
-        relative_extrusion = true;
-    }
-    else
-    {
-        relative_extrusion = false;
     }
 }
 
