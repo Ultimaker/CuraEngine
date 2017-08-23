@@ -66,7 +66,7 @@ public:
     SpaceFillingTree(
         Point middle,
         coord_t radius,
-        int depth);
+        unsigned int depth);
 
     /*!
      * Move constructor
@@ -133,7 +133,8 @@ protected:
     {
     public:
         Node* parent; //!< Parent node. Optional because of root
-        int depth; //!< The number of generations BELOW this node. Not the distance from root.
+        unsigned int depth; //!< The number of generations BELOW this node. Not the distance from root.
+        unsigned int total_depth; //!< The total depth the tree should have
         Point middle; //!< The location of the middle of this node. This is the middle of the square which is to be covered by the subtree of this node.
         Direction parent_to_here_direction; //!< The direction from the parent middle to this nodes middle.
         Node* children[4]; //!< connected junction points ordered on absolute direction
@@ -145,8 +146,9 @@ protected:
          * \param depth The number of generations BELOW this node. Not the distance from root.
          * \param middle The location of the middle of this node. This is the middle of the square which is to be covered by the subtree of this node.
          * \param parent_to_here_direction The direction from the parent middle to this nodes middle.
+         * \param total_depth The total depth the tree should have
          */
-        Node(Node* parent, int depth, Point middle, Direction parent_to_here_direction);
+        Node(Node* parent, unsigned int depth, Point middle, Direction parent_to_here_direction, unsigned int total_depth);
 
         /*!
          * Destruct node and all it's children recursively
@@ -202,6 +204,7 @@ protected:
     };
     AABB aabb; //!< The aabb of the pattern to be generated. This is the area which is covered by the limit of the fractal.
     Node* root; //!< The root node of the tree. The middle of the fractal.
+    unsigned int depth; //!< The depth of this tree.
 };
 } // namespace cura
 

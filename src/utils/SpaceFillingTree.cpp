@@ -7,13 +7,17 @@ namespace cura {
 SpaceFillingTree::SpaceFillingTree(
     Point middle,
     coord_t radius,
-    int depth)
+    unsigned int depth)
 : root(nullptr)
+, depth(depth)
 {
+    unsigned int root_depth = 0;
     root = new Node(nullptr
-    , depth
+    , root_depth
     , middle
-    , Direction::DIRECTION_COUNT); // TODO: what should be the direction?
+    , Direction::DIRECTION_COUNT // TODO: what should be the direction?
+    , depth
+    );
 
     // total width = radius becase 1 + .5 + .25 + ... = 2
     // therefore the initial width = .5 * radius
@@ -58,9 +62,10 @@ void SpaceFillingTree::debugCheck()
 #endif // DEBUG
 }
 
-SpaceFillingTree::Node::Node(SpaceFillingTree::Node* parent, int depth, Point middle, Direction parent_to_here_direction)
+SpaceFillingTree::Node::Node(SpaceFillingTree::Node* parent, unsigned int depth, Point middle, Direction parent_to_here_direction, unsigned int total_depth)
 : parent(parent)
 , depth(depth)
+, total_depth(total_depth)
 , middle(middle)
 , parent_to_here_direction(parent_to_here_direction)
 {
@@ -112,14 +117,14 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
          * parent------------->this
          *         new_node<---'
          */
-        new_node = new Node(parent, depth - 1, child_middle, parent_to_here_direction);
+        new_node = new Node(parent, depth + 1, child_middle, parent_to_here_direction, total_depth);
         parent->children[parent_to_here_direction] = new_node;
         new_node->children[parent_to_here_direction] = this;
         parent = new_node;
     }
     else
     {
-        new_node = new Node(this, depth - 1, child_middle, direction);
+        new_node = new Node(this, depth + 1, child_middle, direction, total_depth);
         if (children[direction])
         {
             /*!
@@ -144,7 +149,7 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
     }
 
     assert(new_node->parent == this || new_node == parent);
-    if (depth <= 0)
+    if (depth >= total_depth)
     {
         return;
     }
