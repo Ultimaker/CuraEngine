@@ -442,10 +442,26 @@ public:
     {
     }
 
-    Polygon(PolygonRef& other)
+    Polygon(ConstPolygonRef& other)
     : PolygonRef(poly)
+    , poly(*other.path)
     {
-        poly = *other.path;
+    }
+
+    Polygon(Polygon&& moved)
+    : PolygonRef(poly)
+    , poly(std::move(moved.poly))
+    {
+    }
+
+    virtual ~Polygon()
+    {
+    }
+
+    Polygon& operator=(const ConstPolygonRef& other)
+    {
+        path = other.path;
+        return *this;
     }
 };
 
