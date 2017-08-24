@@ -48,7 +48,7 @@ private:
     const EZSeamType z_seam_type;
     const Point z_seam_pos;
     bool added_something;
-    std::vector<std::vector<ConstPolygonRef>> inset_polys; // vector of vectors holding the inset polygons
+    std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
 
     /*!
      * Generate the insets for the holes of a given layer part after optimizing the ordering.
