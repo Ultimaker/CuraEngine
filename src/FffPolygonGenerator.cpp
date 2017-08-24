@@ -457,6 +457,8 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                     part.perimeter_gaps.add(outer.difference(inner));
                 }
 
+                part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+
                 // gap between inner wall and skin/infill
                 // are note handled. There might be gaps due to alternate extra perimeter or due to initial layer line width multiplier
 
@@ -476,6 +478,8 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                             const Polygons inner = skin_part.insets[inset_idx].offset(wall_line_width_x / 2);
                             skin_part.perimeter_gaps.add(outer.difference(inner));
                         }
+
+                        skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
                     }
                 }
             }
