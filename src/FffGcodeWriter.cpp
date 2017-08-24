@@ -1266,7 +1266,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
         // wall doesn't have usable outline
         return;
     }
-    ConstPolygonRef last_wall_outline = part.insets[0][0]; // default to current wall outline
+    const ClipperLib::Path* last_wall_outline = &*part.insets[0][0]; // default to current wall outline
     int last_seam_vertex_idx = -1; // last layer seam vertex index
     int layer_nr = gcode_layer.getLayerNr();
     if (layer_nr > 0)
@@ -1274,7 +1274,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
         if (storage.spiralize_wall_outlines[layer_nr - 1] != nullptr)
         {
             // use the wall outline from the previous layer
-            last_wall_outline = (*storage.spiralize_wall_outlines[layer_nr - 1])[0];
+            last_wall_outline = &*(*storage.spiralize_wall_outlines[layer_nr - 1])[0];
             // and the seam vertex index pre-computed for that layer
             last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
         }
@@ -1282,7 +1282,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     ConstPolygonRef wall_outline = part.insets[0][0]; // current layer outer wall outline
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
-    gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, last_wall_outline, seam_vertex_idx, last_seam_vertex_idx);
+    gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, ConstPolygonRef(*last_wall_outline), seam_vertex_idx, last_seam_vertex_idx);
 }
 
 bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, Point z_seam_pos) const

@@ -6,12 +6,12 @@
 namespace cura
 {
 
-static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonRef>& possible_enclosing_polys, const coord_t max_gap)
+static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonPointer>& possible_enclosing_polys, const coord_t max_gap)
 {
     // given an inset, search a collection of insets for the adjacent enclosing inset
     for (unsigned int enclosing_poly_idx = 0; enclosing_poly_idx < possible_enclosing_polys.size(); ++enclosing_poly_idx)
     {
-        const ConstPolygonRef& enclosing = possible_enclosing_polys[enclosing_poly_idx];
+        const ConstPolygonRef& enclosing = *possible_enclosing_polys[enclosing_poly_idx];
         // as holes don't overlap, if the insets intersect, it is safe to assume that the enclosed inset is inside the enclosing inset
         if (PolygonUtils::polygonsIntersect(enclosing, enclosed_inset) && PolygonUtils::polygonOutlinesAdjacent(enclosed_inset, enclosing, max_gap))
         {
@@ -37,7 +37,7 @@ void InsetOrderOptimizer::processHoleInsets()
     PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_pos, z_seam_type);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
-        order_optimizer.addPolygon(inset_polys[0][poly_idx]);
+        order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
     }
     order_optimizer.optimize();
 
@@ -45,7 +45,7 @@ void InsetOrderOptimizer::processHoleInsets()
     for (unsigned int outer_poly_order_idx = 0; outer_poly_order_idx < order_optimizer.polyOrder.size(); ++outer_poly_order_idx)
     {
         Polygons hole_outer_wall; // the outermost wall of a hole
-        hole_outer_wall.add(inset_polys[0][order_optimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
+        hole_outer_wall.add(*inset_polys[0][order_optimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         std::vector<unsigned int> hole_level_1_wall_indices; // the indices of the walls that touch the hole's outer wall
         const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
         if (inset_polys.size() > 1)
@@ -60,10 +60,10 @@ void InsetOrderOptimizer::processHoleInsets()
                 {
                     // does the level 1 inset touch more than one outline?
                     Polygons inset;
-                    inset.add(inset_polys[1][adjacent_enclosing_poly_idx]);
+                    inset.add(*inset_polys[1][adjacent_enclosing_poly_idx]);
                     int num_future_outlines_touched = 0; // number of outlines that have yet to be output that are touched by this level 1 inset
                     // does it touch the outer wall?
-                    if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][0], max_gap))
+                    if (PolygonUtils::polygonOutlinesAdjacent(inset[0], *inset_polys[0][0], max_gap))
                     {
                         // yes, the level 1 inset touches the part's outer wall
                         ++num_future_outlines_touched;
@@ -75,8 +75,8 @@ void InsetOrderOptimizer::processHoleInsets()
                         // as we don't know the shape of the outlines (straight, concave, convex, etc.) and the
                         // adjacency test assumes that the poly's are arranged so that the first has smaller
                         // radius curves than the second (it's "inside" the second) we need to test both combinations
-                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], inset_polys[0][outline_index], max_gap) ||
-                            PolygonUtils::polygonOutlinesAdjacent(inset_polys[0][outline_index], inset[0], max_gap))
+                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], *inset_polys[0][outline_index], max_gap) ||
+                            PolygonUtils::polygonOutlinesAdjacent(*inset_polys[0][outline_index], inset[0], max_gap))
                         {
                             // yes, it touches this yet to be processed hole outline
                             ++num_future_outlines_touched;
@@ -112,8 +112,8 @@ void InsetOrderOptimizer::processHoleInsets()
             // add the level 1 inset to the collection of inner walls to be printed and consume it, taking care to adjust
             // those elements in hole_level_1_wall_indices that are larger
             unsigned int inset_idx = hole_level_1_wall_indices[level_1_wall_idx];
-            ConstPolygonRef last_inset = inset_polys[1][inset_idx];
-            hole_inner_walls.add(last_inset);
+            ConstPolygonPointer last_inset = inset_polys[1][inset_idx];
+            hole_inner_walls.add(ConstPolygonRef(*last_inset));
             inset_polys[1].erase(inset_polys[1].begin() + inset_idx);
             // decrement any other indices in hole_level_1_wall_indices that are greater than inset_idx
             for (unsigned int i = level_1_wall_idx + 1; i < hole_level_1_wall_indices.size(); ++i)
@@ -126,7 +126,7 @@ void InsetOrderOptimizer::processHoleInsets()
             // now find all the insets that immediately surround the level 1 wall and consume them
             for (unsigned int inset_level = 2; inset_level < num_insets && inset_polys[inset_level].size(); ++inset_level)
             {
-                int i = findAdjacentEnclosingPoly(last_inset, inset_polys[inset_level], wall_line_width_x * 1.1f);
+                int i = findAdjacentEnclosingPoly(ConstPolygonRef(*last_inset), inset_polys[inset_level], wall_line_width_x * 1.1f);
                 if (i >= 0)
                 {
                     // we have found an enclosing inset
@@ -135,11 +135,11 @@ void InsetOrderOptimizer::processHoleInsets()
                         // when printing outer insets first we don't want to print this enclosing inset
                         // if it also encloses other holes that haven't yet been processed so check the holes
                         // that haven't yet been processed to see if they are also enclosed by this enclosing inset
-                        const ConstPolygonRef& enclosing_inset = inset_polys[inset_level][i];
+                        const ConstPolygonRef& enclosing_inset = *inset_polys[inset_level][i];
                         bool encloses_future_hole = false; // set true if this inset also encloses another hole that hasn't yet been processed
                         for (unsigned int hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < order_optimizer.polyOrder.size(); ++hole_order_index)
                         {
-                            const ConstPolygonRef& enclosed_inset = inset_polys[0][order_optimizer.polyOrder[hole_order_index] + 1]; // +1 because first element (part outer wall) wasn't included
+                            const ConstPolygonRef& enclosed_inset = *inset_polys[0][order_optimizer.polyOrder[hole_order_index] + 1]; // +1 because first element (part outer wall) wasn't included
                             encloses_future_hole = PolygonUtils::polygonsIntersect(enclosing_inset, enclosed_inset);
                         }
                         if (encloses_future_hole)
@@ -150,7 +150,7 @@ void InsetOrderOptimizer::processHoleInsets()
                     }
                     // it's OK to print the enclosing inset and see if any further enclosing insets can also be printed
                     last_inset = inset_polys[inset_level][i];
-                    hole_inner_walls.add(last_inset);
+                    hole_inner_walls.add(ConstPolygonRef(*last_inset));
                     inset_polys[inset_level].erase(inset_polys[inset_level].begin() + i);
                 }
             }
@@ -216,13 +216,13 @@ void InsetOrderOptimizer::processOuterWallInsets()
 
     // process the part's outer wall and the level 1 insets that it surrounds
     {
-        const ConstPolygonRef& outer_wall = inset_polys[0][0];
+        ConstPolygonRef outer_wall = *inset_polys[0][0];
         // find the level 1 insets that are inside the outer wall and consume them
         Polygons part_inner_walls;
         int num_level_1_insets = 0;
         for (unsigned int level_1_wall_idx = 0; inset_polys.size() > 1 && level_1_wall_idx < inset_polys[1].size(); ++level_1_wall_idx)
         {
-            const ConstPolygonRef& inner = inset_polys[1][level_1_wall_idx];
+            ConstPolygonRef inner = *inset_polys[1][level_1_wall_idx];
             if (PolygonUtils::polygonsIntersect(inner, outer_wall))
             {
                 ++num_level_1_insets;
@@ -242,7 +242,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                     {
                         for (ConstPolygonRef enclosing_inset : enclosing_insets)
                         {
-                            ConstPolygonRef level_n_inset = inset_polys[inset_level][level_n_wall_idx];
+                            ConstPolygonRef level_n_inset = *inset_polys[inset_level][level_n_wall_idx];
                             if (PolygonUtils::polygonOutlinesAdjacent(level_n_inset, enclosing_inset, wall_line_width_x * 1.1f))
                             {
                                 next_level_enclosing_insets.add(level_n_inset);
@@ -268,7 +268,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
                     Polygons part_outer_wall;
-                    part_outer_wall.add(inset_polys[0][0]);
+                    part_outer_wall.add(*inset_polys[0][0]);
                     gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
                 gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
@@ -281,8 +281,8 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 if (z_seam_type == EZSeamType::USER_SPECIFIED && num_level_1_insets == 1)
                 {
                     // determine the location of the z seam
-                    const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, inset_polys[0][0]);
-                    const ClosestPolygonPoint z_seam_location(inset_polys[0][0][z_seam_idx], z_seam_idx, inset_polys[0][0]);
+                    const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, *inset_polys[0][0]);
+                    const ClosestPolygonPoint z_seam_location((*inset_polys[0][0])[z_seam_idx], z_seam_idx, *inset_polys[0][0]);
                     // move to the location of the vertex in the level 1 inset that's closest to the z seam location
                     const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
@@ -291,7 +291,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
                     Polygons part_outer_wall;
-                    part_outer_wall.add(inset_polys[0][0]);
+                    part_outer_wall.add(*inset_polys[0][0]);
                     gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
@@ -304,7 +304,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             Polygons part_outer_wall;
-            part_outer_wall.add(inset_polys[0][0]);
+            part_outer_wall.add(*inset_polys[0][0]);
             gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
@@ -391,7 +391,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
             }
             for (unsigned int poly_idx = 0; poly_idx < num_polys; ++poly_idx)
             {
-                remaining.add(inset_polys[inset_level][poly_idx]);
+                remaining.add(*inset_polys[inset_level][poly_idx]);
             }
         }
         if (remaining.size() > 0)
