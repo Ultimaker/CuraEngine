@@ -727,17 +727,8 @@ void GCodeExport::writeUnretractionAndPrime()
         }
         else
         {
-            double output_e;
-            if (relative_extrusion)
-            {
-                output_e = extruder_attr[current_extruder].retraction_e_amount_current + prime_volume_e;
-                current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
-            }
-            else
-            {
-                current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
-                output_e = current_e_value;
-            }
+            current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
+            const double output_e = (relative_extrusion)? extruder_attr[current_extruder].retraction_e_amount_current + prime_volume_e : current_e_value;
             *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, output_e} << new_line;
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
