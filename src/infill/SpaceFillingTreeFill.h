@@ -65,10 +65,11 @@ public:
      * \param shift The shift of the infill pattern from the cross fractal toward the square region
      * \param zig_zaggify Whether to connect the cross lines via the \p outlines
      * \param fill_angle The direction of the main crosses (modulo 90degrees)
+     * \param alternate Whether to alternate the offset for all odd segments
      * \param[out] result_polygons The output when \p zig_zaggify
      * \param[out] result_lines The output when not \p zig_zaggify
      */
-    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, Polygons& result_polygons, Polygons& result_lines) const;
+    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, Polygons& result_polygons, Polygons& result_lines) const;
 private:
     AABB3D model_aabb; //!< The AABB of the boundary to cover
     coord_t line_distance; //!< The width of the crosses and of the straight part of the anti-crosses
@@ -101,9 +102,35 @@ private:
      * 
      * \param path the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces
-     * \return The cross infill pattern which isn't bounded to the outlines yet
+     * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    Polygon offsetTreePath(const ConstPolygonRef path, coord_t offset) const;
+    void offsetTreePath(const ConstPolygonRef path, coord_t offset, PolygonRef infill) const;
+
+    /*!
+     * Generate the pattern itself by doing a depth first walk over the fractal.
+     * Also generate a vector of corresponding order with the recursion depth of each point measured from the root node.
+     * 
+     * The parent nodes are present in this path multiple times.
+     * 
+     * \param[out] path The path to generate
+     * \param[out] depths The recursion depths of each vertex in \p path
+     */
+    void generateTreePathAndDepths(PolygonRef path, std::vector<unsigned int>& depths) const;
+
+    /*!
+     * Generate the line in between the tree path and the circumscribed
+     * square of each stage in the fractal.
+     * 
+     * The offset is alternated along with the depth of each segment.
+     * Half of the segments is offsetted using the \p alternate_offset.
+     * 
+     * \param path the tree path which walks along the cross fractal tree
+     * \param depths The recursion depths of each vertex in \p path
+     * \param offset The offset from the cross fractal on straight pieces for half of the segments.
+     * \param alternate_offset The offset from the cross fractal on straight pieces for the other half of the segments.
+     * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
+     */
+    void offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, PolygonRef infill) const;
 };
 } // namespace cura
 

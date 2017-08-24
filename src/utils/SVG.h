@@ -215,6 +215,10 @@ public:
     }
     void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK)
     {
+        if (poly.size() == 0)
+        {
+            return;
+        }
         Point p0 = poly.back();
         for (Point p1 : poly)
         {

@@ -12,6 +12,7 @@
 namespace cura
 {
 
+class SpaceFillingTreeFill;
 /*!
  *                 |
  *               --+--
@@ -44,6 +45,7 @@ namespace cura
 class SpaceFillingTree
 {
 public:
+    friend class SpaceFillingTreeFill;
     /*!
      * pure virtual class to implement by an external class
      * which is used to process nodes when doing a DFS walk.
