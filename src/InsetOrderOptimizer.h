@@ -52,7 +52,7 @@ private:
     bool added_something;
     WallOverlapComputation* wall_overlapper_0;
     WallOverlapComputation* wall_overlapper_x;
-    std::vector<std::vector<ConstPolygonRef>> inset_polys; // vector of vectors holding the inset polygons
+    std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
 
     /*!
      * Generate the insets for the holes of a given layer part after optimizing the ordering.

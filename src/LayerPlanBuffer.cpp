@@ -115,7 +115,7 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
         auto prev_layer_it = newest_layer_it;
         prev_layer_it--;
         const LayerPlan* prev_layer = *prev_layer_it;
-        starting_position = prev_layer->getLastPosition();
+        starting_position = prev_layer->getLastPlannedPositionOrStartingPosition();
     }
     LayerPlan* newest_layer = *newest_layer_it;
     newest_layer->processFanSpeedAndMinimalLayerTime(starting_position);

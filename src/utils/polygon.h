@@ -41,28 +41,28 @@ typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a ve
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
+class ConstPolygonPointer;
+
 class ConstPolygonRef
 {
     friend class Polygons;
     friend class Polygon;
     friend class PolygonRef;
+    friend class ConstPolygonPointer;
 protected:
     ClipperLib::Path* path;
-    ConstPolygonRef()
-    : path(nullptr)
-    {}
 public:
     ConstPolygonRef(const ClipperLib::Path& polygon)
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
-    bool operator==(ConstPolygonRef& other) const =delete;
-
-    ConstPolygonRef& operator=(const ConstPolygonRef& other)
+    virtual ~ConstPolygonRef()
     {
-        path = other.path;
-        return *this;
     }
+
+    bool operator==(ConstPolygonRef& other) const =delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+
+    ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete; // Cannot assign to a const object
 
     unsigned int size() const
     {
@@ -327,21 +327,25 @@ private:
 };
 
 
+class PolygonPointer;
+
 class PolygonRef : public ConstPolygonRef
 {
-    PolygonRef()
-    : ConstPolygonRef()
-    {}
+    friend class PolygonPointer;
 public:
     PolygonRef(ClipperLib::Path& polygon)
     : ConstPolygonRef(polygon)
     {}
 
-    PolygonRef& operator=(const PolygonRef& other)
+    virtual ~PolygonRef()
     {
-        path = other.path;
-        return *this;
     }
+
+    PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+//     {
+//         *path = *other.path;
+//         return *this;
+//     }
 
     Point& operator[] (unsigned int index)
     {
@@ -433,6 +437,71 @@ public:
     }
 };
 
+class ConstPolygonPointer
+{
+protected:
+    const ClipperLib::Path* path;
+public:
+    ConstPolygonPointer()
+    : path(nullptr)
+    {}
+    ConstPolygonPointer(const ConstPolygonRef* ref)
+    : path(ref->path)
+    {}
+    ConstPolygonPointer(const ConstPolygonRef& ref)
+    : path(ref.path)
+    {}
+
+    ConstPolygonRef operator*() const
+    {
+        assert(path);
+        return ConstPolygonRef(*path);
+    }
+    const ClipperLib::Path* operator->() const
+    {
+        assert(path);
+        return path;
+    }
+
+    operator bool() const
+    {
+        return path;
+    }
+};
+
+class PolygonPointer
+{
+protected:
+    ClipperLib::Path* path;
+public:
+    PolygonPointer()
+    : path(nullptr)
+    {}
+    PolygonPointer(PolygonRef* ref)
+    : path(ref->path)
+    {}
+
+    PolygonPointer(PolygonRef& ref)
+    : path(ref.path)
+    {}
+
+    PolygonRef operator*()
+    {
+        assert(path);
+        return PolygonRef(*path);
+    }
+    ClipperLib::Path* operator->()
+    {
+        assert(path);
+        return path;
+    }
+
+    operator bool() const
+    {
+        return path;
+    }
+};
+
 class Polygon : public PolygonRef
 {
     ClipperLib::Path poly;
@@ -442,10 +511,26 @@ public:
     {
     }
 
-    Polygon(PolygonRef& other)
+    Polygon(ConstPolygonRef& other)
     : PolygonRef(poly)
+    , poly(*other.path)
     {
-        poly = *other.path;
+    }
+
+    Polygon(Polygon&& moved)
+    : PolygonRef(poly)
+    , poly(std::move(moved.poly))
+    {
+    }
+
+    virtual ~Polygon()
+    {
+    }
+
+    Polygon& operator=(const ConstPolygonRef& other)
+    {
+        path = other.path;
+        return *this;
     }
 };
 
