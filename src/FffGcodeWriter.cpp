@@ -653,25 +653,29 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
             z = mesh.layers[layer_nr].printZ;
             break;
         }
+        const bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
         if (layer_nr == 0)
         {
-            if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
+            if (has_raft)
             {
                 include_helper_parts = false;
             }
             layer_thickness = getSettingInMicrons("layer_height_0");
         }
-        int64_t z_offset = getSettingInMicrons("z_offset_layer_0");
-        if (z_offset != 0)
+        if (!has_raft)
         {
-            int z_offset_taper_layers = getSettingAsCount("z_offset_taper_layers");
-            if (z_offset_taper_layers == 0)
+            int64_t z_offset = getSettingInMicrons("z_offset_layer_0");
+            if (z_offset != 0)
             {
-                z += z_offset;
-            }
-            else if (layer_nr < z_offset_taper_layers)
-            {
-                z += z_offset - z_offset * layer_nr / z_offset_taper_layers;
+                int z_offset_taper_layers = getSettingAsCount("z_offset_taper_layers");
+                if (z_offset_taper_layers == 0)
+                {
+                    z += z_offset;
+                }
+                else if (layer_nr < z_offset_taper_layers)
+                {
+                    z += z_offset - z_offset * layer_nr / z_offset_taper_layers;
+                }
             }
         }
     }
