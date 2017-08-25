@@ -50,6 +50,11 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 
 void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
+    if (total_layer_count == 0)
+    {
+        return;
+    }
+
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
@@ -71,6 +76,11 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
+        int wall_line_count_this_layer = wall_line_count;
+        if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
+        { // the first layer will be printed wit ha grid pattern
+            wall_line_count_this_layer = 1;
+        }
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
         const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
@@ -91,7 +101,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
             }
             // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
             // tower will remove themselves from the support, so the outlines of the parts can be changed.
-            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count);
+            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
 
             storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
         }
@@ -634,7 +644,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
 
-    const bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh is an empty mesh and this function is only called to generate support for support meshes
+    const bool is_support_modifier_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
     const bool is_support_mesh_nondrop_place_holder = is_support_modifier_place_holder && !mesh.getSettingBoolean("support_mesh_drop_down");
     const bool is_support_mesh_drop_down_place_holder = is_support_modifier_place_holder && mesh.getSettingBoolean("support_mesh_drop_down");
 
@@ -674,7 +684,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     const double conical_support_angle = infill_settings.getSettingInAngleRadians("support_conical_angle");
     const bool conical_support = infill_settings.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
-    const int64_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
+    const coord_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
 
     // derived settings:
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
@@ -712,7 +722,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
     
-    int64_t conical_support_offset;
+    coord_t conical_support_offset;
     if (conical_support_angle > 0) 
     { // outward ==> wider base than overhang
         conical_support_offset = -(tan(conical_support_angle) - 0.01) * supportLayerThickness;
@@ -1053,7 +1063,7 @@ void AreaSupport::detectOverhangPoints(
 )
 {
     ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-    const unsigned int support_line_width = infill_extr->getSettingInMicrons("support_line_width");
+    const coord_t support_line_width = infill_extr->getSettingInMicrons("support_line_width");
 
     overhang_points.resize(layer_count);
 

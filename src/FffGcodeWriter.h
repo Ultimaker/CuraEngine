@@ -248,7 +248,7 @@ private:
      * This function should be called for only one layer;
      * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      * 
-     * \param Storage where the slice data is stored.
+     * \param storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
@@ -410,11 +410,10 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
-     * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
      * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      * \return Whether this function added anything to the layer plan
      */
-    bool processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, EZSeamType z_seam_type, Point z_seam_pos) const;
+    bool processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, Point z_seam_pos) const;
     
     /*!
      * Generate the a spiralized wall for a given layer part.

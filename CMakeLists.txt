@@ -68,6 +68,7 @@ set(engine_SRCS # Except main.cpp.
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
     src/infill.cpp
+    src/InsetOrderOptimizer.cpp
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
@@ -94,12 +95,9 @@ set(engine_SRCS # Except main.cpp.
     src/Wireframe2gcode.cpp
 
     src/infill/NoZigZagConnectorProcessor.cpp
+    src/infill/ZigzagConnectorProcessor.cpp
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
-    src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
-    src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
-    src/infill/ZigzagConnectorProcessorEndPieces.cpp
-    src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
     src/infill/SubDivCube.cpp
 
     src/pathPlanning/Comb.cpp
@@ -165,6 +163,9 @@ target_link_libraries(CuraEngine _CuraEngine)
 # Compiling the test environment.
 if (BUILD_TESTS)
     message(STATUS "Building tests...")
+
+    find_package(cppunit)
+
     enable_testing()
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)

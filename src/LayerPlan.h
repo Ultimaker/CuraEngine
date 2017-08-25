@@ -327,7 +327,12 @@ public:
         return layer_nr;
     }
 
-    Point getLastPosition() const
+    /*!
+     * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
+     * 
+     * \warning The layer start position might be outside of the build plate!
+     */
+    Point getLastPlannedPositionOrStartingPosition() const
     {
         return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
     }
@@ -426,8 +431,6 @@ public:
 
     /*!
      * Plan a prime blob at the current location.
-     * 
-     * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
     void planPrime();
 
@@ -484,8 +487,9 @@ public:
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

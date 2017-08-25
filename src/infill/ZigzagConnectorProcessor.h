@@ -1,4 +1,4 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
@@ -42,20 +42,7 @@ namespace cura
  * - without endpieces
  * - with disconnected endpieces
  * - with connected endpieces
- * 
- * Each of these has a base class for which ZigzagConnectorProcessor is an ancestor.
- * The inheritance structure is as such:
- *                                                                      ZigzagConnectorProcessor
- *                                                                           /             \                                    .
- *                                                                          /               \                                   .
- *                                                  ActualZigzagConnectorProcessor      NoZigZagConnectorProcessor
- *                                                         /                \             for lines infill                                      .
- *                                                        /                  \                                                  .
- *                          ZigzagConnectorProcessorEndPieces   ZigzagConnectorProcessorNoEndPieces
- *                                     /            \                 for zigzag infill (without end pieces)                                                          .
- *                                    /              \                                                                          .
- * ZigzagConnectorProcessorConnectedEndPieces     ZigzagConnectorProcessorDisconnectedEndPieces
- * for zigzag support with normal endpieces          for zigzag support with disconnected endpieces for more easy removability
+ *  <<extra>> there is also a NoZigzagConnector which creates no zags. It is used for the Line infill pattern
  * 
  *      v   v   zigzag connectors
  *     <--
@@ -94,12 +81,59 @@ namespace cura
  */
 class ZigzagConnectorProcessor 
 {
-protected:
-    const PointMatrix& rotation_matrix; //!< The rotation matrix used to enforce the infill angle
-    Polygons& result; //!< The result of the computation
+public:
+    /*!
+     * Constructor.
+     * 
+     * \param rotation_matrix The rotation matrix used to enforce the infill angle
+     * \param result The resulting line segments (Each line segment is a Polygon with 2 points)
+     * \param use_endpieces Whether to include end pieces or not
+     * \param connected_endpieces Whether the end pieces should be connected with the rest part of the infill
+     * \param skip_some_zags Whether to skip some zags
+     * \param zag_skip_count Skip 1 zag in every N zags
+     */
+    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result,
+                             bool use_endpieces, bool connected_endpieces,
+                             bool skip_some_zags, int zag_skip_count)
+    : rotation_matrix(rotation_matrix)
+    , result(result)
+    , use_endpieces(use_endpieces)
+    , connected_endpieces(connected_endpieces)
+    , skip_some_zags(skip_some_zags)
+    , zag_skip_count(zag_skip_count)
+    , is_first_connector(true)
+    , first_connector_end_scanline_index(0)
+    , last_connector_index(0)
+    {}
 
     virtual ~ZigzagConnectorProcessor()
     {}
+
+    /*!
+     * Handle the next vertex on the outer boundary.
+     * \param vertex The vertex
+     */
+    virtual void registerVertex(const Point& vertex);
+
+    /*!
+     * Handle the next intersection between a scanline and the outer boundary.
+     * 
+     * \param intersection The intersection
+     * \param scanline_index Index of the current scanline
+     */
+    virtual void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
+
+    /*!
+     * Handle the end of a polygon and prepare for the next.
+     * This function should reset all member variables.
+     */
+    virtual void registerPolyFinished();
+
+protected:
+    /*!
+     * Reset the state so it can be used for processing another polygon.
+     */
+    void reset();
 
     /*!
      * Add a line to the result bu unapplying the rotation rotation_matrix.
@@ -107,43 +141,72 @@ protected:
      * \param from The one end of the line segment
      * \param to The other end of the line segment
      */
-    void addLine(Point from, Point to)
-    {
-        result.addLine(rotation_matrix.unapply(from), rotation_matrix.unapply(to));
-    }
+    void addLine(Point from, Point to);
 
     /*!
-     * Basic constructor. Inheriting children should call this constructor.
-     * 
-     * \param rotation_matrix The rotation matrix used to enforce the infill angle
-     * \param result The resulting line segments (Each line segment is a Polygon with 2 points)
+     * Checks whether the current connector should be added or not.
+     *
+     * \param start_scanline_idx the start scanline index of this scanline segment
+     * \param end_scanline_idx The the end scanline index of this scanline segment
      */
-    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
-    : rotation_matrix(rotation_matrix)
-    , result(result)
-    {}
-public:
+    bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const;
 
     /*!
-     * Handle the next vertex on the outer boundary.
-     * \param vertex The vertex
+     * Adds a Zag connector represented by the given points. The last line of the connector will not be
+     * added if the given connector is an end piece and "connected_endpieces" is not enabled.
+     *
+     * \param points All the points on this connector
+     * \param is_endpiece Whether this connector is an end piece
      */
-    virtual void registerVertex(const Point& vertex) = 0;
-    
+    void addZagConnector(const std::vector<Point>& points, bool is_endpiece);
+
+protected:
+    const PointMatrix& rotation_matrix; //!< The rotation matrix used to enforce the infill angle
+    Polygons& result; //!< The result of the computation
+
+    bool use_endpieces; //!< Whether to include end pieces or not
+    bool connected_endpieces; //!< Whether the end pieces should be connected with the rest part of the infill
+    int skip_some_zags; //!< Whether to skip some zags
+    int zag_skip_count; //!< Skip 1 zag in every N zags
+
+    bool is_first_connector; //!< indicating whether we are still looking for the first connector or not
+    int first_connector_end_scanline_index; //!< scanline segment index of the first connector
+    int last_connector_index; //!< scanline segment index of the last connector
+
     /*!
-     * Handle the next intersection between a scanline and the outer boundary.
-     * 
-     * \param intersection The intersection
-     * \param scanline_is_even Whether the scanline was even
+     * The line segments belonging the zigzag connector to which the very first vertex belongs.
+     * This will be combined with the last handled zigzag_connector, which combine to a whole zigzag connector.
+     *
+     * Because the boundary polygon may start in in the middle of a zigzag connector,
      */
-    virtual void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even) = 0;
-    
+    std::vector<Point> first_connector;
     /*!
-     * Handle the end of a polygon and prepare for the next.
-     * This function should reset all member variables.
+     * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
      */
-    virtual void registerPolyFinished() = 0;
+    std::vector<Point> current_connector;
 };
+
+//
+// Inline functions
+//
+
+inline void ZigzagConnectorProcessor::reset()
+{
+    this->is_first_connector = true;
+    this->first_connector_end_scanline_index = 0;
+    this->last_connector_index = 0;
+    this->first_connector.clear();
+    this->current_connector.clear();
+}
+
+inline void ZigzagConnectorProcessor::addLine(Point from, Point to)
+{
+    if (from == to)
+    {
+        return;
+    }
+    result.addLine(rotation_matrix.unapply(from), rotation_matrix.unapply(to));
+}
 
 
 } // namespace cura
