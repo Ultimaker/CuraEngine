@@ -144,7 +144,10 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    USER_SPECIFIED
+    USER_SPECIFIED,
+    MOST_CURVATURE_CONVEX,
+    MOST_CURVATURE_CONCAVE,
+    MOST_CURVATURE
 };
 
 enum class ESurfaceMode
