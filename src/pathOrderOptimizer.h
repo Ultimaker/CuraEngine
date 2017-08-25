@@ -69,7 +69,6 @@ public:
 
 private:
     int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point
-    int getBestPointOnCurve(int i_polygon); //!< returns the index of the point that best matches the curve criteria (most convex, most concave or most curved)
     int getRandomPointInPolygon(int poly_idx);
 
 

@@ -144,10 +144,8 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    USER_SPECIFIED,
-    MOST_CURVATURE_CONVEX,
-    MOST_CURVATURE_CONCAVE,
-    MOST_CURVATURE
+    USER_SPECIFIED
+};
 
 enum class EZSeamCornerPrefType
 {
