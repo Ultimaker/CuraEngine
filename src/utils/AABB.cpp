@@ -87,7 +87,7 @@ void AABB::expand(int dist)
     max.Y += dist;
 }
 
-Polygon AABB::toPolygon()
+Polygon AABB::toPolygon() const
 {
     Polygon ret;
     // TODO: verify that this is the correct order (CW vs CCW)

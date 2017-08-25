@@ -25,6 +25,8 @@ SpaceFillingTree::SpaceFillingTree(
     // construct 1st order children
     root->construct(first_offset);
     root->prune();
+    root->distance_depth = 0;
+    root->setDistanceDepth();
 }
 
 
@@ -48,23 +50,23 @@ void SpaceFillingTree::walk(SpaceFillingTree::LocationVisitor& visitor) const
     root->walk(visitor);
 }
 
-void SpaceFillingTree::debugOutput(SVG& out, bool output_dfs_order)
+void SpaceFillingTree::debugOutput(SVG& out, bool output_dfs_order) const
 {
     out.writePolygon(aabb.toPolygon());
     int root_order = 0;
     root->debugOutput(out, root->middle, output_dfs_order, root_order); // root will draw line from its middle to the same middle
 }
 
-void SpaceFillingTree::debugCheck()
+void SpaceFillingTree::debugCheck() const
 {
 #ifdef DEBUG
     root->debugCheck();
 #endif // DEBUG
 }
 
-SpaceFillingTree::Node::Node(SpaceFillingTree::Node* parent, unsigned int depth, Point middle, Direction parent_to_here_direction, unsigned int total_depth)
+SpaceFillingTree::Node::Node(SpaceFillingTree::Node* parent, unsigned int recursion_depth, Point middle, Direction parent_to_here_direction, unsigned int total_depth)
 : parent(parent)
-, depth(depth)
+, recursion_depth(recursion_depth)
 , total_depth(total_depth)
 , middle(middle)
 , parent_to_here_direction(parent_to_here_direction)
@@ -117,14 +119,14 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
          * parent------------->this
          *         new_node<---'
          */
-        new_node = new Node(parent, depth + 1, child_middle, parent_to_here_direction, total_depth);
+        new_node = new Node(parent, recursion_depth + 1, child_middle, parent_to_here_direction, total_depth);
         parent->children[parent_to_here_direction] = new_node;
         new_node->children[parent_to_here_direction] = this;
         parent = new_node;
     }
     else
     {
-        new_node = new Node(this, depth + 1, child_middle, direction, total_depth);
+        new_node = new Node(this, recursion_depth + 1, child_middle, direction, total_depth);
         if (children[direction])
         {
             /*!
@@ -149,7 +151,7 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
     }
 
     assert(new_node->parent == this || new_node == parent);
-    if (depth >= total_depth)
+    if (recursion_depth >= total_depth)
     {
         return;
     }
@@ -187,9 +189,23 @@ void SpaceFillingTree::Node::prune()
     }
 }
 
+void SpaceFillingTree::Node::setDistanceDepth()
+{
+    for (int child_dir = 0; child_dir < Direction::DIRECTION_COUNT; child_dir++)
+    {
+        Node*& child = children[child_dir];
+        if (!child)
+        {
+            continue;
+        }
+        child->distance_depth = distance_depth + 1;
+        child->setDistanceDepth();
+    }
+}
+
 void SpaceFillingTree::Node::walk(SpaceFillingTree::LocationVisitor& visitor) const
 {
-    visitor.visit(middle, depth);
+    visitor.visit(middle, 0*distance_depth + recursion_depth);
     for (int dir_offset = 0; dir_offset < Direction::DIRECTION_COUNT; dir_offset++)
     {
         int direction = (parent_to_here_direction + dir_offset + 2) % Direction::DIRECTION_COUNT;
@@ -198,17 +214,21 @@ void SpaceFillingTree::Node::walk(SpaceFillingTree::LocationVisitor& visitor) co
         {
             assert(child->parent == this);
             child->walk(visitor);
-            visitor.visit(middle, depth);
+            visitor.visit(middle, 0*distance_depth + recursion_depth);
         }
     }
 }
 
-void SpaceFillingTree::Node::debugOutput(SVG& out, Point parent_middle, bool output_dfs_order, int& order_nr, bool output_directions)
+void SpaceFillingTree::Node::debugOutput(SVG& out, Point parent_middle, bool output_dfs_order, int& order_nr, bool output_directions, bool output_distance_depth) const
 {
     out.writeLine(parent_middle, middle);
     if (output_dfs_order)
     {
         out.writeText(middle, std::to_string(order_nr));
+    }
+    if (output_distance_depth)
+    {
+        out.writeText(middle, std::to_string(distance_depth));
     }
     for (int dir_offset = 0; dir_offset < Direction::DIRECTION_COUNT; dir_offset++)
     {
@@ -221,12 +241,12 @@ void SpaceFillingTree::Node::debugOutput(SVG& out, Point parent_middle, bool out
             {
                 out.writeText((middle + child->middle) / 2, std::to_string(direction), SVG::Color::BLUE);
             }
-            child->debugOutput(out, middle, output_dfs_order, order_nr);
+            child->debugOutput(out, middle, output_dfs_order, order_nr, output_directions, output_distance_depth);
         }
     }
 }
 
-void SpaceFillingTree::Node::debugCheck()
+void SpaceFillingTree::Node::debugCheck() const
 {
     #ifdef DEBUG
     for (int child_dir = 0; child_dir < Direction::DIRECTION_COUNT; child_dir++)

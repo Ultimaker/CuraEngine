@@ -60,7 +60,7 @@ public:
      * Generate a square polygon which coincides with this aabb
      * \return the polygon of this aabb
      */
-    Polygon toPolygon();
+    Polygon toPolygon() const;
 };
 
 }//namespace cura

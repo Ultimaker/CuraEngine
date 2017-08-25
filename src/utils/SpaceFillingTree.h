@@ -104,7 +104,7 @@ public:
      * \param[out] out the canvas in which to draw
      * \param output_dfs_order Whether to output the numbers of a pre-order DFS
      */
-    void debugOutput(SVG& out, bool output_dfs_order = false);
+    void debugOutput(SVG& out, bool output_dfs_order = false) const;
 
     /*!
      * Check whether the tree is correct.
@@ -113,7 +113,7 @@ public:
      * 
      * Works by way if assertions.
      */
-    void debugCheck();
+    void debugCheck() const;
 protected:
     /*!
      * Direction of a line segment.
@@ -137,7 +137,8 @@ protected:
     {
     public:
         Node* parent; //!< Parent node. Optional because of root
-        unsigned int depth; //!< The number of generations BELOW this node. Not the distance from root.
+        unsigned int recursion_depth; //!< The recursion distance from root.
+        unsigned int distance_depth; //!< The node distance from root.
         unsigned int total_depth; //!< The total depth the tree should have
         Point middle; //!< The location of the middle of this node. This is the middle of the square which is to be covered by the subtree of this node.
         Direction parent_to_here_direction; //!< The direction from the parent middle to this nodes middle.
@@ -180,6 +181,11 @@ protected:
         void prune();
 
         /*!
+         * Walk through this subtree and set the distance_depth of each child lower than my own.
+         */
+        void setDistanceDepth();
+
+        /*!
          * Do a pre-order, in-order and post-order walk of the subtree of this node.
          * \param visitor The external handler of each location of a node.
          */
@@ -194,8 +200,9 @@ protected:
          * \param output_dfs_order Whether to output the numbers of a pre-order DFS
          * \param[in,out] order_nr The dfs order
          * \param output_directions Include numbers along each edge of th direction of that edge. This is handy to verify that all edges are pointing away from the root, rather than toward.
+         * \param output_distance_depth Whether to output the distance depth of each node
          */
-        void debugOutput(SVG& out, Point parent_middle, bool output_dfs_order, int& order_nr, bool output_directions = false);
+        void debugOutput(SVG& out, Point parent_middle, bool output_dfs_order, int& order_nr, bool output_directions = false, bool output_distance_depth = true) const;
 
         /*!
          * Check whether node is correct and recurse for all children.
@@ -204,7 +211,7 @@ protected:
          * 
          * Works by way of assertions.
          */
-        void debugCheck();
+        void debugCheck() const;
     };
     AABB aabb; //!< The aabb of the pattern to be generated. This is the area which is covered by the limit of the fractal.
     Node* root; //!< The root node of the tree. The middle of the fractal.
