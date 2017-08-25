@@ -68,14 +68,6 @@ public:
     void optimize(); //!< sets #polyStart and #polyOrder
 
 private:
-    /*!
-     * Get the starting vertex of a polygon, depending on the \ref PathOrderOptimizer::type
-     * \param prev_point The previous planned location
-     * \param poly_idx The index of the polygon in \ref PathOrderOptimizer::polygons
-     * \return the index of the starting vertex in \ref PathOrderOptimizer::polygons[\p poly_idx]
-     */
-    int getPolyStart(Point prev_point, int poly_idx);
-
     int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point
     int getBestPointOnCurve(int i_polygon); //!< returns the index of the point that best matches the curve criteria (most convex, most concave or most curved)
     int getRandomPointInPolygon(int poly_idx);

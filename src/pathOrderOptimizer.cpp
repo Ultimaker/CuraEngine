@@ -102,24 +102,12 @@ void PathOrderOptimizer::optimize()
         for (unsigned int order_idx = 0; order_idx < polyOrder.size(); order_idx++) /// decide final starting points in each polygon
         {
             int poly_idx = polyOrder[order_idx];
-            int point_idx = getPolyStart(prev_point, poly_idx);
+            int point_idx = getClosestPointInPolygon(prev_point, poly_idx);
             polyStart[poly_idx] = point_idx;
             prev_point = (*polygons[poly_idx])[point_idx];
         }
     }
 }
-
-int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
-{
-    switch (type)
-    {
-        case EZSeamType::USER_SPECIFIED:    return getClosestPointInPolygon(z_seam_pos, poly_idx);
-        case EZSeamType::RANDOM:            return getRandomPointInPolygon(poly_idx);
-        case EZSeamType::SHORTEST:          return getClosestPointInPolygon(prev_point, poly_idx);
-        default:                            return getClosestPointInPolygon(prev_point, poly_idx);
-    }
-}
-
 
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
