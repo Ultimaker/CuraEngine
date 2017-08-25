@@ -13,6 +13,7 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
+    const EZSeamType type = (config)? config->type : EZSeamType::SHORTEST;
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
@@ -22,7 +23,7 @@ void PathOrderOptimizer::optimize()
         switch (type)
         {
             case EZSeamType::USER_SPECIFIED:
-                polyStart.push_back(getClosestPointInPolygon(z_seam_pos, poly_idx));
+                polyStart.push_back(getClosestPointInPolygon(config->pos, poly_idx));
                 break;
             case EZSeamType::RANDOM:
                 polyStart.push_back(getRandomPointInPolygon(poly_idx));
@@ -122,6 +123,7 @@ int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
 
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
+    const EZSeamCornerPrefType corner_pref = (config)? config->corner_pref : EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
     ConstPolygonRef poly = *polygons[poly_idx];
 
     int best_point_idx = -1;

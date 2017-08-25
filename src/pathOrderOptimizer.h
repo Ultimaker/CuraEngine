@@ -7,7 +7,27 @@
 #include "settings/settings.h"
 
 namespace cura {
- 
+
+class ZSeamConfig
+{
+public:
+    EZSeamType type;
+    Point pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
+    EZSeamCornerPrefType corner_pref;
+    ZSeamConfig()
+    : type(EZSeamType::SHORTEST)
+    , pos(Point(0, 0))
+    , corner_pref(EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+    {
+    }
+    ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref)
+    : type(type)
+    , pos(pos)
+    , corner_pref(corner_pref)
+    {
+    }
+};
+
 /*!
  * Parts order optimization class.
  * 
@@ -17,17 +37,15 @@ namespace cura {
 class PathOrderOptimizer
 {
 public:
-    EZSeamType type;
     Point startPoint; //!< A location near the prefered start location
-    Point z_seam_pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
+    const ZSeamConfig* config;
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
 
-    PathOrderOptimizer(Point startPoint, Point z_seam_pos = Point(0, 0), EZSeamType type = EZSeamType::SHORTEST)
-    : type(type)
-    , startPoint(startPoint)
-    , z_seam_pos(z_seam_pos)
+    PathOrderOptimizer(Point startPoint, const ZSeamConfig* config = nullptr)
+    : startPoint(startPoint)
+    , config(config)
     {
     }
 
