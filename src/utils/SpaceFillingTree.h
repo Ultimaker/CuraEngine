@@ -46,6 +46,8 @@ class SpaceFillingTree
 {
 public:
     friend class SpaceFillingTreeFill;
+
+    class Node;
     /*!
      * pure virtual class to implement by an external class
      * which is used to process nodes when doing a DFS walk.
@@ -55,10 +57,9 @@ public:
     public:
         /*!
          * Register a location being crossed during the walk.
-         * \param junction The location visited
-         * \param depth The distance from the root node.
+         * \param node The node visited
          */
-        virtual void visit(Point junction, unsigned int depth) = 0;
+        virtual void visit(const Node* node) = 0;
     };
 
     /*!
@@ -114,7 +115,7 @@ public:
      * Works by way if assertions.
      */
     void debugCheck() const;
-protected:
+
     /*!
      * Direction of a line segment.
      * 
@@ -213,6 +214,8 @@ protected:
          */
         void debugCheck() const;
     };
+
+protected:
     AABB aabb; //!< The aabb of the pattern to be generated. This is the area which is covered by the limit of the fractal.
     Node* root; //!< The root node of the tree. The middle of the fractal.
     unsigned int depth; //!< The depth of this tree.

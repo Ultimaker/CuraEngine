@@ -110,14 +110,13 @@ private:
 
     /*!
      * Generate the pattern itself by doing a depth first walk over the fractal.
-     * Also generate a vector of corresponding order with the recursion depth of each point measured from the root node.
+     * The nodes itself are being recorded
      * 
      * The parent nodes are present in this path multiple times.
      * 
-     * \param[out] path The path to generate
-     * \param[out] depths The recursion depths of each vertex in \p path
+     * \param[out] nodes The nodes of the path to generate
      */
-    void generateTreePathAndDepths(PolygonRef path, std::vector<unsigned int>& depths) const;
+    void generateTreePathAndDepths(std::vector<const SpaceFillingTree::Node*>& nodes) const;
 
     /*!
      * Generate the line in between the tree path and the circumscribed
@@ -126,14 +125,13 @@ private:
      * The offset is alternated along with the depth of each segment.
      * Half of the segments is offsetted using the \p alternate_offset.
      * 
-     * \param path the tree path which walks along the cross fractal tree
-     * \param depths The recursion depths of each vertex in \p path
+     * \param nodes The nodes of the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces for half of the segments.
      * \param alternate_offset The offset from the cross fractal on straight pieces for the other half of the segments.
      * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const;
+    void offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const;
 };
 } // namespace cura
 

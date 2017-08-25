@@ -205,7 +205,7 @@ void SpaceFillingTree::Node::setDistanceDepth()
 
 void SpaceFillingTree::Node::walk(SpaceFillingTree::LocationVisitor& visitor) const
 {
-    visitor.visit(middle, distance_depth + 0*recursion_depth);
+    visitor.visit(this);
     for (int dir_offset = 0; dir_offset < Direction::DIRECTION_COUNT; dir_offset++)
     {
         int direction = (parent_to_here_direction + dir_offset + 2) % Direction::DIRECTION_COUNT;
@@ -214,7 +214,7 @@ void SpaceFillingTree::Node::walk(SpaceFillingTree::LocationVisitor& visitor) co
         {
             assert(child->parent == this);
             child->walk(visitor);
-            visitor.visit(middle, distance_depth + 0*recursion_depth);
+            visitor.visit(this);
         }
     }
 }

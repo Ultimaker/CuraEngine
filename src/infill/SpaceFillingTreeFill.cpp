@@ -21,10 +21,9 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     Polygon infill_poly;
     if (alternate)
     {
-        Polygon tree_path;
-        std::vector<unsigned int> depths;
-        generateTreePathAndDepths(tree_path, depths);
-        offsetTreePathAlternating(tree_path, depths, shift, line_distance - shift, pocket_size, infill_poly);
+        std::vector<const SpaceFillingTree::Node*> nodes;
+        generateTreePathAndDepths(nodes);
+        offsetTreePathAlternating(nodes, shift, line_distance - shift, pocket_size, infill_poly);
     }
     else
     {
@@ -109,14 +108,14 @@ void SpaceFillingTreeFill::generateTreePath(PolygonRef path) const
         Visitor(PolygonRef path)
         : path(path)
         {}
-        void visit(Point c, unsigned int)
+        void visit(const SpaceFillingTree::Node* node)
         {
             if (is_first_point)
             { // skip first point because it is the same as the last
                 is_first_point = false;
                 return;
             }
-            path.add(c);
+            path.add(node->middle);
         }
     };
     Visitor visitor(path);
@@ -175,35 +174,32 @@ void SpaceFillingTreeFill::offsetTreePath(const ConstPolygonRef path, coord_t of
 
 
 
-void SpaceFillingTreeFill::generateTreePathAndDepths(PolygonRef path, std::vector<unsigned int>& depths) const
+void SpaceFillingTreeFill::generateTreePathAndDepths(std::vector<const SpaceFillingTree::Node*>& nodes) const
 {
     class Visitor : public SpaceFillingTree::LocationVisitor
     {
-        PolygonRef path;
-        std::vector<unsigned int>& depths;
+        std::vector<const SpaceFillingTree::Node*>& nodes;
         bool is_first_point = true;
     public:
-        Visitor(PolygonRef path, std::vector<unsigned int>& depths)
-        : path(path)
-        , depths(depths)
+        Visitor(std::vector<const SpaceFillingTree::Node*>& nodes)
+        : nodes(nodes)
         {}
-        void visit(Point c, unsigned int depth)
+        void visit(const SpaceFillingTree::Node* node)
         {
             if (is_first_point)
             { // skip first point because it is the same as the last
                 is_first_point = false;
                 return;
             }
-            path.add(c);
-            depths.push_back(depth);
+            nodes.push_back(node);
         }
     };
-    Visitor visitor(path, depths);
+    Visitor visitor(nodes);
     tree.walk(visitor);
 }
 
 
-void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const
 {
     constexpr unsigned int algorithm_alternative_beveling = 1;
     std::function<coord_t (unsigned int depth, coord_t bevel)> getBevel;
@@ -250,15 +246,15 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path,
     constexpr unsigned int algorithm_alternative_point_case = 0;
     coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * 1.4142;
     coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * 1.4142;
-    for (unsigned int point_idx = 0; point_idx < path.size(); point_idx++)
+    for (unsigned int point_idx = 0; point_idx < nodes.size(); point_idx++)
     {
-        const Point a = path[point_idx];
-        const Point b = path[(point_idx + 1) % path.size()];
-        const Point c = path[(point_idx + 2) % path.size()];
+        const Point a = nodes[point_idx]->middle;
+        const Point b = nodes[(point_idx + 1) % nodes.size()]->middle;
+        const Point c = nodes[(point_idx + 2) % nodes.size()]->middle;
 
-        unsigned int a_depth = depths[point_idx];
-        unsigned int b_depth = depths[(point_idx + 1) % path.size()];
-        unsigned int c_depth = depths[(point_idx + 2) % path.size()];
+        unsigned int a_depth = nodes[point_idx]->distance_depth;
+        unsigned int b_depth = nodes[(point_idx + 1) % nodes.size()]->distance_depth;
+        unsigned int c_depth = nodes[(point_idx + 2) % nodes.size()]->distance_depth;
 
         bool ab_odd = is_odd(a_depth, b_depth);
         bool bc_odd = is_odd(b_depth, c_depth);
