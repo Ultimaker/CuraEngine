@@ -144,7 +144,8 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    USER_SPECIFIED
+    USER_SPECIFIED,
+    SHARPEST_CORNER
 };
 
 enum class EZSeamCornerPrefType

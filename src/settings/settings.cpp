@@ -413,6 +413,8 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key) const
         return EZSeamType::SHORTEST;
     if (value == "back")
         return EZSeamType::USER_SPECIFIED;
+    if (value == "sharpest_corner")
+        return EZSeamType::SHARPEST_CORNER;
     return EZSeamType::SHORTEST;
 }
 

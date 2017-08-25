@@ -23,6 +23,7 @@ void PathOrderOptimizer::optimize()
         switch (type)
         {
             case EZSeamType::USER_SPECIFIED:
+            case EZSeamType::SHARPEST_CORNER:
                 polyStart.push_back(getClosestPointInPolygon(config->pos, poly_idx));
                 break;
             case EZSeamType::RANDOM:
@@ -106,7 +107,7 @@ void PathOrderOptimizer::optimize()
 
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
-    const EZSeamCornerPrefType corner_pref = (config)? config->corner_pref : EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+    const EZSeamType type = (config)? config->type : EZSeamType::SHORTEST;
     ConstPolygonRef poly = *polygons[poly_idx];
 
     int best_point_idx = -1;
@@ -116,35 +117,40 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     {
         const Point& p1 = poly[point_idx];
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
-        int64_t dist = vSize2(p1 - prev_point);
+        // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
+        int64_t dist = (type == EZSeamType::SHARPEST_CORNER)? 100 : vSize2(p1 - prev_point);
         const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
-        const float scaling_divisor = 50;
-        switch (corner_pref)
+        if (type == EZSeamType::USER_SPECIFIED || type == EZSeamType::SHARPEST_CORNER)
         {
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                if (corner_angle > 1)
-                {
-                    // p1 lies on a concave curve so reduce the distance to favour it
-                    // the more concave the curve, the more we reduce the distance
-                    dist -= (corner_angle - 1) * dist / scaling_divisor;
-                }
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                if (corner_angle < 1)
-                {
-                    // p1 lies on a convex curve so reduce the distance to favour it
-                    // the more convex the curve, the more we reduce the distance
-                    dist -= (1 - corner_angle) * dist / scaling_divisor;
-                }
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                // the more curved the region, the more we reduce the distance
-                dist -= fabs(corner_angle - 1) * dist / scaling_divisor;
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-            default:
-                // do nothing
-                break;
+            const EZSeamCornerPrefType corner_pref = (config)? config->corner_pref : EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+            const float scaling_divisor = 50;
+            switch (corner_pref)
+            {
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                    if (corner_angle > 1)
+                    {
+                        // p1 lies on a concave curve so reduce the distance to favour it
+                        // the more concave the curve, the more we reduce the distance
+                        dist -= (corner_angle - 1) * dist / scaling_divisor;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                    if (corner_angle < 1)
+                    {
+                        // p1 lies on a convex curve so reduce the distance to favour it
+                        // the more convex the curve, the more we reduce the distance
+                        dist -= (1 - corner_angle) * dist / scaling_divisor;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                    // the more curved the region, the more we reduce the distance
+                    dist -= fabs(corner_angle - 1) * dist / scaling_divisor;
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+                default:
+                    // do nothing
+                    break;
+            }
         }
         if (dist < best_point_score)
         {
