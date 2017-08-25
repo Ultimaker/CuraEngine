@@ -13,6 +13,7 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
+    const EZSeamType type = (config)? config->type : EZSeamType::SHORTEST;
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
@@ -22,15 +23,11 @@ void PathOrderOptimizer::optimize()
         switch (type)
         {
             case EZSeamType::USER_SPECIFIED:
-                polyStart.push_back(getClosestPointInPolygon(z_seam_pos, poly_idx));
+            case EZSeamType::SHARPEST_CORNER:
+                polyStart.push_back(getClosestPointInPolygon(config->pos, poly_idx));
                 break;
             case EZSeamType::RANDOM:
                 polyStart.push_back(getRandomPointInPolygon(poly_idx));
-                break;
-            case EZSeamType::MOST_CURVATURE_CONVEX:
-            case EZSeamType::MOST_CURVATURE_CONCAVE:
-            case EZSeamType::MOST_CURVATURE:
-                polyStart.push_back(getBestPointOnCurve(poly_idx));
                 break;
             default:
             {
@@ -101,27 +98,16 @@ void PathOrderOptimizer::optimize()
         for (unsigned int order_idx = 0; order_idx < polyOrder.size(); order_idx++) /// decide final starting points in each polygon
         {
             int poly_idx = polyOrder[order_idx];
-            int point_idx = getPolyStart(prev_point, poly_idx);
+            int point_idx = getClosestPointInPolygon(prev_point, poly_idx);
             polyStart[poly_idx] = point_idx;
             prev_point = (*polygons[poly_idx])[point_idx];
         }
     }
 }
 
-int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
-{
-    switch (type)
-    {
-        case EZSeamType::USER_SPECIFIED:    return getClosestPointInPolygon(z_seam_pos, poly_idx);
-        case EZSeamType::RANDOM:            return getRandomPointInPolygon(poly_idx);
-        case EZSeamType::SHORTEST:          return getClosestPointInPolygon(prev_point, poly_idx);
-        default:                            return getClosestPointInPolygon(prev_point, poly_idx);
-    }
-}
-
-
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
+    const EZSeamType type = (config)? config->type : EZSeamType::SHORTEST;
     ConstPolygonRef poly = *polygons[poly_idx];
 
     int best_point_idx = -1;
@@ -131,55 +117,45 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     {
         const Point& p1 = poly[point_idx];
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
-        int64_t dist = vSize2(p1 - prev_point);
+        // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
+        int64_t dist = (type == EZSeamType::SHARPEST_CORNER)? 100 : vSize2(p1 - prev_point);
         const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
-        if (corner_angle > 1)
+        if (type == EZSeamType::USER_SPECIFIED || type == EZSeamType::SHARPEST_CORNER)
         {
-            // p1 lies on a concave curve so reduce the distance to favour it
-            // the more concave the curve, the more we reduce the distance
-            dist -= (corner_angle - 1) * dist / 50;
+            const EZSeamCornerPrefType corner_pref = (config)? config->corner_pref : EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+            const float scaling_divisor = 50;
+            switch (corner_pref)
+            {
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                    if (corner_angle > 1)
+                    {
+                        // p1 lies on a concave curve so reduce the distance to favour it
+                        // the more concave the curve, the more we reduce the distance
+                        dist -= (corner_angle - 1) * dist / scaling_divisor;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                    if (corner_angle < 1)
+                    {
+                        // p1 lies on a convex curve so reduce the distance to favour it
+                        // the more convex the curve, the more we reduce the distance
+                        dist -= (1 - corner_angle) * dist / scaling_divisor;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                    // the more curved the region, the more we reduce the distance
+                    dist -= fabs(corner_angle - 1) * dist / scaling_divisor;
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+                default:
+                    // do nothing
+                    break;
+            }
         }
         if (dist < best_point_score)
         {
             best_point_idx = point_idx;
             best_point_score = dist;
-        }
-        p0 = p1;
-    }
-    return best_point_idx;
-}
-
-int PathOrderOptimizer::getBestPointOnCurve(int poly_idx)
-{
-    ConstPolygonRef poly = *polygons[poly_idx];
-
-    int best_point_idx = 0;
-    float best_point_angle = 0;
-    Point p0 = poly.back();
-    for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
-    {
-        const Point& p1 = poly[point_idx];
-        const Point& p2 = poly[(point_idx + 1) % poly.size()];
-        float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
-        switch(type)
-        {
-            case EZSeamType::MOST_CURVATURE_CONVEX:
-                // subtract angle from 360 degrees
-                corner_angle = 2 - corner_angle;
-                break;
-            case EZSeamType::MOST_CURVATURE:
-                // greatest deviation from 180 degrees
-                corner_angle = fabs(corner_angle - 1);
-                break;
-            case EZSeamType::MOST_CURVATURE_CONCAVE:
-            default:
-                // do nothing as corner_angle is already right for EZSeamType::MOST_CONCAVE
-                break;
-        }
-        if (corner_angle > best_point_angle)
-        {
-            best_point_idx = point_idx;
-            best_point_angle = corner_angle;
         }
         p0 = p1;
     }

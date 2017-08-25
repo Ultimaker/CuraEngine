@@ -34,7 +34,7 @@ void InsetOrderOptimizer::processHoleInsets()
     constexpr float flow = 1.0;
 
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
-    PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_pos, z_seam_type);
+    PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), &z_seam_config);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
@@ -166,7 +166,7 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
                 gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
             }
@@ -176,7 +176,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 // as close as possible to the z seam location so to avoid the possible retract when moving from the end
                 // of the immediately enclosing inset to the start of the hole outer wall we first move to a location
                 // that is close to the z seam and at a vertex of the first inset we want to be printed
-                if (z_seam_type == EZSeamType::USER_SPECIFIED)
+                if (z_seam_config.type == EZSeamType::USER_SPECIFIED)
                 {
                     const Point z_seam_location = hole_outer_wall[0][order_optimizer.polyStart[order_optimizer.polyOrder[outer_poly_order_idx]]];
                     // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
@@ -187,7 +187,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -197,7 +197,7 @@ void InsetOrderOptimizer::processHoleInsets()
             // just the outer wall, no level 1 insets
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+            gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
     }
@@ -269,7 +269,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 {
                     Polygons part_outer_wall;
                     part_outer_wall.add(*inset_polys[0][0]);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
                 gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
             }
@@ -278,10 +278,10 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
                 // but if there is more than one outer wall level 1 inset, don't bother to move as it may actually be a waste of time because
                 // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
-                if (z_seam_type == EZSeamType::USER_SPECIFIED && num_level_1_insets == 1)
+                if (z_seam_config.type == EZSeamType::USER_SPECIFIED && num_level_1_insets == 1)
                 {
                     // determine the location of the z seam
-                    const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, *inset_polys[0][0]);
+                    const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_config.pos, *inset_polys[0][0]);
                     const ClosestPolygonPoint z_seam_location((*inset_polys[0][0])[z_seam_idx], z_seam_idx, *inset_polys[0][0]);
                     // move to the location of the vertex in the level 1 inset that's closest to the z seam location
                     const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
@@ -292,7 +292,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 {
                     Polygons part_outer_wall;
                     part_outer_wall.add(*inset_polys[0][0]);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -305,7 +305,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             Polygons part_outer_wall;
             part_outer_wall.add(*inset_polys[0][0]);
-            gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+            gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
     }

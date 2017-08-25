@@ -30,8 +30,7 @@ public:
     mesh_config(mesh_config),
     part(part),
     layer_nr(layer_nr),
-    z_seam_type(mesh.getSettingAsZSeamType("z_seam_type")),
-    z_seam_pos(z_seam_pos),
+    z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), z_seam_pos, mesh.getSettingAsZSeamCornerPrefType("z_seam_corner")),
     added_something(false),
     wall_overlapper_0(nullptr),
     wall_overlapper_x(nullptr)
@@ -47,8 +46,7 @@ private:
     const PathConfigStorage::MeshPathConfigs& mesh_config;
     const SliceLayerPart& part;
     const unsigned int layer_nr;
-    const EZSeamType z_seam_type;
-    const Point z_seam_pos;
+    const ZSeamConfig z_seam_config;
     bool added_something;
     WallOverlapComputation* wall_overlapper_0;
     WallOverlapComputation* wall_overlapper_x;
