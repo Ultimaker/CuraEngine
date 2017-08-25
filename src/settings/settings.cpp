@@ -413,6 +413,12 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key) const
         return EZSeamType::SHORTEST;
     if (value == "back")
         return EZSeamType::USER_SPECIFIED;
+    if (value == "most_curvature_convex")
+        return EZSeamType::MOST_CURVATURE_CONVEX;
+    if (value == "most_curvature_concave")
+        return EZSeamType::MOST_CURVATURE_CONCAVE;
+    if (value == "most_curvature")
+        return EZSeamType::MOST_CURVATURE;
     return EZSeamType::SHORTEST;
 }
 
