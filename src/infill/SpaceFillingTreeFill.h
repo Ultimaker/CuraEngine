@@ -66,10 +66,11 @@ public:
      * \param zig_zaggify Whether to connect the cross lines via the \p outlines
      * \param fill_angle The direction of the main crosses (modulo 90degrees)
      * \param alternate Whether to alternate the offset for all odd segments
+     * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] result_polygons The output when \p zig_zaggify
      * \param[out] result_lines The output when not \p zig_zaggify
      */
-    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, Polygons& result_polygons, Polygons& result_lines) const;
+    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, coord_t pocket_size, Polygons& result_polygons, Polygons& result_lines) const;
 private:
     AABB3D model_aabb; //!< The AABB of the boundary to cover
     coord_t line_distance; //!< The width of the crosses and of the straight part of the anti-crosses
@@ -102,9 +103,10 @@ private:
      * 
      * \param path the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces
+     * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePath(const ConstPolygonRef path, coord_t offset, PolygonRef infill) const;
+    void offsetTreePath(const ConstPolygonRef path, coord_t offset, coord_t pocket_size, PolygonRef infill) const;
 
     /*!
      * Generate the pattern itself by doing a depth first walk over the fractal.
@@ -128,9 +130,10 @@ private:
      * \param depths The recursion depths of each vertex in \p path
      * \param offset The offset from the cross fractal on straight pieces for half of the segments.
      * \param alternate_offset The offset from the cross fractal on straight pieces for the other half of the segments.
+     * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, PolygonRef infill) const;
+    void offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const;
 };
 } // namespace cura
 

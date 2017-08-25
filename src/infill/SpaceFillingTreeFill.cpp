@@ -13,7 +13,7 @@ SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_a
 {
 }
 
-void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, Polygons& result_polygons, Polygons& result_lines) const
+void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, coord_t pocket_size, Polygons& result_polygons, Polygons& result_lines) const
 {
     Point3 model_middle = model_aabb.getMiddle();
     Point3Matrix transformation = LinearAlg2D::rotateAround(Point(model_middle.x, model_middle.y), fill_angle + 45);
@@ -24,13 +24,13 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
         Polygon tree_path;
         std::vector<unsigned int> depths;
         generateTreePathAndDepths(tree_path, depths);
-        offsetTreePathAlternating(tree_path, depths, shift, line_distance - shift, infill_poly);
+        offsetTreePathAlternating(tree_path, depths, shift, line_distance - shift, pocket_size, infill_poly);
     }
     else
     {
         Polygon tree_path;
         generateTreePath(tree_path);
-        offsetTreePath(tree_path, shift, infill_poly);
+        offsetTreePath(tree_path, shift, pocket_size, infill_poly);
     }
     infill_poly.applyMatrix(transformation); // apply rotation
 
@@ -123,29 +123,51 @@ void SpaceFillingTreeFill::generateTreePath(PolygonRef path) const
     tree.walk(visitor);
 }
 
-void SpaceFillingTreeFill::offsetTreePath(const ConstPolygonRef path, coord_t offset, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePath(const ConstPolygonRef path, coord_t offset, coord_t pocket_size, PolygonRef infill) const
 {
+    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * 1.4142;
+    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * 1.4142;
     for (unsigned int point_idx = 0; point_idx < path.size(); point_idx++)
     {
         const Point a = path[point_idx];
         const Point b = path[(point_idx + 1) % path.size()];
         const Point c = path[(point_idx + 2) % path.size()];
 
-        Point bc = c - b;
-        Point bc_T = turn90CCW(bc);
-        Point bc_offset = normal(bc_T, offset);
+        const Point bc = c - b;
+        const Point bc_T = turn90CCW(bc);
+        const Point bc_offset = normal(bc_T, offset);
 
         if (a == c)
         { // pointy case
-            infill.add(b - bc_offset);
-            infill.add(b - normal(bc, offset));
-            infill.add(b + bc_offset);
+            const Point left_point = b - bc_offset;
+            const Point pointy_point = b - normal(bc, offset);
+            const Point right_point = b + bc_offset;
+            infill.add(left_point);
+            if (point_bevel)
+            {
+                infill.add(pointy_point - normal(pointy_point - left_point, point_bevel));
+                infill.add(pointy_point - normal(pointy_point - right_point, point_bevel));
+            }
+            else
+            {
+                infill.add(pointy_point);
+            }
+            infill.add(right_point);
         }
         else
         {
-            Point ab = b - a;
-            Point ab_T = turn90CCW(ab);
-            infill.add(b + normal(ab_T, offset) + bc_offset); // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
+            const Point ab = b - a;
+            const Point ab_T = turn90CCW(ab);
+            const Point normal_corner = b + normal(ab_T, offset) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
+            if (corner_bevel)
+            {
+                infill.add(normal_corner - normal(ab, corner_bevel));
+                infill.add(normal_corner + normal(bc, corner_bevel));
+            }
+            else
+            {
+                infill.add(normal_corner);
+            }
         }
     }
 }
@@ -181,14 +203,29 @@ void SpaceFillingTreeFill::generateTreePathAndDepths(PolygonRef path, std::vecto
 }
 
 
-void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const
 {
-    constexpr unsigned int algorithm_alternative_alternating = 2;
+    constexpr unsigned int algorithm_alternative_beveling = 1;
+    std::function<coord_t (unsigned int depth, coord_t bevel)> getBevel;
+    switch(algorithm_alternative_beveling)
+    {
+        case 0:
+        default:
+            getBevel = [] (unsigned int, coord_t bevel) { return bevel; };
+            break;
+        case 1:
+            getBevel = [] (unsigned int depth, coord_t bevel) { return (depth % 2 == 1)? bevel : 0; };
+            break;
+    }
+    constexpr unsigned int algorithm_alternative_alternating = 0;
     std::function<bool (unsigned int, unsigned int)> is_odd;
     switch(algorithm_alternative_alternating)
     {
-        case 1:
+        case 0:
         default:
+            is_odd = [](unsigned int, unsigned int) { return false; };
+            break;
+        case 1:
             is_odd = [](unsigned int a_depth, unsigned int b_depth) { return (a_depth + b_depth) % 2 == 1; };
             break;
         case 2:
@@ -210,7 +247,9 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path,
             is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth) / 7 ) % 2 == 1; };
             break;
     }
-    constexpr unsigned int algorithm_alternative_point_case = 1;
+    constexpr unsigned int algorithm_alternative_point_case = 0;
+    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * 1.4142;
+    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * 1.4142;
     for (unsigned int point_idx = 0; point_idx < path.size(); point_idx++)
     {
         const Point a = path[point_idx];
@@ -235,6 +274,7 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path,
             coord_t point_offset_length;
             switch(algorithm_alternative_point_case)
             {
+                case 0:
                 case 1:
                 default:
                     point_offset_length = (bc_odd)? alternate_offset : offset;
@@ -249,16 +289,39 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path,
                     point_offset_length = std::max(offset, alternate_offset);
                     break;
             }
-            infill.add(b - bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length)));
-            infill.add(b - normal(bc, point_offset_length));
-            infill.add(b + bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length)));
+            const Point left_point = b - bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
+            const Point pointy_point = b - normal(bc, point_offset_length);
+            const Point right_point = b + bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
+
+            infill.add(left_point);
+            const coord_t point_bevel_here = getBevel(b_depth, point_bevel);
+            if (point_bevel_here)
+            {
+                infill.add(pointy_point - normal(pointy_point - left_point, point_bevel_here));
+                infill.add(pointy_point - normal(pointy_point - right_point, point_bevel_here));
+            }
+            else
+            {
+                infill.add(pointy_point);
+            }
+            infill.add(right_point);
         }
         else
         {
             coord_t ab_offset_length = (ab_odd)? alternate_offset : offset;
             Point ab = b - a;
             Point ab_T = turn90CCW(ab);
-            infill.add(b + normal(ab_T, ab_offset_length) + bc_offset); // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
+            const Point normal_corner = b + normal(ab_T, ab_offset_length) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
+            const coord_t corner_bevel_here = getBevel(a_depth, corner_bevel);
+            if (corner_bevel_here)
+            {
+                infill.add(normal_corner - normal(ab, corner_bevel_here));
+                infill.add(normal_corner + normal(bc, corner_bevel_here));
+            }
+            else
+            {
+                infill.add(normal_corner);
+            }
         }
     }
 }
