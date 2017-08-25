@@ -183,7 +183,7 @@ void SpaceFillingTreeFill::generateTreePathAndDepths(PolygonRef path, std::vecto
 
 void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path, const std::vector<unsigned int>& depths, coord_t offset, coord_t alternate_offset, PolygonRef infill) const
 {
-    constexpr unsigned int algorithm_alternative_alternating = 5;
+    constexpr unsigned int algorithm_alternative_alternating = 2;
     std::function<bool (unsigned int, unsigned int)> is_odd;
     switch(algorithm_alternative_alternating)
     {
@@ -198,10 +198,16 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path,
             is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth + 1) / 2 ) % 2 == 1; };
             break;
         case 4:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return (a_depth < b_depth)? a_depth % 2 == 1 : b_depth % 2 == 1; };
+            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return std::min(a_depth, b_depth) % 2 == 1; };
             break;
         case 5:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return std::max(a_depth, b_depth) % 2 == 1; };
+            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((std::min(a_depth, b_depth) + 1) / 2) % 2 == 1; };
+            break;
+        case 6:
+            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth) / 4) % 2 == 1; };
+            break;
+        case 7:
+            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth) / 7 ) % 2 == 1; };
             break;
     }
     constexpr unsigned int algorithm_alternative_point_case = 1;
@@ -231,13 +237,13 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(const ConstPolygonRef path,
             {
                 case 1:
                 default:
-                    point_offset_length = bc_offset_length;
+                    point_offset_length = (bc_odd)? alternate_offset : offset;
                     break;
                 case 2:
-                    point_offset_length = std::min(offset, alternate_offset);
+                    point_offset_length = (bc_odd)? offset : alternate_offset;
                     break;
                 case 3:
-                    point_offset_length = (bc_odd)? offset : alternate_offset;
+                    point_offset_length = std::min(offset, alternate_offset);
                     break;
                 case 4:
                     point_offset_length = std::max(offset, alternate_offset);
