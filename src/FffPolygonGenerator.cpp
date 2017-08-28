@@ -387,6 +387,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+        const coord_t wall_0_inset = mesh.getSettingInMicrons("wall_0_inset");
         if (!mesh.getSettingBoolean("fill_outline_gaps") || mesh.getSettingAsCount("wall_line_count") <= 0)
         {
             continue;
@@ -410,7 +411,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
                     Polygons inner;
                     if (part.insets.size() > 0)
                     {
-                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset));
+                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset + wall_0_inset));
                     }
                     Polygons outline_gaps = outer.difference(inner);
                     outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
