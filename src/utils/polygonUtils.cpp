@@ -477,6 +477,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     return ClosestPolygonPoint();
                 }
 #endif
+                inside = overall_inside;
             }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location
