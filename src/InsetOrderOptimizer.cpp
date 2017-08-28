@@ -33,6 +33,47 @@ void InsetOrderOptimizer::processHoleInsets()
     constexpr bool spiralize = false;
     constexpr float flow = 1.0;
 
+    if (extruder_nr == mesh.getSettingAsExtruderNr("wall_x_extruder_nr") && !outer_inset_first && mesh.getSettingBoolean("infill_before_walls") && num_insets > 2)
+    {
+        // special case when infill is output before walls - we need to ensure that the insets are output in order, innermost first
+        // so we need to detect any higher level insets that don't surround holes and output them first
+        for (unsigned inset_level = num_insets - 1; inset_level > 0; --inset_level)
+        {
+            Polygons insets_that_do_not_surround_holes;
+            for (unsigned inset_idx = 0; inset_idx < inset_polys[inset_level].size(); ++inset_idx)
+            {
+                const ConstPolygonRef& inner_wall = *inset_polys[inset_level][inset_idx];
+                const ConstPolygonRef& outer_wall = *inset_polys[0][inset_idx];
+                // little subtlety here, don't test first inset against inset_polys[0][0] as it will always intersect
+                bool inset_surrounds_hole = inset_idx > 0 && PolygonUtils::polygonsIntersect(inner_wall, outer_wall);
+                if (!inset_surrounds_hole)
+                {
+                    // the inset didn't surround the level 0 inset with the same inset_idx but maybe it surrounds another hole
+                    // start this loop at 1 not 0 as everything is surrounded by the part outline!
+                    for (unsigned hole_idx = 1; !inset_surrounds_hole && hole_idx < inset_polys[inset_level].size(); ++hole_idx)
+                    {
+                        const ConstPolygonRef& outer_wall = *inset_polys[0][hole_idx];
+                        inset_surrounds_hole = PolygonUtils::polygonsIntersect(inner_wall, outer_wall);
+                    }
+                }
+                if (!inset_surrounds_hole)
+                {
+                    // consume this inset
+                    insets_that_do_not_surround_holes.add(inner_wall);
+                    inset_polys[inset_level].erase(inset_polys[inset_level].begin() + inset_idx);
+                    --inset_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
+                }
+            }
+            if (insets_that_do_not_surround_holes.size() > 0)
+            {
+                gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                gcode_layer.addPolygonsByOptimizer(insets_that_do_not_surround_holes, mesh_config.insetX_config, wall_overlapper_x);
+                added_something = true;
+            }
+        }
+    }
+
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
     PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), &z_seam_config);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
@@ -275,6 +316,8 @@ void InsetOrderOptimizer::processOuterWallInsets()
             }
             else
             {
+                // reverse order of inner walls to increase chance of them being printed from inside to outside
+                std::reverse(part_inner_walls.begin(), part_inner_walls.end());
                 // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
                 // but if there is more than one outer wall level 1 inset, don't bother to move as it may actually be a waste of time because
                 // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
@@ -283,7 +326,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                     // determine the location of the z seam
                     const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_config.pos, *inset_polys[0][0]);
                     const ClosestPolygonPoint z_seam_location((*inset_polys[0][0])[z_seam_idx], z_seam_idx, *inset_polys[0][0]);
-                    // move to the location of the vertex in the level 1 inset that's closest to the z seam location
+                    // move to the location of the vertex in the innermost inset that's closest to the z seam location
                     const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
                 }
@@ -426,13 +469,6 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
     if (num_insets < 2)
     {
         // only 1 inset, definitely not worth optimizing
-        return false;
-    }
-    if (mesh.getSettingBoolean("infill_before_walls") && num_insets > 2)
-    {
-        // apparently, when printing infill before walls, the insets have to be ordered from infill to outer wall
-        // to avoid introducing visible artifacts - the optimiser doesn't guarantee that ordering when more than 2 insets
-        // are being printed so don't optimise
         return false;
     }
     const unsigned int num_holes = part.insets[0].size() - 1;
