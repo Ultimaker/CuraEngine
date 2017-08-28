@@ -432,12 +432,16 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
         {
             continue;
         }
-        bool fill_gaps_between_inner_wall_and_skin_or_infill =
-            mesh.getSettingInMicrons("infill_line_distance") > 0
-            && !mesh.getSettingBoolean("infill_hollow")
-            && mesh.getSettingInMicrons("infill_overlap_mm") >= 0;
         for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
         {
+            const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+            bool fill_gaps_between_inner_wall_and_skin_or_infill =
+                mesh.getSettingInMicrons("infill_line_distance") > 0
+                && !mesh.getSettingBoolean("infill_hollow")
+                && mesh.getSettingInMicrons("infill_overlap_mm") >= 0
+                && !(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CONCENTRIC
+                    && (mesh.getSettingBoolean("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.getSettingInPercentage("initial_layer_line_width_factor") > 100))
+                );
             SliceLayer& layer = mesh.layers[layer_nr];
             coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
