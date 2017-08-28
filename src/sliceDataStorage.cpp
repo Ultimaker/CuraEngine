@@ -27,6 +27,14 @@ const Polygons& SliceLayerPart::getOwnInfillArea() const
     }
 }
 
+SliceLayer::~SliceLayer()
+{
+    if (top_surface)
+    {
+        delete top_surface;
+    }
+}
+
 Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;

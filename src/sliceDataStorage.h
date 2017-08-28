@@ -183,6 +183,8 @@ public:
      * \param result The result: the collection of all polygons thus obtained
      */
     void getSecondOrInnermostWalls(Polygons& result) const;
+
+    ~SliceLayer();
 };
 
 /******************/
