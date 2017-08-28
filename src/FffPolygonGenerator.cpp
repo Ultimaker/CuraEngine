@@ -387,6 +387,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+        const coord_t wall_0_inset = mesh.getSettingInMicrons("wall_0_inset");
         if (!mesh.getSettingBoolean("fill_outline_gaps") || mesh.getSettingAsCount("wall_line_count") <= 0)
         {
             continue;
@@ -410,7 +411,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
                     Polygons inner;
                     if (part.insets.size() > 0)
                     {
-                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset));
+                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset + wall_0_inset));
                     }
                     Polygons outline_gaps = outer.difference(inner);
                     outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
@@ -434,6 +435,14 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
         }
         for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
         {
+            const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+            bool fill_gaps_between_inner_wall_and_skin_or_infill =
+                mesh.getSettingInMicrons("infill_line_distance") > 0
+                && !mesh.getSettingBoolean("infill_hollow")
+                && mesh.getSettingInMicrons("infill_overlap_mm") >= 0
+                && !(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CONCENTRIC
+                    && (mesh.getSettingBoolean("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.getSettingInPercentage("initial_layer_line_width_factor") > 100))
+                );
             SliceLayer& layer = mesh.layers[layer_nr];
             coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
@@ -460,7 +469,18 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
 
                 // gap between inner wall and skin/infill
-                // are note handled. There might be gaps due to alternate extra perimeter or due to initial layer line width multiplier
+                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
+                {
+                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+
+                    Polygons inner = part.infill_area;
+                    for (const SkinPart& skin_part : part.skin_parts)
+                    {
+                        inner.add(skin_part.outline);
+                    }
+                    inner = inner.unionPolygons();
+                    part.perimeter_gaps.add(outer.difference(inner));
+                }
 
                 // add perimeter gaps for skin insets
                 for (SkinPart& skin_part : part.skin_parts)

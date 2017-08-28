@@ -116,13 +116,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         [this, total_layers](LayerPlan* gcode_layer)
         {
             Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
-            layer_plan_buffer.push(*gcode_layer);
-            LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
-            if (to_be_written)
-            {
-                to_be_written->writeGCode(gcode);
-                delete to_be_written;
-            }
+            layer_plan_buffer.handle(*gcode_layer, gcode);
         };
     const unsigned int max_task_count = OMP_MAX_ACTIVE_LAYERS_PROCESSED;
     GcodeLayerThreader<LayerPlan> threader(

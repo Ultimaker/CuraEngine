@@ -72,6 +72,7 @@ void LayerPlanBuffer::flush()
         {
             CommandSocket::getInstance()->flushGcode();
         }
+        delete buffer.front();
         buffer.pop_front();
     }
 }
