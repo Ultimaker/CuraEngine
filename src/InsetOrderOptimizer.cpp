@@ -275,6 +275,8 @@ void InsetOrderOptimizer::processOuterWallInsets()
             }
             else
             {
+                // reverse order of inner walls to increase chance of them being printed from inside to outside
+                std::reverse(part_inner_walls.begin(), part_inner_walls.end());
                 // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
                 // but if there is more than one outer wall level 1 inset, don't bother to move as it may actually be a waste of time because
                 // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
@@ -283,7 +285,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                     // determine the location of the z seam
                     const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_pos, *inset_polys[0][0]);
                     const ClosestPolygonPoint z_seam_location((*inset_polys[0][0])[z_seam_idx], z_seam_idx, *inset_polys[0][0]);
-                    // move to the location of the vertex in the level 1 inset that's closest to the z seam location
+                    // move to the location of the vertex in the innermost inset that's closest to the z seam location
                     const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
                 }
