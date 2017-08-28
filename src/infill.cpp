@@ -204,7 +204,7 @@ void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_
     }
     Polygons outline = in_outline.offset(outline_offset);
     bool alternate_offset = true; // TODO: make this a user setting or decide once and for all which Cross 3D pattern is best.
-    coord_t pocket_size = infill_line_width * 5; // TODO: make user setting
+    coord_t pocket_size = line_distance; // TODO: make user setting
     mesh.cross_fill_pattern->generate(outline, shift, zig_zaggify, fill_angle, alternate_offset, pocket_size, result_polygons, result_lines);
 }
 
