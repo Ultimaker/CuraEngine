@@ -127,12 +127,17 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
         const Point& p1 = poly[point_idx];
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
         int64_t dist = vSize2(p1 - prev_point);
-        float is_on_inside_corner_score = -LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI * 5000 * 5000; // prefer inside corners
-        // this score is in the order of 5 mm
-        if (dist + is_on_inside_corner_score < best_point_score)
+        const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
+        if (corner_angle > 1)
+        {
+            // p1 lies on a concave curve so reduce the distance to favour it
+            // the more concave the curve, the more we reduce the distance
+            dist -= (corner_angle - 1) * dist / 50;
+        }
+        if (dist < best_point_score)
         {
             best_point_idx = point_idx;
-            best_point_score = dist + is_on_inside_corner_score;
+            best_point_score = dist;
         }
         p0 = p1;
     }
