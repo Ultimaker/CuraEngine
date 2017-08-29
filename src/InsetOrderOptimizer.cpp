@@ -33,10 +33,11 @@ void InsetOrderOptimizer::processHoleInsets()
     constexpr bool spiralize = false;
     constexpr float flow = 1.0;
 
-    if (extruder_nr == mesh.getSettingAsExtruderNr("wall_x_extruder_nr") && !outer_inset_first && mesh.getSettingBoolean("infill_before_walls") && num_insets > 2)
+    if (!outer_inset_first && mesh.getSettingBoolean("infill_before_walls"))
     {
-        // special case when infill is output before walls - we need to ensure that the insets are output in order, innermost first
-        // so we need to detect any higher level insets that don't surround holes and output them first
+        // special case when infill is output before walls and walls are being printed inside to outside
+        // we need to ensure that the insets are output in order, innermost first
+        // so detect any higher level insets that don't surround holes and output them before the insets that do surround holes
         for (unsigned inset_level = num_insets - 1; inset_level > 0; --inset_level)
         {
             Polygons insets_that_do_not_surround_holes;
@@ -64,7 +65,7 @@ void InsetOrderOptimizer::processHoleInsets()
                     --inset_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
                 }
             }
-            if (insets_that_do_not_surround_holes.size() > 0)
+            if (insets_that_do_not_surround_holes.size() > 0 && extruder_nr == mesh.getSettingAsExtruderNr("wall_x_extruder_nr"))
             {
                 gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
