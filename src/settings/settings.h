@@ -112,6 +112,7 @@ enum class EFillMethod
     CUBIC,
     CUBICSUBDIV,
     TETRAHEDRAL,
+    QUARTER_CUBIC,
     TRIANGLES,
     CONCENTRIC,
     CONCENTRIC_3D,

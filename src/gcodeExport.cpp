@@ -1,4 +1,4 @@
-//Copyright (C) 2013 David Braam
+//Copyright (C) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -499,7 +499,10 @@ void GCodeExport::resetExtrusionValue()
 {
     if (flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
     {
-        *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
+        if (!relative_extrusion)
+        {
+            *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
+        }
         double current_extruded_volume = getCurrentExtrudedVolume();
         extruder_attr[current_extruder].totalFilament += current_extruded_volume;
         for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
