@@ -50,7 +50,7 @@ Polygons FuzzyWalls::makeFuzzy(const unsigned int layer_nr, const Polygons& in)
 
         Point p0 = poly[poly.size() - 2];
         Point p1 = poly.back();
-        for (int p0_idx = poly.size() - 2; p0_idx >= 0; p0_idx--)
+        for (int p0_idx = poly.size() - 2; p0_idx >= 0 && p0 == p1; p0_idx--)
         { // p0 is the last point before p1 which is different from p1
             p0 = poly[p0_idx];
         }
