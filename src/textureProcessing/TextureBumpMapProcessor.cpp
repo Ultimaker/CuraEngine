@@ -268,7 +268,7 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
             p0 = &p1;
             corner_handle_p0 = corner_handle_p1;
         }
-        while (result.size() < 3 )
+        while (result.size() < 3)
         {
             unsigned int point_idx = poly.size() - 2;
             result.add(poly[point_idx]);

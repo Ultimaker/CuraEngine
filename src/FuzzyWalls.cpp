@@ -54,13 +54,13 @@ Polygons FuzzyWalls::makeFuzzy(const unsigned int layer_nr, const Polygons& in)
         { // p0 is the last point before p1 which is different from p1
             p0 = poly[p0_idx];
         }
+        const coord_t initial_skipped_distance = (settings.min_dist_between_points + rand() % settings.range_random_point_dist) / 2;
         CarryOver carry_over;
-        carry_over.dist_left_over = (settings.min_dist_between_points + rand() % settings.range_random_point_dist) / 2;
+        carry_over.dist_left_over = initial_skipped_distance;
         carry_over.step_size = carry_over.dist_left_over;
         carry_over.offset_random = 0.0; // unused in the first iteration since carry_over.step_size = carry_over.dist_left_over; see makeCornerFuzzy
         carry_over.next_offset_random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0 - 1.0;
         carry_over.p0p1_perp = turn90CCW(p1 - p0);
-        // 'x' is the previous location from where a randomly offsetted new point between p-1 and p0 was created
         for (Point p2 : poly)
         {
             if (p2 == p1)
@@ -72,7 +72,7 @@ Polygons FuzzyWalls::makeFuzzy(const unsigned int layer_nr, const Polygons& in)
             p0 = p1;
             p1 = p2;
         }
-        while (result.size() < 3 )
+        while (result.size() < 3)
         {
             unsigned int point_idx = poly.size() - 2;
             result.add(poly[point_idx]);
@@ -86,9 +86,9 @@ Polygons FuzzyWalls::makeFuzzy(const unsigned int layer_nr, const Polygons& in)
         if (result.size() > 0)
         { // compute flow of the newly introduced segment
             const Point p0 = result.back();
-            const Point p1 = result.back();
+            const Point p1 = result[0];
             const coord_t length = vSize(p1 - p0);
-            const coord_t pxpa_dist = carry_over.step_size - carry_over.dist_left_over;
+            const coord_t pxpa_dist = carry_over.dist_left_over - initial_skipped_distance; // see documentation in makeCornerFuzzy
             const float flow_here = (length < 10 || std::abs(length - pxpa_dist) < 5)? 1.0 : std::min(1.0, INT2MM(pxpa_dist) / INT2MM(length));
             flows.back().push_back(flow_here);
         }
