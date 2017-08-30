@@ -1251,7 +1251,6 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 if (processed_inset_number == 0)
                 {
                     constexpr bool spiralize = false;
-                    constexpr float flow = 1.0;
                     PolygonFlowAdjuster* flow_adjuster(nullptr);
                     Polygons outer_wall;
                     if (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled"))

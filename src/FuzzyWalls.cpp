@@ -24,7 +24,7 @@ FuzzyWalls::FuzzyWalls(const SliceMeshStorage& mesh)
     }
     else
     {
-        getAmplitude = [this](const unsigned int layer_nr, const Point p)
+        getAmplitude = [this](const unsigned int, const Point)
         {
             return settings.max_amplitude;
         };
@@ -107,7 +107,7 @@ Polygons FuzzyWalls::makeFuzzy(const unsigned int layer_nr, const Polygons& in)
     return results;
 }
 
-void FuzzyWalls::makeCornerFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, const Point p2, const CarryOver carry_over, PolygonRef result)
+void FuzzyWalls::makeCornerFuzzy(const unsigned int layer_nr, const Point /*p0*/, const Point p1, const Point p2, const CarryOver carry_over, PolygonRef result)
 {
     const Point p0p1_perp = carry_over.p0p1_perp;
     const Point p1p2 = p2 - p1;
