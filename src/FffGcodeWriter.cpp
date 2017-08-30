@@ -1349,7 +1349,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 if (processed_inset_number == 0)
                 {
                     constexpr bool spiralize = false;
-                    constexpr float flow = 1.0;
                     PolygonFlowAdjuster* flow_adjuster(nullptr);
                     Polygons outer_wall;
                     if (part.insets[0].size() > 0 && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
