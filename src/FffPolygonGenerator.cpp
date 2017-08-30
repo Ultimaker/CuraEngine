@@ -99,8 +99,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     
-    storage.meshes.reserve(meshgroup->meshes.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
-    for(unsigned int meshIdx=0; meshIdx < meshgroup->meshes.size(); meshIdx++)
+    storage.meshes.reserve(meshgroup->meshes.size());
+    for (unsigned int meshIdx = 0; meshIdx < meshgroup->meshes.size(); meshIdx++)
     {
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         // even make a mesh for a support mesh, which doesn't introduce any parts.
@@ -109,7 +109,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // ^ needs to be set already for fuzzy wall texture map processing
 
     std::vector<Slicer*> slicerList;
-    for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
+    for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = *meshgroup->meshes[mesh_idx];
         if (mesh.getSettingBoolean("fuzz_map_enabled"))
@@ -145,7 +145,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
 
-    for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
+    for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
         if (mesh.getSettingBoolean("mold_enabled"))

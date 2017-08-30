@@ -922,8 +922,9 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     {
         FuzzyWalls* fuzzy_processor = new FuzzyWalls(*mesh);
         flow_adjuster = fuzzy_processor;
-        polygons = fuzzy_processor->makeFuzzy(*mesh, layer_nr, polygons);
-    } else if (mesh->getSettingBoolean("compensate_overlap_0"))
+        polygons = fuzzy_processor->makeFuzzy(layer_nr, polygons);
+    }
+    else if (mesh->getSettingBoolean("compensate_overlap_0"))
     {
         flow_adjuster = new WallOverlapComputation(polygons, mesh->getSettingInMicrons("wall_line_width_0"));
     }
@@ -1257,7 +1258,7 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     {
                         FuzzyWalls* fuzzy_processor = new FuzzyWalls(*mesh);
                         flow_adjuster = fuzzy_processor;
-                        outer_wall = fuzzy_processor->makeFuzzy(*mesh, layer_nr, part.insets[0]);
+                        outer_wall = fuzzy_processor->makeFuzzy(layer_nr, part.insets[0]);
                     }
                     else
                     {

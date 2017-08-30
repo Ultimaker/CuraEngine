@@ -1,6 +1,7 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "FuzzyWalls.h"
 
+// The length of a normalized vector. Cannot be 1 because points use integer logic.
 #define NORMAL_LENGTH 10000
 
 namespace cura 
@@ -30,7 +31,7 @@ FuzzyWalls::FuzzyWalls(const SliceMeshStorage& mesh)
     }
 }
 
-Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in)
+Polygons FuzzyWalls::makeFuzzy(const unsigned int layer_nr, const Polygons& in)
 {
     Polygons results;
     if (in.size() == 0)

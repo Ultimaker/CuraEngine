@@ -7,6 +7,7 @@
 
 #include <math.h> // debug
 
+// The length of a normalized vector. Cannot be 1 because points use integer logic.
 #define NORMAL_LENGTH 10000
 
 namespace cura

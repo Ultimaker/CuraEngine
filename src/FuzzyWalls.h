@@ -27,7 +27,7 @@ public:
         }
     };
     FuzzyWalls(const SliceMeshStorage& mesh);
-    Polygons makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in);
+    Polygons makeFuzzy(const unsigned int layer_nr, const Polygons& in);
     float getFlow(const Polygons& from, unsigned int poly_idx, unsigned int from_point_idx, unsigned int to_point_idx);
 protected:
     struct CarryOver
