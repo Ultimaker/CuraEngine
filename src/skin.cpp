@@ -1,4 +1,4 @@
-//Copyright (c) 2013 David Braam
+//Copyright (c) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -13,40 +13,60 @@
 namespace cura 
 {
 
-SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int bottom_layer_count, int top_layer_count, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_width_x, int skin_inset_count, bool no_small_gaps_heuristic, bool process_infill)
-: layer_nr(layer_nr)
-, mesh(mesh)
-, bottom_layer_count(bottom_layer_count)
-, top_layer_count(top_layer_count)
-, wall_line_count(wall_line_count)
-, innermost_wall_line_width(innermost_wall_line_width)
-, infill_skin_overlap(infill_skin_overlap)
-, wall_line_width_x(wall_line_width_x)
-, skin_inset_count(skin_inset_count)
-, no_small_gaps_heuristic(no_small_gaps_heuristic)
-, process_infill(process_infill)
+coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr)
 {
-}
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-Polygons SkinInfillAreaComputation::getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2)
-{
-    Polygons result;
-    for (const SliceLayerPart& part2 : layer2.parts)
+    coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+    if (layer_nr == 0)
     {
-        if (part_here.boundaryBox.hit(part2.boundaryBox))
+        const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+        wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
+    }
+    return wall_line_width_0;
+}
+coord_t SkinInfillAreaComputation::getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr)
+{
+    coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+    if (layer_nr == 0)
+    {
+        const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+        wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
+    }
+    return wall_line_width_x;
+}
+coord_t SkinInfillAreaComputation::getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr, coord_t innermost_wall_line_width)
+{
+    coord_t infill_skin_overlap = 0;
+    { // compute infill_skin_overlap
+        const ExtruderTrain& train_infill = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("infill_extruder_nr"));
+        const coord_t infill_line_width_factor = (layer_nr == 0) ? train_infill.getSettingAsRatio("initial_layer_line_width_factor") : 1.0;
+        const bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") * infill_line_width_factor + 10;
+        if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
         {
-            unsigned int wall_idx = std::max(0, std::min(wall_line_count, (int) part2.insets.size()) - 1);
-            result.add(part2.insets[wall_idx]);
+            infill_skin_overlap = innermost_wall_line_width / 2;
         }
     }
-    return result;
-};
+    return infill_skin_overlap;
+}
+
+SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, const SliceDataStorage& storage, SliceMeshStorage& mesh, bool process_infill)
+: layer_nr(layer_nr)
+, mesh(mesh)
+, bottom_layer_count(mesh.getSettingAsCount("bottom_layers"))
+, top_layer_count(mesh.getSettingAsCount("top_layers"))
+, wall_line_count(mesh.getSettingAsCount("wall_line_count"))
+, wall_line_width_0(getWallLineWidth0(storage, mesh, layer_nr))
+, wall_line_width_x(getWallLineWidthX(storage, mesh, layer_nr))
+, innermost_wall_line_width((wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x)
+, infill_skin_overlap(getInfillSkinOverlap(storage, mesh, layer_nr, innermost_wall_line_width))
+, skin_inset_count(mesh.getSettingAsCount("skin_outline_count"))
+, no_small_gaps_heuristic(mesh.getSettingBoolean("skin_no_small_gaps_heuristic"))
+, process_infill(process_infill)
+, top_reference_wall_expansion(mesh.getSettingInMicrons("top_skin_preshrink"))
+, bottom_reference_wall_expansion(mesh.getSettingInMicrons("bottom_skin_preshrink"))
+, top_reference_wall_idx(getReferenceWallIdx(top_reference_wall_expansion))
+, bottom_reference_wall_idx(getReferenceWallIdx(bottom_reference_wall_expansion))
+{
+}
 
 /*
  * This function is executed in a parallel region based on layer_nr.
@@ -66,18 +86,40 @@ Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, in
     {
         if (part_here.boundaryBox.hit(part2.boundaryBox))
         {
-            if (wall_idx == 0)
+            if (wall_idx <= 0)
             {
                 result.add(part2.outline);
             }
-            else if (part2.insets.size() >= wall_idx)
+            else if (wall_idx <= part2.insets.size())
             {
-                result.add(part2.insets[wall_idx - 1]);
+                result.add(part2.insets[wall_idx - 1]); // -1 because it's a 1-based index
             }
         }
     }
     return result;
 };
+
+int SkinInfillAreaComputation::getReferenceWallIdx(coord_t& preshrink) const
+{
+    for (int wall_idx = wall_line_count; wall_idx > 0; wall_idx--)
+    {
+        coord_t wall_line_width = (wall_idx > 1)? wall_line_width_x : wall_line_width_0;
+        int next_wall_idx = wall_idx - 1;
+        coord_t next_wall_line_width = (next_wall_idx > 1)? wall_line_width_x : (next_wall_idx == 0)? 0 : wall_line_width_0;
+        coord_t diff_to_next_wall = (wall_line_width + next_wall_line_width) / 2;
+        if (std::abs(preshrink - diff_to_next_wall) <= 10)
+        { // snap preshrink to closest wall
+            preshrink = 0;
+            return next_wall_idx;
+        }
+        if (preshrink < diff_to_next_wall)
+        {
+            return wall_idx;
+        }
+        preshrink -= diff_to_next_wall;
+    }
+    return 0;
+}
 
 /*
  * This function is executed in a parallel region based on layer_nr.
@@ -140,6 +182,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
 
     Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
+
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
     Polygons upskin;
     if (top_layer_count > 0)
@@ -186,12 +229,12 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
 {
     if (static_cast<int>(layer_nr - bottom_layer_count) >= 0 && bottom_layer_count > 0)
     {
-        Polygons not_air = getInsidePolygons(part, mesh.layers[layer_nr - bottom_layer_count]);
+        Polygons not_air = getWalls(part, layer_nr - bottom_layer_count, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
         if (!no_small_gaps_heuristic)
         {
             for (int downskin_layer_nr = layer_nr - bottom_layer_count + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
             {
-                not_air = not_air.intersection(getInsidePolygons(part, mesh.layers[downskin_layer_nr]));
+                not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
             }
         }
         if (min_infill_area > 0)
@@ -206,12 +249,12 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int
 {
     if (static_cast<int>(layer_nr + top_layer_count) < static_cast<int>(mesh.layers.size()) && top_layer_count > 0)
     {
-        Polygons not_air = getInsidePolygons(part, mesh.layers[layer_nr + top_layer_count]);
+        Polygons not_air = getWalls(part, layer_nr + top_layer_count, top_reference_wall_idx).offset(top_reference_wall_expansion);
         if (!no_small_gaps_heuristic)
         {
             for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + top_layer_count; upskin_layer_nr++)
             {
-                not_air = not_air.intersection(getInsidePolygons(part, mesh.layers[upskin_layer_nr]));
+                not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
             }
         }
         if (min_infill_area > 0)
@@ -313,7 +356,7 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
  */
 void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
 {
-    if (skin_inset_count <= 0)
+    if (skin_part.insets.empty())
     {
         skin_part.inner_infill = skin_part.outline;
         return;

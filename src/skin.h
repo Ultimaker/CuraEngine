@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef SKIN_H
 #define SKIN_H
 
@@ -19,17 +19,9 @@ public:
      * 
      * \param layer_nr The index of the layer for which to generate the skins and infill.
      * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
-     * \param bottom_layer_count The number of layers of bottom skin
-     * \param top_layer_count The number of layers of top skin
-     * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
-     * \param innermost_wall_line_width width of the innermost wall lines
-     * \param infill_skin_overlap overlap distance between infill and skin
-     * \param wall_line_width_x The line width of the inner most wall
-     * \param skin_inset_count The number of perimeters to surround the skin
-     * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
      * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
      */
-    SkinInfillAreaComputation(int layer_nr, SliceMeshStorage& mesh, int bottom_layer_count, int top_layer_count, int wall_line_count, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_width_x, int skin_inset_count, bool no_small_gaps_heuristic, bool process_infill);
+    SkinInfillAreaComputation(int layer_nr, const SliceDataStorage& storage, SliceMeshStorage& mesh, bool process_infill);
 
     /*!
      * Generate the skin areas and its insets.
@@ -80,6 +72,7 @@ protected:
      * 
      * \param part The part for which to compute the top skin areas
      * \param min_infill_area The minimum area to fill with skin
+     * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] upskin The areas of top skin to be pdated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
     void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
@@ -89,6 +82,7 @@ protected:
      * 
      * \param part The part for which to compute the bottom skin areas
      * \param min_infill_area The minimum area to fill with skin
+     * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] downskin The areas of bottom skin to be updated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
     void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
@@ -150,21 +144,22 @@ protected:
     const int bottom_layer_count; //!< The number of layers of bottom skin
     const int top_layer_count; //!< The number of layers of top skin
     const int wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
+    const int wall_line_width_0; //!< The line width of the outer wall
+    const int wall_line_width_x; //!< The line width of the inner most wall
     const int innermost_wall_line_width; //!< width of the innermost wall lines
     const int infill_skin_overlap; //!< overlap distance between infill and skin
-    const int wall_line_width_x; //!< The line width of the inner most wall
     const int skin_inset_count; //!< The number of perimeters to surround the skin
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
+    coord_t top_reference_wall_expansion; //!< The horizontal expansion to apply to the top reference wall in order to shrink the top skin
+    coord_t bottom_reference_wall_expansion; //!< The horizontal expansion to apply to the bottom reference wall in order to shrink the bottom skin
+    const int top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
+    const int bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:
-    /*!
-     * Helper function to get the innermost walls of each part which might intersect with \p part_here
-     * 
-     * \param part_here The part for which to check
-     * \param layer2 The layer from which to gather the innermost walls
-     */
-    Polygons getInsidePolygons(const SliceLayerPart& part_here, const SliceLayer& layer2);
+    static coord_t getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
+    static coord_t getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
+    static coord_t getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr, coord_t innermost_wall_line_width); //!< Compute the infill_skin_overlap
 
     /*!
      * Helper function to get the walls of each part which might intersect with \p part_here
@@ -174,6 +169,19 @@ private:
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      */
     Polygons getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx);
+
+    /*!
+     * Get the wall index of the reference wall for either the top or bottom skin.
+     * With larger user specified preshrink come lower reference wall indices.
+     * 
+     * The \p preshrink is updated to be relative to be the offset from the resulting reference wall.
+     * A preshrink distance close to an existing wall will snap to that wall so that no offset has to be computed.
+     * 
+     * \param[in,out] preshrink The expansion to be applied to the reference wall. The input is the expansion to be applied to the innermost wall, the output is the expansion applied to the returned reference wall.
+     * \return The index of the reference wall to view as being inside the model for the skin area computation.
+     */
+    int getReferenceWallIdx(coord_t& preshrink) const;
+
 };
 
 }//namespace cura

@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #include <clipper/clipper.hpp>
 
 #include "utils/math.h"
@@ -26,7 +26,8 @@ void Raft::generate(SliceDataStorage& storage, int distance)
                                         .difference(ooze_shield.offset(-distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raftOutline = storage.raftOutline.unionPolygons(ooze_shield_raft);
     }
-    storage.raftOutline = storage.raftOutline.offset(1000).offset(-1000); // remove small holes
+    coord_t smoothing = train->getSettingInMicrons("raft_smoothing");
+    storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
 }
 
 int Raft::getTotalThickness(const SliceDataStorage& storage)

@@ -1,4 +1,4 @@
-//Copyright (c) 2013 David Braam
+//Copyright (c) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -9,11 +9,6 @@
 #include "settings/settings.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/ActualZigzagConnectorProcessor.h"
-#include "infill/ZigzagConnectorProcessorNoEndPieces.h"
-#include "infill/ZigzagConnectorProcessorEndPieces.h"
-#include "infill/ZigzagConnectorProcessorConnectedEndPieces.h"
-#include "infill/ZigzagConnectorProcessorDisconnectedEndPieces.h"
 #include "infill/SubDivCube.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
@@ -37,6 +32,8 @@ class Infill
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
+    bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
+    int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -60,6 +57,8 @@ public:
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
+        , bool skip_some_zags = false
+        , int zag_skip_count = 0
     )
     : pattern(pattern)
     , in_outline(in_outline)
@@ -73,6 +72,8 @@ public:
     , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
+    , skip_some_zags(skip_some_zags)
+    , zag_skip_count(zag_skip_count)
     {
     }
     /*!
@@ -85,18 +86,6 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh = nullptr);
 
 private:
-    /*!
-     * Function which returns the scanline_idx for a given x coordinate
-     * 
-     * For negative \p x this is different from simple division.
-     * 
-     * \warning \p line_distance is assumed to be positive
-     * 
-     * \param x the point to get the scansegment index for
-     * \param line_distance the width of the scan segments
-     */
-    static inline int computeScanSegmentIdx(int x, int line_distance);
-
     /*!
      * Generate sparse concentric infill
      * 
@@ -117,31 +106,47 @@ private:
 
     /*!
      * Generate sparse concentric infill 
-     * \param result (output) The resulting polygons
+     * \param[out] result (output) The resulting lines
      */
     void generateConcentric3DInfill(Polygons& result);
 
     /*!
      * Generate a rectangular grid of infill lines
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateGridInfill(Polygons& result);
 
     /*!
      * Generate a shifting triangular grid of infill lines, which combine with consecutive layers into a cubic pattern
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateCubicInfill(Polygons& result);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateTetrahedralInfill(Polygons& result);
 
     /*!
+     * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a quarter cubic pattern
+     * \param[out] result (output) The resulting lines
+     */
+    void generateQuarterCubicInfill(Polygons& result);
+
+    /*!
+     * Generate a single shifting square grid of infill lines.
+     * This is used in tetrahedral infill (Octet infill) and in Quarter Cubic infill.
+     * 
+     * \param pattern_z_shift The amount by which to shift the whole pattern down
+     * \param angle_shift The angle to add to the infill_angle
+     * \param[out] result (output) The resulting lines
+     */
+    void generateHalfTetrahedralInfill(float pattern_z_shift, int angle_shift, Polygons& result);
+
+    /*!
      * Generate a triangular grid of infill lines
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateTriangleInfill(Polygons& result);
 
@@ -154,7 +159,7 @@ private:
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param scanline_min_idx The lowest index of all scanlines crossing the polygon
      * \param line_distance The distance between two lines which are in the same direction
@@ -166,7 +171,7 @@ private:
 
     /*!
      * Crop line segments by the infill polygon using Clipper
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param input The line segments to be cropped
      */
     void addLineSegmentsInfill(Polygons& result, Polygons& input);
@@ -177,7 +182,7 @@ private:
      * idea:
      * intersect a regular grid of 'scanlines' with the area inside \p in_outline
      * 
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
@@ -193,7 +198,7 @@ private:
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
      * 
      * \param outline_offset An offset from the reference polygon (Infill::in_outline) to get the actual outline within which to generate infill
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param zigzag_connector_processor The processor used to generate zigzag connectors
@@ -245,13 +250,11 @@ private:
      * 
      *   ^     ^     ^    scanlines
      * 
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
-     * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
-     * \param use_endpieces Whether to include zigzag segments connecting a scanline to itself
      */
-    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces);
+    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle);
 };
 
 }//namespace cura

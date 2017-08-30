@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef PATH_PLANNING_COMB_H
 #define PATH_PLANNING_COMB_H
 
@@ -48,7 +48,7 @@ private:
         Point in_or_mid; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
         Point out; //!< The point on the outside boundary
         PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
-        std::optional<ConstPolygonRef> dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        std::optional<ConstPolygonPointer> dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
         const Polygons& boundary_inside; //!< The inside boundary as in \ref Comb::boundary_inside
         const LocToLineGrid* inside_loc_to_line; //!< The loc to line grid \ref Comb::inside_loc_to_line
 

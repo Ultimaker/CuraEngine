@@ -1,4 +1,4 @@
-//Copyright (C) 2013 David Braam
+//Copyright (C) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -183,6 +183,8 @@ public:
      * \param result The result: the collection of all polygons thus obtained
      */
     void getSecondOrInnermostWalls(Polygons& result) const;
+
+    ~SliceLayer();
 };
 
 /******************/

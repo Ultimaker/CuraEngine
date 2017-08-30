@@ -20,12 +20,12 @@ namespace cura
 struct ClosestPolygonPoint
 {
     Point location; //!< Result location
-    std::optional<ConstPolygonRef> poly; //!< Polygon in which the result was found (or none if no result was found)
+    ConstPolygonPointer poly; //!< Polygon in which the result was found (or nullptr if no result was found)
     unsigned int poly_idx; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
     unsigned int point_idx; //!< Index to the first point in the polygon of the line segment on which the result was found
-    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly) :  location(p), poly(true, poly), poly_idx(NO_INDEX), point_idx(pos) {};
-    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly, int poly_idx) :  location(p), poly(true, poly), poly_idx(poly_idx), point_idx(pos) {};
-    ClosestPolygonPoint(ConstPolygonRef poly) : poly(true, poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
+    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly) :  location(p), poly(poly), poly_idx(NO_INDEX), point_idx(pos) {};
+    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly, int poly_idx) :  location(p), poly(poly), poly_idx(poly_idx), point_idx(pos) {};
+    ClosestPolygonPoint(ConstPolygonRef poly) : poly(poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
     ClosestPolygonPoint() : poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
     Point p() const
     { // conformity with other classes
@@ -515,7 +515,7 @@ public:
      * \param[in] possible_adjacent_polys The vector of polygons we are testing.
      * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      */
-    static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap);
+    static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonPointer>& possible_adjacent_polys, const coord_t max_gap);
 
 private:
     /*!

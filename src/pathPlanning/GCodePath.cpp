@@ -31,7 +31,7 @@ double GCodePath::getExtrusionMM3perMM()
     return flow * config->getExtrusionMM3perMM();
 }
 
-int GCodePath::getLineWidth()
+int GCodePath::getLineWidthForLayerView()
 {
     return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
 }

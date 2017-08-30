@@ -27,6 +27,14 @@ const Polygons& SliceLayerPart::getOwnInfillArea() const
     }
 }
 
+SliceLayer::~SliceLayer()
+{
+    if (top_surface)
+    {
+        delete top_surface;
+    }
+}
+
 Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
@@ -455,7 +463,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
         // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
         include_adhesion = false;
     }
-    if (include_adhesion)
+    if (include_adhesion && getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
