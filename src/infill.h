@@ -106,31 +106,47 @@ private:
 
     /*!
      * Generate sparse concentric infill 
-     * \param result (output) The resulting polygons
+     * \param[out] result (output) The resulting lines
      */
     void generateConcentric3DInfill(Polygons& result);
 
     /*!
      * Generate a rectangular grid of infill lines
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateGridInfill(Polygons& result);
 
     /*!
      * Generate a shifting triangular grid of infill lines, which combine with consecutive layers into a cubic pattern
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateCubicInfill(Polygons& result);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateTetrahedralInfill(Polygons& result);
 
     /*!
+     * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a quarter cubic pattern
+     * \param[out] result (output) The resulting lines
+     */
+    void generateQuarterCubicInfill(Polygons& result);
+
+    /*!
+     * Generate a single shifting square grid of infill lines.
+     * This is used in tetrahedral infill (Octet infill) and in Quarter Cubic infill.
+     * 
+     * \param pattern_z_shift The amount by which to shift the whole pattern down
+     * \param angle_shift The angle to add to the infill_angle
+     * \param[out] result (output) The resulting lines
+     */
+    void generateHalfTetrahedralInfill(float pattern_z_shift, int angle_shift, Polygons& result);
+
+    /*!
      * Generate a triangular grid of infill lines
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      */
     void generateTriangleInfill(Polygons& result);
 
@@ -143,7 +159,7 @@ private:
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param scanline_min_idx The lowest index of all scanlines crossing the polygon
      * \param line_distance The distance between two lines which are in the same direction
@@ -155,7 +171,7 @@ private:
 
     /*!
      * Crop line segments by the infill polygon using Clipper
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param input The line segments to be cropped
      */
     void addLineSegmentsInfill(Polygons& result, Polygons& input);
@@ -166,7 +182,7 @@ private:
      * idea:
      * intersect a regular grid of 'scanlines' with the area inside \p in_outline
      * 
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
@@ -182,7 +198,7 @@ private:
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
      * 
      * \param outline_offset An offset from the reference polygon (Infill::in_outline) to get the actual outline within which to generate infill
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param zigzag_connector_processor The processor used to generate zigzag connectors
@@ -234,7 +250,7 @@ private:
      * 
      *   ^     ^     ^    scanlines
      * 
-     * \param result (output) The resulting lines
+     * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
      */
