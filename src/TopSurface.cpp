@@ -36,7 +36,9 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const coord_t line_spacing = mesh.getSettingInMicrons("ironing_line_spacing");
     const coord_t outline_offset = -mesh.getSettingInMicrons("ironing_inset");
     const coord_t line_width = line_config.getLineWidth();
-    const double direction = mesh.skin_angles[layer.getLayerNr() % mesh.skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
+    const std::vector<int>& top_most_skin_angles = (mesh.getSettingAsCount("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
+    assert(top_most_skin_angles.size() > 0);
+    const double direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
     constexpr coord_t shift = 0;
     Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
@@ -54,7 +56,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         //Two options to start, both perpendicular to the ironing lines. Which is closer?
         const Point front_side = PolygonUtils::findNearestVert(center + far_away, areas).p();
         const Point back_side = PolygonUtils::findNearestVert(center - far_away, areas).p();
-        if (vSize2(layer.getLastPosition() - front_side) < vSize2(layer.getLastPosition() - back_side))
+        if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
         {
             layer.addTravel(front_side);
         }

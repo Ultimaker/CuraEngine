@@ -20,12 +20,12 @@ namespace cura
 struct ClosestPolygonPoint
 {
     Point location; //!< Result location
-    std::optional<ConstPolygonRef> poly; //!< Polygon in which the result was found (or none if no result was found)
+    ConstPolygonPointer poly; //!< Polygon in which the result was found (or nullptr if no result was found)
     unsigned int poly_idx; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
     unsigned int point_idx; //!< Index to the first point in the polygon of the line segment on which the result was found
-    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly) :  location(p), poly(true, poly), poly_idx(NO_INDEX), point_idx(pos) {};
-    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly, int poly_idx) :  location(p), poly(true, poly), poly_idx(poly_idx), point_idx(pos) {};
-    ClosestPolygonPoint(ConstPolygonRef poly) : poly(true, poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
+    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly) :  location(p), poly(poly), poly_idx(NO_INDEX), point_idx(pos) {};
+    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly, int poly_idx) :  location(p), poly(poly), poly_idx(poly_idx), point_idx(pos) {};
+    ClosestPolygonPoint(ConstPolygonRef poly) : poly(poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
     ClosestPolygonPoint() : poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
     Point p() const
     { // conformity with other classes
@@ -487,6 +487,35 @@ public:
      * polygon(s)
      */
     static bool polygonCollidesWithLineSegment(const Polygons& polys, const Point& startPoint, const Point& endPoint);
+
+    /*!
+     * Checks whether two polygon groups intersect - does a BB hit check first and if that succeeds, the full intersection
+     *
+     * \param poly_a A polygon group
+     * \param poly_b Another polygon group
+     * \return true if \p poly_a and \p poly_b intersect, false otherwise
+     */
+    static bool polygonsIntersect(const ConstPolygonRef& poly_a, const ConstPolygonRef& poly_b);
+
+    /*!
+     * Checks whether two polygons are adjacent (closer than \p max_gap)
+     *
+     * \param[in] inner_poly A polygon whose vertices will be tested to see if they are closer than \p max_gap to one of the lines in \p outer_poly
+     * \param[in] outer_poly A polygon
+     * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
+     * \return true if a vertex in \p inner_poly is sufficiently close to a line in \p outer_poly, false otherwise
+     */
+    static bool polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap);
+
+    /*!
+     * Searches \p possible_adjacent_polys for polygons that are closer to \p poly than \p max_gap. The indices of adjacent polygons are stored in \p adjacent_poly_indices.
+     *
+     * \param[out] adjacent_poly_indices A vector that will contain the indices of the polygons that are adjacent to \p poly.
+     * \param[in] poly The polygon that we are testing adjacency to.
+     * \param[in] possible_adjacent_polys The vector of polygons we are testing.
+     * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
+     */
+    static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonPointer>& possible_adjacent_polys, const coord_t max_gap);
 
 private:
     /*!

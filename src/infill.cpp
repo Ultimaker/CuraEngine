@@ -4,9 +4,20 @@
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 
-namespace cura {
+/*!
+ * Function which returns the scanline_idx for a given x coordinate
+ *
+ * For negative \p x this is different from simple division.
+ *
+ * \warning \p line_width is assumed to be positive
+ *
+ * \param x the point to get the scansegment index for
+ * \param line_width the width of the scan segments
+ */
+static inline int computeScanSegmentIdx(int x, int line_width);
 
-int Infill::computeScanSegmentIdx(int x, int line_width)
+
+static inline int computeScanSegmentIdx(int x, int line_width)
 {
     if (x < 0)
     {
@@ -16,6 +27,8 @@ int Infill::computeScanSegmentIdx(int x, int line_width)
     }
     return x / line_width;
 }
+
+namespace cura {
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh)
 {
@@ -49,7 +62,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         generateConcentric3DInfill(result_polygons);
         break;
     case EFillMethod::ZIG_ZAG:
-        generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
+        generateZigZagInfill(result_lines, line_distance, fill_angle);
         break;
     case EFillMethod::CUBICSUBDIV:
         if (!mesh)
@@ -221,28 +234,11 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
 }
 
 
-void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces)
+void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle)
 {
-
     PointMatrix rotation_matrix(fill_angle);
-    if (use_endpieces)
-    {
-        if (connected_zigzags)
-        {
-            ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
-        }
-        else
-        {
-            ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
-        }
-    }
-    else 
-    {
-        ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
-    }
+    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
+    generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, 0);
 }
 
 /* 
@@ -367,7 +363,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
-                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx % 2 == 0);
+                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
             }
             zigzag_connector_processor.registerVertex(p1);
             p0 = p1;

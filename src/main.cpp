@@ -5,7 +5,6 @@
 #include <sys/time.h>
 #include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#include <execinfo.h>
 #include <sys/resource.h>
 #endif
 #include <stddef.h>

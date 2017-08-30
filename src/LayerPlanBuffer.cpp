@@ -72,6 +72,7 @@ void LayerPlanBuffer::flush()
         {
             CommandSocket::getInstance()->flushGcode();
         }
+        delete buffer.front();
         buffer.pop_front();
     }
 }
@@ -115,7 +116,7 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
         auto prev_layer_it = newest_layer_it;
         prev_layer_it--;
         const LayerPlan* prev_layer = *prev_layer_it;
-        starting_position = prev_layer->getLastPosition();
+        starting_position = prev_layer->getLastPlannedPositionOrStartingPosition();
     }
     LayerPlan* newest_layer = *newest_layer_it;
     newest_layer->processFanSpeedAndMinimalLayerTime(starting_position);
@@ -454,7 +455,7 @@ void LayerPlanBuffer::insertTempCommands()
         return;
     }
 
-    std::vector<ExtruderPlan*> extruder_plans;
+    std::vector<ExtruderPlan*> extruder_plans; // sorted in print order
     extruder_plans.reserve(buffer.size() * 2);
     for (LayerPlan* layer_plan : buffer)
     {

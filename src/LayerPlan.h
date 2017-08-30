@@ -70,7 +70,7 @@ public:
      * 
      * \param extruder The extruder number for which this object is a plan.
      */
-    ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
+    ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bool is_raft_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments
@@ -174,6 +174,7 @@ public:
 protected:
     int layer_nr; //!< The layer number at which we are currently printing.
     bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
+    const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
 
     int layer_thickness; //!< The thickness of this layer in Z-direction
 
@@ -236,7 +237,8 @@ public:
 
 private:
     int layer_nr; //!< The layer number of this layer plan
-    int is_initial_layer; //!< Whether this is the first layer (which might be raft)
+    const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
+    const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
     int layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
@@ -325,7 +327,12 @@ public:
         return layer_nr;
     }
 
-    Point getLastPosition() const
+    /*!
+     * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
+     * 
+     * \warning The layer start position might be outside of the build plate!
+     */
+    Point getLastPlannedPositionOrStartingPosition() const
     {
         return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
     }
@@ -424,8 +431,6 @@ public:
 
     /*!
      * Plan a prime blob at the current location.
-     * 
-     * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
     void planPrime();
 
@@ -482,8 +487,9 @@ public:
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
