@@ -389,7 +389,16 @@ void LayerPlan::planPrime()
 
 void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
+    if(vSize2(p - *last_planned_position) < 25)
+    {
+        std::cerr << layer_nr << ": ignoring short extrusion - type " << (int)config.type << ", len = " << vSize(p - *last_planned_position) << "\n";
+        // extrusion is less than 5uM long, replace with travel
+        addTravel_simple(p);
+    }
+    else
+    {
+        getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
+    }
     last_planned_position = p;
 }
 
