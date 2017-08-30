@@ -26,8 +26,6 @@ void InsetOrderOptimizer::processHoleInsets()
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t wall_0_wipe_dist = mesh.getSettingInMicrons("wall_0_wipe_dist");
-    const bool compensate_overlap_0 = mesh.getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
-    const bool compensate_overlap_x = mesh.getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
     const bool retract_before_outer_wall = mesh.getSettingBoolean("travel_retract_before_outer_wall");
     const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
         || (layer_nr == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM && !mesh.getSettingBoolean("brim_outside_only"));
@@ -168,26 +166,9 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    if (compensate_overlap_0)
-                    {
-                        WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
-                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
-                if (compensate_overlap_x)
-                {
-                    WallOverlapComputation wall_overlap_computation(hole_inner_walls, wall_line_width_x);
-                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, &wall_overlap_computation);
-                }
-                else
-                {
-                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config);
-                }
+                gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
             }
             else
             {
@@ -203,27 +184,10 @@ void InsetOrderOptimizer::processHoleInsets()
                     gcode_layer.addTravel(dest);
                 }
                 std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
-                if (compensate_overlap_x)
-                {
-                    WallOverlapComputation wall_overlap_computation(hole_inner_walls, wall_line_width_x);
-                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, &wall_overlap_computation);
-                }
-                else
-                {
-                    gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config);
-                }
+                gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    if (compensate_overlap_0)
-                    {
-                        WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
-                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -233,16 +197,7 @@ void InsetOrderOptimizer::processHoleInsets()
             // just the outer wall, no level 1 insets
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            if (compensate_overlap_0)
-            {
-                WallOverlapComputation wall_overlap_computation(hole_outer_wall, wall_line_width_0);
-                gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-            }
-            else
-            {
-                WallOverlapComputation* wall_overlap_computation(nullptr);
-                gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-            }
+            gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
     }
@@ -250,11 +205,8 @@ void InsetOrderOptimizer::processHoleInsets()
 
 void InsetOrderOptimizer::processOuterWallInsets()
 {
-    const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t wall_0_wipe_dist = mesh.getSettingInMicrons("wall_0_wipe_dist");
-    const bool compensate_overlap_0 = mesh.getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
-    const bool compensate_overlap_x = mesh.getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
     const bool retract_before_outer_wall = mesh.getSettingBoolean("travel_retract_before_outer_wall");
     const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
                                     || (layer_nr == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
@@ -317,26 +269,9 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 {
                     Polygons part_outer_wall;
                     part_outer_wall.add(*inset_polys[0][0]);
-                    if (compensate_overlap_0)
-                    {
-                        WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
-                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
-                if (compensate_overlap_x)
-                {
-                    WallOverlapComputation wall_overlap_computation(part_inner_walls, wall_line_width_x);
-                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, &wall_overlap_computation);
-                }
-                else
-                {
-                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config);
-                }
+                gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
             }
             else
             {
@@ -352,29 +287,12 @@ void InsetOrderOptimizer::processOuterWallInsets()
                     const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
                 }
-                if (compensate_overlap_x)
-                {
-                    WallOverlapComputation wall_overlap_computation(part_inner_walls, wall_line_width_x);
-                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, &wall_overlap_computation);
-                }
-                else
-                {
-                    gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config);
-                }
+                gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
                     Polygons part_outer_wall;
                     part_outer_wall.add(*inset_polys[0][0]);
-                    if (compensate_overlap_0)
-                    {
-                        WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
-                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-                    }
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -387,16 +305,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             Polygons part_outer_wall;
             part_outer_wall.add(*inset_polys[0][0]);
-            if (compensate_overlap_0)
-            {
-                WallOverlapComputation wall_overlap_computation(part_outer_wall, wall_line_width_0);
-                gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-            }
-            else
-            {
-                WallOverlapComputation* wall_overlap_computation(nullptr);
-                gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
-            }
+            gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_type, z_seam_pos, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
     }
@@ -407,14 +316,59 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     added_something = false;
     const unsigned int num_insets = part.insets.size();
 
+    // if overlap compensation is enabled, gather all the level 0 and/or level X walls together
+    // and initialise the respective overlap computers
+    // NOTE: this code assumes that the overlap computers do not alter the order or number of the polys!
+    Polygons wall_0_polys;
+    if (mesh.getSettingBoolean("travel_compensate_overlapping_walls_0_enabled"))
+    {
+        wall_0_polys = part.insets[0];
+        wall_overlapper_0 = new WallOverlapComputation(wall_0_polys, mesh_config.inset0_config.getLineWidth());
+    }
+
+    Polygons wall_x_polys;
+    if (mesh.getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
+    {
+        for (unsigned int inset_level = 1; inset_level < num_insets; ++inset_level)
+        {
+            wall_x_polys.add(part.insets[inset_level]);
+        }
+        wall_overlapper_x = new WallOverlapComputation(wall_x_polys, mesh_config.insetX_config.getLineWidth());
+    }
+
     // create a vector of vectors containing all the inset polys
     inset_polys.clear();
-    for (unsigned int inset_level = 0; inset_level < num_insets; ++inset_level)
+
+    // if overlap compensation is enabled, use the polys that have been tweaked by the
+    // overlap computers, otherwise use the original, un-compensated, polys
+
+    inset_polys.emplace_back();
+    for (unsigned int poly_idx = 0; poly_idx < part.insets[0].size(); ++poly_idx)
+    {
+        if (wall_overlapper_0)
+        {
+            inset_polys[0].push_back(wall_0_polys[poly_idx]);
+        }
+        else
+        {
+            inset_polys[0].push_back(part.insets[0][poly_idx]);
+        }
+    }
+
+    unsigned int wall_x_polys_index = 0;
+    for (unsigned int inset_level = 1; inset_level < num_insets; ++inset_level)
     {
         inset_polys.emplace_back();
         for (unsigned int poly_idx = 0; poly_idx < part.insets[inset_level].size(); ++poly_idx)
         {
-            inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
+            if (wall_overlapper_x)
+            {
+                inset_polys[inset_level].push_back(wall_x_polys[wall_x_polys_index++]);
+            }
+            else
+            {
+                inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
+            }
         }
     }
 
@@ -444,17 +398,19 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         {
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            if (mesh.getSettingBoolean("travel_compensate_overlapping_walls_x_enabled"))
-            {
-                WallOverlapComputation wall_overlap_computation(remaining, mesh_config.insetX_config.getLineWidth());
-                gcode_layer.addPolygonsByOptimizer(remaining, mesh_config.insetX_config, &wall_overlap_computation);
-            }
-            else
-            {
-                gcode_layer.addPolygonsByOptimizer(remaining, mesh_config.insetX_config);
-            }
+            gcode_layer.addPolygonsByOptimizer(remaining, mesh_config.insetX_config, wall_overlapper_x);
             added_something = true;
         }
+    }
+    if (wall_overlapper_0)
+    {
+        delete wall_overlapper_0;
+        wall_overlapper_0 = nullptr;
+    }
+    if (wall_overlapper_x)
+    {
+        delete wall_overlapper_x;
+        wall_overlapper_x = nullptr;
     }
     return added_something;
 }

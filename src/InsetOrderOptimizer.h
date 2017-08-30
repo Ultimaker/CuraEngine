@@ -32,7 +32,9 @@ public:
     layer_nr(layer_nr),
     z_seam_type(mesh.getSettingAsZSeamType("z_seam_type")),
     z_seam_pos(z_seam_pos),
-    added_something(false)
+    added_something(false),
+    wall_overlapper_0(nullptr),
+    wall_overlapper_x(nullptr)
     {
     }
 private:
@@ -48,6 +50,8 @@ private:
     const EZSeamType z_seam_type;
     const Point z_seam_pos;
     bool added_something;
+    WallOverlapComputation* wall_overlapper_0;
+    WallOverlapComputation* wall_overlapper_x;
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
 
     /*!
