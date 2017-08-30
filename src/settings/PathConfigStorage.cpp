@@ -203,17 +203,20 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     }
 }
 
-void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer)
+void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer, bool only_smooth_wall_speeds)
 {
     inset0_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
     insetX_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
-    skin_config.smoothSpeed(                first_layer_config, layer_nr, max_speed_layer);
-    ironing_config.smoothSpeed(             first_layer_config, layer_nr, max_speed_layer);
-    perimeter_gap_config.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
-    for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+    if (!only_smooth_wall_speeds)
     {
-        //Infill speed (per combine part per mesh).
-        infill_config[idx].smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
+        skin_config.smoothSpeed(                first_layer_config, layer_nr, max_speed_layer);
+        ironing_config.smoothSpeed(             first_layer_config, layer_nr, max_speed_layer);
+        perimeter_gap_config.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
+        for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+        {
+            //Infill speed (per combine part per mesh).
+            infill_config[idx].smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
+        }
     }
 }
 
@@ -287,7 +290,8 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
                     , mesh.getSettingInMillimetersPerSecond("jerk_print_layer_0")
             };
 
-            mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            const bool only_smooth_wall_speeds = mesh.getSettingBoolean("speed_print_layer_0_only_for_walls");
+            mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count, only_smooth_wall_speeds);
             mesh_configs[mesh_idx].roofing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }

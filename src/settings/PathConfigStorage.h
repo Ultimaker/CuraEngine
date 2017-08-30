@@ -44,7 +44,7 @@ public:
         GCodePathConfig perimeter_gap_config;
 
         MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, const std::vector<double>& line_width_factor_per_extruder);
-        void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
+        void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer, bool only_smooth_wall_speeds);
     };
 
     GCodePathConfig raft_base_config;
