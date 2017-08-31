@@ -90,11 +90,10 @@ void AABB::expand(int dist)
 Polygon AABB::toPolygon() const
 {
     Polygon ret;
-    // TODO: verify that this is the correct order (CW vs CCW)
     ret.add(min);
-    ret.add(Point(min.X, max.Y));
-    ret.add(max);
     ret.add(Point(max.X, min.Y));
+    ret.add(max);
+    ret.add(Point(min.X, max.Y));
     return ret;
 }
 

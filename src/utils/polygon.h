@@ -43,6 +43,11 @@ const static int clipper_init = (0);
 
 class ConstPolygonPointer;
 
+/*!
+ * Outer polygons should be counter-clockwise,
+ * inner hole polygons should be clockwise.
+ * (When negative X is to the left and negative Y is downward.)
+ */
 class ConstPolygonRef
 {
     friend class Polygons;

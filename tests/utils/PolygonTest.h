@@ -22,6 +22,7 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(polygonOffsetBugTest);
     CPPUNIT_TEST(isOutsideTest);
     CPPUNIT_TEST(isInsideTest);
+    CPPUNIT_TEST(clockwiseTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -46,6 +47,7 @@ public:
     void polygonOffsetBugTest();
     void isOutsideTest();
     void isInsideTest();
+    void clockwiseTest();
 
 
 private:

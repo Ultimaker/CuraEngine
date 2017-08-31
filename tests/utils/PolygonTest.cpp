@@ -112,7 +112,55 @@ void PolygonTest::isInsideTest()
 
 }
 
+void PolygonTest::clockwiseTest()
+{
+    Polygons outers;
+    PolygonRef outer = outers.newPoly();
+    outer.emplace_back(-100, -100);
+    outer.emplace_back(-100, 100);
+    outer.emplace_back(100, 100);
+    outer.emplace_back(100, -100);
 
+    Polygons inners;
+    PolygonRef inner = inners.newPoly();
+    inner.emplace_back(-50, -50);
+    inner.emplace_back(-50, 50);
+    inner.emplace_back(50, 50);
+    inner.emplace_back(50, -50);
+
+    Polygons diff = outers.difference(inners);
+    std::vector<PolygonsPart> parts = diff.splitIntoParts();
+
+    CPPUNIT_ASSERT_MESSAGE("difference between two polygons is not one PolygonsPart!", parts.size() == 1);
+
+    PolygonsPart part = parts[0];
+    {
+        PolygonRef outer_after = part.outerPolygon();
+        unsigned int start_idx;
+        for (start_idx = 0; start_idx < outer_after.size(); start_idx++)
+        {
+            if (outer_after[start_idx] == Point(-100, -100))
+            {
+                break;
+            }
+        }
+        CPPUNIT_ASSERT_MESSAGE("Input vertex cannot be found in polygons difference!", start_idx < outer_after.size());
+        CPPUNIT_ASSERT_MESSAGE("Outer polygon is not counter-clockwise!", outer_after[(start_idx + 1) % outer_after.size()] == Point(100, -100));
+    }
+    {
+        PolygonRef inner_after = part[1];
+        unsigned int start_idx;
+        for (start_idx = 0; start_idx < inner_after.size(); start_idx++)
+        {
+            if (inner_after[start_idx] == Point(-50, -50))
+            {
+                break;
+            }
+        }
+        CPPUNIT_ASSERT_MESSAGE("Input vertex cannot be found in polygons difference!", start_idx < inner_after.size());
+        CPPUNIT_ASSERT_MESSAGE("Hole polygon is not clockwise!", inner_after[(start_idx + 1) % inner_after.size()] == Point(-50, 50));
+    }
+}
 
 
 }
