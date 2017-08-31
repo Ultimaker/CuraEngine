@@ -2044,6 +2044,11 @@ void FffGcodeWriter::finalize()
     {
         gcode.writeMaxZFeedrate(getSettingInMillimetersPerSecond("machine_max_feedrate_z"));
     }
+
+    // set extrusion mode back to "normal"
+    const bool set_relative_extrusion_mode = (gcode.getFlavor() == EGCodeFlavor::REPRAP);
+    gcode.writeExtrusionMode(set_relative_extrusion_mode);
+
     gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
     {
