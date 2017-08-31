@@ -1370,7 +1370,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         }
                     }
                     const EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, flow_adjuster, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, flow_adjuster, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, 1.0, retract_before_outer_wall);
                     if (flow_adjuster)
                     {
                         delete flow_adjuster;
