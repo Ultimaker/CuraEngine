@@ -255,12 +255,6 @@ public:
     void writeExtrusionMode(bool set_relative_extrusion_mode);
 
     /*!
-     * Write an M82 (absolute) or M83 (relative) depending on what extrusion mode is defined in the profile
-     */
-    void writeExtrusionModeRequiredByProfile();
-
-
-    /*!
      * Write a comment saying what (estimated) time has passed up to this point
      * 
      * \param time The time passed up till this point
