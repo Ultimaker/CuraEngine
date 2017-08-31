@@ -15,7 +15,7 @@ SpaceFillingTree::SpaceFillingTree(
     root = new Node(nullptr
     , root_depth
     , middle
-    , Direction::DIRECTION_COUNT // TODO: what should be the direction?
+    , Direction::DIRECTION_COUNT // The root has no parent to child direction, so DIRECTION_COUNT is used as exception value
     , depth
     );
 
