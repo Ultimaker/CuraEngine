@@ -116,13 +116,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         [this, total_layers](LayerPlan* gcode_layer)
         {
             Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
-            layer_plan_buffer.push(*gcode_layer);
-            LayerPlan* to_be_written = layer_plan_buffer.processBuffer();
-            if (to_be_written)
-            {
-                to_be_written->writeGCode(gcode);
-                delete to_be_written;
-            }
+            layer_plan_buffer.handle(*gcode_layer, gcode);
         };
     const unsigned int max_task_count = OMP_MAX_ACTIVE_LAYERS_PROCESSED;
     GcodeLayerThreader<LayerPlan> threader(
@@ -1232,7 +1226,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0]);
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
         }
@@ -1639,7 +1633,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         }
 
         constexpr float flow = 1.0;
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::CUBICSUBDIV)
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow, near_start_location);
         }

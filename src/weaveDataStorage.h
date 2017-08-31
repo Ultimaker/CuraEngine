@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef WEAVE_DATA_STORAGE_H
 #define WEAVE_DATA_STORAGE_H
 

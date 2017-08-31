@@ -1,11 +1,10 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#include <execinfo.h>
 #include <sys/resource.h>
 #endif
 #include <stddef.h>
@@ -344,7 +343,7 @@ int main(int argc, char **argv)
     std::cerr << std::boolalpha;
     logAlways("\n");
     logAlways("Cura_SteamEngine version %s\n", VERSION);
-    logAlways("Copyright (C) 2014 David Braam\n");
+    logAlways("Copyright (C) 2017 Ultimaker\n");
     logAlways("\n");
     logAlways("This program is free software: you can redistribute it and/or modify\n");
     logAlways("it under the terms of the GNU Affero General Public License as published by\n");
