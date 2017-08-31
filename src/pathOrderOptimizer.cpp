@@ -93,69 +93,47 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
         // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
         int64_t dist_score = (config.type == EZSeamType::SHARPEST_CORNER)? 100 : vSize2(p1 - prev_point);
         const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
+        int64_t corner_shift;
         if (config.type == EZSeamType::SHORTEST)
         {
-            // the more a corner satisfies our criteria the closer it appears to be
-            const int64_t corner_shift = 10000 * 10000; // shift 10mm for a very acute corner
-            switch (config.corner_pref)
-            {
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                    if (corner_angle > 1)
-                    {
-                        // p1 lies on a concave curve so reduce the distance to favour it
-                        // the more concave the curve, the more we reduce the distance
-                        dist_score -= (corner_angle - 1) * corner_shift;
-                    }
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                    if (corner_angle < 1)
-                    {
-                        // p1 lies on a convex curve so reduce the distance to favour it
-                        // the more convex the curve, the more we reduce the distance
-                        dist_score -= (1 - corner_angle) * corner_shift;
-                    }
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                    // the more curved the region, the more we reduce the distance
-                    dist_score -= fabs(corner_angle - 1) * corner_shift;
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                default:
-                    // do nothing
-                    break;
-            }
+            // the more a corner satisfies our criteria, the closer it appears to be
+            // shift 10mm for a very acute corner
+            corner_shift = 10000 * 10000;
         }
         else
         {
-            // the value of scaling_divisor controls how much influence corner_angle has on dist
-            const float scaling_divisor = 50;
-            switch (config.corner_pref)
-            {
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                    if (corner_angle > 1)
-                    {
-                        // p1 lies on a concave curve so reduce the distance to favour it
-                        // the more concave the curve, the more we reduce the distance
-                        dist_score -= (corner_angle - 1) * dist_score / scaling_divisor;
-                    }
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                    if (corner_angle < 1)
-                    {
-                        // p1 lies on a convex curve so reduce the distance to favour it
-                        // the more convex the curve, the more we reduce the distance
-                        dist_score -= (1 - corner_angle) * dist_score / scaling_divisor;
-                    }
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                    // the more curved the region, the more we reduce the distance
-                    dist_score -= fabs(corner_angle - 1) * dist_score / scaling_divisor;
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                default:
-                    // do nothing
-                    break;
-            }
+            // the larger the distance from prev_point to p1, the more a corner will "attract" the seam
+            // so the user has some control over where the seam will lie.
+
+            // the divisor here may need adjusting to obtain the best results (TBD)
+            corner_shift = dist_score / 10;
+        }
+        switch (config.corner_pref)
+        {
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                if (corner_angle > 1)
+                {
+                    // p1 lies on a concave curve so reduce the distance to favour it
+                    // the more concave the curve, the more we reduce the distance
+                    dist_score -= (corner_angle - 1) * corner_shift;
+                }
+                break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                if (corner_angle < 1)
+                {
+                    // p1 lies on a convex curve so reduce the distance to favour it
+                    // the more convex the curve, the more we reduce the distance
+                    dist_score -= (1 - corner_angle) * corner_shift;
+                }
+                break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                // the more curved the region, the more we reduce the distance
+                dist_score -= fabs(corner_angle - 1) * corner_shift;
+                break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+            default:
+                // do nothing
+                break;
         }
         if (dist_score < best_point_score)
         {
