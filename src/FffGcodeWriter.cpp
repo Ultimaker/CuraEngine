@@ -430,6 +430,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         }
     }
 
+    gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
