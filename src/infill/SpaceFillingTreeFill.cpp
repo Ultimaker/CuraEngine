@@ -23,7 +23,7 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     {
         std::vector<const SpaceFillingTree::Node*> nodes;
         generateTreePathAndDepths(nodes);
-        offsetTreePathAlternating(nodes, shift, line_distance - shift, pocket_size, infill_poly);
+        offsetTreePathAlternating(nodes, shift, pocket_size, infill_poly);
     }
     else
     {
@@ -199,68 +199,10 @@ void SpaceFillingTreeFill::generateTreePathAndDepths(std::vector<const SpaceFill
 }
 
 
-void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const
 {
-    constexpr unsigned int algorithm_alternative_beveling = 1;
-    std::function<coord_t (bool is_point_case, const SpaceFillingTree::Node* node, coord_t bevel)> getBevel;
-    switch(algorithm_alternative_beveling)
-    {
-        case 0:
-        default:
-            getBevel = [] (bool, const SpaceFillingTree::Node*, coord_t bevel) { return bevel; };
-            break;
-        case 1:
-            // bevel half the junctions
-            getBevel = [] (bool is_point_case, const SpaceFillingTree::Node* node, coord_t bevel)
-            {
-                if (is_point_case)
-                {
-                    if (node->parent && node->parent_to_here_direction == node->parent->parent_to_here_direction)
-                    {
-                        return bevel;
-                    }
-                    return coord_t(0);
-                }
-                else
-                {
-                    return (node->distance_depth % 2 == 1)? bevel : 0;
-                }
-            };
-            break;
-    }
-    constexpr unsigned int algorithm_alternative_alternating = 0;
-    std::function<bool (unsigned int, unsigned int)> is_odd;
-    switch(algorithm_alternative_alternating)
-    {
-        case 0:
-        default:
-            is_odd = [](unsigned int, unsigned int) { return false; };
-            break;
-        case 1:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return (a_depth + b_depth) % 2 == 1; };
-            break;
-        case 2:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth) / 2 ) % 2 == 1; };
-            break;
-        case 3:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth + 1) / 2 ) % 2 == 1; };
-            break;
-        case 4:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return std::min(a_depth, b_depth) % 2 == 1; };
-            break;
-        case 5:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((std::min(a_depth, b_depth) + 1) / 2) % 2 == 1; };
-            break;
-        case 6:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth) / 4) % 2 == 1; };
-            break;
-        case 7:
-            is_odd = [](unsigned int a_depth, unsigned int b_depth) { return ((a_depth + b_depth) / 7 ) % 2 == 1; };
-            break;
-    }
-    constexpr unsigned int algorithm_alternative_point_case = 0;
-    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * 1.4142;
-    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * 1.4142;
+    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * std::sqrt(2);
+    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * std::sqrt(2);
     for (unsigned int point_idx = 0; point_idx < nodes.size(); point_idx++)
     {
         const SpaceFillingTree::Node* a_node = nodes[point_idx];
@@ -271,14 +213,7 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
         const Point b = b_node->middle;
         const Point c = c_node->middle;
 
-        unsigned int a_depth = nodes[point_idx]->distance_depth;
-        unsigned int b_depth = nodes[(point_idx + 1) % nodes.size()]->distance_depth;
-        unsigned int c_depth = nodes[(point_idx + 2) % nodes.size()]->distance_depth;
-
-        bool ab_odd = is_odd(a_depth, b_depth);
-        bool bc_odd = is_odd(b_depth, c_depth);
-
-        coord_t bc_offset_length = (bc_odd)? alternate_offset : offset;
+        coord_t bc_offset_length = offset;
 
         Point bc = c - b;
         Point bc_T = turn90CCW(bc);
@@ -286,30 +221,13 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
 
         if (a == c)
         { // pointy case
-            coord_t point_offset_length;
-            switch(algorithm_alternative_point_case)
-            {
-                case 0:
-                case 1:
-                default:
-                    point_offset_length = (bc_odd)? alternate_offset : offset;
-                    break;
-                case 2:
-                    point_offset_length = (bc_odd)? offset : alternate_offset;
-                    break;
-                case 3:
-                    point_offset_length = std::min(offset, alternate_offset);
-                    break;
-                case 4:
-                    point_offset_length = std::max(offset, alternate_offset);
-                    break;
-            }
+            coord_t point_offset_length = offset;
             const Point left_point = b - bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
             const Point pointy_point = b - normal(bc, point_offset_length);
             const Point right_point = b + bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
 
             infill.add(left_point);
-            const coord_t point_bevel_here = getBevel(true, b_node, point_bevel);
+            const coord_t point_bevel_here = (b_node->parent && b_node->parent_to_here_direction == b_node->parent->parent_to_here_direction)? point_bevel : 0;
             if (point_bevel_here)
             {
                 infill.add(pointy_point - normal(pointy_point - left_point, point_bevel_here));
@@ -323,11 +241,11 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
         }
         else
         {
-            coord_t ab_offset_length = (ab_odd)? alternate_offset : offset;
+            coord_t ab_offset_length = offset;
             Point ab = b - a;
             Point ab_T = turn90CCW(ab);
             const Point normal_corner = b + normal(ab_T, ab_offset_length) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
-            const coord_t corner_bevel_here = getBevel(false, a_node, corner_bevel);
+            const coord_t corner_bevel_here = (a_node->distance_depth % 2 == 1)? corner_bevel : 0;
             if (corner_bevel_here)
             {
                 infill.add(normal_corner - normal(ab, corner_bevel_here));

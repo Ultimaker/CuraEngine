@@ -122,16 +122,14 @@ private:
      * Generate the line in between the tree path and the circumscribed
      * square of each stage in the fractal.
      * 
-     * The offset is alternated along with the depth of each segment.
-     * Half of the segments is offsetted using the \p alternate_offset.
+     * The pockets are applied on half the junctions.
      * 
      * \param nodes The nodes of the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces for half of the segments.
-     * \param alternate_offset The offset from the cross fractal on straight pieces for the other half of the segments.
      * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t alternate_offset, coord_t pocket_size, PolygonRef infill) const;
+    void offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const;
 };
 } // namespace cura
 
