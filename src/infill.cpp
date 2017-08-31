@@ -194,6 +194,8 @@ void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_
         outline_offset += -infill_line_width / 2;
     }
     coord_t shift = line_distance / 2;
+    bool alternate_offset = false;
+    coord_t pocket_size = 0;
     if (pattern == EFillMethod::CROSS_3D)
     {
         coord_t period = line_distance * 2;
@@ -201,10 +203,11 @@ void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_
         shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
         shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
         shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
+
+        alternate_offset = true; // TODO: make this a user setting or decide once and for all which Cross 3D pattern is best.
+        pocket_size = line_distance; // TODO: make user setting
     }
     Polygons outline = in_outline.offset(outline_offset);
-    bool alternate_offset = true; // TODO: make this a user setting or decide once and for all which Cross 3D pattern is best.
-    coord_t pocket_size = line_distance; // TODO: make user setting
     mesh.cross_fill_pattern->generate(outline, shift, zig_zaggify, fill_angle, alternate_offset, pocket_size, result_polygons, result_lines);
 }
 
