@@ -13,7 +13,7 @@ SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_a
 {
 }
 
-void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, coord_t pocket_size, Polygons& result_polygons, Polygons& result_lines) const
+void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, bool use_odd_in_junctions, bool use_odd_out_junctions, coord_t pocket_size, Polygons& result_polygons, Polygons& result_lines) const
 {
     Point3 model_middle = model_aabb.getMiddle();
     Point3Matrix transformation = LinearAlg2D::rotateAround(Point(model_middle.x, model_middle.y), fill_angle + 45);
@@ -23,7 +23,7 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     {
         std::vector<const SpaceFillingTree::Node*> nodes;
         generateTreePathAndDepths(nodes);
-        offsetTreePathAlternating(nodes, shift, pocket_size, infill_poly);
+        offsetTreePathAlternating(nodes, shift, pocket_size, use_odd_in_junctions, use_odd_out_junctions, infill_poly);
     }
     else
     {
@@ -199,10 +199,20 @@ void SpaceFillingTreeFill::generateTreePathAndDepths(std::vector<const SpaceFill
 }
 
 
-void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, bool use_odd_in_junctions, bool use_odd_out_junctions, PolygonRef infill) const
 {
-    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * std::sqrt(2);
-    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * std::sqrt(2);
+    coord_t corner_bevel_even = std::max(coord_t(0), pocket_size / 2 - offset) * std::sqrt(2);
+    coord_t corner_bevel_odd = 0;
+    if (use_odd_in_junctions)
+    {
+        std::swap(corner_bevel_even, corner_bevel_odd);
+    }
+    coord_t point_bevel_even = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * std::sqrt(2);
+    coord_t point_bevel_odd = 0;
+    if (use_odd_out_junctions)
+    {
+        std::swap(point_bevel_even, point_bevel_odd);
+    }
     for (unsigned int point_idx = 0; point_idx < nodes.size(); point_idx++)
     {
         const SpaceFillingTree::Node* a_node = nodes[point_idx];
@@ -227,7 +237,7 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
             const Point right_point = b + bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
 
             infill.add(left_point);
-            const coord_t point_bevel_here = (b_node->parent && b_node->parent_to_here_direction == b_node->parent->parent_to_here_direction)? point_bevel : 0;
+            const coord_t point_bevel_here = (b_node->parent && b_node->parent_to_here_direction == b_node->parent->parent_to_here_direction)? point_bevel_even : point_bevel_odd;
             if (point_bevel_here)
             {
                 infill.add(pointy_point - normal(pointy_point - left_point, point_bevel_here));
@@ -245,7 +255,7 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
             Point ab = b - a;
             Point ab_T = turn90CCW(ab);
             const Point normal_corner = b + normal(ab_T, ab_offset_length) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
-            const coord_t corner_bevel_here = (a_node->distance_depth % 2 == 1)? corner_bevel : 0;
+            const coord_t corner_bevel_here = (a_node->distance_depth % 2 == 1)? corner_bevel_even : corner_bevel_odd;
             if (corner_bevel_here)
             {
                 infill.add(normal_corner - normal(ab, corner_bevel_here));

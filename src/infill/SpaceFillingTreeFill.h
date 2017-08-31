@@ -65,12 +65,14 @@ public:
      * \param shift The shift of the infill pattern from the cross fractal toward the square region
      * \param zig_zaggify Whether to connect the cross lines via the \p outlines
      * \param fill_angle The direction of the main crosses (modulo 90degrees)
-     * \param alternate Whether to alternate the offset for all odd segments
+     * \param alternate Whether to apply the pockets only to half of the junctions.
+     * \param use_odd_in_junctions Whether to apply pockets on the odd vs even junctions which are formed at low \p shift values
+     * \param use_odd_out_junctions Whether to apply pockets on the odd vs even junctions which are formed at high \p shift values
      * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] result_polygons The output when \p zig_zaggify
      * \param[out] result_lines The output when not \p zig_zaggify
      */
-    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, coord_t pocket_size, Polygons& result_polygons, Polygons& result_lines) const;
+    void generate(const Polygons& outlines, coord_t shift, bool zig_zaggify, double fill_angle, bool alternate, bool use_odd_in_junctions, bool use_odd_out_junctions, coord_t pocket_size, Polygons& result_polygons, Polygons& result_lines) const;
 private:
     AABB3D model_aabb; //!< The AABB of the boundary to cover
     coord_t line_distance; //!< The width of the crosses and of the straight part of the anti-crosses
@@ -127,9 +129,11 @@ private:
      * \param nodes The nodes of the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces for half of the segments.
      * \param pocket_size The size of the pockets to leave open at junctions.
+     * \param use_odd_in_junctions Whether to apply pockets on the odd vs even junctions which are formed at low \p shift values
+     * \param use_odd_out_junctions Whether to apply pockets on the odd vs even junctions which are formed at high \p shift values
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const;
+    void offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, bool use_odd_in_junctions, bool use_odd_out_junctions, PolygonRef infill) const;
 };
 } // namespace cura
 
