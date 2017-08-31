@@ -248,9 +248,17 @@ public:
     void writeTypeComment(PrintFeatureType type);
 
     /*!
-     * Write an M82 (absolute) or M83 (relative) depending on what extrusion mode is in use
+     * Write an M82 (absolute) or M83 (relative)
+     *
+     * \param set_relative_extrusion_mode If true, write an M83, otherwise write an M82
      */
-    void writeExtrusionMode();
+    void writeExtrusionMode(bool set_relative_extrusion_mode);
+
+    /*!
+     * Write an M82 (absolute) or M83 (relative) depending on what extrusion mode is defined in the profile
+     */
+    void writeExtrusionModeRequiredByProfile();
+
 
     /*!
      * Write a comment saying what (estimated) time has passed up to this point

@@ -431,6 +431,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         }
     }
 
+    gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
@@ -454,7 +455,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
     }
-    gcode.writeExtrusionMode();
+    gcode.writeExtrusionModeRequiredByProfile();
 }
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
@@ -2045,6 +2046,11 @@ void FffGcodeWriter::finalize()
     {
         gcode.writeMaxZFeedrate(getSettingInMillimetersPerSecond("machine_max_feedrate_z"));
     }
+
+    // set extrusion mode back to "normal"
+    const bool set_relative_extrusion_mode = (gcode.getFlavor() == EGCodeFlavor::REPRAP);
+    gcode.writeExtrusionMode(set_relative_extrusion_mode);
+
     gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
     {
