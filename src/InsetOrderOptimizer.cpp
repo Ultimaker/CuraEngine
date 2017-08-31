@@ -76,7 +76,7 @@ void InsetOrderOptimizer::processHoleInsets()
     }
 
     // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
-    PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), &z_seam_config);
+    PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
@@ -208,7 +208,7 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
                 gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
             }
@@ -229,7 +229,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -239,7 +239,7 @@ void InsetOrderOptimizer::processHoleInsets()
             // just the outer wall, no level 1 insets
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+            gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
     }
@@ -311,7 +311,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 {
                     Polygons part_outer_wall;
                     part_outer_wall.add(*inset_polys[0][0]);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
                 gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
             }
@@ -336,7 +336,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 {
                     Polygons part_outer_wall;
                     part_outer_wall.add(*inset_polys[0][0]);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -349,7 +349,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             Polygons part_outer_wall;
             part_outer_wall.add(*inset_polys[0][0]);
-            gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, &z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+            gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             added_something = true;
         }
     }

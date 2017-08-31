@@ -55,7 +55,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             {
                 added_something = true;
                 fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, nullptr, 0, false, flow_ratio);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
                 if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
                 {
                     gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
