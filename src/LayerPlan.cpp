@@ -151,16 +151,20 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
             if (mesh.getSettingBoolean("infill_mesh")) {
                 continue;
             }
+            // comb to close to inside of the outer wall
+            layer.getSecondOrInnermostWalls(comb_boundary);
             if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
             {
+                // subtract "no go" skin areas
+                Polygons skin_part_outlines;
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    comb_boundary.add(part.infill_area);
+                    for (const SkinPart skin_part: part.skin_parts)
+                    {
+                        skin_part_outlines.add(skin_part.outline.outerPolygon());
+                    }
                 }
-            }
-            else
-            {
-                layer.getSecondOrInnermostWalls(comb_boundary);
+                comb_boundary = comb_boundary.difference(skin_part_outlines);
             }
         }
         return comb_boundary;
