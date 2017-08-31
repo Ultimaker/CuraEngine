@@ -8,12 +8,17 @@
 
 namespace cura {
 
+/*!
+ * Helper class that encapsulates the various criteria that define the location of the z-seam.
+ * Instances of this are passed to the PathOrderOptimizer to specify where the z-seam is to be located.
+ */
 class ZSeamConfig
 {
 public:
     EZSeamType type;
     Point pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
     EZSeamCornerPrefType corner_pref;
+    // default constructor
     ZSeamConfig()
     : type(EZSeamType::SHORTEST)
     , pos(Point(0, 0))
@@ -38,12 +43,12 @@ class PathOrderOptimizer
 {
 public:
     Point startPoint; //!< A location near the prefered start location
-    const ZSeamConfig* config;
+    const ZSeamConfig& config;
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
 
-    PathOrderOptimizer(Point startPoint, const ZSeamConfig* config = nullptr)
+    PathOrderOptimizer(Point startPoint, const ZSeamConfig& config = ZSeamConfig())
     : startPoint(startPoint)
     , config(config)
     {
