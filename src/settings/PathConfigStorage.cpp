@@ -203,10 +203,10 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     }
 }
 
-void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer)
+void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(const GCodePathConfig::SpeedDerivatives& first_layer_config, const GCodePathConfig::SpeedDerivatives& first_layer_wall_config, int layer_nr, int max_speed_layer)
 {
-    inset0_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
-    insetX_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
+    inset0_config.smoothSpeed(              first_layer_wall_config, layer_nr, max_speed_layer);
+    insetX_config.smoothSpeed(              first_layer_wall_config, layer_nr, max_speed_layer);
     skin_config.smoothSpeed(                first_layer_config, layer_nr, max_speed_layer);
     ironing_config.smoothSpeed(             first_layer_config, layer_nr, max_speed_layer);
     perimeter_gap_config.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
@@ -287,7 +287,13 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
                     , mesh.getSettingInMillimetersPerSecond("jerk_print_layer_0")
             };
 
-            mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
+            GCodePathConfig::SpeedDerivatives initial_layer_wall_speed_config{
+                    mesh.getSettingInMillimetersPerSecond("speed_walls_layer_0")
+                    , mesh.getSettingInMillimetersPerSecond("acceleration_walls_layer_0")
+                    , mesh.getSettingInMillimetersPerSecond("jerk_walls_layer_0")
+            };
+
+            mesh_configs[mesh_idx].smoothAllSpeeds(initial_layer_speed_config, initial_layer_wall_speed_config, layer_nr, initial_speedup_layer_count);
             mesh_configs[mesh_idx].roofing_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layer_count);
         }
     }
