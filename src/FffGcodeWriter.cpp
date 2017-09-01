@@ -991,8 +991,8 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         polygons.add(layer->parts[partNr].outline);
     }
 
-    EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
-    gcode_layer.addPolygonsByOptimizer(polygons, mesh_config.inset0_config, nullptr, z_seam_type, mesh.getZSeamHint(), mesh.getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
+    ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
+    gcode_layer.addPolygonsByOptimizer(polygons, mesh_config.inset0_config, nullptr, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
@@ -1039,9 +1039,9 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
 
-    EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
+    ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
     Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
-    PathOrderOptimizer part_order_optimizer(layer_start_position, mesh.getZSeamHint(), z_seam_type);
+    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_config);
     for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
     {
         const SliceLayerPart& part = layer.parts[part_idx];
@@ -1296,7 +1296,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
                 WallOverlapComputation* wall_overlap_computation(nullptr);
                 int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, wall_0_wipe_dist);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
             }
         }
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
@@ -1338,17 +1338,17 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         added_something = true;
                         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                         gcode_layer.setIsInside(true); // going to print stuff inside print object
-                        const EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
+                        ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), z_seam_pos, mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                         }
                         else
                         {
                             Polygons outer_wall = part.insets[0];
                             WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                         }
                     }
                 }
@@ -1460,7 +1460,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                             && extruder_nr == wall_0_extruder_nr;
 
     Point z_seam_pos(0, 0); // not used
-    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_pos, EZSeamType::SHORTEST);
+    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
         const PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;

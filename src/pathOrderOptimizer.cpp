@@ -19,32 +19,20 @@ void PathOrderOptimizer::optimize()
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
     {
         const ConstPolygonRef poly = *polygons[poly_idx];
-        switch (type)
+        switch (config.type)
         {
             case EZSeamType::USER_SPECIFIED:
-                polyStart.push_back(getClosestPointInPolygon(z_seam_pos, poly_idx));
+                polyStart.push_back(getClosestPointInPolygon(config.pos, poly_idx));
                 break;
             case EZSeamType::RANDOM:
                 polyStart.push_back(getRandomPointInPolygon(poly_idx));
                 break;
+            case EZSeamType::SHARPEST_CORNER:
+            case EZSeamType::SHORTEST:
             default:
-            {
-                int best_points_idx = -1;
-                float bestDist = std::numeric_limits<float>::infinity();
-                for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
-                {
-                    float dist = vSize2f(poly[point_idx] - startPoint);
-                    if (dist < bestDist)
-                    {
-                        best_points_idx = point_idx;
-                        bestDist = dist;
-                    }
-                }
-                polyStart.push_back(best_points_idx);
+                polyStart.push_back(getClosestPointInPolygon(startPoint, poly_idx));
                 break;
-            }
         }
-        //picked.push_back(false); /// initialize all picked values as false
         assert(poly.size() != 2);
     }
 
@@ -89,31 +77,7 @@ void PathOrderOptimizer::optimize()
             logError("Failed to find next closest polygon.\n");
         }
     }
-
-    if (type == EZSeamType::SHORTEST)
-    {
-        prev_point = startPoint;
-        for (unsigned int order_idx = 0; order_idx < polyOrder.size(); order_idx++) /// decide final starting points in each polygon
-        {
-            int poly_idx = polyOrder[order_idx];
-            int point_idx = getPolyStart(prev_point, poly_idx);
-            polyStart[poly_idx] = point_idx;
-            prev_point = (*polygons[poly_idx])[point_idx];
-        }
-    }
 }
-
-int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
-{
-    switch (type)
-    {
-        case EZSeamType::USER_SPECIFIED:    return getClosestPointInPolygon(z_seam_pos, poly_idx);
-        case EZSeamType::RANDOM:            return getRandomPointInPolygon(poly_idx);
-        case EZSeamType::SHORTEST:          return getClosestPointInPolygon(prev_point, poly_idx);
-        default:                            return getClosestPointInPolygon(prev_point, poly_idx);
-    }
-}
-
 
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
@@ -126,13 +90,55 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     {
         const Point& p1 = poly[point_idx];
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
-        int64_t dist = vSize2(p1 - prev_point);
-        float is_on_inside_corner_score = -LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI * 5000 * 5000; // prefer inside corners
-        // this score is in the order of 5 mm
-        if (dist + is_on_inside_corner_score < best_point_score)
+        // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
+        int64_t dist_score = (config.type == EZSeamType::SHARPEST_CORNER)? 100 : vSize2(p1 - prev_point);
+        const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
+        int64_t corner_shift;
+        if (config.type == EZSeamType::SHORTEST)
+        {
+            // the more a corner satisfies our criteria, the closer it appears to be
+            // shift 10mm for a very acute corner
+            corner_shift = 10000 * 10000;
+        }
+        else
+        {
+            // the larger the distance from prev_point to p1, the more a corner will "attract" the seam
+            // so the user has some control over where the seam will lie.
+
+            // the divisor here may need adjusting to obtain the best results (TBD)
+            corner_shift = dist_score / 10;
+        }
+        switch (config.corner_pref)
+        {
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                if (corner_angle > 1)
+                {
+                    // p1 lies on a concave curve so reduce the distance to favour it
+                    // the more concave the curve, the more we reduce the distance
+                    dist_score -= (corner_angle - 1) * corner_shift;
+                }
+                break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                if (corner_angle < 1)
+                {
+                    // p1 lies on a convex curve so reduce the distance to favour it
+                    // the more convex the curve, the more we reduce the distance
+                    dist_score -= (1 - corner_angle) * corner_shift;
+                }
+                break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                // the more curved the region, the more we reduce the distance
+                dist_score -= fabs(corner_angle - 1) * corner_shift;
+                break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+            default:
+                // do nothing
+                break;
+        }
+        if (dist_score < best_point_score)
         {
             best_point_idx = point_idx;
-            best_point_score = dist + is_on_inside_corner_score;
+            best_point_score = dist_score;
         }
         p0 = p1;
     }

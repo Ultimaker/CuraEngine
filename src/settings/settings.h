@@ -145,7 +145,16 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    USER_SPECIFIED
+    USER_SPECIFIED,
+    SHARPEST_CORNER
+};
+
+enum class EZSeamCornerPrefType
+{
+    Z_SEAM_CORNER_PREF_NONE,
+    Z_SEAM_CORNER_PREF_INNER,
+    Z_SEAM_CORNER_PREF_OUTER,
+    Z_SEAM_CORNER_PREF_ANY
 };
 
 enum class ESurfaceMode
@@ -261,6 +270,7 @@ public:
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key) const;
     ESupportType getSettingAsSupportType(std::string key) const;
     EZSeamType getSettingAsZSeamType(std::string key) const;
+    EZSeamCornerPrefType getSettingAsZSeamCornerPrefType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key) const;
