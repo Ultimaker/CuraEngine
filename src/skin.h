@@ -154,6 +154,8 @@ protected:
 
     coord_t top_reference_wall_expansion; //!< The horizontal expansion to apply to the top reference wall in order to shrink the top skin
     coord_t bottom_reference_wall_expansion; //!< The horizontal expansion to apply to the bottom reference wall in order to shrink the bottom skin
+    coord_t top_skin_expand_distance; //!< The distance by which the top skins should be larger than the original top skins.
+    coord_t bottom_skin_expand_distance; //!< The distance by which the bottom skins should be larger than the original bottom skins.
     const int top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
     const int bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:

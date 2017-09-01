@@ -63,6 +63,8 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, const SliceDa
 , process_infill(process_infill)
 , top_reference_wall_expansion(mesh.getSettingInMicrons("top_skin_preshrink"))
 , bottom_reference_wall_expansion(mesh.getSettingInMicrons("bottom_skin_preshrink"))
+, top_skin_expand_distance(mesh.getSettingInMicrons("top_skin_expand_distance"))
+, bottom_skin_expand_distance(mesh.getSettingInMicrons("bottom_skin_expand_distance"))
 , top_reference_wall_idx(getReferenceWallIdx(top_reference_wall_expansion))
 , bottom_reference_wall_idx(getReferenceWallIdx(bottom_reference_wall_expansion))
 {
@@ -273,28 +275,36 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int
  */
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
-    coord_t expand_skins_expand_distance = mesh.getSettingInMicrons("expand_skins_expand_distance");
-    if (expand_skins_expand_distance <= 0)
+    coord_t top_outset = top_skin_expand_distance;
+    coord_t bottom_outset = bottom_skin_expand_distance;
+
+    coord_t top_min_width = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
+    coord_t bottom_min_width = top_min_width;
+
+    // compensate for the pre-shrink applied because of the Skin Removal Width.
+    // The skin removal width is satisfied by applying a close operation.
+    // The inset of that close is applied in calculateTopSkin.
+    // The outset of the clase operation is applied at the same time as the skin expansion.
+    top_outset += top_reference_wall_expansion;
+    bottom_outset += bottom_reference_wall_expansion;
+    top_min_width = std::max(coord_t(0), top_min_width - top_reference_wall_expansion / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
+    bottom_min_width = std::max(coord_t(0), bottom_min_width - bottom_reference_wall_expansion / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
+
+    // skin areas are to be enlarged by skin_expand_distance but before they are expanded
+    // the skin areas are shrunk by min_width so that very narrow regions of skin
+    // (often caused by the model's surface having a steep incline) are not expanded
+
+    top_outset += top_min_width; // increase the expansion distance to compensate for the min_width shrinkage
+    bottom_outset += bottom_min_width; // increase the expansion distance to compensate for the min_width shrinkage
+
+    if (top_outset)
     {
-        return;
+        upskin = upskin.offset(-top_min_width).offset(top_outset).unionPolygons(upskin).intersection(original_outline);
     }
 
-    coord_t pre_shrink = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
-
-    // skin areas are to be enlarged by expand_skins_expand_distance but before they are expanded
-    // the skin areas are shrunk by pre_shrink so that very narrow regions of skin
-    // (often caused by the model's surface having a steep incline) are removed first
-
-    expand_skins_expand_distance += pre_shrink; // increase the expansion distance to compensate for the shrinkage
-
-    if (mesh.getSettingBoolean("expand_upper_skins"))
+    if (bottom_outset)
     {
-        upskin = upskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(upskin).intersection(original_outline);
-    }
-
-    if (mesh.getSettingBoolean("expand_lower_skins"))
-    {
-        downskin = downskin.offset(-pre_shrink).offset(expand_skins_expand_distance).unionPolygons(downskin).intersection(original_outline);
+        downskin = downskin.offset(-bottom_min_width).offset(bottom_outset).unionPolygons(downskin).intersection(original_outline);
     }
 }
 
