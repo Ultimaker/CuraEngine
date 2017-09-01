@@ -43,7 +43,7 @@ public:
         GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;
 
-        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, const std::vector<double>& line_width_factor_per_extruder);
+        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_nr, int layer_thickness, const std::vector<double>& line_width_factor_per_extruder);
         void smoothAllSpeeds(const GCodePathConfig::SpeedDerivatives& first_layer_config, const GCodePathConfig::SpeedDerivatives& first_layer_wall_config, int layer_nr, int max_speed_layer);
     };
 
