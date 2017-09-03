@@ -214,22 +214,20 @@ void InsetOrderOptimizer::processHoleInsets()
             }
             else
             {
-                // when the user has specified the z seam location, we want the insets that surround the hole to start
-                // as close as possible to the z seam location so to avoid the possible retract when moving from the end
-                // of the immediately enclosing inset to the start of the hole outer wall we first move to a location
-                // that is close to the z seam and at a vertex of the first inset we want to be printed
-                if (z_seam_config.type == EZSeamType::USER_SPECIFIED)
-                {
-                    const Point z_seam_location = hole_outer_wall[0][order_optimizer.polyStart[order_optimizer.polyOrder[outer_poly_order_idx]]];
-                    // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
-                    const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
-                    gcode_layer.addTravel(dest);
-                }
+                // we want the insets that surround the hole to start as close as possible to the z seam location so to
+                // avoid the possible retract when moving from the end of the immediately enclosing inset to the start
+                // of the hole outer wall we first move to a location that is close to the z seam and at a vertex of the
+                // first inset we want to be printed
+                const unsigned outer_poly_start_idx = order_optimizer.polyStart[order_optimizer.polyOrder[outer_poly_order_idx]];
+                const Point z_seam_location = hole_outer_wall[0][outer_poly_start_idx];
+                // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
+                const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
+                gcode_layer.addTravel(dest);
                 std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
                 gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygon(hole_outer_wall[0], outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -317,26 +315,29 @@ void InsetOrderOptimizer::processOuterWallInsets()
             }
             else
             {
+                // determine the location of the z seam
+                PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+                order_optimizer.addPolygon(*inset_polys[0][0]);
+                order_optimizer.optimize();
+                const unsigned outer_poly_start_idx = order_optimizer.polyStart[0];
+                const Point z_seam_location = (*inset_polys[0][0])[outer_poly_start_idx];
+
                 // reverse order of inner walls to increase chance of them being printed from inside to outside
                 std::reverse(part_inner_walls.begin(), part_inner_walls.end());
+
                 // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
                 // but if there is more than one outer wall level 1 inset, don't bother to move as it may actually be a waste of time because
                 // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
-                if (z_seam_config.type == EZSeamType::USER_SPECIFIED && num_level_1_insets == 1)
+                if (num_level_1_insets == 1)
                 {
-                    // determine the location of the z seam
-                    const int z_seam_idx = PolygonUtils::findNearestVert(z_seam_config.pos, *inset_polys[0][0]);
-                    const ClosestPolygonPoint z_seam_location((*inset_polys[0][0])[z_seam_idx], z_seam_idx, *inset_polys[0][0]);
                     // move to the location of the vertex in the innermost inset that's closest to the z seam location
-                    const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location.location, part_inner_walls[0])];
+                    const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
                     gcode_layer.addTravel(dest);
                 }
                 gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    Polygons part_outer_wall;
-                    part_outer_wall.add(*inset_polys[0][0]);
-                    gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygon(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                 }
             }
             added_something = true;
@@ -472,18 +473,7 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
         // only 1 inset, definitely not worth optimizing
         return false;
     }
-    const unsigned int num_holes = part.insets[0].size() - 1;
-    if (num_holes == 0)
-    {
-        if (mesh.getSettingAsZSeamType("z_seam_type") == EZSeamType::USER_SPECIFIED)
-        {
-            // will start the inner inset(s) near the z seam location
-            return true;
-        }
-        // no holes, definitely not worth optimizing
-        return false;
-    }
-    // for all other cases, the default is to optimize
+    // the default is to optimize as it will make the inner insets start near to the z seam location
     return true;
 }
 
