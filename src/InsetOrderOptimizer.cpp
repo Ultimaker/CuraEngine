@@ -483,20 +483,6 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
         // no holes, definitely not worth optimizing
         return false;
     }
-    if (num_insets > 2)
-    {
-        // we have holes with three or more insets, good chance it's worth optimizing
-        return true;
-    }
-    if (num_holes == 1)
-    {
-        if (part.insets[1].size() > 2)
-        {
-            // there's only 1 hole but more than 2 level 1 insets - it's probably quicker to
-            // print without optimization as then all of the level 1 insets will be printed as a group
-            return false;
-        }
-    }
     // for all other cases, the default is to optimize
     return true;
 }
