@@ -875,16 +875,21 @@ void GCodeExport::startExtruder(int new_extruder)
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
-    if (relative_extrusion)
-    {
-        writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
-    }
+    const char *start_code = extruder_attr[new_extruder].start_code.c_str();
 
-    writeCode(extruder_attr[new_extruder].start_code.c_str());
-
-    if (relative_extrusion)
+    if (*start_code)
     {
-        writeExtrusionMode(true); // restore relative extrusion mode
+        if (relative_extrusion)
+        {
+            writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
+        }
+
+        writeCode(start_code);
+
+        if (relative_extrusion)
+        {
+            writeExtrusionMode(true); // restore relative extrusion mode
+        }
     }
 
     CommandSocket::setExtruderForSend(new_extruder);
@@ -904,18 +909,24 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
     writeRetraction(retraction_config_old_extruder, force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
-    if (relative_extrusion)
-    {
-        writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
-    }
 
     int old_extruder = current_extruder;
 
-    writeCode(extruder_attr[old_extruder].end_code.c_str());
+    const char *end_code = extruder_attr[old_extruder].end_code.c_str();
 
-    if (relative_extrusion)
+    if (*end_code)
     {
-        writeExtrusionMode(true); // restore relative extrusion mode
+        if (relative_extrusion)
+        {
+            writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
+        }
+
+        writeCode(end_code);
+
+        if (relative_extrusion)
+        {
+            writeExtrusionMode(true); // restore relative extrusion mode
+        }
     }
 
     startExtruder(new_extruder);
