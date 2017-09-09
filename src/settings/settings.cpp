@@ -134,7 +134,7 @@ const std::string& SettingsMessenger::getSettingString(std::string key) const
 
 int SettingsBaseVirtual::getSettingAsIndex(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atoi(value.c_str());
 }
 
@@ -150,7 +150,7 @@ int SettingsBaseVirtual::getSettingAsExtruderNr(std::string key) const
 
 int SettingsBaseVirtual::getSettingAsCount(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atoi(value.c_str());
 }
 
@@ -167,7 +167,7 @@ unsigned int SettingsBaseVirtual::getSettingAsLayerNumber(std::string key) const
 
 double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atof(value.c_str());
 }
 
@@ -178,19 +178,19 @@ coord_t SettingsBaseVirtual::getSettingInMicrons(std::string key) const
 
 double SettingsBaseVirtual::getSettingInAngleDegrees(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atof(value.c_str());
 }
 
 double SettingsBaseVirtual::getSettingInAngleRadians(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atof(value.c_str()) / 180.0 * M_PI;
 }
 
 bool SettingsBaseVirtual::getSettingBoolean(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "on")
         return true;
     if (value == "yes")
@@ -203,43 +203,43 @@ bool SettingsBaseVirtual::getSettingBoolean(std::string key) const
 
 double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atof(value.c_str());
 }
 
 double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
 double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atof(value.c_str());
 }
 
 double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
 double SettingsBaseVirtual::getSettingAsRatio(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return atof(value.c_str()) / 100.0;
 }
 
 double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
 DraftShieldHeightLimitation SettingsBaseVirtual::getSettingAsDraftShieldHeightLimitation(const std::string key) const
 {
-    const std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "full")
     {
         return DraftShieldHeightLimitation::FULL;
@@ -299,7 +299,7 @@ FMatrix3x3 SettingsBaseVirtual::getSettingAsPointMatrix(std::string key) const
 {
     FMatrix3x3 ret;
 
-    std::string value_string = getSettingString(key);
+    const std::string& value_string = getSettingString(key);
     if (value_string.empty())
     {
         return ret; // standard matrix ([1,0,0],[0,1,0],[0,0,1])
@@ -339,7 +339,7 @@ FMatrix3x3 SettingsBaseVirtual::getSettingAsPointMatrix(std::string key) const
 
 EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "Griffin")
         return EGCodeFlavor::GRIFFIN;
     else if (value == "UltiGCode")
@@ -361,7 +361,7 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
 
 EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "lines")
         return EFillMethod::LINES;
     if (value == "grid")
@@ -387,7 +387,7 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
 
 EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "brim")
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
@@ -399,7 +399,7 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
 
 ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "everywhere")
         return ESupportType::EVERYWHERE;
     if (value == "buildplate")
@@ -409,7 +409,7 @@ ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key) const
 
 EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "random")
         return EZSeamType::RANDOM;
     if (value == "shortest")
@@ -423,7 +423,7 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key) const
 
 EZSeamCornerPrefType SettingsBaseVirtual::getSettingAsZSeamCornerPrefType(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "z_seam_corner_none")
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
     if (value == "z_seam_corner_inner")
@@ -437,7 +437,7 @@ EZSeamCornerPrefType SettingsBaseVirtual::getSettingAsZSeamCornerPrefType(std::s
 
 ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "normal")
         return ESurfaceMode::NORMAL;
     if (value == "surface")
@@ -449,7 +449,7 @@ ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key) const
 
 FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "nowhere")
     {
         return FillPerimeterGapMode::NOWHERE;
@@ -463,7 +463,7 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
 
 CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "off")
     {
         return CombingMode::OFF;
@@ -481,7 +481,7 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
 
 SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key) const
 {
-    std::string value = getSettingString(key);
+    const std::string& value = getSettingString(key);
     if (value == "xy_overrides_z")
     {
         return SupportDistPriority::XY_OVERRIDES_Z;
@@ -496,7 +496,7 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
 std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) const
 {
     std::vector<int> result;
-    std::string value_string = getSettingString(key);
+    const std::string& value_string = getSettingString(key);
     if (!value_string.empty()) {
         // we're looking to match one or more integer values separated by commas and surrounded by square brackets
         // note that because the QML RegExpValidator only stops unrecognised characters being input
