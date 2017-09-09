@@ -93,7 +93,7 @@ void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirt
 }
 
 
-std::string SettingsBase::getSettingString(std::string key) const
+const std::string& SettingsBase::getSettingString(std::string key) const
 {
     auto value_it = setting_values.find(key);
     if (value_it != setting_values.end())
@@ -112,7 +112,8 @@ std::string SettingsBase::getSettingString(std::string key) const
 
     cura::logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
     std::exit(-1);
-    return "";
+    static std::string empty_string; // use static object rather than "" to avoid compilation warning
+    return empty_string;
 }
 
 void SettingsMessenger::setSetting(std::string key, std::string value)
@@ -126,7 +127,7 @@ void SettingsMessenger::setSettingInheritBase(std::string key, const SettingsBas
 }
 
 
-std::string SettingsMessenger::getSettingString(std::string key) const
+const std::string& SettingsMessenger::getSettingString(std::string key) const
 {
     return parent->getSettingString(key);
 }
