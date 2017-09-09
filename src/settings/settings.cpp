@@ -93,7 +93,7 @@ void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirt
 }
 
 
-const std::string& SettingsBase::getSettingString(std::string key) const
+const std::string& SettingsBase::getSettingString(const std::string& key) const
 {
     auto value_it = setting_values.find(key);
     if (value_it != setting_values.end())
@@ -127,7 +127,7 @@ void SettingsMessenger::setSettingInheritBase(std::string key, const SettingsBas
 }
 
 
-const std::string& SettingsMessenger::getSettingString(std::string key) const
+const std::string& SettingsMessenger::getSettingString(const std::string& key) const
 {
     return parent->getSettingString(key);
 }

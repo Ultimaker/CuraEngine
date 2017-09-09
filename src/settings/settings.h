@@ -209,7 +209,7 @@ class SettingsBaseVirtual
 protected:
     SettingsBaseVirtual* parent;
 public:
-    virtual const std::string& getSettingString(std::string key) const = 0;
+    virtual const std::string& getSettingString(const std::string& key) const = 0;
     
     virtual void setSetting(std::string key, std::string value) = 0;
 
@@ -307,7 +307,7 @@ public:
      */
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
-    const std::string& getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
+    const std::string& getSettingString(const std::string& key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
     
     std::string getAllLocalSettingsString() const
     {
@@ -348,7 +348,7 @@ public:
     
     void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
-    const std::string& getSettingString(std::string key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
+    const std::string& getSettingString(const std::string& key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
 };
 
 
