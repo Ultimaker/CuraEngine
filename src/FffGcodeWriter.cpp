@@ -2049,8 +2049,12 @@ void FffGcodeWriter::finalize()
         gcode.writeMaxZFeedrate(getSettingInMillimetersPerSecond("machine_max_feedrate_z"));
     }
 
-    gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
-    gcode.finalize(getSettingString("machine_end_gcode").c_str());
+    const char *end_gcode = getSettingString("machine_end_gcode").c_str();
+    if (*end_gcode)
+    {
+        gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
+    }
+    gcode.finalize(end_gcode);
     // set extrusion mode back to "normal"
     const bool set_relative_extrusion_mode = (gcode.getFlavor() == EGCodeFlavor::REPRAP);
     gcode.writeExtrusionMode(set_relative_extrusion_mode);
