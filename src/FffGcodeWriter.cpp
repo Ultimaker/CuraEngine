@@ -430,6 +430,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         }
     }
 
+    gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
@@ -452,6 +453,10 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min(); // set to most negative number so that layer processing never primes this extruder any more.
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
+    }
+    if (getSettingBoolean("relative_extrusion"))
+    {
+        gcode.writeExtrusionMode(true);
     }
 }
 
@@ -2042,7 +2047,18 @@ void FffGcodeWriter::finalize()
     {
         gcode.writeMaxZFeedrate(getSettingInMillimetersPerSecond("machine_max_feedrate_z"));
     }
-    gcode.finalize(getSettingString("machine_end_gcode").c_str());
+
+    std::string end_gcode = getSettingString("machine_end_gcode");
+
+    if (end_gcode.length() > 0 && getSettingBoolean("relative_extrusion"))
+    {
+        gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
+    }
+    gcode.finalize(end_gcode.c_str());
+
+    // set extrusion mode back to "normal"
+    const bool set_relative_extrusion_mode = (gcode.getFlavor() == EGCodeFlavor::REPRAP);
+    gcode.writeExtrusionMode(set_relative_extrusion_mode);
     for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
     {
         gcode.writeTemperatureCommand(e, 0, false);
