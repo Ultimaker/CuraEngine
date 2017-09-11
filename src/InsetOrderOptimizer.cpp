@@ -21,6 +21,19 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
     return -1;
 }
 
+void InsetOrderOptimizer::moveInside(coord_t dist)
+{
+    Point p = gcode_layer.getLastPlannedPositionOrStartingPosition();
+    if (PolygonUtils::moveInside(part.insets[0], p, dist) != NO_INDEX)
+    {
+        if (part.insets[0].inside(p))
+        {
+            gcode_layer.addTravel_simple(p);
+            gcode_layer.forceNewPathStart();
+        }
+    }
+}
+
 void InsetOrderOptimizer::processHoleInsets()
 {
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
