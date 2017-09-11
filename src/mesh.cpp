@@ -1,3 +1,6 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "mesh.h"
 #include "utils/logoutput.h"
 
@@ -189,7 +192,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
                     break;
         }
 
-        FPoint3 v1 = vertices[candidateVertex].p -vertices[idx0].p;
+        FPoint3 v1 = vertices[faces[candidateFace].vertex_index[candidateVertex]].p - vertices[idx0].p;
         FPoint3 n1 = v1.cross(v0);
 
         double dot = n0 * n1;
