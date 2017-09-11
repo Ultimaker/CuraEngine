@@ -62,6 +62,14 @@ private:
      */
     void processOuterWallInsets();
 
+    /*!
+     * Generate a travel move of distance \p dist from the current position to inside the part.
+     * This is used after generating an outer wall so that if a retraction occurs immediately afterwards,
+     * the extruder won't be on the outer wall.
+     * \param dist How far to move into the part.
+     */
+    void moveInside(coord_t dist);
+
 public:
     /*!
      * Generate the insets for all of the walls of a given layer part after optimizing the ordering.
