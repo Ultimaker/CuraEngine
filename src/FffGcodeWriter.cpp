@@ -1167,7 +1167,14 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                     infill_line_distance_here /= 2;
                 }
                 
-                Infill infill_comp(infill_pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
+                Infill infill_comp(infill_pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0
+                    , infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift
+                    , /*Polygons* perimeter_gaps =*/ nullptr
+                    , /*bool connected_zigzags =*/ false
+                    , /*bool use_endpieces =*/ false
+                    , /*bool skip_some_zags =*/ false
+                    , /*int zag_skip_count =*/ 0
+                    , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
                 infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
             }
             if (infill_lines.size() > 0 || infill_polygons.size() > 0)
@@ -1234,7 +1241,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 //     ^   highest density line dist
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
+        Infill infill_comp(pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][0], 0
+            , infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift
+            , /*Polygons* perimeter_gaps =*/ nullptr
+            , /*bool connected_zigzags =*/ false
+            , /*bool use_endpieces =*/ false
+            , /*bool skip_some_zags =*/ false
+            , /*int zag_skip_count =*/ 0
+            , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)
