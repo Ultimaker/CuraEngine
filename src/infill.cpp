@@ -34,7 +34,6 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
-    Polygons outline_offsetted;
     switch(pattern)
     {
     case EFillMethod::GRID:
