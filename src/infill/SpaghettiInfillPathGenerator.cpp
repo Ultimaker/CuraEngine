@@ -57,13 +57,23 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
                 added_something = true;
                 fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
-                if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+                switch(pattern)
                 {
-                    gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-                }
-                else
-                {
-                    gcode_layer.addLinesByOptimizer(infill_lines, config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, 0, flow_ratio);
+                    case EFillMethod::GRID:
+                    case EFillMethod::LINES:
+                    case EFillMethod::TRIANGLES:
+                    case EFillMethod::CUBIC:
+                    case EFillMethod::TETRAHEDRAL:
+                    case EFillMethod::QUARTER_CUBIC:
+                    case EFillMethod::CUBICSUBDIV:
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                        break;
+                    case EFillMethod::ZIG_ZAG:
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, 0, flow_ratio);
+                        break;
+                    default:
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, 0, flow_ratio);
+                        break;
                 }
             }
         }
