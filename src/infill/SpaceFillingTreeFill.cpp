@@ -99,8 +99,8 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
 
 void SpaceFillingTreeFill::offsetTreePath(const std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const
 {
-    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * 1.4142;
-    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * 1.4142;
+    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * sqrt(2.0);
+    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * sqrt(2.0);
     for (unsigned int point_idx = 0; point_idx < nodes.size(); point_idx++)
     {
         const Point a = nodes[point_idx]->middle;
@@ -113,6 +113,15 @@ void SpaceFillingTreeFill::offsetTreePath(const std::vector<const SpaceFillingTr
 
         if (a == c)
         { // pointy case
+            //       .                          .
+            //      / \                         .
+            //     /   \                        .
+            //    /  b  \                       .
+            //   |   :   |                      .
+            //   |   :   |                      .
+            //       :
+            // ......:......
+            //      a c
             const Point left_point = b - bc_offset;
             const Point pointy_point = b - normal(bc, offset);
             const Point right_point = b + bc_offset;
@@ -129,7 +138,14 @@ void SpaceFillingTreeFill::offsetTreePath(const std::vector<const SpaceFillingTr
             infill.add(right_point);
         }
         else
-        {
+        { // corner case
+            //      a: |
+            //       : |
+            //       : L____
+            // ......:......
+            //      b:     c
+            //       :
+            //       :
             const Point ab = b - a;
             const Point ab_T = turn90CCW(ab);
             const Point normal_corner = b + normal(ab_T, offset) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
@@ -198,18 +214,15 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
         const Point b = b_node->middle;
         const Point c = c_node->middle;
 
-        coord_t bc_offset_length = offset;
-
         Point bc = c - b;
         Point bc_T = turn90CCW(bc);
-        Point bc_offset = normal(bc_T, bc_offset_length);
+        Point bc_offset = normal(bc_T, offset);
 
         if (a == c)
         { // pointy case
-            coord_t point_offset_length = offset;
-            const Point left_point = b - bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
-            const Point pointy_point = b - normal(bc, point_offset_length);
-            const Point right_point = b + bc_offset - normal(bc, std::max(coord_t(0), point_offset_length - bc_offset_length));
+            const Point left_point = b - bc_offset;
+            const Point pointy_point = b - normal(bc, offset);
+            const Point right_point = b + bc_offset;
 
             infill.add(left_point);
             const coord_t point_bevel_here = (b_node->parent && b_node->parent_to_here_direction == b_node->parent->parent_to_here_direction)? point_bevel_even : point_bevel_odd;
@@ -226,10 +239,9 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
         }
         else
         {
-            coord_t ab_offset_length = offset;
             Point ab = b - a;
             Point ab_T = turn90CCW(ab);
-            const Point normal_corner = b + normal(ab_T, ab_offset_length) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
+            const Point normal_corner = b + normal(ab_T, offset) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
             const coord_t corner_bevel_here = (a_node->distance_depth % 2 == 1)? corner_bevel_even : corner_bevel_odd;
             if (corner_bevel_here)
             {
