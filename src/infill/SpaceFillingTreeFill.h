@@ -91,24 +91,15 @@ private:
     static TreeParams getTreeParams(coord_t line_distance, AABB3D model_aabb);
 
     /*!
-     * Generate the pattern itself by doing a depth first walk over the fractal.
-     * 
-     * The parent nodes are present in this path multiple times.
-     * 
-     * \param[out] path The path to generate
-     */
-    void generateTreePath(PolygonRef path) const;
-
-    /*!
      * Generate the line in between the tree path and the circumscribed
      * square of each stage in the fractal.
      * 
-     * \param path the tree path which walks along the cross fractal tree
+     * \param nodes The nodes of the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces
      * \param pocket_size The size of the pockets to leave open at junctions.
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePath(const ConstPolygonRef path, coord_t offset, coord_t pocket_size, PolygonRef infill) const;
+    void offsetTreePath(const std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const;
 
     /*!
      * Generate the pattern itself by doing a depth first walk over the fractal.
@@ -118,7 +109,7 @@ private:
      * 
      * \param[out] nodes The nodes of the path to generate
      */
-    void generateTreePathAndDepths(std::vector<const SpaceFillingTree::Node*>& nodes) const;
+    void generateTreePath(std::vector<const SpaceFillingTree::Node*>& nodes) const;
 
     /*!
      * Generate the line in between the tree path and the circumscribed

@@ -22,14 +22,14 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     if (alternate)
     {
         std::vector<const SpaceFillingTree::Node*> nodes;
-        generateTreePathAndDepths(nodes);
+        generateTreePath(nodes);
         offsetTreePathAlternating(nodes, shift, pocket_size, use_odd_in_junctions, use_odd_out_junctions, infill_poly);
     }
     else
     {
-        Polygon tree_path;
-        generateTreePath(tree_path);
-        offsetTreePath(tree_path, shift, pocket_size, infill_poly);
+        std::vector<const SpaceFillingTree::Node*> nodes;
+        generateTreePath(nodes);
+        offsetTreePath(nodes, shift, pocket_size, infill_poly);
     }
     infill_poly.applyMatrix(transformation); // apply rotation
 
@@ -97,39 +97,15 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
     return ret;
 }
 
-void SpaceFillingTreeFill::generateTreePath(PolygonRef path) const
-{
-    class Visitor : public SpaceFillingTree::LocationVisitor
-    {
-        PolygonRef path;
-        bool is_first_point = true;
-    public:
-        Visitor(PolygonRef path)
-        : path(path)
-        {}
-        void visit(const SpaceFillingTree::Node* node)
-        {
-            if (is_first_point)
-            { // skip first point because it is the same as the last
-                is_first_point = false;
-                return;
-            }
-            path.add(node->middle);
-        }
-    };
-    Visitor visitor(path);
-    tree.walk(visitor);
-}
-
-void SpaceFillingTreeFill::offsetTreePath(const ConstPolygonRef path, coord_t offset, coord_t pocket_size, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePath(const std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const
 {
     coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * 1.4142;
     coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * 1.4142;
-    for (unsigned int point_idx = 0; point_idx < path.size(); point_idx++)
+    for (unsigned int point_idx = 0; point_idx < nodes.size(); point_idx++)
     {
-        const Point a = path[point_idx];
-        const Point b = path[(point_idx + 1) % path.size()];
-        const Point c = path[(point_idx + 2) % path.size()];
+        const Point a = nodes[point_idx]->middle;
+        const Point b = nodes[(point_idx + 1) % nodes.size()]->middle;
+        const Point c = nodes[(point_idx + 2) % nodes.size()]->middle;
 
         const Point bc = c - b;
         const Point bc_T = turn90CCW(bc);
@@ -173,7 +149,7 @@ void SpaceFillingTreeFill::offsetTreePath(const ConstPolygonRef path, coord_t of
 
 
 
-void SpaceFillingTreeFill::generateTreePathAndDepths(std::vector<const SpaceFillingTree::Node*>& nodes) const
+void SpaceFillingTreeFill::generateTreePath(std::vector<const SpaceFillingTree::Node*>& nodes) const
 {
     class Visitor : public SpaceFillingTree::LocationVisitor
     {
