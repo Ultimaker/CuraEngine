@@ -21,8 +21,9 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
     return -1;
 }
 
-void InsetOrderOptimizer::moveInside(coord_t dist)
+void InsetOrderOptimizer::moveInside()
 {
+    const coord_t dist = mesh_config.inset0_config.getLineWidth() * 2;
     Point p = gcode_layer.getLastPlannedPositionOrStartingPosition();
     if (PolygonUtils::moveInside(part.insets[0], p, dist) != NO_INDEX)
     {
@@ -242,7 +243,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 {
                     gcode_layer.addPolygon(hole_outer_wall[0], outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
-                    moveInside(wall_line_width_x * num_insets);
+                    moveInside();
                 }
             }
             added_something = true;
@@ -254,7 +255,7 @@ void InsetOrderOptimizer::processHoleInsets()
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             // move inside so an immediately following retract doesn't occur on the outer wall
-            moveInside(wall_line_width_0 * 2);
+            moveInside();
             added_something = true;
         }
     }
@@ -356,7 +357,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 {
                     gcode_layer.addPolygon(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
-                    moveInside(wall_line_width_x * num_insets);
+                    moveInside();
                 }
             }
             added_something = true;
@@ -371,7 +372,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
             part_outer_wall.add(*inset_polys[0][0]);
             gcode_layer.addPolygonsByOptimizer(part_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
             // move inside so an immediately following retract doesn't occur on the outer wall
-            moveInside(mesh_config.inset0_config.getLineWidth() * 2);
+            moveInside();
             added_something = true;
         }
     }
