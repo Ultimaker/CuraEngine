@@ -275,18 +275,22 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int
  */
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
+    // First we set the amount of distance we want to expand, as indicated in settings
     coord_t top_outset = top_skin_expand_distance;
     coord_t bottom_outset = bottom_skin_expand_distance;
 
     coord_t top_min_width = mesh.getSettingInMicrons("min_skin_width_for_expansion") / 2;
     coord_t bottom_min_width = top_min_width;
 
-    // compensate for the pre-shrink applied because of the Skin Removal Width.
-    // The skin removal width is satisfied by applying a close operation.
-    // The inset of that close is applied in calculateTopSkin.
-    // The outset of the clase operation is applied at the same time as the skin expansion.
+    // Compensate for the pre-shrink applied because of the Skin Removal Width.
+    // The skin removal width is satisfied by applying a close operation and
+    // it's done in the calculateTopSkin and calculateBottomSkin, by expanding the infill.
+    // The inset of that close operation is applied in calculateTopSkin and calculateBottomSkin
+    // The outset of the close operation is applied at the same time as the skin expansion.
     top_outset += top_reference_wall_expansion;
     bottom_outset += bottom_reference_wall_expansion;
+
+    // Calculate the shrinkage needed to fulfill the minimum skin with for expansion
     top_min_width = std::max(coord_t(0), top_min_width - top_reference_wall_expansion / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
     bottom_min_width = std::max(coord_t(0), bottom_min_width - bottom_reference_wall_expansion / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
 
@@ -297,6 +301,7 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     top_outset += top_min_width; // increase the expansion distance to compensate for the min_width shrinkage
     bottom_outset += bottom_min_width; // increase the expansion distance to compensate for the min_width shrinkage
 
+    // Execute shrinkage and expansion in the same operation
     if (top_outset)
     {
         upskin = upskin.offset(-top_min_width).offset(top_outset).unionPolygons(upskin).intersection(original_outline);
