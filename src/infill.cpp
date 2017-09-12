@@ -30,7 +30,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern, const SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -74,12 +74,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         break;
     case EFillMethod::CROSS:
     case EFillMethod::CROSS_3D:
-        if (!mesh)
+        if (!cross_fill_pattern)
         {
-            logError("Cannot generate Cross infill without a mesh!\n");
+            logError("Cannot generate Cross infill without a pregenerated cross fill pattern!\n");
             break;
         }
-        generateCrossInfill(*mesh, result_polygons, result_lines);
+        generateCrossInfill(*cross_fill_pattern, result_polygons, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -186,9 +186,8 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     addLineSegmentsInfill(result, uncropped);
 }
 
-void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_polygons, Polygons& result_lines)
+void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines)
 {
-    assert(mesh.cross_fill_pattern);
     if (zig_zaggify)
     {
         outline_offset += -infill_line_width / 2;
@@ -212,7 +211,7 @@ void Infill::generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_
         use_odd_out_junctions = (z / period) % 2;
     }
     Polygons outline = in_outline.offset(outline_offset);
-    mesh.cross_fill_pattern->generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
+    cross_fill_pattern.generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
 }
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)

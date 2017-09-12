@@ -598,7 +598,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             SubDivCube::precomputeOctree(mesh);
         }
 
-        //SubDivCube Pre-compute Octree
+        // Pre-compute Cross Fractal
         if (mesh.getSettingInMicrons("infill_line_distance") > 0
             && (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS
                 || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)

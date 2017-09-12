@@ -1168,7 +1168,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 }
                 
                 Infill infill_comp(infill_pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
-                infill_comp.generate(infill_polygons, infill_lines, &mesh);
+                infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
             }
             if (infill_lines.size() > 0 || infill_polygons.size() > 0)
             {
@@ -1235,7 +1235,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             infill_line_distance_here /= 2;
         }
         Infill infill_comp(pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift);
-        infill_comp.generate(infill_polygons, infill_lines, &mesh);
+        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)
     {
@@ -1761,7 +1761,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     {
         support_pattern = EFillMethod::GRID;
     }
-    const bool zig_zaggify_infill = support_pattern == EFillMethod::ZIG_ZAG;
+    const bool zig_zaggify_infill = support_pattern == EFillMethod::ZIG_ZAG || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D;
     const bool skip_some_zags = infill_extruder.getSettingBoolean("support_skip_some_zags");
     const int zag_skip_count = infill_extruder.getSettingAsCount("support_zag_skip_count");
 
@@ -1837,7 +1837,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    support_line_distance_here, current_support_infill_overlap, support_infill_angle, gcode_layer.z, support_shift,
                                    perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces,
                                    skip_some_zags, zag_skip_count);
-                infill_comp.generate(support_polygons, support_lines);
+                infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_pattern);
             }
 
             if (support_lines.size() > 0 || support_polygons.size() > 0)

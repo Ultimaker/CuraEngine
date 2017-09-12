@@ -39,7 +39,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         const bool connected_zigzags = true;
         const bool use_endpieces = false;
         Infill infill_comp(pattern, zig_zaggify_infill, area, outline_offset, infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces);
-        infill_comp.generate(infill_polygons, infill_lines, &mesh);
+        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
 
         // add paths to plan with a higher flow ratio in order to extrude the required amount.
         const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();

@@ -211,6 +211,8 @@ public:
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 };
 
+class SpaceFillingTreeFill; // forward declaration to prevent dependency loop
+
 class SupportStorage
 {
 public:
@@ -219,18 +221,19 @@ public:
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
     std::vector<SupportLayer> supportLayers;
+    SpaceFillingTreeFill* cross_fill_pattern; //!< the fractal pattern for the cross (3d) filling pattern
 
     SupportStorage()
     : generated(false)
     , layer_nr_max_filled_layer(-1)
+    , cross_fill_pattern(nullptr)
     {
     }
-    ~SupportStorage(){ supportLayers.clear(); }
+    ~SupportStorage();
 };
 /******************/
 
 class SubDivCube; // forward declaration to prevent dependency loop
-class SpaceFillingTreeFill; // forward declaration to prevent dependency loop
 
 class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
@@ -245,7 +248,7 @@ public:
     AABB3D bounding_box; //!< the mesh's bounding box
 
     SubDivCube* base_subdiv_cube;
-    SpaceFillingTreeFill* cross_fill_pattern;
+    SpaceFillingTreeFill* cross_fill_pattern; //!< the fractal pattern for the cross (3d) filling pattern
 
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
     : SettingsMessenger(mesh)

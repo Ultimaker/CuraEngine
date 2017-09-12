@@ -5,10 +5,20 @@
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
 #include "infill/SubDivCube.h" // For the destructor
+#include "infill/SpaceFillingTreeFill.h" // for destructor
 
 
 namespace cura
 {
+
+SupportStorage::~SupportStorage()
+{
+    supportLayers.clear(); 
+    if (cross_fill_pattern)
+    {
+        delete cross_fill_pattern;
+    }
+}
 
 Polygons& SliceLayerPart::getOwnInfillArea()
 {

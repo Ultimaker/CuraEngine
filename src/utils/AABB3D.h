@@ -49,6 +49,12 @@ struct AABB3D
     void include(Point3 p);
 
     /*!
+     * Expand the AABB3D to include the bounding box \p aabb.
+     * \param aabb The aabb to include with this bounding box.
+     */
+    void include(const AABB3D& aabb);
+
+    /*!
      * Expand the AABB3D to include a z-coordinate.
      *
      * This is for including a point of which the X and Y coordinates are

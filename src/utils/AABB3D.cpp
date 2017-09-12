@@ -49,6 +49,12 @@ void AABB3D::include(Point3 p)
     max.z = std::max(max.z, p.z);   
 }
 
+void AABB3D::include(const AABB3D& aabb)
+{
+    include(aabb.min);
+    include(aabb.max);
+}
+
 void AABB3D::includeZ(int32_t z)
 {
     min.z = std::min(min.z, z);

@@ -80,14 +80,16 @@ public:
     , zag_skip_count(zag_skip_count)
     {
     }
+
     /*!
      * Generate the infill.
      * 
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
+     * \param[in] cross_fill_pattern Where the cross fractal precomputation is stored
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh = nullptr);
+    void generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
@@ -163,11 +165,11 @@ private:
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
-     * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
+     * \param[in] cross_fill_pattern Where the cross fractal precomputation is stored
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const SliceMeshStorage& mesh, Polygons& result_polygons, Polygons& result_lines);
+    void generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

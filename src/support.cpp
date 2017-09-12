@@ -15,6 +15,7 @@
 
 #include "utils/math.h"
 #include "progress/Progress.h"
+#include "infill/SpaceFillingTreeFill.h"
 
 namespace cura 
 {
@@ -624,6 +625,37 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
     // split the global support areas into parts for later gradual support infill generation
     AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, global_support_areas_per_layer, storage.print_layer_count);
+
+    // Pre-compute Cross Fractal
+    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern");
+    if (support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
+    {
+        AABB3D aabb;
+        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        {
+            const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
+            {
+                continue;
+            }
+            SettingsBaseVirtual* infill_settings = &storage.meshes[mesh_idx];
+            if (mesh.getSettingBoolean("support_mesh"))
+            {
+                // use extruder train settings rather than the per-object settings of the first support mesh encountered.
+                // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
+                // instead we must use the support extruder settings, which is the settings base common to all support meshes.
+                int infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+                infill_settings = storage.meshgroup->getExtruderTrain(infill_extruder_nr);
+            }
+            const coord_t aabb_expansion = std::max(aabb_expansion, infill_settings->getSettingInMicrons("support_offset"));
+            AABB3D aabb_here(mesh.bounding_box);
+            aabb_here.include(aabb_here.min - Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb.include(aabb_here);
+        }
+        storage.support.cross_fill_pattern = new SpaceFillingTreeFill(infill_extr.getSettingInMicrons("support_line_distance"), aabb);
+    }
 }
 
 /* 
