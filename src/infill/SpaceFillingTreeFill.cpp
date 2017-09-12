@@ -63,8 +63,7 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
     TreeParams ret;
     AABB aabb(Point(model_aabb.min.x, model_aabb.min.y), Point(model_aabb.max.x, model_aabb.max.y));
     const Point aabb_size = aabb.max - aabb.min;
-    coord_t minimal_radius = std::max(aabb_size.X, aabb_size.Y) / 2;
-    minimal_radius *= sqrt(2.0); // to account for any possible infill angle
+    coord_t minimal_radius = vSize(aabb_size) / 2; // to account for any possible infill angle
 
     /*
      * For the normal cross infill the width of the cross is equal to the width of the crosses which are left out.
@@ -89,7 +88,7 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
      */
     ret.middle = aabb.getMiddle();
     ret.depth = -1;
-    ret.radius = line_distance / 2 * sqrt(2.0);
+    ret.radius = line_distance * sqrt(2.0) * 0.5;
     while (ret.radius <= minimal_radius)
     {
         ret.depth++;
