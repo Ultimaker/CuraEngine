@@ -76,19 +76,19 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
      * ▀▉▀▀▉▀ ↙       by the black          ^^^^^^^^
      * ▄▉▄   ▄▉▄                     +--------------+
      *  ▉  ▄  ▉                      :              |
-     * ▀▉▀▀▉▀▀▉▀▀                    :  -------+    |   quarter of the fractal with depth one
-     *                               :,'       |    | the fractal with depth one
-     *                               :    .'   |    |
-     *                            .  :  .' :   |    |
-     *                          .    :.'...:.,'.....+
-     *                        .            :
-     *                         '-.       . :   :
-     *                          l  '-, .   vvvvv
+     * ▀▉▀▀▉▀▀▉▀▀                    : --------+    |   quarter of the fractal with depth one
+     *                               :,.       |    | the fractal with depth one
+     *                              .:  '-.    |    |
+     *                            .' :  .' :'. |    |
+     *                          .'   :.'...:.,'.....+
+     *                        .'           :
+     *                         '-.       .':   :
+     *                          L  '-, .'  vvvvv
      *                                       n
      * minimum offset = 0
-     * maximum offset is such that n = r /2
-     * 2n^2 = l/2  ==>  n = 1/4 sqrt(2) l
-     * r = .5 sqrt(2) l
+     * maximum offset is such that n = r/2
+     * 2n^2 = L/2  ==>  n = 1/4 sqrt(2) L
+     * r = .5 sqrt(2) L
      */
     ret.middle = aabb.getMiddle();
     ret.depth = -1;
