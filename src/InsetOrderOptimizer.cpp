@@ -89,13 +89,38 @@ void InsetOrderOptimizer::processHoleInsets()
         }
     }
 
-    // work out the order we wish to visit all the holes (doesn't include the outer wall of the part)
-    PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    // work out the order we wish to visit all the holes
+
+    // if the z-seam location on the part's outline can be determined here, optimize to minimize the distance travelled from the last hole
+    // to the z-seam - one possible benefit of this strategy is that by minimizing the distance travelled to the outline, the accuracy of
+    // that movement is potentially improved (less overshoot, backlash, etc.) which could make a visible difference (especially if the
+    // outer wall is printed first).
+
+    // if we can't determine here where the z-seam on the outline will be, optimize to minimize the distance travelled from the current location
+    // to the first hole
+
+    Point start_point = gcode_layer.getLastPlannedPositionOrStartingPosition(); // where we are now
+    const bool optimize_backwards = (z_seam_config.type == EZSeamType::USER_SPECIFIED || z_seam_config.type == EZSeamType::SHARPEST_CORNER);
+    if (optimize_backwards)
+    {
+        // determine the location of the z-seam and use that as the start point
+        PathOrderOptimizer order_optimizer(Point(), z_seam_config);
+        order_optimizer.addPolygon(*inset_polys[0][0]);
+        order_optimizer.optimize();
+        const unsigned outer_poly_start_idx = order_optimizer.polyStart[0];
+        start_point = (*inset_polys[0][0])[outer_poly_start_idx];
+    }
+    PathOrderOptimizer order_optimizer(start_point, z_seam_config);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
     }
     order_optimizer.optimize();
+    if (optimize_backwards)
+    {
+        // reverse the optimized order so we end up as near to the outline z-seam as possible
+        std::reverse(order_optimizer.polyOrder.begin(), order_optimizer.polyOrder.end());
+    }
 
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
     for (unsigned int outer_poly_order_idx = 0; outer_poly_order_idx < order_optimizer.polyOrder.size(); ++outer_poly_order_idx)
