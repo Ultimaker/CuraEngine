@@ -5,10 +5,13 @@
 
 namespace cura {
 
-SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_aabb)
+SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_aabb) : SpaceFillingTreeFill(line_distance, model_aabb, getTreeParams(line_distance, model_aabb))
+{
+}
+
+SpaceFillingTreeFill::SpaceFillingTreeFill(coord_t line_distance, AABB3D model_aabb, SpaceFillingTreeFill::TreeParams tree_params)
 : model_aabb(model_aabb)
 , line_distance(line_distance)
-, tree_params(getTreeParams(line_distance, model_aabb))
 , tree(tree_params.middle, tree_params.radius, tree_params.depth)
 {
 }

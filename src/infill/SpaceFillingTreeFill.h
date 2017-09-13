@@ -76,8 +76,12 @@ public:
 private:
     AABB3D model_aabb; //!< The AABB of the boundary to cover
     coord_t line_distance; //!< The width of the crosses and of the straight part of the anti-crosses
-    TreeParams tree_params; //!< The parameters with which to construct the \p tree
     SpaceFillingTree tree; //!< The space filling tree cross fractal
+
+    /*!
+     * \brief Delegating constructor with pre-generated tree parameters.
+     */
+    SpaceFillingTreeFill(coord_t line_distance, AABB3D model_aabb, TreeParams tree_params);
 
     /*!
      * Compute the parameters with which to construct the tree.
