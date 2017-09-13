@@ -45,8 +45,6 @@ class SpaceFillingTreeFill;
 class SpaceFillingTree
 {
 public:
-    friend class SpaceFillingTreeFill;
-
     class Node;
     /*!
      * pure virtual class to implement by an external class
