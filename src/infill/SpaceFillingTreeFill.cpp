@@ -19,18 +19,9 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     Point3Matrix transformation = LinearAlg2D::rotateAround(Point(model_middle.x, model_middle.y), fill_angle + 45);
 
     Polygon infill_poly;
-    if (alternate)
-    {
-        std::vector<const SpaceFillingTree::Node*> nodes;
-        generateTreePath(nodes);
-        offsetTreePathAlternating(nodes, shift, pocket_size, use_odd_in_junctions, use_odd_out_junctions, infill_poly);
-    }
-    else
-    {
-        std::vector<const SpaceFillingTree::Node*> nodes;
-        generateTreePath(nodes);
-        offsetTreePath(nodes, shift, pocket_size, infill_poly);
-    }
+    std::vector<const SpaceFillingTree::Node*> nodes;
+    generateTreePath(nodes);
+    offsetTreePath(nodes, shift, pocket_size, alternate, use_odd_in_junctions, use_odd_out_junctions, infill_poly);
     infill_poly.applyMatrix(transformation); // apply rotation
 
     if (zig_zaggify)
@@ -97,74 +88,6 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
     return ret;
 }
 
-void SpaceFillingTreeFill::offsetTreePath(const std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const
-{
-    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * sqrt(2.0);
-    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * sqrt(2.0);
-    for (unsigned int point_idx = 0; point_idx < nodes.size(); point_idx++)
-    {
-        const Point a = nodes[point_idx]->middle;
-        const Point b = nodes[(point_idx + 1) % nodes.size()]->middle;
-        const Point c = nodes[(point_idx + 2) % nodes.size()]->middle;
-
-        const Point bc = c - b;
-        const Point bc_T = turn90CCW(bc);
-        const Point bc_offset = normal(bc_T, offset);
-
-        if (a == c)
-        { // pointy case
-            //       .                          .
-            //      / \                         .
-            //     /   \                        .
-            //    /  b  \                       .
-            //   |   :   |                      .
-            //   |   :   |                      .
-            //       :
-            // ......:......
-            //      a c
-            const Point left_point = b - bc_offset;
-            const Point pointy_point = b - normal(bc, offset);
-            const Point right_point = b + bc_offset;
-            infill.add(left_point);
-            if (point_bevel)
-            {
-                infill.add(pointy_point - normal(pointy_point - left_point, point_bevel));
-                infill.add(pointy_point - normal(pointy_point - right_point, point_bevel));
-            }
-            else
-            {
-                infill.add(pointy_point);
-            }
-            infill.add(right_point);
-        }
-        else
-        { // corner case
-            //      a: |
-            //       : |
-            //       : L____
-            // ......:......
-            //      b:     c
-            //       :
-            //       :
-            const Point ab = b - a;
-            const Point ab_T = turn90CCW(ab);
-            const Point normal_corner = b + normal(ab_T, offset) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
-            if (corner_bevel)
-            {
-                infill.add(normal_corner - normal(ab, corner_bevel));
-                infill.add(normal_corner + normal(bc, corner_bevel));
-            }
-            else
-            {
-                infill.add(normal_corner);
-            }
-        }
-    }
-}
-
-
-
-
 void SpaceFillingTreeFill::generateTreePath(std::vector<const SpaceFillingTree::Node*>& nodes) const
 {
     class Visitor : public SpaceFillingTree::LocationVisitor
@@ -189,16 +112,18 @@ void SpaceFillingTreeFill::generateTreePath(std::vector<const SpaceFillingTree::
     tree.walk(visitor);
 }
 
-
-void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, bool use_odd_in_junctions, bool use_odd_out_junctions, PolygonRef infill) const
+void SpaceFillingTreeFill::offsetTreePath(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, bool alternating, bool use_odd_in_junctions, bool use_odd_out_junctions, PolygonRef infill) const
 {
-    coord_t corner_bevel_even = std::max(coord_t(0), pocket_size / 2 - offset) * std::sqrt(2);
+    coord_t corner_bevel = std::max(coord_t(0), pocket_size / 2 - offset) * std::sqrt(2);
+    coord_t point_bevel = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * std::sqrt(2);
+
+    coord_t corner_bevel_even = corner_bevel;
     coord_t corner_bevel_odd = 0;
     if (use_odd_in_junctions)
     {
         std::swap(corner_bevel_even, corner_bevel_odd);
     }
-    coord_t point_bevel_even = std::max(coord_t(0), pocket_size / 2 - (line_distance - offset)) * std::sqrt(2);
+    coord_t point_bevel_even = point_bevel;
     coord_t point_bevel_odd = 0;
     if (use_odd_out_junctions)
     {
@@ -214,18 +139,29 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
         const Point b = b_node->middle;
         const Point c = c_node->middle;
 
-        Point bc = c - b;
-        Point bc_T = turn90CCW(bc);
-        Point bc_offset = normal(bc_T, offset);
+        const Point bc = c - b;
+        const Point bc_T = turn90CCW(bc);
+        const Point bc_offset = normal(bc_T, offset);
 
         if (a == c)
         { // pointy case
+            //       .                          .
+            //      / \                         .
+            //     /   \                        .
+            //    /  b  \                       .
+            //   |   :   |                      .
+            //   |   :   |                      .
+            //       :
+            // ......:......
+            //      a c
             const Point left_point = b - bc_offset;
             const Point pointy_point = b - normal(bc, offset);
             const Point right_point = b + bc_offset;
 
             infill.add(left_point);
-            const coord_t point_bevel_here = (b_node->parent && b_node->parent_to_here_direction == b_node->parent->parent_to_here_direction)? point_bevel_even : point_bevel_odd;
+            const coord_t point_bevel_here = (alternating)?
+                                             ((b_node->parent && b_node->parent_to_here_direction == b_node->parent->parent_to_here_direction)? point_bevel_even : point_bevel_odd)
+                                             : point_bevel;
             if (point_bevel_here)
             {
                 infill.add(pointy_point - normal(pointy_point - left_point, point_bevel_here));
@@ -238,11 +174,20 @@ void SpaceFillingTreeFill::offsetTreePathAlternating(std::vector<const SpaceFill
             infill.add(right_point);
         }
         else
-        {
-            Point ab = b - a;
-            Point ab_T = turn90CCW(ab);
+        { // corner case
+            //      a: |
+            //       : |
+            //       : L____
+            // ......:......
+            //      b:     c
+            //       :
+            //       :
+            const Point ab = b - a;
+            const Point ab_T = turn90CCW(ab);
             const Point normal_corner = b + normal(ab_T, offset) + bc_offset; // WARNING: offset is not based on the directions of the two segments, rather than assuming 90 degree corners
-            const coord_t corner_bevel_here = (a_node->distance_depth % 2 == 1)? corner_bevel_even : corner_bevel_odd;
+            const coord_t corner_bevel_here = (alternating)?
+                                              ((a_node->distance_depth % 2 == 1)? corner_bevel_even : corner_bevel_odd)
+                                              : corner_bevel;
             if (corner_bevel_here)
             {
                 infill.add(normal_corner - normal(ab, corner_bevel_here));

@@ -91,17 +91,6 @@ private:
     static TreeParams getTreeParams(coord_t line_distance, AABB3D model_aabb);
 
     /*!
-     * Generate the line in between the tree path and the circumscribed
-     * square of each stage in the fractal.
-     * 
-     * \param nodes The nodes of the tree path which walks along the cross fractal tree
-     * \param offset The offset from the cross fractal on straight pieces
-     * \param pocket_size The size of the pockets to leave open at junctions.
-     * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
-     */
-    void offsetTreePath(const std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, PolygonRef infill) const;
-
-    /*!
      * Generate the pattern itself by doing a depth first walk over the fractal.
      * The nodes itself are being recorded
      * 
@@ -115,16 +104,17 @@ private:
      * Generate the line in between the tree path and the circumscribed
      * square of each stage in the fractal.
      * 
-     * The pockets are applied on half the junctions.
+     * The pockets are applied on half the junctions when we are \p alternating.
      * 
      * \param nodes The nodes of the tree path which walks along the cross fractal tree
      * \param offset The offset from the cross fractal on straight pieces for half of the segments.
      * \param pocket_size The size of the pockets to leave open at junctions.
+     * \param alternating Whether to apply pockets only to half the junctions
      * \param use_odd_in_junctions Whether to apply pockets on the odd vs even junctions which are formed at low \p shift values
      * \param use_odd_out_junctions Whether to apply pockets on the odd vs even junctions which are formed at high \p shift values
      * \param[out] infill The cross infill pattern which isn't bounded to the outlines yet
      */
-    void offsetTreePathAlternating(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, bool use_odd_in_junctions, bool use_odd_out_junctions, PolygonRef infill) const;
+    void offsetTreePath(std::vector<const SpaceFillingTree::Node*>& nodes, coord_t offset, coord_t pocket_size, bool alternating, bool use_odd_in_junctions, bool use_odd_out_junctions, PolygonRef infill) const;
 };
 } // namespace cura
 
