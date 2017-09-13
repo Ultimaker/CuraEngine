@@ -1,4 +1,4 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2017 Tim Kuipers
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "IntPointTest.h"
@@ -19,7 +19,7 @@ void IntPointTest::tearDown()
     //Do nothing.
 }
 
-void IntPointTest::test()
+void IntPointTest::testRotationMatrix()
 {
     PointMatrix rot2d(90);
     Point3Matrix rot_homogeneous(rot2d);
@@ -34,20 +34,5 @@ void IntPointTest::test()
 
     CPPUNIT_ASSERT_MESSAGE(std::string("Matrix composition with translate and rotate failed"), rotated_in_place == rotated_in_place_2);
 }
-
-/*
-void LinearAlg2DTest::getDist2FromLineSegmentZeroNearTest()
-{
-    int64_t supposed_distance = LinearAlg2D::getDist2FromLineSegment(Point(0,0),Point(20,0),Point(0,0));
-    int64_t actual_distance = 400;
-    std::stringstream ss;
-    ss << "Line [0,0] -- [0,0], point [20,0], squared distance was ";
-    ss << supposed_distance;
-    ss << " rather than ";
-    ss << actual_distance;
-    ss << ".";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(),std::abs(supposed_distance - actual_distance) <= maximum_error);
-}
-*/
 
 }

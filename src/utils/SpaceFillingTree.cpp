@@ -57,11 +57,9 @@ void SpaceFillingTree::debugOutput(SVG& out, bool output_dfs_order) const
     root->debugOutput(out, root->middle, output_dfs_order, root_order); // root will draw line from its middle to the same middle
 }
 
-void SpaceFillingTree::debugCheck() const
+bool SpaceFillingTree::debugCheck() const
 {
-#ifdef DEBUG
-    root->debugCheck();
-#endif // DEBUG
+    return root->debugCheck();
 }
 
 SpaceFillingTree::Node::Node(SpaceFillingTree::Node* parent, unsigned int recursion_depth, Point middle, Direction parent_to_here_direction, unsigned int total_depth)
@@ -141,6 +139,7 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
         }
         this->children[direction] = new_node;
     }
+#ifdef DEBUG
     if (parent)
     {
         parent->debugCheck();
@@ -149,6 +148,7 @@ void SpaceFillingTree::Node::constructNode(Direction direction, coord_t child_of
     {
         debugCheck();
     }
+#endif // DEBUG
 
     assert(new_node->parent == this || new_node == parent);
     if (recursion_depth >= total_depth)
@@ -182,7 +182,9 @@ void SpaceFillingTree::Node::prune()
             assert(!original_child->children[3]);
             delete original_child;
             child_dir--; // make the next iteration of this loop handle this new child again
+#ifdef DEBUG
             debugCheck();
+#endif // DEBUG
         }
         child->prune(); // prune new or existing child recursively
         assert(child->parent == this);
@@ -246,21 +248,27 @@ void SpaceFillingTree::Node::debugOutput(SVG& out, Point parent_middle, bool out
     }
 }
 
-void SpaceFillingTree::Node::debugCheck() const
+bool SpaceFillingTree::Node::debugCheck() const
 {
-    #ifdef DEBUG
+    bool fail = false;
     for (int child_dir = 0; child_dir < Direction::DIRECTION_COUNT; child_dir++)
     {
         Node* child = children[child_dir];
         if (child)
         {
+#ifdef DEBUG
             assert(child->children[(child_dir + 2) % Direction::DIRECTION_COUNT] == nullptr);
             assert(child->parent == this);
             assert(child->parent_to_here_direction == static_cast<Direction>(child_dir));
-            child->debugCheck();
+#endif // DEBUG
+            fail |= child->children[(child_dir + 2) % Direction::DIRECTION_COUNT] != nullptr;
+            fail |= child->parent != this;
+            fail |= child->parent_to_here_direction != static_cast<Direction>(child_dir);
+            fail |= child->debugCheck();
+            assert(!fail);
         }
     }
-    #endif // DEBUG
+    return fail;
 }
 
 }; // namespace cura

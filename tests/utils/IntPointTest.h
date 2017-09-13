@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Tim Kuiper
+//Copyright (c) 2017 Tim Kuipers
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INT_POINT_TEST_H
@@ -14,7 +14,7 @@ namespace cura
 class IntPointTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(IntPointTest);
-    CPPUNIT_TEST(test);
+    CPPUNIT_TEST(testRotationMatrix);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -33,15 +33,11 @@ public:
      * exists that needs to be destroyed.
      */
     void tearDown();
-    
+
     //These are the actual test cases. The name of the function sort of describes what it tests but I refuse to document all of these, sorry.
-    void test();
+    void testRotationMatrix();
 
 private:
-    /*!
-     * \brief The maximum allowed error in distance measurements.
-     */
-    static const int64_t maximum_error = 10;
 };
 
 }

@@ -9,34 +9,44 @@ CPPUNIT_TEST_SUITE_REGISTRATION(SpaceFillingTreeFillTest);
 
 void SpaceFillingTreeFillTest::setUp()
 {
-    //Do nothing.
+    // no dothing
 }
 
 void SpaceFillingTreeFillTest::tearDown()
 {
-    //Do nothing.
+    // no dothing
 }
 
-void SpaceFillingTreeFillTest::test()
+void SpaceFillingTreeFillTest::debugCheck()
 {
-    
+    bool fail = tree.debugCheck();
+    CPPUNIT_ASSERT_MESSAGE("Space filling tree incorrect!", !fail);
 }
 
-/*
-void SpaceFillingTreeFillTest::pointIsLeftOfLineSharpTest()
+void SpaceFillingTreeFillTest::boundsCheck()
 {
-    short actual = -1;
-    Point p(3896, 3975);
-    Point a(1599, 3975);
-    Point b(200, 3996);
-    //looks like:         \        .
-    int64_t supposed = LinearAlg2D::pointIsLeftOfLine(p, a, b);
+    struct Visitor : public SpaceFillingTree::LocationVisitor
+    {
+        AABB aabb;
+        Visitor()
+        {}
+        /*!
+         * Register a location being crossed during the walk.
+         * \param node The node visited
+         */
+        void visit(const SpaceFillingTree::Node* node)
+        {
+            aabb.include(node->middle);
+        }
+    };
+    Visitor v;
+    tree.walk(v);
+    const coord_t expected_tree_width = 2 * radius * (1.0 - pow(0.5, (double)depth)); // fractal depth determines the covered square of the fractal
     std::stringstream ss;
-    ss << "Point " << p << " was computed as lying " << ((supposed == 0)? "on" : ((supposed < 0)? "left" : "right")) << " the line from " << a << " to " << b << ", instead of " << ((actual == 0)? "on" : ((actual < 0)? "left" : "right"));
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), actual * supposed > 0 || (actual == 0 && supposed == 0));
-
+    ss << "Tree is not spanning expected square " << expected_tree_width << "; actual width: " << (v.aabb.max.X - v.aabb.min.X);
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), std::abs((v.aabb.max.X - v.aabb.min.X) - expected_tree_width) <= allowed_error);
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), std::abs((v.aabb.max.Y - v.aabb.min.Y) - expected_tree_width) <= allowed_error);
+    CPPUNIT_ASSERT_MESSAGE("Tree middle is not the given middle", vSize(v.aabb.getMiddle() - middle) <= allowed_error);
 }
-*/
-
 
 }

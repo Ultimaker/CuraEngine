@@ -14,7 +14,8 @@ namespace cura
 class SpaceFillingTreeFillTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(SpaceFillingTreeFillTest);
-    CPPUNIT_TEST(test);
+    CPPUNIT_TEST(debugCheck);
+    CPPUNIT_TEST(boundsCheck);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -29,11 +30,20 @@ public:
     void tearDown();
 
     /*!
-     * testing test suite
+     * debugCheck of the tree
      */
-    void test();
+    void debugCheck();
+
+    /*!
+     * checking whether all falls within the original square
+     */
+    void boundsCheck();
 private:
-    
+    coord_t allowed_error = 10;
+    Point middle = Point(0, 0);
+    coord_t radius = 123;
+    int depth = 4;
+    SpaceFillingTree tree = SpaceFillingTree(middle, radius, depth);
 };
 
 }

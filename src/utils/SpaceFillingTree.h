@@ -45,8 +45,6 @@ class SpaceFillingTreeFill;
 class SpaceFillingTree
 {
 public:
-    friend class SpaceFillingTreeFill;
-
     class Node;
     /*!
      * pure virtual class to implement by an external class
@@ -112,9 +110,10 @@ public:
      * 
      * Only handled in debug mode.
      * 
-     * Works by way if assertions.
+     * Works by way of assertions in DEBUG mode.
+     * \return Whether problems have been found
      */
-    void debugCheck() const;
+    bool debugCheck() const;
 
     /*!
      * Direction of a line segment.
@@ -210,9 +209,10 @@ public:
          * 
          * Only processed in DEBUG mode.
          * 
-         * Works by way of assertions.
+         * Works by way of assertions in DEBUG mode.
+         * \return Whether problems have been found
          */
-        void debugCheck() const;
+        bool debugCheck() const;
     };
 
 protected:

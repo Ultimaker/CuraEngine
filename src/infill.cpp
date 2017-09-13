@@ -202,8 +202,8 @@ void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern,
         shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
         shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
 
-        use_odd_in_junctions = ((z + period / 2) / period) % 2;
-        use_odd_out_junctions = (z / period) % 2;
+        use_odd_in_junctions = ((z + period / 2) / period) % 2 == 1; // change junction halfway in between each period when the in-junctions occur
+        use_odd_out_junctions = (z / period) % 2 == 1; // out junctions occur halfway at each periods
     }
     Polygons outline = in_outline.offset(outline_offset);
     cross_fill_pattern.generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
