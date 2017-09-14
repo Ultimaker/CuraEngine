@@ -24,6 +24,7 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(isInsideTest);
     CPPUNIT_TEST(splitIntoPartsWithHoleTest);
     CPPUNIT_TEST(clockwiseTest);
+    CPPUNIT_TEST(differenceContainsOriginalPointTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -49,6 +50,7 @@ public:
     void isOutsideTest();
     void isInsideTest();
     void splitIntoPartsWithHoleTest();
+    void differenceContainsOriginalPointTest();
     void clockwiseTest();
 
 
@@ -64,6 +66,7 @@ private:
     Polygon clipper_bug;
     Polygon clockwise_large;
     Polygon clockwise_small;
+    Polygons clockwise_donut;
 };
 
 }
