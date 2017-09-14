@@ -1,9 +1,11 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LinearAlg2DTest.h"
 
 #include <../src/utils/linearAlg2D.h>
+
+#define FUZZ_DISTANCE 2 //Error that is allowed to be introduced by rounding.
 
 namespace cura
 {
@@ -389,7 +391,7 @@ void LinearAlg2DTest::rotateAroundAssert(const Point point, const Point origin, 
     Point result = mat.apply(point);
     std::stringstream ss;
     ss << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle << " degrees resulted in " << result << " instead of expected " << expected_result << ".";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), result == expected_result);
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - expected_result) < FUZZ_DISTANCE);
 }
 
 }
