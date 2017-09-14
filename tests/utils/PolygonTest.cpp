@@ -138,16 +138,14 @@ void PolygonTest::differenceContainsOriginalPointTest()
 {
     PolygonsPart part = clockwise_donut.splitIntoParts()[0];
     PolygonRef outer = part.outerPolygon();
-    CPPUNIT_ASSERT_MESSAGE("Input vertex cannot be found in polygons difference!", std::find(outer.begin(), outer.end(), clockwise_large[0]) != outer.end());
+    CPPUNIT_ASSERT_MESSAGE("Outer vertex cannot be found in polygons difference!", std::find(outer.begin(), outer.end(), clockwise_large[0]) != outer.end());
+    PolygonRef inner = part[1];
+    CPPUNIT_ASSERT_MESSAGE("Inner vertex cannot be found in polygons difference!", std::find(inner.begin(), inner.end(), clockwise_small[0]) != inner.end());
 }
 
 void PolygonTest::clockwiseTest()
 {
-    Polygons outer;
-    outer.add(clockwise_large);
-    Polygons inner;
-    inner.add(clockwise_small);
-    PolygonsPart part = outer.difference(inner).splitIntoParts()[0];
+    PolygonsPart part = clockwise_donut.splitIntoParts()[0];
     {
         PolygonRef outer_after = part.outerPolygon();
         unsigned int start_idx;
@@ -170,7 +168,6 @@ void PolygonTest::clockwiseTest()
                 break;
             }
         }
-        CPPUNIT_ASSERT_MESSAGE("Input vertex cannot be found in polygons difference!", start_idx < inner_after.size());
         CPPUNIT_ASSERT_MESSAGE("Hole polygon is not clockwise!", inner_after[(start_idx + 1) % inner_after.size()] == Point(-50, 50));
     }
 }
