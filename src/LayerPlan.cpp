@@ -389,17 +389,12 @@ void LayerPlan::planPrime()
 
 void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
-    if(vSize2(p - *last_planned_position) < 25)
-    {
-        std::cerr << layer_nr << ": ignoring short extrusion - type " << (int)config.type << ", len = " << vSize(p - *last_planned_position) << "\n";
-        // extrusion is less than 5uM long, replace with travel
-        addTravel_simple(p);
-    }
-    else
+    // ignore extrusions less than 5uM long
+    if(vSize2(p - *last_planned_position) >= 25)
     {
         getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
+        last_planned_position = p;
     }
-    last_planned_position = p;
 }
 
 void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
