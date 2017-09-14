@@ -368,6 +368,21 @@ void LinearAlg2DTest::rotateAround90()
     rotateAroundAssert(Point(25, 30), Point(10, 17), 90, Point(-3, 32));
 }
 
+void LinearAlg2DTest::rotateAroundNegative90()
+{
+    rotateAroundAssert(Point(25, 30), Point(10, 17), -90, Point(23, 2));
+}
+
+void LinearAlg2DTest::rotateAround0()
+{
+    rotateAroundAssert(Point(-67, 14), Point(50, 50), 0, Point(-67, 14));
+}
+
+void LinearAlg2DTest::rotateAround12()
+{
+    rotateAroundAssert(Point(-67, 14), Point(50, 50), 12, Point(-57, -9)); //Actually [-57, -9.5]!
+}
+
 void LinearAlg2DTest::rotateAroundAssert(const Point point, const Point origin, const double angle, const Point expected_result)
 {
     Point3Matrix mat = LinearAlg2D::rotateAround(origin, angle);
