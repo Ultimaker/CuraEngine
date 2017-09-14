@@ -30,11 +30,10 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern, const SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
-    Polygons outline_offsetted;
     switch(pattern)
     {
     case EFillMethod::GRID:
@@ -71,6 +70,15 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
             break;
         }
         generateCubicSubDivInfill(result_lines, *mesh);
+        break;
+    case EFillMethod::CROSS:
+    case EFillMethod::CROSS_3D:
+        if (!cross_fill_pattern)
+        {
+            logError("Cannot generate Cross infill without a pregenerated cross fill pattern!\n");
+            break;
+        }
+        generateCrossInfill(*cross_fill_pattern, result_polygons, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -113,8 +121,8 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
 
 void Infill::generateConcentric3DInfill(Polygons& result)
 {
-    int period = line_distance * 2;
-    int shift = int64_t(one_over_sqrt_2 * z) % period;
+    coord_t period = line_distance * 2;
+    coord_t shift = int64_t(one_over_sqrt_2 * z) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
@@ -154,8 +162,8 @@ void Infill::generateQuarterCubicInfill(Polygons& result)
 
 void Infill::generateHalfTetrahedralInfill(float pattern_z_shift, int angle_shift, Polygons& result)
 {
-    int period = line_distance * 2;
-    int shift = int64_t(one_over_sqrt_2 * (z + pattern_z_shift * period * 2)) % period;
+    coord_t period = line_distance * 2;
+    coord_t shift = int64_t(one_over_sqrt_2 * (z + pattern_z_shift * period * 2)) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
@@ -175,6 +183,30 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
     addLineSegmentsInfill(result, uncropped);
+}
+
+void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines)
+{
+    if (zig_zaggify)
+    {
+        outline_offset += -infill_line_width / 2;
+    }
+    coord_t shift = line_distance / 2;
+    bool use_odd_in_junctions = false;
+    bool use_odd_out_junctions = false;
+    if (pattern == EFillMethod::CROSS_3D)
+    {
+        coord_t period = line_distance * 2;
+        shift = z % period;
+        shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
+        shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
+        shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
+
+        use_odd_in_junctions = ((z + period / 2) / period) % 2 == 1; // change junction halfway in between each period when the in-junctions occur
+        use_odd_out_junctions = (z / period) % 2 == 1; // out junctions occur halfway at each periods
+    }
+    Polygons outline = in_outline.offset(outline_offset);
+    cross_fill_pattern.generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
 }
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)

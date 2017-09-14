@@ -211,6 +211,8 @@ public:
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 };
 
+class SpaceFillingTreeFill; // forward declaration to prevent dependency loop
+
 class SupportStorage
 {
 public:
@@ -219,13 +221,15 @@ public:
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
     std::vector<SupportLayer> supportLayers;
+    SpaceFillingTreeFill* cross_fill_pattern; //!< the fractal pattern for the cross (3d) filling pattern
 
     SupportStorage()
     : generated(false)
     , layer_nr_max_filled_layer(-1)
+    , cross_fill_pattern(nullptr)
     {
     }
-    ~SupportStorage(){ supportLayers.clear(); }
+    ~SupportStorage();
 };
 /******************/
 
@@ -242,13 +246,16 @@ public:
     std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
     AABB3D bounding_box; //!< the mesh's bounding box
+
     SubDivCube* base_subdiv_cube;
+    SpaceFillingTreeFill* cross_fill_pattern; //!< the fractal pattern for the cross (3d) filling pattern
 
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
     : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
+    , cross_fill_pattern(nullptr)
     {
         layers.resize(slice_layer_count);
     }
