@@ -143,33 +143,32 @@ void PolygonTest::differenceContainsOriginalPointTest()
     CPPUNIT_ASSERT_MESSAGE("Inner vertex cannot be found in polygons difference!", std::find(inner.begin(), inner.end(), clockwise_small[0]) != inner.end());
 }
 
-void PolygonTest::clockwiseTest()
+void PolygonTest::differenceClockwiseTest()
 {
     PolygonsPart part = clockwise_donut.splitIntoParts()[0];
+
+    PolygonRef outer = part.outerPolygon();
+    //Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
+    coord_t area = 0;
+    for (size_t point_index = 0; point_index < outer.size(); point_index++)
     {
-        PolygonRef outer_after = part.outerPolygon();
-        unsigned int start_idx;
-        for (start_idx = 0; start_idx < outer_after.size(); start_idx++)
-        {
-            if (outer_after[start_idx] == Point(-100, -100))
-            {
-                break;
-            }
-        }
-        CPPUNIT_ASSERT_MESSAGE("Outer polygon is not counter-clockwise!", outer_after[(start_idx + 1) % outer_after.size()] == Point(100, -100));
+        const size_t next_index = (point_index + 1) % outer.size();
+        const Point point = outer[point_index];
+        const Point next = outer[next_index];
+        area += (next.X - point.X) * (point.Y + next.Y);
     }
+    CPPUNIT_ASSERT_MESSAGE("Outer polygon is not counter-clockwise!", area < 0);
+
+    PolygonRef inner = part[1];
+    area = 0;
+    for (size_t point_index = 0; point_index < inner.size(); point_index++)
     {
-        PolygonRef inner_after = part[1];
-        unsigned int start_idx;
-        for (start_idx = 0; start_idx < inner_after.size(); start_idx++)
-        {
-            if (inner_after[start_idx] == Point(-50, -50))
-            {
-                break;
-            }
-        }
-        CPPUNIT_ASSERT_MESSAGE("Hole polygon is not clockwise!", inner_after[(start_idx + 1) % inner_after.size()] == Point(-50, 50));
+        const size_t next_index = (point_index + 1) % inner.size();
+        const Point point = inner[point_index];
+        const Point next = inner[next_index];
+        area += (next.X - point.X) * (point.Y + next.Y);
     }
+    CPPUNIT_ASSERT_MESSAGE("Inner polygon is not clockwise!", area > 0);
 }
 
 

@@ -23,8 +23,8 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(isOutsideTest);
     CPPUNIT_TEST(isInsideTest);
     CPPUNIT_TEST(splitIntoPartsWithHoleTest);
-    CPPUNIT_TEST(clockwiseTest);
     CPPUNIT_TEST(differenceContainsOriginalPointTest);
+    CPPUNIT_TEST(differenceClockwiseTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -51,7 +51,7 @@ public:
     void isInsideTest();
     void splitIntoPartsWithHoleTest();
     void differenceContainsOriginalPointTest();
-    void clockwiseTest();
+    void differenceClockwiseTest();
 
 
 private:
@@ -59,7 +59,8 @@ private:
      * \brief The maximum allowed error in distance measurements.
      */
     static const int64_t maximum_error = 10;
-    
+
+    //Some fixtures.
     Polygon test_square;
     Polygon pointy_square;
     Polygon triangle;
