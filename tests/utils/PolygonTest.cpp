@@ -1,4 +1,4 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PolygonTest.h"
@@ -35,6 +35,16 @@ void PolygonTest::setUp()
     clipper_bug.emplace_back(107158, 120960);
     clipper_bug.emplace_back(106760, 120839);
     clipper_bug.emplace_back(106570, 120831);
+
+    clockwise_large.emplace_back(-100, -100);
+    clockwise_large.emplace_back(-100, 100);
+    clockwise_large.emplace_back(100, 100);
+    clockwise_large.emplace_back(100, -100);
+
+    clockwise_small.emplace_back(-50, -50);
+    clockwise_small.emplace_back(-50, 50);
+    clockwise_small.emplace_back(50, 50);
+    clockwise_small.emplace_back(50, -50);
 }
 
 void PolygonTest::tearDown()
@@ -112,28 +122,26 @@ void PolygonTest::isInsideTest()
 
 }
 
-void PolygonTest::clockwiseTest()
+void PolygonTest::splitIntoPartsWithHoleTest()
 {
-    Polygons outers;
-    PolygonRef outer = outers.newPoly();
-    outer.emplace_back(-100, -100);
-    outer.emplace_back(-100, 100);
-    outer.emplace_back(100, 100);
-    outer.emplace_back(100, -100);
+    Polygons outer;
+    outer.add(clockwise_large);
+    Polygons inner;
+    inner.add(clockwise_small);
 
-    Polygons inners;
-    PolygonRef inner = inners.newPoly();
-    inner.emplace_back(-50, -50);
-    inner.emplace_back(-50, 50);
-    inner.emplace_back(50, 50);
-    inner.emplace_back(50, -50);
-
-    Polygons diff = outers.difference(inners);
-    std::vector<PolygonsPart> parts = diff.splitIntoParts();
+    const Polygons diff = outer.difference(inner);
+    const std::vector<PolygonsPart> parts = diff.splitIntoParts();
 
     CPPUNIT_ASSERT_MESSAGE("difference between two polygons is not one PolygonsPart!", parts.size() == 1);
+}
 
-    PolygonsPart part = parts[0];
+void PolygonTest::clockwiseTest()
+{
+    Polygons outer;
+    outer.add(clockwise_large);
+    Polygons inner;
+    inner.add(clockwise_small);
+    PolygonsPart part = outer.difference(inner).splitIntoParts()[0];
     {
         PolygonRef outer_after = part.outerPolygon();
         unsigned int start_idx;
