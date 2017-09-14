@@ -938,18 +938,40 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.getExtruderIsUsed(extruder_nr))
+        if (mesh.getExtruderIsUsed(extruder_nr)
+            && !mesh.getSettingBoolean("force_first")) // Don't include meshes which are forced to be first in the mesh order calculation
         {
             const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
             const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }
+
+    // include mehses which are forced to be printed first on each layer with an extruder
+    std::vector<unsigned int> ret;
+    ret.reserve(storage.meshes.size());
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    {
+        const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        if (mesh.getExtruderIsUsed(extruder_nr)
+            && mesh.getSettingBoolean("force_first")) // Include meshes which are forced to be first before all others
+        {
+            ret.push_back(mesh_idx);
+        }
+    }
+
     std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
     std::list<unsigned int>::iterator starting_mesh_idx_it = mesh_indices_order.end();
     { // calculate starting_mesh_it
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
         const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
+        Point optimized_order_start_position = layer_start_position;
+        if (!ret.empty())
+        { // start from last object which was forced to be first in this layer
+            const Mesh& mesh_data = storage.meshgroup->meshes[ret.back()];
+            const Point3 middle = mesh_data.getAABB().getMiddle();
+            optimized_order_start_position = Point(middle.x, middle.y);
+        }
         coord_t best_dist2 = std::numeric_limits<coord_t>::max();
         for (std::list<unsigned int>::iterator mesh_it = mesh_indices_order.begin(); mesh_it != mesh_indices_order.end(); ++mesh_it)
         {
@@ -957,7 +979,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
             const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
             const Point3 middle3 = mesh.getAABB().getMiddle();
             const Point middle(middle3.x, middle3.y);
-            const coord_t dist2 = vSize2(middle - layer_start_position);
+            const coord_t dist2 = vSize2(middle - optimized_order_start_position);
             if (dist2 < best_dist2)
             {
                 best_dist2 = dist2;
@@ -965,8 +987,6 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
             }
         }
     }
-    std::vector<unsigned int> ret;
-    ret.reserve(mesh_indices_order.size());
     for (unsigned int mesh_order_nr = 0; mesh_order_nr < mesh_indices_order.size(); mesh_order_nr++)
     {
         if (starting_mesh_idx_it == mesh_indices_order.end())
