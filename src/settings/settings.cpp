@@ -382,6 +382,10 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
+    if (value == "cross")
+        return EFillMethod::CROSS;
+    if (value == "cross_3d")
+        return EFillMethod::CROSS_3D;
     return EFillMethod::NONE;
 }
 
