@@ -63,7 +63,7 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getPointOnLineWithDistTest6);
     CPPUNIT_TEST(getPointOnLineWithDistTest7);
 
-    CPPUNIT_TEST(rotateAroundTest);
+    CPPUNIT_TEST(rotateAround90);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -133,7 +133,7 @@ public:
     void getPointOnLineWithDistTest6();
     void getPointOnLineWithDistTest7();
 
-    void rotateAroundTest();
+    void rotateAround90();
 
 private:
     /*!
@@ -172,6 +172,16 @@ private:
     void getAngleAssert(Point a, Point b, Point c, float actual_angle_in_half_rounds);
 
     void getPointOnLineWithDistAssert(const Point p, const Point a, const Point b, int64_t dist, Point actual_result, bool actual_returned);
+
+    /*!
+     * \brief Tests rotating a point with rotateAround.
+     *
+     * \param point The original location of the point.
+     * \param origin The point to rotate around.
+     * \param angle The angle to rotate the point under.
+     * \param expected_result The new location of the point, after rotating.
+     */
+    void rotateAroundAssert(const Point point, const Point origin, const double angle, const Point expected_result);
 };
 
 }
