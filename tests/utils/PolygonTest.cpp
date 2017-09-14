@@ -138,15 +138,7 @@ void PolygonTest::differenceContainsOriginalPointTest()
 {
     PolygonsPart part = clockwise_donut.splitIntoParts()[0];
     PolygonRef outer = part.outerPolygon();
-    size_t found_index;
-    for (found_index = 0; found_index < outer.size(); found_index++)
-    {
-        if (outer[found_index] == clockwise_large[0])
-        {
-            break;
-        }
-    }
-    CPPUNIT_ASSERT_MESSAGE("Input vertex cannot be found in polygons difference!", found_index < outer.size());
+    CPPUNIT_ASSERT_MESSAGE("Input vertex cannot be found in polygons difference!", std::find(outer.begin(), outer.end(), clockwise_large[0]) != outer.end());
 }
 
 void PolygonTest::clockwiseTest()
