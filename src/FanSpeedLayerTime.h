@@ -15,6 +15,7 @@ public:
     double cool_fan_speed_min;
     double cool_fan_speed_max;
     double cool_min_speed;
+    int cool_fan_min_layer;
     int cool_fan_full_layer;
 };
 
