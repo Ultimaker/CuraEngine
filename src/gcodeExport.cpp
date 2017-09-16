@@ -282,23 +282,7 @@ EGCodeFlavor GCodeExport::getFlavor() const
 
 void GCodeExport::setZ(int z)
 {
-    if (isZHopped)
-    {
-        // adjust the current z-hop height for the new layer z
-        isZHopped = current_layer_z + isZHopped - z;
-        if (isZHopped < 0)
-        {
-            isZHopped = 0;
-        }
-        if (isZHopped == 0)
-        {
-            // the new layer height is the same as the previous z-hop height
-            // so the z-hop height has become 0 and we need to update currentPosition.z
-            // to match
-            currentPosition.z = z;
-        }
-    }
-    current_layer_z = z;
+    this->current_layer_z = z;
 }
 
 Point3 GCodeExport::getPosition() const
