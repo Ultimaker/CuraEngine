@@ -38,8 +38,9 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons* perimeter_gaps_output = nullptr;
         const bool connected_zigzags = true;
         const bool use_endpieces = false;
+        const Point infill_origin;
         Infill infill_comp(pattern, zig_zaggify_infill, area, outline_offset
-            , infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces
+            , infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, infill_origin, perimeter_gaps_output, connected_zigzags, use_endpieces
             , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
 
