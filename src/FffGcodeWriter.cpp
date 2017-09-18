@@ -1128,25 +1128,21 @@ bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& g
     {
         return false;
     }
+    const Point3 mesh_middle = mesh.bounding_box.getMiddle();
+    const Point infill_origin(mesh_middle.x + mesh.getSettingInMicrons("infill_offset_x"), mesh_middle.y + mesh.getSettingInMicrons("infill_offset_y"));
     if (mesh.getSettingBoolean("spaghetti_infill_enabled"))
     {
-        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle);
+        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle, infill_origin);
     }
     else
     {
-        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle);
-        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle);
+        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle, infill_origin);
+        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_overlap, infill_angle, infill_origin);
         return added_something;
     }
 }
 
-static Point getInfillOrigin(const SliceMeshStorage& mesh)
-{
-    Point3 mesh_middle = mesh.bounding_box.getMiddle();
-    return Point(mesh_middle.x + mesh.getSettingInMicrons("infill_offset_x"), mesh_middle.y + mesh.getSettingInMicrons("infill_offset_y"));
-}
-
-bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int infill_angle) const
+bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int infill_angle, const Point& infill_origin) const
 {
     if (extruder_nr != mesh.getSettingAsExtruderNr("infill_extruder_nr"))
     {
@@ -1168,7 +1164,6 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 int infill_shift = infill_line_distance_here / 2;
-                const Point infill_origin = getInfillOrigin(mesh);
                 if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
                 {
                     infill_line_distance_here /= 2;
@@ -1197,7 +1192,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     return added_something;
 }
 
-bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int infill_angle) const
+bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int infill_angle, const Point& infill_origin) const
 {
     if (extruder_nr != mesh.getSettingAsExtruderNr("infill_extruder_nr"))
     {
@@ -1221,7 +1216,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
         int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
-        const Point infill_origin = getInfillOrigin(mesh);
         // infill shift explanation: [>]=shift ["]=line_dist
 // :       |       :       |       :       |       :       |         > furthest from top
 // :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
