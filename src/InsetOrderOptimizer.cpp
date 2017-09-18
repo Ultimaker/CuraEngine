@@ -23,11 +23,13 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
 
 void InsetOrderOptimizer::moveInside()
 {
-    const coord_t dist = mesh_config.inset0_config.getLineWidth() * 2;
+    const coord_t outer_wall_line_width = mesh_config.inset0_config.getLineWidth();
     Point p = gcode_layer.getLastPlannedPositionOrStartingPosition();
-    if (PolygonUtils::moveInside(part.insets[0], p, dist) != NO_INDEX)
+    // try to move p inside the outer wall by 2 x the outer wall line width
+    if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 2) != NO_INDEX)
     {
-        if (part.insets[0].inside(p))
+        // move to p if it is not closer than a line width from the centre line of the outer wall
+        if (part.insets[0].offset(-outer_wall_line_width).inside(p))
         {
             gcode_layer.addTravel_simple(p);
             gcode_layer.forceNewPathStart();
