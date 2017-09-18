@@ -31,6 +31,7 @@ class Infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z; //!< height of the layer for which we generate infill
     coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    const Point infill_origin; //!< origin of the infill pattern
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
@@ -59,6 +60,7 @@ public:
         , double fill_angle
         , int64_t z
         , int64_t shift
+        , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
@@ -77,6 +79,7 @@ public:
     , fill_angle(fill_angle)
     , z(z)
     , shift(shift)
+    , infill_origin(infill_origin)
     , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
