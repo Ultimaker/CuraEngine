@@ -1,4 +1,3 @@
-//Copyright (C) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -654,7 +653,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
-        storage.support.cross_fill_pattern = new SpaceFillingTreeFill(infill_extr.getSettingInMicrons("support_line_distance"), aabb);
+        storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(infill_extr.getSettingInMicrons("support_line_distance"), aabb));
     }
 }
 
