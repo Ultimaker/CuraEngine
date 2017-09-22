@@ -13,11 +13,12 @@ namespace cura
 
 SupportStorage::~SupportStorage()
 {
-    supportLayers.clear(); 
-    if (cross_fill_pattern)
+    supportLayers.clear();
+    for(SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
     {
         delete cross_fill_pattern;
     }
+    cross_fill_patterns.clear();
 }
 
 Polygons& SliceLayerPart::getOwnInfillArea()
@@ -101,10 +102,11 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
-    if (cross_fill_pattern)
+    for (SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
     {
         delete cross_fill_pattern;
     }
+    cross_fill_patterns.clear();
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const

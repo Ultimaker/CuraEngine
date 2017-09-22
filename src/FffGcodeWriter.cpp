@@ -1175,7 +1175,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                     , /*bool skip_some_zags =*/ false
                     , /*int zag_skip_count =*/ 0
                     , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
-                infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
+                infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_patterns[density_idx], &mesh);
             }
             if (infill_lines.size() > 0 || infill_polygons.size() > 0)
             {
@@ -1249,7 +1249,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             , /*bool skip_some_zags =*/ false
             , /*int zag_skip_count =*/ 0
             , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_pattern, &mesh);
+        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_patterns[density_idx], &mesh);
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)
     {
@@ -1852,7 +1852,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    support_line_distance_here, current_support_infill_overlap, support_infill_angle, gcode_layer.z, support_shift,
                                    perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces,
                                    skip_some_zags, zag_skip_count);
-                infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_pattern);
+                infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_patterns[density_idx]);
             }
 
             if (support_lines.size() > 0 || support_polygons.size() > 0)
