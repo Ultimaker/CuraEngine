@@ -743,7 +743,7 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
     SkinInfillAreaComputation skin_infill_area_computation(layer_nr, storage, mesh, process_infill);
     skin_infill_area_computation.generateSkinsAndInfill();
 
-    if (mesh.getSettingBoolean("ironing_enabled"))
+    if (mesh.getSettingBoolean("ironing_enabled") && (!mesh.getSettingBoolean("ironing_only_highest_layer") || (unsigned int)mesh.layer_nr_max_filled_layer == layer_nr))
     {
         TopSurface* top_surface = new TopSurface(mesh, layer_nr); //Generate the top surface to iron over.
         mesh.layers[layer_nr].top_surface = top_surface;
