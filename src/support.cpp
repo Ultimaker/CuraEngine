@@ -655,6 +655,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         }
         storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(infill_extr.getSettingInMicrons("support_line_distance"), aabb));
     }
+    else
+    {
+        // cross_fill_patterns must not be empty even when the support pattern is not a cross fractal
+        storage.support.cross_fill_patterns.push_back(nullptr);
+    }
 }
 
 /* 
