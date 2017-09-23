@@ -609,6 +609,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 mesh.cross_fill_patterns.push_back(new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance") << gradual_step, mesh.bounding_box));
             }
         }
+        else
+        {
+            // cross_fill_patterns must not be empty even when the infill pattern is not a cross fractal
+            mesh.cross_fill_patterns.push_back(nullptr);
+        }
 
         // combine infill
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
