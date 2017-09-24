@@ -34,6 +34,21 @@ void InsetOrderOptimizer::moveInside()
             gcode_layer.addTravel_simple(p);
             gcode_layer.forceNewPathStart();
         }
+        else
+        {
+            // p is still too close to the centre line of the outer wall so move it again
+            // this can occur when the last wall finished at a right angle corner as the first move
+            // just moved p along one edge rather than into the part
+            if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 2) != NO_INDEX)
+            {
+                // move to p if it is not closer than a line width from the centre line of the outer wall
+                if (part.insets[0].offset(-outer_wall_line_width).inside(p))
+                {
+                    gcode_layer.addTravel_simple(p);
+                    gcode_layer.forceNewPathStart();
+                }
+            }
+        }
     }
 }
 
