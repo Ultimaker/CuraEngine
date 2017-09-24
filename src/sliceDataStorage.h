@@ -15,6 +15,7 @@
 #include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
+#include "utils/SpaceFillingTree.h"
 
 namespace cura 
 {
@@ -210,8 +211,6 @@ public:
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 };
 
-class SpaceFillingTreeFill; // forward declaration to prevent dependency loop
-
 class SupportStorage
 {
 public:
@@ -222,12 +221,7 @@ public:
     std::vector<SupportLayer> supportLayers;
     std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual support step.
 
-    SupportStorage()
-    : generated(false)
-    , layer_nr_max_filled_layer(-1)
-    , cross_fill_patterns()
-    {
-    }
+    SupportStorage();
     ~SupportStorage();
 };
 /******************/
@@ -249,15 +243,7 @@ public:
     SubDivCube* base_subdiv_cube;
     std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual infill step.
 
-    SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
-    : SettingsMessenger(mesh)
-    , layer_nr_max_filled_layer(0)
-    , bounding_box(mesh->getAABB())
-    , base_subdiv_cube(nullptr)
-    , cross_fill_patterns()
-    {
-        layers.resize(slice_layer_count);
-    }
+    SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count);
 
     virtual ~SliceMeshStorage();
 
