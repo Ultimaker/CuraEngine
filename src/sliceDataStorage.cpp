@@ -11,6 +11,13 @@
 namespace cura
 {
 
+SupportStorage::SupportStorage()
+: generated(false)
+, layer_nr_max_filled_layer(-1)
+, cross_fill_patterns()
+{
+}
+
 SupportStorage::~SupportStorage()
 {
     supportLayers.clear();
@@ -94,6 +101,16 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
         layer_walls.add(part.outline);
         continue;
     }
+}
+
+SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+: SettingsMessenger(mesh)
+, layer_nr_max_filled_layer(0)
+, bounding_box(mesh->getAABB())
+, base_subdiv_cube(nullptr)
+, cross_fill_patterns()
+{
+    layers.resize(slice_layer_count);
 }
 
 SliceMeshStorage::~SliceMeshStorage()
