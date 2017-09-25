@@ -207,10 +207,10 @@ private:
      * 
      * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
-     * \param fill_angle The angle of the generated lines
-     * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
+     * \param infill_rotation The angle of the generated lines
+     * \param extra_shift extra shift of the scanlines in the direction perpendicular to the infill_rotation
      */
-    void generateLineInfill(Polygons& result, int line_distance, const double& fill_angle, int64_t extra_shift);
+    void generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, int64_t extra_shift);
     
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -275,9 +275,18 @@ private:
      * 
      * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
-     * \param fill_angle The angle of the generated lines
+     * \param infill_rotation The angle of the generated lines
      */
-    void generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle);
+    void generateZigZagInfill(Polygons& result, const int line_distance, const double& infill_rotation);
+
+    /*!
+     * determine how far the infill pattern should be shifted based on the values of infill_origin and \p infill_rotation
+     *
+     * \param[in] infill_rotation the angle the infill pattern is rotated through
+     *
+     * \return the distance the infill pattern should be shifted
+     */
+    int64_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
 };
 
 }//namespace cura
