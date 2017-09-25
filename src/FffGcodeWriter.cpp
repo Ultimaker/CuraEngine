@@ -532,6 +532,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         Polygons wall = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_base_config.getLineWidth() / 2);
+        wall.simplify(); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
         gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.raft_base_config);
 
         Polygons raftLines;
@@ -578,11 +579,14 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
 
+        Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
+        raft_outline_path.simplify(); //Remove those micron-movements.
+        constexpr coord_t infill_outline_width = 0;
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
         constexpr bool zig_zaggify_infill = true;
-        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
@@ -616,12 +620,15 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         {
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
-        
+
+        Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
+        raft_outline_path.simplify(); //Remove those micron-movements.
+        constexpr coord_t infill_outline_width = 0;
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         double fill_angle = 90 * raftSurfaceLayer;
         constexpr bool zig_zaggify_infill = true;
-        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, storage.raftOutline, offset_from_poly_outline, gcode_layer.configs_storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 

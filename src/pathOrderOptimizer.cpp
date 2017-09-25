@@ -37,7 +37,17 @@ void PathOrderOptimizer::optimize()
     }
 
 
-    Point prev_point = startPoint;
+    Point prev_point;
+    switch (config.type)
+    {
+        case EZSeamType::USER_SPECIFIED:
+            prev_point = config.pos;
+        case EZSeamType::RANDOM: //TODO: Starting position of the first polygon isn't random.
+        case EZSeamType::SHARPEST_CORNER:
+        case EZSeamType::SHORTEST:
+        default:
+            prev_point = startPoint;
+    }
     for (unsigned int poly_order_idx = 0; poly_order_idx < polygons.size(); poly_order_idx++) /// actual path order optimizer
     {
         int best_poly_idx = -1;
