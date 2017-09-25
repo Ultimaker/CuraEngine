@@ -257,29 +257,30 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
     }
 }
 
-void Infill::generateLineInfill(Polygons& result, int line_distance, const double& fill_angle, int64_t shift)
+int64_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation)
 {
     if (infill_origin.X != 0 || infill_origin.Y != 0)
     {
-        const double fill_angle_rads = fill_angle * M_PI / 180;
-        shift += infill_origin.X * std::cos(fill_angle_rads) - infill_origin.Y * std::sin(fill_angle_rads);
+        const double rotation_rads = infill_rotation * M_PI / 180;
+        return infill_origin.X * std::cos(rotation_rads) - infill_origin.Y * std::sin(rotation_rads);
     }
-    PointMatrix rotation_matrix(fill_angle);
+    return 0;
+}
+
+void Infill::generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, int64_t shift)
+{
+    shift += getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+    PointMatrix rotation_matrix(infill_rotation);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
     generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
 }
 
 
-void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle)
+void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& infill_rotation)
 {
-    int64_t shift = 0;
-    if (infill_origin.X != 0 || infill_origin.Y != 0)
-    {
-        const double fill_angle_rads = fill_angle * M_PI / 180;
-        shift += infill_origin.X * std::cos(fill_angle_rads) - infill_origin.Y * std::sin(fill_angle_rads);
-    }
-    PointMatrix rotation_matrix(fill_angle);
+    const int64_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+    PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
     generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
