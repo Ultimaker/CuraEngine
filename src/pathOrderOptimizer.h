@@ -128,8 +128,9 @@ private:
      * \param best_score[in, out] The distance score for the current best line
      * \param prev_point[in] The previous point from which to find the next best line
      * \param incoming_perpundicular_normal[in] The direction of movement when the print head arrived at \p prev_point, turned 90 degrees CCW
+     * \param just_point[in] If not -1, only look at the line vertex with this index
      */
-    void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal);
+    void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point = -1);
 
     /*!
      * Get a score to modify the distance score for measuring how good two lines follow each other.

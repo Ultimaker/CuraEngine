@@ -201,18 +201,62 @@ void LineOrderOptimizer::optimize()
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
-        /// check if single-line-polygon is close to last point
-        for(unsigned int close_line_idx :
-                line_bucket_grid.getNearbyVals(prev_point, gridSize))
+        // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
+        // so we only consider the closest line when looking for the second line onwards
+        if (order_idx > 0)
         {
-            if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+            /// check if single-line-polygon is close to last point
+            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, gridSize))
             {
-                continue;
+                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                {
+                    continue;
+                }
+                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
             }
-
-            updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
         }
 
+        // if no line ends close to last_point have been found, see if we can find a point on a line that could be the start of a connected sequence of lines
+        if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
+        {
+            for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+            {
+                if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
+                {
+                    continue;
+                }
+                assert(polygons[poly_idx]->size() == 2);
+
+                // does this line either end in thin air (doesn't join another line) or exactly join another line that has already been picked?
+                // check both of its ends and see if it's a possible candidate to be used to start the next sequence
+                for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
+                {
+                    int num_joined_lines = 0;
+                    const Point& p = (*polygons[poly_idx])[point_idx];
+                    // look at each of the lines that finish close to this line to see if either of its vertices exactly match this vertex
+                    for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
+                    {
+                        if (close_line_idx != poly_idx && (p == (*polygons[close_line_idx])[0] || p == (*polygons[close_line_idx])[1]))
+                        {
+                            ++num_joined_lines;
+
+                            if (picked[close_line_idx])
+                            {
+                                // candidate line exactly meets a line that has already been picked so consider this vertex as a start point
+                                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
+                            }
+                        }
+                    }
+                    if (num_joined_lines == 0)
+                    {
+                        // candidate line ends in thin air so this vertex could be located at the end of a sequence of lines
+                        updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
+                    }
+                }
+            }
+        }
+
+        // fallback to using the nearest unpicked line
         if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
         {
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
@@ -250,11 +294,12 @@ void LineOrderOptimizer::optimize()
     }
 }
 
-inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal)
+inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
 {
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
-    float dot_score = getAngleScore(incoming_perpundicular_normal, p0, p1);
+    float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
+    if (just_point != 1)
     { /// check distance to first point on line (0)
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score)
@@ -264,6 +309,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             polyStart[poly_idx] = 0;
         }
     }
+    if (just_point != 0)
     { /// check distance to second point on line (1)
         float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score)
