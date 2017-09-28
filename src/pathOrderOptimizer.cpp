@@ -196,6 +196,7 @@ void LineOrderOptimizer::optimize()
 
     Point incoming_perpundicular_normal(0, 0);
     Point prev_point = startPoint;
+    bool have_chains = true; // start by assuming that line segments are chained together (i.e. zigzags) and set to false later if no chains exist
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
         int best_line_idx = -1;
@@ -216,9 +217,10 @@ void LineOrderOptimizer::optimize()
             }
         }
 
-        // if no line ends close to last_point have been found, see if we can find a point on a line that could be the start of a connected sequence of lines
-        if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
+        // if no line ends close to last_point have been found, see if we can find a point on a line that could be the start of a chain of lines
+        if (best_line_idx == -1 && have_chains)
         {
+            have_chains = false; // now assume that we don't have any chains and change back to true below if we find any joined line segments
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
                 if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
@@ -238,6 +240,8 @@ void LineOrderOptimizer::optimize()
                     {
                         if (close_line_idx != poly_idx && (p == (*polygons[close_line_idx])[0] || p == (*polygons[close_line_idx])[1]))
                         {
+                            have_chains = true; // we have found a joint between line segments so we have chains
+
                             ++num_joined_lines;
 
                             if (picked[close_line_idx])
@@ -249,7 +253,7 @@ void LineOrderOptimizer::optimize()
                     }
                     if (num_joined_lines == 0)
                     {
-                        // candidate line ends in thin air so this vertex could be located at the end of a sequence of lines
+                        // candidate line ends in thin air so this vertex could possibly be located at the end of a sequence of lines
                         updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
                     }
                 }
