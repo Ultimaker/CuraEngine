@@ -160,6 +160,11 @@ int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
     return rand() % polygons[poly_idx]->size();
 }
 
+static inline bool pointsAreCoincident(const Point& a, const Point& b)
+{
+    return vSize2(a - b) < 25; // points are closer than 5uM, consider them coincident
+}
+
 /**
 *
 */
@@ -217,7 +222,15 @@ void LineOrderOptimizer::optimize()
             }
         }
 
-        // if no line ends close to last_point have been found, see if we can find a point on a line that could be the start of a chain of lines
+        if (have_chains && best_line_idx != -1 && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
+        {
+            // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
+            // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
+            best_line_idx = -1;
+            best_score = std::numeric_limits<float>::infinity();
+        }
+
+        // if no line ends close to prev_point, see if we can find a point on a line that could be the start of a chain of lines
         if (best_line_idx == -1 && have_chains)
         {
             have_chains = false; // now assume that we don't have any chains and change back to true below if we find any joined line segments
@@ -229,16 +242,16 @@ void LineOrderOptimizer::optimize()
                 }
                 assert(polygons[poly_idx]->size() == 2);
 
-                // does this line either end in thin air (doesn't join another line) or exactly join another line that has already been picked?
+                // does this line either end in thin air (doesn't join another line) or join another line that has already been picked?
                 // check both of its ends and see if it's a possible candidate to be used to start the next sequence
                 for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
                 {
                     int num_joined_lines = 0;
                     const Point& p = (*polygons[poly_idx])[point_idx];
-                    // look at each of the lines that finish close to this line to see if either of its vertices exactly match this vertex
+                    // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
                     for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
                     {
-                        if (close_line_idx != poly_idx && (p == (*polygons[close_line_idx])[0] || p == (*polygons[close_line_idx])[1]))
+                        if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
                         {
                             have_chains = true; // we have found a joint between line segments so we have chains
 
