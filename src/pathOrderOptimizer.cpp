@@ -222,7 +222,15 @@ void LineOrderOptimizer::optimize()
             }
         }
 
-        // if no line ends close to last_point have been found, see if we can find a point on a line that could be the start of a chain of lines
+        if (have_chains && best_line_idx != -1 && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
+        {
+            // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
+            // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
+            best_line_idx = -1;
+            best_score = std::numeric_limits<float>::infinity();
+        }
+
+        // if no line ends close to prev_point, see if we can find a point on a line that could be the start of a chain of lines
         if (best_line_idx == -1 && have_chains)
         {
             have_chains = false; // now assume that we don't have any chains and change back to true below if we find any joined line segments
