@@ -119,6 +119,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
+    src/utils/DistToBoundary.cpp
     src/utils/gettime.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
