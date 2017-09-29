@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "utils/polygon.h"
+#include "utils/polygonUtils.h"
 #include "settings/settings.h"
 
 namespace cura {
@@ -89,6 +90,8 @@ public:
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
+    LocToLineGrid* loc_to_line;
+    const Polygons* combing_boundary;
 
     LineOrderOptimizer(Point startPoint)
     {
@@ -111,7 +114,7 @@ public:
             this->polygons.push_back(polygons[i]);
     }
 
-    void optimize(); //!< sets #polyStart and #polyOrder
+    void optimize(const Polygons* combing_boundary = nullptr); //!< sets #polyStart and #polyOrder
 
 private:
     /*!
@@ -144,6 +147,16 @@ private:
      * 
      */
     static float getAngleScore(Point incoming_perpundicular_normal, Point from, Point to);
+
+    /*!
+     * Calculate the distance covered when traveling between two points.
+     *
+     * \param[in] p0 One end of the travel path.
+     * \param[in] p1 The other end of the travel path.
+     * \param[in] travel_direct If true, assume that the shortest path can be used.
+     * \return The distance covered to go from \p p0 to \p p1.
+     */
+    float travelDistance(const Point& p0, const Point& p1, const bool travel_direct);
 };
 
 }//namespace cura
