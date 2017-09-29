@@ -343,7 +343,6 @@ inline float LineOrderOptimizer::travelDistance(const Point& p0, const Point& p1
             dist2 += vSize2f(comb_point - last_point);
             last_point = comb_point;
         }
-        std::cerr << " direct distance = " << vSize2(p0 - p1) << ", combed distance = " << dist2 << "\n";
         return dist2;
     }
     // fall back to direct distance
