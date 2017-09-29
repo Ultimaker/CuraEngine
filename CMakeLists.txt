@@ -99,6 +99,7 @@ set(engine_SRCS # Except main.cpp.
 
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/ZigzagConnectorProcessor.cpp
+    src/infill/SierpinskiFill.cpp
     src/infill/SpaceFillingTreeFill.cpp
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
@@ -140,6 +141,7 @@ set(engine_SRCS # Except main.cpp.
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST_INFILL
     SpaceFillingTreeFillTest
+    SierpinskiFillTest
 )
 set(engine_TEST_UTILS
     SparseGridTest
