@@ -3,6 +3,8 @@
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
+#include "pathPlanning/LinePolygonsCrossings.h"
+#include "pathPlanning/CombPath.h"
 
 #define INLINE static inline
 
@@ -168,12 +170,15 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 /**
 *
 */
-void LineOrderOptimizer::optimize()
+void LineOrderOptimizer::optimize(const Polygons* combing_boundary)
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    loc_to_line = nullptr;
+    this->combing_boundary = combing_boundary;
+
     
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
@@ -206,6 +211,14 @@ void LineOrderOptimizer::optimize()
     {
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
+
+        if (order_idx == 1 && combing_boundary != nullptr && have_chains)
+        {
+            // we now know that we have chains and the combing boundary has been provided so do the initialisation
+            // required to be able to calculate realistic travel distances to the start of new paths
+            const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
+            this->loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+        }
 
         // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
         // so we only consider the closest line when looking for the second line onwards
@@ -309,6 +322,32 @@ void LineOrderOptimizer::optimize()
             logError("Failed to find next closest line.\n");
         }
     }
+
+    if (loc_to_line != nullptr)
+        delete loc_to_line;
+}
+
+inline float LineOrderOptimizer::travelDistance(const Point& p0, const Point& p1, const bool travel_direct)
+{
+    if (travel_direct || loc_to_line == nullptr)
+    {
+        return vSize2f(p0 - p1);
+    }
+    CombPath comb_path;
+    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, true))
+    {
+        float dist2 = 0;
+        Point last_point = p0;
+        for (const Point& comb_point : comb_path)
+        {
+            dist2 += vSize2f(comb_point - last_point);
+            last_point = comb_point;
+        }
+        std::cerr << " direct distance = " << vSize2(p0 - p1) << ", combed distance = " << dist2 << "\n";
+        return dist2;
+    }
+    // fall back to direct distance
+    return vSize2f(p0 - p1);
 }
 
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
@@ -316,9 +355,13 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
+    // if just_point is -1, it means that we are not looking for chains and we are going to use the direct travel
+    // distance rather than going to the effort of combing
+    // when looking for chains, just_point will be either 0 or 1 depending on which vertex we are currently interested in and
+    // if possible we shall be using combing to calculate the travel distance
     if (just_point != 1)
     { /// check distance to first point on line (0)
-        float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
+        float score = travelDistance(p0, prev_point, just_point == -1) + dot_score; // prefer 90 degree corners
         if (score < best_score)
         {
             best = poly_idx;
@@ -328,7 +371,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     }
     if (just_point != 0)
     { /// check distance to second point on line (1)
-        float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
+        float score = travelDistance(p1, prev_point, just_point == -1) + dot_score; // prefer 90 degree corners
         if (score < best_score)
         {
             best = poly_idx;
