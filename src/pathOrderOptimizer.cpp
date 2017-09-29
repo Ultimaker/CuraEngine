@@ -334,7 +334,7 @@ inline float LineOrderOptimizer::travelDistance(const Point& p0, const Point& p1
         return vSize2f(p0 - p1);
     }
     CombPath comb_path;
-    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, true))
+    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, false))
     {
         float dist = 0;
         Point last_point = p0;
