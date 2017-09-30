@@ -132,7 +132,7 @@ void InsetOrderOptimizer::processHoleInsets()
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
     }
-    order_optimizer.optimize();
+    order_optimizer.optimize(gcode_layer.getCombBoundaryInside());
     if (optimize_backwards)
     {
         // reverse the optimized order so we end up as near to the outline z-seam as possible
