@@ -200,6 +200,20 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             {
                 comb_path.cross_boundary = true;
             }
+            // before we add this point, can we discard some of the previous points and still avoid clashing with the combing boundary?
+            const int max_short_circuit_len = 1 << 3; // test distances of 8, 4, 2, 1
+            for (unsigned n = std::min(max_short_circuit_len, (int)optimized_comb_path.size()); n > 0; n >>= 1)
+            {
+                if (optimized_comb_path.size() > n && !PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[optimized_comb_path.size() - n - 1], comb_path[point_idx - 1], loc_to_line_grid))
+                {
+                    // we can remove n points from the path without it clashing with the combing boundary
+                    for (unsigned i = 0; i < n; ++i)
+                    {
+                        optimized_comb_path.pop_back();
+                    }
+                    break;
+                }
+            }
             optimized_comb_path.push_back(comb_path[point_idx - 1]);
         }
         else 
