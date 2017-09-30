@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "utils/polygon.h"
+#include "utils/polygonUtils.h"
 #include "settings/settings.h"
 
 namespace cura {
@@ -47,6 +48,8 @@ public:
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
+    LocToLineGrid* loc_to_line;
+    const Polygons* combing_boundary;
 
     PathOrderOptimizer(Point startPoint, const ZSeamConfig& config = ZSeamConfig())
     : startPoint(startPoint)
@@ -70,13 +73,20 @@ public:
             this->polygons.emplace_back(polygons[i]);
     }
 
-    void optimize(); //!< sets #polyStart and #polyOrder
+    void optimize(const Polygons* combing_boundary = nullptr); //!< sets #polyStart and #polyOrder
 
 private:
     int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point
     int getRandomPointInPolygon(int poly_idx);
 
-
+    /*!
+     * Calculate the distance covered when traveling between two points.
+     *
+     * \param[in] p0 One end of the travel path.
+     * \param[in] p1 The other end of the travel path.
+     * \return The distance covered to go from \p p0 to \p p1.
+     */
+    float travelDistance(const Point& p0, const Point& p1);
 };
 //! Line path order optimization class.
 /*!

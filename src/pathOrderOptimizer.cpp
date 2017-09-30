@@ -3,6 +3,8 @@
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
+#include "pathPlanning/LinePolygonsCrossings.h"
+#include "pathPlanning/CombPath.h"
 
 #define INLINE static inline
 
@@ -11,11 +13,20 @@ namespace cura {
 /**
 *
 */
-void PathOrderOptimizer::optimize()
+void PathOrderOptimizer::optimize(const Polygons* combing_boundary)
 {
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
-    
+    loc_to_line = nullptr;
+    this->combing_boundary = combing_boundary;
+    if (combing_boundary != nullptr && combing_boundary->size() > 0)
+    {
+        // the combing boundary has been provided so do the initialisation
+        // required to be able to calculate realistic travel distances to the start of new paths
+        const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
+        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+    }
+
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
     {
         const ConstPolygonRef poly = *polygons[poly_idx];
@@ -63,7 +74,7 @@ void PathOrderOptimizer::optimize()
 
             assert (polygons[poly_idx]->size() != 2);
 
-            float dist = vSize2f((*polygons[poly_idx])[polyStart[poly_idx]] - prev_point);
+            float dist = travelDistance((*polygons[poly_idx])[polyStart[poly_idx]], prev_point);
             if (dist < bestDist)
             {
                 best_poly_idx = poly_idx;
@@ -87,6 +98,31 @@ void PathOrderOptimizer::optimize()
             logError("Failed to find next closest polygon.\n");
         }
     }
+
+    if (loc_to_line != nullptr)
+        delete loc_to_line;
+}
+
+float PathOrderOptimizer::travelDistance(const Point& p0, const Point& p1)
+{
+    if (loc_to_line == nullptr)
+    {
+        return vSize2f(p0 - p1);
+    }
+    CombPath comb_path;
+    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, false))
+    {
+        float dist = 0;
+        Point last_point = p0;
+        for (const Point& comb_point : comb_path)
+        {
+            dist += vSize(comb_point - last_point);
+            last_point = comb_point;
+        }
+        return dist * dist;
+    }
+    // fall back to direct distance
+    return vSize2f(p0 - p1);
 }
 
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
