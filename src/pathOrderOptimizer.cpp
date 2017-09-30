@@ -212,12 +212,12 @@ void LineOrderOptimizer::optimize(const Polygons* combing_boundary)
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
-        if (order_idx == 1 && combing_boundary != nullptr && have_chains)
+        if (order_idx == 1 && combing_boundary != nullptr && combing_boundary->size() > 0 && have_chains)
         {
             // we now know that we have chains and the combing boundary has been provided so do the initialisation
             // required to be able to calculate realistic travel distances to the start of new paths
             const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
-            this->loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+            loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
         }
 
         // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
