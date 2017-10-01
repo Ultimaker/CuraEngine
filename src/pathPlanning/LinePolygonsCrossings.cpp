@@ -215,6 +215,40 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                 }
             }
             optimized_comb_path.push_back(comb_path[point_idx - 1]);
+
+            if (point_idx == 1)
+            {
+                // we have just inserted the first point in the path that touches the boundary
+                // and as the first line in the comb is pointing from the start point towards the
+                // end point, we can maybe save some travel by replacing this first point with another
+                // that also lies on the second path of the comb, like this:
+                //
+                //         1
+                //        /|
+                //       / |
+                //      /  |           ===>  ----1
+                //     S   |                 S   |
+                //         |                     |
+                //         2----3 ...            2----3 ...
+                //
+
+                Point p = optimized_comb_path.back();
+                for (float frac : { 0.9, 0.9, 0.7, 0.5 })
+                {
+                    // slide p towards the second point in the comb path
+                    p = comb_path[1] + (p - comb_path[1]) * frac;
+                    if (!PolygonUtils::polygonCollidesWithLineSegment(startPoint, p, loc_to_line_grid))
+                    {
+                        // using the new corner doesn't cause a conflict
+                        optimized_comb_path.back() = p;
+                    }
+                    else
+                    {
+                        // quit loop and keep what we know to be good
+                        break;
+                    }
+                }
+            }
         }
         else 
         {
@@ -234,6 +268,36 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             }
         }
     }
+
+    if (optimized_comb_path.size() > 1)
+    {
+        const unsigned n = optimized_comb_path.size();
+        // the penultimate corner may be deleted if the resulting path doesn't conflict with the boundary
+        if (!PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[n - 2], comb_path.back(), loc_to_line_grid))
+        {
+            optimized_comb_path.pop_back();
+        }
+        else {
+            // that wasn't possible so try and move the penultimate corner without conficting with the boundary
+            // in exactly the same way as we did at the start of the path
+            for (float frac : { 0.9, 0.9, 0.7, 0.5 })
+            {
+                // make a new point between the penultimate corner and the corner before that
+                Point p = optimized_comb_path[n - 2] + (optimized_comb_path[n - 1] - optimized_comb_path[n - 2]) * frac;
+                if (!PolygonUtils::polygonCollidesWithLineSegment(p, comb_path.back(), loc_to_line_grid))
+                {
+                    // using the new corner doesn't cause a conflict
+                    optimized_comb_path[n - 1] = p;
+                }
+                else
+                {
+                    // quit loop and keep what we know to be good
+                    break;
+                }
+            }
+        }
+    }
+
     optimized_comb_path.push_back(comb_path.back());
     return true;
 }
