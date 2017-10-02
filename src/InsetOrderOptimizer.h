@@ -31,9 +31,10 @@ public:
     mesh_config(mesh_config),
     part(part),
     layer_nr(layer_nr),
-    z_seam_type(mesh.getSettingAsZSeamType("z_seam_type")),
-    z_seam_pos(z_seam_pos),
-    added_something(false)
+    z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), z_seam_pos, mesh.getSettingAsZSeamCornerPrefType("z_seam_corner")),
+    added_something(false),
+    wall_overlapper_0(nullptr),
+    wall_overlapper_x(nullptr)
     {
     }
 private:
@@ -46,9 +47,10 @@ private:
     const PathConfigStorage::MeshPathConfigs& mesh_config;
     const SliceLayerPart& part;
     const unsigned int layer_nr;
-    const EZSeamType z_seam_type;
-    const Point z_seam_pos;
+    const ZSeamConfig z_seam_config;
     bool added_something;
+    WallOverlapComputation* wall_overlapper_0;
+    WallOverlapComputation* wall_overlapper_x;
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
 
     /*!
@@ -60,6 +62,13 @@ private:
      * Generate the insets for the outer walls of a given layer part after optimizing the ordering.
      */
     void processOuterWallInsets();
+
+    /*!
+     * Generate a travel move from the current position to inside the part.
+     * This is used after generating an outer wall so that if a retraction occurs immediately afterwards,
+     * the extruder won't be on the outer wall.
+     */
+    void moveInside();
 
 public:
     /*!

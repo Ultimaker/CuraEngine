@@ -1,4 +1,3 @@
-//Copyright (C) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -17,6 +16,7 @@
 #include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
 #include "textureProcessing/TextureProximityProcessor.h"
+#include "utils/SpaceFillingTree.h"
 
 namespace cura 
 {
@@ -220,13 +220,10 @@ public:
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
     std::vector<SupportLayer> supportLayers;
+    std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual support step.
 
-    SupportStorage()
-    : generated(false)
-    , layer_nr_max_filled_layer(-1)
-    {
-    }
-    ~SupportStorage(){ supportLayers.clear(); }
+    SupportStorage();
+    ~SupportStorage();
 };
 /******************/
 
@@ -249,7 +246,9 @@ public:
     std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
     AABB3D bounding_box; //!< the mesh's bounding box
+
     SubDivCube* base_subdiv_cube;
+    std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual infill step.
 
     TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
 

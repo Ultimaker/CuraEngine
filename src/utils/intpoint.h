@@ -335,6 +335,23 @@ public:
                     , p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]);
     }
 
+    /*!
+     * Apply matrix to vector as homogeneous coordinates.
+     */
+    Point apply(const Point p) const
+    {
+        Point3 result = apply(Point3(p.X, p.Y, 1));
+        return Point(result.x / result.z, result.y / result.z);
+    }
+
+    static Point3Matrix translate(const Point p)
+    {
+        Point3Matrix ret; // uniform matrix
+        ret.matrix[2] = p.X;
+        ret.matrix[5] = p.Y;
+        return ret;
+    }
+
     Point3Matrix compose(const Point3Matrix& b)
     {
         Point3Matrix ret;

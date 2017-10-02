@@ -13,6 +13,12 @@ AABB3D::AABB3D()
 {
 }
 
+AABB3D::AABB3D(Point3 min, Point3 max) 
+: min(min)
+, max(max)
+{
+}
+
 Point3 AABB3D::getMiddle() const
 {
     return (min + max) / 2;
@@ -41,6 +47,12 @@ void AABB3D::include(Point3 p)
     max.x = std::max(max.x, p.x);
     max.y = std::max(max.y, p.y);
     max.z = std::max(max.z, p.z);   
+}
+
+void AABB3D::include(const AABB3D& aabb)
+{
+    include(aabb.min);
+    include(aabb.max);
 }
 
 void AABB3D::includeZ(coord_t z)

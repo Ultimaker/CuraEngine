@@ -23,6 +23,11 @@ struct AABB3D
     AABB3D();
 
     /*!
+     * Create an AABB3D with given limits
+     */
+    AABB3D(Point3 min, Point3 max);
+
+    /*!
      * Get the middle of the bounding box
      */
     Point3 getMiddle() const;
@@ -42,6 +47,12 @@ struct AABB3D
      * \param p The point to include with the bounding box.
      */
     void include(Point3 p);
+
+    /*!
+     * Expand the AABB3D to include the bounding box \p aabb.
+     * \param aabb The aabb to include with this bounding box.
+     */
+    void include(const AABB3D& aabb);
 
     /*!
      * Expand the AABB3D to include a z-coordinate.

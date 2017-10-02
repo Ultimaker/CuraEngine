@@ -55,6 +55,12 @@ public:
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);
+
+    /*!
+     * Generate a square polygon which coincides with this aabb
+     * \return the polygon of this aabb
+     */
+    Polygon toPolygon() const;
 };
 
 }//namespace cura

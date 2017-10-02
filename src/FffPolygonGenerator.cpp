@@ -27,6 +27,7 @@
 #include "SkirtBrim.h"
 #include "skin.h"
 #include "infill/SpaghettiInfill.h"
+#include "infill/SpaceFillingTreeFill.h"
 #include "infill.h"
 #include "raft.h"
 #include "progress/Progress.h"
@@ -614,9 +615,22 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
         //SubDivCube Pre-compute Octree
-        if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
+        if (mesh.getSettingInMicrons("infill_line_distance") > 0
+            && mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
         {
             SubDivCube::precomputeOctree(mesh);
+        }
+
+        // Pre-compute Cross Fractal
+        if (mesh.getSettingInMicrons("infill_line_distance") > 0
+            && (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS
+                || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)
+        )
+        {
+            for (unsigned int gradual_step = 0; gradual_step <= (unsigned int)mesh.getSettingAsCount("gradual_infill_steps"); gradual_step++)
+            {
+                mesh.cross_fill_patterns.push_back(new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance") << gradual_step, mesh.bounding_box));
+            }
         }
 
         // combine infill
@@ -749,7 +763,7 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
     SkinInfillAreaComputation skin_infill_area_computation(layer_nr, storage, mesh, process_infill);
     skin_infill_area_computation.generateSkinsAndInfill();
 
-    if (mesh.getSettingBoolean("ironing_enabled"))
+    if (mesh.getSettingBoolean("ironing_enabled") && (!mesh.getSettingBoolean("ironing_only_highest_layer") || (unsigned int)mesh.layer_nr_max_filled_layer == layer_nr))
     {
         TopSurface* top_surface = new TopSurface(mesh, layer_nr); //Generate the top surface to iron over.
         mesh.layers[layer_nr].top_surface = top_surface;

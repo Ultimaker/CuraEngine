@@ -117,6 +117,8 @@ enum class EFillMethod
     CONCENTRIC,
     CONCENTRIC_3D,
     ZIG_ZAG,
+    CROSS,
+    CROSS_3D,
     NONE
 };
 
@@ -145,7 +147,16 @@ enum class EZSeamType
 {
     RANDOM,
     SHORTEST,
-    USER_SPECIFIED
+    USER_SPECIFIED,
+    SHARPEST_CORNER
+};
+
+enum class EZSeamCornerPrefType
+{
+    Z_SEAM_CORNER_PREF_NONE,
+    Z_SEAM_CORNER_PREF_INNER,
+    Z_SEAM_CORNER_PREF_OUTER,
+    Z_SEAM_CORNER_PREF_ANY
 };
 
 enum class ESurfaceMode
@@ -212,7 +223,7 @@ class SettingsBaseVirtual
 protected:
     SettingsBaseVirtual* parent;
 public:
-    virtual std::string getSettingString(std::string key) const = 0;
+    virtual const std::string& getSettingString(const std::string& key) const = 0;
     
     virtual void setSetting(std::string key, std::string value) = 0;
 
@@ -273,6 +284,7 @@ public:
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key) const;
     ESupportType getSettingAsSupportType(std::string key) const;
     EZSeamType getSettingAsZSeamType(std::string key) const;
+    EZSeamCornerPrefType getSettingAsZSeamCornerPrefType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key) const;
@@ -310,7 +322,7 @@ public:
      */
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
-    std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
+    const std::string& getSettingString(const std::string& key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
     
     std::string getAllLocalSettingsString() const
     {
@@ -351,7 +363,7 @@ public:
     
     void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
-    std::string getSettingString(std::string key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
+    const std::string& getSettingString(const std::string& key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
 };
 
 
