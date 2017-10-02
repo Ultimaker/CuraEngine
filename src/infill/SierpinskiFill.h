@@ -96,14 +96,25 @@ public:
 protected:
     /*!
      * Process a single step in the recursive fractal
-     * \param process_diagonal Whether we are expanding diagonal edges or straight edges.
+     * \param iteration current recursion depth
      */
-    void process(const bool process_diagonal);
+    void process(const int iteration);
     
     std::list<Edge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
     AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
     
-    
+    const Point pic_size = Point((coord_t)10, (coord_t)10);
+    int pic[10][10]
+    {{255, 000, 000, 000, 000, 000, 000, 000, 000, 000},
+    {225, 000, 255, 000, 000, 000, 000, 000, 000, 000},
+    {225, 000, 255, 000, 000, 000, 000, 000, 000, 000},
+    {200, 000, 000, 255, 000, 000, 255, 000, 000, 000},
+    {175, 000, 000, 000, 000, 000, 000, 000, 000, 255},
+    {150, 000, 255, 000, 000, 000, 000, 000, 000, 255},
+    {150, 000, 255, 000, 000, 000, 000, 000, 000, 255},
+    {125, 000, 000, 000, 000, 000, 000, 000, 255, 000},
+    {100, 000, 000, 000, 000, 000, 000, 255, 000, 000},
+    { 75,  25, 000, 255, 255, 000, 000, 000, 000, 000}};
 };
 } // namespace cura
 

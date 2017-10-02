@@ -23,7 +23,10 @@ void SierpinskiFillTest::debugCheck()
     //aabb.expand(512);
     SVG svg("output/sierpinski.html", aabb);
     
-    for (int i = 1; i < 4; i++)
+    
+//     srand(1);
+//     for (int i = 20; i < 21; i++)
+    int i = 18;
     {
         SierpinskiFill f(aabb, i);
         SVG::Color color = SVG::Color::GREEN;
@@ -35,11 +38,12 @@ void SierpinskiFillTest::debugCheck()
             case 2: color = SVG::Color::BLUE; break;
             case 3: color = SVG::Color::YELLOW; break;
         }
+        color = SVG::Color::GREEN;
         svg.writePolygon(f.generateCross(), color);
-    //     svg.writePolygon(f.generateSierpinski(), color);
+//         svg.writePolygon(f.generateSierpinski(), color);
+//         f.debugOutput(svg);
     }
     
-//     f.debugOutput(svg);
 }
 
 void SierpinskiFillTest::boundsCheck()

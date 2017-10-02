@@ -2,6 +2,7 @@
 #include "SierpinskiFill.h"
 
 #include <algorithm> // swap 
+#include <functional> // function
 
 #include "../utils/linearAlg2D.h" // rotateAround
 
@@ -32,12 +33,13 @@ SierpinskiFill::SierpinskiFill(const AABB aabb, int max_depth)
 
     for (int it = 1; it < max_depth; it++)
     {
-        process(it % 2);
+        process(it);
     }
 }
 
 void SierpinskiFill::debugOutput(SVG& svg)
 {
+    svg.writePolygon(aabb.toPolygon(), SVG::Color::RED);
     int i = 0;
     for (Edge& edge : edges)
     {
@@ -51,8 +53,55 @@ void SierpinskiFill::debugOutput(SVG& svg)
     }
 }
 
-void SierpinskiFill::process(bool processing_direction)
+void SierpinskiFill::process(int iteration)
 {
+    bool processing_direction = iteration % 2 == 1;
+    float prev_density = 1.25 / 512.0 * sqrt(double(1 << (iteration - 1)));
+    float density = 1.25 / 512.0 * sqrt(double(1 << iteration));
+    std::function<bool (const Edge& e1, const Edge e2)> recurse_triangle =
+    [processing_direction, density, prev_density, iteration, this](const Edge& e1, const Edge e2)->bool
+        {
+            int depth_diff = e2.depth - e1.depth;
+            if (e1.direction == e2.direction)
+            {
+                if (e1.depth != e2.depth)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (depth_diff < -1 || depth_diff > 1)
+                {
+                    return false;
+                }
+            }
+            AABB aabb_here;
+            aabb_here.include(e1.l);
+            aabb_here.include(e1.r);
+            aabb_here.include(e2.l);
+            aabb_here.include(e2.r);
+            Point min = (aabb_here.min - aabb.min - Point(1,1)) * pic_size.X / (aabb.max - aabb.min);
+            Point max = (aabb_here.max - aabb.min + Point(1,1)) * pic_size.Y / (aabb.max - aabb.min);
+            long tot = 0;
+            int pixel_count = 0;
+            for (int x = std::max((coord_t)0, min.X); x <= std::min((coord_t)pic_size.X - 1, max.X); x++)
+            {
+                for (int y = std::max((coord_t)0, min.Y); y <= std::min((coord_t)pic_size.Y - 1, max.Y); y++)
+                {
+                    tot += pic[pic_size.Y - 1 - y][x];
+                    pixel_count++;
+                }
+            }
+            long boundary = (1.0 - (density + prev_density) * .5) * 255 * pixel_count;
+            if (tot < boundary)
+            { 
+                return true;
+            }
+            return false;
+        };
+
+
     const bool opposite_direction = !processing_direction;
     using iter = std::list<Edge>::iterator;
     Edge* prev = nullptr;
@@ -67,9 +116,10 @@ void SierpinskiFill::process(bool processing_direction)
             next = &*next_it;
         }
 
-        if ((!prev || prev->direction == opposite_direction)
+        if ((!prev || (prev->direction == opposite_direction && recurse_triangle(*prev, here)))
             && here.direction == processing_direction
-            && (!next || next->direction == opposite_direction))
+            && (!next || (next->direction == opposite_direction && recurse_triangle(here, *next)))
+        )
         { // SDS -> SDDDS or DSD -> DSSSD                                    .
             // D step:                                                       .
             // |      /       |\     /                                       .
@@ -119,7 +169,7 @@ void SierpinskiFill::process(bool processing_direction)
                 edges.emplace(next_it, processing_direction, l, r, here.depth);
             }
         }
-        else if (prev && prev->direction == opposite_direction && here.direction == opposite_direction)
+        else if (prev && prev->direction == opposite_direction && here.direction == opposite_direction && recurse_triangle(*prev, here))
         { // SS -> SDS or DD -> DSD                                  .
             // D step:                                               .
             // |           |    /                                    .
@@ -166,7 +216,7 @@ Polygon SierpinskiFill::generateSierpinski() const
         }
         else
         {
-            assert (e.r == prev->r);
+//             assert (e.r == prev->r);
             c = prev->l;
         }
         Point tot = e.l + e.r + c;
