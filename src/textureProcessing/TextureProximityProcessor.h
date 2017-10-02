@@ -22,24 +22,13 @@ class TextureProximityProcessor
 {
 public:
     /*!
-     * Helper class to retrieve and store texture to bump map settings
-     */
-    struct Settings
-    {
-        coord_t proximity; //!< The distance within which to search for nearby texture
-        Settings(coord_t proximity)
-        : proximity(proximity)
-        {
-        }
-    };
-    /*!
      * default constructor
      * 
      * initializes the \ref SparseGrid::cell_size of \ref TextureProximityProcessor::loc_to_slice
      * 
-     * \param settings The settings with which to \ref TextureProximityProcessor::processBumpMap
+     * \param proximity The distance within which to search for nearby texture
      */
-    TextureProximityProcessor(const Settings settings, unsigned int slice_layer_count);
+    TextureProximityProcessor(coord_t proximity, unsigned int slice_layer_count);
 
     /*!
      * Register that a particular face was sliced to a particular texture segment.
@@ -75,10 +64,7 @@ protected:
         }
     };
 
-    /*!
-     * The settings with which to \ref TextureBumpMapProcessor::processBumpMap
-     */
-    Settings settings;
+    coord_t proximity; //!< The distance within which to search for nearby texture
 
     /*!
      * A grid to efficiently look op which texture segment best fits the slicer segment.
