@@ -160,7 +160,6 @@ public:
 /******************/
 
 class SubDivCube; // forward declaration to prevent dependency loop
-class AreaTextureProcessor;
 
 /*!
  * 
@@ -180,8 +179,6 @@ public:
     SubDivCube* base_subdiv_cube;
 
     TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
-
-    AreaTextureProcessor* area_location_to_texture; //!< mapper from location inside the mesh on a given layer to the texture UV coordinates
 
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count);
 
