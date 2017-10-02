@@ -6,7 +6,7 @@
 namespace cura
 {
 
-static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonPointer>& possible_enclosing_polys, const coord_t max_gap)
+static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<PolygonsIndex>& possible_enclosing_polys, const coord_t max_gap)
 {
     // given an inset, search a collection of insets for the adjacent enclosing inset
     for (unsigned int enclosing_poly_idx = 0; enclosing_poly_idx < possible_enclosing_polys.size(); ++enclosing_poly_idx)
@@ -210,7 +210,7 @@ void InsetOrderOptimizer::processHoleInsets()
             // add the level 1 inset to the collection of inner walls to be printed and consume it, taking care to adjust
             // those elements in hole_level_1_wall_indices that are larger
             unsigned int inset_idx = hole_level_1_wall_indices[level_1_wall_idx];
-            ConstPolygonPointer last_inset = inset_polys[1][inset_idx];
+            PolygonsIndex last_inset = inset_polys[1][inset_idx];
             hole_inner_walls.add(ConstPolygonRef(*last_inset));
             inset_polys[1].erase(inset_polys[1].begin() + inset_idx);
             // decrement any other indices in hole_level_1_wall_indices that are greater than inset_idx
@@ -283,7 +283,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 gcode_layer.addPolygonsByOptimizer(hole_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygon(hole_outer_wall[0], outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygon(hole_outer_wall, 0, outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
                     moveInside();
                 }
@@ -397,7 +397,7 @@ void InsetOrderOptimizer::processOuterWallInsets()
                 gcode_layer.addPolygonsByOptimizer(part_inner_walls, mesh_config.insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addPolygon(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+                    gcode_layer.addPolygon(*inset_polys[0][0].polygons, 0, outer_poly_start_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
                     moveInside();
                 }
@@ -456,11 +456,11 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     {
         if (wall_overlapper_0)
         {
-            inset_polys[0].push_back(wall_0_polys[poly_idx]);
+            inset_polys[0].push_back(PolygonsIndex(&wall_0_polys, poly_idx));
         }
         else
         {
-            inset_polys[0].push_back(part.insets[0][poly_idx]);
+            inset_polys[0].push_back(PolygonsIndex(&part.insets[0], poly_idx));
         }
     }
 
@@ -472,11 +472,11 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         {
             if (wall_overlapper_x)
             {
-                inset_polys[inset_level].push_back(wall_x_polys[wall_x_polys_index++]);
+                inset_polys[inset_level].push_back(PolygonsIndex(&wall_x_polys, wall_x_polys_index++));
             }
             else
             {
-                inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
+                inset_polys[inset_level].push_back(PolygonsIndex(&part.insets[inset_level], poly_idx));
             }
         }
     }
