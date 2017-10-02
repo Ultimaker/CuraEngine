@@ -10,10 +10,10 @@
 namespace cura 
 {
 
-TextureProximityProcessor::TextureProximityProcessor(const TextureProximityProcessor::Settings settings, unsigned int slice_layer_count)
-: settings(settings)
+TextureProximityProcessor::TextureProximityProcessor(const coord_t proximity, unsigned int slice_layer_count)
+: proximity(proximity)
 {
-    loc_to_slice.resize(slice_layer_count, SparseLineGrid<TexturedFaceSlice, TexturedFaceSliceLocator>(settings.proximity));
+    loc_to_slice.resize(slice_layer_count, SparseLineGrid<TexturedFaceSlice, TexturedFaceSliceLocator>(proximity));
 }
 
 
@@ -42,9 +42,9 @@ float TextureProximityProcessor::getColor(const Point location, const unsigned i
         return true; // keep going, we're not sure whether we have found the best yet
     };
     
-    grid.processNearby(location, settings.proximity, process_func);
+    grid.processNearby(location, proximity, process_func);
     
-    if (best_dist2 > settings.proximity * settings.proximity * 4)
+    if (best_dist2 > proximity * proximity * 4)
     {
         return default_color;
     }

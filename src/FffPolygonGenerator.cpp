@@ -113,8 +113,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Mesh& mesh = *meshgroup->meshes[mesh_idx];
         if (mesh.getSettingBoolean("fuzz_map_enabled"))
         {
-            TextureProximityProcessor::Settings texture_proximity_processor_settings(mesh.getSettingInMicrons("wall_line_width_0"));
-            storage.meshes[mesh_idx].texture_proximity_processor = new TextureProximityProcessor(texture_proximity_processor_settings, slice_layer_count);
+            coord_t proximity = mesh.getSettingInMicrons("wall_line_width_0");
+            storage.meshes[mesh_idx].texture_proximity_processor = new TextureProximityProcessor(proximity, slice_layer_count);
         }
         bool keep_open_polylines = mesh.getSettingBoolean("meshfix_keep_open_polygons");
         bool extensive_stitching = mesh.getSettingBoolean("meshfix_extensive_stitching");
