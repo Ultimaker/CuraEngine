@@ -17,7 +17,7 @@ public:
     /*!
      * Constructor to compute the tan angle for all faces in the model.
      */
-    FaceNormalStorage(const Mesh* mesh);
+    FaceNormalStorage(Mesh* mesh);
 
     /*!
      * Get the horizontal component of the face normal
