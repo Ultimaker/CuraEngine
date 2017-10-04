@@ -193,7 +193,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         }
 
         FPoint3 v1 = vertices[faces[candidateFace].vertex_index[candidateVertex]].p - vertices[idx0].p;
-        FPoint3 n1 = v1.cross(v0);
+        FPoint3 n1 = v0.cross(v1);
 
         double dot = n0 * n1;
         double det = n * n0.cross(n1);
