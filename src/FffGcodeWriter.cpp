@@ -1839,7 +1839,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             Polygons support_polygons;
             Polygons support_lines;
-            for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); ++density_idx)
+            for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
             {
                 if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
                 {
@@ -1850,7 +1850,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
-                if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
                 {
                     support_line_distance_here /= 2;
                 }
