@@ -2,6 +2,8 @@
 #include "SpaceFillingTreeFill.h"
 
 #include "../utils/linearAlg2D.h" // rotateAround
+#include "../utils/SVG.h"
+#include "../FffGcodeWriter.h"
 
 namespace cura {
 
@@ -31,7 +33,8 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     {
         Polygons infill_pattern;
         infill_pattern.add(infill_poly);
-        result_polygons = infill_pattern.intersection(outlines);
+        result_polygons = result_polygons.difference(outlines);
+        result_polygons = result_polygons.unionPolygons(infill_pattern.intersection(outlines));
     }
     else
     {
