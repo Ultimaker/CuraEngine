@@ -9,6 +9,7 @@
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 #include "utils/UnionFind.h"
+#include "infill/SierpinskiFill.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -218,6 +219,15 @@ void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern,
     {
         outline_offset += -infill_line_width / 2;
     }
+    Polygons outline = in_outline.offset(outline_offset);
+    SierpinskiFill fill(AABB(in_outline), 17);
+    Polygon pol = fill.generateCross(z, infill_line_width / 2);
+    Polygons i;
+    i.add(pol);
+    result_polygons.add(i.intersection(outline));
+    
+    return;
+
     coord_t shift = line_distance / 2;
     bool use_odd_in_junctions = false;
     bool use_odd_out_junctions = false;
@@ -232,7 +242,6 @@ void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern,
         use_odd_in_junctions = ((z + period / 2) / period) % 2 == 1; // change junction halfway in between each period when the in-junctions occur
         use_odd_out_junctions = (z / period) % 2 == 1; // out junctions occur halfway at each periods
     }
-    Polygons outline = in_outline.offset(outline_offset);
     cross_fill_pattern.generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
 }
 
