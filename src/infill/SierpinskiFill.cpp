@@ -56,8 +56,8 @@ void SierpinskiFill::debugOutput(SVG& svg)
 void SierpinskiFill::process(int iteration)
 {
     bool processing_direction = iteration % 2 == 1;
-    float prev_density = 1.25 / 512.0 * sqrt(double(1 << (iteration - 1)));
-    float density = 1.25 / 512.0 * sqrt(double(1 << iteration));
+    float prev_density = 1.25 * 4 / 512.0 * sqrt(double(1 << (iteration - 1)));
+    float density = 1.25 * 4 / 512.0 * sqrt(double(1 << iteration));
     std::function<bool (const Edge& e1, const Edge e2)> recurse_triangle =
     [processing_direction, density, prev_density, iteration, this](const Edge& e1, const Edge e2)->bool
         {
@@ -243,5 +243,41 @@ Polygon SierpinskiFill::generateSierpinski() const
     
     return ret;
 }
+
+
+Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side) const
+{
+    Polygon ret;
+    int last_nonD_depth = edges.front().depth;
+    for (const Edge& e : edges)
+    {
+        int depth = e.depth;
+        if (e.direction == diagonal)
+        {
+            depth = last_nonD_depth;
+        }
+        else
+        {
+            last_nonD_depth = depth;
+        }
+        
+        coord_t period =  8 << (14 - depth / 2);
+        coord_t from_l = z % (period * 2);
+        if (from_l > period)
+        {
+            from_l = period * 2 - from_l;
+        }
+        from_l = from_l * vSize(e.l - e.r) / period;
+        from_l = std::max(min_dist_to_side, from_l);
+        from_l = std::min(vSize(e.l - e.r) - min_dist_to_side, from_l);
+//         if (e.direction == diagonal)
+//         {
+//             from_l = sqrt(from_l * from_l * 2) / 2;
+//         }
+        ret.add(e.l + normal(e.r - e.l, from_l));
+    }
+    return ret;
+}
+
 
 }; // namespace cura

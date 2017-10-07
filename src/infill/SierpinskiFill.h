@@ -89,6 +89,11 @@ public:
     Polygon generateSierpinski() const; 
 
     /*!
+     * Generate the Sierpinski space filling curve
+     */
+    Polygon generateCross(coord_t z, coord_t min_dist_to_side) const; 
+
+    /*!
      * Output the edges to a canvas
      */
     void debugOutput(SVG& svg);
