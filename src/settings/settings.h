@@ -194,6 +194,13 @@ enum class SupportDistPriority
     Z_OVERRIDES_XY
 };
 
+enum class SlicingMode
+{
+    MIDDLE,
+    INCLUSIVE,
+    EXCLUSIVE
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.
@@ -277,6 +284,7 @@ public:
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key) const;
     SupportDistPriority getSettingAsSupportDistPriority(std::string key) const;
+    SlicingMode getSettingAsSlicingMode(std::string key) const;
     std::vector<int> getSettingAsIntegerList(std::string key) const;
 };
 

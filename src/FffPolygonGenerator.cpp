@@ -89,8 +89,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         logError("Layer height %i is disallowed.\n", layer_thickness);
         return false;
     }
-    int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
-    int slice_layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
+    int slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
     if (slice_layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
     {
         return true; //This is NOT an error state!
@@ -100,7 +99,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
         /*
         for(SlicerLayer& layer : slicer->layers)
@@ -172,9 +171,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
-            meshStorage.layers[layer_nr].printZ += 
+            meshStorage.layers[layer_nr].printZ =
                 getSettingInMicrons("layer_height_0")
-                - initial_slice_z;
+                + layer_nr * layer_thickness;
             if (has_raft)
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
