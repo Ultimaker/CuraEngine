@@ -21,7 +21,8 @@ public:
         RED,
         BLUE,
         GREEN,
-        YELLOW
+        YELLOW,
+        RAINBOW
     };
     
 private:
@@ -179,7 +180,9 @@ public:
         Point fb = transform(b);
         fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:%i\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str(), stroke_width);
     }
-    
+
+    void writeLineRGB(const Point& from, const Point& to, int r = 0, int g = 0, int b = 0, int stroke_width = 1);
+
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
      * 
@@ -213,23 +216,8 @@ public:
             writePolygon(poly, color, stroke_width);
         }
     }
-    void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK, int stroke_width = 1)
-    {
-        if (poly.size() == 0)
-        {
-            return;
-        }
-        Point p0 = poly.back();
-        for (Point p1 : poly)
-        {
-            writeLine(p0, p1, color, stroke_width);
-            p0 = p1;
-        }
-    }
-    
-    
-    
-    
+    void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK, int stroke_width = 1);
+
     /*
     void Polygons::debugOutputHTML(const char* filename, bool dotTheVertices)
 {
