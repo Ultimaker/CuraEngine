@@ -87,13 +87,13 @@ void StringTest::writeInt2mmAssert(int64_t in)
     if (!ss.good())
     {
         char buffer[200];
-        sprintf(buffer, "The integer %ld was printed as '%s' which was a bad string!", in, str.c_str());
+        sprintf(buffer, "The integer %" PRId64 " was printed as '%s' which was a bad string!", in, str.c_str());
         CPPUNIT_ASSERT_MESSAGE(std::string(buffer), false);
     }
     int64_t out = MM2INT(strtod(str.c_str(), nullptr));
 
     char buffer[200];
-    sprintf(buffer, "The integer %ld was printed as '%s' which was interpreted as %ld rather than %ld!", in, str.c_str(), out, in);
+    sprintf(buffer, "The integer %" PRId64 " was printed as '%s' which was interpreted as %" PRId64 " rather than %" PRId64 "!", in, str.c_str(), out, in);
     CPPUNIT_ASSERT_MESSAGE(std::string(buffer), in == out);
 }
 
