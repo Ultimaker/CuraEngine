@@ -82,8 +82,8 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
      * r = .5 sqrt(2) L
      */
     ret.middle = aabb.getMiddle();
-    ret.depth = -1;
-    ret.radius = line_distance * sqrt(2.0) * 0.5;
+    ret.depth = 0;
+    ret.radius = line_distance * sqrt(2.0); // doesn't work if it's multiplied by 0.5
     while (ret.radius <= minimal_radius)
     {
         ret.depth++;
