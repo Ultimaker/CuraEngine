@@ -2,8 +2,6 @@
 #include "SpaceFillingTreeFill.h"
 
 #include "../utils/linearAlg2D.h" // rotateAround
-#include "../utils/SVG.h"
-#include "../FffGcodeWriter.h"
 
 namespace cura {
 
