@@ -7,7 +7,7 @@
 #include <sstream> // ostringstream
 #include <../src/utils/intpoint.h>
 #include <../src/utils/string.h>
-
+#include <cinttypes>
 
 namespace cura
 {
