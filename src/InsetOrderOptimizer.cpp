@@ -72,7 +72,7 @@ void InsetOrderOptimizer::processHoleInsets()
         for (unsigned inset_level = num_insets - 1; inset_level > 0; --inset_level)
         {
             Polygons insets_that_do_not_surround_holes;
-            for (unsigned inset_idx = 0; inset_idx < inset_polys[inset_level].size(); ++inset_idx)
+            for (unsigned inset_idx = 0; inset_idx < inset_polys[0].size() && inset_idx < inset_polys[inset_level].size(); ++inset_idx)
             {
                 const ConstPolygonRef& inner_wall = *inset_polys[inset_level][inset_idx];
                 const ConstPolygonRef& outer_wall = *inset_polys[0][inset_idx];
