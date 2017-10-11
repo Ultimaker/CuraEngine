@@ -653,7 +653,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
-        storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(infill_extr.getSettingInMicrons("support_line_distance"), aabb));
+        for (unsigned int density_idx = 0; density_idx <= (unsigned int)infill_extr.getSettingAsCount("gradual_support_infill_steps"); ++density_idx)
+        {
+            coord_t line_distance = infill_extr.getSettingInMicrons("support_line_distance") << density_idx;
+            storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(line_distance, aabb));
+        }
     }
 }
 
