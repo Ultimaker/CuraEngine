@@ -42,7 +42,9 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Infill infill_comp(pattern, zig_zaggify_infill, area, outline_offset
             , infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, perimeter_gaps_output, connected_zigzags, use_endpieces
             , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_patterns[0], &mesh); //cross_fill_patterns[0] because we don't use gradual infill.
+        // cross_fill_patterns is only generated when spaghetti infill is not used,
+        // so we pass nullptr here.
+        infill_comp.generate(infill_polygons, infill_lines, nullptr, &mesh);
 
         // add paths to plan with a higher flow ratio in order to extrude the required amount.
         const coord_t total_length = infill_polygons.polygonLength() + infill_lines.polyLineLength();
