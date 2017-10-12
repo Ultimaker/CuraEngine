@@ -54,6 +54,9 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     case EFillMethod::TRIANGLES:
         generateTriangleInfill(result_lines);
         break;
+    case EFillMethod::TRIHEXAGON:
+        generateTrihexagonInfill(result_lines);
+        break;
     case EFillMethod::CONCENTRIC:
         generateConcentricInfill(result_polygons, line_distance);
         break;
@@ -176,6 +179,13 @@ void Infill::generateTriangleInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle, 0);
     generateLineInfill(result, line_distance, fill_angle + 60, 0);
     generateLineInfill(result, line_distance, fill_angle + 120, 0);
+}
+
+void Infill::generateTrihexagonInfill(Polygons& result)
+{
+    generateLineInfill(result, line_distance, fill_angle, 0);
+    generateLineInfill(result, line_distance, fill_angle + 60, 0);
+    generateLineInfill(result, line_distance, fill_angle + 120, line_distance / 2);
 }
 
 void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage& mesh)

@@ -376,6 +376,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::QUARTER_CUBIC;
     if (value == "triangles")
         return EFillMethod::TRIANGLES;
+    if (value == "trihexagon")
+        return EFillMethod::TRIHEXAGON;
     if (value == "concentric")
         return EFillMethod::CONCENTRIC;
     if (value == "concentric_3d")
