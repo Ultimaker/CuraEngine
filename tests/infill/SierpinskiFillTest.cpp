@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SierpinskiFillTest.h"
+#include "../src/infill/ImageBasedSubdivider.h"
 
 namespace cura
 {
@@ -19,15 +20,17 @@ void SierpinskiFillTest::tearDown()
 
 void SierpinskiFillTest::debugCheck()
 {
-    AABB aabb(Point(0,0), Point(1024, 1024)*8);
+    AABB aabb(Point(0,0), Point(1024, 1024)*32);
     //aabb.expand(512);
     SVG svg("output/sierpinski.html", aabb, Point(1000, 1000)*2);
     
     
+    Subdivider* subdivider = new ImageBasedSubdivider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb, 400);
+//     subdivider = new UniformSubdivider();
 //     srand(1);
-    int max_depth = 18;
+    int max_depth = 12;
     {
-        SierpinskiFill f(aabb, max_depth);
+        SierpinskiFill f(*subdivider, aabb, max_depth);
         SVG::Color color = SVG::Color::GREEN;
         switch (max_depth % 4)
         {
@@ -39,7 +42,9 @@ void SierpinskiFillTest::debugCheck()
         }
         color = SVG::Color::RAINBOW;
         color = SVG::Color::BLACK;
-        svg.writePolygon(f.generateCross(5200, 16), color, 4);
+//         svg.writePolygon(f.generateCross(3000, 16), color, 4);
+        svg.writePolygon(f.generateCross(), color, 8);
+        svg.writePoints(f.generateCross());
 //         svg.writePolygon(f.generateSierpinski(), color);
 //         f.debugOutput(svg);
     }

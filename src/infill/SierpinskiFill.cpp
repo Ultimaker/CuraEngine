@@ -7,14 +7,16 @@
 #include "../utils/linearAlg2D.h" // rotateAround
 
 #include "ImageBasedSubdivider.h"
+#include "UniformSubdivider.h"
 
 namespace cura {
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
 
-SierpinskiFill::SierpinskiFill(const AABB aabb, int max_depth)
-: aabb(aabb)
+SierpinskiFill::SierpinskiFill(const Subdivider& subdivider, const AABB aabb, int max_depth)
+: subdivider(subdivider)
+, aabb(aabb)
 {
     Point m = aabb.min;
     edges.emplace_back(straight, m, Point(aabb.max.X, m.Y), 2);
@@ -39,6 +41,10 @@ SierpinskiFill::SierpinskiFill(const AABB aabb, int max_depth)
     }
 }
 
+SierpinskiFill::~SierpinskiFill()
+{
+}
+
 void SierpinskiFill::debugOutput(SVG& svg)
 {
     svg.writePolygon(aabb.toPolygon(), SVG::Color::RED);
@@ -57,7 +63,7 @@ void SierpinskiFill::debugOutput(SVG& svg)
 
 void SierpinskiFill::process(int iteration)
 {
-    ImageBasedSubdivider recurse_triangle("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb, 400);
+    const Subdivider& recurse_triangle = subdivider;
 
     bool processing_direction = iteration % 2 == 1;
     const bool opposite_direction = !processing_direction;
