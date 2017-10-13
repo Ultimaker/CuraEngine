@@ -10,6 +10,8 @@
 #include "utils/logoutput.h"
 #include "utils/UnionFind.h"
 #include "infill/SierpinskiFill.h"
+#include "infill/ImageBasedSubdivider.h"
+#include "infill/UniformSubdivider.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -220,11 +222,26 @@ void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern,
         outline_offset += -infill_line_width / 2;
     }
     Polygons outline = in_outline.offset(outline_offset);
-    SierpinskiFill fill(AABB(in_outline), 17);
+
+    AABB aabb(in_outline);
+    Subdivider* subdivider;
+    if (true)
+    {
+        subdivider = new ImageBasedSubdivider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb, 400);
+    }
+    else
+    {
+        subdivider = new UniformSubdivider();
+    }
+
+    SierpinskiFill fill(*subdivider, aabb, 17);
     Polygon pol = fill.generateCross(z, infill_line_width / 2);
     Polygons i;
     i.add(pol);
     result_polygons.add(i.intersection(outline));
+    
+    
+    delete subdivider;
     
     return;
 

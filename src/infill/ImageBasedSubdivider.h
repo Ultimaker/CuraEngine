@@ -6,19 +6,20 @@
 #include "../utils/AABB.h"
 #include "../utils/AABB3D.h"
 
+#include "Subdivider.h"
 #include "SierpinskiFillEdge.h"
 
 namespace cura
 {
 
-class ImageBasedSubdivider
+class ImageBasedSubdivider : public Subdivider
 {
 public:
     ImageBasedSubdivider(const std::string filename, const AABB aabb, const coord_t line_width);
 
-    ~ImageBasedSubdivider();
+    virtual ~ImageBasedSubdivider();
 
-    bool operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const;
+    virtual bool operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const;
 
 protected:
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.
