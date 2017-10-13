@@ -11,6 +11,25 @@ if (ENABLE_ARCUS)
     add_definitions(-DARCUS)
 endif ()
 
+
+# STB image lib
+include(ExternalProject)
+ExternalProject_Add(
+  Stb
+
+  GIT_REPOSITORY "https://github.com/nothings/stb.git"
+  GIT_TAG "master"
+
+  PATCH_COMMAND ""
+
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/stb"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+  TEST_COMMAND ""
+)
+
+
 if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
     set(CMAKE_CXX_STANDARD 11)
 else()
