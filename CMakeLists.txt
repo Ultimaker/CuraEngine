@@ -12,6 +12,25 @@ if (ENABLE_ARCUS)
 endif ()
 
 
+# STB image lib
+include(ExternalProject)
+ExternalProject_Add(
+  Stb
+
+  GIT_REPOSITORY "https://github.com/nothings/stb.git"
+  GIT_TAG "master"
+
+  PATCH_COMMAND ""
+
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/stb"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+  TEST_COMMAND ""
+)
+
+
+
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 
 if(USE_SYSTEM_LIBS)
