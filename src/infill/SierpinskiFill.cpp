@@ -6,6 +6,8 @@
 
 #include "../utils/linearAlg2D.h" // rotateAround
 
+#include "ImageBasedSubdivider.h"
+
 namespace cura {
 
 static constexpr bool diagonal = true;
@@ -41,7 +43,7 @@ void SierpinskiFill::debugOutput(SVG& svg)
 {
     svg.writePolygon(aabb.toPolygon(), SVG::Color::RED);
     int i = 0;
-    for (Edge& edge : edges)
+    for (SierpinskiFillEdge& edge : edges)
     {
         Point new_l = edge.l + normal(edge.r - edge.l, 15);
         Point new_r = edge.r - normal(edge.r - edge.l, 15);
@@ -55,62 +57,18 @@ void SierpinskiFill::debugOutput(SVG& svg)
 
 void SierpinskiFill::process(int iteration)
 {
+    ImageBasedSubdivider recurse_triangle("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb, 400);
+
     bool processing_direction = iteration % 2 == 1;
-    float prev_density = 1.25 * 4 / 512.0 * sqrt(double(1 << (iteration - 1)));
-    float density = 1.25 * 4 / 512.0 * sqrt(double(1 << iteration));
-    std::function<bool (const Edge& e1, const Edge e2)> recurse_triangle =
-    [processing_direction, density, prev_density, iteration, this](const Edge& e1, const Edge e2)->bool
-        {
-            int depth_diff = e2.depth - e1.depth;
-            if (e1.direction == e2.direction)
-            {
-                if (e1.depth != e2.depth)
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (depth_diff < -1 || depth_diff > 1)
-                {
-                    return false;
-                }
-            }
-            AABB aabb_here;
-            aabb_here.include(e1.l);
-            aabb_here.include(e1.r);
-            aabb_here.include(e2.l);
-            aabb_here.include(e2.r);
-            Point min = (aabb_here.min - aabb.min - Point(1,1)) * pic_size.X / (aabb.max - aabb.min);
-            Point max = (aabb_here.max - aabb.min + Point(1,1)) * pic_size.Y / (aabb.max - aabb.min);
-            long tot = 0;
-            int pixel_count = 0;
-            for (int x = std::max((coord_t)0, min.X); x <= std::min((coord_t)pic_size.X - 1, max.X); x++)
-            {
-                for (int y = std::max((coord_t)0, min.Y); y <= std::min((coord_t)pic_size.Y - 1, max.Y); y++)
-                {
-                    tot += pic[pic_size.Y - 1 - y][x];
-                    pixel_count++;
-                }
-            }
-            long boundary = (1.0 - (density + prev_density) * .5) * 255 * pixel_count;
-            if (tot < boundary)
-            { 
-                return true;
-            }
-            return false;
-        };
-
-
     const bool opposite_direction = !processing_direction;
-    using iter = std::list<Edge>::iterator;
-    Edge* prev = nullptr;
+    using iter = std::list<SierpinskiFillEdge>::iterator;
+    SierpinskiFillEdge* prev = nullptr;
     for (iter it = edges.begin(); it != edges.end(); ++it)
     {
-        Edge& here = *it;
+        SierpinskiFillEdge& here = *it;
         iter next_it = it;
         ++next_it;
-        Edge* next = nullptr;
+        SierpinskiFillEdge* next = nullptr;
         if (next_it != edges.end())
         {
             next = &*next_it;
@@ -196,7 +154,7 @@ void SierpinskiFill::process(int iteration)
 Polygon SierpinskiFill::generateCross() const
 {
     Polygon ret;
-    for (const Edge& e : edges)
+    for (const SierpinskiFillEdge& e : edges)
     {
         ret.add((e.l + e.r) / 2);
     }
@@ -206,8 +164,8 @@ Polygon SierpinskiFill::generateSierpinski() const
 {
     Polygon ret;
 
-    const Edge* prev = &edges.back();
-    for (const Edge& e : edges)
+    const SierpinskiFillEdge* prev = &edges.back();
+    for (const SierpinskiFillEdge& e : edges)
     {
         Point c;
         if (e.l == prev->l)
@@ -249,7 +207,7 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side) const
 {
     Polygon ret;
     int last_nonD_depth = edges.front().depth;
-    for (const Edge& e : edges)
+    for (const SierpinskiFillEdge& e : edges)
     {
         int depth = e.depth;
         if (e.direction == diagonal)

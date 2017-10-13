@@ -10,6 +10,8 @@
 
 #include "../utils/SVG.h"
 
+#include "SierpinskiFillEdge.h"
+
 namespace cura
 {
 /*!
@@ -56,24 +58,6 @@ class SierpinskiFill
 {
 public:
     /*!
-     * The type of an edge of a triangle in the space subdivision
-     */
-    struct Edge
-    {
-        bool direction; //!< Whether the edge is diagonal, rather than horizontal or vertical
-        Point l; //!< The vertex of the edge to the left / inside of the curve
-        Point r; //!< The vertex of the edge to the right / outside of the curve
-        unsigned int depth; //!< The iteration with which this edge was generated / altered
-        Edge (const bool direction, const Point l, const Point r, unsigned int depth) // basic constructor
-        : direction(direction)
-        , l(l)
-        , r(r)
-        , depth(depth)
-        {
-        }
-    };
-
-    /*!
      * Basic constructor
      */
     SierpinskiFill(const AABB aabb, int max_depth);
@@ -105,21 +89,8 @@ protected:
      */
     void process(const int iteration);
     
-    std::list<Edge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
+    std::list<SierpinskiFillEdge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
     AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
-    
-    const Point pic_size = Point((coord_t)10, (coord_t)10);
-    int pic[10][10]
-    {{255, 000, 000, 000, 000, 000, 000, 000, 000, 000},
-    {225, 000, 255, 000, 000, 000, 000, 000, 000, 000},
-    {225, 000, 255, 000, 000, 000, 000, 000, 000, 000},
-    {200, 000, 000, 255, 000, 000, 255, 000, 000, 000},
-    {175, 000, 000, 000, 000, 000, 000, 000, 000, 255},
-    {150, 000, 255, 000, 000, 000, 000, 000, 000, 255},
-    {150, 000, 255, 000, 000, 000, 000, 000, 000, 255},
-    {125, 000, 000, 000, 000, 000, 000, 000, 255, 000},
-    {100, 000, 000, 000, 000, 000, 000, 255, 000, 000},
-    { 75,  25, 000, 255, 255, 000, 000, 000, 000, 000}};
 };
 } // namespace cura
 
