@@ -15,6 +15,7 @@ callgrind/*
 ## Building result.
 build/*
 debug_build/*
+libs/stb
 *.pyc
 *.exe
 *.a
