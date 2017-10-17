@@ -1,57 +1,45 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
-#ifndef SLICER_H
-#define SLICER_H
+/** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
+#ifndef SLICER_SLICER_LAYER_H
+#define SLICER_SLICER_LAYER_H
 
-#include <queue>
+#include <unordered_map>
 
-#include "mesh.h"
-#include "utils/polygon.h"
-/*
-    The Slicer creates layers of polygons from an optimized 3D model.
-    The result of the Slicer is a list of polygons without any order or structure.
-*/
-namespace cura {
+#include "../utils/optional.h"
+#include "../mesh.h"
+#include "../utils/intpoint.h"
+#include "../utils/polygon.h"
 
-class SlicerSegment
+#include "SlicerSegment.h"
+#include "GapCloserResult.h"
+#include "ClosePolygonResult.h"
+
+#include "../textureProcessing/MatSegment.h"
+#include "../textureProcessing/TextureBumpMapProcessor.h"
+#include "../textureProcessing/FaceNormalStorage.h"
+
+namespace cura
 {
-public:
-    Point start, end;
-    int faceIndex = -1;
-    // The index of the other face connected via the edge that created end
-    int endOtherFaceIdx = -1;
-    // If end corresponds to a vertex of the mesh, then this is populated
-    // with the vertex that it ended on.
-    const MeshVertex *endVertex = nullptr;
-    bool addedToPolygon = false;
-};
-
-class ClosePolygonResult
-{   //The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
-    //The line on which the point lays is between pointIdx-1 and pointIdx
-public:
-    Point intersectionPoint;
-    int polygonIdx = -1;
-    unsigned int pointIdx = -1;
-};
-class GapCloserResult
-{
-public:
-    int64_t len = -1;
-    int polygonIdx = -1;
-    unsigned int pointIdxA = -1;
-    unsigned int pointIdxB = -1;
-    bool AtoB = false;
-};
 
 class SlicerLayer
 {
 public:
+    /*!
+     * \param mesh For which mesh this layer is sliced
+     * \param bump_map_settings The settings with which to create a TextureBumpMapProcessor - if provided
+     * \param face_normal_storage The face normal statistics to be used in the \p bump_map_settings - if provided
+     */
+    SlicerLayer(unsigned int layer_nr, Mesh* mesh, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings, FaceNormalStorage* face_normal_storage);
+
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
 
     int z = -1;
+    unsigned int layer_nr;
+
     Polygons polygons;
     Polygons openPolylines;
+
+    std::optional<TextureBumpMapProcessor> texture_bump_map; //!< the bump map to apply to the outlines - if any
 
     /*!
      * Connect the segments into polygons for this layer of this \p mesh
@@ -67,27 +55,30 @@ protected:
     /*!
      * Connect the segments into loops which correctly form polygons (don't perform stitching here)
      *
-     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void makeBasicPolygonLoops(Polygons& open_polylines);
+    void makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines);
 
     /*!
      * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
      *
-     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
      */
-    void makeBasicPolygonLoop(Polygons& open_polylines, unsigned int start_segment_idx);
+    void makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx);
 
     /*!
      * Get the next segment connected to the end of \p segment.
      * Used to make closed polygon loops.
      * Return ASAP if segment is (also) connected to SlicerLayer::segments[\p start_segment_idx]
      *
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
      * \param[in] segment The segment from which to start looking for the next
      * \param[in] start_segment_idx The index to the segment which when conected to \p segment will immediately stop looking for further candidates.
      */
-    int getNextSegmentIdx(const SlicerSegment& segment, unsigned int start_segment_idx);
+    int getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx);
 
     /*!
      * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
@@ -480,44 +471,6 @@ private:
                                   bool allow_reverse);
 };
 
-class Slicer
-{
-public:
-    std::vector<SlicerLayer> layers;
+} // namespace cura
 
-    const Mesh* mesh = nullptr; //!< The sliced mesh
-
-    Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
-
-    /*!
-     * Linear interpolation
-     *
-     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
-     */
-    int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
-    {
-        int64_t dx_01 = x1 - x0;
-        int64_t num = (y1 - y0) * (x - x0);
-        num += num > 0 ? dx_01/2 : -dx_01/2; // add in offset to round result
-        int64_t y = y0 + num / dx_01;
-        return y;
-    }
-
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
-    {
-        SlicerSegment seg;
-
-        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
-        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
-        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
-        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-
-        return seg;
-    }
-
-    void dumpSegmentsToHTML(const char* filename);
-};
-
-}//namespace cura
-
-#endif//SLICER_H
+#endif // SLICER_SLICER_LAYER_H

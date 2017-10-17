@@ -1,35 +1,43 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
-#include <stdio.h>
+/** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 
-#include <algorithm> // remove_if
+#include "SlicerLayer.h"
+#include "../textureProcessing/TextureBumpMapProcessor.h"
+#include "../utils/SparsePointGridInclusive.h"
 
-#include "utils/gettime.h"
-#include "utils/logoutput.h"
-#include "utils/SparsePointGridInclusive.h"
-
-#include "slicer.h"
-
-
-namespace cura {
+namespace cura
+{
 
 int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
 int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
-void SlicerLayer::makeBasicPolygonLoops(Polygons& open_polylines)
+
+SlicerLayer::SlicerLayer(unsigned int layer_nr, Mesh* mesh, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings, FaceNormalStorage* face_normal_storage)
+: layer_nr(layer_nr)
+{
+    if (bump_map_settings)
+    {
+        TexturedMesh* textured_mesh = dynamic_cast<TexturedMesh*>(mesh);
+        assert(textured_mesh && "we should only have bump map settings when there is a texture");
+        texture_bump_map.emplace(textured_mesh, *bump_map_settings, face_normal_storage);
+    }
+}
+
+
+void SlicerLayer::makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines)
 {
     for(unsigned int start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
     {
         if (!segments[start_segment_idx].addedToPolygon)
         {
-            makeBasicPolygonLoop(open_polylines, start_segment_idx);
+            makeBasicPolygonLoop(mesh, open_polylines, start_segment_idx);
         }
     }
     //Clear the segmentList to save memory, it is no longer needed after this point.
     segments.clear();
 }
 
-void SlicerLayer::makeBasicPolygonLoop(Polygons& open_polylines, unsigned int start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx)
 {
 
     Polygon poly;
@@ -40,7 +48,7 @@ void SlicerLayer::makeBasicPolygonLoop(Polygons& open_polylines, unsigned int st
         SlicerSegment& segment = segments[segment_idx];
         poly.add(segment.end);
         segment.addedToPolygon = true;
-        segment_idx = getNextSegmentIdx(segment, start_segment_idx);
+        segment_idx = getNextSegmentIdx(mesh, segment, start_segment_idx);
         if (segment_idx == static_cast<int>(start_segment_idx))
         { // polyon is closed
             polygons.add(poly);
@@ -78,7 +86,7 @@ int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, int face_id
     return -1;
 }
 
-int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, unsigned int start_segment_idx)
+int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx)
 {
     int next_segment_idx = -1;
 
@@ -738,7 +746,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 {
     Polygons open_polylines;
 
-    makeBasicPolygonLoops(open_polylines);
+    makeBasicPolygonLoops(mesh, open_polylines);
 
     connectOpenPolylines(open_polylines);
 
@@ -766,15 +774,18 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     for (PolygonRef polyline : open_polylines)
     {
         if (polyline.size() > 0)
-        {
             openPolylines.add(polyline);
-        }
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
     int snapDistance = MM2INT(1.0); // TODO: hardcoded value
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
     polygons.erase(it, polygons.end());
+
+    if (texture_bump_map)
+    {
+        texture_bump_map->processBumpMap(polygons, layer_nr);
+    }
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     polygons.simplify();
@@ -786,124 +797,10 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     {
         xy_offset = mesh->getSettingInMicrons("xy_offset_layer_0");
     }
-
     if (xy_offset != 0)
     {
         polygons = polygons.offset(xy_offset);
     }
 }
 
-
-Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
-: mesh(mesh)
-{
-    assert(slice_layer_count > 0);
-
-    TimeKeeper slice_timer;
-
-    layers.resize(slice_layer_count);
-
-
-    for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-    {
-        layers[layer_nr].z = initial + thickness * layer_nr;
-    }
-
-    for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
-    {
-        const MeshFace& face = mesh->faces[mesh_idx];
-        const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
-        const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
-        const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
-        Point3 p0 = v0.p;
-        Point3 p1 = v1.p;
-        Point3 p2 = v2.p;
-        int32_t minZ = p0.z;
-        int32_t maxZ = p0.z;
-        if (p1.z < minZ) minZ = p1.z;
-        if (p2.z < minZ) minZ = p2.z;
-        if (p1.z > maxZ) maxZ = p1.z;
-        if (p2.z > maxZ) maxZ = p2.z;
-        int32_t layer_max = (maxZ - initial) / thickness;
-        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
-        {
-            int32_t z = layer_nr * thickness + initial;
-            if (z < minZ) continue;
-            if (layer_nr < 0) continue;
-
-            SlicerSegment s;
-            s.endVertex = nullptr;
-            int end_edge_idx = -1;
-            if (p0.z < z && p1.z >= z && p2.z >= z)
-            {
-                s = project2D(p0, p2, p1, z);
-                end_edge_idx = 0;
-                if (p1.z == z)
-                {
-                    s.endVertex = &v1;
-                }
-            }
-            else if (p0.z > z && p1.z < z && p2.z < z)
-            {
-                s = project2D(p0, p1, p2, z);
-                end_edge_idx = 2;
-
-            }
-
-            else if (p1.z < z && p0.z >= z && p2.z >= z)
-            {
-                s = project2D(p1, p0, p2, z);
-                end_edge_idx = 1;
-                if (p2.z == z)
-                {
-                    s.endVertex = &v2;
-                }
-            }
-            else if (p1.z > z && p0.z < z && p2.z < z)
-            {
-                s = project2D(p1, p2, p0, z);
-                end_edge_idx = 0;
-
-            }
-
-            else if (p2.z < z && p1.z >= z && p0.z >= z)
-            {
-                s = project2D(p2, p1, p0, z);
-                end_edge_idx = 2;
-                if (p0.z == z)
-                {
-                    s.endVertex = &v0;
-                }
-            }
-            else if (p2.z > z && p1.z < z && p0.z < z)
-            {
-                s = project2D(p2, p0, p1, z);
-                end_edge_idx = 1;
-            }
-            else
-            {
-                //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
-                //  on the slice would create two segments
-                continue;
-            }
-            layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
-            s.faceIndex = mesh_idx;
-            s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
-            s.addedToPolygon = false;
-            layers[layer_nr].segments.push_back(s);
-        }
-    }
-    log("slice of mesh took %.3f seconds\n",slice_timer.restart());
-
-    std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
-#pragma omp parallel for default(none) shared(mesh,layers_ref) firstprivate(keep_none_closed, extensive_stitching)
-    for(unsigned int layer_nr=0; layer_nr<layers_ref.size(); layer_nr++)
-    {
-        layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching, layer_nr == 0);
-    }
-
-    mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
-    log("slice make polygons took %.3f seconds\n",slice_timer.restart());
-}
-
-}//namespace cura
+} // namespace cura

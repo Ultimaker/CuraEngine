@@ -515,7 +515,8 @@ public:
      * \param[in] possible_adjacent_polys The vector of polygons we are testing.
      * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      */
-    static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonPointer>& possible_adjacent_polys, const coord_t max_gap);
+    template<class PolygonDereferenceable>
+    static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<PolygonDereferenceable>& possible_adjacent_polys, const coord_t max_gap);
 
 private:
     /*!
@@ -531,6 +532,19 @@ private:
     
 };
 
+template<class PolygonDereferenceable>
+void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<PolygonDereferenceable>& possible_adjacent_polys, const coord_t max_gap)
+{
+    // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
+    for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
+    {
+        if (polygonOutlinesAdjacent(poly, *possible_adjacent_polys[poly_idx], max_gap) ||
+            polygonOutlinesAdjacent(*possible_adjacent_polys[poly_idx], poly, max_gap))
+        {
+            adjacent_poly_indices.push_back(poly_idx);
+        }
+    }
+}
 
 }//namespace cura
 

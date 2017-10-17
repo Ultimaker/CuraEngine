@@ -8,7 +8,7 @@
 #include "sliceDataStorage.h"
 #include "MeshGroup.h"
 #include "commandSocket.h"
-#include "slicer.h"
+#include "slicer/Slicer.h"
 
 namespace cura {
 

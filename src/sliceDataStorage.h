@@ -15,6 +15,7 @@
 #include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
+#include "textureProcessing/TextureProximityProcessor.h"
 #include "utils/SpaceFillingTree.h"
 
 namespace cura 
@@ -228,7 +229,13 @@ public:
 
 class SubDivCube; // forward declaration to prevent dependency loop
 
-class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
+/*!
+ * 
+ * passes on settings from a Mesh object
+ * 
+ * Cannot be copied due to \ref SliceMeshStorage::texture_proximity_processor being governed by this object alone
+ */
+class SliceMeshStorage : public SettingsMessenger, public NoCopy
 {
 public:
     std::vector<SliceLayer> layers;
@@ -243,7 +250,14 @@ public:
     SubDivCube* base_subdiv_cube;
     std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual infill step.
 
+    TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
+
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count);
+
+    /*!
+     * Move constructor
+     */
+    SliceMeshStorage(SliceMeshStorage&& old);
 
     virtual ~SliceMeshStorage();
 
@@ -310,9 +324,7 @@ public:
      */
     SliceDataStorage(MeshGroup* meshgroup);
 
-    ~SliceDataStorage()
-    {
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.

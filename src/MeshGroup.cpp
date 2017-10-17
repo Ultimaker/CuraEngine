@@ -28,6 +28,10 @@ void* fgets_(char* ptr, size_t len, FILE* f)
             *ptr = '\0';
             return ptr;
         }
+        else if (*ptr =='\0')
+        {
+            return ptr;
+        }
         ptr++;
         len--;
     }
@@ -47,6 +51,10 @@ MeshGroup::~MeshGroup()
         {
             delete extruders[extruder];
         }
+    }
+    for (Mesh* mesh : meshes)
+    {
+        delete mesh;
     }
 }
 
@@ -93,10 +101,10 @@ Point3 MeshGroup::min() const
     {
         return Point3(0, 0, 0);
     }
-    Point3 ret = meshes[0].min();
-    for(unsigned int i=1; i<meshes.size(); i++)
+    Point3 ret = meshes[0]->min();
+    for (unsigned int i = 1; i < meshes.size(); i++)
     {
-        Point3 v = meshes[i].min();
+        Point3 v = meshes[i]->min();
         ret.x = std::min(ret.x, v.x);
         ret.y = std::min(ret.y, v.y);
         ret.z = std::min(ret.z, v.z);
@@ -110,10 +118,10 @@ Point3 MeshGroup::max() const
     {
         return Point3(0, 0, 0);
     }
-    Point3 ret = meshes[0].max();
-    for(unsigned int i=1; i<meshes.size(); i++)
+    Point3 ret = meshes[0]->max();
+    for (unsigned int i = 1; i < meshes.size(); i++)
     {
-        Point3 v = meshes[i].max();
+        Point3 v = meshes[i]->max();
         ret.x = std::max(ret.x, v.x);
         ret.y = std::max(ret.y, v.y);
         ret.z = std::max(ret.z, v.z);
@@ -123,9 +131,9 @@ Point3 MeshGroup::max() const
 
 void MeshGroup::clear()
 {
-    for(Mesh& m : meshes)
+    for (Mesh* m : meshes)
     {
-        m.clear();
+        m->clear();
     }
 }
 
@@ -142,17 +150,17 @@ void MeshGroup::finalize()
     }
     
     // If a mesh position was given, put the mesh at this position in 3D space. 
-    for(Mesh& mesh : meshes)
+    for (Mesh* mesh : meshes)
     {
-        Point3 mesh_offset(mesh.getSettingInMicrons("mesh_position_x"), mesh.getSettingInMicrons("mesh_position_y"), mesh.getSettingInMicrons("mesh_position_z"));
-        if (mesh.getSettingBoolean("center_object"))
+        Point3 mesh_offset(mesh->getSettingInMicrons("mesh_position_x"), mesh->getSettingInMicrons("mesh_position_y"), mesh->getSettingInMicrons("mesh_position_z"));
+        if (mesh->getSettingBoolean("center_object"))
         {
-            Point3 object_min = mesh.min();
-            Point3 object_max = mesh.max();
+            Point3 object_min = mesh->min();
+            Point3 object_max = mesh->max();
             Point3 object_size = object_max - object_min;
             mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
         }
-        mesh.offset(mesh_offset + meshgroup_offset);
+        mesh->offset(mesh_offset + meshgroup_offset);
     }
 }
 
@@ -296,6 +304,128 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
+void loadMaterialBase(TexturedMesh* mesh, const char* filename)
+{
+    FILE* f = fopen(filename, "rt");
+    if (f == nullptr)
+    {
+        logError("ERROR: Couldn't load MTL file %s.\n", filename);
+        return;
+    }
+    char buffer[1024];
+    char mat_name [100];
+    char mat_file [100];
+    char map_type [10];
+    Material* last_mat = nullptr;
+    while(fgets_(buffer, sizeof(buffer), f))
+    {
+        if (buffer[0] == '#')
+        {
+            continue;
+        }
+        if (sscanf(buffer, "map_%s %s", map_type, mat_file) == 2 // we don't care what type of map it specifies (currently)
+            || sscanf(buffer, "bump %s", mat_file) == 1
+            || sscanf(buffer, "disp %s", mat_file) == 1
+            || sscanf(buffer, "decal %s", mat_file) == 1
+            || sscanf(buffer, "refl %s", mat_file) == 1
+        )
+        {
+            std::string parent_dir = std::string(filename).substr(0, std::string(filename).find_last_of("/\\"));
+            std::string mtl_file = parent_dir + "/" + mat_file;
+            if (last_mat)
+            {
+                last_mat->loadImage(mtl_file.c_str());
+            }
+        }
+        else if (sscanf(buffer, "newmtl %s", mat_name) == 1)
+        {
+            last_mat = mesh->addMaterial(mat_name);
+        }
+    }
+    fclose(f);
+}
+
+bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& matrix)
+{
+    FILE* f = fopen(filename, "rt");
+    if (f == nullptr)
+    {
+        return false;
+    }
+    char buffer[1024];
+    FPoint3 vertex;
+    int vertex_indices[3];
+    float texture_x;
+    float texture_y;
+    float temp;
+    char face_index_buffer_1 [100];
+    char face_index_buffer_2 [100];
+    char face_index_buffer_3 [100];
+    char str_buffer [100];
+    while(fgets_(buffer, sizeof(buffer), f))
+    {
+        if (buffer[0] == '#')
+        {
+            continue;
+        }
+        if (sscanf(buffer, "v %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
+        {
+            Point3 v = matrix.apply(vertex);
+            mesh->addVertex(v);
+        }
+        else if (sscanf(buffer, "vt %f %f", &texture_x, &texture_y) == 2)
+        {
+            mesh->addTextureCoord(texture_x, texture_y);
+        }
+        else if (sscanf(buffer, "f %s %s %s", face_index_buffer_1, face_index_buffer_2, face_index_buffer_3) == 3)
+        {
+            int normal_vector_index; // unused
+            int texture_indices[3]; // becomes -1 if no texture data supplied
+            int n_scanned_1 = sscanf(face_index_buffer_1, "%d/%d/%d", &vertex_indices[0], &texture_indices[0], &normal_vector_index);
+            int n_scanned_2 = sscanf(face_index_buffer_2, "%d/%d/%d", &vertex_indices[1], &texture_indices[1], &normal_vector_index);
+            int n_scanned_3 = sscanf(face_index_buffer_3, "%d/%d/%d", &vertex_indices[2], &texture_indices[2], &normal_vector_index);
+            if (n_scanned_1 >= 2 && n_scanned_2 >= 2 && n_scanned_3 >= 2)
+            {
+                mesh->addFace(vertex_indices[0] - 1, vertex_indices[1] - 1, vertex_indices[2] - 1, texture_indices[0] - 1, texture_indices[1] - 1, texture_indices[2] - 1);
+                // obj files count vertex indices starting from 1!
+            }
+            else if (n_scanned_1 >= 1 && n_scanned_2 >= 1 && n_scanned_3 >= 1)
+            {
+                mesh->addFace(vertex_indices[0] - 1, vertex_indices[1] - 1, vertex_indices[2] - 1);
+            }
+        }
+        else if (sscanf(buffer, "mtllib %s", str_buffer) == 1)
+        {
+            std::string parent_dir = std::string(filename).substr(0, std::string(filename).find_last_of("/\\"));
+            std::string mtl_file = parent_dir + "/" + str_buffer;
+            loadMaterialBase(mesh, mtl_file.c_str());
+        }
+        else if (sscanf(buffer, "usemtl %s", str_buffer) == 1)
+        {
+            mesh->setMaterial(str_buffer);
+        }
+        else if (sscanf(buffer, "vn %f %f %f", &temp, &temp, &temp) == 3)
+        {
+            // do nothing with vertex normals
+        }
+        else if (sscanf(buffer, "g %s", str_buffer) == 1)
+        {
+            // do nothing with polygon groups
+        }
+        else if (buffer[0] == '\0')
+        {
+            // empty line, do nothing
+        }
+        else
+        {
+            logError("Cannot parse line \"%s\"\n", buffer);
+        }
+    }
+    fclose(f);
+    mesh->finish();
+    return true;
+}
+
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
 {
     TimeKeeper load_timer;
@@ -303,14 +433,32 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh* mesh = new Mesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if (loadMeshSTL(mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
             log("loading '%s' took %.3f seconds\n",filename,load_timer.restart());
             return true;
         }
+        else
+        {
+            delete mesh;
+        }
     }
+    else if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
+    {
+        TexturedMesh* mesh = new TexturedMesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if (loadMeshOBJ(mesh,filename,transformation)) //Load it! If successful...
+        {
+            meshgroup->meshes.push_back(mesh);
+            return true;
+        }
+        else 
+        {
+            delete mesh;
+        }
+    }
+        
     return false;
 }
 

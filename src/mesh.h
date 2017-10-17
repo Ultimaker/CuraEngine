@@ -3,6 +3,7 @@
 
 #include "settings/settings.h"
 #include "utils/AABB3D.h"
+#include "textureProcessing/MatSegment.h"
 
 namespace cura
 {
@@ -65,7 +66,26 @@ public:
 
     Mesh(SettingsBaseVirtual* parent); //!< initializes the settings
 
-    void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
+    virtual ~Mesh() {} //!< Destructor
+    
+    /*! 
+     * add a face to the mesh without settings it's connected_faces.
+     * 
+     * Don't add a face when the surface is zero mm^2
+     * 
+     * \return whether a face has been added
+     */
+    bool addFace(Point3& v0, Point3& v1, Point3& v2);
+    /*!
+     * add a face to the mesh without settings it's connected_faces.
+     * 
+     * Don't add a face when the surface is zero mm^2
+     * 
+     * \return whether a face has been added
+     */
+    bool addFace(int vi0, int vi1, int vi2);
+    void addVertex(const Point3& v);
+
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 

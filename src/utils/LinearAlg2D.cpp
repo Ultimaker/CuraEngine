@@ -144,4 +144,37 @@ bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_trans
     return false;
 }
 
+Point LinearAlg2D::variableCornerOffsetVector(const Point a, const Point b, const Point c, coord_t offset_ab, coord_t offset_bc)
+{
+    Point ba = a - b;
+    assert(ba != Point(0, 0));
+
+    Point bc = c - b;
+    assert(bc != Point(0, 0));
+
+    if (offset_ab == 0)
+    {
+        return Point(normal(ba, offset_bc));
+    }
+
+    if (offset_bc == 0)
+    {
+        return Point(normal(bc, -offset_ab));
+    }
+
+    coord_t determinant = ba.Y * bc.X - ba.X * bc.Y;
+    if (determinant > -10 && determinant < 10)
+    { // segments are collinear
+        return (normal(turn90CCW(-1 * ba), offset_ab) + normal(turn90CCW(bc), offset_bc)) / 2;
+    }
+    coord_t ab_size = vSize(ba);
+    coord_t bc_size = vSize(bc);
+
+    Point delta1 = offset_bc * bc_size * ba;
+    Point delta0 = offset_ab * ab_size * bc;
+
+    Point delta = (delta0 + delta1) / determinant;
+    return Point(delta);
+}
+
 } // namespace cura

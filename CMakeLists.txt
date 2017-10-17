@@ -65,18 +65,17 @@ set(engine_SRCS # Except main.cpp.
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp
+    src/FuzzyWalls.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
     src/infill.cpp
     src/InsetOrderOptimizer.cpp
-    src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp
-    src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
@@ -85,7 +84,6 @@ set(engine_SRCS # Except main.cpp.
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
     src/sliceDataStorage.cpp
-    src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
     src/TopSurface.cpp
@@ -100,6 +98,18 @@ set(engine_SRCS # Except main.cpp.
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
+
+    src/slicer/LayerPart.cpp
+    src/slicer/MultiVolumes.cpp
+    src/slicer/SlicerLayer.cpp
+    src/slicer/Slicer.cpp
+
+    src/textureProcessing/FaceNormalStorage.cpp
+    src/textureProcessing/Material.cpp
+    src/textureProcessing/MaterialBase.cpp
+    src/textureProcessing/TexturedMesh.cpp
+    src/textureProcessing/TextureBumpMapProcessor.cpp
+    src/textureProcessing/TextureProximityProcessor.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp
@@ -123,6 +133,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
+    src/utils/PolygonsIndex.cpp
     src/utils/PolygonsPointIndex.cpp
     src/utils/PolygonProximityLinker.cpp
     src/utils/polygonUtils.cpp

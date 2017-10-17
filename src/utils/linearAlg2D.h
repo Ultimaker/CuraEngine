@@ -160,7 +160,7 @@ public:
         if (ac_size == 0) 
         {
             int64_t ab_dist2 = vSize2(ab); 
-            if (ab_dist2 == 0)
+            if (ab_dist2 == 0 && b_is_beyond_ac)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
             }
@@ -320,6 +320,17 @@ public:
         Point bc = c - b;
         return dot(ba, bc);
     }
+
+    /*!
+     * Get the vector by which to offset a corner, when offsetting two line segments orthogonally with a different offset.
+     * 
+     * \param a The first point of the first line segment
+     * \param b The corner point between the two line segments
+     * \param c The second point of the second line segment
+     * \param offset_ab The offset to be applied on the line segment from \p a to \p b in the direction of the normal CCW of the line segment
+     * \param offset_bc The offset to be applied on the line segment from \p b to \p c in the direction of the normal CCW of the line segment
+     */
+    static Point variableCornerOffsetVector(const Point a, const Point b, const Point c, coord_t offset_ab, coord_t offset_bc);
 
     /*!
      * Get the rotation matrix for rotating around a specific point in place.

@@ -5,20 +5,23 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <functional> // function
 
 #ifdef _OPENMP
     #include <omp.h>
 #endif // _OPENMP
 
 #include "utils/math.h"
+#include "slicer/Slicer.h"
 #include "utils/algorithm.h"
-#include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "MeshGroup.h"
 #include "support.h"
-#include "multiVolumes.h"
-#include "layerPart.h"
+#include "slicer/MultiVolumes.h"
+#include "slicer/LayerPart.h"
+#include "textureProcessing/TextureBumpMapProcessor.h"
+#include "textureProcessing/TextureProximityProcessor.h"
 #include "Mold.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
@@ -96,11 +99,28 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         return true; //This is NOT an error state!
     }
 
-    std::vector<Slicer*> slicerList;
-    for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
+    
+    storage.meshes.reserve(meshgroup->meshes.size());
+    for (unsigned int meshIdx = 0; meshIdx < meshgroup->meshes.size(); meshIdx++)
     {
-        Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
+        // even make a mesh for a support mesh, which doesn't introduce any parts.
+        storage.meshes.emplace_back(meshgroup->meshes[meshIdx], slice_layer_count); // new mesh in storage had settings from the Mes
+    }
+    // ^ needs to be set already for fuzzy wall texture map processing
+
+    std::vector<Slicer*> slicerList;
+    for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
+    {
+        Mesh& mesh = *meshgroup->meshes[mesh_idx];
+        if (mesh.getSettingBoolean("fuzz_map_enabled"))
+        {
+            coord_t proximity = mesh.getSettingInMicrons("wall_line_width_0");
+            storage.meshes[mesh_idx].texture_proximity_processor = new TextureProximityProcessor(proximity, slice_layer_count);
+        }
+        bool keep_open_polylines = mesh.getSettingBoolean("meshfix_keep_open_polygons");
+        bool extensive_stitching = mesh.getSettingBoolean("meshfix_extensive_stitching");
+        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, keep_open_polylines, extensive_stitching, storage.meshes[mesh_idx].texture_proximity_processor);
         slicerList.push_back(slicer);
         /*
         for(SlicerLayer& layer : slicer->layers)
@@ -120,7 +140,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+        Mesh& mesh = *storage.meshgroup->meshes[mesh_idx];
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
@@ -130,6 +150,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     MultiVolumes::carveCuttingMeshes(slicerList, storage.meshgroup->meshes);
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
+
 
     if (storage.getSettingBoolean("carve_multiple_volumes"))
     {
@@ -141,7 +162,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh"))
         {
@@ -150,15 +171,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     storage.support.supportLayers.resize(storage.print_layer_count);
 
-    storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
 
-        // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
-        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
-        SliceMeshStorage& meshStorage = storage.meshes.back();
+       SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
 
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
 
@@ -338,8 +356,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (other_mesh.getSettingBoolean("infill_mesh"))
             {
-                AABB3D aabb = storage.meshgroup->meshes[mesh_idx].getAABB();
-                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx].getAABB();
+                AABB3D aabb = storage.meshgroup->meshes[mesh_idx]->getAABB();
+                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx]->getAABB();
                 if (aabb.hit(other_aabb))
                 {
                     process_infill = true;
@@ -460,6 +478,11 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 int line_width = wall_line_width_0;
                 for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
                 {
+                    if (inset_idx == 0 && (mesh.getSettingBoolean("fuzz_map_enabled") || mesh.getSettingBoolean("magic_fuzzy_skin_enabled")))
+                    {
+                        line_width = wall_line_width_x;
+                        continue;
+                    }
                     const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
                     line_width = wall_line_width_x;
 
@@ -613,12 +636,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         // combine infill
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
         SkinInfillAreaComputation::combineInfillLayers(mesh, combined_infill_layers);
-    }
-
-    // fuzzy skin
-    if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
-    {
-        processFuzzyWalls(mesh);
     }
 }
 
@@ -892,68 +909,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         break;
     case EPlatformAdhesion::NONE:
         break;
-    }
-}
-
-
-void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
-{
-    if (mesh.getSettingAsCount("wall_line_count") == 0)
-    {
-        return;
-    }
-    int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
-    int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
-    int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
-    int64_t range_random_point_dist = avg_dist_between_points / 2;
-    for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
-    {
-        SliceLayer& layer = mesh.layers[layer_nr];
-        for (SliceLayerPart& part : layer.parts)
-        {
-            Polygons results;
-            Polygons& skin = (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0];
-            for (PolygonRef poly : skin)
-            {
-                // generate points in between p0 and p1
-                PolygonRef result = results.newPoly();
-                
-                int64_t dist_left_over = rand() % (min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
-                Point* p0 = &poly.back();
-                for (Point& p1 : poly)
-                { // 'a' is the (next) new point between p0 and p1
-                    Point p0p1 = p1 - *p0;
-                    int64_t p0p1_size = vSize(p0p1);    
-                    int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-                    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
-                    {
-                        int r = rand() % (fuzziness * 2) - fuzziness;
-                        Point perp_to_p0p1 = turn90CCW(p0p1);
-                        Point fuzz = normal(perp_to_p0p1, r);
-                        Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
-                        result.add(pa);
-                        dist_last_point = p0pa_dist;
-                    }
-                    dist_left_over = p0p1_size - dist_last_point;
-                    
-                    p0 = &p1;
-                }
-                while (result.size() < 3 )
-                {
-                    unsigned int point_idx = poly.size() - 2;
-                    result.add(poly[point_idx]);
-                    if (point_idx == 0) { break; }
-                    point_idx--;
-                }
-                if (result.size() < 3)
-                {
-                    result.clear();
-                    for (Point& p : poly)
-                        result.add(p);
-                }
-            }
-            skin = results;
-        }
     }
 }
 

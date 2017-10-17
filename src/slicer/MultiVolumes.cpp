@@ -1,7 +1,7 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "multiVolumes.h"
+#include "MultiVolumes.h"
 
 namespace cura 
 {
@@ -96,7 +96,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
     }
 }
 
-void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh>& meshes)
+void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh*>& meshes)
 {
     for (unsigned int carving_mesh_idx = 0; carving_mesh_idx < volumes.size(); carving_mesh_idx++)
     {

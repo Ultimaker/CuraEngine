@@ -4,6 +4,7 @@
 
 #include "utils/NoCopy.h"
 #include "mesh.h"
+#include "textureProcessing/TexturedMesh.h"
 #include "ExtruderTrain.h"
 
 namespace cura
@@ -35,7 +36,7 @@ public:
 
     const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
 
-    std::vector<Mesh> meshes;
+    std::vector<Mesh*> meshes;
 
     Point3 min() const; //! minimal corner of bounding box
     Point3 max() const; //! maximal corner of bounding box

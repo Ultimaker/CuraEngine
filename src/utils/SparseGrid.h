@@ -14,9 +14,6 @@ namespace cura {
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
  * 
- * \note This is an abstract template class which doesn't have any functions to insert elements.
- * \see SparsePointGrid
- *
  * \tparam ElemT The element type to store.
  */
 template<class ElemT>
@@ -24,6 +21,11 @@ class SparseGrid
 {
 public:
     using Elem = ElemT;
+protected:
+    using GridPoint = Point;
+    using grid_coord_t = coord_t;
+    using GridMap = std::unordered_multimap<GridPoint, Elem>;
+public:
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -95,10 +97,50 @@ public:
 
     coord_t getCellSize() const;
 
+    /*! \brief Inserts elem into the sparse grid.
+     *
+     * \param[in] location The location where to insert the element
+     * \param[in] elem The element to be inserted.
+     */
+    void insert(Point location, const Elem &elem);
+
+    class iterator
+    {
+        friend class SparseGrid<ElemT>;
+        typename GridMap::iterator it;
+        iterator(typename GridMap::iterator it)
+        :it(it)
+        {}
+    public:
+        iterator operator++() // pre-increment
+        {
+            ++it;
+            return *this;
+        }
+        iterator operator++(int) // post increment
+        {
+            iterator ret(it);
+            ++it;
+            return ret;
+        }
+        Elem operator*()
+        {
+            return it->second;
+        }
+        bool operator==(iterator other)
+        {
+            return it == other.it;
+        }
+        bool operator!=(iterator other)
+        {
+            return it != other.it;
+        }
+        // TODO: fully implement iterator interface
+    };
+    iterator begin();
+    iterator end();
+
 protected:
-    using GridPoint = Point;
-    using grid_coord_t = coord_t;
-    using GridMap = std::unordered_multimap<GridPoint, Elem>;
 
     /*! \brief Process elements from the cell indicated by \p grid_pt.
      *
@@ -219,6 +261,26 @@ typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  c
     // time from this is probably not worth doing a proper floor
     // operation.
     return grid_coord * m_cell_size;
+}
+
+SGI_TEMPLATE
+void SGI_THIS::insert(Point loc, const Elem &elem)
+{
+    GridPoint grid_loc = toGridPoint(loc);
+
+    m_grid.emplace(grid_loc, elem);
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::iterator SGI_THIS::begin()
+{
+    return iterator(m_grid.begin());
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::iterator SGI_THIS::end()
+{
+    return iterator(m_grid.end());
 }
 
 SGI_TEMPLATE

@@ -21,7 +21,8 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     proximity_point_links.reserve(polygons.pointCount()); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
 
     // convert to list polygons for insertion of points
-    ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
+    constexpr bool remove_duplicates = true;
+    ListPolyIt::convertPolygonsToLists(polygons, list_polygons, remove_duplicates);
 
     // link each corner to itself
     addSharpCorners();

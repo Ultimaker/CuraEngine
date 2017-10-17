@@ -109,8 +109,21 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
 , cross_fill_patterns()
+, texture_proximity_processor(nullptr)
 {
     layers.resize(slice_layer_count);
+}
+
+
+SliceMeshStorage::SliceMeshStorage(SliceMeshStorage&& old)
+: SettingsMessenger(SettingsBaseVirtual::parent)
+, layers(old.layers)
+, layer_nr_max_filled_layer(old.layer_nr_max_filled_layer)
+, base_subdiv_cube(old.base_subdiv_cube)
+, texture_proximity_processor(old.texture_proximity_processor)
+{
+    old.base_subdiv_cube = nullptr;
+    old.texture_proximity_processor = nullptr;
 }
 
 SliceMeshStorage::~SliceMeshStorage()
@@ -118,6 +131,10 @@ SliceMeshStorage::~SliceMeshStorage()
     if (base_subdiv_cube)
     {
         delete base_subdiv_cube;
+    }
+    if (texture_proximity_processor)
+    {
+        delete texture_proximity_processor;
     }
     for (SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
     {
@@ -299,6 +316,11 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     primeTower(*this)
 {
 }
+
+SliceDataStorage::~SliceDataStorage()
+{
+}
+
 
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
 {

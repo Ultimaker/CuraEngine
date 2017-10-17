@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <vector>
 
+
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
@@ -246,7 +247,7 @@ void slice(int argc, char **argv)
                         }
                         else 
                         {
-                            last_settings_object = &(meshgroup->meshes.back()); // pointer is valid until a new object is added, so this is OK
+                            last_settings_object = meshgroup->meshes.back();
                         }
                         break;
                     case 'o':
