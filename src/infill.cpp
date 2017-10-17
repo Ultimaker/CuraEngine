@@ -399,13 +399,17 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 scanline_idx0 = computeScanSegmentIdx(p0.X - shift, line_distance); // -1 cause the vertex point is handled in the previous segment (or not in the case which looks like >)
                 scanline_idx1 = computeScanSegmentIdx(p1.X - shift, line_distance) + 1; // + 1 cause we don't cross the scanline of the first scan segment
             }
+            // count the scanlines relative to the model so the zig-zag pattern will always be the same
+            // no matter where the model is
+            scanline_idx0 -= scanline_min_idx;
+            scanline_idx1 -= scanline_min_idx;
 
             for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
             {
-                int x = scanline_idx * line_distance + shift;
+                int x = (scanline_idx + scanline_min_idx) * line_distance + shift;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
-                assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
-                cut_list[scanline_idx - scanline_min_idx].push_back(y);
+                assert(scanline_idx >= 0 && scanline_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
+                cut_list[scanline_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
             }
