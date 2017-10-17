@@ -25,8 +25,8 @@ void InsetOrderOptimizer::moveInside()
 {
     const coord_t outer_wall_line_width = mesh_config.inset0_config.getLineWidth();
     Point p = gcode_layer.getLastPlannedPositionOrStartingPosition();
-    // try to move p inside the outer wall by 2 x the outer wall line width
-    if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 2) != NO_INDEX)
+    // try to move p inside the outer wall by 1.1 times the outer wall line width
+    if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 1.1f) != NO_INDEX)
     {
         // move to p if it is not closer than a line width from the centre line of the outer wall
         if (part.insets[0].offset(-outer_wall_line_width).inside(p))
@@ -39,7 +39,7 @@ void InsetOrderOptimizer::moveInside()
             // p is still too close to the centre line of the outer wall so move it again
             // this can occur when the last wall finished at a right angle corner as the first move
             // just moved p along one edge rather than into the part
-            if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 2) != NO_INDEX)
+            if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 1.1f) != NO_INDEX)
             {
                 // move to p if it is not closer than a line width from the centre line of the outer wall
                 if (part.insets[0].offset(-outer_wall_line_width).inside(p))
