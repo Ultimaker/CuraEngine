@@ -20,7 +20,6 @@ class ExtruderTrain; // forward decl for SliceDataStorage
 class PathConfigStorage
 {
 private:
-    const int initial_layer_nr; //!< below zero in case there's a raft
     const unsigned int adhesion_extruder_nr;
     const unsigned int support_infill_extruder_nr;
     const unsigned int support_roof_extruder_nr;
@@ -35,8 +34,6 @@ private:
 public:
     class MeshPathConfigs
     {
-    private:
-        const int initial_layer_nr; //!< below zero in case there's a raft
     public:
         GCodePathConfig inset0_config;
         GCodePathConfig insetX_config;
@@ -46,7 +43,7 @@ public:
         GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;
 
-        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, int initial_layer_nr, int layer_nr, const std::vector<double>& line_width_factor_per_extruder);
+        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, int layer_nr, const std::vector<double>& line_width_factor_per_extruder);
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
     };
 
