@@ -497,18 +497,18 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
     return SupportDistPriority::XY_OVERRIDES_Z;
 }
 
-SlicingMode SettingsBaseVirtual::getSettingAsSlicingMode(std::string key) const
+SlicingTolerance SettingsBaseVirtual::getSettingAsSlicingTolerance(std::string key) const
 {
     const std::string& value = getSettingString(key);
     if (value == "inclusive")
     {
-        return SlicingMode::INCLUSIVE;
+        return SlicingTolerance::INCLUSIVE;
     }
     if (value == "exclusive")
     {
-        return SlicingMode::EXCLUSIVE;
+        return SlicingTolerance::EXCLUSIVE;
     }
-    return SlicingMode::MIDDLE;
+    return SlicingTolerance::MIDDLE;
 }
 
 std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) const

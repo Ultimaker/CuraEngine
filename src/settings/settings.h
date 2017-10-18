@@ -194,7 +194,7 @@ enum class SupportDistPriority
     Z_OVERRIDES_XY
 };
 
-enum class SlicingMode
+enum class SlicingTolerance
 {
     MIDDLE,
     INCLUSIVE,
@@ -284,7 +284,7 @@ public:
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key) const;
     SupportDistPriority getSettingAsSupportDistPriority(std::string key) const;
-    SlicingMode getSettingAsSlicingMode(std::string key) const;
+    SlicingTolerance getSettingAsSlicingTolerance(std::string key) const;
     std::vector<int> getSettingAsIntegerList(std::string key) const;
 };
 

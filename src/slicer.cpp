@@ -797,7 +797,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
 {
-    SlicingMode slicing_mode = mesh->getSettingAsSlicingMode("slicing_mode");
+    SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
 
     assert(slice_layer_count > 0);
 
@@ -806,7 +806,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     layers.resize(slice_layer_count);
 
     int initial = initial_layer_thickness - thickness; // slice height of initial slice layer
-    if (slicing_mode == SlicingMode::MIDDLE)
+    if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
         initial += thickness / 2;
     }
@@ -909,22 +909,22 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching, layer_nr == 0);
     }
 
-    switch(slicing_mode)
+    switch(slicing_tolerance)
     {
-    case SlicingMode::INCLUSIVE:
+    case SlicingTolerance::INCLUSIVE:
         for (unsigned int layer_nr = 0; layer_nr + 1 < layers_ref.size(); layer_nr++)
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.unionPolygons(layers[layer_nr + 1].polygons);
         }
         break;
-    case SlicingMode::EXCLUSIVE:
+    case SlicingTolerance::EXCLUSIVE:
         for (unsigned int layer_nr = 0; layer_nr + 1 < layers_ref.size(); layer_nr++)
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.intersection(layers[layer_nr + 1].polygons);
         }
         layers.pop_back();
         break;
-    case SlicingMode::MIDDLE:
+    case SlicingTolerance::MIDDLE:
     default:
         // do nothing
         ;
