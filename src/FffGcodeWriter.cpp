@@ -1164,12 +1164,12 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
             Polygons infill_polygons;
             Polygons infill_lines;
-            for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
+            for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
             { // combine different density infill areas (for gradual infill)
                 unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 int infill_shift = infill_line_distance_here / 2;
-                if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
                 {
                     infill_line_distance_here /= 2;
                 }
@@ -1217,10 +1217,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
     EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
     const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
-    for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
+    for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
     {
-        unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-        int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
+        int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
         // infill shift explanation: [>]=shift ["]=line_dist
 // :       |       :       |       :       |       :       |         > furthest from top
@@ -1235,7 +1234,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 // :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
 // : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
 // >>>>>>>>"""""""""""""""""
-        if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
         { // the least dense infill should fill up all remaining gaps
 // :       |       :       |       :       |       :       |       :  > furthest from top
 // :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
@@ -1247,6 +1246,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 //                                       ^ infill_line_distance_here for lowest density infill up till here
 //                 ^ middle density line dist
 //     ^   highest density line dist
+            
+            //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
             infill_line_distance_here /= 2;
         }
         Infill infill_comp(pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][0], 0
@@ -1842,7 +1843,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             Polygons support_polygons;
             Polygons support_lines;
-            for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); ++density_idx)
+            for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
             {
                 if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
                 {
@@ -1853,7 +1854,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
-                if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
                 {
                     support_line_distance_here /= 2;
                 }
