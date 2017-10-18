@@ -191,7 +191,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
             PrintFeatureType::Support
             , support_infill_train->getSettingInMicrons("support_line_width") * (combine_idx + 1) * support_infill_line_width_factor
             , layer_thickness
-            , (layer_nr == initial_layer_nr)? support_infill_train->getSettingInPercentage("material_flow_layer_0") : support_infill_train->getSettingInPercentage("material_flow")
+            , (layer_nr == 0)? support_infill_train->getSettingInPercentage("material_flow_layer_0") : support_infill_train->getSettingInPercentage("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), support_infill_train->getSettingInMillimetersPerSecond("jerk_support_infill")}
         );
     }
