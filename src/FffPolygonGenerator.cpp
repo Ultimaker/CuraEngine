@@ -684,10 +684,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)
         )
         {
-            for (unsigned int gradual_step = 0; gradual_step <= (unsigned int)mesh.getSettingAsCount("gradual_infill_steps"); gradual_step++)
-            {
-                mesh.cross_fill_patterns.push_back(new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance") << gradual_step, mesh.bounding_box));
-            }
+            mesh.cross_fill_pattern = new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance"), mesh.bounding_box);
         }
 
         // combine infill

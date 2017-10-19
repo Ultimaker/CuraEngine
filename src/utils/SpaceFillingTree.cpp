@@ -1,6 +1,4 @@
-//Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2017 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SpaceFillingTree.h"
 
 namespace cura {
@@ -21,7 +19,7 @@ SpaceFillingTree::SpaceFillingTree(
     , depth
     );
 
-    // total width = radius because 1 + .5 + .25 + ... = 2
+    // total width = radius becase 1 + .5 + .25 + ... = 2
     // therefore the initial width = .5 * radius
     coord_t first_offset = radius / 2; // horizontal/vertical distance from the middle to the end of the first line segment
     // construct 1st order children

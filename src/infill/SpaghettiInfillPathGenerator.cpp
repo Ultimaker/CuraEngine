@@ -1,5 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 #include "SpaghettiInfillPathGenerator.h"
 #include "../infill.h"
 #include "../FffGcodeWriter.h"
@@ -14,7 +13,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         return false;
     }
     bool added_something = false;
-    const GCodePathConfig& config = mesh_config.infill_config[0]; //Don't use gradual infill, so always take the 0th element.
+    const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
     const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
     const unsigned int infill_line_width = config.getLineWidth();
