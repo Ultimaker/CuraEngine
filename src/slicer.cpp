@@ -922,7 +922,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.intersection(layers[layer_nr + 1].polygons);
         }
-        layers.pop_back();
+        layers.back().polygons.clear();
         break;
     case SlicingTolerance::MIDDLE:
     default:
