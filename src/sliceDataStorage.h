@@ -1,3 +1,4 @@
+//Copyright (C) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -218,7 +219,7 @@ public:
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
     std::vector<SupportLayer> supportLayers;
-    std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual support step.
+    SpaceFillingTreeFill* cross_fill_pattern; //!< the fractal pattern for the cross (3d) filling pattern
 
     SupportStorage();
     ~SupportStorage();
@@ -243,7 +244,7 @@ public:
     AABB3D bounding_box; //!< the mesh's bounding box
 
     SubDivCube* base_subdiv_cube;
-    std::vector<SpaceFillingTreeFill*> cross_fill_patterns; //!< the fractal patterns for the cross (3d) filling pattern, one for each gradual infill step.
+    SpaceFillingTreeFill* cross_fill_pattern; //!< the fractal pattern for the cross (3d) filling pattern
 
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count);
 
