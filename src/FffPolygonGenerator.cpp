@@ -687,16 +687,15 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)
         )
         {
-            AABB aabb = mesh.bounding_box.getAABB();
             std::string cross_subdisivion_spec_image_file = mesh.getSettingString("cross_infill_density_image");
             std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
             if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
             {
-                mesh.cross_fill_subdivider = new ImageBasedSubdivider(cross_subdisivion_spec_image_file, aabb, mesh.getSettingInMicrons("infill_line_width"));
+                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"), cross_subdisivion_spec_image_file);
             }
             else
             {
-                mesh.cross_fill_subdivider = new UniformSubdivider();
+                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"));
             }
         }
 
