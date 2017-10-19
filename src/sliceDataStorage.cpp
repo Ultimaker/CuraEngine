@@ -14,16 +14,16 @@ namespace cura
 SupportStorage::SupportStorage()
 : generated(false)
 , layer_nr_max_filled_layer(-1)
-, cross_fill_subdivider(nullptr)
+, cross_fill_provider(nullptr)
 {
 }
 
 SupportStorage::~SupportStorage()
 {
     supportLayers.clear(); 
-    if (cross_fill_subdivider)
+    if (cross_fill_provider)
     {
-        delete cross_fill_subdivider;
+        delete cross_fill_provider;
     }
 }
 
@@ -103,7 +103,7 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
 , layer_nr_max_filled_layer(0)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
-, cross_fill_subdivider(nullptr)
+, cross_fill_provider(nullptr)
 {
     layers.resize(slice_layer_count);
 }
@@ -114,9 +114,9 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
-    if (cross_fill_subdivider)
+    if (cross_fill_provider)
     {
-        delete cross_fill_subdivider;
+        delete cross_fill_provider;
     }
 }
 

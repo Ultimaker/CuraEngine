@@ -673,15 +673,16 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
+        
         std::string cross_subdisivion_spec_image_file = infill_extr.getSettingString("cross_support_density_image");
         std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            storage.support.cross_fill_subdivider = new ImageBasedSubdivider(cross_subdisivion_spec_image_file, aabb.getAABB(), infill_extr.getSettingInMicrons("support_line_width"));
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"), cross_subdisivion_spec_image_file);
         }
         else
         {
-            storage.support.cross_fill_subdivider = new UniformSubdivider();
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"));
         }
     }
 }

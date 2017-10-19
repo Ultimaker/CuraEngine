@@ -39,7 +39,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const Subdivider* cross_fill_subdivider, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -86,12 +86,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         break;
     case EFillMethod::CROSS:
     case EFillMethod::CROSS_3D:
-        if (!cross_fill_subdivider)
+        if (!cross_fill_provider)
         {
             logError("Cannot generate Cross infill without a pregenerated cross fill pattern!\n");
             break;
         }
-        generateCrossInfill(*cross_fill_subdivider, result_polygons, result_lines);
+        generateCrossInfill(*cross_fill_provider, mesh->bounding_box, result_polygons, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -215,7 +215,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     addLineSegmentsInfill(result, uncropped);
 }
 
-void Infill::generateCrossInfill(const Subdivider& cross_fill_subdivider, Polygons& result_polygons, Polygons& result_lines)
+void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, AABB3D aabb_3d, Polygons& result_polygons, Polygons& result_lines)
 {
     if (zig_zaggify)
     {
@@ -223,17 +223,8 @@ void Infill::generateCrossInfill(const Subdivider& cross_fill_subdivider, Polygo
     }
     Polygons outline = in_outline.offset(outline_offset);
 
-    AABB aabb(in_outline);
-    SierpinskiFill fill(cross_fill_subdivider, aabb, 17); // TODO: hardcoded max depth
-    Polygon cross_pattern_polygon;
-    if (pattern == EFillMethod::CROSS_3D)
-    {
-        cross_pattern_polygon = fill.generateCross(z, infill_line_width / 2);
-    }
-    else
-    {
-        cross_pattern_polygon = fill.generateCross();
-    }
+    Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width);
+
     if (zig_zaggify)
     {
         Polygons cross_pattern_polygons;

@@ -16,7 +16,7 @@
 #include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
-#include "infill/Subdivider.h"
+#include "infill/SierpinskiFillProvider.h"
 
 namespace cura 
 {
@@ -219,7 +219,7 @@ public:
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
     std::vector<SupportLayer> supportLayers;
-    Subdivider* cross_fill_subdivider; //!< the fractal pattern for the cross (3d) filling pattern
+    SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
     SupportStorage();
     ~SupportStorage();
@@ -244,7 +244,7 @@ public:
     AABB3D bounding_box; //!< the mesh's bounding box
 
     SubDivCube* base_subdiv_cube;
-    Subdivider* cross_fill_subdivider; //!< the fractal pattern for the cross (3d) filling pattern
+    SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count);
 

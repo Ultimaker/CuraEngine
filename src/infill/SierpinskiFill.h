@@ -15,6 +15,8 @@
 
 namespace cura
 {
+    
+class SierpinskiFillTest; 
 /*!
  * A class for generating the Cross and Cross 3D infill patterns.
  * 
@@ -57,6 +59,7 @@ namespace cura
  */
 class SierpinskiFill
 {
+    friend class SierpinskiFillTest;
 public:
     /*!
      * Basic constructor
@@ -86,6 +89,7 @@ public:
     void debugOutput(SVG& svg);
 
 protected:
+
     /*!
      * Process a single step in the recursive fractal
      * \param iteration current recursion depth
