@@ -23,7 +23,7 @@ public:
     {
     };
 
-    virtual bool operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const
+    virtual bool operator()(const SierpinskiFillEdge&, const SierpinskiFillEdge&) const
     {
         return true;
     };

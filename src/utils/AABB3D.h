@@ -10,6 +10,8 @@
 namespace cura
 {
 
+class AABB; // forward decl
+
 /*!
 An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
 */
@@ -89,6 +91,11 @@ struct AABB3D
      * \param outset the distance (positive or negative) to expand the bounding box outward
      */
     void expandXY(int outset);
+
+    /*!
+     * Get the XY components of this AABB
+     */
+    AABB getAABB() const;
 };
 
 }//namespace cura

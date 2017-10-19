@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -24,7 +25,9 @@
 #include "SkirtBrim.h"
 #include "skin.h"
 #include "infill/SpaghettiInfill.h"
-#include "infill/SpaceFillingTreeFill.h"
+#include "infill/Subdivider.h"
+#include "infill/ImageBasedSubdivider.h"
+#include "infill/UniformSubdivider.h"
 #include "infill.h"
 #include "raft.h"
 #include "progress/Progress.h"
@@ -684,7 +687,17 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)
         )
         {
-            mesh.cross_fill_pattern = new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance"), mesh.bounding_box);
+            AABB aabb = mesh.bounding_box.getAABB();
+            std::string cross_subdisivion_spec_image_file = mesh.getSettingString("cross_infill_density_image");
+            std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+            if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
+            {
+                mesh.cross_fill_subdivider = new ImageBasedSubdivider(cross_subdisivion_spec_image_file, aabb, mesh.getSettingInMicrons("infill_line_width"));
+            }
+            else
+            {
+                mesh.cross_fill_subdivider = new UniformSubdivider();
+            }
         }
 
         // combine infill
