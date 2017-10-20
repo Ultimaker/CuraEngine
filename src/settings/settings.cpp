@@ -497,6 +497,20 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
     return SupportDistPriority::XY_OVERRIDES_Z;
 }
 
+SlicingTolerance SettingsBaseVirtual::getSettingAsSlicingTolerance(std::string key) const
+{
+    const std::string& value = getSettingString(key);
+    if (value == "inclusive")
+    {
+        return SlicingTolerance::INCLUSIVE;
+    }
+    if (value == "exclusive")
+    {
+        return SlicingTolerance::EXCLUSIVE;
+    }
+    return SlicingTolerance::MIDDLE;
+}
+
 std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) const
 {
     std::vector<int> result;
