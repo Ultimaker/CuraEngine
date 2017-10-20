@@ -19,9 +19,9 @@ SierpinskiFill::SierpinskiFill(const Subdivider& subdivider, const AABB aabb, in
 , aabb(aabb)
 {
     Point m = aabb.min;
-    edges.emplace_back(straight, m, Point(aabb.max.X, m.Y), 2);
-    edges.emplace_back(diagonal, m, aabb.max, 1);
-    edges.emplace_back(straight, m, Point(m.X, aabb.max.Y), 2);
+    edges.emplace_back(straight, m, Point(aabb.max.X, m.Y), 0);
+    edges.emplace_back(diagonal, m, aabb.max, 0);
+    edges.emplace_back(straight, m, Point(m.X, aabb.max.Y), 0);
     /*
      *    Point m = aabb.getMiddle();
      *    edges.emplace_back(straight, m, Point(aabb.max.X, m.Y));
@@ -51,12 +51,12 @@ void SierpinskiFill::debugOutput(SVG& svg)
     int i = 0;
     for (SierpinskiFillEdge& edge : edges)
     {
-        Point new_l = edge.l + normal(edge.r - edge.l, 15);
-        Point new_r = edge.r - normal(edge.r - edge.l, 15);
+        Point new_l = edge.l + normal(edge.r - edge.l, 150);
+        Point new_r = edge.r - normal(edge.r - edge.l, 150);
         svg.writeLine(new_l, new_r);
         svg.writePoint(new_l, straight, 3);
-        svg.writeText((edge.l + edge.r) / 2, std::to_string(i));
-//         svg.writeText((edge.l + edge.r) / 2, std::to_string(edge.depth));
+//         svg.writeText((edge.l + edge.r) / 2, std::to_string(i));
+        svg.writeText((edge.l + edge.r) / 2, std::to_string(edge.depth));
         i++;
     }
 }
@@ -83,6 +83,7 @@ void SierpinskiFill::process(int iteration)
         if ((!prev || (prev->direction == opposite_direction && recurse_triangle(*prev, here)))
             && here.direction == processing_direction
             && (!next || (next->direction == opposite_direction && recurse_triangle(here, *next)))
+            && (!prev || prev-> depth == iteration - 1) && (!next || here.depth == iteration - 1) // only subdivide triangles of previous iteration
         )
         { // SDS -> SDDDS or DSD -> DSSSD                                    .
             // D step:                                                       .
@@ -108,12 +109,14 @@ void SierpinskiFill::process(int iteration)
             {
                 here.r = mid;
             }
-            here.depth += 2;
+            here.depth = iteration;
 
             const Point lr = here.r - here.l;
             const Point lr_T = turn90CCW(lr);
             if (prev)
             {
+                prev->depth = iteration; // first trignle is subdivided
+
                 Point l = mid;
                 Point r = mid - lr_T;
                 if (processing_direction == straight)
@@ -131,9 +134,17 @@ void SierpinskiFill::process(int iteration)
                     std::swap(l, r);
                 }
                 edges.emplace(next_it, processing_direction, l, r, here.depth);
+
+                // skip the just created edge
+                prev = next;
+                ++it;
+                ++it;
+                continue;
             }
         }
-        else if (prev && prev->direction == opposite_direction && here.direction == opposite_direction && recurse_triangle(*prev, here))
+        else if (prev && prev->direction == opposite_direction && here.direction == opposite_direction && recurse_triangle(*prev, here)
+            && prev->depth == iteration - 1 // only subdivide triangles of previous iteration
+        )
         { // SS -> SDS or DD -> DSD                                  .
             // D step:                                               .
             // |           |    /                                    .
@@ -149,7 +160,8 @@ void SierpinskiFill::process(int iteration)
             //     \            \                                    .
             const Point l = (prev->l + here.l) / 2;
             const Point r = (prev->r + here.r) / 2;
-            edges.emplace(it, processing_direction, l, r, here.depth + 1);
+            prev->depth = iteration;
+            edges.emplace(it, processing_direction, l, r, prev->depth);
         }
 
         prev = &here;

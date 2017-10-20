@@ -41,21 +41,6 @@ ImageBasedSubdivider::~ImageBasedSubdivider()
 
 bool ImageBasedSubdivider::operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const
 {
-    int depth_diff = e2.depth - e1.depth;
-    if (e1.direction == e2.direction)
-    {
-        if (e1.depth != e2.depth)
-        {
-            return false;
-        }
-    }
-    else
-    {
-        if (depth_diff < -1 || depth_diff > 1)
-        {
-            return false;
-        }
-    }
     AABB aabb_here;
     aabb_here.include(e1.l);
     aabb_here.include(e1.r);
