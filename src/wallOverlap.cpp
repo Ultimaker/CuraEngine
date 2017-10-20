@@ -170,7 +170,9 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         const Point vec = from - to;
         const int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
 
-        const int64_t overlap_length_2 = to_proj + other_to_proj; //Twice the length of the overlap area, alongside the lines.
+        // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
+        // the line width minus the average distance between the two lines
+        const int64_t overlap_length_2 = to_proj + other_to_proj;
         const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
@@ -191,7 +193,9 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         const Point vec = to - from;
         const int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
 
-        const int64_t overlap_length_2 = from_proj + other_from_proj; //Twice the length of the overlap area, alongside the lines.
+        // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
+        // the line width minus the average distance between the two lines
+        const int64_t overlap_length_2 = from_proj + other_from_proj;
         const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
@@ -199,6 +203,8 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
     // shortest segment is overlapped completely - use the length of whichever segment is shortest
     const int64_t len = vSize(to - from);
     const int64_t other_len = vSize(other_to - other_from);
+    // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
+    // the line width minus the average distance between the two lines
     if (len <= other_len)
     {
         const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
