@@ -63,8 +63,8 @@ bool ImageBasedSubdivider::operator()(const SierpinskiFillEdge& e1, const Sierpi
     aabb_here.include(e1.r);
     aabb_here.include(e2.l);
     aabb_here.include(e2.r);
-    Point min = (aabb_here.min - aabb.min - Point(1,1)) * image_size.x / (aabb.max - aabb.min);
-    Point max = (aabb_here.max - aabb.min + Point(1,1)) * image_size.y / (aabb.max - aabb.min);
+    Point min = (aabb_here.min - aabb.min - Point(1,1)) * image_size.x / (aabb.max.X - aabb.min.X);
+    Point max = (aabb_here.max - aabb.min + Point(1,1)) * image_size.y / (aabb.max.Y - aabb.min.Y);
     long total_lightness = 0;
     int value_count = 0;
     for (int x = std::max((coord_t)0, min.X); x <= std::min((coord_t)image_size.x - 1, max.X); x++)
