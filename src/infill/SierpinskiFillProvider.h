@@ -39,7 +39,7 @@ public:
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
-    , subdivider(new ImageBasedSubdivider(cross_subdisivion_spec_image_file, fractal_config.aabb, line_width))
+    , subdivider(new ImageBasedSubdivider(cross_subdisivion_spec_image_file, aabb_3d.getAABB(), line_width))
     , fill_pattern_for_all_layers(get_constructor, *subdivider, fractal_config.aabb, fractal_config.depth)
     {
     }
