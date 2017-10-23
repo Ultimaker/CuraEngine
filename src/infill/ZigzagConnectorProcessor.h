@@ -152,13 +152,24 @@ protected:
     bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const;
 
     /*!
+     * Checks whether two points are separated at least by "threshold" microns.
+     * In case they are close, the second one will point to the first one.
+     *
+     * \param first_point The first of the points
+     * \param second_point The second of the points
+     * \param threshold Minimum distance between points
+     * \return whether the points are close by the indicated threshold, and merged in that case
+     */
+    bool mergePointsByThreshold(Point* first_point, Point* second_point, int threshold=5);
+
+    /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
      * added if the given connector is an end piece and "connected_endpieces" is not enabled.
      *
      * \param points All the points on this connector
      * \param is_endpiece Whether this connector is an end piece
      */
-    void addZagConnector(const std::vector<Point>& points, bool is_endpiece);
+    void addZagConnector(std::vector<Point>& points, bool is_endpiece);
 
 protected:
     const PointMatrix& rotation_matrix; //!< The rotation matrix used to enforce the infill angle
@@ -201,11 +212,6 @@ inline void ZigzagConnectorProcessor::reset()
 
 inline void ZigzagConnectorProcessor::addLine(Point from, Point to)
 {
-    if (from == to || vSize2(from - to) < 25)
-    {
-        // don't add lines less than 5uM long
-        return;
-    }
     result.addLine(rotation_matrix.unapply(from), rotation_matrix.unapply(to));
 }
 
