@@ -12,9 +12,8 @@ namespace cura {
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
 
-ImageBasedSubdivider::ImageBasedSubdivider(const std::string filename, const AABB aabb, const coord_t line_width)
-: aabb(aabb)
-, line_width(line_width)
+ImageBasedSubdivider::ImageBasedSubdivider(const std::string filename, const AABB model_aabb, const coord_t line_width)
+: line_width(line_width)
 {
     int desired_channel_count = 0; // keep original amount of channels
     image = stbi_load(filename.c_str(), &image_size.x, &image_size.y, &image_size.z, desired_channel_count);
@@ -27,6 +26,24 @@ ImageBasedSubdivider::ImageBasedSubdivider(const std::string filename, const AAB
         }
         logError("Cannot load image %s: '%s'.\n", filename.c_str(), reason);
         std::exit(-1);
+    }
+    { // compute aabb
+        Point middle = model_aabb.getMiddle();
+        Point model_aabb_size = model_aabb.max - model_aabb.min;
+        Point image_size2 = Point(image_size.x, image_size.y);
+        float aabb_aspect_ratio = float(model_aabb_size.X) / float(model_aabb_size.Y);
+        float image_aspect_ratio = float(image_size.x) / float(image_size.y);
+        Point aabb_size;
+        if (image_aspect_ratio < aabb_aspect_ratio)
+        {
+            aabb_size = image_size2 * model_aabb_size.X / image_size.x;
+        }
+        else
+        {
+            aabb_size = image_size2 * model_aabb_size.Y / image_size.y;
+        }
+        aabb = AABB(middle - aabb_size / 2, middle + aabb_size / 2);
+        assert(aabb_size.X >= model_aabb_size.X && aabb_size.Y >= model_aabb_size.Y);
     }
 }
 
@@ -71,6 +88,10 @@ bool ImageBasedSubdivider::operator()(const SierpinskiFillEdge& e1, const Sierpi
         const Point height_vector = dot(v2, turn90CCW(v1)) / vSize(v1);
         const coord_t height = vSize(height_vector);
         area = base_length * height / 2;
+    }
+    if (value_count == 0)
+    { // triangle falls outside of image, so we subdivide it so that it cannot limit the subdivision of other cells
+        return true;
     }
     if (255 - total_lightness / value_count > 255 * average_length * line_width / area)
     {
