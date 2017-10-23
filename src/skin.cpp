@@ -457,28 +457,28 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
         if (roofing_layer_count > 0)
         {
             Polygons no_air_above = getWalls(part, layer_nr + roofing_layer_count, wall_idx);
-            if (layer_nr > 0)
-            {
-                // if the skin has air below it then cutting it into regions could cause a region
-                // to be wholely or partly above air and it may not be printable so restrict
-                // the regions that have air above (the visibile regions) to not include any area that
-                // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
-
-                // set no_air_below to the skin area for the current layer that does not have air below it
-                Polygons no_air_below = getWalls(part, layer_nr - 1, wall_idx).intersection(getWalls(part, layer_nr, wall_idx));
-
-                if (no_air_below.size() > 0)
-                {
-                    // remove the polygons that have no air below from the no air above polygons
-                    no_air_above = no_air_above.intersection(no_air_below);
-                }
-            }
             if (!no_small_gaps_heuristic)
             {
                 for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + roofing_layer_count; layer_nr_above++)
                 {
                     Polygons outlines_above = getWalls(part, layer_nr_above, wall_idx);
                     no_air_above = no_air_above.intersection(outlines_above);
+                }
+            }
+            if (layer_nr > 0)
+            {
+                // if the skin has air below it then cutting it into regions could cause a region
+                // to be wholely or partly above air and it may not be printable so restrict
+                // the regions that have air above (the visible regions) to not include any area that
+                // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
+
+                // set air_below to the skin area for the current layer that has air below it
+                Polygons air_below = getWalls(part, layer_nr, wall_idx).difference(getWalls(part, layer_nr - 1, wall_idx));
+
+                if (!air_below.empty())
+                {
+                    // add the polygons that have air below to the no air above polygons
+                    no_air_above = no_air_above.unionPolygons(air_below);
                 }
             }
             skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
