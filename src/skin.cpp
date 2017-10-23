@@ -461,7 +461,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             {
                 // if the skin has air below it then cutting it into regions could cause a region
                 // to be wholely or partly above air and it may not be printable so restrict
-                // the regions that have air above (the visibile regions) to not include any area that
+                // the regions that have air above (the visible regions) to not include any area that
                 // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
 
                 // set no_air_below to the skin area for the current layer that does not have air below it
