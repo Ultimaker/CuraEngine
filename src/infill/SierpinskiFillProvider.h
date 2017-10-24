@@ -57,6 +57,13 @@ public:
                 return fill_pattern_for_all_layers->generateCross();
             }
         }
+        else
+        {
+            Polygon ret;
+            logError("Different density sierpinski fill for different layers is not implemented yet!\n");
+            std::exit(-1);
+            return ret;
+        }
     }
 
     ~SierpinskiFillProvider()
