@@ -81,7 +81,7 @@ protected:
             aabb_size *= 2;
             depth += 2;
         }
-        constexpr float sqrt2 = .5 * std::sqrt(2.0);
+        const float sqrt2 = .5 * std::sqrt(2.0);
         if (aabb_size * sqrt2 >= max_side_length)
         {
             aabb_size *= sqrt2;
