@@ -204,15 +204,13 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 /**
 *
 */
-void LineOrderOptimizer::optimize(const Polygons* combing_boundary)
+void LineOrderOptimizer::optimize()
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     loc_to_line = nullptr;
-    this->combing_boundary = combing_boundary;
-
     
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
