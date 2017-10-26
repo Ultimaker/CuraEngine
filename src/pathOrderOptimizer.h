@@ -93,9 +93,10 @@ public:
     LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary;
 
-    LineOrderOptimizer(Point startPoint)
+    LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
     {
         this->startPoint = startPoint;
+        this->combing_boundary = combing_boundary;
     }
 
     void addPolygon(PolygonRef polygon)
@@ -114,7 +115,7 @@ public:
             this->polygons.push_back(polygons[i]);
     }
 
-    void optimize(const Polygons* combing_boundary = nullptr); //!< sets #polyStart and #polyOrder
+    void optimize(); //!< sets #polyStart and #polyOrder
 
 private:
     /*!
