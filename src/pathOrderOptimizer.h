@@ -51,9 +51,10 @@ public:
     LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary;
 
-    PathOrderOptimizer(Point startPoint, const ZSeamConfig& config = ZSeamConfig())
+    PathOrderOptimizer(Point startPoint, const ZSeamConfig& config = ZSeamConfig(), const Polygons* combing_boundary = nullptr)
     : startPoint(startPoint)
     , config(config)
+    , combing_boundary(combing_boundary)
     {
     }
 
@@ -73,7 +74,7 @@ public:
             this->polygons.emplace_back(polygons[i]);
     }
 
-    void optimize(const Polygons* combing_boundary = nullptr); //!< sets #polyStart and #polyOrder
+    void optimize(); //!< sets #polyStart and #polyOrder
 
 private:
     int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point

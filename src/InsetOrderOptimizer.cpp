@@ -127,12 +127,12 @@ void InsetOrderOptimizer::processHoleInsets()
         const unsigned outer_poly_start_idx = order_optimizer.polyStart[0];
         start_point = (*inset_polys[0][0])[outer_poly_start_idx];
     }
-    PathOrderOptimizer order_optimizer(start_point, z_seam_config);
+    PathOrderOptimizer order_optimizer(start_point, z_seam_config, gcode_layer.getCombBoundaryInside());
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
     }
-    order_optimizer.optimize(gcode_layer.getCombBoundaryInside());
+    order_optimizer.optimize();
     if (optimize_backwards)
     {
         // reverse the optimized order so we end up as near to the outline z-seam as possible
