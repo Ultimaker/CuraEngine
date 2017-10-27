@@ -13,12 +13,11 @@ namespace cura {
 /**
 *
 */
-void PathOrderOptimizer::optimize(const Polygons* combing_boundary)
+void PathOrderOptimizer::optimize()
 {
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     loc_to_line = nullptr;
-    this->combing_boundary = combing_boundary;
     if (combing_boundary != nullptr && combing_boundary->size() > 0)
     {
         // the combing boundary has been provided so do the initialisation
