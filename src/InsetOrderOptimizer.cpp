@@ -56,6 +56,7 @@ void InsetOrderOptimizer::processHoleInsets()
 {
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
+    const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
     const coord_t wall_0_wipe_dist = mesh.getSettingInMicrons("wall_0_wipe_dist");
     const bool retract_before_outer_wall = mesh.getSettingBoolean("travel_retract_before_outer_wall");
     const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
@@ -145,7 +146,6 @@ void InsetOrderOptimizer::processHoleInsets()
         Polygons hole_outer_wall; // the outermost wall of a hole
         hole_outer_wall.add(*inset_polys[0][order_optimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
         std::vector<unsigned int> hole_level_1_wall_indices; // the indices of the walls that touch the hole's outer wall
-        const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
         if (inset_polys.size() > 1)
         {
             // find the adjacent poly in the level 1 insets that encloses the hole
@@ -274,7 +274,15 @@ void InsetOrderOptimizer::processHoleInsets()
                 // avoid the possible retract when moving from the end of the immediately enclosing inset to the start
                 // of the hole outer wall we first move to a location that is close to the z seam and at a vertex of the
                 // first inset we want to be printed
-                const unsigned outer_poly_start_idx = order_optimizer.polyStart[order_optimizer.polyOrder[outer_poly_order_idx]];
+                unsigned outer_poly_start_idx = order_optimizer.polyStart[order_optimizer.polyOrder[outer_poly_order_idx]];
+
+                // detect special case where where the z-seam is located on the sharpest corner and there is only 1 hole and
+                // the gap between the walls is just a few line widths
+                if (z_seam_config.type == EZSeamType::SHARPEST_CORNER && inset_polys[0].size() == 2 && PolygonUtils::polygonOutlinesAdjacent(*inset_polys[0][1], *inset_polys[0][0], max_gap * 4))
+                {
+                    // align z-seam of hole with z-seam of outer wall - makes a nicer job when printing tubes
+                    outer_poly_start_idx = PolygonUtils::findNearestVert(start_point, hole_outer_wall.back());
+                }
                 const Point z_seam_location = hole_outer_wall[0][outer_poly_start_idx];
                 // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location
                 const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
@@ -295,7 +303,19 @@ void InsetOrderOptimizer::processHoleInsets()
             // just the outer wall, no level 1 insets
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+
+            // detect special case where where the z-seam is located on the sharpest corner and there is only 1 hole and
+            // the gap between the walls is just a few line widths
+            if (z_seam_config.type == EZSeamType::SHARPEST_CORNER && inset_polys[0].size() == 2 && PolygonUtils::polygonOutlinesAdjacent(*inset_polys[0][1], *inset_polys[0][0], max_gap * 2))
+            {
+                // align z-seam of hole with z-seam of outer wall - makes a nicer job when printing tubes
+                const unsigned point_idx = PolygonUtils::findNearestVert(start_point, hole_outer_wall.back());
+                gcode_layer.addPolygon(hole_outer_wall.back(), point_idx, mesh_config.inset0_config, wall_overlapper_0, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+            }
+            else
+            {
+                gcode_layer.addPolygonsByOptimizer(hole_outer_wall, mesh_config.inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, spiralize, flow, retract_before_outer_wall);
+            }
             // move inside so an immediately following retract doesn't occur on the outer wall
             moveInside();
             added_something = true;
@@ -531,10 +551,9 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
         // optimization disabled
         return false;
     }
-    const unsigned int num_insets = part.insets.size();
-    if (num_insets < 2)
+    if (part.insets.size() < 2 && part.insets[0].size() < 2)
     {
-        // only 1 inset, definitely not worth optimizing
+        // only a single outline and no holes, definitely not worth optimizing
         return false;
     }
     // the default is to optimize as it will make the inner insets start near to the z seam location
