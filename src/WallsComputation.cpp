@@ -36,10 +36,23 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
             part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
         } else if (i == 1)
         {
-            part->insets[1] = part->insets[0].offset(-line_width_0 / 2 + wall_0_inset - line_width_x / 2);
+            const int offset = -line_width_0 / 2 + wall_0_inset - line_width_x / 2;
+            part->insets[1] = part->insets[0].offset(offset);
+            if (part->insets[1].size() == 0)
+            {
+                // if a slightly thinner line would fit, allow it as the overlap is so small
+                // this helps when you have parts such as tubes whose walls are an exact number of line widths wide
+                // e.g. when the tube wall is 1.5mm wide and the line widths are 0.5mm
+                part->insets[1] = part->insets[0].offset(offset * 0.99f);
+            }
         } else
         {
             part->insets[i] = part->insets[i-1].offset(-line_width_x);
+            if (part->insets[i].size() == 0)
+            {
+                // if a slightly thinner line would fit, allow it as the overlap is so small
+                part->insets[i] = part->insets[i-1].offset(-line_width_x * 0.99f);
+            }
         }
 
         //Finally optimize all the polygons. Every point removed saves time in the long run.
