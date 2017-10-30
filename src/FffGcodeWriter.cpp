@@ -413,15 +413,21 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
         if (getSettingBoolean("material_bed_temp_prepend"))
         {
-            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
+            if (getSettingBoolean("machine_heated_bed"))
             {
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature_layer_0"), getSettingBoolean("material_bed_temp_wait"));
+                double bed_temp = getSettingInDegreeCelsius("material_bed_temperature_layer_0");
+                if (bed_temp != 0)
+                {
+                    gcode.writeBedTemperatureCommand(bed_temp, getSettingBoolean("material_bed_temp_wait"));
+                }
             }
         }
 
         if (getSettingBoolean("material_print_temp_prepend"))
         {
-            for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+            const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
+
+            for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
             {
                 if (extruder_is_used[extruder_nr])
                 {
@@ -441,7 +447,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             }
             if (getSettingBoolean("material_print_temp_wait"))
             {
-                for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
                 {
                     if (extruder_is_used[extruder_nr])
                     {
