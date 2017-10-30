@@ -400,14 +400,18 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
-    if (gcode.getFlavor() == EGCodeFlavor::REPRAP || gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
         gcode.writeCode("T0"); // required before any temperature setting commands
     }
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        if (getSettingBoolean("material_bed_temp_prepend")) 
+        std::ostringstream tmp;
+        tmp << "T" << start_extruder_nr;
+        gcode.writeLine(tmp.str().c_str());
+
+        if (getSettingBoolean("material_bed_temp_prepend"))
         {
             if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
             {
@@ -415,23 +419,41 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             }
         }
 
-        if (getSettingBoolean("material_print_temp_prepend")) 
+        if (getSettingBoolean("material_print_temp_prepend"))
         {
             for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
-                ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-                double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-                double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-                gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
-            }
-            if (getSettingBoolean("material_print_temp_wait")) 
-            {
-                for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                if (extruder_is_used[extruder_nr])
                 {
                     ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-                    double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-                    double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-                    gcode.writeTemperatureCommand(extruder_nr, print_temp_here, true);
+                    double extruder_temp;
+                    if (extruder_nr == start_extruder_nr)
+                    {
+                        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                        extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                    }
+                    else
+                    {
+                        extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature")
+                    }
+                    gcode.writeTemperatureCommand(extruder_nr, extruder_temp);
+                }
+            }
+            if (getSettingBoolean("material_print_temp_wait"))
+            {
+                if (extruder_is_used[extruder_nr])
+                    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                    double extruder_temp;
+                    if (extruder_nr == start_extruder_nr)
+                    {
+                        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                        extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                    }
+                    else
+                    {
+                        extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature")
+                    }
+                    gcode.writeTemperatureCommand(extruder_nr, extruder_temp, true);
                 }
             }
         }
