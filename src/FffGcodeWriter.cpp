@@ -391,9 +391,9 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
 void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
 {
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     if (!CommandSocket::isInstantiated())
     {
-        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
         std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
     }
@@ -434,26 +434,30 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
                     }
                     else
                     {
-                        extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature")
+                        extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature");
                     }
                     gcode.writeTemperatureCommand(extruder_nr, extruder_temp);
                 }
             }
             if (getSettingBoolean("material_print_temp_wait"))
             {
-                if (extruder_is_used[extruder_nr])
-                    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-                    double extruder_temp;
-                    if (extruder_nr == start_extruder_nr)
+                for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                {
+                    if (extruder_is_used[extruder_nr])
                     {
-                        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-                        extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                        double extruder_temp;
+                        if (extruder_nr == start_extruder_nr)
+                        {
+                            double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                            extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                        }
+                        else
+                        {
+                            extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature");
+                        }
+                        gcode.writeTemperatureCommand(extruder_nr, extruder_temp, true);
                     }
-                    else
-                    {
-                        extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature")
-                    }
-                    gcode.writeTemperatureCommand(extruder_nr, extruder_temp, true);
                 }
             }
         }
