@@ -392,6 +392,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
 {
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
     if (!CommandSocket::isInstantiated())
     {
         std::string prefix = gcode.getFileHeader(extruder_is_used);
@@ -407,9 +408,12 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        std::ostringstream tmp;
-        tmp << "T" << start_extruder_nr;
-        gcode.writeLine(tmp.str().c_str());
+        if (num_extruders > 1)
+        {
+            std::ostringstream tmp;
+            tmp << "T" << start_extruder_nr;
+            gcode.writeLine(tmp.str().c_str());
+        }
 
         if (getSettingBoolean("material_bed_temp_prepend"))
         {
@@ -425,8 +429,6 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
         if (getSettingBoolean("material_print_temp_prepend"))
         {
-            const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
-
             for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
             {
                 if (extruder_is_used[extruder_nr])
