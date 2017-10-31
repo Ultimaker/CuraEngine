@@ -114,6 +114,7 @@ enum class EFillMethod
     TETRAHEDRAL,
     QUARTER_CUBIC,
     TRIANGLES,
+    TRIHEXAGON,
     CONCENTRIC,
     CONCENTRIC_3D,
     ZIG_ZAG,
