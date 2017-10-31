@@ -349,13 +349,13 @@ inline float LineOrderOptimizer::travelDistance(const Point& p0, const Point& p1
 
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
 {
+    // when looking for chains, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
+    // if just_point is -1, it means that we are not looking for chains and we will test both vertices to see if either is best
+
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
-    // if just_point is -1, it means that we are not looking for chains and we are going to use the direct travel
-    // distance rather than going to the effort of combing
-    // when looking for chains, just_point will be either 0 or 1 depending on which vertex we are currently interested in and
-    // if possible we shall be using combing to calculate the travel distance
+
     if (just_point != 1)
     { /// check distance to first point on line (0)
         float score = travelDistance(p0, prev_point, just_point == -1) + dot_score; // prefer 90 degree corners
