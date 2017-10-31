@@ -201,6 +201,13 @@ void LineOrderOptimizer::optimize()
 
     }
 
+    if (combing_boundary != nullptr && combing_boundary->size() > 0)
+    {
+        // the combing boundary has been provided so do the initialisation
+        // required to be able to calculate realistic travel distances to the start of new paths
+        const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
+        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+    }
 
     Point incoming_perpundicular_normal(0, 0);
     Point prev_point = startPoint;
@@ -209,14 +216,6 @@ void LineOrderOptimizer::optimize()
     {
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
-
-        if (order_idx == 1 && combing_boundary != nullptr && combing_boundary->size() > 0 && have_chains)
-        {
-            // we now know that we have chains and the combing boundary has been provided so do the initialisation
-            // required to be able to calculate realistic travel distances to the start of new paths
-            const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
-            loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
-        }
 
         // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
         // so we only consider the closest line when looking for the second line onwards
