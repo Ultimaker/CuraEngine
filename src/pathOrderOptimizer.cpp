@@ -331,11 +331,17 @@ inline float LineOrderOptimizer::travelDistance(const Point& p0, const Point& p1
     {
         return vSize2f(p0 - p1);
     }
+    // because infill lines can actually extend outside of the combing boundary (infill_overlap)
+    // we need to move the points inside before calculating the combed distance
+    Point p0_inside = p0;
+    Point p1_inside = p1;
+    PolygonUtils::moveInside(*combing_boundary, p0_inside, 10);
+    PolygonUtils::moveInside(*combing_boundary, p1_inside, 10);
     CombPath comb_path;
-    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, false))
+    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0_inside, p1_inside, comb_path, -40, 0, false))
     {
         float dist = 0;
-        Point last_point = p0;
+        Point last_point = p0_inside;
         for (const Point& comb_point : comb_path)
         {
             dist += vSize(comb_point - last_point);
