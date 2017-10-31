@@ -363,7 +363,12 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
-        float score = travelDistance(p0, prev_point, just_point == -1) + dot_score; // prefer 90 degree corners
+        float score = travelDistance(prev_point, p0, true) + dot_score; // prefer 90 degree corners
+        if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p0, prev_point))
+        {
+            // this could be a candidate but as the combing distance can be computed, use that instead of the direct distance
+            score = travelDistance(prev_point, p0, false) + dot_score;
+        }
         if (score < best_score)
         {
             best = poly_idx;
@@ -373,7 +378,12 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     }
     if (just_point != 0)
     { /// check distance to second point on line (1)
-        float score = travelDistance(p1, prev_point, just_point == -1) + dot_score; // prefer 90 degree corners
+        float score = travelDistance(prev_point, p1, true) + dot_score; // prefer 90 degree corners
+        if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p1, prev_point))
+        {
+            // this could be a candidate but as the combing distance can be computed, use that instead of the direct distance
+            score = travelDistance(prev_point, p1, false) + dot_score;
+        }
         if (score < best_score)
         {
             best = poly_idx;
