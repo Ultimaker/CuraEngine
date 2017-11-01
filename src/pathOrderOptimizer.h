@@ -148,16 +148,6 @@ private:
      * 
      */
     static float getAngleScore(Point incoming_perpundicular_normal, Point from, Point to);
-
-    /*!
-     * Calculate the distance covered when traveling between two points.
-     *
-     * \param[in] p0 One end of the travel path.
-     * \param[in] p1 The other end of the travel path.
-     * \param[in] travel_direct If true, assume that the shortest path can be used.
-     * \return The distance covered to go from \p p0 to \p p1.
-     */
-    float travelDistance(const Point& p0, const Point& p1, const bool travel_direct);
 };
 
 }//namespace cura

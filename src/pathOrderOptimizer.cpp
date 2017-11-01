@@ -338,34 +338,6 @@ void LineOrderOptimizer::optimize()
         delete loc_to_line;
 }
 
-inline float LineOrderOptimizer::travelDistance(const Point& p0, const Point& p1, const bool travel_direct)
-{
-    if (travel_direct || loc_to_line == nullptr)
-    {
-        return vSize2f(p0 - p1);
-    }
-    // because infill lines can actually extend outside of the combing boundary (infill_overlap)
-    // we need to move the points inside before calculating the combed distance
-    Point p0_inside = p0;
-    Point p1_inside = p1;
-    PolygonUtils::moveInside(*combing_boundary, p0_inside, 10);
-    PolygonUtils::moveInside(*combing_boundary, p1_inside, 10);
-    CombPath comb_path;
-    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0_inside, p1_inside, comb_path, -40, 0, false))
-    {
-        float dist = 0;
-        Point last_point = p0_inside;
-        for (const Point& comb_point : comb_path)
-        {
-            dist += vSize(comb_point - last_point);
-            last_point = comb_point;
-        }
-        return dist * dist;
-    }
-    // fall back to direct distance
-    return vSize2f(p0 - p1);
-}
-
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
 {
     // when looking for chains, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
@@ -377,7 +349,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
-        float score = travelDistance(prev_point, p0, true) + dot_score; // prefer 90 degree corners
+        float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p0, prev_point))
         {
             // this could be a candidate but as the combing distance can be computed, use that instead of the direct distance
@@ -392,7 +364,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     }
     if (just_point != 0)
     { /// check distance to second point on line (1)
-        float score = travelDistance(prev_point, p1, true) + dot_score; // prefer 90 degree corners
+        float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p1, prev_point))
         {
             // this could be a candidate but as the combing distance can be computed, use that instead of the direct distance
