@@ -5,7 +5,7 @@
 #include "RetractionConfig.h"
 #include "PrintFeature.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -30,6 +30,7 @@ private:
     const int layer_thickness; //!< current layer height in micron
     const double flow; //!< extrusion flow modifier in %
     const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
+    const double extrusion_offset;  //!< used for flow rate compensation, in mm, default to 0
 public:
     GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives);
 
@@ -40,13 +41,13 @@ public:
 
     /*!
      * Set the speed to somewhere between the speed of @p first_layer_config and the iconic speed.
-     * 
+     *
      * \warning This functions should not be called with @p layer_nr > @p max_speed_layer !
-     * 
+     *
      * \warning Calling this function twice will smooth the speed more toward \p first_layer_config
-     * 
+     *
      * \param first_layer_config The speed settings at layer zero
-     * \param layer_nr The layer number 
+     * \param layer_nr The layer number
      * \param max_speed_layer The layer number for which the speed_iconic should be used.
      */
     void smoothSpeed(SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
@@ -55,6 +56,8 @@ public:
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
     double getExtrusionMM3perMM() const;
+
+    double getExtrusionOffsetMM() const;
 
     /*!
      * Get the movement speed in mm/s

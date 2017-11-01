@@ -58,7 +58,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
+        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter"));
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
@@ -86,7 +86,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     {
         new_line = "\r\n";
     }
-    else 
+    else
     {
         new_line = "\n";
     }
@@ -112,7 +112,7 @@ void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int 
     for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
     {
         const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
-        
+
         double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
         double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
         double temp = (extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
@@ -269,7 +269,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     {
         firmware_retract = true;
     }
-    else 
+    else
     {
         firmware_retract = false;
     }
@@ -524,9 +524,9 @@ void GCodeExport::writeTravel(Point p, double speed)
 {
     writeTravel(Point3(p.X, p.Y, current_layer_z), speed);
 }
-void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, double extrusion_offset, PrintFeatureType feature)
 {
-    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, feature);
+    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, extrusion_offset, feature);
 }
 
 void GCodeExport::writeTravel(Point3 p, double speed)
@@ -539,14 +539,14 @@ void GCodeExport::writeTravel(Point3 p, double speed)
     writeTravel(p.x, p.y, p.z + isZHopped, speed);
 }
 
-void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, double extrusion_offset, PrintFeatureType feature)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
+    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, extrusion_offset, feature);
 }
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
@@ -594,7 +594,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
 
         //Increase the extrusion amount to calculate the amount of filament used.
         Point3 diff = Point3(x,y,z) - getPosition();
-        
+
         current_e_value += extrusion_per_mm * diff.vSizeMM();
     }
     else
@@ -608,7 +608,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     }
     *output_stream << "G1 X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y} << " Z" << MMtoStream{z};
     *output_stream << " F" << PrecisionedDouble{1, fspeed} << new_line;
-    
+
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
 }
@@ -633,7 +633,7 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
     writeFXYZE(speed, x, y, z, current_e_value, PrintFeatureType::MoveCombing);
 }
 
-void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, double extrusion_offset, PrintFeatureType feature)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
@@ -678,6 +678,10 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
 
+    if (extrusion_offset >= 0) {  // write new value of extrusion_offset, which will be remembered
+        current_e_offset = extrusion_offset;
+    }
+
     *output_stream << "G1";
     writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
@@ -698,13 +702,14 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e, PrintF
     {
         *output_stream << " Z" << MMtoStream{z};
     }
-    if (e != current_e_value)
+    if (e + current_e_offset != current_e_value)
     {
-        const double output_e = (relative_extrusion)? e - current_e_value : e;
+        const double output_e = (relative_extrusion)? e + current_e_offset - current_e_value : e + current_e_offset;
         *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, output_e};
     }
+    *output_stream << " # extruder offset = " << current_e_offset;
     *output_stream << new_line;
-    
+
     currentPosition = Point3(x, y, z);
     current_e_value = e;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
@@ -780,7 +785,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     { // handle retraction limitation
         double current_extruded_volume = getCurrentExtrudedVolume();
         std::deque<double>& extruded_volume_at_previous_n_retractions = extr_attr.extruded_volume_at_previous_n_retractions;
-        while (int(extruded_volume_at_previous_n_retractions.size()) > config.retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
+        while (int(extruded_volume_at_previous_n_retractions.size()) > config.retraction_count_max && !extruded_volume_at_previous_n_retractions.empty())
         {
             // extruder switch could have introduced data which falls outside the retraction window
             // also the retraction_count_max could have changed between the last retraction and this
@@ -791,12 +796,12 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             return;
         }
         if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max
-            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area) 
+            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area)
         {
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max + 1) 
+        if (int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max + 1)
         {
             extruded_volume_at_previous_n_retractions.pop_back();
         }
@@ -804,9 +809,9 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 
     if (firmware_retract)
     {
-        if (extruder_switch && extr_attr.retraction_e_amount_current) 
+        if (extruder_switch && extr_attr.retraction_e_amount_current)
         {
-            return; 
+            return;
         }
         *output_stream << "G10";
         if (extruder_switch)
