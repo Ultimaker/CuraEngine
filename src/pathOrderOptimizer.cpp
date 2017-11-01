@@ -203,8 +203,8 @@ void LineOrderOptimizer::optimize()
 
     if (combing_boundary != nullptr && combing_boundary->size() > 0)
     {
-        // the combing boundary has been provided so do the initialisation
-        // required to be able to calculate realistic travel distances to the start of new paths
+        // the combing boundary has been provided so create a LocToLineGrid that will be used
+        // to decide whether a direct travel path between two points crosses the part boundary
         const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
         loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
     }
@@ -235,22 +235,12 @@ void LineOrderOptimizer::optimize()
         if (best_line_idx != -1)
         {
             const Point& best_point = (*polygons[best_line_idx])[polyStart[best_line_idx]];
-            if (!pointsAreCoincident(prev_point, best_point))
+            if (have_chains && !pointsAreCoincident(prev_point, best_point))
             {
-                if (loc_to_line != nullptr && travelDistance(prev_point, best_point, true) < best_score / 2)
-                {
-                    // we have found a point whose as-the-crow-flies distance is close to prev_point but the winning score is based on the combed distance
-                    // so we forget this point and rely on the loop below that finds the nearest unpicked line
-                    best_line_idx = -1;
-                    best_score = std::numeric_limits<float>::infinity();
-                }
-                else if (have_chains)
-                {
-                    // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
-                    // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
-                    best_line_idx = -1;
-                    best_score = std::numeric_limits<float>::infinity();
-                }
+                // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
+                // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
+                best_line_idx = -1;
+                best_score = std::numeric_limits<float>::infinity();
             }
         }
 
@@ -352,8 +342,15 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p0, prev_point))
         {
-            // this could be a candidate but as the combing distance can be computed, use that instead of the direct distance
-            score = travelDistance(prev_point, p0, false) + dot_score;
+            Point p0_inside = p0;
+            Point prev_inside = prev_point;
+            PolygonUtils::moveInside(*combing_boundary, p0_inside, 100);
+            PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+            if (PolygonUtils::polygonCollidesWithLineSegment(p0_inside, prev_inside, *loc_to_line))
+            {
+                // severely penalise this score because the travel requires combing or a retract
+                score *= 1000;
+            }
         }
         if (score < best_score)
         {
@@ -367,8 +364,15 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p1, prev_point))
         {
-            // this could be a candidate but as the combing distance can be computed, use that instead of the direct distance
-            score = travelDistance(prev_point, p1, false) + dot_score;
+            Point p1_inside = p1;
+            Point prev_inside = prev_point;
+            PolygonUtils::moveInside(*combing_boundary, p1_inside, 100);
+            PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+            if (PolygonUtils::polygonCollidesWithLineSegment(p1_inside, prev_inside, *loc_to_line))
+            {
+                // severely penalise this score because the travel requires combing or a retract
+                score *= 1000;
+            }
         }
         if (score < best_score)
         {
