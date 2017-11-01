@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "utils/polygon.h"
+#include "utils/polygonUtils.h"
 #include "settings/settings.h"
 
 namespace cura {
@@ -89,10 +90,13 @@ public:
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
+    LocToLineGrid* loc_to_line;
+    const Polygons* combing_boundary;
 
-    LineOrderOptimizer(Point startPoint)
+    LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
     {
         this->startPoint = startPoint;
+        this->combing_boundary = combing_boundary;
     }
 
     void addPolygon(PolygonRef polygon)
@@ -128,8 +132,9 @@ private:
      * \param best_score[in, out] The distance score for the current best line
      * \param prev_point[in] The previous point from which to find the next best line
      * \param incoming_perpundicular_normal[in] The direction of movement when the print head arrived at \p prev_point, turned 90 degrees CCW
+     * \param just_point[in] If not -1, only look at the line vertex with this index
      */
-    void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal);
+    void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point = -1);
 
     /*!
      * Get a score to modify the distance score for measuring how good two lines follow each other.
