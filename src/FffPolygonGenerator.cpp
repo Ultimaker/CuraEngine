@@ -269,19 +269,27 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     logDebug("Processing draft shield\n");
     processDraftShield(storage);
 
-    logDebug("Processing platform adhesion\n");
-    processPlatformAdhesion(storage);
+    // This catches a special case in which the models are in the air, and then
+    // the adhesion mustn't be calculated.
+    if (!isEmptyLayer(storage, 0) || storage.primeTower.enabled)
+    {
+        log("Processing platform adhesion\n");
+        processPlatformAdhesion(storage);
+    }
 
+    logDebug("Processing gaps\n");
     processOutlineGaps(storage);
     processPerimeterGaps(storage);
 
+    logDebug("Meshes post-processing\n");
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         processDerivedWallsSkinInfill(mesh);
     }
 
-    // generate gradual suppport
+    logDebug("Processing gradual support\n");
+    // generate gradual support
     AreaSupport::generateSupportInfillFeatures(storage);
 }
 
@@ -665,40 +673,40 @@ void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMe
     }
 }
 
+bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx)
+{
+    if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
+    {
+        SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
+        if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+        {
+            return false;
+        }
+    }
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
+        {
+            return false;
+        }
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            if (part.print_outline.size() > 0)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
 {
     int n_empty_first_layers = 0;
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
-        bool layer_is_empty = true;
-        if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
-        {
-            SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-            if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
-            {
-                layer_is_empty = false;
-                break;
-            }
-        }
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            SliceLayer& layer = mesh.layers[layer_idx];
-            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
-            {
-                layer_is_empty = false;
-                break;
-            }
-            for (const SliceLayerPart& part : layer.parts)
-            {
-                if (part.print_outline.size() > 0)
-                {
-                    layer_is_empty = false;
-                    break;
-                }
-            }
-        }
-
-        if (layer_is_empty)
+        if (isEmptyLayer(storage, layer_idx))
         {
             n_empty_first_layers++;
         } else
