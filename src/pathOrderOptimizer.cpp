@@ -209,8 +209,8 @@ void LineOrderOptimizer::optimize()
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
-    loc_to_line = nullptr;
-    
+    inside_points = nullptr;
+
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best_point_idx = -1;
@@ -236,10 +236,9 @@ void LineOrderOptimizer::optimize()
 
     if (combing_boundary != nullptr && combing_boundary->size() > 0)
     {
-        // the combing boundary has been provided so create a LocToLineGrid that will be used
-        // to decide whether a direct travel path between two points crosses the part boundary
-        const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
-        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+        // the combing boundary has been provided so create a map that will be used to hold for each line end point
+        // a new point that is the result of moving the end point inside the boundary
+
         inside_points = new std::unordered_map<Point, Point>();
     }
 
@@ -354,9 +353,8 @@ void LineOrderOptimizer::optimize()
         }
     }
 
-    if (loc_to_line != nullptr)
+    if (inside_points != nullptr)
     {
-        delete loc_to_line;
         delete inside_points;
     }
 }
@@ -369,11 +367,13 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
+    const int move_inside_distance = 100; // how far to move points inside part boundary
+    const int non_trivial_move_penalty_factor = 1000; // if a travel move is not a single straight line, multiply the score by this factor
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
-        if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p0, prev_point))
+        if (score < best_score && inside_points != nullptr && !pointsAreCoincident(p0, prev_point))
         {
             Point p0_inside = p0;
             auto search = inside_points->find(p0);
@@ -383,7 +383,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, p0_inside, 100);
+                PolygonUtils::moveInside(*combing_boundary, p0_inside, move_inside_distance);
                 inside_points->emplace(p0, p0_inside);
             }
             Point prev_inside = prev_point;
@@ -394,13 +394,13 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance);
                 inside_points->emplace(prev_point, prev_inside);
             }
-            if (PolygonUtils::polygonCollidesWithLineSegment(p0_inside, prev_inside, *loc_to_line))
+            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0_inside, prev_inside))
             {
                 // severely penalise this score because the travel requires combing or a retract
-                score *= 1000;
+                score *= non_trivial_move_penalty_factor;
             }
         }
         if (score < best_score)
@@ -413,7 +413,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     if (just_point != 0)
     { /// check distance to second point on line (1)
         float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
-        if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p1, prev_point))
+        if (score < best_score && inside_points != nullptr && !pointsAreCoincident(p1, prev_point))
         {
             Point p1_inside = p1;
             auto search = inside_points->find(p1);
@@ -423,7 +423,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, p1_inside, 100);
+                PolygonUtils::moveInside(*combing_boundary, p1_inside, move_inside_distance);
                 inside_points->emplace(p1, p1_inside);
             }
             Point prev_inside = prev_point;
@@ -434,13 +434,13 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance);
                 inside_points->emplace(prev_point, prev_inside);
             }
-            if (PolygonUtils::polygonCollidesWithLineSegment(p1_inside, prev_inside, *loc_to_line))
+            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1_inside, prev_inside))
             {
                 // severely penalise this score because the travel requires combing or a retract
-                score *= 1000;
+                score *= non_trivial_move_penalty_factor;
             }
         }
         if (score < best_score)
