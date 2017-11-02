@@ -2,6 +2,7 @@
 #define MINIMUMSPANNINGTREE_H
 
 #include <vector>
+#include <unordered_map>
 
 #include "intpoint.h"
 
@@ -52,21 +53,16 @@ public:
     MinimumSpanningTree(const std::vector<Point> vertices);
 
 private:
-    /*!
-     * \brief The vertices of the tree.
-     */
-    const std::vector<Point> vertices;
-
-    /*!
-     * \brief The edges of the tree that connect all vertices.
-     */
-    const std::vector<Edge> edges;
+    const std::unordered_map<Point, std::vector<Edge>> adjacency_graph;
 
     /*!
      * \brief Computes the edges of a minimum spanning tree using Prim's
      * algorithm.
+     *
+     * \param vertices The vertices to span.
+     * \return An adjacency graph with for each point one or more edges.
      */
-    const std::vector<Edge> prim(const std::vector<Point>& vertices) const;
+    const std::unordered_map<Point, std::vector<Edge>> prim(const std::vector<Point>& vertices) const;
 };
 
 }
