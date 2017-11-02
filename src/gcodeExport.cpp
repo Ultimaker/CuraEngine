@@ -689,9 +689,6 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     writeUnretractionAndPrime();
 
     //flow rate compensation
-    double extrusion_offset_factor = 1;
-    double max_extrusion_offset = 4;       // original value tops at 4
-
     double extrusion_offset = 0;
     if (diff.vSizeMM()) {
         extrusion_offset = speed * extrusion_mm3_per_mm * extrusion_offset_factor;
