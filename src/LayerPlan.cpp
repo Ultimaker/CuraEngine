@@ -737,6 +737,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     gcode.writeLayerComment(layer_nr);
 
+    // testing flow-rate compensation
+    gcode.setFlowRateExtrusionSettings(storage.getSettingInMillimeters("flow_rate_max_extrusion_offset"), storage.getSettingInPercentage("flow_rate_extrusion_offset_factor") / 100);
+    //gcode.setFlowRateExtrusionSettings(4.0, 1.0);
+
     if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature") != 0)
     {
         bool wait = false;
@@ -808,10 +812,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         // testing
         bool update_extrusion_offset = true;
-        float extrusion_offset = 0;
-        float extrusion_offset_candidate = 0;
-        float extrusion_offset_factor = 0.2;  // 0.2 don't know why, testing
-        float max_extrusion_offset = 4;       // original value tops at 4
+//        float extrusion_offset = 0;
+//        float extrusion_offset_candidate = 0;
+//        float extrusion_offset_factor = 0.2;  // 0.2 don't know why, testing
+//        float max_extrusion_offset = 4;       // original value tops at 4
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
@@ -859,6 +863,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 last_extrusion_config = path.config;
 
                 update_extrusion_offset = true;
+            } else {
+                update_extrusion_offset = false;
             }
 
             double speed = path.config->getSpeed();
@@ -871,25 +877,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-
-            // Testing flow-rate compensation
-            if (path_idx + 2 < paths.size()) {
-                if (update_extrusion_offset) {
-                    extrusion_offset = speed * paths[path_idx+1].getExtrusionMM3perMM() * extrusion_offset_factor;
-                    cura::logWarning("    #### speed %f  extrusion mm3 per mm %f -> %f\n", speed, paths[path_idx+1].getExtrusionMM3perMM(), extrusion_offset);
-                    update_extrusion_offset = false;
-                } else {
-                    // allow offset to increase, but not descrease while in the middle of printing a line type
-                    extrusion_offset_candidate = speed * paths[path_idx+1].getExtrusionMM3perMM() * extrusion_offset_factor;
-                    if (extrusion_offset_candidate > extrusion_offset) {
-                        extrusion_offset = extrusion_offset_candidate;
-                        cura::logWarning("    #### update speed %f  extrusion mm3 per mm %f -> %f\n", speed, paths[path_idx+1].getExtrusionMM3perMM(), extrusion_offset);
-                    }
-                }
-            }
-            if (extrusion_offset > max_extrusion_offset) {
-                extrusion_offset = max_extrusion_offset;
-            }
 
             if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
@@ -929,7 +916,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     )
                     {
                         sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidthForLayerView());
-                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM(), extrusion_offset, paths[path_idx+2].config->type);
+                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM(), update_extrusion_offset, paths[path_idx+2].config->type);
                         path_idx += 2;
                     }
                     else
@@ -937,7 +924,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
                             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView());
-                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), extrusion_offset, path.config->type);
+                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), update_extrusion_offset, path.config->type);
                         }
                     }
                 }

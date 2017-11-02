@@ -98,7 +98,11 @@ private:
     std::string new_line;
 
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
+
+    // testing flow-rate compensation
     double current_e_offset;  //!< Offset to compensate for flow rate
+    double max_extrusion_offset;               //!< 0 to turn it off, normally 4
+    double extrusion_offset_factor;            //!< default 1
 
     Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
@@ -204,6 +208,8 @@ public:
 
     void setZ(int z);
 
+    void setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor);
+
     void addLastCoastedVolume(double last_coasted_volume)
     {
         extruder_attr[current_extruder].prime_volume += last_coasted_volume;
@@ -291,7 +297,7 @@ public:
      * \param speed movement speed
      * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, double extrusion_offset, PrintFeatureType feature);
+    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -313,7 +319,7 @@ public:
      * \param speed movement speed
      * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, double extrusion_offset, PrintFeatureType feature);
+    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature);
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -338,7 +344,7 @@ private:
      * \param extrusion_mm3_per_mm flow
      * \param feature the print feature that's currently printing
      */
-    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, double extrusion_offset, PrintFeatureType feature);
+    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature);
 
     /*!
      * Write the F, X, Y, Z and E value (if they are not different from the last)
