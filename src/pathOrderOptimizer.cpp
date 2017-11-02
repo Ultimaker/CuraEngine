@@ -240,6 +240,7 @@ void LineOrderOptimizer::optimize()
         // to decide whether a direct travel path between two points crosses the part boundary
         const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
         loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+        inside_points = new std::unordered_map<Point, Point>();
     }
 
     Point incoming_perpundicular_normal(0, 0);
@@ -354,7 +355,10 @@ void LineOrderOptimizer::optimize()
     }
 
     if (loc_to_line != nullptr)
+    {
         delete loc_to_line;
+        delete inside_points;
+    }
 }
 
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
@@ -372,9 +376,27 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p0, prev_point))
         {
             Point p0_inside = p0;
+            auto search = inside_points->find(p0);
+            if (search != inside_points->end())
+            {
+                p0_inside = search->second;
+            }
+            else
+            {
+                PolygonUtils::moveInside(*combing_boundary, p0_inside, 100);
+                inside_points->emplace(p0, p0_inside);
+            }
             Point prev_inside = prev_point;
-            PolygonUtils::moveInside(*combing_boundary, p0_inside, 100);
-            PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+            search = inside_points->find(prev_point);
+            if (search != inside_points->end())
+            {
+                prev_inside = search->second;
+            }
+            else
+            {
+                PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+                inside_points->emplace(prev_point, prev_inside);
+            }
             if (PolygonUtils::polygonCollidesWithLineSegment(p0_inside, prev_inside, *loc_to_line))
             {
                 // severely penalise this score because the travel requires combing or a retract
@@ -394,9 +416,27 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         if (score < best_score && loc_to_line != nullptr && !pointsAreCoincident(p1, prev_point))
         {
             Point p1_inside = p1;
+            auto search = inside_points->find(p1);
+            if (search != inside_points->end())
+            {
+                p1_inside = search->second;
+            }
+            else
+            {
+                PolygonUtils::moveInside(*combing_boundary, p1_inside, 100);
+                inside_points->emplace(p1, p1_inside);
+            }
             Point prev_inside = prev_point;
-            PolygonUtils::moveInside(*combing_boundary, p1_inside, 100);
-            PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+            search = inside_points->find(prev_point);
+            if (search != inside_points->end())
+            {
+                prev_inside = search->second;
+            }
+            else
+            {
+                PolygonUtils::moveInside(*combing_boundary, prev_inside, 100);
+                inside_points->emplace(prev_point, prev_inside);
+            }
             if (PolygonUtils::polygonCollidesWithLineSegment(p1_inside, prev_inside, *loc_to_line))
             {
                 // severely penalise this score because the travel requires combing or a retract

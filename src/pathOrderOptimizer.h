@@ -102,6 +102,7 @@ public:
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
     LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary;
+    std::unordered_map<Point, Point>* inside_points;
 
     LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
     {
