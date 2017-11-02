@@ -232,16 +232,12 @@ void LineOrderOptimizer::optimize()
             }
         }
 
-        if (best_line_idx != -1)
+        if (best_line_idx != -1 && have_chains && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
         {
-            const Point& best_point = (*polygons[best_line_idx])[polyStart[best_line_idx]];
-            if (have_chains && !pointsAreCoincident(prev_point, best_point))
-            {
-                // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
-                // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
-                best_line_idx = -1;
-                best_score = std::numeric_limits<float>::infinity();
-            }
+            // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
+            // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
+            best_line_idx = -1;
+            best_score = std::numeric_limits<float>::infinity();
         }
 
         // if no line ends close to prev_point, see if we can find a point on a line that could be the start of a chain of lines
