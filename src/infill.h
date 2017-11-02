@@ -166,6 +166,12 @@ private:
     void generateTriangleInfill(Polygons& result);
 
     /*!
+     * Generate a triangular grid of infill lines
+     * \param[out] result (output) The resulting lines
+     */
+    void generateTrihexagonInfill(Polygons& result);
+
+    /*!
      * Generate a 3d pattern of subdivided cubes on their points
      * \param[out] result The resulting lines
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
