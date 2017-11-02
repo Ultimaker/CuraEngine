@@ -28,17 +28,17 @@ class MinimumSpanningTree
          * @param start One endpoint of the edge.
          * @param end The other endpoint of the edge.
          */
-        Edge(const Point* start, const Point* end);
+        Edge(const Point start, const Point end);
 
         /**
          * The point at which this edge starts.
          */
-        const Point* start;
+        const Point start;
 
         /**
          * The point at which this edge ends.
          */
-        const Point* end;
+        const Point end;
 
         /**
          * Computes the length of this edge.
