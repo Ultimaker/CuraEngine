@@ -31,6 +31,7 @@
 #include "PrintFeature.h"
 #include "ConicalOverhang.h"
 #include "TopSurface.h"
+#include "TreeSupport.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
@@ -242,6 +243,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
     AreaSupport::generateSupportAreas(storage, storage.print_layer_count);
+    TreeSupport tree_support_generator;
+    tree_support_generator.generateSupportAreas(storage);
 
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
