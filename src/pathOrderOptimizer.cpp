@@ -232,6 +232,14 @@ void LineOrderOptimizer::optimize()
             }
         }
 
+        if (best_line_idx != -1 && best_score > 4e8)
+        {
+            // we found a point that is close to prev_point as the crow flies but the score is high so it must have been
+            // penalised due to the part boundary clashing with the straight line path so let's forget it and find something closer
+            best_line_idx = -1;
+            best_score = std::numeric_limits<float>::infinity();
+        }
+
         if (best_line_idx != -1 && have_chains && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
         {
             // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
