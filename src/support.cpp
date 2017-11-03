@@ -806,12 +806,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
             full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
 
-            Polygons basic_overhang = basic_and_full_overhang.first;
-            if (use_support_xy_distance_overhang)
+            storage.support.supportLayers[layer_idx].support_overhang = basic_and_full_overhang.first; //Store the basic overhang.
+            if (use_support_xy_distance_overhang) //Z overrides XY distance.
             {
-                Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
-                Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
-
+                //Compute the areas that are too close to the model.
+                Polygons xy_overhang_disallowed = storage.support.supportLayers[layer_idx].support_overhang.offset(supportZDistanceTop * tanAngle);
+                Polygons xy_non_overhang_disallowed = outlines.difference(storage.support.supportLayers[layer_idx].support_overhang.offset(supportXYDistance)).offset(supportXYDistance);
                 xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
             }
         }
