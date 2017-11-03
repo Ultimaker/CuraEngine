@@ -265,6 +265,14 @@ void LineOrderOptimizer::optimize()
             }
         }
 
+        if (best_line_idx != -1 && best_score > 4e8)
+        {
+            // we found a point that is close to prev_point as the crow flies but the score is high so it must have been
+            // penalised due to the part boundary clashing with the straight line path so let's forget it and find something closer
+            best_line_idx = -1;
+            best_score = std::numeric_limits<float>::infinity();
+        }
+
         if (best_line_idx != -1 && have_chains && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
         {
             // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
@@ -368,7 +376,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
     const int move_inside_distance = 100; // how far to move points inside part boundary
-    const int non_trivial_move_penalty_factor = 1000; // if a travel move is not a single straight line, multiply the score by this factor
+    const int non_trivial_move_penalty_factor = 10000; // if a travel move is not a single straight line, multiply the score by this factor
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
