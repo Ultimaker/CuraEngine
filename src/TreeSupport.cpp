@@ -12,12 +12,20 @@ TreeSupport::TreeSupport()
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    if (!storage.getSettingBoolean("support_tree_enable"))
-    {
-        return;
-    }
     std::vector<std::vector<Point>> contact_points;
-    generateContactPoints(storage, contact_points);
+    contact_points.reserve(storage.support.supportLayers.size());
+    for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
+    {
+        contact_points.emplace_back();
+    }
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        if (!mesh.getSettingBoolean("support_tree_enable"))
+        {
+            return;
+        }
+        generateContactPoints(mesh, contact_points);
+    }
 
     //Placeholder to test with that generates a simple diamond at each contact point (without generating any trees yet).
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
@@ -26,10 +34,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             PolygonsPart outline;
             Polygon diamond;
-            diamond.add(point + Point(1000, 0));
-            diamond.add(point + Point(0, -1000));
-            diamond.add(point + Point(-1000, 0));
             diamond.add(point + Point(0, 1000));
+            diamond.add(point + Point(-1000, 0));
+            diamond.add(point + Point(0, -1000));
+            diamond.add(point + Point(1000, 0));
             outline.add(diamond);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, 350);
         }
@@ -43,9 +51,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     //TODO: Apply some diameter to the tree branches.
 }
 
-void TreeSupport::generateContactPoints(const SliceDataStorage& storage, std::vector<std::vector<Point>>& contact_points)
+void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::vector<Point>>& contact_points)
 {
-    //TODO: Implement this.
+    for (size_t layer_nr = 0; layer_nr < mesh.overhang_areas.size(); layer_nr++)
+    {
+        const Polygons& overhang = mesh.overhang_areas[layer_nr];
+        if (overhang.empty())
+        {
+            continue;
+        }
+
+        contact_points[layer_nr].push_back(overhang.back().centerOfMass()); //TODO: Place points in these areas.
+    }
 }
 
 }

@@ -674,7 +674,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  */
 void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
-    const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
     // given settings
     ESupportType support_type = storage.getSettingAsSupportType("support_type");
@@ -797,6 +797,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // simplified processing for bottom layer - just ensure support clears part by XY distance
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(supportXYDistance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
+    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
+    {
+        mesh.overhang_areas.emplace_back();
+    }
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
     for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
     {
@@ -806,12 +810,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
             full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
 
-            storage.support.supportLayers[layer_idx].support_overhang = basic_and_full_overhang.first; //Store the basic overhang.
+            mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the basic overhang.
             if (use_support_xy_distance_overhang) //Z overrides XY distance.
             {
                 //Compute the areas that are too close to the model.
-                Polygons xy_overhang_disallowed = storage.support.supportLayers[layer_idx].support_overhang.offset(supportZDistanceTop * tanAngle);
-                Polygons xy_non_overhang_disallowed = outlines.difference(storage.support.supportLayers[layer_idx].support_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+                Polygons xy_overhang_disallowed = mesh.overhang_areas[layer_idx].offset(supportZDistanceTop * tanAngle);
+                Polygons xy_non_overhang_disallowed = outlines.difference(mesh.overhang_areas[layer_idx].offset(supportXYDistance)).offset(supportXYDistance);
                 xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
             }
         }

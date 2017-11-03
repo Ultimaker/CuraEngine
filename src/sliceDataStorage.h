@@ -194,7 +194,6 @@ class SupportLayer
 {
 public:
     std::vector<SupportInfillPart> support_infill_parts;  //!< a list of support infill parts
-    Polygons support_overhang; //!< The basic overhang areas.
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
     Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
@@ -237,6 +236,7 @@ public:
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
+    std::vector<Polygons> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
     AABB3D bounding_box; //!< the mesh's bounding box
 
     SubDivCube* base_subdiv_cube;
