@@ -28,6 +28,18 @@ public:
      * where the resulting support areas are stored.
      */
     void generateSupportAreas(SliceDataStorage& storage);
+
+private:
+    /*!
+     * \brief Creates points where support contacts the model.
+     *
+     * A set of points is created for each layer.
+     * \param storage The data storage where the mesh data is gotten from.
+     * \param contact_points[out] A vector to store the contact points in.
+     * \return For each layer, a list of points where the tree should connect
+     * with the model.
+     */
+    void generateContactPoints(const SliceDataStorage& storage, std::vector<std::vector<Point>>& contact_points);
 };
 
 }
