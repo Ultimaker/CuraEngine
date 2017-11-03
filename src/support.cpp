@@ -1129,8 +1129,7 @@ void AreaSupport::detectOverhangPoints(
                     {
                         continue;
                     }
-                    std::vector<Polygons>& layer_overhang_points = overhang_points[layer_idx];
-                    layer_overhang_points.push_back(part_poly_recomputed);
+                    overhang_points[layer_idx].push_back(part_poly_recomputed);
                 }
             }
         }
