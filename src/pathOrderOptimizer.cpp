@@ -335,7 +335,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
     const int move_inside_distance = 100; // how far to move points inside part boundary
-    const int non_trivial_move_penalty_factor = 1000; // if a travel move is not a single straight line, multiply the score by this factor
+    const int non_trivial_move_penalty_factor = 10000; // if a travel move is not a single straight line, multiply the score by this factor
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
