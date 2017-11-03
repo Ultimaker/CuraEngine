@@ -232,7 +232,7 @@ void LineOrderOptimizer::optimize()
             }
         }
 
-        if (best_line_idx != -1 && best_score > 4e8)
+        if (best_line_idx != -1 && best_score > (2 * gridSize * gridSize))
         {
             // we found a point that is close to prev_point as the crow flies but the score is high so it must have been
             // penalised due to the part boundary clashing with the straight line path so let's forget it and find something closer
