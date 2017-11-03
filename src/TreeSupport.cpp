@@ -12,6 +12,10 @@ TreeSupport::TreeSupport()
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
+    if (!storage.getSettingBoolean("support_tree_enable"))
+    {
+        return;
+    }
     std::vector<std::vector<Point>> contact_points;
     generateContactPoints(storage, contact_points);
 
