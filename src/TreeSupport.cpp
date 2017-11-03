@@ -61,7 +61,11 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             continue;
         }
 
-        contact_points[layer_nr].push_back(overhang.back().centerOfMass()); //TODO: Place points in these areas.
+        //TODO: Properly place points in these areas.
+        for (const PolygonRef overhang_part : overhang.getOutsidePolygons())
+        {
+            contact_points[layer_nr].push_back(overhang_part.centerOfMass());
+        }
     }
 }
 
