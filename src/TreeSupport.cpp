@@ -41,6 +41,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             outline.add(diamond);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, 350);
         }
+        if (!contact_points[layer_nr].empty())
+        {
+            storage.support.layer_nr_max_filled_layer = layer_nr;
+        }
     }
 
     //TODO: Use Minimum Spanning Tree to connect the points on each layer.
@@ -49,6 +53,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
     //TODO: Do a second pass of dropping down but with leftover edges removed.
     //TODO: Apply some diameter to the tree branches.
+    
+    storage.support.generated = true;
 }
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::vector<Point>>& contact_points)
