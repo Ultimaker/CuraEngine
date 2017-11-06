@@ -28,16 +28,15 @@ public:
      * \brief Generate the overhang areas for all models.
      * \param storage Data storage containing the input layer data and
      * containing the output support storage per layer.
-     * \param layer_count Total number of layers.
      */
-    static void generateOverhangAreas(SliceDataStorage& storage, const size_t layer_count);
+    static void generateOverhangAreas(SliceDataStorage& storage);
 
     /*!
      * Generate the support areas and support skin areas for all models.
-     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param layer_count total number of layers
+     * \param storage Data storage containing the input layer outline data and
+     * containing the output support storage per layer.
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
+    static void generateSupportAreas(SliceDataStorage& storage);
 
     /*!
      * Generates all gradual support infill features.
@@ -121,10 +120,9 @@ private:
      * would otherwise fall over. The anti_overhang areas are also taken into
      * account.
      * \param storage Data storage containing the input layer outlines.
-     * \param mesh_idx The index of the object for which to generate support
-     * areas.
+     * \param mesh The object for which to generate overhang areas.
      */
-    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const size_t layer_count);
+    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh);
 
     /*!
      * Generate support polygons over all layers for one object.
@@ -230,15 +228,13 @@ private:
      * points (small areas).
      * \param storage Input layer outline information.
      * \param mesh Output mesh to store the resulting overhang points in.
-     * \param layer_count Total number of layers.
      * \param minimum_diameter Diameter of the minimal area which can be
      * supported without a specialised strut.
      */
     static void detectOverhangPoints(
         const SliceDataStorage& storage,
         SliceMeshStorage& mesh,
-        const int layer_count,
-        const int minimum_diameter
+        const coord_t minimum_diameter
     );
     
     /*!

@@ -520,7 +520,7 @@ Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLay
     return joined;
 }
 
-void AreaSupport::generateOverhangAreas(SliceDataStorage& storage, const size_t layer_count)
+void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -528,14 +528,14 @@ void AreaSupport::generateOverhangAreas(SliceDataStorage& storage, const size_t 
         {
             continue;
         }
-        generateOverhangAreasForMesh(storage, mesh, layer_count);
+        generateOverhangAreasForMesh(storage, mesh);
     }
 }
 
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
 {
     std::vector<Polygons> global_support_areas_per_layer;
-    global_support_areas_per_layer.resize(layer_count);
+    global_support_areas_per_layer.resize(storage.print_layer_count);
 
     int max_layer_nr_support_mesh_filled;
     for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
@@ -556,9 +556,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     }
 
     // initialization of supportAreasPerLayer
-    if (layer_count > storage.support.supportLayers.size())
+    if (storage.print_layer_count > storage.support.supportLayers.size())
     { // there might already be anti_overhang_area data or support mesh data in the supportLayers
-        storage.support.supportLayers.resize(layer_count);
+        storage.support.supportLayers.resize(storage.print_layer_count);
     }
 
     // generate support areas
@@ -600,16 +600,16 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             }
         }
         std::vector<Polygons> mesh_support_areas_per_layer;
-        mesh_support_areas_per_layer.resize(layer_count, Polygons());
-        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, mesh_support_areas_per_layer);
+        mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
+        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
 
-        for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
+        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
     }
 
-    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count ; layer_idx++)
     {
         Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
@@ -673,7 +673,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     }
 }
 
-void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const size_t layer_count)
+void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
     if (!mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("support_tree_enable"))
     {
@@ -681,8 +681,8 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     //Fill the overhang areas with emptiness first, even if it's a support mesh, so that we can request the areas.
-    mesh.full_overhang_areas.resize(layer_count);
-    for (size_t layer_idx = 0; layer_idx < layer_count; layer_idx++)
+    mesh.full_overhang_areas.resize(storage.print_layer_count);
+    for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
     {
         mesh.overhang_areas.emplace_back();
     }
@@ -698,7 +698,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
-    if (z_distance_top_layers + 1 > layer_count)
+    if (z_distance_top_layers + 1 > storage.print_layer_count)
     {
         return;
     }
@@ -708,7 +708,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     const bool use_towers = mesh.getSettingBoolean("support_use_towers") && minimum_diameter > 0;
     if (use_towers)
     {
-        AreaSupport::detectOverhangPoints(storage, mesh, layer_count, minimum_diameter);
+        AreaSupport::detectOverhangPoints(storage, mesh, minimum_diameter);
     }
 
     //Generate the actual areas and store them in the mesh.
@@ -716,7 +716,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
     #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
-    for (unsigned int layer_idx = 1; layer_idx < layer_count; layer_idx++)
+    for (unsigned int layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
         mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
@@ -1118,16 +1118,15 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(
     const SliceDataStorage& storage,
     SliceMeshStorage& mesh,
-    const int layer_count,
-    const int minimum_diameter
+    const coord_t minimum_diameter
 )
 {
     ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const coord_t support_line_width = infill_extr->getSettingInMicrons("support_line_width");
 
-    mesh.overhang_points.resize(layer_count);
+    mesh.overhang_points.resize(storage.print_layer_count);
 
-    for (int layer_idx = 1; layer_idx < layer_count; layer_idx++)
+    for (size_t layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
     {
         const SliceLayer& layer = mesh.layers[layer_idx];
         for (const SliceLayerPart& part : layer.parts)
