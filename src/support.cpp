@@ -675,6 +675,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
 void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const size_t layer_count)
 {
+    if (!mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("support_tree_enable"))
+    {
+        return;
+    }
+
     //Fill the overhang areas with emptiness first, even if it's a support mesh, so that we can request the areas.
     mesh.full_overhang_areas.resize(layer_count);
     for (size_t layer_idx = 0; layer_idx < layer_count; layer_idx++)
