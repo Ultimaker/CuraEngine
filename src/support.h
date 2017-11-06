@@ -206,18 +206,19 @@ private:
     static void moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
-     * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).
-     * \param storage input layer outline information
-     * \param overhang_points stores overhang_points of each layer
-     * \param layer_count total number of layers
-     * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
+     * Joins the layer part outlines of all meshes and collects the overhang
+     * points (small areas).
+     * \param storage Input layer outline information.
+     * \param mesh Output mesh to store the resulting overhang points in.
+     * \param layer_count Total number of layers.
+     * \param minimum_diameter Diameter of the minimal area which can be
+     * supported without a specialised strut.
      */
     static void detectOverhangPoints(
         const SliceDataStorage& storage,
-        const SliceMeshStorage& mesh,
-        std::vector<std::vector<Polygons>>& overhang_points,
-        int layer_count,
-        int supportMinAreaSqrt
+        SliceMeshStorage& mesh,
+        const int layer_count,
+        const int minimum_diameter
     );
     
     /*!

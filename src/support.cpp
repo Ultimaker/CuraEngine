@@ -664,13 +664,13 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 /* 
  * Algorithm:
  * From top layer to bottom layer:
- * - find overhang by looking at the difference between two consucutive layers
+ * - find overhang by looking at the difference between two consecutive layers
  * - join with support areas from layer above
  * - subtract current layer
  * - use the result for the next lower support layer (without doing XY-distance and Z bottom distance, so that a single support beam may move around the model a bit => more stability)
  * - perform inset using X/Y-distance and bottom Z distance
  * 
- * for support buildplate only: purge all support not connected to buildplate
+ * for support buildplate only: purge all support not connected to build plate
  */
 void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
@@ -782,12 +782,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     
     
     // computation
-        
-    
-    std::vector<std::vector<Polygons>> overhang_points; // stores overhang_points of each layer
     if (use_towers && !is_support_modifier_place_holder)
     {
-        AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
+        AreaSupport::detectOverhangPoints(storage, mesh, layer_count, supportMinAreaSqrt);
     }
 
     std::vector<Polygons> xy_disallowed_per_layer;
@@ -830,7 +827,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
-        Polygons supportLayer_this = full_overhang_per_layer[layer_idx + layerZdistanceTop];;
+        Polygons supportLayer_this = mesh.full_overhang_areas[layer_idx + layerZdistanceTop];;
 
         if (extension_offset && !is_support_modifier_place_holder)
         {
@@ -842,7 +839,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             // handle straight walls
             AreaSupport::handleWallStruts(supportLayer_this, supportMinAreaSqrt, supportTowerDiameter);
             // handle towers
-            AreaSupport::handleTowers(supportLayer_this, towerRoofs, overhang_points, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
+            AreaSupport::handleTowers(supportLayer_this, towerRoofs, mesh.overhang_points, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
         }
 
         if (layer_idx + 1 < support_layer_count)
@@ -1095,23 +1092,22 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 
 void AreaSupport::detectOverhangPoints(
     const SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
-    std::vector<std::vector<Polygons>>& overhang_points, // stores overhang_points of each layer
-    int layer_count,
-    int supportMinAreaSqrt
+    SliceMeshStorage& mesh,
+    const int layer_count,
+    const int minimum_diameter
 )
 {
     ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const coord_t support_line_width = infill_extr->getSettingInMicrons("support_line_width");
 
-    overhang_points.resize(layer_count);
+    mesh.overhang_points.resize(layer_count);
 
     for (int layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
         const SliceLayer& layer = mesh.layers[layer_idx];
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
+            if (part.outline.outerPolygon().area() < minimum_diameter * minimum_diameter)
             {
                 const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
                 if (layer_below.getOutlines().intersection(part.outline).size() > 0)
@@ -1133,7 +1129,7 @@ void AreaSupport::detectOverhangPoints(
                     {
                         continue;
                     }
-                    overhang_points[layer_idx].push_back(part_poly_recomputed);
+                    mesh.overhang_points[layer_idx].push_back(part_poly_recomputed);
                 }
             }
         }
