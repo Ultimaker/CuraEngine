@@ -589,6 +589,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         }
         std::vector<Polygons> mesh_support_areas_per_layer;
         mesh_support_areas_per_layer.resize(layer_count, Polygons());
+        generateOverhangAreasForMesh(storage, mesh, *infill_settings, *roof_settings, layer_count);
         generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, layer_count, mesh_support_areas_per_layer);
 
         for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
@@ -658,6 +659,52 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             coord_t line_distance = infill_extr.getSettingInMicrons("support_line_distance") << density_idx;
             storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(line_distance, aabb));
         }
+    }
+}
+
+void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const size_t layer_count)
+{
+    //Fill the overhang areas with emptiness first, even if it's a support mesh, so that we can request the areas.
+    mesh.full_overhang_areas.resize(layer_count);
+    for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
+    {
+        mesh.overhang_areas.emplace_back();
+    }
+
+    //Don't generate overhang areas for support meshes. They are dropped down automatically if desired.
+    const bool is_support_modifier = mesh.getSettingBoolean("support_mesh");
+    if (is_support_modifier)
+    {
+        return;
+    }
+
+    //Don't generate overhang areas if the Z distance is higher than the objects we're generating support for.
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const int z_distance_top = ((mesh.getSettingBoolean("support_roof_enable"))? roof_settings : infill_settings).getSettingInMicrons("support_top_distance");
+    const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
+    if (z_distance_top_layers + 1 > layer_count)
+    {
+        return;
+    }
+
+    //Generate points and lines of overhang (for corners pointing downwards, since they don't have an area to support but still need supporting).
+    const int minimum_diameter = infill_settings.getSettingInMicrons("support_minimal_diameter");
+    const bool use_towers = infill_settings.getSettingBoolean("support_use_towers") && minimum_diameter > 0;
+    if (use_towers)
+    {
+        AreaSupport::detectOverhangPoints(storage, mesh, layer_count, minimum_diameter);
+    }
+
+    //Generate the actual areas and store them in the mesh.
+    const double support_angle = ((mesh.getSettingBoolean("support_roof_enable"))? roof_settings : infill_settings).getSettingInAngleRadians("support_angle");
+    const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
+    const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
+    #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
+    for (unsigned int layer_idx = 1; layer_idx < layer_count; layer_idx++)
+    {
+        std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
+        mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
+        mesh.full_overhang_areas[layer_idx] = basic_and_full_overhang.second;
     }
 }
 
@@ -755,7 +802,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const unsigned int bottom_stair_step_layer_count = support_bottom_stair_step_height / supportLayerThickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
-    int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
     
     coord_t conical_support_offset;
     if (conical_support_angle > 0) 
@@ -779,35 +825,19 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     {
         return;
     }
-    
-    
-    // computation
-    if (use_towers && !is_support_modifier_place_holder)
-    {
-        AreaSupport::detectOverhangPoints(storage, mesh, layer_count, supportMinAreaSqrt);
-    }
 
+    //Compute the areas that are disallowed by the X/Y distance.
     std::vector<Polygons> xy_disallowed_per_layer;
-    std::vector<Polygons> full_overhang_per_layer;
     xy_disallowed_per_layer.resize(support_layer_count);
-    full_overhang_per_layer.resize(support_layer_count);
     // simplified processing for bottom layer - just ensure support clears part by XY distance
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(supportXYDistance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
-    for (unsigned int layer_idx = 0; layer_idx < support_layer_count; layer_idx++)
-    {
-        mesh.overhang_areas.emplace_back();
-    }
-    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, full_overhang_per_layer, support_layer_count, storage, mesh, max_dist_from_lower_layer, tanAngle) schedule(dynamic)
+    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, support_layer_count, storage, mesh, tanAngle) schedule(dynamic)
     for (unsigned int layer_idx = 1; layer_idx < support_layer_count; layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, false);
         if (!is_support_modifier_place_holder)
         { // don't compute overhang for support meshes
-            std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
-            full_overhang_per_layer[layer_idx] = basic_and_full_overhang.second;
-
-            mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the basic overhang.
             if (use_support_xy_distance_overhang) //Z overrides XY distance.
             {
                 //Compute the areas that are too close to the model.

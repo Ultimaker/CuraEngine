@@ -107,6 +107,22 @@ private:
     static void combineSupportInfillLayers(SliceDataStorage& storage);
 
     /*!
+     * \brief Generate the overhang areas and points for a specific mesh.
+     *
+     * This function also handles small overhang areas and single walls which
+     * would otherwise fall over. The anti_overhang areas are also taken into
+     * account.
+     * \param storage Data storage containing the input layer outlines.
+     * \param infill_settings The settings base to get the settings to use for
+     * the infill of the support.
+     * \param roof_settings The settings base to get the settings to use for the
+     * top interface of the support.
+     * \param mesh_idx The index of the object for which to generate support
+     * areas.
+     */
+    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const size_t layer_count);
+
+    /*!
      * Generate support polygons over all layers for one object.
      * 
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
