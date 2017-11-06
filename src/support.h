@@ -25,6 +25,14 @@ public:
     static bool handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer);
 
     /*!
+     * \brief Generate the overhang areas for all models.
+     * \param storage Data storage containing the input layer data and
+     * containing the output support storage per layer.
+     * \param layer_count Total number of layers.
+     */
+    static void generateOverhangAreas(SliceDataStorage& storage, const size_t layer_count);
+
+    /*!
      * Generate the support areas and support skin areas for all models.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      * \param layer_count total number of layers
@@ -113,14 +121,10 @@ private:
      * would otherwise fall over. The anti_overhang areas are also taken into
      * account.
      * \param storage Data storage containing the input layer outlines.
-     * \param infill_settings The settings base to get the settings to use for
-     * the infill of the support.
-     * \param roof_settings The settings base to get the settings to use for the
-     * top interface of the support.
      * \param mesh_idx The index of the object for which to generate support
      * areas.
      */
-    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const size_t layer_count);
+    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh, const size_t layer_count);
 
     /*!
      * Generate support polygons over all layers for one object.

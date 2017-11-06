@@ -242,6 +242,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
+    AreaSupport::generateOverhangAreas(storage, storage.print_layer_count);
     AreaSupport::generateSupportAreas(storage, storage.print_layer_count);
     TreeSupport tree_support_generator;
     tree_support_generator.generateSupportAreas(storage);
