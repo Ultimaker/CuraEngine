@@ -59,7 +59,7 @@ public:
      * \brief Gets the nodes that are adjacent to the specified node.
      * \return A list of nodes that are adjacent.
      */
-    inline const std::vector<Point> adjacentNodes(Point node) const;
+    const std::vector<Point> adjacentNodes(Point node);
 
     /*!
      * \brief Gets the leaves of the tree.
