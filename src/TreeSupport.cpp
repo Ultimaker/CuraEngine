@@ -1,6 +1,7 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/math.h" //For round_up_divide.
 #include "utils/polygonUtils.h" //For moveInside.
 
 #include "TreeSupport.h"
@@ -63,9 +64,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::vector<Point>>& contact_points)
 {
-    for (size_t layer_nr = 0; layer_nr < mesh.overhang_areas.size(); layer_nr++)
+    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
+    const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+    const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
+    for (size_t layer_nr = 0; layer_nr < mesh.overhang_areas.size() - z_distance_top_layers; layer_nr++)
     {
-        const Polygons& overhang = mesh.overhang_areas[layer_nr];
+        const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
         if (overhang.empty())
         {
             continue;
