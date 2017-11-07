@@ -1,7 +1,11 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/polygonUtils.h" //For moveInside.
+
 #include "TreeSupport.h"
+
+#define SQRT_2 1.4142135623730950488 //Square root of 2.
 
 namespace cura
 {
@@ -67,10 +71,35 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             continue;
         }
 
-        //TODO: Properly place points in these areas.
-        for (const PolygonRef overhang_part : overhang.getOutsidePolygons())
+        //First generate a lot of points in a grid pattern.
+        Polygons outside_polygons = overhang.getOutsidePolygons();
+        AABB bounding_box(outside_polygons); //To know how far we should generate points.
+        coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
+        point_spread *= SQRT_2; //We'll rotate these points 45 degrees, so this is the point distance when axis-aligned.
+        bounding_box.round(point_spread);
+        for (PolygonRef overhang_part : outside_polygons)
         {
-            contact_points[layer_nr].push_back(overhang_part.centerOfMass());
+            AABB bounding_box(outside_polygons);
+            bounding_box.round(point_spread);
+            bool added = false; //Did we add a point this way?
+            for (coord_t x = bounding_box.min.X; x <= bounding_box.max.X; x += point_spread << 1)
+            {
+                for (coord_t y = bounding_box.min.Y + (point_spread << 1) * (x % 2); y <= bounding_box.max.Y; y += point_spread) //This produces points in a 45-degree rotated grid.
+                {
+                    Point candidate(x, y);
+                    if (overhang_part.inside(candidate))
+                    {
+                        contact_points[layer_nr].push_back(candidate);
+                        added = true;
+                    }
+                }
+            }
+            if (!added) //If we didn't add any points due to bad luck, we want to add one anyway such that loose parts are also supported.
+            {
+                Point candidate = bounding_box.getMiddle();
+                PolygonUtils::moveInside(overhang_part, candidate);
+                contact_points[layer_nr].push_back(candidate);
+            }
         }
     }
 }
