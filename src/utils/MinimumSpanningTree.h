@@ -56,7 +56,14 @@ public:
     MinimumSpanningTree(const std::vector<Point> vertices);
 
     /*!
+     * \brief Gets the nodes that are adjacent to the specified node.
+     * \return A list of nodes that are adjacent.
+     */
+    inline const std::vector<Point> adjacentNodes(Point node) const;
+
+    /*!
      * \brief Gets the leaves of the tree.
+     * \return A list of nodes that are all leaves of the tree.
      */
     std::vector<Point> leaves() const;
 
