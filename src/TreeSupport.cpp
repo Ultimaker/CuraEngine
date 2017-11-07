@@ -1,7 +1,11 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <unordered_set>
+
+#include "utils/intpoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide.
+#include "utils/MinimumSpanningTree.h" //For the 
 #include "utils/polygonUtils.h" //For moveInside.
 
 #include "TreeSupport.h"
@@ -32,6 +36,32 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         generateContactPoints(mesh, contact_points);
     }
 
+    //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
+    for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
+    {
+        MinimumSpanningTree mst(contact_points[layer_nr]);
+        for (Point vertex : contact_points[layer_nr])
+        {
+            std::vector<Point> neighbours = mst.adjacentNodes(vertex);
+            if (neighbours.size() == 1) //This is a leaf.
+            {
+                Point direction = neighbours[0] - vertex;
+                Point motion = normal(direction, 1000); //TODO: Compute the correct distance to move.
+                contact_points[layer_nr - 1].push_back(vertex + motion);
+            }
+            else //Not a leaf or just a single vertex.
+            {
+                contact_points[layer_nr - 1].push_back(vertex); //Just drop the leaves directly down.
+                //TODO: Avoid collisions.
+            }
+        }
+    }
+
+    //TODO: Drop down and contract the leaves of the tree.
+    //TODO: Create a pyramid out of the mesh and move points away from that.
+    //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
+    //TODO: Do a second pass of dropping down but with leftover edges removed.
+
     //Placeholder to test with that generates a simple diamond at each contact point (without generating any trees yet).
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
@@ -52,11 +82,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
-    //TODO: Use Minimum Spanning Tree to connect the points on each layer.
-    //TODO: Drop down and contract the leaves of the tree.
-    //TODO: Create a pyramid out of the mesh and move points away from that.
-    //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
-    //TODO: Do a second pass of dropping down but with leftover edges removed.
     //TODO: Apply some diameter to the tree branches.
     
     storage.support.generated = true;
