@@ -91,7 +91,8 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 for (coord_t y = bounding_box.min.Y + (point_spread << 1) * (x % 2); y <= bounding_box.max.Y; y += point_spread) //This produces points in a 45-degree rotated grid.
                 {
                     Point candidate(x, y);
-                    if (overhang_part.inside(candidate))
+                    constexpr bool border_is_inside = true;
+                    if (overhang_part.inside(candidate, border_is_inside))
                     {
                         contact_points[layer_nr].push_back(candidate);
                         added = true;
