@@ -37,6 +37,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const double angle = storage.getSettingInAngleRadians("support_tree_angle");
+    const coord_t maximum_move_distance = tan(angle) * layer_height;
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -46,11 +49,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             if (neighbours.size() == 1) //This is a leaf.
             {
                 Point direction = neighbours[0] - vertex;
-                if (vSize2(direction) < 1000 * 1000) //Smaller than one step. Leave this one out.
+                if (vSize2(direction) < maximum_move_distance * maximum_move_distance) //Smaller than one step. Leave this one out.
                 {
                     continue;
                 }
-                Point motion = normal(direction, 1000); //TODO: Compute the correct distance to move.
+                Point motion = normal(direction, maximum_move_distance);
                 contact_points[layer_nr - 1].push_back(vertex + motion);
             }
             else //Not a leaf or just a single vertex.
@@ -61,7 +64,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
-    //TODO: Drop down and contract the leaves of the tree.
     //TODO: Create a pyramid out of the mesh and move points away from that.
     //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
     //TODO: Do a second pass of dropping down but with leftover edges removed.
