@@ -126,4 +126,14 @@ std::vector<Point> MinimumSpanningTree::leaves() const
     return result;
 }
 
+std::vector<Point> MinimumSpanningTree::vertices() const
+{
+    std::vector<Point> result;
+    for (std::pair<Point, std::vector<Edge>> node : adjacency_graph)
+    {
+        result.push_back(node.first);
+    }
+    return result;
+}
+
 }

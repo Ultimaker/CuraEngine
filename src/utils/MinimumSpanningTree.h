@@ -67,6 +67,12 @@ public:
      */
     std::vector<Point> leaves() const;
 
+    /*!
+     * \brief Gets all vertices of the tree.
+     * \return A list of vertices of the tree.
+     */
+    std::vector<Point> vertices() const;
+
 private:
     const std::unordered_map<Point, std::vector<Edge>> adjacency_graph;
 
