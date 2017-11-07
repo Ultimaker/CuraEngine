@@ -123,6 +123,7 @@ std::vector<Point> MinimumSpanningTree::leaves() const
             result.push_back(node.first);
         }
     }
+    return result;
 }
 
 }
