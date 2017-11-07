@@ -55,6 +55,11 @@ public:
      */
     MinimumSpanningTree(const std::vector<Point> vertices);
 
+    /*!
+     * \brief Gets the leaves of the tree.
+     */
+    std::vector<Point> leaves() const;
+
 private:
     const std::unordered_map<Point, std::vector<Edge>> adjacency_graph;
 

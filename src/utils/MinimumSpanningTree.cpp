@@ -89,4 +89,16 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
     return result;
 }
 
+std::vector<Point> MinimumSpanningTree::leaves() const
+{
+    std::vector<Point> result;
+    for (std::pair<Point, std::vector<Edge>> node : adjacency_graph)
+    {
+        if (node.second.size() <= 1) //Leaves are nodes that have only one adjacent edge, or just the one node if the tree contains one node.
+        {
+            result.push_back(node.first);
+        }
+    }
+}
+
 }
