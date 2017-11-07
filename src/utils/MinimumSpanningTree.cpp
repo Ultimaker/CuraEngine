@@ -11,6 +11,11 @@ MinimumSpanningTree::MinimumSpanningTree(const std::vector<Point> vertices) : ad
     //Just copy over the fields.
 }
 
+MinimumSpanningTree::Edge::Edge(const Point start, const Point end) : start(start), end(end)
+{
+    //Just copy over the fields.
+}
+
 int MinimumSpanningTree::Edge::length() const
 {
     return vSize2(start - end);
