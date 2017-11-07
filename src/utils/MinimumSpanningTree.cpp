@@ -32,7 +32,12 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
 
     Point first_point = vertices[0];
     result[first_point] = std::vector<MinimumSpanningTree::Edge>(); //Start with one vertex in the tree.
-    
+
+    if (vertices.size() == 1)
+    {
+        return result; //If there's only one vertex, we can't go creating any edges.
+    }
+
     std::unordered_map<Point*, coord_t> smallest_distance; //The shortest distance to the current tree.
     smallest_distance.reserve(vertices.size());
     std::unordered_map<Point*, Point*> smallest_distance_to; //Which point the shortest distance goes towards.
