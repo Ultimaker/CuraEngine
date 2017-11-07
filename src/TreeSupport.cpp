@@ -46,6 +46,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             if (neighbours.size() == 1) //This is a leaf.
             {
                 Point direction = neighbours[0] - vertex;
+                if (vSize2(direction) < 1000 * 1000) //Smaller than one step. Leave this one out.
+                {
+                    continue;
+                }
                 Point motion = normal(direction, 1000); //TODO: Compute the correct distance to move.
                 contact_points[layer_nr - 1].push_back(vertex + motion);
             }
