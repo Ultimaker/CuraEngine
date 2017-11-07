@@ -6,7 +6,7 @@
 namespace cura
 {
 
-MinimumSpanningTree::MinimumSpanningTree(const std::vector<Point> vertices) : adjacency_graph(prim(vertices))
+MinimumSpanningTree::MinimumSpanningTree(std::vector<Point> vertices) : adjacency_graph(prim(vertices))
 {
     //Just copy over the fields.
 }
@@ -21,7 +21,7 @@ int MinimumSpanningTree::Edge::length() const
     return vSize2(start - end);
 }
 
-const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumSpanningTree::prim(const std::vector<Point>& vertices) const
+const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumSpanningTree::prim(std::vector<Point> vertices) const
 {
     std::unordered_map<Point, std::vector<Edge>> result;
     if (vertices.empty())
@@ -37,14 +37,14 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
     smallest_distance.reserve(vertices.size());
     std::unordered_map<Point*, Point*> smallest_distance_to; //Which point the shortest distance goes towards.
     smallest_distance_to.reserve(vertices.size());
-    for(Point vertex : vertices)
+    for (size_t vertex_index = 0; vertex_index < vertices.size(); vertex_index++)
     {
-        if (vertex == first_point)
+        if (vertices[vertex_index] == first_point)
         {
             continue;
         }
-        smallest_distance[&vertex] = vSize2(vertex - first_point);
-        smallest_distance_to[&vertex] = &first_point;
+        smallest_distance[&vertices[vertex_index]] = vSize2(vertices[vertex_index] - first_point);
+        smallest_distance_to[&vertices[vertex_index]] = &vertices[0];
     }
 
     while(result.size() < vertices.size()) //All of the vertices need to be in the tree at the end.
