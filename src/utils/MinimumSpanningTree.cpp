@@ -66,11 +66,17 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
 
         //Add this point to the graph and remove it from the candidates.
         Point closest_point_local = *closest_point;
+        Point other_end = *smallest_distance_to[closest_point];
         if (result.find(closest_point_local) == result.end())
         {
             result[closest_point_local] = std::vector<Edge>();
         }
-        result[closest_point_local].emplace_back(closest_point_local, *smallest_distance_to[closest_point]);
+        result[closest_point_local].emplace_back(closest_point_local, other_end);
+        if (result.find(other_end) == result.end())
+        {
+            result[other_end] = std::vector<Edge>();
+        }
+        result[other_end].emplace_back(other_end, closest_point_local);
         smallest_distance.erase(closest_point); //Remove it so we don't check for these points again.
         smallest_distance_to.erase(closest_point);
 
