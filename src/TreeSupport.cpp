@@ -2,13 +2,14 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/intpoint.h" //To normalize vectors.
-#include "utils/math.h" //For round_up_divide.
-#include "utils/MinimumSpanningTree.h" //For the 
+#include "utils/math.h" //For round_up_divide and PI.
+#include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygonUtils.h" //For moveInside.
 
 #include "TreeSupport.h"
 
 #define SQRT_2 1.4142135623730950488 //Square root of 2.
+#define CIRCLE_RESOLUTION 10 //The number of vertices in each circle.
 
 namespace cura
 {
@@ -39,7 +40,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
     std::vector<Polygons> model_collision;
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance") + (storage.getSettingInMicrons("support_tree_branch_diameter") >> 1);
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance") + branch_radius;
     constexpr bool include_helper_parts = false;
     model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
@@ -81,27 +83,32 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
     //TODO: Do a second pass of dropping down but with leftover edges removed.
 
-    //Placeholder to test with that generates a simple diamond at each contact point (without generating any trees yet).
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
-        for (Point point : contact_points[layer_nr])
+        Polygons support_layer;
+
+        for (const Point point : contact_points[layer_nr])
+        {
+            Polygon circle;
+            for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
+            {
+                const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
+                circle.emplace_back(cos(angle) * branch_radius + point.X, sin(angle) * branch_radius + point.Y);
+            }
+            support_layer.add(circle);
+        }
+        support_layer = support_layer.unionPolygons();
+        for (PolygonRef part : support_layer) //Convert every part into a PolygonsPart for the support.
         {
             PolygonsPart outline;
-            Polygon diamond;
-            diamond.add(point + Point(0, 1000));
-            diamond.add(point + Point(-1000, 0));
-            diamond.add(point + Point(0, -1000));
-            diamond.add(point + Point(1000, 0));
-            outline.add(diamond);
+            outline.add(part);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, 350);
         }
-        if (!contact_points[layer_nr].empty())
+        if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty())
         {
             storage.support.layer_nr_max_filled_layer = layer_nr;
         }
     }
-
-    //TODO: Apply some diameter to the tree branches.
     
     storage.support.generated = true;
 }
