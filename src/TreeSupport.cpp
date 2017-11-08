@@ -39,18 +39,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
     std::vector<Polygons> model_collision;
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance"); //TODO: Add branch thickness.
     constexpr bool include_helper_parts = false;
-    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts));
+    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
     for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr ++)
     {
         //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
         model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
-        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts)); //Add current layer's collision to that.
+        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance)); //Add current layer's collision to that.
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance"); //TODO: Add branch thickness.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -66,12 +66,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 }
                 Point motion = normal(direction, maximum_move_distance);
                 Point next_layer_vertex = vertex + motion;
-                PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, xy_distance, maximum_move_distance); //Avoid collision.
+                PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance); //Avoid collision.
                 contact_points[layer_nr - 1].insert(next_layer_vertex);
             }
             else //Not a leaf or just a single vertex.
             {
-                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, xy_distance, maximum_move_distance); //Avoid collision.
+                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex); //Just drop the leaves directly down.
                 //TODO: Avoid collisions.
             }
