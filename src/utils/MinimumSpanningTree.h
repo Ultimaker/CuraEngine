@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "intpoint.h"
 
@@ -53,7 +54,7 @@ public:
     /*!
      * \brief Constructs a minimum spanning tree that spans all given vertices.
      */
-    MinimumSpanningTree(std::vector<Point> vertices);
+    MinimumSpanningTree(std::unordered_set<Point> vertices);
 
     /*!
      * \brief Gets the nodes that are adjacent to the specified node.
@@ -83,7 +84,7 @@ private:
      * \param vertices The vertices to span.
      * \return An adjacency graph with for each point one or more edges.
      */
-    const std::unordered_map<Point, std::vector<Edge>> prim(std::vector<Point> vertices) const;
+    const std::unordered_map<Point, std::vector<Edge>> prim(std::unordered_set<Point> vertices) const;
 };
 
 }

@@ -1,8 +1,6 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <unordered_set>
-
 #include "utils/intpoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide.
 #include "utils/MinimumSpanningTree.h" //For the 
@@ -21,7 +19,7 @@ TreeSupport::TreeSupport()
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    std::vector<std::vector<Point>> contact_points;
+    std::vector<std::unordered_set<Point>> contact_points;
     contact_points.reserve(storage.support.supportLayers.size());
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
     {
@@ -54,11 +52,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     continue;
                 }
                 Point motion = normal(direction, maximum_move_distance);
-                contact_points[layer_nr - 1].push_back(vertex + motion);
+                contact_points[layer_nr - 1].insert(vertex + motion);
             }
             else //Not a leaf or just a single vertex.
             {
-                contact_points[layer_nr - 1].push_back(vertex); //Just drop the leaves directly down.
+                contact_points[layer_nr - 1].insert(vertex); //Just drop the leaves directly down.
                 //TODO: Avoid collisions.
             }
         }
@@ -93,7 +91,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::vector<Point>>& contact_points)
+void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points)
 {
     const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
@@ -125,7 +123,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     constexpr bool border_is_inside = true;
                     if (overhang_part.inside(candidate, border_is_inside))
                     {
-                        contact_points[layer_nr].push_back(candidate);
+                        contact_points[layer_nr].insert(candidate);
                         added = true;
                     }
                 }
@@ -134,7 +132,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             {
                 Point candidate = bounding_box.getMiddle();
                 PolygonUtils::moveInside(overhang_part, candidate);
-                contact_points[layer_nr].push_back(candidate);
+                contact_points[layer_nr].insert(candidate);
             }
         }
     }

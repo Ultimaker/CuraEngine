@@ -4,6 +4,8 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include <unordered_set>
+
 #include "sliceDataStorage.h"
 
 namespace cura
@@ -39,7 +41,7 @@ private:
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::vector<Point>>& contact_points);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points);
 };
 
 }

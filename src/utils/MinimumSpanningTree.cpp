@@ -6,7 +6,7 @@
 namespace cura
 {
 
-MinimumSpanningTree::MinimumSpanningTree(std::vector<Point> vertices) : adjacency_graph(prim(vertices))
+MinimumSpanningTree::MinimumSpanningTree(std::unordered_set<Point> vertices) : adjacency_graph(prim(vertices))
 {
     //Just copy over the fields.
 }
@@ -21,7 +21,7 @@ int MinimumSpanningTree::Edge::length() const
     return vSize2(start - end);
 }
 
-const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumSpanningTree::prim(std::vector<Point> vertices) const
+const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const
 {
     std::unordered_map<Point, std::vector<Edge>> result;
     if (vertices.empty())
@@ -29,32 +29,37 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
         return result; //No vertices, so we can't create edges either.
     }
     result.reserve(vertices.size());
+    std::vector<Point> vertices_list;
+    for (Point vertex : vertices)
+    {
+        vertices_list.push_back(vertex);
+    }
 
-    Point first_point = vertices[0];
+    Point first_point = vertices_list[0];
     result[first_point] = std::vector<MinimumSpanningTree::Edge>(); //Start with one vertex in the tree.
 
-    if (vertices.size() == 1)
+    if (vertices_list.size() == 1)
     {
         return result; //If there's only one vertex, we can't go creating any edges.
     }
 
     std::unordered_map<Point*, coord_t> smallest_distance; //The shortest distance to the current tree.
-    smallest_distance.reserve(vertices.size());
+    smallest_distance.reserve(vertices_list.size());
     std::unordered_map<Point*, Point*> smallest_distance_to; //Which point the shortest distance goes towards.
-    smallest_distance_to.reserve(vertices.size());
-    for (size_t vertex_index = 0; vertex_index < vertices.size(); vertex_index++)
+    smallest_distance_to.reserve(vertices_list.size());
+    for (size_t vertex_index = 0; vertex_index < vertices_list.size(); vertex_index++)
     {
-        if (vertices[vertex_index] == first_point)
+        if (vertices_list[vertex_index] == first_point)
         {
             continue;
         }
-        smallest_distance[&vertices[vertex_index]] = vSize2(vertices[vertex_index] - first_point);
-        smallest_distance_to[&vertices[vertex_index]] = &vertices[0];
+        smallest_distance[&vertices_list[vertex_index]] = vSize2(vertices_list[vertex_index] - first_point);
+        smallest_distance_to[&vertices_list[vertex_index]] = &vertices_list[0];
     }
 
-    while(result.size() < vertices.size()) //All of the vertices need to be in the tree at the end.
+    while(result.size() < vertices_list.size()) //All of the vertices need to be in the tree at the end.
     {
-        //Choose the closest vertex to connect to.
+        //Choose the closest vertex to connect to that is not yet in the tree.
         //This search is O(V) right now, which can be made down to O(log(V)). This reduces the overall time complexity from O(V*V) to O(V*log(E)).
         //However that requires an implementation of a heap that supports the decreaseKey operation, which is not in the std library.
         //TODO: Implement this?
