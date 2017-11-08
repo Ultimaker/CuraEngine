@@ -135,8 +135,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
+                                    mesh.getSettingBoolean("meshfix_keep_open_polygons"),
+                                    mesh.getSettingBoolean("meshfix_extensive_stitching"),
+                                    use_variable_layer_heights, layer_thicknesses);
+
         slicerList.push_back(slicer);
+
         /*
         for(SlicerLayer& layer : slicer->layers)
         {
@@ -145,6 +150,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
+
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
