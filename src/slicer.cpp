@@ -794,7 +794,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 }
 
 
-Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching,
+               bool use_variable_layer_heights, int thicknesses[])
 : mesh(mesh)
 {
     SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
@@ -806,14 +807,39 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     layers.resize(slice_layer_count);
 
     int initial = initial_layer_thickness - thickness; // slice height of initial slice layer
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
+
+    // use the first variable layer height when slicing in variable mode
+    if (use_variable_layer_heights)
     {
-        initial += thickness / 2;
+        initial = initial_layer_thickness - thicknesses[0];
     }
 
-    for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    // compensate first layer thickness depending on slicing mode
+    if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
-        layers[layer_nr].z = initial + thickness * layer_nr;
+        if (use_variable_layer_heights) {
+            initial += thicknesses[0] / 2;
+        }
+        else
+        {
+            initial += thickness / 2;
+        }
+    }
+
+    // define all layer z positions depending on slicing mode
+    if (use_variable_layer_heights)
+    {
+        for (int32_t layer_nr = 0; layer_nr < sizeof(thicknesses); layer_nr++)
+        {
+            layers[layer_nr].z = initial + thicknesses[layer_nr] * layer_nr;
+        }
+    }
+    else
+    {
+        for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+        {
+            layers[layer_nr].z = initial + thickness * layer_nr;
+        }
     }
 
     for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
