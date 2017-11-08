@@ -57,24 +57,24 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         for (Point vertex : contact_points[layer_nr])
         {
             std::vector<Point> neighbours = mst.adjacentNodes(vertex);
-            if (neighbours.size() == 1) //This is a leaf.
-            {
-                Point direction = neighbours[0] - vertex;
-                if (vSize2(direction) < maximum_move_distance * maximum_move_distance) //Smaller than one step. Leave this one out.
-                {
-                    continue;
-                }
-                Point motion = normal(direction, maximum_move_distance);
-                Point next_layer_vertex = vertex + motion;
-                PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance); //Avoid collision.
-                contact_points[layer_nr - 1].insert(next_layer_vertex);
-            }
-            else //Not a leaf or just a single vertex.
+            if (neighbours.empty()) //Just a single vertex.
             {
                 PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance); //Avoid collision.
-                contact_points[layer_nr - 1].insert(vertex); //Just drop the leaves directly down.
-                //TODO: Avoid collisions.
+                contact_points[layer_nr - 1].insert(vertex);
             }
+            Point sum_direction(0, 0);
+            for (Point neighbour : neighbours)
+            {
+                sum_direction += neighbour - vertex;
+            }
+            if (neighbours.size() == 1 && vSize2(sum_direction) < maximum_move_distance * maximum_move_distance) //Smaller than one step. Leave this one out.
+            {
+                continue;
+            }
+            Point motion = normal(sum_direction, maximum_move_distance);
+            Point next_layer_vertex = vertex + motion;
+            PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance); //Avoid collision.
+            contact_points[layer_nr - 1].insert(next_layer_vertex);
         }
     }
 
