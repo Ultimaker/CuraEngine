@@ -50,6 +50,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance"); //TODO: Add branch thickness.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -65,13 +66,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 }
                 Point motion = normal(direction, maximum_move_distance);
                 Point next_layer_vertex = vertex + motion;
-                constexpr coord_t xy_distance = 1000;
                 PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, xy_distance, maximum_move_distance); //Avoid collision.
                 contact_points[layer_nr - 1].insert(next_layer_vertex);
             }
             else //Not a leaf or just a single vertex.
             {
-                constexpr coord_t xy_distance = 1000;
                 PolygonUtils::moveOutside(model_collision[layer_nr], vertex, xy_distance, maximum_move_distance); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex); //Just drop the leaves directly down.
                 //TODO: Avoid collisions.
