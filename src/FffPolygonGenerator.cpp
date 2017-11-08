@@ -84,8 +84,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     int initial_layer_thickness = 0;
 
     // variable layers
-    int use_variable_layer_heights = getSettingBoolean("use_variable_layer_heights");
-    int layer_thicknesses[] = []
+    bool use_variable_layer_heights = getSettingBoolean("use_variable_layer_heights");
+    int layer_thicknesses[] = {};
 
     if (use_variable_layer_heights)
     {
@@ -95,6 +95,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         // Get the amount of layers
         // TODO: actually calculate this and don't assume the input is correct
         slice_layer_count = sizeof(layer_thicknesses);
+
+        // Don't slice when there are no layers
+        if (slice_layer_count <= 0)
+        {
+            return true;
+        }
     }
     else
     {
