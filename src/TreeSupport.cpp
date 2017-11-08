@@ -83,6 +83,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
     //TODO: Do a second pass of dropping down but with leftover edges removed.
 
+    const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
@@ -102,7 +103,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             PolygonsPart outline;
             outline.add(part);
-            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, 350);
+            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, 350, wall_count);
         }
         if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty())
         {
