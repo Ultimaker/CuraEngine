@@ -33,11 +33,22 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         generateContactPoints(mesh, contact_points);
     }
-
-    //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
+    
+    //Generate areas that have to be avoided.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
+    std::vector<Polygons> model_collision;
+    constexpr bool include_helper_parts = false;
+    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts));
+    //TODO: If allowing support to rest on model, these need to be just the model outlines.
+    for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr ++)
+    {
+        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance));
+        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts));
+    }
+
+    //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -52,17 +63,21 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     continue;
                 }
                 Point motion = normal(direction, maximum_move_distance);
-                contact_points[layer_nr - 1].insert(vertex + motion);
+                Point next_layer_vertex = vertex + motion;
+                constexpr coord_t xy_distance = 1000;
+                PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, xy_distance, maximum_move_distance); //Avoid collision.
+                contact_points[layer_nr - 1].insert(next_layer_vertex);
             }
             else //Not a leaf or just a single vertex.
             {
+                constexpr coord_t xy_distance = 1000;
+                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, xy_distance, maximum_move_distance); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex); //Just drop the leaves directly down.
                 //TODO: Avoid collisions.
             }
         }
     }
 
-    //TODO: Create a pyramid out of the mesh and move points away from that.
     //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
     //TODO: Do a second pass of dropping down but with leftover edges removed.
 
