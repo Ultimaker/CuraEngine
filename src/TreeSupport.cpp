@@ -39,7 +39,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
     std::vector<Polygons> model_collision;
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance"); //TODO: Add branch thickness.
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance") + (storage.getSettingInMicrons("support_tree_branch_diameter") >> 1);
     constexpr bool include_helper_parts = false;
     model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
@@ -130,7 +130,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             AABB bounding_box(outside_polygons);
             bounding_box.round(point_spread);
             bool added = false; //Did we add a point this way?
-            for (coord_t x = bounding_box.min.X; x <= bounding_box.max.X; x += point_spread << 1)
+            for (coord_t x = bounding_box.min.X; x <= bounding_box.max.X; x += point_spread >> 1)
             {
                 for (coord_t y = bounding_box.min.Y + (point_spread << 1) * (x % 2); y <= bounding_box.max.Y; y += point_spread) //This produces points in a 45-degree rotated grid.
                 {
