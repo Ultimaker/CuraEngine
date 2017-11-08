@@ -44,8 +44,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
     for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr ++)
     {
-        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance));
-        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts));
+        //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
+        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
+        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts)); //Add current layer's collision to that.
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
