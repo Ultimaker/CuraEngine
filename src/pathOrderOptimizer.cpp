@@ -42,6 +42,7 @@ void PathOrderOptimizer::optimize()
     {
         case EZSeamType::USER_SPECIFIED:
             prev_point = config.pos;
+            break;
         case EZSeamType::RANDOM: //TODO: Starting position of the first polygon isn't random.
         case EZSeamType::SHARPEST_CORNER:
         case EZSeamType::SHORTEST:

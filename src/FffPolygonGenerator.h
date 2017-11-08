@@ -122,6 +122,16 @@ private:
     void processDerivedWallsSkinInfill(SliceMeshStorage& mesh);
     
     /*!
+     * Checks whether a layer is empty or not
+     * 
+     * \param storage Input and Ouput parameter: stores all layers
+     * \param layer_idx Index of the layer to check
+     * 
+     * \return Whether or not the layer is empty
+     */
+    bool isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx);
+    
+    /*!
      * Remove all bottom layers which are empty.
      * 
      * \warning Changes \p total_layers
