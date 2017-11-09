@@ -210,6 +210,14 @@ INLINE Point turn90CCW(const Point& p0)
 {
     return Point(-p0.Y, p0.X);
 }
+
+INLINE Point rotate(const Point& p0, double angle)
+{
+    const double cos_component = std::cos(angle);
+    const double sin_component = std::sin(angle);
+    return Point(cos_component * p0.X - sin_component * p0.Y, sin_component * p0.X + cos_component * p0.Y);
+}
+
 INLINE int64_t dot(const Point& p0, const Point& p1)
 {
     return p0.X * p1.X + p0.Y * p1.Y;

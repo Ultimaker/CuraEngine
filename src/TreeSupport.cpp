@@ -137,21 +137,32 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
         }
 
         //First generate a lot of points in a grid pattern.
-        Polygons outside_polygons = overhang.getOutsidePolygons();
-        AABB bounding_box(outside_polygons); //To know how far we should generate points.
-        coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
-        point_spread *= SQRT_2; //We'll rotate these points 45 degrees, so this is the point distance when axis-aligned.
-        bounding_box.round(point_spread);
-        for (PolygonRef overhang_part : outside_polygons)
+        const Polygons outside_polygons = overhang.getOutsidePolygons();
+        const AABB bounding_box(outside_polygons); //To know how far we should generate points.
+        const coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
+
+        //We want to create the grid pattern at an angle, so compute the bounding box required to cover that angle.
+        constexpr double rotate_angle = 22.0 / 180.0 * M_PI; //Rotation of 22 degrees provides better support of diagonal lines.
+        const Point bounding_box_size = bounding_box.max - bounding_box.min;
+        AABB rotated_bounding_box;
+        rotated_bounding_box.include(Point(0, 0));
+        rotated_bounding_box.include(rotate(bounding_box_size, -rotate_angle));
+        rotated_bounding_box.include(rotate(Point(0, bounding_box_size.Y), -rotate_angle));
+        rotated_bounding_box.include(rotate(Point(bounding_box_size.X, 0), -rotate_angle));
+        AABB unrotated_bounding_box;
+        unrotated_bounding_box.include(rotate(rotated_bounding_box.min, rotate_angle));
+        unrotated_bounding_box.include(rotate(rotated_bounding_box.max, rotate_angle));
+        unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.min.X, rotated_bounding_box.max.Y), rotate_angle));
+        unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.max.X, rotated_bounding_box.min.Y), rotate_angle));
+
+        for (const ConstPolygonRef overhang_part : outside_polygons)
         {
-            AABB bounding_box(outside_polygons);
-            bounding_box.round(point_spread);
             bool added = false; //Did we add a point this way?
-            for (coord_t x = bounding_box.min.X; x <= bounding_box.max.X; x += point_spread >> 1)
+            for (coord_t x = unrotated_bounding_box.min.X; x <= unrotated_bounding_box.max.X; x += point_spread)
             {
-                for (coord_t y = bounding_box.min.Y + (point_spread << 1) * (x % 2); y <= bounding_box.max.Y; y += point_spread) //This produces points in a 45-degree rotated grid.
+                for (coord_t y = unrotated_bounding_box.min.Y; y <= unrotated_bounding_box.max.Y; y += point_spread)
                 {
-                    Point candidate(x, y);
+                    Point candidate = rotate(Point(x, y), rotate_angle) + bounding_box.min;
                     constexpr bool border_is_inside = true;
                     if (overhang_part.inside(candidate, border_is_inside))
                     {
