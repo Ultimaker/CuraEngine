@@ -77,30 +77,71 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
-    int initial_layer_thickness = getSettingInMicrons("layer_height_0");
-    if(initial_layer_thickness <= 0) //Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+
+    // regular layers
+    int slice_layer_count = 0;
+    int layer_thickness = 0;
+    int initial_layer_thickness = 0;
+
+    // variable layers
+    bool use_variable_layer_heights = getSettingBoolean("use_variable_layer_heights");
+    int layer_thicknesses[] = {};
+
+    if (use_variable_layer_heights)
     {
-        logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
-        return false;
+        // Get a list of variable layer heights
+        layer_thicknesses = getSettingInMicronsArray("variable_layer_heights");
+
+        // Get the amount of layers
+        // TODO: actually calculate this and don't assume the input is correct
+        slice_layer_count = sizeof(layer_thicknesses);
+
+        // Don't slice when there are no layers
+        if (slice_layer_count <= 0)
+        {
+            return true;
+        }
     }
-    int layer_thickness = getSettingInMicrons("layer_height");
-    if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
+    else
     {
-        logError("Layer height %i is disallowed.\n", layer_thickness);
-        return false;
-    }
-    int slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
-    if (slice_layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
-    {
-        return true; //This is NOT an error state!
+        initial_layer_thickness = getSettingInMicrons("layer_height_0");
+
+        // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+        if (initial_layer_thickness <= 0)
+        {
+            logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
+            return false;
+        }
+
+        layer_thickness = getSettingInMicrons("layer_height");
+
+        // Layer height of 0 is not allowed. Negative layer height is nonsense.
+        if(layer_thickness <= 0)
+        {
+            logError("Layer height %i is disallowed.\n", layer_thickness);
+            return false;
+        }
+
+        slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
+
+        // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+        if (slice_layer_count <= 0)
+        {
+            return true; //This is NOT an error state!
+        }
     }
 
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
+                                    mesh.getSettingBoolean("meshfix_keep_open_polygons"),
+                                    mesh.getSettingBoolean("meshfix_extensive_stitching"),
+                                    use_variable_layer_heights, layer_thicknesses);
+
         slicerList.push_back(slicer);
+
         /*
         for(SlicerLayer& layer : slicer->layers)
         {
@@ -109,6 +150,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
+
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
