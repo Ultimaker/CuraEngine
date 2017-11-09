@@ -85,6 +85,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
+    Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
+    for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
+    {
+        const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
+        branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
+    }
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
@@ -92,10 +98,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         for (const Point point : contact_points[layer_nr])
         {
             Polygon circle;
-            for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
+            for (Point corner : branch_circle)
             {
-                const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-                circle.emplace_back(cos(angle) * branch_radius + point.X, sin(angle) * branch_radius + point.Y);
+                circle.add(point + corner);
             }
             support_layer.add(circle);
         }
