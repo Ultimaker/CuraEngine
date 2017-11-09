@@ -93,13 +93,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
+    const coord_t branch_middle_radius = branch_radius - (line_width >> 1); //Radius of the middle of the path (so this is essentially an inset by half the line width).
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
     {
         const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-        branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
+        branch_circle.emplace_back(cos(angle) * branch_middle_radius, sin(angle) * branch_middle_radius);
     }
-    const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
+    const coord_t circle_side_length = 2 * branch_middle_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
