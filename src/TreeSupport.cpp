@@ -108,13 +108,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         branch_circle.emplace_back(cos(angle) * branch_middle_radius, sin(angle) * branch_middle_radius);
     }
     const coord_t circle_side_length = 2 * branch_middle_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
+    const size_t tip_layers = branch_middle_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
 
         for (const Point point : contact_points[layer_nr])
         {
-            double scale = (double)contact_nodes[layer_nr][point].distance_to_top / 10;
+            double scale = (double)contact_nodes[layer_nr][point].distance_to_top / tip_layers;
             scale = std::min(1.0, scale);
             Polygon circle;
             for (Point corner : branch_circle)
