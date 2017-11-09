@@ -41,7 +41,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t maximum_move_distance = tan(angle) * layer_height;
     std::vector<Polygons> model_collision;
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance") + branch_radius;
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     constexpr bool include_helper_parts = false;
     model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
@@ -61,7 +61,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             std::vector<Point> neighbours = mst.adjacentNodes(vertex);
             if (neighbours.empty()) //Just a single vertex.
             {
-                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance); //Avoid collision.
+                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex);
             }
             Point sum_direction(0, 0);
@@ -86,7 +86,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             {
                 next_layer_vertex = vertex + motion;
             }
-            PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance); //Avoid collision.
+            PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
             contact_points[layer_nr - 1].insert(next_layer_vertex);
         }
     }
