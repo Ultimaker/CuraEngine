@@ -848,25 +848,50 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
         const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
         const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
+
         Point3 p0 = v0.p;
         Point3 p1 = v1.p;
         Point3 p2 = v2.p;
+
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
+
         if (p1.z < minZ) minZ = p1.z;
         if (p2.z < minZ) minZ = p2.z;
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
+
         int32_t layer_max = (maxZ - initial) / thickness;
-        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
+        int32_t first_layer_nr = (minZ - initial) / thickness;
+
+        // use other method of getting max amount of layers when using variable layer mode
+        if (use_variable_layer_heights)
         {
-            int32_t z = layer_nr * thickness + initial;
+            layer_max = sizeof(thicknesses);
+            first_layer_nr = 0;
+        }
+
+        int32_t z = 0;
+
+        for (int32_t layer_nr = first_layer_nr; layer_nr <= layer_max; layer_nr++)
+        {
+            // calculate absolute z height depending on slicing mode
+            if (use_variable_layer_heights)
+            {
+                z += thicknesses[layer_nr];
+            }
+            else
+            {
+                z = layer_nr * thickness + initial;
+            }
+
             if (z < minZ) continue;
             if (layer_nr < 0) continue;
 
             SlicerSegment s;
             s.endVertex = nullptr;
             int end_edge_idx = -1;
+
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
                 s = project2D(p0, p2, p1, z);
@@ -880,9 +905,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
             {
                 s = project2D(p0, p1, p2, z);
                 end_edge_idx = 2;
-
             }
-
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
                 s = project2D(p1, p0, p2, z);
@@ -896,9 +919,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
             {
                 s = project2D(p1, p2, p0, z);
                 end_edge_idx = 0;
-
             }
-
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
                 s = project2D(p2, p1, p0, z);
@@ -919,6 +940,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
                 //  on the slice would create two segments
                 continue;
             }
+
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
             s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
@@ -926,6 +948,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
             layers[layer_nr].segments.push_back(s);
         }
     }
+
     log("slice of mesh took %.3f seconds\n",slice_timer.restart());
 
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
