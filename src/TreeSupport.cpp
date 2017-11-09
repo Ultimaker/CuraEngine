@@ -91,6 +91,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
         branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
+    const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
@@ -105,6 +106,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             support_layer.add(circle);
         }
         support_layer = support_layer.unionPolygons();
+        //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
+        support_layer.simplify(circle_side_length, line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
         for (PolygonRef part : support_layer) //Convert every part into a PolygonsPart for the support.
         {
             PolygonsPart outline;
