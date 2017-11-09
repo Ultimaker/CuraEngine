@@ -21,10 +21,13 @@ TreeSupport::TreeSupport()
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
     std::vector<std::unordered_set<Point>> contact_points;
+    std::vector<std::unordered_map<Point, Node>> contact_nodes;
     contact_points.reserve(storage.support.supportLayers.size());
+    contact_nodes.reserve(storage.support.supportLayers.size());
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
     {
         contact_points.emplace_back();
+        contact_nodes.emplace_back();
     }
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -32,7 +35,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             return;
         }
-        generateContactPoints(mesh, contact_points);
+        generateContactPoints(mesh, contact_points, contact_nodes);
     }
     
     //Generate areas that have to be avoided.
@@ -58,11 +61,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         MinimumSpanningTree mst(contact_points[layer_nr]);
         for (Point vertex : contact_points[layer_nr])
         {
+            const Node node = contact_nodes[layer_nr][vertex];
             std::vector<Point> neighbours = mst.adjacentNodes(vertex);
             if (neighbours.empty()) //Just a single vertex.
             {
                 PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex);
+                contact_nodes[layer_nr - 1][vertex].distance_to_top = node.distance_to_top + 1;
+                continue;
             }
             Point sum_direction(0, 0);
             for (Point neighbour : neighbours)
@@ -88,6 +94,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             }
             PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
             contact_points[layer_nr - 1].insert(next_layer_vertex);
+            contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
         }
     }
 
@@ -107,10 +114,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         for (const Point point : contact_points[layer_nr])
         {
+            double scale = (double)contact_nodes[layer_nr][point].distance_to_top / 10;
+            scale = std::min(1.0, scale);
             Polygon circle;
             for (Point corner : branch_circle)
             {
-                circle.add(point + corner);
+                circle.add(point + corner * scale);
             }
             support_layer.add(circle);
         }
@@ -132,7 +141,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points)
+void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points, std::vector<std::unordered_map<Point, TreeSupport::Node>>& contact_nodes)
 {
     const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
@@ -176,6 +185,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     if (overhang_part.inside(candidate, border_is_inside))
                     {
                         contact_points[layer_nr].insert(candidate);
+                        contact_nodes[layer_nr][candidate] = Node();
                         added = true;
                     }
                 }
@@ -185,6 +195,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 Point candidate = bounding_box.getMiddle();
                 PolygonUtils::moveInside(overhang_part, candidate);
                 contact_points[layer_nr].insert(candidate);
+                contact_nodes[layer_nr][candidate] = Node();
             }
         }
     }

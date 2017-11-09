@@ -33,15 +33,34 @@ public:
 
 private:
     /*!
+     * \brief Represents the metadata of a node in the tree.
+     */
+    struct Node
+    {
+        Node()
+        {
+            distance_to_top = 0;
+        }
+
+        /*!
+         * \brief The number of layers to go to the top of this branch.
+         */
+        size_t distance_to_top;
+    };
+
+    /*!
      * \brief Creates points where support contacts the model.
      *
      * A set of points is created for each layer.
      * \param mesh The mesh to get the overhang areas to support of.
-     * \param contact_points[out] A vector to store the contact points in.
+     * \param contact_points[out] A vector of sets to store the contact points
+     * in.
+     * \param contact_nodes[out] A vector of mappings from contact points to
+     * their tree nodes.
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points, std::vector<std::unordered_map<Point, Node>>& contact_nodes);
 };
 
 }
