@@ -69,19 +69,27 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             {
                 sum_direction += neighbour - vertex;
             }
-            if (neighbours.size() == 1 && vSize2(sum_direction) < maximum_move_distance * maximum_move_distance) //Smaller than one step. Leave this one out.
-            {
-                continue;
-            }
             Point motion = normal(sum_direction, maximum_move_distance);
-            Point next_layer_vertex = vertex + motion;
+            Point next_layer_vertex;
+            if (neighbours.size() == 1 && vSize2(sum_direction) < maximum_move_distance * maximum_move_distance)
+            {
+                if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
+                {
+                    next_layer_vertex = vertex + motion / 2;
+                }
+                else //This is a leaf that's about to collapse. Leave it out on the next layer.
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                next_layer_vertex = vertex + motion;
+            }
             PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance); //Avoid collision.
             contact_points[layer_nr - 1].insert(next_layer_vertex);
         }
     }
-
-    //TODO: When reaching the bottom, cut away all edges of the MST that are still not contracted.
-    //TODO: Do a second pass of dropping down but with leftover edges removed.
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
