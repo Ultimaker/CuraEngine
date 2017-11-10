@@ -68,6 +68,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex);
                 contact_nodes[layer_nr - 1][vertex].distance_to_top = node.distance_to_top + 1;
+                contact_nodes[layer_nr - 1][vertex].skin_direction = node.skin_direction;
                 continue;
             }
             Point sum_direction(0, 0);
@@ -95,6 +96,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
+            contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;
         }
     }
 
@@ -115,12 +117,23 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         for (const Point point : contact_points[layer_nr])
         {
-            double scale = (double)contact_nodes[layer_nr][point].distance_to_top / tip_layers;
-            scale = std::min(1.0, scale);
             Polygon circle;
             for (Point corner : branch_circle)
             {
-                circle.add(point + corner * scale);
+                const Node& node = contact_nodes[layer_nr][point];
+                if (node.distance_to_top < tip_layers) //We're in the tip.
+                {
+                    const double scale = (double)node.distance_to_top / tip_layers;
+                    if (node.skin_direction)
+                    {
+                        corner = Point(corner.X * (0.5 + scale / 2) + corner.Y * (0.5 - scale / 2), corner.X * (0.5 - scale / 2) + corner.Y * (0.5 + scale / 2));
+                    }
+                    else
+                    {
+                        corner = Point(corner.X * (0.5 + scale / 2) - corner.Y * (0.5 - scale / 2), corner.X * (-0.5 + scale / 2) + corner.Y * (0.5 + scale / 2));
+                    }
+                }
+                circle.add(point + corner);
             }
             support_layer.add(circle);
         }
@@ -187,6 +200,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     {
                         contact_points[layer_nr].insert(candidate);
                         contact_nodes[layer_nr][candidate] = Node();
+                        contact_nodes[layer_nr][candidate].skin_direction = layer_nr % 2;
                         added = true;
                     }
                 }
@@ -197,6 +211,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 PolygonUtils::moveInside(overhang_part, candidate);
                 contact_points[layer_nr].insert(candidate);
                 contact_nodes[layer_nr][candidate] = Node();
+                contact_nodes[layer_nr][candidate].skin_direction = layer_nr % 2;
             }
         }
     }

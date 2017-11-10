@@ -40,12 +40,21 @@ private:
         Node()
         {
             distance_to_top = 0;
+            skin_direction = false;
         }
 
         /*!
          * \brief The number of layers to go to the top of this branch.
          */
         size_t distance_to_top;
+
+        /*!
+         * \brief The direction of the skin lines above the tip of the branch.
+         *
+         * This determines in which direction we should reduce the width of the
+         * branch.
+         */
+        bool skin_direction;
     };
 
     /*!
