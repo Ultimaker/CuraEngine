@@ -488,7 +488,7 @@ public:
     const Mesh* mesh = nullptr; //!< The sliced mesh
 
     Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keepNoneClosed,
-           bool extensiveStitching, bool use_variable_layer_heights, int thicknesses[]);
+           bool extensiveStitching, bool use_variable_layer_heights, std::vector<int> *thicknesses);
 
     /*!
      * Linear interpolation

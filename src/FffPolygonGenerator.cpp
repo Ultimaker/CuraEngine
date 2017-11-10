@@ -80,55 +80,45 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     // regular layers
     int slice_layer_count = 0;
-    int layer_thickness = 0;
-    int initial_layer_thickness = 0;
+    int layer_thickness = getSettingInMicrons("layer_height");
+    int initial_layer_thickness = getSettingInMicrons("layer_height_0");
+
+    // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+    if (initial_layer_thickness <= 0)
+    {
+        logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
+        return false;
+    }
+
+    // Layer height of 0 is not allowed. Negative layer height is nonsense.
+    if(layer_thickness <= 0)
+    {
+        logError("Layer height %i is disallowed.\n", layer_thickness);
+        return false;
+    }
 
     // variable layers
-    bool use_variable_layer_heights = getSettingBoolean("use_variable_layer_heights");
-    int layer_thicknesses[] = {};
+    std::vector<int> layer_thicknesses;
+    bool use_variable_layer_heights = getSettingBoolean("layer_height_use_variable");
 
     if (use_variable_layer_heights)
     {
         // Get a list of variable layer heights
-        layer_thicknesses = getSettingInMicronsArray("variable_layer_heights");
+        layer_thicknesses = getSettingAsIntegerList("layer_height_variable_heights");
 
         // Get the amount of layers
         // TODO: actually calculate this and don't assume the input is correct
-        slice_layer_count = sizeof(layer_thicknesses);
-
-        // Don't slice when there are no layers
-        if (slice_layer_count <= 0)
-        {
-            return true;
-        }
+        slice_layer_count = layer_thicknesses.size();
     }
     else
     {
-        initial_layer_thickness = getSettingInMicrons("layer_height_0");
-
-        // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
-        if (initial_layer_thickness <= 0)
-        {
-            logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
-            return false;
-        }
-
-        layer_thickness = getSettingInMicrons("layer_height");
-
-        // Layer height of 0 is not allowed. Negative layer height is nonsense.
-        if(layer_thickness <= 0)
-        {
-            logError("Layer height %i is disallowed.\n", layer_thickness);
-            return false;
-        }
-
         slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
+    }
 
-        // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
-        if (slice_layer_count <= 0)
-        {
-            return true; //This is NOT an error state!
-        }
+    // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+    if (slice_layer_count <= 0)
+    {
+        return true; //This is NOT an error state!
     }
 
     std::vector<Slicer*> slicerList;
@@ -138,7 +128,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
                                     mesh.getSettingBoolean("meshfix_keep_open_polygons"),
                                     mesh.getSettingBoolean("meshfix_extensive_stitching"),
-                                    use_variable_layer_heights, layer_thicknesses);
+                                    use_variable_layer_heights, &layer_thicknesses);
 
         slicerList.push_back(slicer);
 
@@ -209,13 +199,25 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
+
+        int absolute_z = 0;
+
         //Add the raft offset to each layer.
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
-            meshStorage.layers[layer_nr].printZ =
-                getSettingInMicrons("layer_height_0")
-                + layer_nr * layer_thickness;
+
+            if (use_variable_layer_heights)
+            {
+                absolute_z += layer_thicknesses.at(layer_nr);
+            }
+            else
+            {
+                absolute_z = layer_nr * layer_thickness;
+            }
+
+            meshStorage.layers[layer_nr].printZ = getSettingInMicrons("layer_height_0") + absolute_z;
+
             if (has_raft)
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));

@@ -176,16 +176,6 @@ coord_t SettingsBaseVirtual::getSettingInMicrons(std::string key) const
     return getSettingInMillimeters(key) * 1000.0;
 }
 
-double SettingsBaseVirtual::getSettingsInMillimetersArray(std::string key) const
-{
-    // TODO
-}
-
-coord_t SettingsBaseVirtual::getSettingsInMicronsArray(std::string key) const
-{
-    // TODO
-}
-
 double SettingsBaseVirtual::getSettingInAngleDegrees(std::string key) const
 {
     const std::string& value = getSettingString(key);

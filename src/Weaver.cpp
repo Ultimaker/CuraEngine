@@ -18,6 +18,7 @@ void Weaver::weave(MeshGroup* meshgroup)
     int maxz = meshgroup->max().z;
 
     int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
+    std::vector<int> layer_thicknesses;
 
     std::cerr << "Layer count: " << layer_count << "\n";
 
@@ -25,7 +26,10 @@ void Weaver::weave(MeshGroup* meshgroup)
 
     for(Mesh& mesh : meshgroup->meshes)
     {
-        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count,
+                                                mesh.getSettingBoolean("meshfix_keep_open_polygons"),
+                                                mesh.getSettingBoolean("meshfix_extensive_stitching"),
+                                                false, &layer_thicknesses);
         slicerList.push_back(slicer);
     }
 

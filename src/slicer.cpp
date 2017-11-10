@@ -795,7 +795,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
 
 Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching,
-               bool use_variable_layer_heights, int thicknesses[])
+               bool use_variable_layer_heights, std::vector<int>* thicknesses)
 : mesh(mesh)
 {
     SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
@@ -804,21 +804,20 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
 
     TimeKeeper slice_timer;
 
-    layers.resize(slice_layer_count);
-
     int initial = initial_layer_thickness - thickness; // slice height of initial slice layer
 
     // use the first variable layer height when slicing in variable mode
     if (use_variable_layer_heights)
     {
-        initial = initial_layer_thickness - thicknesses[0];
+        initial = thicknesses->front();
     }
 
     // compensate first layer thickness depending on slicing mode
     if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
-        if (use_variable_layer_heights) {
-            initial += thicknesses[0] / 2;
+        if (use_variable_layer_heights)
+        {
+            initial += thicknesses->front() / 2;
         }
         else
         {
@@ -826,23 +825,27 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         }
     }
 
+    layers.resize(slice_layer_count);
+
+    // keep track of absolute z value for variable layer heights
+    int absolute_z = initial;
+
     // define all layer z positions depending on slicing mode
-    if (use_variable_layer_heights)
+    for (int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
-        for (int32_t layer_nr = 0; layer_nr < sizeof(thicknesses); layer_nr++)
+        if (use_variable_layer_heights)
         {
-            layers[layer_nr].z = initial + thicknesses[layer_nr] * layer_nr;
+            absolute_z += thicknesses->at(layer_nr);
         }
-    }
-    else
-    {
-        for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+        else
         {
-            layers[layer_nr].z = initial + thickness * layer_nr;
+            absolute_z += thickness;
         }
+
+        layers[layer_nr].z = absolute_z;
     }
 
-    for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
+    for (unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
     {
         const MeshFace& face = mesh->faces[mesh_idx];
         const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
@@ -861,29 +864,17 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
 
-        int32_t layer_max = (maxZ - initial) / thickness;
         int32_t first_layer_nr = (minZ - initial) / thickness;
 
         // use other method of getting max amount of layers when using variable layer mode
         if (use_variable_layer_heights)
         {
-            layer_max = sizeof(thicknesses);
             first_layer_nr = 0;
         }
 
-        int32_t z = 0;
-
-        for (int32_t layer_nr = first_layer_nr; layer_nr <= layer_max; layer_nr++)
+        for (int32_t layer_nr = first_layer_nr; layer_nr < layers.size(); layer_nr++)
         {
-            // calculate absolute z height depending on slicing mode
-            if (use_variable_layer_heights)
-            {
-                z += thicknesses[layer_nr];
-            }
-            else
-            {
-                z = layer_nr * thickness + initial;
-            }
+            int32_t z = layers.at(layer_nr).z;
 
             if (z < minZ) continue;
             if (layer_nr < 0) continue;
