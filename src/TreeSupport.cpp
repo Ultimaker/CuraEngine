@@ -200,7 +200,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     {
                         contact_points[layer_nr].insert(candidate);
                         contact_nodes[layer_nr][candidate] = Node();
-                        contact_nodes[layer_nr][candidate].skin_direction = layer_nr % 2;
+                        contact_nodes[layer_nr][candidate].skin_direction = (layer_nr + z_distance_top_layers) % 2;
                         added = true;
                     }
                 }
