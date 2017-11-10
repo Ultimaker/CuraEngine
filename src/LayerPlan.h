@@ -377,9 +377,9 @@ public:
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width) const
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate) const
     {
-        CommandSocket::sendLineTo(print_feature_type, to, line_width);
+        CommandSocket::sendLineTo(print_feature_type, to, line_width, line_thickness, line_feedrate);
     }
 
     /*!

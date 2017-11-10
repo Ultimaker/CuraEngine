@@ -59,17 +59,17 @@ public:
     /*! 
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
-    static void sendPolygons(cura::PrintFeatureType type, const cura::Polygons& polygons, int line_width);
+    static void sendPolygons(cura::PrintFeatureType type, const cura::Polygons& polygons, int line_width, int line_thickness, int line_feedrate);
 
     /*! 
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
-    static void sendPolygon(cura::PrintFeatureType type, ConstPolygonRef polygon, int line_width);
+    static void sendPolygon(cura::PrintFeatureType type, ConstPolygonRef polygon, int line_width, int line_thickness, int line_feedrate);
 
     /*!
      * Send a line to the front-end. This is used for the layerview in the GUI
      */
-    static void sendLineTo(cura::PrintFeatureType type, Point to, int line_width);
+    static void sendLineTo(cura::PrintFeatureType type, Point to, int line_width, int line_thickness, int line_feedrate);
 
     /*!
      * Set the current position of the path compiler to \p position. This is used for the layerview in the GUI
