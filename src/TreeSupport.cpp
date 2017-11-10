@@ -86,6 +86,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 }
                 else //This is a leaf that's about to collapse. Leave it out on the next layer.
                 {
+                    contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top = std::max(contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top, node.distance_to_top);
                     continue;
                 }
             }
