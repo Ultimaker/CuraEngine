@@ -664,6 +664,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
                 continue;
             }
             z = mesh.layers[layer_nr].printZ;
+            layer_thickness = mesh.layers[layer_nr].thickness;
             break;
         }
         if (layer_nr == 0)

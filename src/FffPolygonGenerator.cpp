@@ -218,6 +218,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
             meshStorage.layers[layer_nr].printZ = getSettingInMicrons("layer_height_0") + absolute_z;
 
+            if (use_variable_layer_heights)
+            {
+                meshStorage.layers[layer_nr].thickness = layer_thicknesses.at(layer_nr);
+            }
+            else
+            {
+                meshStorage.layers[layer_nr].thickness = layer_thickness;
+            }
+
             if (has_raft)
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
