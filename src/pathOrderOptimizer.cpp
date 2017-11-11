@@ -342,7 +342,8 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
-    const int move_inside_distance = 100; // how far to move points inside part boundary
+    const int move_inside_distance = 100; // how far to move points inside combing boundary
+    const int64_t max_move_inside_distance2 = 1000 * 1000; // (1mm) don't move points further than this when moving them inside the combing boundary
     const int non_trivial_move_penalty_factor = 10000; // if a travel move is not a single straight line, multiply the score by this factor
 
     if (just_point != 1)
@@ -358,7 +359,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, p0_inside, move_inside_distance);
+                PolygonUtils::moveInside(*combing_boundary, p0_inside, move_inside_distance, max_move_inside_distance2);
                 inside_points->emplace(p0, p0_inside);
             }
             Point prev_inside = prev_point;
@@ -369,7 +370,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance);
+                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance, max_move_inside_distance2);
                 inside_points->emplace(prev_point, prev_inside);
             }
             if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0_inside, prev_inside))
@@ -398,7 +399,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, p1_inside, move_inside_distance);
+                PolygonUtils::moveInside(*combing_boundary, p1_inside, move_inside_distance, max_move_inside_distance2);
                 inside_points->emplace(p1, p1_inside);
             }
             Point prev_inside = prev_point;
@@ -409,7 +410,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             }
             else
             {
-                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance);
+                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance, max_move_inside_distance2);
                 inside_points->emplace(prev_point, prev_inside);
             }
             if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1_inside, prev_inside))
