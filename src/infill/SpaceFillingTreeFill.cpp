@@ -31,7 +31,8 @@ void SpaceFillingTreeFill::generate(const Polygons& outlines, coord_t shift, boo
     {
         Polygons infill_pattern;
         infill_pattern.add(infill_poly);
-        result_polygons = infill_pattern.intersection(outlines);
+        result_polygons = result_polygons.difference(outlines);
+        result_polygons = result_polygons.unionPolygons(infill_pattern.intersection(outlines));
     }
     else
     {
@@ -81,8 +82,8 @@ SpaceFillingTreeFill::TreeParams SpaceFillingTreeFill::getTreeParams(coord_t lin
      * r = .5 sqrt(2) L
      */
     ret.middle = aabb.getMiddle();
-    ret.depth = -1;
-    ret.radius = line_distance * sqrt(2.0) * 0.5;
+    ret.depth = 0;
+    ret.radius = line_distance * sqrt(2.0); // doesn't work if it's multiplied by 0.5
     while (ret.radius <= minimal_radius)
     {
         ret.depth++;
