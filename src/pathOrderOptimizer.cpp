@@ -176,7 +176,6 @@ void LineOrderOptimizer::optimize()
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
-    inside_points = nullptr;
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
@@ -199,14 +198,6 @@ void LineOrderOptimizer::optimize()
         line_bucket_grid.insert(poly[0], poly_idx);
         line_bucket_grid.insert(poly[1], poly_idx);
 
-    }
-
-    if (combing_boundary != nullptr && combing_boundary->size() > 0)
-    {
-        // the combing boundary has been provided so create a map that will be used to hold for each line end point
-        // a new point that is the result of moving the end point inside the boundary
-
-        inside_points = new std::unordered_map<Point, Point>();
     }
 
     Point incoming_perpundicular_normal(0, 0);
@@ -327,11 +318,6 @@ void LineOrderOptimizer::optimize()
             logError("Failed to find next closest line.\n");
         }
     }
-
-    if (inside_points != nullptr)
-    {
-        delete inside_points;
-    }
 }
 
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
@@ -342,38 +328,14 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
-    const int move_inside_distance = 100; // how far to move points inside combing boundary
-    const int64_t max_move_inside_distance2 = 1000 * 1000; // (1mm) don't move points further than this when moving them inside the combing boundary
     const int non_trivial_move_penalty_factor = 10000; // if a travel move is not a single straight line, multiply the score by this factor
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
-        if (score < best_score && inside_points != nullptr && !pointsAreCoincident(p0, prev_point))
+        if (score < best_score && combing_boundary != nullptr && !pointsAreCoincident(p0, prev_point))
         {
-            Point p0_inside = p0;
-            auto search = inside_points->find(p0);
-            if (search != inside_points->end())
-            {
-                p0_inside = search->second;
-            }
-            else
-            {
-                PolygonUtils::moveInside(*combing_boundary, p0_inside, move_inside_distance, max_move_inside_distance2);
-                inside_points->emplace(p0, p0_inside);
-            }
-            Point prev_inside = prev_point;
-            search = inside_points->find(prev_point);
-            if (search != inside_points->end())
-            {
-                prev_inside = search->second;
-            }
-            else
-            {
-                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance, max_move_inside_distance2);
-                inside_points->emplace(prev_point, prev_inside);
-            }
-            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0_inside, prev_inside))
+            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0, prev_point))
             {
                 // severely penalise this score because the travel requires combing or a retract
                 score *= non_trivial_move_penalty_factor;
@@ -389,31 +351,9 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     if (just_point != 0)
     { /// check distance to second point on line (1)
         float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
-        if (score < best_score && inside_points != nullptr && !pointsAreCoincident(p1, prev_point))
+        if (score < best_score && combing_boundary != nullptr && !pointsAreCoincident(p1, prev_point))
         {
-            Point p1_inside = p1;
-            auto search = inside_points->find(p1);
-            if (search != inside_points->end())
-            {
-                p1_inside = search->second;
-            }
-            else
-            {
-                PolygonUtils::moveInside(*combing_boundary, p1_inside, move_inside_distance, max_move_inside_distance2);
-                inside_points->emplace(p1, p1_inside);
-            }
-            Point prev_inside = prev_point;
-            search = inside_points->find(prev_point);
-            if (search != inside_points->end())
-            {
-                prev_inside = search->second;
-            }
-            else
-            {
-                PolygonUtils::moveInside(*combing_boundary, prev_inside, move_inside_distance, max_move_inside_distance2);
-                inside_points->emplace(prev_point, prev_inside);
-            }
-            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1_inside, prev_inside))
+            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1, prev_point))
             {
                 // severely penalise this score because the travel requires combing or a retract
                 score *= non_trivial_move_penalty_factor;

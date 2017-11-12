@@ -90,13 +90,12 @@ public:
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
-    const Polygons* combing_boundary;
-    std::unordered_map<Point, Point>* inside_points;
+    const Polygons* combing_boundary; //!< travel moves that cross this boundary are penalised so they are less likely to be chosen
 
     LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
     {
         this->startPoint = startPoint;
-        this->combing_boundary = combing_boundary;
+        this->combing_boundary = (combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr;
     }
 
     void addPolygon(PolygonRef polygon)
