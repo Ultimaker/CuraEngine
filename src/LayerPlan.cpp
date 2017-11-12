@@ -460,7 +460,26 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 }
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
-    LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()));
+    Polygons boundary;
+    if (comb_boundary_inside.size() > 0)
+    {
+        int dist = 0;
+        if (layer_nr >= 0)
+        {
+            // determine how much the skin/infill lines overlap the combing boundary
+            for (const SliceMeshStorage& mesh : storage.meshes)
+            {
+                int overlap = std::max(mesh.getSettingInMicrons("skin_overlap_mm"), mesh.getSettingInMicrons("infill_overlap_mm"));
+                if (overlap > dist)
+                {
+                    dist = overlap;
+                }
+            }
+            dist += 10; // ensure boundary is slightly outside all skin/infill lines
+        }
+        boundary.add(comb_boundary_inside.offset(dist));
+    }
+    LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), &boundary);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
