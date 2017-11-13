@@ -1,6 +1,5 @@
 /** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 
-
 #ifndef CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
 #define CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
 
@@ -8,23 +7,65 @@
 
 namespace cura {
 
+class AdaptiveLayer
+{
+public:
+
+    /*!
+     * Height of the layer in microns.
+     */
+    int layer_height;
+
+    /*!
+     * Temperature to use for this layer.
+     */
+    int temperature;
+
+    /*!
+     * The print speed for this layer.
+     */
+    int print_speed;
+
+    explicit AdaptiveLayer(int layer_height);
+};
+
 /**
- * Adaptive layer heights calculates the desired layer height depending on:
- *      * Steepest triangle slope of the mesh
- *      *
+ * Adaptive layer heights calculates the desired layer heights depending mesh.
  */
 class AdaptiveLayerHeights
 {
 public:
 
     /*!
-     * The mesh to analyze. Uses it's triangles to calculate the adaptive layer heights.
+     * The mesh to analyse. Uses it's triangles to calculate the adaptive layer heights.
      */
     const Mesh* mesh = nullptr;
+
+    /*!
+     * Stores the found layer heights
+     */
+    std::vector<AdaptiveLayer> layers;
+
+    /*!
+     * Get the amount of adaptive layers found.
+     * @return
+     */
+    int getLayerCount();
+
+    /*!
+     * Get the adaptive layers found.
+     * @return
+     */
+    std::vector<AdaptiveLayer>* getLayers();
 
     AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, int allowed_layer_heights[]);
 
 private:
+
+    /*!
+     * Stores the found slopes of each face using the same index.
+     */
+    std::vector<int> face_slopes;
 
     /*!
      * Calculates the layers based on the given mesh and allowed layer heights

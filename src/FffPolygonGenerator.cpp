@@ -34,6 +34,7 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
+#include "settings/AdaptiveLayerHeights.h"
 
 
 namespace cura
@@ -98,17 +99,18 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     // variable layers
-    std::vector<int> layer_thicknesses;
+    AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
     bool use_variable_layer_heights = getSettingBoolean("layer_height_use_variable");
 
     if (use_variable_layer_heights)
     {
-        // Get a list of variable layer heights
-        // TODO: calculate adaptive layer heights in engine instead of passing it from the front-end
-        layer_thicknesses = getSettingAsIntegerList("layer_height_variable_heights");
+        // Calculate adaptive layer heights
+        Mesh& mesh = meshgroup->meshes.front();
+        int allowed_layer_heights[] = {200, 150, 100, 60};
+        adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, initial_layer_thickness, allowed_layer_heights);
 
         // Get the amount of layers
-        slice_layer_count = layer_thicknesses.size();
+        slice_layer_count = adaptive_layer_heights->getLayerCount();
     }
     else
     {
@@ -128,7 +130,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
                                     mesh.getSettingBoolean("meshfix_keep_open_polygons"),
                                     mesh.getSettingBoolean("meshfix_extensive_stitching"),
-                                    use_variable_layer_heights, &layer_thicknesses);
+                                    use_variable_layer_heights, adaptive_layer_heights->getLayers());
 
         slicerList.push_back(slicer);
 
@@ -209,7 +211,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
             if (use_variable_layer_heights)
             {
-                absolute_z += layer_thicknesses.at(layer_nr);
+                absolute_z += adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
             }
             else
             {
@@ -220,7 +222,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
             if (use_variable_layer_heights)
             {
-                meshStorage.layers[layer_nr].thickness = layer_thicknesses.at(layer_nr);
+                meshStorage.layers[layer_nr].thickness = adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
             }
             else
             {

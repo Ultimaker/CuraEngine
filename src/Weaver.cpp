@@ -18,7 +18,7 @@ void Weaver::weave(MeshGroup* meshgroup)
     int maxz = meshgroup->max().z;
 
     int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
-    std::vector<int> layer_thicknesses;
+    std::vector<AdaptiveLayer> layer_thicknesses;
 
     std::cerr << "Layer count: " << layer_count << "\n";
 

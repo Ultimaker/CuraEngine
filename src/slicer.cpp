@@ -793,9 +793,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 }
 
-
 Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching,
-               bool use_variable_layer_heights, std::vector<int>* thicknesses)
+               bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
     SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
@@ -809,7 +808,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     // use the first variable layer height when slicing in variable mode
     if (use_variable_layer_heights)
     {
-        initial = initial_layer_thickness - thicknesses->front();
+        initial = initial_layer_thickness - adaptive_layers->front().layer_height;
     }
 
     // compensate first layer thickness depending on slicing mode
@@ -817,7 +816,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     {
         if (use_variable_layer_heights)
         {
-            initial += thicknesses->front() / 2;
+            initial += adaptive_layers->front().layer_height / 2;
         }
         else
         {
@@ -839,7 +838,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         }
         else if (use_variable_layer_heights)
         {
-            absolute_z += thicknesses->at(layer_nr - 1);
+            absolute_z += adaptive_layers->at(layer_nr - 1).layer_height;
         }
         else
         {
