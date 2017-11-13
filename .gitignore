@@ -22,6 +22,7 @@ debug_build/*
 CuraEngine
 _bin
 _obj
+x64/*
 
 ## CMake files
 cmake_install.cmake         
