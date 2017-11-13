@@ -809,7 +809,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     // use the first variable layer height when slicing in variable mode
     if (use_variable_layer_heights)
     {
-        initial = thicknesses->front();
+        initial = initial_layer_thickness - thicknesses->front();
     }
 
     // compensate first layer thickness depending on slicing mode
@@ -828,14 +828,18 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     layers.resize(slice_layer_count);
 
     // keep track of absolute z value for variable layer heights
-    int absolute_z = initial;
+    int absolute_z = 0;
 
     // define all layer z positions depending on slicing mode
     for (int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
-        if (use_variable_layer_heights)
+        if (layer_nr == 0)
         {
-            absolute_z += thicknesses->at(layer_nr);
+            absolute_z += initial;
+        }
+        else if (use_variable_layer_heights)
+        {
+            absolute_z += thicknesses->at(layer_nr - 1);
         }
         else
         {
