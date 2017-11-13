@@ -463,6 +463,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     Polygons boundary;
     if (comb_boundary_inside.size() > 0)
     {
+        // use the combing boundary inflated so that all skin/infill lines are inside the boundary
         int dist = 0;
         if (layer_nr >= 0)
         {
@@ -475,9 +476,11 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
                     dist = overlap;
                 }
             }
-            dist += 10; // ensure boundary is slightly outside all skin/infill lines
+            dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
         boundary.add(comb_boundary_inside.offset(dist));
+        // simplify boundary to cut down processing time
+        boundary.simplify(100, 100);
     }
     LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), &boundary);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
