@@ -42,23 +42,28 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
-    std::vector<Polygons> model_collision;
+    std::vector<Polygons> model_collision_tips; //Areas that have to be avoided by the tips of the branches.
+    std::vector<Polygons> model_collision_base; //Areas that have to be avoided by the normal parts of the branches.
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
+    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     constexpr bool include_helper_parts = false;
-    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
+    model_collision_tips.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
+    model_collision_base.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
     for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr ++)
     {
         //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
-        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
-        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance)); //Add current layer's collision to that.
+        model_collision_tips.push_back(model_collision_tips[layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
+        model_collision_base.push_back(model_collision_base[layer_nr - 1].offset(-maximum_move_distance));
+        model_collision_tips[layer_nr] = model_collision_tips[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance)); //Add current layer's collision to that.
+        const coord_t branch_radius_this_layer = branch_radius * (1 + (double)(storage.support.supportLayers.size() - tip_layers - layer_nr) * diameter_angle_scale_factor); //Highest possible branch radius in this layer.
+        model_collision_base[layer_nr] = model_collision_base[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + branch_radius_this_layer));
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
-    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -66,10 +71,17 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             const Node node = contact_nodes[layer_nr][vertex];
             std::vector<Point> neighbours = mst.adjacentNodes(vertex);
-            const coord_t avoid_distance_squared = std::pow(branch_radius * (1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor), 2);
             if (neighbours.empty()) //Just a single vertex.
             {
-                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance, avoid_distance_squared); //Avoid collision.
+                //Times sqrt(2) to allow for diagonal movements. It might not support well in theory but it works all right in practice, since they're corners.
+                if (node.distance_to_top < tip_layers)
+                {
+                    PolygonUtils::moveInside(model_collision_tips[layer_nr], vertex, branch_radius, maximum_move_distance * maximum_move_distance); //Avoid collision.
+                }
+                else
+                {
+                    PolygonUtils::moveOutside(model_collision_base[layer_nr], vertex, maximum_move_distance * SQRT_2, maximum_move_distance * maximum_move_distance);
+                }
                 contact_points[layer_nr - 1].insert(vertex);
                 contact_nodes[layer_nr - 1][vertex].distance_to_top = node.distance_to_top + 1;
                 contact_nodes[layer_nr - 1][vertex].skin_direction = node.skin_direction;
@@ -98,7 +110,15 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             {
                 next_layer_vertex = vertex + motion;
             }
-            PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance, avoid_distance_squared); //Avoid collision.
+            //Times sqrt(2) to allow for diagonal movements. It might not support well in theory but it works all right in practice, since they're corners.
+            if (node.distance_to_top < tip_layers)
+            {
+                PolygonUtils::moveOutside(model_collision_tips[layer_nr], next_layer_vertex, branch_radius, maximum_move_distance * maximum_move_distance); //Avoid collision.
+            }
+            else
+            {
+                PolygonUtils::moveOutside(model_collision_base[layer_nr], next_layer_vertex, maximum_move_distance * SQRT_2, maximum_move_distance * maximum_move_distance);
+            }
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
             contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;

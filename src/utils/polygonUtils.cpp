@@ -288,7 +288,7 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
             { // x is projected to a point properly on the line segment (not onto a vertex). The case which looks like | .
                 projected_p_beyond_prev_segment = false;
                 Point x = a + ab * ax_length / ab_length;
-                
+
                 int64_t dist2 = vSize2(p - x);
                 if (dist2 < bestDist2)
                 {
