@@ -70,50 +70,37 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         for (Point vertex : contact_points[layer_nr])
         {
             const Node node = contact_nodes[layer_nr][vertex];
+            Point next_layer_vertex = vertex;
             std::vector<Point> neighbours = mst.adjacentNodes(vertex);
-            if (neighbours.empty()) //Just a single vertex.
+            if (!neighbours.empty()) //Need to move towards the neighbours.
             {
-                //Times sqrt(2) to allow for diagonal movements. It might not support well in theory but it works all right in practice, since they're corners.
-                if (node.distance_to_top < tip_layers)
+                Point sum_direction(0, 0);
+                for (Point neighbour : neighbours)
                 {
-                    PolygonUtils::moveInside(model_collision_tips[layer_nr], vertex, branch_radius, maximum_move_distance * maximum_move_distance); //Avoid collision.
+                    sum_direction += neighbour - vertex;
+                }
+                Point motion = normal(sum_direction, maximum_move_distance);
+                if (neighbours.size() == 1 && vSize2(sum_direction) < maximum_move_distance * maximum_move_distance)
+                {
+                    if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
+                    {
+                        next_layer_vertex += motion / 2;
+                    }
+                    else //This is a leaf that's about to collapse. Leave it out on the next layer.
+                    {
+                        contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top = std::max(contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top, node.distance_to_top);
+                        continue;
+                    }
                 }
                 else
                 {
-                    PolygonUtils::moveOutside(model_collision_base[layer_nr], vertex, maximum_move_distance * SQRT_2, maximum_move_distance * maximum_move_distance);
+                    next_layer_vertex += motion;
                 }
-                contact_points[layer_nr - 1].insert(vertex);
-                contact_nodes[layer_nr - 1][vertex].distance_to_top = node.distance_to_top + 1;
-                contact_nodes[layer_nr - 1][vertex].skin_direction = node.skin_direction;
-                continue;
-            }
-            Point sum_direction(0, 0);
-            for (Point neighbour : neighbours)
-            {
-                sum_direction += neighbour - vertex;
-            }
-            Point motion = normal(sum_direction, maximum_move_distance);
-            Point next_layer_vertex;
-            if (neighbours.size() == 1 && vSize2(sum_direction) < maximum_move_distance * maximum_move_distance)
-            {
-                if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
-                {
-                    next_layer_vertex = vertex + motion / 2;
-                }
-                else //This is a leaf that's about to collapse. Leave it out on the next layer.
-                {
-                    contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top = std::max(contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top, node.distance_to_top);
-                    continue;
-                }
-            }
-            else
-            {
-                next_layer_vertex = vertex + motion;
             }
             //Times sqrt(2) to allow for diagonal movements. It might not support well in theory but it works all right in practice, since they're corners.
             if (node.distance_to_top < tip_layers)
             {
-                PolygonUtils::moveOutside(model_collision_tips[layer_nr], next_layer_vertex, branch_radius, maximum_move_distance * maximum_move_distance); //Avoid collision.
+                PolygonUtils::moveOutside(model_collision_tips[layer_nr], next_layer_vertex, branch_radius * SQRT_2, maximum_move_distance * maximum_move_distance); //Avoid collision.
             }
             else
             {
