@@ -57,8 +57,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
-    const coord_t branch_middle_radius = branch_radius - (line_width >> 1); //Radius of the middle of the path (so this is essentially an inset by half the line width).
-    const size_t tip_layers = branch_middle_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
+    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
@@ -111,9 +110,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
     {
         const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-        branch_circle.emplace_back(cos(angle) * branch_middle_radius, sin(angle) * branch_middle_radius);
+        branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
-    const coord_t circle_side_length = 2 * branch_middle_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
+    const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
