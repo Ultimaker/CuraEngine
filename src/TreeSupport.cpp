@@ -126,13 +126,13 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         for (const Point point : contact_points[layer_nr])
         {
+            const Node& node = contact_nodes[layer_nr][point];
             Polygon circle;
+            const double scale = (double)node.distance_to_top / tip_layers;
             for (Point corner : branch_circle)
             {
-                const Node& node = contact_nodes[layer_nr][point];
                 if (node.distance_to_top < tip_layers) //We're in the tip.
                 {
-                    const double scale = (double)node.distance_to_top / tip_layers;
                     if (node.skin_direction)
                     {
                         corner = Point(corner.X * (0.5 + scale / 2) + corner.Y * (0.5 - scale / 2), corner.X * (0.5 - scale / 2) + corner.Y * (0.5 + scale / 2));
