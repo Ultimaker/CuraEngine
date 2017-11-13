@@ -100,6 +100,7 @@ public:
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
+    LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary; //!< travel moves that cross this boundary are penalised so they are less likely to be chosen
 
     LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
@@ -157,6 +158,16 @@ private:
      * 
      */
     static float getAngleScore(Point incoming_perpundicular_normal, Point from, Point to);
+
+    /*!
+     * Compute the squared distance from \p p0 to \p p1 using combing
+     *
+     * \param p0 A point
+     * \param p1 Another point
+     *
+     * \return The squared travel distance between the two points
+     */
+    float combingDistance2(const Point &p0, const Point &p1);
 };
 
 }//namespace cura
