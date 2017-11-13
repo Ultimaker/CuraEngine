@@ -57,7 +57,7 @@ public:
      * \param inset_count The number of perimeters to surround the support infill outline.
      * \param wall_line_width_x The wall line width in microns on the X axis.
      */
-    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x);
+    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
 
 private:
     /*!

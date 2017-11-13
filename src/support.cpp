@@ -63,7 +63,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
 
     // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    int wall_line_count = 0;  // no wall for zig zag.
+    unsigned int wall_line_count = 0;  // no wall for zig zag.
     if (support_pattern == EFillMethod::GRID
         || support_pattern == EFillMethod::TRIANGLES
         || support_pattern == EFillMethod::CONCENTRIC)
@@ -76,7 +76,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
-        int wall_line_count_this_layer = wall_line_count;
+        unsigned int wall_line_count_this_layer = wall_line_count;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
         { // the first layer will be printed wit ha grid pattern
             wall_line_count_this_layer = 1;
@@ -399,9 +399,9 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 }
 
 
-void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x)
+void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)
 {
-    for (int inset_idx = 0; inset_idx < inset_count; inset_idx++)
+    for (unsigned int inset_idx = 0; inset_idx < inset_count; inset_idx++)
     {
         insets.push_back(Polygons());
         if (inset_idx == 0)
