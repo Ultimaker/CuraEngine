@@ -177,6 +177,8 @@ void LineOrderOptimizer::optimize()
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
 
+    loc_to_line = nullptr;
+
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best_point_idx = -1;
@@ -318,6 +320,37 @@ void LineOrderOptimizer::optimize()
             logError("Failed to find next closest line.\n");
         }
     }
+    if (loc_to_line != nullptr)
+    {
+        delete loc_to_line;
+    }
+}
+
+float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
+{
+    if (loc_to_line == nullptr)
+    {
+        // do the initialisation required to be able to calculate realistic travel distances to the start of new paths
+        const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
+        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+    }
+
+    CombPath comb_path;
+    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, false))
+    {
+        float dist = 0;
+        Point last_point = p0;
+        for (const Point& comb_point : comb_path)
+        {
+            dist += vSize(comb_point - last_point);
+            last_point = comb_point;
+        }
+        return dist * dist;
+    }
+
+    // couldn't comb, fall back to a large distance
+
+    return vSize2f(p1 - p0) * 10000;
 }
 
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
@@ -328,18 +361,16 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
     float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
-    const int non_trivial_move_penalty_factor = 10000; // if a travel move is not a single straight line, multiply the score by this factor
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
-        if (score < best_score && combing_boundary != nullptr && !pointsAreCoincident(p0, prev_point))
+        if (score < best_score
+            && combing_boundary != nullptr
+            && !pointsAreCoincident(p0, prev_point)
+            && PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0, prev_point))
         {
-            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0, prev_point))
-            {
-                // severely penalise this score because the travel requires combing or a retract
-                score *= non_trivial_move_penalty_factor;
-            }
+            score = combingDistance2(p0, prev_point);
         }
         if (score < best_score)
         {
@@ -351,13 +382,12 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     if (just_point != 0)
     { /// check distance to second point on line (1)
         float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
-        if (score < best_score && combing_boundary != nullptr && !pointsAreCoincident(p1, prev_point))
+        if (score < best_score
+            && combing_boundary != nullptr
+            && !pointsAreCoincident(p1, prev_point)
+            && PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1, prev_point))
         {
-            if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1, prev_point))
-            {
-                // severely penalise this score because the travel requires combing or a retract
-                score *= non_trivial_move_penalty_factor;
-            }
+            score = combingDistance2(p1, prev_point);
         }
         if (score < best_score)
         {
