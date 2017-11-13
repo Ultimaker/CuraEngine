@@ -104,10 +104,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     if (use_variable_layer_heights)
     {
         // Get a list of variable layer heights
+        // TODO: calculate adaptive layer heights in engine instead of passing it from the front-end
         layer_thicknesses = getSettingAsIntegerList("layer_height_variable_heights");
 
         // Get the amount of layers
-        // TODO: actually calculate this and don't assume the input is correct
         slice_layer_count = layer_thicknesses.size();
     }
     else
