@@ -37,7 +37,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         generateContactPoints(mesh, contact_points, contact_nodes);
     }
-    
+
     //Generate areas that have to be avoided.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
@@ -56,6 +56,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
+    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
+    const coord_t branch_middle_radius = branch_radius - (line_width >> 1); //Radius of the middle of the path (so this is essentially an inset by half the line width).
+    const size_t tip_layers = branch_middle_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -63,9 +67,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             const Node node = contact_nodes[layer_nr][vertex];
             std::vector<Point> neighbours = mst.adjacentNodes(vertex);
+            const coord_t avoid_distance_squared = std::pow(branch_radius * (1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor), 2);
             if (neighbours.empty()) //Just a single vertex.
             {
-                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
+                PolygonUtils::moveOutside(model_collision[layer_nr], vertex, maximum_move_distance, avoid_distance_squared); //Avoid collision.
                 contact_points[layer_nr - 1].insert(vertex);
                 contact_nodes[layer_nr - 1][vertex].distance_to_top = node.distance_to_top + 1;
                 contact_nodes[layer_nr - 1][vertex].skin_direction = node.skin_direction;
@@ -94,7 +99,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             {
                 next_layer_vertex = vertex + motion;
             }
-            PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance, branch_radius * branch_radius); //Avoid collision.
+            PolygonUtils::moveOutside(model_collision[layer_nr], next_layer_vertex, maximum_move_distance, avoid_distance_squared); //Avoid collision.
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
             contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;
@@ -102,8 +107,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
-    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
-    const coord_t branch_middle_radius = branch_radius - (line_width >> 1); //Radius of the middle of the path (so this is essentially an inset by half the line width).
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
     {
@@ -111,8 +114,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         branch_circle.emplace_back(cos(angle) * branch_middle_radius, sin(angle) * branch_middle_radius);
     }
     const coord_t circle_side_length = 2 * branch_middle_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
-    const size_t tip_layers = branch_middle_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius;
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
@@ -157,7 +158,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             storage.support.layer_nr_max_filled_layer = layer_nr;
         }
     }
-    
+
     storage.support.generated = true;
 }
 
