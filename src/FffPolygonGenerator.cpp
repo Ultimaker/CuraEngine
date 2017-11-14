@@ -209,9 +209,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
 
-            if (use_variable_layer_heights)
+            if (layer_nr == 0)
             {
-                absolute_z += adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
+                absolute_z = 0;
+            }
+            else if (use_variable_layer_heights)
+            {
+                absolute_z += adaptive_layer_heights->getLayers()->at(layer_nr - 1).layer_height;
             }
             else
             {

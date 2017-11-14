@@ -44,8 +44,8 @@ void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vec
         // loop over all allowed layer heights starting with the largest
         for (auto & layer_height : allowed_layer_heights)
         {
-            const int lower_bound = z_level;
-            const int upper_bound = z_level + layer_height;
+            int lower_bound = z_level;
+            int upper_bound = z_level + layer_height;
 
             std::vector<int> min_bounds;
             std::vector<int> max_bounds;
@@ -53,7 +53,7 @@ void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vec
             // calculate all lower bounds
             for (auto it_lower = this->face_min_z_values.begin(); it_lower != this->face_min_z_values.end(); ++it_lower)
             {
-                if ((*it_lower >= lower_bound && *it_lower <= upper_bound) || (*it_lower < lower_bound && *it_lower < upper_bound))
+                if ((*it_lower >= lower_bound && *it_lower <= upper_bound) || (*it_lower <= lower_bound && *it_lower <= upper_bound))
                 {
                     min_bounds.emplace_back(std::distance(this->face_min_z_values.begin(), it_lower));
                 }
@@ -62,7 +62,7 @@ void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vec
             // calculate all upper bounds
             for (auto it_upper = this->face_max_z_values.begin(); it_upper != this->face_max_z_values.end(); ++it_upper)
             {
-                if ((*it_upper <= upper_bound && *it_upper >= lower_bound) || (*it_upper > upper_bound && *it_upper > lower_bound))
+                if ((*it_upper <= upper_bound && *it_upper >= lower_bound) || (*it_upper >= upper_bound && *it_upper >= lower_bound))
                 {
                     max_bounds.emplace_back(std::distance(this->face_max_z_values.begin(), it_upper));
                 }
@@ -92,9 +92,9 @@ void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vec
             // if not, add the layer
             if (minimum_slope_tan == 0.0 || layer_height / minimum_slope_tan <= 100 || layer_height == minimum_layer_height)
             {
-                z_level += layer_height;
                 auto * adaptive_layer = new AdaptiveLayer(layer_height);
                 this->layers.push_back(*adaptive_layer);
+                z_level += layer_height;
                 break;
             }
         }
