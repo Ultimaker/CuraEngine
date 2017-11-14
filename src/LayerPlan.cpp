@@ -27,6 +27,11 @@ ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bo
 {
 }
 
+bool ExtruderPlan::empty() const
+{
+    return paths.empty() && inserts.empty();
+}
+
 void ExtruderPlan::setExtrudeSpeedFactor(double speedFactor)
 {
     this->extrudeSpeedFactor = speedFactor;
@@ -117,6 +122,18 @@ LayerPlan::~LayerPlan()
 {
     if (comb)
         delete comb;
+}
+
+bool LayerPlan::empty() const
+{
+    for (const ExtruderPlan& extruder_plan : extruder_plans)
+    {
+        if (!extruder_plan.empty())
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 SettingsBaseVirtual* LayerPlan::getLastPlannedExtruderTrainSettings()
