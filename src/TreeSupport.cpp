@@ -128,7 +128,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             const Node& node = contact_nodes[layer_nr][point];
             Polygon circle;
-            const double scale = (double)node.distance_to_top / tip_layers;
+            const double scale = (double)(node.distance_to_top + 1) / tip_layers;
             for (Point corner : branch_circle)
             {
                 if (node.distance_to_top < tip_layers) //We're in the tip.
