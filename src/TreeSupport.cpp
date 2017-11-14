@@ -101,11 +101,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             //Times sqrt(2) to allow for diagonal movements. It might not support well in theory but it works all right in practice, since they're corners.
             if (node.distance_to_top < tip_layers)
             {
-                PolygonUtils::moveOutside(model_collision_tips[layer_nr], next_layer_vertex, branch_radius * SQRT_2, maximum_move_distance * maximum_move_distance); //Avoid collision.
+                PolygonUtils::moveOutside(model_collision_tips[layer_nr - 1], next_layer_vertex, branch_radius * SQRT_2, maximum_move_distance * maximum_move_distance); //Avoid collision.
             }
             else
             {
-                PolygonUtils::moveOutside(model_collision_base[layer_nr], next_layer_vertex, maximum_move_distance * SQRT_2, maximum_move_distance * maximum_move_distance);
+                PolygonUtils::moveOutside(model_collision_base[layer_nr - 1], next_layer_vertex, maximum_move_distance * SQRT_2, maximum_move_distance * maximum_move_distance);
             }
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
