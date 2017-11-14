@@ -201,8 +201,9 @@ inline void ZigzagConnectorProcessor::reset()
 
 inline void ZigzagConnectorProcessor::addLine(Point from, Point to)
 {
-    if (from == to)
+    if (from == to || vSize2(from - to) < 25)
     {
+        // don't add lines less than 5uM long
         return;
     }
     result.addLine(rotation_matrix.unapply(from), rotation_matrix.unapply(to));

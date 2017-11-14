@@ -114,6 +114,7 @@ enum class EFillMethod
     TETRAHEDRAL,
     QUARTER_CUBIC,
     TRIANGLES,
+    TRIHEXAGON,
     CONCENTRIC,
     CONCENTRIC_3D,
     ZIG_ZAG,
@@ -192,6 +193,13 @@ enum class SupportDistPriority
 {
     XY_OVERRIDES_Z,
     Z_OVERRIDES_XY
+};
+
+enum class SlicingTolerance
+{
+    MIDDLE,
+    INCLUSIVE,
+    EXCLUSIVE
 };
 
 #define MAX_EXTRUDERS 16
@@ -277,6 +285,7 @@ public:
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key) const;
     SupportDistPriority getSettingAsSupportDistPriority(std::string key) const;
+    SlicingTolerance getSettingAsSlicingTolerance(std::string key) const;
     std::vector<int> getSettingAsIntegerList(std::string key) const;
 };
 

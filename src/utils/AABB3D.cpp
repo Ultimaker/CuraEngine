@@ -24,6 +24,11 @@ Point3 AABB3D::getMiddle() const
     return (min + max) / 2;
 }
 
+AABB AABB3D::flatten() const
+{
+    return AABB(Point(min.x, min.y), Point(max.x, max.y));
+}
+
 
 bool AABB3D::hit(const AABB3D& other) const
 {

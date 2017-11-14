@@ -25,8 +25,8 @@ void InsetOrderOptimizer::moveInside()
 {
     const coord_t outer_wall_line_width = mesh_config.inset0_config.getLineWidth();
     Point p = gcode_layer.getLastPlannedPositionOrStartingPosition();
-    // try to move p inside the outer wall by 2 x the outer wall line width
-    if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 2) != NO_INDEX)
+    // try to move p inside the outer wall by 1.1 times the outer wall line width
+    if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 1.1f) != NO_INDEX)
     {
         // move to p if it is not closer than a line width from the centre line of the outer wall
         if (part.insets[0].offset(-outer_wall_line_width).inside(p))
@@ -39,7 +39,7 @@ void InsetOrderOptimizer::moveInside()
             // p is still too close to the centre line of the outer wall so move it again
             // this can occur when the last wall finished at a right angle corner as the first move
             // just moved p along one edge rather than into the part
-            if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 2) != NO_INDEX)
+            if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 1.1f) != NO_INDEX)
             {
                 // move to p if it is not closer than a line width from the centre line of the outer wall
                 if (part.insets[0].offset(-outer_wall_line_width).inside(p))
@@ -72,7 +72,7 @@ void InsetOrderOptimizer::processHoleInsets()
         for (unsigned inset_level = num_insets - 1; inset_level > 0; --inset_level)
         {
             Polygons insets_that_do_not_surround_holes;
-            for (unsigned inset_idx = 0; inset_idx < inset_polys[inset_level].size(); ++inset_idx)
+            for (unsigned inset_idx = 0; inset_idx < inset_polys[0].size() && inset_idx < inset_polys[inset_level].size(); ++inset_idx)
             {
                 const ConstPolygonRef& inner_wall = *inset_polys[inset_level][inset_idx];
                 const ConstPolygonRef& outer_wall = *inset_polys[0][inset_idx];
@@ -82,7 +82,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 {
                     // the inset didn't surround the level 0 inset with the same inset_idx but maybe it surrounds another hole
                     // start this loop at 1 not 0 as everything is surrounded by the part outline!
-                    for (unsigned hole_idx = 1; !inset_surrounds_hole && hole_idx < inset_polys[inset_level].size(); ++hole_idx)
+                    for (unsigned hole_idx = 1; !inset_surrounds_hole && hole_idx < inset_polys[0].size(); ++hole_idx)
                     {
                         const ConstPolygonRef& outer_wall = *inset_polys[0][hole_idx];
                         inset_surrounds_hole = PolygonUtils::polygonsIntersect(inner_wall, outer_wall);

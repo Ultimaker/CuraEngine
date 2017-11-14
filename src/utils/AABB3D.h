@@ -1,10 +1,11 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_AABB3D_H
 #define UTILS_AABB3D_H
 
-
 #include "intpoint.h"
-
+#include "AABB.h"
 
 namespace cura
 {
@@ -31,6 +32,14 @@ struct AABB3D
      * Get the middle of the bounding box
      */
     Point3 getMiddle() const;
+
+    /*!
+     * Creates a 2D version of this bounding box by leaving away the Z
+     * component.
+     *
+     * \return A 2D version of this bounding box.
+     */
+    AABB flatten() const;
 
     /*!
      * Check whether this aabb overlaps with another.
