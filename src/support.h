@@ -39,6 +39,13 @@ public:
     static void generateSupportAreas(SliceDataStorage& storage);
 
     /*!
+     * \brief Computes the base tree for cross infill of support.
+     * \param storage[in,out] Data storage containing the input support outlines
+     * and where to store the output tree.
+     */
+    static void precomputeCrossInfillTree(SliceDataStorage& storage);
+
+    /*!
      * Generates all gradual support infill features.
      * It does the following:
      *  - initialize insets and infill areas for all support infill parts

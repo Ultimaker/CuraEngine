@@ -636,8 +636,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
 
     // split the global support areas into parts for later gradual support infill generation
     AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, global_support_areas_per_layer, storage.print_layer_count);
+    precomputeCrossInfillTree(storage);
+}
 
-    // Pre-compute Cross Fractal
+void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
+{
     const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
     const EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern");
     if (support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
