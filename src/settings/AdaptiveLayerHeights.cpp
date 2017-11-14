@@ -17,7 +17,7 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickne
 {
     this->mesh = mesh;
     this->calculateMeshTriangleSlopes();
-    this->calculateLayers(allowed_layer_heights);
+    this->calculateLayers(initial_layer_thickness, allowed_layer_heights);
 }
 
 int AdaptiveLayerHeights::getLayerCount()
@@ -30,24 +30,17 @@ std::vector<AdaptiveLayer>* AdaptiveLayerHeights::getLayers()
     return &layers;
 }
 
-void AdaptiveLayerHeights::calculateLayers(std::vector<int> allowed_layer_heights)
+void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vector<int> allowed_layer_heights)
 {
     const int model_height = this->mesh->max().z;
     const int minimum_layer_height = *std::min_element(allowed_layer_heights.begin(), allowed_layer_heights.end());
     const int max_layers = model_height / minimum_layer_height;
-    std::vector<int> layer_heights;
-    std::vector<int> absolute_heights;
     std::vector<int> triangles_of_interest;
-    int z_level = 0;
+    int z_level = 0; // TODO: use initial layer thickness
 
     // loop over all potential layers
     for (unsigned int layer_index = 0; layer_index < max_layers; layer_index++)
     {
-        if (layer_index != 0)
-        {
-            z_level = absolute_heights.at(layer_index - 1);
-        }
-
         // loop over all allowed layer heights starting with the largest
         for (auto & layer_height : allowed_layer_heights)
         {
@@ -75,6 +68,7 @@ void AdaptiveLayerHeights::calculateLayers(std::vector<int> allowed_layer_height
                 }
             }
 
+            // use lower and upper bounds to filter on triangles that are interesting for this potential layer
             triangles_of_interest.clear();
             std::set_intersection(min_bounds.begin(), min_bounds.end(), max_bounds.begin(), max_bounds.end(), std::back_inserter(triangles_of_interest));
 
@@ -84,6 +78,7 @@ void AdaptiveLayerHeights::calculateLayers(std::vector<int> allowed_layer_height
 
             std::vector<double> slopes;
 
+            // find all slopes for interesting triangles
             for (auto & triangle_index : triangles_of_interest)
             {
                 double slope = this->face_slopes.at(triangle_index);
@@ -93,10 +88,11 @@ void AdaptiveLayerHeights::calculateLayers(std::vector<int> allowed_layer_height
             double minimum_slope = *std::min_element(slopes.begin(), slopes.end());
             double minimum_slope_tan = std::tan(minimum_slope);
 
+            // calculate if minimum slope in this potential layer is too steep or not
+            // if not, add the layer
             if (minimum_slope_tan == 0.0 || layer_height / minimum_slope_tan <= 100 || layer_height == minimum_layer_height)
             {
-                layer_heights.push_back(layer_height);
-                absolute_heights.push_back(z_level + layer_height);
+                z_level += layer_height;
                 auto * adaptive_layer = new AdaptiveLayer(layer_height);
                 this->layers.push_back(*adaptive_layer);
                 break;

@@ -72,7 +72,7 @@ private:
     /*!
      * Calculates the layers based on the given mesh and allowed layer heights
      */
-    void calculateLayers(std::vector<int> allowed_layer_heights);
+    void calculateLayers(int initial_layer_thickness, std::vector<int> allowed_layer_heights);
 
     /*!
      * Calculates the slopes for each triangle in the mesh.
