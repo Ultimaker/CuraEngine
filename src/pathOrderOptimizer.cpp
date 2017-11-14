@@ -331,8 +331,7 @@ float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
     if (loc_to_line == nullptr)
     {
         // do the initialisation required to be able to calculate realistic travel distances to the start of new paths
-        const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
-        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, 2000); // coarse 2mm grid to reduce computation time
     }
 
     CombPath comb_path;
