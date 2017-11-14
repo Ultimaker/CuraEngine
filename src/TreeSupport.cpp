@@ -89,6 +89,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     else //This is a leaf that's about to collapse. Leave it out on the next layer.
                     {
                         contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top = std::max(contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top, node.distance_to_top);
+                        contact_nodes[layer_nr - 1][neighbours[0]].support_roof_layers_below = std::max(contact_nodes[layer_nr - 1][neighbours[0]].support_roof_layers_below, node.support_roof_layers_below);
                         continue;
                     }
                 }
@@ -109,6 +110,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
             contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;
+            contact_nodes[layer_nr - 1][next_layer_vertex].support_roof_layers_below = node.support_roof_layers_below - 1;
         }
     }
 
@@ -123,6 +125,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
+        Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
 
         for (const Point point : contact_points[layer_nr])
         {
@@ -148,9 +151,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 }
                 circle.add(point + corner);
             }
-            support_layer.add(circle);
+            if (node.support_roof_layers_below >= 0)
+            {
+                roof_layer.add(circle);
+            }
+            else
+            {
+                support_layer.add(circle);
+            }
         }
         support_layer = support_layer.unionPolygons();
+        roof_layer = roof_layer.unionPolygons();
+        support_layer = support_layer.difference(roof_layer);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
@@ -160,7 +172,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             outline.add(part);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
         }
-        if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty())
+        if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
         {
             storage.support.layer_nr_max_filled_layer = layer_nr;
         }
@@ -174,6 +186,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
+    const size_t support_roof_layers = mesh.getSettingBoolean("support_roof_enable") ? round_divide(mesh.getSettingInMicrons("support_roof_height"), mesh.getSettingInMicrons("layer_height")) : 0; //How many roof layers, if roof is enabled.
     for (size_t layer_nr = 0; layer_nr < mesh.overhang_areas.size() - z_distance_top_layers; layer_nr++)
     {
         const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
@@ -215,6 +228,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                         contact_points[layer_nr].insert(candidate);
                         contact_nodes[layer_nr][candidate] = Node();
                         contact_nodes[layer_nr][candidate].skin_direction = (layer_nr + z_distance_top_layers) % 2;
+                        contact_nodes[layer_nr][candidate].support_roof_layers_below = support_roof_layers;
                         added = true;
                     }
                 }
@@ -226,6 +240,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 contact_points[layer_nr].insert(candidate);
                 contact_nodes[layer_nr][candidate] = Node();
                 contact_nodes[layer_nr][candidate].skin_direction = layer_nr % 2;
+                contact_nodes[layer_nr][candidate].support_roof_layers_below = support_roof_layers;
             }
         }
     }
