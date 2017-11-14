@@ -100,13 +100,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     // variable layers
     AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
-    bool use_variable_layer_heights = getSettingBoolean("layer_height_use_variable");
+    bool use_variable_layer_heights = getSettingBoolean("adaptive_layer_height_enabled");
 
     if (use_variable_layer_heights)
     {
         // Calculate adaptive layer heights
         Mesh& mesh = meshgroup->meshes.front();
-        int allowed_layer_heights[] = {200, 150, 100, 60};
+        std::vector<int> allowed_layer_heights = {200, 150, 100, 60};
         adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, initial_layer_thickness, allowed_layer_heights);
 
         // Get the amount of layers

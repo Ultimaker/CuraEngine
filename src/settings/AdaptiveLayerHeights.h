@@ -58,19 +58,21 @@ public:
      */
     std::vector<AdaptiveLayer>* getLayers();
 
-    AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, int allowed_layer_heights[]);
+    AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights);
 
 private:
 
     /*!
      * Stores the found slopes of each face using the same index.
      */
-    std::vector<int> face_slopes;
+    std::vector<double> face_slopes;
+    std::vector<int> face_min_z_values;
+    std::vector<int> face_max_z_values;
 
     /*!
      * Calculates the layers based on the given mesh and allowed layer heights
      */
-    void calculateLayers();
+    void calculateLayers(std::vector<int> allowed_layer_heights);
 
     /*!
      * Calculates the slopes for each triangle in the mesh.
