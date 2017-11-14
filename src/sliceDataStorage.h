@@ -334,7 +334,8 @@ public:
     /*!
      * Get the extruders used.
      * 
-     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
+     * \return A vector of booleans indicating whether the extruder with the
+     * corresponding index is used in the mesh group.
      */
     std::vector<bool> getExtrudersUsed() const;
 

@@ -258,7 +258,10 @@ void slice(int argc, char **argv)
                         }
                         break;
                     case 'g':
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough" //Fall-through is intended.
                         last_settings_object = meshgroup;
+#pragma GCC diagnostic pop
                     case 's':
                         {
                             //Parse the given setting and store it.

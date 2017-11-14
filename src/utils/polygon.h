@@ -811,13 +811,6 @@ public:
      * 
      */
     Polygons approxConvexHull(int extra_outset = 0);
-    
-    /*!
-     * Convex hull of all the points in the polygons.
-     * \return the convex hull
-     *
-     */
-    Polygon convexHull() const;
 
     /*!
      * Compute the area enclosed within the polygons (minus holes)

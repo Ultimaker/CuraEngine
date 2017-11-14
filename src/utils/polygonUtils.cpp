@@ -433,10 +433,10 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                 // Perform an offset on all polygons instead.
                 Polygons all_insetted = polygons.offset(-preferred_dist_inside);
                 ClosestPolygonPoint overall_inside = findClosest(from, all_insetted, penalty_function);
-#ifdef DEBUG
                 bool overall_is_inside = polygons.inside(overall_inside.location);
                 if (overall_is_inside != (preferred_dist_inside > 0))
                 {
+#ifdef DEBUG
                     try
                     {
                         int offset_performed = offset / 2;
@@ -474,9 +474,9 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     {
                     }
                     logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
+#endif
                     return ClosestPolygonPoint();
                 }
-#endif
                 inside = overall_inside;
             }
             from = inside.location;
