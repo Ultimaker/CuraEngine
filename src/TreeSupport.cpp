@@ -42,21 +42,24 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     std::vector<Polygons> model_collision; //Areas that have to be avoided by the tips of the branches.
+    std::vector<Polygons> model_collision_branch_radius; //Areas that have to be avoided by the base of the branches (with branch diameter added for a better approximation).
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     constexpr bool include_helper_parts = false;
     model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound));
+    model_collision_branch_radius.push_back(model_collision[0].offset(branch_radius, ClipperLib::JoinType::jtRound));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
     for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr++)
     {
         //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
         model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance, ClipperLib::JoinType::jtRound)); //Inset previous layer with maximum_move_distance to allow some movement.
         model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound)); //Add current layer's collision to that.
+        model_collision_branch_radius.push_back(model_collision[layer_nr].offset(branch_radius, ClipperLib::JoinType::jtRound));
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
@@ -93,8 +96,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     next_layer_vertex += motion;
                 }
             }
-            const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius * (1 + (double)(node.distance_to_top) * diameter_angle_scale_factor)) : (branch_radius * node.distance_to_top / tip_layers); //Branch radius at this node.
-            PolygonUtils::moveOutside(model_collision[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance); //Avoid collision.
+
+            //Avoid collisions.
+            if (node.distance_to_top > tip_layers) //Main branch.
+            {
+                const coord_t branch_radius_node = branch_radius * node.distance_to_top * diameter_angle_scale_factor;
+                PolygonUtils::moveOutside(model_collision_branch_radius[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance);
+            }
+            else //Tip.
+            {
+                const coord_t branch_radius_node = branch_radius * node.distance_to_top / tip_layers;
+                PolygonUtils::moveOutside(model_collision[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance);
+            }
             if (model_collision[layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
             {
                 continue;
