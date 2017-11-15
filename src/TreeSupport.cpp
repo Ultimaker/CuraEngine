@@ -45,13 +45,13 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     std::vector<Polygons> model_collision; //Areas that have to be avoided by the tips of the branches.
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     constexpr bool include_helper_parts = false;
-    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance));
+    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound));
     //TODO: If allowing support to rest on model, these need to be just the model outlines.
-    for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr ++)
+    for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr++)
     {
         //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
-        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
-        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance)); //Add current layer's collision to that.
+        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance, ClipperLib::JoinType::jtRound)); //Inset previous layer with maximum_move_distance to allow some movement.
+        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound)); //Add current layer's collision to that.
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
@@ -94,8 +94,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 }
             }
             const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius * (1 + (double)(node.distance_to_top) * diameter_angle_scale_factor)) : (branch_radius * node.distance_to_top / tip_layers); //Branch radius at this node.
-            //Times sqrt(2) to allow for diagonal movements at the corners (with the default miter limit). It might not support well in theory but it works all right in practice, since they're corners. When squared, that becomes times 2.
-            PolygonUtils::moveOutside(model_collision[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance * 2); //Avoid collision.
+            PolygonUtils::moveOutside(model_collision[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance); //Avoid collision.
             if (model_collision[layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
             {
                 continue;
