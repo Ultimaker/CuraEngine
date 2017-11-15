@@ -74,12 +74,6 @@ public:
     ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bool is_raft_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
-     * \brief Returns whether this layer plan is empty.
-     * \return True if it is empty, or False if it isn't.
-     */
-    bool empty() const;
-
-    /*!
      * Add a new Insert, constructed with the given arguments
      * 
      * \see NozzleTempInsert
@@ -313,8 +307,6 @@ public:
      */
     LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~LayerPlan();
-
-    bool empty() const;
 
     void overrideFanSpeeds(double speed);
     /*!

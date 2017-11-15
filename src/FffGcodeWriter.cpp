@@ -107,17 +107,13 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
 
     const std::function<LayerPlan* (int)>& produce_item =
-        [&storage, total_layers, this](int layer_nr) -> LayerPlan*
+        [&storage, total_layers, this](int layer_nr)
         {
             LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
-            if (gcode_layer.empty())
-            {
-                return nullptr;
-            }
             return &gcode_layer;
         };
     const std::function<void (LayerPlan*)>& consume_item =
-        [this, total_layers](LayerPlan* gcode_layer) -> void
+        [this, total_layers](LayerPlan* gcode_layer)
         {
             Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
             layer_plan_buffer.handle(*gcode_layer, gcode);
