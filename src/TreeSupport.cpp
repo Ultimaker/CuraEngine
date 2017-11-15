@@ -102,10 +102,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             if (node.distance_to_top < tip_layers)
             {
                 PolygonUtils::moveOutside(model_collision_tips[layer_nr - 1], next_layer_vertex, branch_radius * SQRT_2, maximum_move_distance * maximum_move_distance); //Avoid collision.
+                if (model_collision_tips[layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
+                {
+                    continue;
+                }
             }
             else
             {
                 PolygonUtils::moveOutside(model_collision_base[layer_nr - 1], next_layer_vertex, maximum_move_distance * SQRT_2, maximum_move_distance * maximum_move_distance);
+                if (model_collision_base[layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
+                {
+                    continue;
+                }
             }
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
