@@ -55,7 +55,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
         model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance, ClipperLib::JoinType::jtRound)); //Inset previous layer with maximum_move_distance to allow some movement.
         model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound)); //Add current layer's collision to that.
-        model_collision_branch_radius.push_back(model_collision[layer_nr].offset(branch_radius, ClipperLib::JoinType::jtRound));
+        model_collision_branch_radius.push_back(model_collision_branch_radius[layer_nr - 1].offset(-maximum_move_distance, ClipperLib::JoinType::jtRound));
+        model_collision_branch_radius[layer_nr] = model_collision_branch_radius[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + branch_radius, ClipperLib::JoinType::jtRound));
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
@@ -177,6 +178,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             outline.add(part);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
         }
+        PolygonsPart debug;
+        debug.add(model_collision_branch_radius[layer_nr]);
+        storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(debug, line_width, wall_count);
         if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
         {
             storage.support.layer_nr_max_filled_layer = layer_nr;
