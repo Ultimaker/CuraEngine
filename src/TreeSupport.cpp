@@ -46,7 +46,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
-    constexpr coord_t radius_sample_resolution = 200; //Causes an error of at most 0.1mm.
+    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
     constexpr bool include_helper_parts = false;
     for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
