@@ -43,25 +43,26 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
-    std::vector<Polygons> model_collision; //Areas that have to be avoided by the tips of the branches.
-    std::vector<Polygons> model_collision_branch_radius; //Areas that have to be avoided by the base of the branches (with branch diameter added for a better approximation).
+    std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    constexpr coord_t radius_sample_resolution = 200; //Causes an error of at most 0.1mm.
+    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
     constexpr bool include_helper_parts = false;
-    model_collision.push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound));
-    model_collision_branch_radius.push_back(model_collision[0].offset(branch_radius, ClipperLib::JoinType::jtRound));
-    //TODO: If allowing support to rest on model, these need to be just the model outlines.
-    for (size_t layer_nr = 1; layer_nr < storage.print_layer_count; layer_nr++)
+    for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
     {
-        //Generate an area above the current layer where you'd still collide with the current layer if you were to move with at most maximum_move_distance.
-        model_collision.push_back(model_collision[layer_nr - 1].offset(-maximum_move_distance, ClipperLib::JoinType::jtRound)); //Inset previous layer with maximum_move_distance to allow some movement.
-        model_collision[layer_nr] = model_collision[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance, ClipperLib::JoinType::jtRound)); //Add current layer's collision to that.
-        model_collision_branch_radius.push_back(model_collision_branch_radius[layer_nr - 1].offset(-maximum_move_distance, ClipperLib::JoinType::jtRound));
-        model_collision_branch_radius[layer_nr] = model_collision_branch_radius[layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + branch_radius, ClipperLib::JoinType::jtRound));
+        const coord_t diameter = radius_sample * radius_sample_resolution;
+        model_collision.emplace_back();
+        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        {
+            model_collision[radius_sample].push_back(model_collision[radius_sample][layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
+            model_collision[radius_sample][layer_nr] = model_collision[radius_sample][layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        }
     }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
@@ -99,20 +100,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             }
 
             //Avoid collisions.
-            if (node.distance_to_top > tip_layers) //Main branch.
-            {
-                const coord_t branch_radius_node = branch_radius * node.distance_to_top * diameter_angle_scale_factor;
-                PolygonUtils::moveOutside(model_collision_branch_radius[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance);
-            }
-            else //Tip.
-            {
-                const coord_t branch_radius_node = branch_radius * node.distance_to_top / tip_layers;
-                PolygonUtils::moveOutside(model_collision[layer_nr - 1], next_layer_vertex, branch_radius_node, maximum_move_distance * maximum_move_distance);
-            }
-            if (model_collision[layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
+            const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+            const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+            PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+            if (model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
             {
                 continue;
             }
+
             contact_points[layer_nr - 1].insert(next_layer_vertex);
             contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
             contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;
@@ -178,9 +173,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             outline.add(part);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
         }
-        PolygonsPart debug;
-        debug.add(model_collision_branch_radius[layer_nr]);
-        storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(debug, line_width, wall_count);
         if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
         {
             storage.support.layer_nr_max_filled_layer = layer_nr;
