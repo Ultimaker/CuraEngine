@@ -79,15 +79,6 @@ public:
 private:
     int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point
     int getRandomPointInPolygon(int poly_idx);
-
-    /*!
-     * Calculate the distance covered when traveling between two points.
-     *
-     * \param[in] p0 One end of the travel path.
-     * \param[in] p1 The other end of the travel path.
-     * \return The distance covered to go from \p p0 to \p p1.
-     */
-    float travelDistance(const Point& p0, const Point& p1);
 };
 //! Line path order optimization class.
 /*!
