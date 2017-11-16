@@ -18,13 +18,6 @@ void PathOrderOptimizer::optimize()
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     loc_to_line = nullptr;
-    if (combing_boundary != nullptr && combing_boundary->size() > 0)
-    {
-        // the combing boundary has been provided so do the initialisation
-        // required to be able to calculate realistic travel distances to the start of new paths
-        const int travel_avoid_distance = 1000; // assume 1mm - not really critical for our purposes
-        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
-    }
 
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
     {
@@ -100,26 +93,37 @@ void PathOrderOptimizer::optimize()
     }
 
     if (loc_to_line != nullptr)
+    {
         delete loc_to_line;
+    }
 }
 
 float PathOrderOptimizer::travelDistance(const Point& p0, const Point& p1)
 {
-    if (loc_to_line == nullptr)
+    if (combing_boundary)
     {
-        return vSize2f(p0 - p1);
-    }
-    CombPath comb_path;
-    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, false))
-    {
-        float dist = 0;
-        Point last_point = p0;
-        for (const Point& comb_point : comb_path)
+        if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0, p1))
         {
-            dist += vSize(comb_point - last_point);
-            last_point = comb_point;
+            if (!loc_to_line)
+            {
+                // the combing boundary has been provided so do the initialisation
+                // required to be able to calculate realistic travel distances to the start of new paths
+                const int travel_avoid_distance = 2000; // assume 2mm - not really critical for our purposes
+                loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+            }
+            CombPath comb_path;
+            if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p0, p1, comb_path, -40, 0, false))
+            {
+                float dist = 0;
+                Point last_point = p0;
+                for (const Point& comb_point : comb_path)
+                {
+                    dist += vSize(comb_point - last_point);
+                    last_point = comb_point;
+                }
+                return dist * dist;
+            }
         }
-        return dist * dist;
     }
     // fall back to direct distance
     return vSize2f(p0 - p1);
