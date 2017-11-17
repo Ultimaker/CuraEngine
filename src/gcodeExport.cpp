@@ -37,6 +37,7 @@ GCodeExport::GCodeExport()
 
     isZHopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
+    firmware_retract = false;
     initial_bed_temp = 0;
 
     extruder_count = 0;
@@ -51,6 +52,7 @@ GCodeExport::~GCodeExport()
 void GCodeExport::preSetup(const MeshGroup* meshgroup)
 {
     setFlavor(meshgroup->getSettingAsGCodeFlavor("machine_gcode_flavor"));
+    firmware_retract = meshgroup->getSettingBoolean("machine_firmware_retract");
     use_extruder_offset_to_offset_coords = meshgroup->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
@@ -263,15 +265,6 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     else
     {
         is_volumatric = false;
-    }
-
-    if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
-    {
-        firmware_retract = true;
-    }
-    else 
-    {
-        firmware_retract = false;
     }
 }
 
