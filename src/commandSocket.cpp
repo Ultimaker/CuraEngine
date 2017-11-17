@@ -131,6 +131,8 @@ class CommandSocket::PathCompiler
 
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
+    std::vector<float> line_thicknesses; //!< Line thicknesses for the line segments stored, the size of this vector is N.
+    std::vector<float> line_feedrates; //!< Line feedrates for the line segments stored, the size of this vector is N.
     std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is the dimensionality of the point.
 
     Point last_point;
@@ -145,6 +147,8 @@ public:
         data_point_type(cura::proto::PathSegment::Point2D),
         line_types(),
         line_widths(),
+        line_thicknesses(),
+        line_feedrates(),
         points(),
         last_point{0,0}
     {}
@@ -199,7 +203,7 @@ public:
         }
         else if (from != last_point)
         {
-            addLineSegment(PrintFeatureType::NoneType, from, 1.0);
+            addLineSegment(PrintFeatureType::NoneType, from, 1.0, 0.0, 0.0);
         }
     }
 
@@ -218,11 +222,11 @@ public:
     /*!
      * Adds a single line segment to the current path. The line segment added is from the current last point to point \p to
      */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int width);
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int width, int thickness, int feedrate);
     /*!
      * Adds closed polygon to the current path
      */
-    void sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef poly, int width);
+    void sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef poly, int width, int thickness, int feedrate);
 private:
     /*!
      * Convert and add a point to the points buffer, each point being represented as two consecutive floats. All members adding a 2D point to the data should use this function.
@@ -236,11 +240,13 @@ private:
     /*!
      * Implements the functionality of adding a single 2D line segment to the path data. All member functions adding a 2D line segment should use this functions.
      */
-    void addLineSegment(PrintFeatureType print_feature_type, Point point, int line_width)
+    void addLineSegment(PrintFeatureType print_feature_type, Point point, int line_width, int line_thickness, int line_feedrate)
     {
         addPoint2D(point);
         line_types.push_back(print_feature_type);
         line_widths.push_back(INT2MM(line_width));
+        line_thicknesses.push_back(INT2MM(line_thickness));
+        line_feedrates.push_back(line_feedrate);
     }
 };
 #endif
@@ -520,7 +526,7 @@ void CommandSocket::sendOptimizedLayerInfo(int layer_nr, int32_t z, int32_t heig
 #endif
 }
 
-void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons, int line_width)
+void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons, int line_width, int line_thickness, int line_feedrate)
 {
 #ifdef ARCUS
     if (polygons.size() == 0)
@@ -534,32 +540,32 @@ void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons
 
         for (unsigned int i = 0; i < polygons.size(); ++i)
         {
-            path_comp->sendPolygon(type, polygons[i], line_width);
+            path_comp->sendPolygon(type, polygons[i], line_width, line_thickness, line_feedrate);
         }
     }
 #endif
 }
 
-void CommandSocket::sendPolygon(PrintFeatureType type, ConstPolygonRef polygon, int line_width)
+void CommandSocket::sendPolygon(PrintFeatureType type, ConstPolygonRef polygon, int line_width, int line_thickness, int line_feedrate)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
 
-        path_comp->sendPolygon(type, polygon, line_width);
+        path_comp->sendPolygon(type, polygon, line_width, line_thickness, line_feedrate);
     }
 #endif
 }
 
-void CommandSocket::sendLineTo(cura::PrintFeatureType type, Point to, int line_width)
+void CommandSocket::sendLineTo(cura::PrintFeatureType type, Point to, int line_width, int line_thickness, int line_feedrate)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
 
-        path_comp->sendLineTo(type, to, line_width);
+        path_comp->sendLineTo(type, to, line_width, line_thickness, line_feedrate);
     }
 #endif
 }
@@ -815,23 +821,31 @@ void CommandSocket::PathCompiler::flushPathSegments()
         std::string line_width_data;
         line_width_data.append(reinterpret_cast<const char*>(line_widths.data()), line_widths.size()*sizeof(float));
         p->set_line_width(line_width_data);
+        std::string line_thickness_data;
+        line_thickness_data.append(reinterpret_cast<const char*>(line_thicknesses.data()), line_thicknesses.size()*sizeof(float));
+        p->set_line_thickness(line_thickness_data);
+        std::string line_feedrate_data;
+        line_feedrate_data.append(reinterpret_cast<const char*>(line_feedrates.data()), line_feedrates.size()*sizeof(float));
+        p->set_line_feedrate(line_feedrate_data);
     }
     points.clear();
+    line_feedrates.clear();
+    line_thicknesses.clear();
     line_widths.clear();
     line_types.clear();
 }
 
-void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type, Point to, int width)
+void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type, Point to, int width, int thickness, int feedrate)
 {
     assert(points.size() > 0 && "A point must already be in the buffer for sendLineTo(.) to function properly");
 
     if (to != last_point)
     {
-        addLineSegment(print_feature_type, to, width);
+        addLineSegment(print_feature_type, to, width, thickness, feedrate);
     }
 }
 
-void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef polygon, int width)
+void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef polygon, int width, int thickness, int feedrate)
 {
     if (polygon.size() < 2)
     {
@@ -847,13 +861,13 @@ void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_typ
         // Ignore zero-length segments.
         if (*it != last_point)
         {
-            addLineSegment(print_feature_type, *it, width);
+            addLineSegment(print_feature_type, *it, width, thickness, feedrate);
         }
     }
     // Make sure the polygon is closed
     if (*polygon.begin() != polygon.back())
     {
-        addLineSegment(print_feature_type, *polygon.begin(), width);
+        addLineSegment(print_feature_type, *polygon.begin(), width, thickness, feedrate);
     }
 }
 #endif
