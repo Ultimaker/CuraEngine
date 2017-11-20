@@ -7,7 +7,7 @@
 #include <sstream> // ostringstream
 #include <../src/utils/intpoint.h>
 #include <../src/utils/string.h>
-
+#include <cinttypes>
 
 namespace cura
 {
@@ -87,13 +87,13 @@ void StringTest::writeInt2mmAssert(int64_t in)
     if (!ss.good())
     {
         char buffer[200];
-        sprintf(buffer, "The integer %ld was printed as '%s' which was a bad string!", in, str.c_str());
+        sprintf(buffer, "The integer %d was printed as '%s' which was a bad string!", in, str.c_str());
         CPPUNIT_ASSERT_MESSAGE(std::string(buffer), false);
     }
     int64_t out = MM2INT(strtod(str.c_str(), nullptr));
 
     char buffer[200];
-    sprintf(buffer, "The integer %ld was printed as '%s' which was interpreted as %ld rather than %ld!", in, str.c_str(), out, in);
+    sprintf(buffer, "The integer %d was printed as '%s' which was interpreted as %d rather than %d!", in, str.c_str(), out, in);
     CPPUNIT_ASSERT_MESSAGE(std::string(buffer), in == out);
 }
 
