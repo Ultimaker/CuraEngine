@@ -530,9 +530,9 @@ void GCodeExport::writeTravel(Point p, double speed)
 {
     writeTravel(Point3(p.X, p.Y, current_layer_z), speed);
 }
-void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
-    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, update_extrusion_offset, feature);
+    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
 void GCodeExport::writeTravel(Point3 p, double speed)
@@ -545,14 +545,14 @@ void GCodeExport::writeTravel(Point3 p, double speed)
     writeTravel(p.x, p.y, p.z + isZHopped, speed);
 }
 
-void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, update_extrusion_offset, feature);
+    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
@@ -639,7 +639,7 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
     writeFXYZE(speed, x, y, z, current_e_value, PrintFeatureType::MoveCombing);
 }
 
-void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
