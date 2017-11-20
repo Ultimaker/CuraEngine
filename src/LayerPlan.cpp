@@ -474,13 +474,13 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         const Point& p0 = polygon[start];
         addTravel(p0);
         const Point& p1 = polygon[end];
-        addExtrusionMove(p1, config, space_fill_type, flow_ratio, 0.0);
+        addExtrusionMove(p1, config, space_fill_type, flow_ratio);
         if (wipe_dist != 0)
         {
             int line_width = config.getLineWidth();
             if (vSize2(p1-p0) > line_width * line_width * 4)
             { // otherwise line will get optimized by combining multiple into a single extrusion move
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, 0.0);
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type);
             }
         }
     }
@@ -809,12 +809,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
         int64_t nozzle_size = gcode.getNozzleSize(extruder);
 
-        // testing
         bool update_extrusion_offset = true;
-//        float extrusion_offset = 0;
-//        float extrusion_offset_candidate = 0;
-//        float extrusion_offset_factor = 0.2;  // 0.2 don't know why, testing
-//        float max_extrusion_offset = 4;       // original value tops at 4
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
@@ -957,7 +952,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(z + layer_thickness * length / totalLength);
                         sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
-                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.getExtrusionOffsetMM(), path.config->type);
+                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), update_extrusion_offset, path.config->type);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -1041,6 +1036,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
 
 bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
+    bool update_extrusion_offset = false;
     if (coasting_volume <= 0)
     {
         return false;
@@ -1135,10 +1131,10 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.getExtrusionOffsetMM(), path.config->type);
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), update_extrusion_offset, path.config->type);
         }
         sendLineTo(path.config->type, start, path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.getExtrusionOffsetMM(), path.config->type);
+        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), update_extrusion_offset, path.config->type);
     }
 
     // write coasting path

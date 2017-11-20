@@ -30,7 +30,6 @@ private:
     const int layer_thickness; //!< current layer height in micron
     const double flow; //!< extrusion flow modifier in %
     const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
-    const double extrusion_offset;  //!< used for flow rate compensation, in mm, default to 0
 public:
     GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives);
 
@@ -56,8 +55,6 @@ public:
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
     double getExtrusionMM3perMM() const;
-
-    double getExtrusionOffsetMM() const;
 
     /*!
      * Get the movement speed in mm/s

@@ -13,7 +13,6 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 , layer_thickness(other.layer_thickness)
 , flow(other.flow)
 , extrusion_mm3_per_mm(other.extrusion_mm3_per_mm)
-, extrusion_offset(0)
 {
 }
 
@@ -26,7 +25,6 @@ GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int laye
 , layer_thickness(layer_height)
 , flow(flow)
 , extrusion_mm3_per_mm(calculateExtrusion())
-, extrusion_offset(0)
 {
 }
 
@@ -41,11 +39,6 @@ void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_
 double GCodePathConfig::getExtrusionMM3perMM() const
 {
     return extrusion_mm3_per_mm;
-}
-
-double GCodePathConfig::getExtrusionOffsetMM() const
-{
-    return extrusion_offset;
 }
 
 double GCodePathConfig::getSpeed() const
