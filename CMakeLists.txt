@@ -33,7 +33,7 @@ option(BUILD_TESTS OFF)
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     message(STATUS "Building debug release of CuraEngine.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
     add_definitions(-DDEBUG)
@@ -132,6 +132,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
     src/utils/SpaceFillingTree.cpp
+    src/utils/socket.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
