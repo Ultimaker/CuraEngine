@@ -98,6 +98,12 @@ private:
     std::string new_line;
 
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
+
+    // flow-rate compensation
+    double current_e_offset; //!< Offset to compensate for flow rate (mm or mm^3)
+    double max_extrusion_offset; //!< 0 to turn it off, normally 4
+    double extrusion_offset_factor; //!< default 1
+
     Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
     double current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
@@ -201,7 +207,9 @@ public:
     EGCodeFlavor getFlavor() const;
     
     void setZ(int z);
-    
+
+    void setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor);
+
     void addLastCoastedVolume(double last_coasted_volume) 
     {
         extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
@@ -287,9 +295,10 @@ public:
      * 
      * \param p location to go to
      * \param speed movement speed
+     * \param update_extrusion_offset update the extrusion offset to match the current flow rate
      * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -309,9 +318,10 @@ public:
      * 
      * \param p location to go to
      * \param speed movement speed
+     * \param update_extrusion_offset update the extrusion offset to match the current flow rate
      * \param feature the feature that's currently printing
      */
-    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature);
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -334,9 +344,10 @@ private:
      * \param z build plate z
      * \param speed movement speed
      * \param extrusion_mm3_per_mm flow
+     * \param update_extrusion_offset update the extrusion offset to match the current flow rate
      * \param feature the print feature that's currently printing
      */
-    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, bool update_extrusion_offset, PrintFeatureType feature);
 
     /*!
      * Write the F, X, Y, Z and E value (if they are not different from the last)
