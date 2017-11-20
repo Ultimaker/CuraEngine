@@ -76,7 +76,7 @@ void StringTest::writeInt2mmTestMax()
 }
 
 
-void StringTest::writeInt2mmAssert(int64_t in)
+void StringTest::writeInt2mmAssert(int in)
 {
     std::ostringstream ss;
     writeInt2mm(in, ss);
@@ -89,7 +89,7 @@ void StringTest::writeInt2mmAssert(int64_t in)
         sprintf(buffer, "The integer %d was printed as '%s' which was a bad string!", in, str.c_str());
         CPPUNIT_ASSERT_MESSAGE(std::string(buffer), false);
     }
-    int64_t out = MM2INT(strtod(str.c_str(), nullptr));
+    int out = MM2INT(strtod(str.c_str(), nullptr));
 
     char buffer[200];
     sprintf(buffer, "The integer %d was printed as '%s' which was interpreted as %d rather than %d!", in, str.c_str(), out, in);
