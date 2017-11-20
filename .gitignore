@@ -15,6 +15,7 @@ callgrind/*
 ## Building result.
 build/*
 debug_build/*
+cmake-build-debug/*
 *.pyc
 *.exe
 *.a
