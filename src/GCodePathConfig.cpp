@@ -3,7 +3,7 @@
 #include "utils/intpoint.h" // INT2MM
 #include "GCodePathConfig.h"
 
-namespace cura 
+namespace cura
 {
 
 GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
@@ -28,7 +28,7 @@ GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int laye
 {
 }
 
-void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer_nr) 
+void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer_nr)
 {
     double max_speed_layer = max_speed_layer_nr;
     speed_derivatives.speed = (speed_derivatives.speed * layer_nr) / max_speed_layer + (first_layer_config.speed * (max_speed_layer - layer_nr) / max_speed_layer);
