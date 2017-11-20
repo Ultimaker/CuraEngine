@@ -737,9 +737,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     gcode.writeLayerComment(layer_nr);
 
-    // testing flow-rate compensation
+    // flow-rate compensation
     gcode.setFlowRateExtrusionSettings(storage.getSettingInMillimeters("flow_rate_max_extrusion_offset"), storage.getSettingInPercentage("flow_rate_extrusion_offset_factor") / 100);
-    //gcode.setFlowRateExtrusionSettings(4.0, 1.0);
 
     if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature") != 0)
     {

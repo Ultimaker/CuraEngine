@@ -700,10 +700,6 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     if (update_extrusion_offset) {
         current_e_offset = extrusion_offset;
     }
-    // write new value of extrusion_offset, which will be remembered. allow increasing value while update_extrusion_offset is false
-//    if ((update_extrusion_offset) || (extrusion_offset > current_e_offset)) {
-//        current_e_offset = extrusion_offset;
-//    }
 
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
 
