@@ -697,8 +697,9 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
         }
     }
     // write new value of extrusion_offset, which will be remembered.
-    if (update_extrusion_offset) {
+    if ((update_extrusion_offset) && (extrusion_offset != current_e_offset)) {
         current_e_offset = extrusion_offset;
+        *output_stream << ";FLOW_RATE_COMPENSATED_OFFSET = " << current_e_offset << new_line;
     }
 
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
@@ -729,7 +730,6 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e, PrintF
         const double output_e = (relative_extrusion)? e + current_e_offset - current_e_value : e + current_e_offset;
         *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, output_e};
     }
-    *output_stream << " # extruder offset = " << current_e_offset;
     *output_stream << new_line;
 
     currentPosition = Point3(x, y, z);
