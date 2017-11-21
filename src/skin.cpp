@@ -337,10 +337,6 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
  */
 void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
 {
-    if (skin_inset_count <= 0)
-    {
-        return;
-    }
     for (int inset_idx = 0; inset_idx < skin_inset_count; inset_idx++)
     {
         skin_part.insets.push_back(Polygons());
