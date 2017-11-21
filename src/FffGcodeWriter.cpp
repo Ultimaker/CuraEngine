@@ -667,13 +667,13 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
             layer_thickness = mesh.layers[layer_nr].thickness;
             break;
         }
+
         if (layer_nr == 0)
         {
             if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
             {
                 include_helper_parts = false;
             }
-            layer_thickness = getSettingInMicrons("layer_height_0");
         }
     }
 

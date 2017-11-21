@@ -15,9 +15,13 @@ AdaptiveLayer::AdaptiveLayer(int layer_height)
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights)
 {
+    // store the required parameters
     this->mesh = mesh;
+    this->initial_layer_height = initial_layer_thickness;
+    this->allowed_layer_heights = allowed_layer_heights;
+
     this->calculateMeshTriangleSlopes();
-    this->calculateLayers(initial_layer_thickness, allowed_layer_heights);
+    this->calculateLayers();
 }
 
 int AdaptiveLayerHeights::getLayerCount()
@@ -30,19 +34,32 @@ std::vector<AdaptiveLayer>* AdaptiveLayerHeights::getLayers()
     return &layers;
 }
 
-void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vector<int> allowed_layer_heights)
+void AdaptiveLayerHeights::calculateLayers()
 {
     const int model_height = this->mesh->max().z;
-    const int minimum_layer_height = *std::min_element(allowed_layer_heights.begin(), allowed_layer_heights.end());
+    const int minimum_layer_height = *std::min_element(this->allowed_layer_heights.begin(), this->allowed_layer_heights.end());
     const int max_layers = model_height / minimum_layer_height;
     std::vector<int> triangles_of_interest;
-    int z_level = 0; // TODO: use initial layer thickness
+    int z_level = 0;
+
+    // make sure to store all layers
+//    this->layers.resize(max_layers);
 
     // loop over all potential layers
-    for (unsigned int layer_index = 0; layer_index < max_layers; layer_index++)
+    for (int layer_index = 0; layer_index <= max_layers; layer_index++)
     {
+        // the first layer has it's own independent height set, so we always add that
+        if (layer_index == 0)
+        {
+            z_level += this->initial_layer_height;
+            auto * adaptive_layer = new AdaptiveLayer(this->initial_layer_height);
+            adaptive_layer->z_position = z_level;
+            this->layers.push_back(*adaptive_layer);
+            continue;
+        }
+
         // loop over all allowed layer heights starting with the largest
-        for (auto & layer_height : allowed_layer_heights)
+        for (auto & layer_height : this->allowed_layer_heights)
         {
             int lower_bound = z_level;
             int upper_bound = z_level + layer_height;
@@ -72,7 +89,9 @@ void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vec
             triangles_of_interest.clear();
             std::set_intersection(min_bounds.begin(), min_bounds.end(), max_bounds.begin(), max_bounds.end(), std::back_inserter(triangles_of_interest));
 
-            if (triangles_of_interest.empty()) {
+            // when there not interesting triangles in this potential layer go to the next one
+            if (triangles_of_interest.empty())
+            {
                 break;
             }
 
@@ -88,18 +107,23 @@ void AdaptiveLayerHeights::calculateLayers(int initial_layer_thickness, std::vec
             double minimum_slope = *std::min_element(slopes.begin(), slopes.end());
             double minimum_slope_tan = std::tan(minimum_slope);
 
-            // calculate if minimum slope in this potential layer is too steep or not
-            // if not, add the layer
-            if (minimum_slope_tan == 0.0 || layer_height / minimum_slope_tan <= 100 || layer_height == minimum_layer_height)
+            // we add the layer in the following cases:
+            // 1) the layer angle is below the threshold
+            // 2) the layer height is the smallest it is allowed
+            // 3) the layer has a flat surface (we can't divide by 0)
+            if (minimum_slope_tan == 0.0 || layer_height / minimum_slope_tan <= 50 || layer_height == minimum_layer_height)
             {
-                auto * adaptive_layer = new AdaptiveLayer(layer_height);
-                this->layers.push_back(*adaptive_layer);
                 z_level += layer_height;
+                auto * adaptive_layer = new AdaptiveLayer(layer_height);
+                adaptive_layer->z_position = z_level;
+                this->layers.push_back(*adaptive_layer);
                 break;
             }
         }
 
-        if (triangles_of_interest.empty()) {
+        // stop calculating when we're out of triangles (e.g. above the mesh)
+        if (triangles_of_interest.empty())
+        {
             break;
         }
     }

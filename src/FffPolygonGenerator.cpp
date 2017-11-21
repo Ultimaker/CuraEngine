@@ -106,7 +106,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         // Calculate adaptive layer heights
         Mesh& mesh = meshgroup->meshes.front();
-        std::vector<int> allowed_layer_heights = {200, 150, 100, 60};
+        std::vector<int> allowed_layer_heights = {200, 150, 100};
         adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, initial_layer_thickness, allowed_layer_heights);
 
         // Get the amount of layers
@@ -120,7 +120,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
     if (slice_layer_count <= 0)
     {
-        return true; //This is NOT an error state!
+        return true; // This is NOT an error state!
     }
 
     std::vector<Slicer*> slicerList;
@@ -146,8 +146,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
-    meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
-
+    // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
+    meshgroup->clear();
 
     Mold::process(storage, slicerList, layer_thickness);
 
@@ -193,46 +193,33 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
 
+        // only create layer parts for normal meshes
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
-
         if (!is_support_modifier)
-        { // only create layer parts for normal meshes
+        {
             createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         }
 
+        // check one if raft offset is needed
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
 
-        int absolute_z = 0;
-
-        //Add the raft offset to each layer.
+        // calculate the height at which each layer is actually printed (printZ)
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
 
-            if (layer_nr == 0)
-            {
-                absolute_z = 0;
-            }
-            else if (use_variable_layer_heights)
-            {
-                absolute_z += adaptive_layer_heights->getLayers()->at(layer_nr - 1).layer_height;
-            }
-            else
-            {
-                absolute_z = layer_nr * layer_thickness;
-            }
-
-            meshStorage.layers[layer_nr].printZ = getSettingInMicrons("layer_height_0") + absolute_z;
-
             if (use_variable_layer_heights)
             {
+                meshStorage.layers[layer_nr].printZ = adaptive_layer_heights->getLayers()->at(layer_nr).z_position;
                 meshStorage.layers[layer_nr].thickness = adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
             }
             else
             {
+                meshStorage.layers[layer_nr].printZ = initial_layer_thickness + (layer_nr * layer_thickness);
                 meshStorage.layers[layer_nr].thickness = layer_thickness;
             }
 
+            // add the raft offset to each layer
             if (has_raft)
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
@@ -240,6 +227,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     Raft::getTotalThickness(storage)
                     + train->getSettingInMicrons("raft_airgap")
                     - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
+
                 if (layer_nr == 0)
                 {
                     layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer

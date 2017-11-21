@@ -944,6 +944,18 @@ class Polygon : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   float line_width() const;
   void set_line_width(float value);
 
+  // float line_thickness = 4;
+  void clear_line_thickness();
+  static const int kLineThicknessFieldNumber = 4;
+  float line_thickness() const;
+  void set_line_thickness(float value);
+
+  // float line_feedrate = 5;
+  void clear_line_feedrate();
+  static const int kLineFeedrateFieldNumber = 5;
+  float line_feedrate() const;
+  void set_line_feedrate(float value);
+
   // @@protoc_insertion_point(class_scope:cura.proto.Polygon)
  private:
 
@@ -951,6 +963,8 @@ class Polygon : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   ::google::protobuf::internal::ArenaStringPtr points_;
   int type_;
   float line_width_;
+  float line_thickness_;
+  float line_feedrate_;
   mutable int _cached_size_;
   friend struct  protobuf_Cura_2eproto::TableStruct;
 };
@@ -1201,6 +1215,34 @@ class PathSegment : public ::google::protobuf::Message /* @@protoc_insertion_poi
   ::std::string* release_line_width();
   void set_allocated_line_width(::std::string* line_width);
 
+  // bytes line_thickness = 6;
+  void clear_line_thickness();
+  static const int kLineThicknessFieldNumber = 6;
+  const ::std::string& line_thickness() const;
+  void set_line_thickness(const ::std::string& value);
+  #if LANG_CXX11
+  void set_line_thickness(::std::string&& value);
+  #endif
+  void set_line_thickness(const char* value);
+  void set_line_thickness(const void* value, size_t size);
+  ::std::string* mutable_line_thickness();
+  ::std::string* release_line_thickness();
+  void set_allocated_line_thickness(::std::string* line_thickness);
+
+  // bytes line_feedrate = 7;
+  void clear_line_feedrate();
+  static const int kLineFeedrateFieldNumber = 7;
+  const ::std::string& line_feedrate() const;
+  void set_line_feedrate(const ::std::string& value);
+  #if LANG_CXX11
+  void set_line_feedrate(::std::string&& value);
+  #endif
+  void set_line_feedrate(const char* value);
+  void set_line_feedrate(const void* value, size_t size);
+  ::std::string* mutable_line_feedrate();
+  ::std::string* release_line_feedrate();
+  void set_allocated_line_feedrate(::std::string* line_feedrate);
+
   // int32 extruder = 1;
   void clear_extruder();
   static const int kExtruderFieldNumber = 1;
@@ -1220,6 +1262,8 @@ class PathSegment : public ::google::protobuf::Message /* @@protoc_insertion_poi
   ::google::protobuf::internal::ArenaStringPtr points_;
   ::google::protobuf::internal::ArenaStringPtr line_type_;
   ::google::protobuf::internal::ArenaStringPtr line_width_;
+  ::google::protobuf::internal::ArenaStringPtr line_thickness_;
+  ::google::protobuf::internal::ArenaStringPtr line_feedrate_;
   ::google::protobuf::int32 extruder_;
   int point_type_;
   mutable int _cached_size_;
@@ -2672,6 +2716,34 @@ inline void Polygon::set_line_width(float value) {
   // @@protoc_insertion_point(field_set:cura.proto.Polygon.line_width)
 }
 
+// float line_thickness = 4;
+inline void Polygon::clear_line_thickness() {
+  line_thickness_ = 0;
+}
+inline float Polygon::line_thickness() const {
+  // @@protoc_insertion_point(field_get:cura.proto.Polygon.line_thickness)
+  return line_thickness_;
+}
+inline void Polygon::set_line_thickness(float value) {
+  
+  line_thickness_ = value;
+  // @@protoc_insertion_point(field_set:cura.proto.Polygon.line_thickness)
+}
+
+// float line_feedrate = 5;
+inline void Polygon::clear_line_feedrate() {
+  line_feedrate_ = 0;
+}
+inline float Polygon::line_feedrate() const {
+  // @@protoc_insertion_point(field_get:cura.proto.Polygon.line_feedrate)
+  return line_feedrate_;
+}
+inline void Polygon::set_line_feedrate(float value) {
+  
+  line_feedrate_ = value;
+  // @@protoc_insertion_point(field_set:cura.proto.Polygon.line_feedrate)
+}
+
 // -------------------------------------------------------------------
 
 // LayerOptimized
@@ -2934,6 +3006,110 @@ inline void PathSegment::set_allocated_line_width(::std::string* line_width) {
   }
   line_width_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), line_width);
   // @@protoc_insertion_point(field_set_allocated:cura.proto.PathSegment.line_width)
+}
+
+// bytes line_thickness = 6;
+inline void PathSegment::clear_line_thickness() {
+  line_thickness_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& PathSegment::line_thickness() const {
+  // @@protoc_insertion_point(field_get:cura.proto.PathSegment.line_thickness)
+  return line_thickness_.GetNoArena();
+}
+inline void PathSegment::set_line_thickness(const ::std::string& value) {
+  
+  line_thickness_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:cura.proto.PathSegment.line_thickness)
+}
+#if LANG_CXX11
+inline void PathSegment::set_line_thickness(::std::string&& value) {
+  
+  line_thickness_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:cura.proto.PathSegment.line_thickness)
+}
+#endif
+inline void PathSegment::set_line_thickness(const char* value) {
+  
+  line_thickness_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:cura.proto.PathSegment.line_thickness)
+}
+inline void PathSegment::set_line_thickness(const void* value, size_t size) {
+  
+  line_thickness_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:cura.proto.PathSegment.line_thickness)
+}
+inline ::std::string* PathSegment::mutable_line_thickness() {
+  
+  // @@protoc_insertion_point(field_mutable:cura.proto.PathSegment.line_thickness)
+  return line_thickness_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* PathSegment::release_line_thickness() {
+  // @@protoc_insertion_point(field_release:cura.proto.PathSegment.line_thickness)
+  
+  return line_thickness_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void PathSegment::set_allocated_line_thickness(::std::string* line_thickness) {
+  if (line_thickness != NULL) {
+    
+  } else {
+    
+  }
+  line_thickness_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), line_thickness);
+  // @@protoc_insertion_point(field_set_allocated:cura.proto.PathSegment.line_thickness)
+}
+
+// bytes line_feedrate = 7;
+inline void PathSegment::clear_line_feedrate() {
+  line_feedrate_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& PathSegment::line_feedrate() const {
+  // @@protoc_insertion_point(field_get:cura.proto.PathSegment.line_feedrate)
+  return line_feedrate_.GetNoArena();
+}
+inline void PathSegment::set_line_feedrate(const ::std::string& value) {
+  
+  line_feedrate_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:cura.proto.PathSegment.line_feedrate)
+}
+#if LANG_CXX11
+inline void PathSegment::set_line_feedrate(::std::string&& value) {
+  
+  line_feedrate_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:cura.proto.PathSegment.line_feedrate)
+}
+#endif
+inline void PathSegment::set_line_feedrate(const char* value) {
+  
+  line_feedrate_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:cura.proto.PathSegment.line_feedrate)
+}
+inline void PathSegment::set_line_feedrate(const void* value, size_t size) {
+  
+  line_feedrate_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:cura.proto.PathSegment.line_feedrate)
+}
+inline ::std::string* PathSegment::mutable_line_feedrate() {
+  
+  // @@protoc_insertion_point(field_mutable:cura.proto.PathSegment.line_feedrate)
+  return line_feedrate_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* PathSegment::release_line_feedrate() {
+  // @@protoc_insertion_point(field_release:cura.proto.PathSegment.line_feedrate)
+  
+  return line_feedrate_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void PathSegment::set_allocated_line_feedrate(::std::string* line_feedrate) {
+  if (line_feedrate != NULL) {
+    
+  } else {
+    
+  }
+  line_feedrate_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), line_feedrate);
+  // @@protoc_insertion_point(field_set_allocated:cura.proto.PathSegment.line_feedrate)
 }
 
 // -------------------------------------------------------------------

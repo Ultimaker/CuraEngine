@@ -806,76 +806,64 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     int initial = initial_layer_thickness - thickness; // slice height of initial slice layer
 
     // use the first variable layer height when slicing in variable mode
-    if (use_variable_layer_heights)
-    {
-        initial = initial_layer_thickness - adaptive_layers->front().layer_height;
-    }
+//    if (use_variable_layer_heights)
+//    {
+//        initial = initial_layer_thickness - adaptive_layers->front().layer_height;
+//    }
 
     // compensate first layer thickness depending on slicing mode
     if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
-        if (use_variable_layer_heights)
-        {
-            initial += adaptive_layers->front().layer_height / 2;
-        }
-        else
-        {
-            initial += thickness / 2;
-        }
+        initial += thickness / 2;
     }
 
-    layers.resize(slice_layer_count);
-
-    // keep track of absolute z value for variable layer heights
-    int absolute_z = 0;
+//    layers.resize(slice_layer_count);
 
     // define all layer z positions depending on slicing mode
     for (int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
-        if (layer_nr == 0)
+        if (use_variable_layer_heights)
         {
-            absolute_z += initial;
-        }
-        else if (use_variable_layer_heights)
-        {
-            absolute_z += adaptive_layers->at(layer_nr - 1).layer_height;
+            layers[layer_nr].z = adaptive_layers->at(layer_nr).z_position;
         }
         else
         {
-            absolute_z += thickness;
+            layers[layer_nr].z = initial + (thickness * layer_nr);
         }
-
-        layers[layer_nr].z = absolute_z;
     }
 
+    // loop over all mesh faces
     for (unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
     {
+        // get all vertices per face
         const MeshFace& face = mesh->faces[mesh_idx];
         const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
         const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
         const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
 
+        // get all vertices represented as 3D point
         Point3 p0 = v0.p;
         Point3 p1 = v1.p;
         Point3 p2 = v2.p;
 
+        // find the minimum and maximum z point
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
-
         if (p1.z < minZ) minZ = p1.z;
         if (p2.z < minZ) minZ = p2.z;
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
 
-        int32_t first_layer_nr = (minZ - initial) / thickness;
+//        int32_t first_layer_nr = (minZ - initial) / thickness;
+//
+//        // use other method of getting max amount of layers when using variable layer mode
+//        if (use_variable_layer_heights)
+//        {
+//            first_layer_nr = 0;
+//        }
 
-        // use other method of getting max amount of layers when using variable layer mode
-        if (use_variable_layer_heights)
-        {
-            first_layer_nr = 0;
-        }
-
-        for (int32_t layer_nr = first_layer_nr; layer_nr < layers.size(); layer_nr++)
+        // calculate all intersections between a layer plane and a triangle
+        for (int32_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
         {
             int32_t z = layers.at(layer_nr).z;
 
@@ -935,6 +923,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
                 continue;
             }
 
+            // store the segments per layer
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
             s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
@@ -946,6 +935,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
     log("slice of mesh took %.3f seconds\n",slice_timer.restart());
 
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
+
 #pragma omp parallel for default(none) shared(mesh,layers_ref) firstprivate(keep_none_closed, extensive_stitching)
     for(unsigned int layer_nr=0; layer_nr<layers_ref.size(); layer_nr++)
     {

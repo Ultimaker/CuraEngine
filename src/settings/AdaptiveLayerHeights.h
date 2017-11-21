@@ -17,6 +17,11 @@ public:
     int layer_height;
 
     /*!
+     * The absolute z position of the layer.
+     */
+    int z_position;
+
+    /*!
      * Temperature to use for this layer.
      */
     int temperature;
@@ -42,9 +47,19 @@ public:
     const Mesh* mesh = nullptr;
 
     /*!
+     * Stores the initial layer height.
+     */
+    int initial_layer_height;
+
+    /*!
      * Stores the found layer heights
      */
     std::vector<AdaptiveLayer> layers;
+
+    /*!
+     * Stores the allowed layer heights in microns.
+     */
+    std::vector<int> allowed_layer_heights;
 
     /*!
      * Get the amount of adaptive layers found.
@@ -72,7 +87,7 @@ private:
     /*!
      * Calculates the layers based on the given mesh and allowed layer heights
      */
-    void calculateLayers(int initial_layer_thickness, std::vector<int> allowed_layer_heights);
+    void calculateLayers();
 
     /*!
      * Calculates the slopes for each triangle in the mesh.
