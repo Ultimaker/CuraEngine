@@ -86,7 +86,7 @@ public:
      * \return Whether lines have been merged and normal path-to-gcode generation can be skipped for the current resulting \p path_idx .
      */
     bool mergeInfillLines(unsigned int& path_idx);
-    
+
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
