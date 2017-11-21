@@ -13,6 +13,17 @@
 namespace cura 
 {
 
+coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr)
+{
+    coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
+    if (layer_nr == 0)
+    {
+        const ExtruderTrain& train_skin = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("top_bottom_extruder_nr"));
+        skin_line_width *= train_skin.getSettingAsRatio("initial_layer_line_width_factor");
+    }
+    return skin_line_width;
+}
+
 coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr)
 {
     coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
@@ -54,6 +65,7 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(int layer_nr, const SliceDa
 , bottom_layer_count(mesh.getSettingAsCount("bottom_layers"))
 , top_layer_count(mesh.getSettingAsCount("top_layers"))
 , wall_line_count(mesh.getSettingAsCount("wall_line_count"))
+, skin_line_width(getSkinLineWidth(storage, mesh, layer_nr))
 , wall_line_width_0(getWallLineWidth0(storage, mesh, layer_nr))
 , wall_line_width_x(getWallLineWidthX(storage, mesh, layer_nr))
 , innermost_wall_line_width((wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x)
@@ -342,11 +354,12 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
         skin_part.insets.push_back(Polygons());
         if (inset_idx == 0)
         {
-            skin_part.insets[0] = skin_part.outline.offset(-wall_line_width_x / 2);
+            //The 10 micron reduced inset is to prevent rounding errors from creating gaps that get filled by the fill small gaps routine.
+            skin_part.insets[0] = skin_part.outline.offset(-skin_line_width / 2 + 10);
         }
         else
         {
-            skin_part.insets[inset_idx] = skin_part.insets[inset_idx - 1].offset(-wall_line_width_x);
+            skin_part.insets[inset_idx] = skin_part.insets[inset_idx - 1].offset(-skin_line_width);
         }
 
         // optimize polygons: remove unnecessary verts
@@ -373,7 +386,7 @@ void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
         return;
     }
     const Polygons& innermost_inset = skin_part.insets.back();
-    skin_part.inner_infill = innermost_inset.offset(-wall_line_width_x / 2);
+    skin_part.inner_infill = innermost_inset.offset(-skin_line_width / 2);
 }
 
 /*
