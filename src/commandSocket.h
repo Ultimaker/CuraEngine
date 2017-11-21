@@ -61,7 +61,7 @@ public:
      */
     static void sendPolygons(cura::PrintFeatureType type, const cura::Polygons& polygons, int line_width, int line_thickness, int line_feedrate);
 
-    /*! 
+    /*!
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
     static void sendPolygon(cura::PrintFeatureType type, ConstPolygonRef polygon, int line_width, int line_thickness, int line_feedrate);

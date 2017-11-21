@@ -775,6 +775,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     
     gcode.writeLayerComment(layer_nr);
 
+    // flow-rate compensation
+    gcode.setFlowRateExtrusionSettings(storage.getSettingInMillimeters("flow_rate_max_extrusion_offset"), storage.getSettingInPercentage("flow_rate_extrusion_offset_factor") / 100);
+
     if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature") != 0)
     {
         bool wait = false;
@@ -844,6 +847,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
         int64_t nozzle_size = gcode.getNozzleSize(extruder);
 
+        bool update_extrusion_offset = true;
+
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
@@ -888,6 +893,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 gcode.writeTypeComment(path.config->type);
                 last_extrusion_config = path.config;
+                update_extrusion_offset = true;
+            } else {
+                update_extrusion_offset = false;
             }
 
             double speed = path.config->getSpeed();
@@ -1065,7 +1073,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
     
 bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
-    if (coasting_volume <= 0) 
+    if (coasting_volume <= 0)
     { 
         return false; 
     }
