@@ -439,6 +439,8 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
         constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
         bool fill_perimeter_gaps = mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
                                     && !getSettingBoolean("magic_spiralize");
+        bool filter_out_tiny_gaps = mesh.getSettingBoolean("filter_out_tiny_gaps");
+
         if (!fill_perimeter_gaps)
         {
             continue;
@@ -476,7 +478,9 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                     part.perimeter_gaps.add(outer.difference(inner));
                 }
 
-                part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                if (filter_out_tiny_gaps) {
+                    part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                }
 
                 // gap between inner wall and skin/infill
                 if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
@@ -509,7 +513,9 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                             skin_part.perimeter_gaps.add(outer.difference(inner));
                         }
 
-                        skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                        if (filter_out_tiny_gaps) {
+                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                        }
                     }
                 }
             }
