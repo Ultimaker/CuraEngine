@@ -145,6 +145,12 @@ int SettingsBaseVirtual::getSettingAsExtruderNr(std::string key) const
     {
         extruder_nr = getSettingAsIndex("extruder_nr");
     }
+    const int max_extruders = getSettingAsCount("machine_extruder_count");
+    if (extruder_nr >= max_extruders)
+    {
+        cura::logWarning("Trying to get extruder %s=%i, while there are only %i extruders.\n", key.c_str(), extruder_nr, max_extruders);
+        return 0;
+    }
     return extruder_nr;
 }
 
