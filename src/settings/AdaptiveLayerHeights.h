@@ -47,6 +47,11 @@ public:
     const Mesh* mesh = nullptr;
 
     /*!
+     * Threshold to compare the tan of the steepest slope to.
+     */
+    double threshold;
+
+    /*!
      * Stores the initial layer height.
      */
     int initial_layer_height;
@@ -73,7 +78,7 @@ public:
      */
     std::vector<AdaptiveLayer>* getLayers();
 
-    AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights);
+    AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights, double threshold);
 
 private:
 

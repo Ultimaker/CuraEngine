@@ -13,12 +13,13 @@ AdaptiveLayer::AdaptiveLayer(int layer_height)
     this->layer_height = layer_height;
 }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights)
+AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights, double threshold)
 {
     // store the required parameters
     this->mesh = mesh;
     this->initial_layer_height = initial_layer_thickness;
     this->allowed_layer_heights = allowed_layer_heights;
+    this->threshold = threshold;
 
     this->calculateMeshTriangleSlopes();
     this->calculateLayers();
@@ -26,38 +27,38 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickne
 
 int AdaptiveLayerHeights::getLayerCount()
 {
-    return layers.size();
+    return this->layers.size();
 }
 
 std::vector<AdaptiveLayer>* AdaptiveLayerHeights::getLayers()
 {
-    return &layers;
+    return &this->layers;
 }
 
 void AdaptiveLayerHeights::calculateLayers()
 {
-    const int model_height = this->mesh->max().z;
     const int minimum_layer_height = *std::min_element(this->allowed_layer_heights.begin(), this->allowed_layer_heights.end());
-    const int max_layers = model_height / minimum_layer_height;
+    SlicingTolerance slicing_tolerance = this->mesh->getSettingAsSlicingTolerance("slicing_tolerance");
     std::vector<int> triangles_of_interest;
     int z_level = 0;
 
-    // make sure to store all layers
-//    this->layers.resize(max_layers);
+    // the first layer has it's own independent height set, so we always add that
+    z_level += this->initial_layer_height;
 
-    // loop over all potential layers
-    for (int layer_index = 0; layer_index <= max_layers; layer_index++)
+    // compensate first layer thickness depending on slicing mode
+    if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
-        // the first layer has it's own independent height set, so we always add that
-        if (layer_index == 0)
-        {
-            z_level += this->initial_layer_height;
-            auto * adaptive_layer = new AdaptiveLayer(this->initial_layer_height);
-            adaptive_layer->z_position = z_level;
-            this->layers.push_back(*adaptive_layer);
-            continue;
-        }
+        z_level += this->initial_layer_height / 2;
+        this->initial_layer_height += this->initial_layer_height / 2;
+    }
 
+    auto * adaptive_layer = new AdaptiveLayer(this->initial_layer_height);
+    adaptive_layer->z_position = z_level;
+    this->layers.push_back(*adaptive_layer);
+
+    // loop while triangles are found
+    while (!triangles_of_interest.empty() || this->layers.size() < 2)
+    {
         // loop over all allowed layer heights starting with the largest
         for (auto & layer_height : this->allowed_layer_heights)
         {
@@ -67,19 +68,19 @@ void AdaptiveLayerHeights::calculateLayers()
             std::vector<int> min_bounds;
             std::vector<int> max_bounds;
 
-            // calculate all lower bounds
+            // calculate all intersecting lower bounds
             for (auto it_lower = this->face_min_z_values.begin(); it_lower != this->face_min_z_values.end(); ++it_lower)
             {
-                if ((*it_lower >= lower_bound && *it_lower <= upper_bound) || (*it_lower <= lower_bound && *it_lower <= upper_bound))
+                if (*it_lower <= upper_bound)
                 {
                     min_bounds.emplace_back(std::distance(this->face_min_z_values.begin(), it_lower));
                 }
             }
 
-            // calculate all upper bounds
+            // calculate all intersecting upper bounds
             for (auto it_upper = this->face_max_z_values.begin(); it_upper != this->face_max_z_values.end(); ++it_upper)
             {
-                if ((*it_upper <= upper_bound && *it_upper >= lower_bound) || (*it_upper >= upper_bound && *it_upper >= lower_bound))
+                if (*it_upper >= lower_bound)
                 {
                     max_bounds.emplace_back(std::distance(this->face_max_z_values.begin(), it_upper));
                 }
@@ -111,7 +112,7 @@ void AdaptiveLayerHeights::calculateLayers()
             // 1) the layer angle is below the threshold
             // 2) the layer height is the smallest it is allowed
             // 3) the layer has a flat surface (we can't divide by 0)
-            if (minimum_slope_tan == 0.0 || layer_height / minimum_slope_tan <= 50 || layer_height == minimum_layer_height)
+            if (minimum_slope_tan == 0.0 || (layer_height / minimum_slope_tan) <= this->threshold || layer_height == minimum_layer_height)
             {
                 z_level += layer_height;
                 auto * adaptive_layer = new AdaptiveLayer(layer_height);
@@ -150,9 +151,16 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
 
+        // calculate the angle of this triangle in the z direction
         FPoint3 n = FPoint3(p1 - p0).cross(p2 - p0);
         FPoint3 normal = n.normalized();
         double z_angle = std::acos(std::abs(normal.z));
+
+        // prevent flat surfaces from influencing the algorithm
+        if (z_angle == 0)
+        {
+            z_angle = M_PI;
+        }
 
         this->face_min_z_values.push_back(minZ * 1000);
         this->face_max_z_values.push_back(maxZ * 1000);

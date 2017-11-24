@@ -106,8 +106,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         // Calculate adaptive layer heights
         Mesh& mesh = meshgroup->meshes.front();
-        std::vector<int> allowed_layer_heights = {200, 150, 100};
-        adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, initial_layer_thickness, allowed_layer_heights);
+        std::vector<int> allowed_layer_heights = getSettingAsIntegerList("adaptive_layer_height_heights");
+        double adaptive_threshold = getSettingInAngleDegrees("adaptive_layer_height_threshold");
+        adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, initial_layer_thickness, allowed_layer_heights, adaptive_threshold);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -216,7 +217,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             else
             {
                 meshStorage.layers[layer_nr].printZ = initial_layer_thickness + (layer_nr * layer_thickness);
-                meshStorage.layers[layer_nr].thickness = layer_thickness;
+
+                if (layer_nr == 0)
+                {
+                    meshStorage.layers[layer_nr].thickness = initial_layer_thickness;
+                }
+                else
+                {
+                    meshStorage.layers[layer_nr].thickness = layer_thickness;
+                }
             }
 
             // add the raft offset to each layer

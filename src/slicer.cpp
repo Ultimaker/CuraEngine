@@ -804,31 +804,25 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
 
     TimeKeeper slice_timer;
 
-    int initial = initial_layer_thickness - thickness; // slice height of initial slice layer
-
-    // use the first variable layer height when slicing in variable mode
-//    if (use_variable_layer_heights)
-//    {
-//        initial = initial_layer_thickness - adaptive_layers->front().layer_height;
-//    }
-
-    // compensate first layer thickness depending on slicing mode
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
-    {
-        initial += thickness / 2;
-    }
-
-//    layers.resize(slice_layer_count);
+    layers.resize(slice_layer_count);
 
     // define all layer z positions depending on slicing mode
     for (int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
+            // when using adaptive layers, the z position already has been compensated for slicing tolerance mode
             layers[layer_nr].z = adaptive_layers->at(layer_nr).z_position;
         }
         else
         {
+            // compensate first layer thickness depending on slicing mode
+            int initial = initial_layer_thickness - thickness;
+            if (slicing_tolerance == SlicingTolerance::MIDDLE)
+            {
+                initial += thickness / 2;
+            }
+
             layers[layer_nr].z = initial + (thickness * layer_nr);
         }
     }
@@ -854,14 +848,6 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         if (p2.z < minZ) minZ = p2.z;
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
-
-//        int32_t first_layer_nr = (minZ - initial) / thickness;
-//
-//        // use other method of getting max amount of layers when using variable layer mode
-//        if (use_variable_layer_heights)
-//        {
-//            first_layer_nr = 0;
-//        }
 
         // calculate all intersections between a layer plane and a triangle
         for (int32_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
