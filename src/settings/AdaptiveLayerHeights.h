@@ -46,10 +46,25 @@ public:
      */
     const Mesh* mesh = nullptr;
 
+    /**
+     * The maximum deviation from the base layer height.
+     */
+    int max_variation;
+
+    /**
+     * The layer height change per step to try between min and max deviation from the base layer height.
+     */
+    int step_size;
+
     /*!
      * Threshold to compare the tan of the steepest slope to.
      */
     double threshold;
+
+    /**
+     * The base layer height.
+     */
+    int layer_height;
 
     /*!
      * Stores the initial layer height.
@@ -78,7 +93,7 @@ public:
      */
     std::vector<AdaptiveLayer>* getLayers();
 
-    AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights, double threshold);
+    AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold);
 
 private:
 

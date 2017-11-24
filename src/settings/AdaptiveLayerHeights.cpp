@@ -13,13 +13,22 @@ AdaptiveLayer::AdaptiveLayer(int layer_height)
     this->layer_height = layer_height;
 }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int initial_layer_thickness, std::vector<int> allowed_layer_heights, double threshold)
+AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
 {
     // store the required parameters
     this->mesh = mesh;
+    this->layer_height = layer_thickness;
     this->initial_layer_height = initial_layer_thickness;
-    this->allowed_layer_heights = allowed_layer_heights;
+    this->max_variation = static_cast<int>(variation);
+    this->step_size = static_cast<int>(step_size);
     this->threshold = threshold;
+
+    // calculate the allowed layer heights from variation and step size
+    // note: the order is from thickest to thinnest height!
+    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height > this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
+    {
+        this->allowed_layer_heights.push_back(allowed_layer_height);
+    }
 
     this->calculateMeshTriangleSlopes();
     this->calculateLayers();
@@ -41,6 +50,7 @@ void AdaptiveLayerHeights::calculateLayers()
     SlicingTolerance slicing_tolerance = this->mesh->getSettingAsSlicingTolerance("slicing_tolerance");
     std::vector<int> triangles_of_interest;
     int z_level = 0;
+    int previous_layer_height = 0;
 
     // the first layer has it's own independent height set, so we always add that
     z_level += this->initial_layer_height;
@@ -54,6 +64,7 @@ void AdaptiveLayerHeights::calculateLayers()
 
     auto * adaptive_layer = new AdaptiveLayer(this->initial_layer_height);
     adaptive_layer->z_position = z_level;
+    previous_layer_height = adaptive_layer->layer_height;
     this->layers.push_back(*adaptive_layer);
 
     // loop while triangles are found
@@ -108,15 +119,23 @@ void AdaptiveLayerHeights::calculateLayers()
             double minimum_slope = *std::min_element(slopes.begin(), slopes.end());
             double minimum_slope_tan = std::tan(minimum_slope);
 
+            // calculate the difference in layer height depending on which direction we're attempting
+            int layer_height_diff = (previous_layer_height < layer_height) ? previous_layer_height - layer_height : layer_height - previous_layer_height;
+
             // we add the layer in the following cases:
             // 1) the layer angle is below the threshold
             // 2) the layer height is the smallest it is allowed
-            // 3) the layer has a flat surface (we can't divide by 0)
-            if (minimum_slope_tan == 0.0 || (layer_height / minimum_slope_tan) <= this->threshold || layer_height == minimum_layer_height)
+            // 3) the layer is a flat surface (we can't divide by 0)
+            // 4) the layer height difference with the previous layer is the maximum allowed step size
+            if (minimum_slope_tan == 0.0
+                || (layer_height / minimum_slope_tan) <= this->threshold
+                || layer_height == minimum_layer_height
+                || layer_height_diff >= this->step_size)
             {
                 z_level += layer_height;
                 auto * adaptive_layer = new AdaptiveLayer(layer_height);
                 adaptive_layer->z_position = z_level;
+                previous_layer_height = adaptive_layer->layer_height;
                 this->layers.push_back(*adaptive_layer);
                 break;
             }
