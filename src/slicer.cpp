@@ -777,7 +777,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     polygons.erase(it, polygons.end());
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
-    polygons.simplify();
+    const coord_t line_segment_resolution = mesh->getSettingInMicrons("meshfix_maximum_resolution");
+    polygons.simplify(line_segment_resolution, line_segment_resolution / 2); //Maximum error is half of the resolution so it's only a limit when removing really sharp corners.
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
@@ -794,15 +795,22 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 }
 
 
-Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
 {
+    SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
+
     assert(slice_layer_count > 0);
 
     TimeKeeper slice_timer;
 
     layers.resize(slice_layer_count);
 
+    int initial = initial_layer_thickness - thickness; // slice height of initial slice layer
+    if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    {
+        initial += thickness / 2;
+    }
 
     for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
@@ -900,6 +908,27 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
     for(unsigned int layer_nr=0; layer_nr<layers_ref.size(); layer_nr++)
     {
         layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching, layer_nr == 0);
+    }
+
+    switch(slicing_tolerance)
+    {
+    case SlicingTolerance::INCLUSIVE:
+        for (unsigned int layer_nr = 0; layer_nr + 1 < layers_ref.size(); layer_nr++)
+        {
+            layers[layer_nr].polygons = layers[layer_nr].polygons.unionPolygons(layers[layer_nr + 1].polygons);
+        }
+        break;
+    case SlicingTolerance::EXCLUSIVE:
+        for (unsigned int layer_nr = 0; layer_nr + 1 < layers_ref.size(); layer_nr++)
+        {
+            layers[layer_nr].polygons = layers[layer_nr].polygons.intersection(layers[layer_nr + 1].polygons);
+        }
+        layers.back().polygons.clear();
+        break;
+    case SlicingTolerance::MIDDLE:
+    default:
+        // do nothing
+        ;
     }
 
     mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));

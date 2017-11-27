@@ -174,7 +174,7 @@ void Wireframe2gcode::writeGCode()
 
     
 void Wireframe2gcode::go_down(WeaveConnectionPart& part, unsigned int segment_idx)
-{ 
+{
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
     if (go_back_to_last_top)
@@ -251,7 +251,6 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     bool after_retract_hop = false;
     //bool go_horizontal_first = true;
     bool lower_retract_start = true;
-    
     
     Point3& to = segment.to;
     if (lower_retract_start)
@@ -497,6 +496,8 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     const double line_area = M_PI * square(INT2MM(line_width) / 2.0);
     extrusion_mm3_per_mm_connection = line_area * flowConnection / 100.0;
     extrusion_mm3_per_mm_flat = line_area * flowFlat / 100.0;
+
+    update_extrusion_offset = false;
 
     nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter"); // ___       ___   .
     nozzle_head_distance = getSettingInMicrons("machine_nozzle_head_distance");      //    |     |      .

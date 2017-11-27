@@ -285,6 +285,12 @@ void GCodeExport::setZ(int z)
     this->current_layer_z = z;
 }
 
+void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor)
+{
+    this->max_extrusion_offset = max_extrusion_offset;
+    this->extrusion_offset_factor = extrusion_offset_factor;
+}
+
 Point3 GCodeExport::getPosition() const
 {
     return currentPosition;
@@ -524,9 +530,9 @@ void GCodeExport::writeTravel(Point p, double speed)
 {
     writeTravel(Point3(p.X, p.Y, current_layer_z), speed);
 }
-void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
-    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, feature);
+    writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
 void GCodeExport::writeTravel(Point3 p, double speed)
@@ -539,14 +545,14 @@ void GCodeExport::writeTravel(Point3 p, double speed)
     writeTravel(p.x, p.y, p.z + isZHopped, speed);
 }
 
-void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
+    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
@@ -627,13 +633,13 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
 
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
-    CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width);
+    CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
     *output_stream << "G0";
     writeFXYZE(speed, x, y, z, current_e_value, PrintFeatureType::MoveCombing);
 }
 
-void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
@@ -676,6 +682,20 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
     writeUnretractionAndPrime();
 
+    //flow rate compensation
+    double extrusion_offset = 0;
+    if (diff.vSizeMM()) {
+        extrusion_offset = speed * extrusion_mm3_per_mm * extrusion_offset_factor;
+        if (extrusion_offset > max_extrusion_offset) {
+            extrusion_offset = max_extrusion_offset;
+        }
+    }
+    // write new value of extrusion_offset, which will be remembered.
+    if ((update_extrusion_offset) && (extrusion_offset != current_e_offset)) {
+        current_e_offset = extrusion_offset;
+        *output_stream << ";FLOW_RATE_COMPENSATED_OFFSET = " << current_e_offset << new_line;
+    }
+
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
 
     *output_stream << "G1";
@@ -698,9 +718,9 @@ void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e, PrintF
     {
         *output_stream << " Z" << MMtoStream{z};
     }
-    if (e != current_e_value)
+    if (e + current_e_offset != current_e_value)
     {
-        const double output_e = (relative_extrusion)? e - current_e_value : e;
+        const double output_e = (relative_extrusion)? e + current_e_offset - current_e_value : e + current_e_offset;
         *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, output_e};
     }
     *output_stream << new_line;

@@ -145,6 +145,12 @@ int SettingsBaseVirtual::getSettingAsExtruderNr(std::string key) const
     {
         extruder_nr = getSettingAsIndex("extruder_nr");
     }
+    const int max_extruders = getSettingAsCount("machine_extruder_count");
+    if (extruder_nr >= max_extruders)
+    {
+        cura::logWarning("Trying to get extruder %s=%i, while there are only %i extruders.\n", key.c_str(), extruder_nr, max_extruders);
+        return 0;
+    }
     return extruder_nr;
 }
 
@@ -376,6 +382,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::QUARTER_CUBIC;
     if (value == "triangles")
         return EFillMethod::TRIANGLES;
+    if (value == "trihexagon")
+        return EFillMethod::TRIHEXAGON;
     if (value == "concentric")
         return EFillMethod::CONCENTRIC;
     if (value == "concentric_3d")
@@ -495,6 +503,20 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
         return SupportDistPriority::Z_OVERRIDES_XY;
     }
     return SupportDistPriority::XY_OVERRIDES_Z;
+}
+
+SlicingTolerance SettingsBaseVirtual::getSettingAsSlicingTolerance(std::string key) const
+{
+    const std::string& value = getSettingString(key);
+    if (value == "inclusive")
+    {
+        return SlicingTolerance::INCLUSIVE;
+    }
+    if (value == "exclusive")
+    {
+        return SlicingTolerance::EXCLUSIVE;
+    }
+    return SlicingTolerance::MIDDLE;
 }
 
 std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) const
