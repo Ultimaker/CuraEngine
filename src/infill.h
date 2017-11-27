@@ -39,6 +39,7 @@ class Infill
     int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     bool apply_pockets_alternatingly; //!< Whether to add pockets to the cross 3d pattern only at half the intersections of the fractal
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
+    coord_t maximum_resolution; //!< Throw away perimeters that are too small
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -68,6 +69,7 @@ public:
         , int zag_skip_count = 0
         , bool apply_pockets_alternatingly = false
         , coord_t pocket_size = 0
+        , coord_t maximum_resolution = 5
     )
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
@@ -87,6 +89,7 @@ public:
     , zag_skip_count(zag_skip_count)
     , apply_pockets_alternatingly(apply_pockets_alternatingly)
     , pocket_size(pocket_size)
+    , maximum_resolution(maximum_resolution)
     {
     }
 

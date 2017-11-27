@@ -160,9 +160,9 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool 
 }
 
 
-bool ZigzagConnectorProcessor::mergePointsByThreshold(Point* first_point, Point* second_point, int threshold)
+bool ZigzagConnectorProcessor::mergePointsByThreshold(Point* first_point, Point* second_point)
 {
-    if (vSize2(*first_point - *second_point) < threshold*threshold)
+    if (vSize2(*first_point - *second_point) < maximum_resolution*maximum_resolution)
     {
         *second_point = *first_point;
         return true;

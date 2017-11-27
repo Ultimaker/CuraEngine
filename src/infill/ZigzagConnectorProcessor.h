@@ -3,6 +3,7 @@
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
 #include "../utils/polygon.h"
+#include "../settings/settings.h"
 
 namespace cura
 {
@@ -94,7 +95,7 @@ public:
      */
     ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result,
                              bool use_endpieces, bool connected_endpieces,
-                             bool skip_some_zags, int zag_skip_count)
+                             bool skip_some_zags, int zag_skip_count, coord_t maximum_resolution)
     : rotation_matrix(rotation_matrix)
     , result(result)
     , use_endpieces(use_endpieces)
@@ -104,6 +105,7 @@ public:
     , is_first_connector(true)
     , first_connector_end_scanline_index(0)
     , last_connector_index(0)
+    , maximum_resolution(5)
     {}
 
     virtual ~ZigzagConnectorProcessor()
@@ -160,7 +162,7 @@ protected:
      * \param threshold Minimum distance between points
      * \return whether the points are close by the indicated threshold, and merged in that case
      */
-    bool mergePointsByThreshold(Point* first_point, Point* second_point, int threshold=5);
+    bool mergePointsByThreshold(Point* first_point, Point* second_point);
 
     /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
@@ -183,6 +185,8 @@ protected:
     bool is_first_connector; //!< indicating whether we are still looking for the first connector or not
     int first_connector_end_scanline_index; //!< scanline segment index of the first connector
     int last_connector_index; //!< scanline segment index of the last connector
+
+    coord_t maximum_resolution; //!< maximum resolution so too short lines can be removed
 
     /*!
      * The line segments belonging the zigzag connector to which the very first vertex belongs.
