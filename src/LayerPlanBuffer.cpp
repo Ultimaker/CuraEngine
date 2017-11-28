@@ -100,8 +100,8 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     if (!prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
     {
         prev_layer->setIsInside(new_layer_destination_state->second);
-        const bool force_retract = prev_layer->storage.getSettingBoolean("travel_retract_before_outer_wall")
-            && (prev_layer->storage.getSettingBoolean("outer_inset_first") || prev_layer->storage.getSettingAsCount("wall_line_count") == 1); //Moving towards an outer wall.
+        const bool force_retract = prev_layer->storage.getSettingBoolean("retract_at_layer_change") ||
+          (prev_layer->storage.getSettingBoolean("travel_retract_before_outer_wall") && (prev_layer->storage.getSettingBoolean("outer_inset_first") || prev_layer->storage.getSettingAsCount("wall_line_count") == 1)); //Moving towards an outer wall.
         prev_layer->addTravel(first_location_new_layer, force_retract);
     }
 }
