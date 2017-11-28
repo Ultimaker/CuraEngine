@@ -36,6 +36,7 @@ private:
     double flowFlat; 
     double extrusion_mm3_per_mm_connection;
     double extrusion_mm3_per_mm_flat;
+    bool update_extrusion_offset;
     int nozzle_outer_diameter;
     int nozzle_head_distance;
     double nozzle_expansion_angle;
