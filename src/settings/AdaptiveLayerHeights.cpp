@@ -119,18 +119,25 @@ void AdaptiveLayerHeights::calculateLayers()
             double minimum_slope = *std::min_element(slopes.begin(), slopes.end());
             double minimum_slope_tan = std::tan(minimum_slope);
 
-            // calculate the difference in layer height depending on which direction we're attempting
-            int layer_height_diff = (previous_layer_height < layer_height) ? previous_layer_height - layer_height : layer_height - previous_layer_height;
+            // check if the maximum step size has been exceeded depending on layer height direction
+            bool has_exceeded_step_size = false;
+            if (previous_layer_height > layer_height && previous_layer_height - layer_height >= this->step_size)
+            {
+                has_exceeded_step_size = true;
+            }
+            else if (layer_height - previous_layer_height > this->step_size)
+            {
+                continue;
+            }
 
             // we add the layer in the following cases:
-            // 1) the layer angle is below the threshold
+            // 1) the layer angle is below the threshold and the layer height difference with the previous layer is the maximum allowed step size
             // 2) the layer height is the smallest it is allowed
             // 3) the layer is a flat surface (we can't divide by 0)
-            // 4) the layer height difference with the previous layer is the maximum allowed step size
             if (minimum_slope_tan == 0.0
                 || (layer_height / minimum_slope_tan) <= this->threshold
                 || layer_height == minimum_layer_height
-                || layer_height_diff >= this->step_size)
+                || has_exceeded_step_size)
             {
                 z_level += layer_height;
                 auto * adaptive_layer = new AdaptiveLayer(layer_height);
