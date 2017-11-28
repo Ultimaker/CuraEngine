@@ -806,23 +806,22 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
 
     layers.resize(slice_layer_count);
 
+    // compensate first layer thickness depending on slicing mode
+    int initial = initial_layer_thickness - thickness;
+    if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    {
+        initial += thickness / 2;
+    }
+
     // define all layer z positions depending on slicing mode
-    for (int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
-            // when using adaptive layers, the z position already has been compensated for slicing tolerance mode
             layers[layer_nr].z = adaptive_layers->at(layer_nr).z_position;
         }
         else
         {
-            // compensate first layer thickness depending on slicing mode
-            int initial = initial_layer_thickness - thickness;
-            if (slicing_tolerance == SlicingTolerance::MIDDLE)
-            {
-                initial += thickness / 2;
-            }
-
             layers[layer_nr].z = initial + (thickness * layer_nr);
         }
     }
@@ -850,7 +849,7 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
         if (p2.z > maxZ) maxZ = p2.z;
 
         // calculate all intersections between a layer plane and a triangle
-        for (int32_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
+        for (unsigned int layer_nr = 0; layer_nr < layers.size(); layer_nr++)
         {
             int32_t z = layers.at(layer_nr).z;
 
