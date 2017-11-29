@@ -169,8 +169,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
         FPoint3 p1 = v1.p;
         FPoint3 p2 = v2.p;
 
-        int32_t minZ = p0.z;
-        int32_t maxZ = p0.z;
+        float minZ = p0.z;
+        float maxZ = p0.z;
 
         if (p1.z < minZ) minZ = p1.z;
         if (p2.z < minZ) minZ = p2.z;
