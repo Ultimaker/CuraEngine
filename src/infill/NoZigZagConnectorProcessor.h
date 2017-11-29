@@ -17,8 +17,7 @@ public:
     NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
     : ZigzagConnectorProcessor(rotation_matrix, result,
         false, false, // settings for zig-zag end pieces, no use here
-        false, 0, // settings for skipping some zags, no use here
-        5) // max resolution
+        false, 0) // settings for skipping some zags, no use here
     {
     }
 

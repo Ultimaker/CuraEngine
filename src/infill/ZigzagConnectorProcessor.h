@@ -8,6 +8,10 @@
 namespace cura
 {
 
+// The default minimum line length threashold for lines in a zag connection.
+const coord_t DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD = 5;
+
+
 /*!
  * Processor class for processing the connections between lines which makes the infill a zigzag pattern.
  * 
@@ -79,6 +83,20 @@ namespace cura
  *   ^     ^     ^    scanlines
  *                 ^  disconnected end piece
  * Leave out the last line segment of the boundary polygon: from a vertex to the linesegment-scanline intersection.
+ *
+ *
+ * Note that:
+ * (1) Micromovements:
+ *   In the current ZigZag implementation, there can be some micro movements for the zag connectors.
+ *   The points on a zag connector are first collected and then added to the result polygon when this
+ *   zag connector has for sure reached its end (i.e., all the points on this zag connector is known).
+ *   Based on the model, a zag connector can contain a lot of tiny lines which can cause micro movements
+ *   if we added them all.
+ *
+ *   To resolve this issue, we define a "minimum line length" for lines in a zag connector. If a line is
+ *   shorter than the threshold, a second point (the "to" point) on this line will simply be ignored and
+ *   the first point (the "from" point) will be kept as the starting point until there is a line that is
+ *   long enough, and then that line will be added.
  */
 class ZigzagConnectorProcessor 
 {
@@ -92,10 +110,14 @@ public:
      * \param connected_endpieces Whether the end pieces should be connected with the rest part of the infill
      * \param skip_some_zags Whether to skip some zags
      * \param zag_skip_count Skip 1 zag in every N zags
+     * \param minimum_zag_line_length The minimum length for lines in a zag connector. If a line is shorter than
+     *                                this threshold, it won't be added until there is a line that's long enough
+     *                                to exceed the threshold.
      */
     ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result,
                              bool use_endpieces, bool connected_endpieces,
-                             bool skip_some_zags, int zag_skip_count, coord_t maximum_resolution)
+                             bool skip_some_zags, int zag_skip_count,
+                             coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD)
     : rotation_matrix(rotation_matrix)
     , result(result)
     , use_endpieces(use_endpieces)
@@ -105,7 +127,7 @@ public:
     , is_first_connector(true)
     , first_connector_end_scanline_index(0)
     , last_connector_index(0)
-    , maximum_resolution(5)
+    , minimum_zag_line_length(minimum_zag_line_length)
     {}
 
     virtual ~ZigzagConnectorProcessor()
@@ -155,14 +177,14 @@ protected:
 
     /*!
      * Checks whether two points are separated at least by "threshold" microns.
-     * In case they are close, the second one will point to the first one.
+     * If they are far away from each other enough, the line represented by the two points
+     * will be added; In case they are close, the second point will be set to be the same
+     * as the first and this line won't be added.
      *
      * \param first_point The first of the points
      * \param second_point The second of the points
-     * \param threshold Minimum distance between points
-     * \return whether the points are close by the indicated threshold, and merged in that case
      */
-    bool mergePointsByThreshold(Point* first_point, Point* second_point);
+    void checkAndAddZagConnectorLine(Point* first_point, Point* second_point);
 
     /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
@@ -186,7 +208,7 @@ protected:
     int first_connector_end_scanline_index; //!< scanline segment index of the first connector
     int last_connector_index; //!< scanline segment index of the last connector
 
-    coord_t maximum_resolution; //!< maximum resolution so too short lines can be removed
+    coord_t minimum_zag_line_length; //!< maximum resolution so too short lines can be removed
 
     /*!
      * The line segments belonging the zigzag connector to which the very first vertex belongs.
