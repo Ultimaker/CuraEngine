@@ -34,6 +34,7 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
+#include "settings/AdaptiveLayerHeights.h"
 
 
 namespace cura
@@ -77,30 +78,66 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
+
+    // regular layers
+    int slice_layer_count = 0;
+    int layer_thickness = getSettingInMicrons("layer_height");
     int initial_layer_thickness = getSettingInMicrons("layer_height_0");
-    if(initial_layer_thickness <= 0) //Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+
+    // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+    if (initial_layer_thickness <= 0)
     {
         logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
         return false;
     }
-    int layer_thickness = getSettingInMicrons("layer_height");
-    if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
+
+    // Layer height of 0 is not allowed. Negative layer height is nonsense.
+    if(layer_thickness <= 0)
     {
         logError("Layer height %i is disallowed.\n", layer_thickness);
         return false;
     }
-    int slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
-    if (slice_layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+
+    // variable layers
+    AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
+    bool use_variable_layer_heights = getSettingBoolean("adaptive_layer_height_enabled");
+
+    if (use_variable_layer_heights)
     {
-        return true; //This is NOT an error state!
+        // Calculate adaptive layer heights
+        Mesh& mesh = meshgroup->meshes.front();
+        coord_t variable_layer_height_max_variation = getSettingInMicrons("adaptive_layer_height_variation");
+        coord_t variable_layer_height_variation_step = getSettingInMicrons("adaptive_layer_height_variation_step");
+        double adaptive_threshold = getSettingInAngleDegrees("adaptive_layer_height_threshold");
+        adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, layer_thickness, initial_layer_thickness,
+                                                          variable_layer_height_max_variation,
+                                                          variable_layer_height_variation_step, adaptive_threshold);
+
+        // Get the amount of layers
+        slice_layer_count = adaptive_layer_heights->getLayerCount();
+    }
+    else
+    {
+        slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
+    }
+
+    // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+    if (slice_layer_count <= 0)
+    {
+        return true; // This is NOT an error state!
     }
 
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
+                                    mesh.getSettingBoolean("meshfix_keep_open_polygons"),
+                                    mesh.getSettingBoolean("meshfix_extensive_stitching"),
+                                    use_variable_layer_heights, adaptive_layer_heights->getLayers());
+
         slicerList.push_back(slicer);
+
         /*
         for(SlicerLayer& layer : slicer->layers)
         {
@@ -109,11 +146,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
+
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
-    meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
-
+    // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
+    meshgroup->clear();
 
     Mold::process(storage, slicerList, layer_thickness);
 
@@ -159,21 +197,41 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
 
+        // only create layer parts for normal meshes
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
-
         if (!is_support_modifier)
-        { // only create layer parts for normal meshes
+        {
             createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         }
 
+        // check one if raft offset is needed
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
-        //Add the raft offset to each layer.
+
+        // calculate the height at which each layer is actually printed (printZ)
         for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
-            meshStorage.layers[layer_nr].printZ =
-                getSettingInMicrons("layer_height_0")
-                + layer_nr * layer_thickness;
+
+            if (use_variable_layer_heights)
+            {
+                meshStorage.layers[layer_nr].printZ = adaptive_layer_heights->getLayers()->at(layer_nr).z_position;
+                meshStorage.layers[layer_nr].thickness = adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
+            }
+            else
+            {
+                meshStorage.layers[layer_nr].printZ = initial_layer_thickness + (layer_nr * layer_thickness);
+
+                if (layer_nr == 0)
+                {
+                    meshStorage.layers[layer_nr].thickness = initial_layer_thickness;
+                }
+                else
+                {
+                    meshStorage.layers[layer_nr].thickness = layer_thickness;
+                }
+            }
+
+            // add the raft offset to each layer
             if (has_raft)
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
@@ -181,6 +239,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     Raft::getTotalThickness(storage)
                     + train->getSettingInMicrons("raft_airgap")
                     - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
+
                 if (layer_nr == 0)
                 {
                     layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
