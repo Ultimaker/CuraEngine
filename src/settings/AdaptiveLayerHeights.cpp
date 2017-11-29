@@ -125,7 +125,7 @@ void AdaptiveLayerHeights::calculateLayers()
             {
                 has_exceeded_step_size = true;
             }
-            else if (layer_height - previous_layer_height > this->step_size)
+            else if (layer_height - previous_layer_height > this->step_size && layer_height > minimum_layer_height)
             {
                 continue;
             }
