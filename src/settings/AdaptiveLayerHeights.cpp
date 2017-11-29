@@ -121,7 +121,7 @@ void AdaptiveLayerHeights::calculateLayers()
 
             // check if the maximum step size has been exceeded depending on layer height direction
             bool has_exceeded_step_size = false;
-            if (previous_layer_height > layer_height && previous_layer_height - layer_height >= this->step_size)
+            if (previous_layer_height > layer_height && previous_layer_height - layer_height > this->step_size)
             {
                 has_exceeded_step_size = true;
             }
