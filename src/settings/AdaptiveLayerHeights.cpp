@@ -25,7 +25,7 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int 
 
     // calculate the allowed layer heights from variation and step size
     // note: the order is from thickest to thinnest height!
-    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height > this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
+    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height >= this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
     {
         this->allowed_layer_heights.push_back(allowed_layer_height);
     }
