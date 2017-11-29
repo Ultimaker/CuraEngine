@@ -25,7 +25,7 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int 
 
     // calculate the allowed layer heights from variation and step size
     // note: the order is from thickest to thinnest height!
-    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height > this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
+    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height >= this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
     {
         this->allowed_layer_heights.push_back(allowed_layer_height);
     }
@@ -121,11 +121,11 @@ void AdaptiveLayerHeights::calculateLayers()
 
             // check if the maximum step size has been exceeded depending on layer height direction
             bool has_exceeded_step_size = false;
-            if (previous_layer_height > layer_height && previous_layer_height - layer_height >= this->step_size)
+            if (previous_layer_height > layer_height && previous_layer_height - layer_height > this->step_size)
             {
                 has_exceeded_step_size = true;
             }
-            else if (layer_height - previous_layer_height > this->step_size)
+            else if (layer_height - previous_layer_height > this->step_size && layer_height > minimum_layer_height)
             {
                 continue;
             }
@@ -169,8 +169,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
         FPoint3 p1 = v1.p;
         FPoint3 p2 = v2.p;
 
-        int32_t minZ = p0.z;
-        int32_t maxZ = p0.z;
+        float minZ = p0.z;
+        float maxZ = p0.z;
 
         if (p1.z < minZ) minZ = p1.z;
         if (p2.z < minZ) minZ = p2.z;
