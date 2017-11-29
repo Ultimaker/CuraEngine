@@ -474,6 +474,22 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
                     no_air_above = no_air_above.intersection(outlines_above);
                 }
             }
+            if (layer_nr > 0)
+            {
+                // if the skin has air below it then cutting it into regions could cause a region
+                // to be wholely or partly above air and it may not be printable so restrict
+                // the regions that have air above (the visible regions) to not include any area that
+                // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
+
+                // set air_below to the skin area for the current layer that has air below it
+                Polygons air_below = getWalls(part, layer_nr, wall_idx).difference(getWalls(part, layer_nr - 1, wall_idx));
+
+                if (!air_below.empty())
+                {
+                    // add the polygons that have air below to the no air above polygons
+                    no_air_above = no_air_above.unionPolygons(air_below);
+                }
+            }
             skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
             skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
         }
