@@ -391,47 +391,81 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
 void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
 {
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
     if (!CommandSocket::isInstantiated())
     {
-        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
         std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
     }
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
-    if (gcode.getFlavor() == EGCodeFlavor::REPRAP || gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
         gcode.writeCode("T0"); // required before any temperature setting commands
     }
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        if (getSettingBoolean("material_bed_temp_prepend")) 
+        if (num_extruders > 1)
         {
-            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
+            std::ostringstream tmp;
+            tmp << "T" << start_extruder_nr;
+            gcode.writeLine(tmp.str().c_str());
+        }
+
+        if (getSettingBoolean("material_bed_temp_prepend"))
+        {
+            if (getSettingBoolean("machine_heated_bed"))
             {
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature_layer_0"), getSettingBoolean("material_bed_temp_wait"));
+                double bed_temp = getSettingInDegreeCelsius("material_bed_temperature_layer_0");
+                if (bed_temp != 0)
+                {
+                    gcode.writeBedTemperatureCommand(bed_temp, getSettingBoolean("material_bed_temp_wait"));
+                }
             }
         }
 
-        if (getSettingBoolean("material_print_temp_prepend")) 
+        if (getSettingBoolean("material_print_temp_prepend"))
         {
-            for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+            for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
             {
-                ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-                double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-                double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-                gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
-            }
-            if (getSettingBoolean("material_print_temp_wait")) 
-            {
-                for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                if (extruder_is_used[extruder_nr])
                 {
                     ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-                    double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-                    double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-                    gcode.writeTemperatureCommand(extruder_nr, print_temp_here, true);
+                    double extruder_temp;
+                    if (extruder_nr == start_extruder_nr)
+                    {
+                        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                        extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                    }
+                    else
+                    {
+                        extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature");
+                    }
+                    gcode.writeTemperatureCommand(extruder_nr, extruder_temp);
+                }
+            }
+            if (getSettingBoolean("material_print_temp_wait"))
+            {
+                for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
+                {
+                    if (extruder_is_used[extruder_nr])
+                    {
+                        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                        double extruder_temp;
+                        if (extruder_nr == start_extruder_nr)
+                        {
+                            double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                            extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                        }
+                        else
+                        {
+                            extruder_temp = train.getSettingInDegreeCelsius("material_standby_temperature");
+                        }
+                        gcode.writeTemperatureCommand(extruder_nr, extruder_temp, true);
+                    }
                 }
             }
         }
