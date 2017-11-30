@@ -130,11 +130,17 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
+        // Check if adaptive layers is populated to prevent accessing a method on NULL
+        std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
+        if (adaptive_layer_heights != NULL) {
+            adaptive_layer_height_values = adaptive_layer_heights->getLayers();
+        }
+
         Mesh& mesh = meshgroup->meshes[mesh_idx];
         Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
                                     mesh.getSettingBoolean("meshfix_keep_open_polygons"),
                                     mesh.getSettingBoolean("meshfix_extensive_stitching"),
-                                    use_variable_layer_heights, adaptive_layer_heights->getLayers());
+                                    use_variable_layer_heights, adaptive_layer_height_values);
 
         slicerList.push_back(slicer);
 

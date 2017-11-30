@@ -105,6 +105,11 @@ private:
     std::vector<int> face_max_z_values;
 
     /*!
+     * Calculate the allowed layer heights depending on variation and step input
+     */
+    void calculateAllowedLayerHeights();
+
+    /*!
      * Calculates the layers based on the given mesh and allowed layer heights
      */
     void calculateLayers();
