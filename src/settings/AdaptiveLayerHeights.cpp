@@ -25,7 +25,7 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int 
 
     // calculate the allowed layer heights from variation and step size
     // note: the order is from thickest to thinnest height!
-    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height > this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
+    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height >= this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
     {
         this->allowed_layer_heights.push_back(allowed_layer_height);
     }
@@ -73,33 +73,40 @@ void AdaptiveLayerHeights::calculateLayers()
         // loop over all allowed layer heights starting with the largest
         for (auto & layer_height : this->allowed_layer_heights)
         {
-            int lower_bound = z_level;
-            int upper_bound = z_level + layer_height;
-
-            std::vector<int> min_bounds;
-            std::vector<int> max_bounds;
-
-            // calculate all intersecting lower bounds
-            for (auto it_lower = this->face_min_z_values.begin(); it_lower != this->face_min_z_values.end(); ++it_lower)
-            {
-                if (*it_lower <= upper_bound)
-                {
-                    min_bounds.emplace_back(std::distance(this->face_min_z_values.begin(), it_lower));
-                }
-            }
-
-            // calculate all intersecting upper bounds
-            for (auto it_upper = this->face_max_z_values.begin(); it_upper != this->face_max_z_values.end(); ++it_upper)
-            {
-                if (*it_upper >= lower_bound)
-                {
-                    max_bounds.emplace_back(std::distance(this->face_max_z_values.begin(), it_upper));
-                }
-            }
-
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
-            triangles_of_interest.clear();
-            std::set_intersection(min_bounds.begin(), min_bounds.end(), max_bounds.begin(), max_bounds.end(), std::back_inserter(triangles_of_interest));
+            const int lower_bound = z_level;
+            const int upper_bound = z_level + layer_height;
+
+            if (layer_height == this->allowed_layer_heights[0])
+            {
+                // this is the max layer thickness, search through all of the triangles in the mesh to find those
+                // that intersect with a layer this thick
+                triangles_of_interest.clear();
+
+                for (unsigned int i = 0; i < this->face_min_z_values.size(); ++i)
+                {
+                    if (this->face_min_z_values[i] <= upper_bound && this->face_max_z_values[i] >= lower_bound)
+                    {
+                        triangles_of_interest.push_back(i);
+                    }
+                }
+            }
+            else
+            {
+                // this is a reduced thickness layer, just search those triangles that intersected with the layer
+                // in the previous iteration
+                std::vector<int> last_triangles_of_interest = triangles_of_interest;
+
+                triangles_of_interest.clear();
+
+                for (int i : last_triangles_of_interest)
+                {
+                    if (this->face_min_z_values[i] <= upper_bound)
+                    {
+                        triangles_of_interest.push_back(i);
+                    }
+                }
+            }
 
             // when there not interesting triangles in this potential layer go to the next one
             if (triangles_of_interest.empty())
@@ -121,11 +128,11 @@ void AdaptiveLayerHeights::calculateLayers()
 
             // check if the maximum step size has been exceeded depending on layer height direction
             bool has_exceeded_step_size = false;
-            if (previous_layer_height > layer_height && previous_layer_height - layer_height >= this->step_size)
+            if (previous_layer_height > layer_height && previous_layer_height - layer_height > this->step_size)
             {
                 has_exceeded_step_size = true;
             }
-            else if (layer_height - previous_layer_height > this->step_size)
+            else if (layer_height - previous_layer_height > this->step_size && layer_height > minimum_layer_height)
             {
                 continue;
             }
@@ -169,8 +176,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
         FPoint3 p1 = v1.p;
         FPoint3 p2 = v2.p;
 
-        int32_t minZ = p0.z;
-        int32_t maxZ = p0.z;
+        float minZ = p0.z;
+        float maxZ = p0.z;
 
         if (p1.z < minZ) minZ = p1.z;
         if (p2.z < minZ) minZ = p2.z;
