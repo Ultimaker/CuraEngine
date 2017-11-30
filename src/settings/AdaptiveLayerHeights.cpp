@@ -73,33 +73,19 @@ void AdaptiveLayerHeights::calculateLayers()
         // loop over all allowed layer heights starting with the largest
         for (auto & layer_height : this->allowed_layer_heights)
         {
-            int lower_bound = z_level;
-            int upper_bound = z_level + layer_height;
-
-            std::vector<int> min_bounds;
-            std::vector<int> max_bounds;
-
-            // calculate all intersecting lower bounds
-            for (auto it_lower = this->face_min_z_values.begin(); it_lower != this->face_min_z_values.end(); ++it_lower)
-            {
-                if (*it_lower <= upper_bound)
-                {
-                    min_bounds.emplace_back(std::distance(this->face_min_z_values.begin(), it_lower));
-                }
-            }
-
-            // calculate all intersecting upper bounds
-            for (auto it_upper = this->face_max_z_values.begin(); it_upper != this->face_max_z_values.end(); ++it_upper)
-            {
-                if (*it_upper >= lower_bound)
-                {
-                    max_bounds.emplace_back(std::distance(this->face_max_z_values.begin(), it_upper));
-                }
-            }
-
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
+            const int lower_bound = z_level;
+            const int upper_bound = z_level + layer_height;
+
             triangles_of_interest.clear();
-            std::set_intersection(min_bounds.begin(), min_bounds.end(), max_bounds.begin(), max_bounds.end(), std::back_inserter(triangles_of_interest));
+
+            for (unsigned int i = 0; i < this->face_min_z_values.size(); ++i)
+            {
+                if (this->face_min_z_values[i] <= upper_bound && this->face_max_z_values[i] >= lower_bound)
+                {
+                    triangles_of_interest.push_back(i);
+                }
+            }
 
             // when there not interesting triangles in this potential layer go to the next one
             if (triangles_of_interest.empty())
