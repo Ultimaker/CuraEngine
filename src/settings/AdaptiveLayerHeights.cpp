@@ -77,13 +77,34 @@ void AdaptiveLayerHeights::calculateLayers()
             const int lower_bound = z_level;
             const int upper_bound = z_level + layer_height;
 
-            triangles_of_interest.clear();
-
-            for (unsigned int i = 0; i < this->face_min_z_values.size(); ++i)
+            if (layer_height == this->allowed_layer_heights[0])
             {
-                if (this->face_min_z_values[i] <= upper_bound && this->face_max_z_values[i] >= lower_bound)
+                // this is the max layer thickness, search through all of the triangles in the mesh to find those
+                // that intersect with a layer this thick
+                triangles_of_interest.clear();
+
+                for (unsigned int i = 0; i < this->face_min_z_values.size(); ++i)
                 {
-                    triangles_of_interest.push_back(i);
+                    if (this->face_min_z_values[i] <= upper_bound && this->face_max_z_values[i] >= lower_bound)
+                    {
+                        triangles_of_interest.push_back(i);
+                    }
+                }
+            }
+            else
+            {
+                // this is a reduced thickness layer, just search those triangles that intersected with the maximum
+                // thickness layer
+                std::vector<int> last_triangles_of_interest = triangles_of_interest;
+
+                triangles_of_interest.clear();
+
+                for (int i : last_triangles_of_interest)
+                {
+                    if (this->face_min_z_values[i] <= upper_bound)
+                    {
+                        triangles_of_interest.push_back(i);
+                    }
                 }
             }
 
