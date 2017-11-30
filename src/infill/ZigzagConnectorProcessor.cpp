@@ -141,10 +141,8 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool 
     {
         for (size_t point_idx = 1; point_idx <= points.size() - 2; ++point_idx)
         {
-            Point* from = &points[point_idx - 1];
-            Point* to = &points[point_idx];
-            if (!mergePointsByThreshold(from, to))
-                addLine(*from, *to);
+            checkAndAddZagConnectorLine(&points[point_idx - 1],
+                                        &points[point_idx]);
         }
     }
     // only add the last line if:
@@ -152,20 +150,19 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool 
     //  - it is an end piece and "connected end pieces" is enabled
     if ((!is_endpiece || (is_endpiece && this->connected_endpieces)) && points.size() >= 2)
     {
-        Point* from = &points[points.size() - 2];
-        Point* to = &points[points.size() - 1];
-        if (!mergePointsByThreshold(from, to))
-            addLine(*from, *to);
+        checkAndAddZagConnectorLine(&points[points.size() - 2],
+                                    &points[points.size() - 1]);
     }
 }
 
 
-bool ZigzagConnectorProcessor::mergePointsByThreshold(Point* first_point, Point* second_point, int threshold)
+void ZigzagConnectorProcessor::checkAndAddZagConnectorLine(Point* first_point, Point* second_point)
 {
-    if (vSize2(*first_point - *second_point) < threshold*threshold)
+    if (vSize2(*first_point - *second_point) < minimum_zag_line_length*minimum_zag_line_length)
     {
         *second_point = *first_point;
-        return true;
+        return;
     }
-    return false;
+
+    addLine(*first_point, *second_point);
 }

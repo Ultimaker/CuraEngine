@@ -527,9 +527,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     CombingMode combing_mode = storage.getSettingAsCombingMode("retraction_combing"); 
 
     int z = 0;
-    
-
-
     const int initial_raft_layer_nr = -Raft::getTotalExtraLayers(storage);
 
     // some infill config for all lines infill generation below
@@ -571,7 +568,21 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Polygons raftLines;
         double fill_angle = 0;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+
+        const Point& infill_origin = Point();
+        Polygons* perimeter_gaps = nullptr;
+        constexpr bool connected_zigzags = false;
+        constexpr bool use_endpieces = true;
+        constexpr bool skip_some_zags = false;
+        constexpr int zag_skip_count = 0;
+        constexpr bool apply_pockets_alternatingly = false;
+        constexpr coord_t pocket_size = 0;
+        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+
+        Infill infill_comp(
+            EFillMethod::LINES, zig_zaggify_infill, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift,
+            infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+            );
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
@@ -619,7 +630,21 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         int offset_from_poly_outline = 0;
         double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
         constexpr bool zig_zaggify_infill = true;
-        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+
+        const Point& infill_origin = Point();
+        Polygons* perimeter_gaps = nullptr;
+        constexpr bool connected_zigzags = false;
+        constexpr bool use_endpieces = true;
+        constexpr bool skip_some_zags = false;
+        constexpr int zag_skip_count = 0;
+        constexpr bool apply_pockets_alternatingly = false;
+        constexpr coord_t pocket_size = 0;
+        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+
+        Infill infill_comp(
+            EFillMethod::ZIG_ZAG, zig_zaggify_infill, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift,
+            infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+            );
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
@@ -654,14 +679,28 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
 
+        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path.simplify(); //Remove those micron-movements.
+        raft_outline_path.simplify(maximum_resolution); //Remove those micron-movements.
         constexpr coord_t infill_outline_width = 0;
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         double fill_angle = 90 * raftSurfaceLayer;
         constexpr bool zig_zaggify_infill = true;
-        Infill infill_comp(EFillMethod::ZIG_ZAG, zig_zaggify_infill, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+
+        const Point& infill_origin = Point();
+        Polygons* perimeter_gaps = nullptr;
+        constexpr bool connected_zigzags = false;
+        constexpr bool use_endpieces = true;
+        constexpr bool skip_some_zags = false;
+        constexpr int zag_skip_count = 0;
+        constexpr bool apply_pockets_alternatingly = false;
+        constexpr coord_t pocket_size = 0;
+
+        Infill infill_comp(
+            EFillMethod::ZIG_ZAG, zig_zaggify_infill, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift,
+            infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+            );
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 
@@ -1209,15 +1248,19 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 {
                     infill_line_distance_here /= 2;
                 }
-                
+
+                Polygons* perimeter_gaps = nullptr;
+                constexpr bool connected_zigzags = false;
+                constexpr bool use_endpieces = true;
+                constexpr bool skip_some_zags = false;
+                constexpr int zag_skip_count = 0;
+                const coord_t maximum_resolution = mesh.getSettingInMicrons("meshfix_maximum_resolution");
+
                 Infill infill_comp(infill_pattern, zig_zaggify_infill, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0
                     , infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, gcode_layer.z, infill_shift, infill_origin
-                    , /*Polygons* perimeter_gaps =*/ nullptr
-                    , /*bool connected_zigzags =*/ false
-                    , /*bool use_endpieces =*/ false
-                    , /*bool skip_some_zags =*/ false
-                    , /*int zag_skip_count =*/ 0
-                    , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
+                    , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
+                    , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size")
+                    , maximum_resolution);
                 const SpaceFillingTreeFill* cross_fill_pattern = (density_idx < mesh.cross_fill_patterns.size()) ? mesh.cross_fill_patterns[density_idx] : nullptr;
                 infill_comp.generate(infill_polygons, infill_lines, cross_fill_pattern, &mesh);
             }
@@ -1270,6 +1313,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 // :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
 // : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
 // >>>>>>>>"""""""""""""""""
+
+        const coord_t maximum_resolution = mesh.getSettingInMicrons("meshfix_maximum_resolution");
+
         if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
         { // the least dense infill should fill up all remaining gaps
 // :       |       :       |       :       |       :       |       :  > furthest from top
@@ -1293,7 +1339,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             , /*bool use_endpieces =*/ false
             , /*bool skip_some_zags =*/ false
             , /*int zag_skip_count =*/ 0
-            , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
+            , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size")
+            , maximum_resolution);
         const SpaceFillingTreeFill* cross_fill_pattern = (density_idx < mesh.cross_fill_patterns.size()) ? mesh.cross_fill_patterns[density_idx] : nullptr;
         infill_comp.generate(infill_polygons, infill_lines, cross_fill_pattern, &mesh);
     }
@@ -1512,7 +1559,21 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
     int extra_infill_shift = 0;
     constexpr coord_t outline_gap_overlap = 0;
     constexpr bool zig_zaggify_infill = false;
-    Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, skin_angle, gcode_layer.z, extra_infill_shift);
+
+    const Point& infill_origin = Point();
+    Polygons* perimeter_gaps = nullptr;
+    constexpr bool connected_zigzags = false;
+    constexpr bool use_endpieces = true;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+    constexpr bool apply_pockets_alternatingly = false;
+    constexpr coord_t pocket_size = 0;
+    const coord_t maximum_resolution = mesh.getSettingInMicrons("meshfix_maximum_resolution");
+
+    Infill infill_comp(
+        EFillMethod::LINES, zig_zaggify_infill, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, skin_angle, gcode_layer.z, extra_infill_shift,
+        infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+        );
     infill_comp.generate(gap_polygons, gap_lines);
 
     if (gap_lines.size() > 0)
@@ -1696,7 +1757,18 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     constexpr coord_t offset_from_inner_skin_infill = 0;
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const Point infill_origin;
-    Infill infill_comp(pattern, zig_zaggify_infill, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth(), skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, infill_origin, perimeter_gaps_output);
+    constexpr bool connected_zigzags = false;
+    constexpr bool use_endpieces = true;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+    constexpr bool apply_pockets_alternatingly = false;
+    constexpr coord_t pocket_size = 0;
+    const coord_t maximum_resolution = mesh.getSettingInMicrons("meshfix_maximum_resolution");
+
+    Infill infill_comp(
+        pattern, zig_zaggify_infill, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth(), skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, infill_origin, perimeter_gaps_output,
+        connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+        );
     infill_comp.generate(skin_polygons, skin_lines);
 
     // add paths
@@ -1742,7 +1814,19 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     constexpr int offset = 0;
     constexpr int extra_infill_shift = 0;
     const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-    Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift);
+    const Point& infill_origin = Point();
+    constexpr Polygons* perimeter_gaps_polyons = nullptr;
+    constexpr bool connected_zigzags = false;
+    constexpr bool use_endpieces = true;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+    constexpr bool apply_pockets_alternatingly = false;
+    constexpr coord_t pocket_size = 0;
+    const coord_t maximum_resolution = mesh.getSettingInMicrons("meshfix_maximum_resolution");
+
+    Infill infill_comp(
+        EFillMethod::LINES, zig_zaggify_infill, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift,
+        infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution);
     infill_comp.generate(gap_polygons, gap_lines);
     if (gap_lines.size() > 0)
     {
@@ -1900,10 +1984,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 bool use_endpieces = true;
                 Polygons* perimeter_gaps = nullptr;
                 const Point infill_origin;
+
+                constexpr bool apply_pockets_alternatingly = false;
+                constexpr coord_t pocket_size = 0;
+                const coord_t maximum_resolution = infill_extruder.getSettingInMicrons("meshfix_maximum_resolution");
+
                 Infill infill_comp(support_pattern, zig_zaggify_infill, support_area, offset_from_outline, support_line_width,
                                    support_line_distance_here, current_support_infill_overlap, support_infill_angle, gcode_layer.z, support_shift, infill_origin,
                                    perimeter_gaps, infill_extruder.getSettingBoolean("support_connect_zigzags"), use_endpieces,
-                                   skip_some_zags, zag_skip_count);
+                                   skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution);
                 const SpaceFillingTreeFill* cross_fill_pattern = (density_idx < storage.support.cross_fill_patterns.size()) ? storage.support.cross_fill_patterns[density_idx] : nullptr;
                 infill_comp.generate(support_polygons, support_lines, cross_fill_pattern);
             }
@@ -1948,6 +2037,11 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr Polygons* perimeter_gaps = nullptr;
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+    constexpr bool apply_pockets_alternatingly = false;
+    constexpr coord_t pocket_size = 0;
+    const coord_t maximum_resolution = roof_extr.getSettingInMicrons("meshfix_maximum_resolution");
 
     coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
     const coord_t support_roof_line_width = roof_extr.getSettingInMicrons("support_roof_line_width");
@@ -1965,7 +2059,11 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         infill_outline = wall.offset(-support_roof_line_width / 2);
     }
 
-    Infill roof_computation(pattern, zig_zaggify_infill, infill_outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(), support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill roof_computation(
+        pattern, zig_zaggify_infill, infill_outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(),
+        support_roof_line_distance, support_roof_overlap, fill_angle, gcode_layer.z, extra_infill_shift,
+        infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+        );
     Polygons roof_polygons;
     Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
@@ -2008,9 +2106,18 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr Polygons* perimeter_gaps = nullptr;
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+    constexpr bool apply_pockets_alternatingly = false;
+    constexpr coord_t pocket_size = 0;
+    const coord_t maximum_resolution = bottom_extr.getSettingInMicrons("meshfix_maximum_resolution");
 
     const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
-    Infill bottom_computation(pattern, zig_zaggify_infill, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(), support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill bottom_computation(
+        pattern, zig_zaggify_infill, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
+        support_bottom_line_distance, support_bottom_overlap, fill_angle, gcode_layer.z, extra_infill_shift,
+        infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
+        );
     Polygons bottom_polygons;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
