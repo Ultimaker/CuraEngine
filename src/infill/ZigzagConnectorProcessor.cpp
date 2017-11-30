@@ -134,14 +134,15 @@ void ZigzagConnectorProcessor::registerPolyFinished()
 }
 
 
-void ZigzagConnectorProcessor::addZagConnector(const std::vector<Point>& points, bool is_endpiece)
+void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool is_endpiece)
 {
     // don't include the last line yet
     if (points.size() >= 3)
     {
         for (size_t point_idx = 1; point_idx <= points.size() - 2; ++point_idx)
         {
-            addLine(points[point_idx - 1], points[point_idx]);
+            checkAndAddZagConnectorLine(&points[point_idx - 1],
+                                        &points[point_idx]);
         }
     }
     // only add the last line if:
@@ -149,6 +150,19 @@ void ZigzagConnectorProcessor::addZagConnector(const std::vector<Point>& points,
     //  - it is an end piece and "connected end pieces" is enabled
     if ((!is_endpiece || (is_endpiece && this->connected_endpieces)) && points.size() >= 2)
     {
-        addLine(points[points.size() - 2], points[points.size() - 1]);
+        checkAndAddZagConnectorLine(&points[points.size() - 2],
+                                    &points[points.size() - 1]);
     }
+}
+
+
+void ZigzagConnectorProcessor::checkAndAddZagConnectorLine(Point* first_point, Point* second_point)
+{
+    if (vSize2(*first_point - *second_point) < minimum_zag_line_length*minimum_zag_line_length)
+    {
+        *second_point = *first_point;
+        return;
+    }
+
+    addLine(*first_point, *second_point);
 }
