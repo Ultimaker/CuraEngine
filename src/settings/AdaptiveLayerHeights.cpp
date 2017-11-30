@@ -22,14 +22,9 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int 
     this->max_variation = static_cast<int>(variation);
     this->step_size = static_cast<int>(step_size);
     this->threshold = threshold;
+    this->layers = {};
 
-    // calculate the allowed layer heights from variation and step size
-    // note: the order is from thickest to thinnest height!
-    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height >= this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
-    {
-        this->allowed_layer_heights.push_back(allowed_layer_height);
-    }
-
+    this->calculateAllowedLayerHeights();
     this->calculateMeshTriangleSlopes();
     this->calculateLayers();
 }
@@ -42,6 +37,16 @@ int AdaptiveLayerHeights::getLayerCount()
 std::vector<AdaptiveLayer>* AdaptiveLayerHeights::getLayers()
 {
     return &this->layers;
+}
+
+void AdaptiveLayerHeights::calculateAllowedLayerHeights()
+{
+    // calculate the allowed layer heights from variation and step size
+    // note: the order is from thickest to thinnest height!
+    for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height >= this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
+    {
+        this->allowed_layer_heights.push_back(allowed_layer_height);
+    }
 }
 
 void AdaptiveLayerHeights::calculateLayers()
