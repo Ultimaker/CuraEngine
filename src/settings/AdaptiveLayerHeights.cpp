@@ -93,8 +93,8 @@ void AdaptiveLayerHeights::calculateLayers()
             }
             else
             {
-                // this is a reduced thickness layer, just search those triangles that intersected with the maximum
-                // thickness layer
+                // this is a reduced thickness layer, just search those triangles that intersected with the layer
+                // in the previous iteration
                 std::vector<int> last_triangles_of_interest = triangles_of_interest;
 
                 triangles_of_interest.clear();
