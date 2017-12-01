@@ -2,7 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INT_POINT_TEST_H
-#define LINEARALG2DTEST_H
+#define INT_POINT_TEST_H
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
@@ -42,5 +42,5 @@ private:
 
 }
 
-#endif //LINEARALG2DTEST_H
+#endif //INT_POINT_TEST_H
 
