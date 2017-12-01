@@ -152,7 +152,7 @@ set(engine_TEST_UTILS
 
 # Generating ProtoBuf protocol
 if (ENABLE_ARCUS)
-protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 # Compiling CuraEngine itself.
