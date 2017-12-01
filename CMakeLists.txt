@@ -164,10 +164,26 @@ endif ()
 
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
+if(WIN32)
+  message(STATUS "Using windres")
+  set(RES_FILES "CuraEngine.rc")
+  set(CMAKE_RC_COMPILER_INIT windres)
+  ENABLE_LANGUAGE(RC)
+  SET(CMAKE_RC_COMPILE_OBJECT
+      "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
+      )
+endif(WIN32)
+
 if (UNIX)
     target_link_libraries(_CuraEngine pthread)
 endif()
-add_executable(CuraEngine src/main.cpp) #Then compile main.cpp as separate executable, and link the library to it.
+
+if (NOT WIN32)
+  add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
+else()
+  add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
+endif(NOT WIN32)
+
 target_link_libraries(CuraEngine _CuraEngine)
 
 # Compiling the test environment.
