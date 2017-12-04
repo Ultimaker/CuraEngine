@@ -87,5 +87,15 @@ void AABB::expand(int dist)
     max.Y += dist;
 }
 
+Polygon AABB::toPolygon() const
+{
+    Polygon ret;
+    ret.add(min);
+    ret.add(Point(max.X, min.Y));
+    ret.add(max);
+    ret.add(Point(min.X, max.Y));
+    return ret;
+}
+
 }//namespace cura
 

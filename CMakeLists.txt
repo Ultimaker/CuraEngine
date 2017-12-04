@@ -21,7 +21,10 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
 endif()
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+if(NOT DEFINED LIB_SUFFIX)
+    set(LIB_SUFFIX "")
+endif()
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 
@@ -30,7 +33,7 @@ option(BUILD_TESTS OFF)
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     message(STATUS "Building debug release of CuraEngine.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
     add_definitions(-DDEBUG)
@@ -95,12 +98,10 @@ set(engine_SRCS # Except main.cpp.
     src/Wireframe2gcode.cpp
 
     src/infill/NoZigZagConnectorProcessor.cpp
+    src/infill/ZigzagConnectorProcessor.cpp
+    src/infill/SpaceFillingTreeFill.cpp
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
-    src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
-    src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
-    src/infill/ZigzagConnectorProcessorEndPieces.cpp
-    src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
     src/infill/SubDivCube.cpp
 
     src/pathPlanning/Comb.cpp
@@ -117,6 +118,8 @@ set(engine_SRCS # Except main.cpp.
     src/settings/SettingContainer.cpp
     src/settings/SettingRegistry.cpp
     src/settings/settings.cpp
+    src/settings/AdaptiveLayerHeights.cpp
+    src/settings/AdaptiveLayerHeights.h
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
@@ -130,13 +133,17 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
+    src/utils/SpaceFillingTree.cpp
+    src/utils/socket.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST_INFILL
+    SpaceFillingTreeFillTest
 )
 set(engine_TEST_UTILS
     SparseGridTest
+    IntPointTest
     LinearAlg2DTest
     PolygonUtilsTest
     PolygonTest

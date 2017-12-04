@@ -5,10 +5,28 @@
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
 #include "infill/SubDivCube.h" // For the destructor
+#include "infill/SpaceFillingTreeFill.h" // for destructor
 
 
 namespace cura
 {
+
+SupportStorage::SupportStorage()
+: generated(false)
+, layer_nr_max_filled_layer(-1)
+, cross_fill_patterns()
+{
+}
+
+SupportStorage::~SupportStorage()
+{
+    supportLayers.clear();
+    for(SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
+    {
+        delete cross_fill_pattern;
+    }
+    cross_fill_patterns.clear();
+}
 
 Polygons& SliceLayerPart::getOwnInfillArea()
 {
@@ -24,6 +42,14 @@ const Polygons& SliceLayerPart::getOwnInfillArea() const
     else
     {
         return infill_area;
+    }
+}
+
+SliceLayer::~SliceLayer()
+{
+    if (top_surface)
+    {
+        delete top_surface;
     }
 }
 
@@ -77,12 +103,27 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
     }
 }
 
+SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+: SettingsMessenger(mesh)
+, layer_nr_max_filled_layer(0)
+, bounding_box(mesh->getAABB())
+, base_subdiv_cube(nullptr)
+, cross_fill_patterns()
+{
+    layers.resize(slice_layer_count);
+}
+
 SliceMeshStorage::~SliceMeshStorage()
 {
     if (base_subdiv_cube)
     {
         delete base_subdiv_cube;
     }
+    for (SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
+    {
+        delete cross_fill_pattern;
+    }
+    cross_fill_patterns.clear();
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
@@ -455,7 +496,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
         // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
         include_adhesion = false;
     }
-    if (include_adhesion)
+    if (include_adhesion && getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt

@@ -14,16 +14,14 @@ void NoZigZagConnectorProcessor::registerVertex(const Point&)
     //No need to add anything.
 }
 
-void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point&, bool)
+void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point&, int)
 {
     //No need to add anything.
 }
 
 void NoZigZagConnectorProcessor::registerPolyFinished()
 {
-
+    //No need to add anything.
 }
-
-
 
 } // namespace cura 

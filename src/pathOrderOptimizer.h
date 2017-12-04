@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef PATHOPTIMIZER_H
 #define PATHOPTIMIZER_H
 
@@ -7,7 +7,32 @@
 #include "settings/settings.h"
 
 namespace cura {
- 
+
+/*!
+ * Helper class that encapsulates the various criteria that define the location of the z-seam.
+ * Instances of this are passed to the PathOrderOptimizer to specify where the z-seam is to be located.
+ */
+class ZSeamConfig
+{
+public:
+    EZSeamType type;
+    Point pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
+    EZSeamCornerPrefType corner_pref;
+    // default constructor
+    ZSeamConfig()
+    : type(EZSeamType::SHORTEST)
+    , pos(Point(0, 0))
+    , corner_pref(EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+    {
+    }
+    ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref)
+    : type(type)
+    , pos(pos)
+    , corner_pref(corner_pref)
+    {
+    }
+};
+
 /*!
  * Parts order optimization class.
  * 
@@ -17,17 +42,15 @@ namespace cura {
 class PathOrderOptimizer
 {
 public:
-    EZSeamType type;
     Point startPoint; //!< A location near the prefered start location
-    Point z_seam_pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
-    std::vector<ConstPolygonRef> polygons; //!< the parts of the layer (in arbitrary order)
+    const ZSeamConfig& config;
+    std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
 
-    PathOrderOptimizer(Point startPoint, Point z_seam_pos = Point(0, 0), EZSeamType type = EZSeamType::SHORTEST)
-    : type(type)
-    , startPoint(startPoint)
-    , z_seam_pos(z_seam_pos)
+    PathOrderOptimizer(Point startPoint, const ZSeamConfig& config = ZSeamConfig())
+    : startPoint(startPoint)
+    , config(config)
     {
     }
 
@@ -43,21 +66,13 @@ public:
 
     void addPolygons(const Polygons& polygons)
     {
-        for(unsigned int i=0;i<polygons.size(); i++)
-            this->polygons.push_back(polygons[i]);
+        for(unsigned int i = 0; i < polygons.size(); i++)
+            this->polygons.emplace_back(polygons[i]);
     }
 
     void optimize(); //!< sets #polyStart and #polyOrder
 
 private:
-    /*!
-     * Get the starting vertex of a polygon, depending on the \ref PathOrderOptimizer::type
-     * \param prev_point The previous planned location
-     * \param poly_idx The index of the polygon in \ref PathOrderOptimizer::polygons
-     * \return the index of the starting vertex in \ref PathOrderOptimizer::polygons[\p poly_idx]
-     */
-    int getPolyStart(Point prev_point, int poly_idx);
-
     int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point
     int getRandomPointInPolygon(int poly_idx);
 
@@ -71,7 +86,7 @@ class LineOrderOptimizer
 {
 public:
     Point startPoint; //!< The location of the nozzle before starting to print the current layer
-    std::vector<ConstPolygonRef> polygons; //!< the parts of the layer (in arbitrary order)
+    std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
 

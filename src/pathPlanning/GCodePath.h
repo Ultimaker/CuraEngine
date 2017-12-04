@@ -74,7 +74,7 @@ public:
      * Get the actual line width (modulated by the flow)
      * \return the actual line width as shown in layer view
      */
-    int getLineWidth();
+    int getLineWidthForLayerView();
 };
 
 }//namespace cura

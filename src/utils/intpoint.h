@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef INT_POINT_H
 #define INT_POINT_H
 
@@ -325,6 +325,23 @@ public:
         return Point3(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2]
                     , p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5]
                     , p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]);
+    }
+
+    /*!
+     * Apply matrix to vector as homogeneous coordinates.
+     */
+    Point apply(const Point p) const
+    {
+        Point3 result = apply(Point3(p.X, p.Y, 1));
+        return Point(result.x / result.z, result.y / result.z);
+    }
+
+    static Point3Matrix translate(const Point p)
+    {
+        Point3Matrix ret; // uniform matrix
+        ret.matrix[2] = p.X;
+        ret.matrix[5] = p.Y;
+        return ret;
     }
 
     Point3Matrix compose(const Point3Matrix& b)

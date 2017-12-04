@@ -73,6 +73,12 @@ public:
     void handle(LayerPlan& layer_plan, GCodeExport& gcode);
 
     /*!
+     * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
+     */
+    void flush();
+
+private:
+    /*!
      * Process all layers in the buffer
      * This inserts the temperature commands to start warming for a given layer in earlier layers;
      * the fan speeds and layer time settings of the most recently pushed layer are processed;
@@ -83,12 +89,6 @@ public:
      */
     LayerPlan* processBuffer();
 
-    /*!
-     * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
-     */
-    void flush();
-
-private:
     /*!
      * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
      * 

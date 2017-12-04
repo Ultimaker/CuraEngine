@@ -106,7 +106,7 @@ private:
      * 
      * \param in the integer to check
      */
-    void writeInt2mmAssert(int64_t in);
+    void writeInt2mmAssert(int in);
 
     /*!
      * \brief Performs the actual assertion for the getDist2FromLineSegmentTest.

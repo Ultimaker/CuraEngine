@@ -248,7 +248,7 @@ private:
      * This function should be called for only one layer;
      * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      * 
-     * \param Storage where the slice data is stored.
+     * \param storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
@@ -384,9 +384,10 @@ private:
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
+     * \param infill_origin The origin of the infill pattern.
      * \return Whether this function added anything to the layer plan
      */
-    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int fillAngle, const Point& infill_origin) const;
     
     /*!
      * Add normal sparse infill for a given part in a layer.
@@ -398,9 +399,10 @@ private:
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
+     * \param infill_origin The origin of the infill pattern.
      * \return Whether this function added anything to the layer plan
      */
-    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int fillAngle) const;
+    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_overlap, int fillAngle, const Point& infill_origin) const;
     
     /*!
      * Generate the insets for the walls of a given layer part.

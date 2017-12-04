@@ -130,7 +130,7 @@ Point PolygonUtils::moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, 
     {
         return no_point;
     }
-    ConstPolygonRef poly = *point_on_boundary.poly;
+    ConstPolygonRef poly = **point_on_boundary.poly;
     Point p0 = poly[point_on_boundary.point_idx];
     Point p1 = poly[(point_on_boundary.point_idx + 1) % poly.size()];
     if (vSize2(p0 - point_on_boundary.location) < vSize2(p1 - point_on_boundary.location))
@@ -433,10 +433,10 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                 // Perform an offset on all polygons instead.
                 Polygons all_insetted = polygons.offset(-preferred_dist_inside);
                 ClosestPolygonPoint overall_inside = findClosest(from, all_insetted, penalty_function);
-#ifdef DEBUG
                 bool overall_is_inside = polygons.inside(overall_inside.location);
                 if (overall_is_inside != (preferred_dist_inside > 0))
                 {
+#ifdef DEBUG
                     try
                     {
                         int offset_performed = offset / 2;
@@ -474,9 +474,10 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     {
                     }
                     logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
+#endif
                     return ClosestPolygonPoint();
                 }
-#endif
+                inside = overall_inside;
             }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location
@@ -610,7 +611,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygo
     {
         return none;
     }
-    ConstPolygonRef any_polygon = polygons[0];
+    ConstPolygonPointer any_polygon = polygons[0];
     unsigned int any_poly_idx;
     for (any_poly_idx = 0; any_poly_idx < polygons.size(); any_poly_idx++)
     { // find first point in all polygons
@@ -620,11 +621,11 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygo
             break;
         }
     }
-    if (any_polygon.size() == 0)
+    if (any_polygon->size() == 0)
     {
         return none;
     }
-    ClosestPolygonPoint best(any_polygon[0], 0, any_polygon, any_poly_idx);
+    ClosestPolygonPoint best((*any_polygon)[0], 0, *any_polygon, any_poly_idx);
 
     int64_t closestDist2_score = vSize2(from - best.location) + penalty_function(best.location);
     
@@ -1032,13 +1033,13 @@ bool PolygonUtils::polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, con
     return false;
 }
 
-void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonRef>& possible_adjacent_polys, const coord_t max_gap)
+void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonPointer>& possible_adjacent_polys, const coord_t max_gap)
 {
     // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
     for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
     {
-        if (polygonOutlinesAdjacent(poly, possible_adjacent_polys[poly_idx], max_gap) ||
-            polygonOutlinesAdjacent(possible_adjacent_polys[poly_idx], poly, max_gap))
+        if (polygonOutlinesAdjacent(poly, *possible_adjacent_polys[poly_idx], max_gap) ||
+            polygonOutlinesAdjacent(*possible_adjacent_polys[poly_idx], poly, max_gap))
         {
             adjacent_poly_indices.push_back(poly_idx);
         }

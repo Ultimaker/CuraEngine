@@ -1,4 +1,3 @@
-//Copyright (C) 2013 David Braam
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -15,6 +14,7 @@
 
 #include "utils/math.h"
 #include "progress/Progress.h"
+#include "infill/SpaceFillingTreeFill.h"
 
 namespace cura 
 {
@@ -76,6 +76,11 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
+        int wall_line_count_this_layer = wall_line_count;
+        if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
+        { // the first layer will be printed wit ha grid pattern
+            wall_line_count_this_layer = 1;
+        }
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
         const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
@@ -96,7 +101,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
             }
             // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
             // tower will remove themselves from the support, so the outlines of the parts can be changed.
-            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count);
+            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
 
             storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
         }
@@ -619,6 +624,41 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
 
     // split the global support areas into parts for later gradual support infill generation
     AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(storage, global_support_areas_per_layer, storage.print_layer_count);
+
+    // Pre-compute Cross Fractal
+    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern");
+    if (support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
+    {
+        AABB3D aabb;
+        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        {
+            const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
+            {
+                continue;
+            }
+            SettingsBaseVirtual* infill_settings = &storage.meshes[mesh_idx];
+            if (mesh.getSettingBoolean("support_mesh"))
+            {
+                // use extruder train settings rather than the per-object settings of the first support mesh encountered.
+                // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
+                // instead we must use the support extruder settings, which is the settings base common to all support meshes.
+                int infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+                infill_settings = storage.meshgroup->getExtruderTrain(infill_extruder_nr);
+            }
+            const coord_t aabb_expansion = infill_settings->getSettingInMicrons("support_offset");
+            AABB3D aabb_here(mesh.bounding_box);
+            aabb_here.include(aabb_here.min - Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb.include(aabb_here);
+        }
+        for (unsigned int density_idx = 0; density_idx <= (unsigned int)infill_extr.getSettingAsCount("gradual_support_infill_steps"); ++density_idx)
+        {
+            coord_t line_distance = infill_extr.getSettingInMicrons("support_line_distance") << density_idx;
+            storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(line_distance, aabb));
+        }
+    }
 }
 
 /* 
@@ -1058,7 +1098,7 @@ void AreaSupport::detectOverhangPoints(
 )
 {
     ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-    const unsigned int support_line_width = infill_extr->getSettingInMicrons("support_line_width");
+    const coord_t support_line_width = infill_extr->getSettingInMicrons("support_line_width");
 
     overhang_points.resize(layer_count);
 

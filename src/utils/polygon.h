@@ -41,28 +41,33 @@ typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a ve
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
+class ConstPolygonPointer;
+
+/*!
+ * Outer polygons should be counter-clockwise,
+ * inner hole polygons should be clockwise.
+ * (When negative X is to the left and negative Y is downward.)
+ */
 class ConstPolygonRef
 {
     friend class Polygons;
     friend class Polygon;
     friend class PolygonRef;
+    friend class ConstPolygonPointer;
 protected:
     ClipperLib::Path* path;
-    ConstPolygonRef()
-    : path(nullptr)
-    {}
 public:
     ConstPolygonRef(const ClipperLib::Path& polygon)
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
-    bool operator==(ConstPolygonRef& other) const =delete;
-
-    ConstPolygonRef& operator=(const ConstPolygonRef& other)
+    virtual ~ConstPolygonRef()
     {
-        path = other.path;
-        return *this;
     }
+
+    bool operator==(ConstPolygonRef& other) const =delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+
+    ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete; // Cannot assign to a const object
 
     unsigned int size() const
     {
@@ -327,21 +332,25 @@ private:
 };
 
 
+class PolygonPointer;
+
 class PolygonRef : public ConstPolygonRef
 {
-    PolygonRef()
-    : ConstPolygonRef()
-    {}
+    friend class PolygonPointer;
 public:
     PolygonRef(ClipperLib::Path& polygon)
     : ConstPolygonRef(polygon)
     {}
 
-    PolygonRef& operator=(const PolygonRef& other)
+    virtual ~PolygonRef()
     {
-        path = other.path;
-        return *this;
     }
+
+    PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+//     {
+//         *path = *other.path;
+//         return *this;
+//     }
 
     Point& operator[] (unsigned int index)
     {
@@ -431,6 +440,77 @@ public:
     { 
         path->pop_back();
     }
+
+    /*!
+     * Apply a matrix to each vertex in this polygon
+     */
+    void applyMatrix(const PointMatrix& matrix);
+    void applyMatrix(const Point3Matrix& matrix);
+};
+
+class ConstPolygonPointer
+{
+protected:
+    const ClipperLib::Path* path;
+public:
+    ConstPolygonPointer()
+    : path(nullptr)
+    {}
+    ConstPolygonPointer(const ConstPolygonRef* ref)
+    : path(ref->path)
+    {}
+    ConstPolygonPointer(const ConstPolygonRef& ref)
+    : path(ref.path)
+    {}
+
+    ConstPolygonRef operator*() const
+    {
+        assert(path);
+        return ConstPolygonRef(*path);
+    }
+    const ClipperLib::Path* operator->() const
+    {
+        assert(path);
+        return path;
+    }
+
+    operator bool() const
+    {
+        return path;
+    }
+};
+
+class PolygonPointer
+{
+protected:
+    ClipperLib::Path* path;
+public:
+    PolygonPointer()
+    : path(nullptr)
+    {}
+    PolygonPointer(PolygonRef* ref)
+    : path(ref->path)
+    {}
+
+    PolygonPointer(PolygonRef& ref)
+    : path(ref.path)
+    {}
+
+    PolygonRef operator*()
+    {
+        assert(path);
+        return PolygonRef(*path);
+    }
+    ClipperLib::Path* operator->()
+    {
+        assert(path);
+        return path;
+    }
+
+    operator bool() const
+    {
+        return path;
+    }
 };
 
 class Polygon : public PolygonRef
@@ -442,10 +522,26 @@ public:
     {
     }
 
-    Polygon(PolygonRef& other)
+    Polygon(ConstPolygonRef& other)
     : PolygonRef(poly)
+    , poly(*other.path)
     {
-        poly = *other.path;
+    }
+
+    Polygon(Polygon&& moved)
+    : PolygonRef(poly)
+    , poly(std::move(moved.poly))
+    {
+    }
+
+    virtual ~Polygon()
+    {
+    }
+
+    Polygon& operator=(const ConstPolygonRef& other)
+    {
+        path = other.path;
+        return *this;
     }
 };
 
@@ -576,6 +672,12 @@ public:
 
     bool operator==(const Polygons& other) const =delete;
 
+    /*!
+     * Convert ClipperLib::PolyTree to a Polygons object,
+     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
+     */
+    static Polygons toPolygons(ClipperLib::PolyTree& poly_tree);
+
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
@@ -610,6 +712,12 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
         return ret;
     }
+
+    /*!
+     * Intersect polylines with this area Polygons object.
+     */
+    Polygons intersectionPolyLines(const Polygons& polylines) const;
+
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
@@ -703,13 +811,6 @@ public:
      * 
      */
     Polygons approxConvexHull(int extra_outset = 0);
-    
-    /*!
-     * Convex hull of all the points in the polygons.
-     * \return the convex hull
-     *
-     */
-    Polygon convexHull() const;
 
     /*!
      * Compute the area enclosed within the polygons (minus holes)
@@ -797,6 +898,12 @@ private:
      */
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+
+    /*!
+     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
+     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
+     */
+    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.

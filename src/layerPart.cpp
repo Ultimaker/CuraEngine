@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 
 #include "layerPart.h"
 #include "settings/settings.h"
@@ -51,8 +51,6 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers,
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
         SlicerLayer& slice_layer = slicer->layers[layer_nr];
-        layer_storage.sliceZ = slice_layer.z;
-        layer_storage.printZ = slice_layer.z;
         createLayerWithParts(layer_storage, &slice_layer, union_layers, union_all_remove_holes);
     }
 

@@ -10,7 +10,7 @@ The .h files contain different steps called from the main.cpp file. The main.cpp
 
 The slicing process follows the following global steps:
 * Load 3D model
-* Analize and fix 3D model
+* Analyze and fix 3D model
 * Slice 3D model into 2D layers
 * Build LayerParts from sliced layers
 * Generate Insets
