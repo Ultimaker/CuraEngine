@@ -11,7 +11,7 @@
 #include "../utils/SVG.h"
 
 #include "SierpinskiFillEdge.h"
-#include "Subdivider.h"
+#include "DensityProvider.h"
 
 namespace cura
 {
@@ -64,7 +64,7 @@ public:
     /*!
      * Basic constructor
      */
-    SierpinskiFill(const Subdivider& subdivider, const AABB aabb, int max_depth);
+    SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width);
 
     ~SierpinskiFill();
 
@@ -96,10 +96,11 @@ protected:
      */
     void process(const int iteration);
 
-    const Subdivider& subdivider; //!< function which determines whether to subdivide a triangle defined by two consecutive edges.
+    const DensityProvider& density_provider; //!< function which determines whether to subdivide a triangle defined by two consecutive edges.
 
     std::list<SierpinskiFillEdge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
     AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
+    coord_t line_width; //!< The line width of the fill lines
 };
 } // namespace cura
 

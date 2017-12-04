@@ -2,7 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SierpinskiFillTest.h"
-#include "../src/infill/ImageBasedSubdivider.h"
+#include "../src/infill/ImageBasedDensityProvider.h"
 
 namespace cura
 {
@@ -25,12 +25,12 @@ void SierpinskiFillTest::debugCheck()
     SVG svg("output/sierpinski.html", aabb, Point(1000, 1000)*2);
     
     
-    Subdivider* subdivider = new ImageBasedSubdivider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb, 400);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb);
 //     subdivider = new UniformSubdivider();
 //     srand(1);
     int max_depth = 12;
     {
-        SierpinskiFill f(*subdivider, aabb, max_depth);
+        SierpinskiFill f(*subdivider, aabb, max_depth, 400);
         SVG::Color color = SVG::Color::GREEN;
         switch (max_depth % 4)
         {

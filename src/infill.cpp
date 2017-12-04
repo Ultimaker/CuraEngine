@@ -10,8 +10,8 @@
 #include "utils/logoutput.h"
 #include "utils/UnionFind.h"
 #include "infill/SierpinskiFill.h"
-#include "infill/ImageBasedSubdivider.h"
-#include "infill/UniformSubdivider.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate

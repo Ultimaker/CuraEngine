@@ -5,9 +5,9 @@
 #include "../utils/optional.h"
 
 #include "SierpinskiFill.h"
-#include "Subdivider.h"
-#include "ImageBasedSubdivider.h"
-#include "UniformSubdivider.h"
+#include "DensityProvider.h"
+#include "ImageBasedDensityProvider.h"
+#include "UniformDensityProvider.h"
 
 namespace cura
 {
@@ -26,21 +26,21 @@ protected:
     };
 public:
     FractalConfig fractal_config;
-    Subdivider* subdivider;
+    DensityProvider* density_provider;
     std::optional<SierpinskiFill> fill_pattern_for_all_layers;
     
-    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance)
+    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
-    , subdivider(new UniformSubdivider())
-    , fill_pattern_for_all_layers(get_constructor, *subdivider, fractal_config.aabb, fractal_config.depth)
+    , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
+    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
     {
         
     }
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
-    , subdivider(new ImageBasedSubdivider(cross_subdisivion_spec_image_file, aabb_3d.getAABB(), line_width))
-    , fill_pattern_for_all_layers(get_constructor, *subdivider, fractal_config.aabb, fractal_config.depth)
+    , density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.getAABB()))
+    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
     {
     }
 
@@ -68,9 +68,9 @@ public:
 
     ~SierpinskiFillProvider()
     {
-        if (subdivider)
+        if (density_provider)
         {
-            delete subdivider;
+            delete density_provider;
         }
     }
 protected:
