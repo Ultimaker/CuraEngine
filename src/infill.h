@@ -10,7 +10,7 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"
-#include "infill/Subdivider.h"
+#include "infill/DensityProvider.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 

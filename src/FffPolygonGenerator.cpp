@@ -25,9 +25,9 @@
 #include "SkirtBrim.h"
 #include "skin.h"
 #include "infill/SpaghettiInfill.h"
-#include "infill/Subdivider.h"
-#include "infill/ImageBasedSubdivider.h"
-#include "infill/UniformSubdivider.h"
+#include "infill/DensityProvider.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
 #include "infill.h"
 #include "raft.h"
 #include "progress/Progress.h"
@@ -695,7 +695,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             }
             else
             {
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"));
+                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"));
             }
         }
 

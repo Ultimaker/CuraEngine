@@ -1,5 +1,5 @@
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
-#include "ImageBasedSubdivider.h"
+#include "ImageBasedDensityProvider.h"
 
 #include "SierpinskiFill.h"
 
@@ -12,8 +12,7 @@ namespace cura {
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
 
-ImageBasedSubdivider::ImageBasedSubdivider(const std::string filename, const AABB model_aabb, const coord_t line_width)
-: line_width(line_width)
+ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename, const AABB model_aabb)
 {
     int desired_channel_count = 0; // keep original amount of channels
     image = stbi_load(filename.c_str(), &image_size.x, &image_size.y, &image_size.z, desired_channel_count);
@@ -48,7 +47,7 @@ ImageBasedSubdivider::ImageBasedSubdivider(const std::string filename, const AAB
 }
 
 
-ImageBasedSubdivider::~ImageBasedSubdivider()
+ImageBasedDensityProvider::~ImageBasedDensityProvider()
 {
     if (image)
     {
@@ -56,7 +55,7 @@ ImageBasedSubdivider::~ImageBasedSubdivider()
     }
 }
 
-bool ImageBasedSubdivider::operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const
+float ImageBasedDensityProvider::operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const
 {
     AABB aabb_here;
     aabb_here.include(e1.l);
@@ -78,26 +77,19 @@ bool ImageBasedSubdivider::operator()(const SierpinskiFillEdge& e1, const Sierpi
             }
         }
     }
-    const coord_t average_length = vSize((e1.l + e1.r) - (e2.l + e2.r)) / 2;
-    // calculate area of triangle: base times height * .5
-    coord_t area;
-    {
-        const coord_t base_length = vSize(e1.l - e1.r);
-        const Point v1 = e1.r - e1.l;
-        const Point v2 = e2.r - e2.l;
-        const Point height_vector = dot(v2, turn90CCW(v1)) / vSize(v1);
-        const coord_t height = vSize(height_vector);
-        area = base_length * height / 2;
-    }
     if (value_count == 0)
-    { // triangle falls outside of image, so we subdivide it so that it cannot limit the subdivision of other cells
-        return true;
+    { // triangle falls outside of image or in between pixels, so we return the closest pixel
+        Point closest_pixel = (min + max) / 2;
+        closest_pixel.X = std::max((coord_t)0, std::min((coord_t)image_size.x - 1, (coord_t)closest_pixel.X));
+        closest_pixel.Y = std::max((coord_t)0, std::min((coord_t)image_size.y - 1, (coord_t)closest_pixel.Y));
+        assert(total_lightness == 0);
+        for (int z = 0; z < image_size.z; z++)
+        {
+            total_lightness += image[((image_size.y - 1 - closest_pixel.Y) * image_size.x + closest_pixel.X) * image_size.z + z];
+            value_count++;
+        }
     }
-    if (255 - total_lightness / value_count > 255 * average_length * line_width / area)
-    {
-        return true;
-    }
-    return false;
+    return 1.0f - ((float)total_lightness) / value_count / 255.0f;
 };
 
 }; // namespace cura

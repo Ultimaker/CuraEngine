@@ -16,8 +16,8 @@
 
 #include "utils/math.h"
 #include "progress/Progress.h"
-#include "infill/ImageBasedSubdivider.h"
-#include "infill/UniformSubdivider.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
 
 namespace cura 
 {
@@ -665,7 +665,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         }
         else
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"));
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), ((float) infill_extr.getSettingInMicrons("support_line_width")) / infill_extr.getSettingInMicrons("support_line_distance"));
         }
     }
 }

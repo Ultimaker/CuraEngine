@@ -6,17 +6,18 @@
 
 #include "../utils/linearAlg2D.h" // rotateAround
 
-#include "ImageBasedSubdivider.h"
-#include "UniformSubdivider.h"
+#include "ImageBasedDensityProvider.h"
+#include "UniformDensityProvider.h"
 
 namespace cura {
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
 
-SierpinskiFill::SierpinskiFill(const Subdivider& subdivider, const AABB aabb, int max_depth)
-: subdivider(subdivider)
+SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width)
+: density_provider(density_provider)
 , aabb(aabb)
+, line_width(line_width)
 {
     Point m = aabb.min;
     edges.emplace_back(straight, m, Point(aabb.max.X, m.Y), 0);
@@ -63,7 +64,24 @@ void SierpinskiFill::debugOutput(SVG& svg)
 
 void SierpinskiFill::process(int iteration)
 {
-    const Subdivider& recurse_triangle = subdivider;
+    const std::function<bool (SierpinskiFillEdge&, SierpinskiFillEdge&)> recurse_triangle = [this] (SierpinskiFillEdge& e1, SierpinskiFillEdge& e2)
+        {
+            float supposed_density = density_provider(e1, e2);
+            
+            const coord_t average_length = vSize((e1.l + e1.r) - (e2.l + e2.r)) / 2;
+            // calculate area of triangle: base times height * .5
+            coord_t area;
+            {
+                const coord_t base_length = vSize(e1.l - e1.r);
+                const Point v1 = e1.r - e1.l;
+                const Point v2 = e2.r - e2.l;
+                const Point height_vector = dot(v2, turn90CCW(v1)) / vSize(v1);
+                const coord_t height = vSize(height_vector);
+                area = base_length * height / 2;
+            }
+            assert(area > 0);
+            return supposed_density * area > average_length * line_width;
+        };
 
     bool processing_direction = iteration % 2 == 1;
     const bool opposite_direction = !processing_direction;
