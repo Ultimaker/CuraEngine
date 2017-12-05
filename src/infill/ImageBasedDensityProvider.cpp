@@ -55,13 +55,13 @@ ImageBasedDensityProvider::~ImageBasedDensityProvider()
     }
 }
 
-float ImageBasedDensityProvider::operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const
+float ImageBasedDensityProvider::operator()(const Point& a, const Point& b, const Point& c, const Point& d) const
 {
     AABB aabb_here;
-    aabb_here.include(e1.l);
-    aabb_here.include(e1.r);
-    aabb_here.include(e2.l);
-    aabb_here.include(e2.r);
+    aabb_here.include(a);
+    aabb_here.include(b);
+    aabb_here.include(c);
+    aabb_here.include(d);
     Point min = (aabb_here.min - aabb.min - Point(1,1)) * image_size.x / (aabb.max.X - aabb.min.X);
     Point max = (aabb_here.max - aabb.min + Point(1,1)) * image_size.y / (aabb.max.Y - aabb.min.Y);
     long total_lightness = 0;

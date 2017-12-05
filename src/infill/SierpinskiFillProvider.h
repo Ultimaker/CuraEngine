@@ -32,7 +32,7 @@ public:
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
     , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
-    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
+    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, true) // TODO hardcoded value
     {
         
     }
@@ -40,7 +40,7 @@ public:
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
     , density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.getAABB()))
-    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
+    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, true) // TODO hardcoded value
     {
     }
 

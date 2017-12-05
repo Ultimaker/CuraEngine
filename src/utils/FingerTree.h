@@ -1,4 +1,4 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef UTILS_FINGER_TREE_H
 #define UTILS_FINGER_TREE_H
 
@@ -80,7 +80,7 @@ public:
     : tree(tree)
     , vector_index(vector_index)
     {}
-    T& operator *()
+    T& operator *() const
     {
         if (vector_index >= tree->elements.size())
         {
@@ -88,6 +88,10 @@ public:
         }
         assert(vector_index < tree->elements.size());
         return tree->elements[vector_index];
+    }
+    T* operator ->() const
+    {
+        return &this->operator*();
     }
     T& get()
     {
@@ -99,12 +103,17 @@ public:
         {
             tree->elements.resize(vector_index + 1);
         }
+        assert(vector_index < tree->elements.size());
         tree->elements[vector_index] = std::move(elem);
         return *this;
     }
-    Node& operator[](unsigned int child_idx)
+    Node operator[](unsigned int child_idx)
     {
         size_t vector_index = getChildIndex(child_idx);
+        if (vector_index >= tree->elements.size())
+        {
+            tree->elements.resize(vector_index + 1);
+        }
         assert(vector_index < tree->elements.size());
         return Node(tree, vector_index);
     }
@@ -150,7 +159,7 @@ public:
         return !(*this == rhs);
     }
     
-    size_t getCode()
+    size_t getIndex()
     {
         return vector_index;
     }
@@ -160,8 +169,8 @@ protected:
         assert(child_idx < tree->finger_count);
         return vector_index * tree->finger_count + child_idx + 1;
     }
-    FingerTree<T>* tree;
-    size_t vector_index;
+    FingerTree<T>* tree; //!< pointer to the tree
+    size_t vector_index; //!< index in the vector of all elements: \ref FingerTree::elements
     
 };
 

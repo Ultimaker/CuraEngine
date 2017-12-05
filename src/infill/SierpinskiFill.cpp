@@ -14,28 +14,71 @@ namespace cura {
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
 
-SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width)
-: density_provider(density_provider)
+SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width, bool dithering)
+: dithering(dithering)
+, density_provider(density_provider)
 , aabb(aabb)
 , line_width(line_width)
+, max_depth(max_depth)
+, pre_division_tree_size(calculatePreDivisionTreeSize(max_depth))
+, pre_division_tree(2, pre_division_tree_size, SierpinskiTriangle())
 {
     Point m = aabb.min;
-    edges.emplace_back(straight, m, Point(aabb.max.X, m.Y), 0);
+    Point lt = Point(m.X, aabb.max.Y);
+    Point rb = Point(aabb.max.X, m.Y);
+    edges.emplace_back(straight, m, rb, 0);
     edges.emplace_back(diagonal, m, aabb.max, 0);
-    edges.emplace_back(straight, m, Point(m.X, aabb.max.Y), 0);
-    /*
-     *    Point m = aabb.getMiddle();
-     *    edges.emplace_back(straight, m, Point(aabb.max.X, m.Y));
-     *    edges.emplace_back(diagonal, m, aabb.max);
-     *    edges.emplace_back(straight, m, Point(m.X, aabb.max.Y));
-     *    edges.emplace_back(diagonal, m, Point(aabb.min.X, aabb.max.Y));
-     *    edges.emplace_back(straight, m, Point(aabb.min.X, m.Y));
-     *    edges.emplace_back(diagonal, m, Point(aabb.min.X, aabb.min.Y));
-     *    edges.emplace_back(straight, m, Point(m.X, aabb.min.Y));
-     *    edges.emplace_back(diagonal, m, Point(aabb.max.X, aabb.min.Y));
-     *    edges.emplace_back(straight, m, Point(aabb.max.X, m.Y));
-     */
-
+    edges.emplace_back(straight, m, lt, 0);
+    
+    using Node = FingerTree<SierpinskiTriangle>::Node;
+    pre_division_tree.getRoot()[0] = SierpinskiTriangle(rb, m, aabb.max, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
+    pre_division_tree.getRoot()[1] = SierpinskiTriangle(lt, aabb.max, m, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
+    for (unsigned int depth = 1; depth < max_depth; depth++)
+    {
+        for (Node level_it = pre_division_tree.begin(depth); level_it != pre_division_tree.end(depth); ++level_it)
+        {
+            SierpinskiTriangle t = *level_it;
+            Point middle = (t.a + t.b) / 2;
+            SierpinskiTriangle::SierpinskiDirection first_dir, second_dir;
+            switch(t.dir)
+            {
+                case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
+                    first_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
+                    second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+                    break;
+                case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
+                    first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
+                    second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
+                    break;
+                case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
+                    first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
+                    second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+                    break;
+            }
+            level_it[0] = SierpinskiTriangle(middle, t.a, t.straight_corner, first_dir, !t.straight_corner_is_left, t.depth + 1);
+            level_it[1] = SierpinskiTriangle(middle, t.straight_corner, t.b, second_dir, !t.straight_corner_is_left, t.depth + 1);
+        }
+    }
+    // set totals of leaves
+    for (Node max_level_it = pre_division_tree.begin(max_depth); max_level_it != pre_division_tree.end(max_depth); ++max_level_it)
+    {
+        SierpinskiTriangle& triangle = *max_level_it; 
+        float density = density_provider(triangle.a, triangle.b, triangle.straight_corner, triangle.straight_corner);
+        float area = 0.5 * INT2MM2(vSize2(triangle.a - triangle.straight_corner));
+        triangle.total_value = density * area;
+    }
+    // bubble total up
+    for (int depth = max_depth - 1; depth >= 0; depth--)
+    {
+        for (Node level_it = pre_division_tree.begin(max_depth); level_it != pre_division_tree.end(max_depth); ++level_it)
+        {
+            for (SierpinskiTriangle& child : level_it)
+            {
+                level_it->total_value += child.total_value;
+            }
+        }
+    }
+    
     for (int it = 1; it < max_depth; it++)
     {
         process(it);
@@ -44,6 +87,19 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
 
 SierpinskiFill::~SierpinskiFill()
 {
+}
+
+size_t SierpinskiFill::calculatePreDivisionTreeSize(unsigned int max_depth)
+{
+    constexpr unsigned int child_count = 2;
+    unsigned int size = 0;
+    unsigned int level_size = 1;
+    for (unsigned int depth = 0; depth < max_depth; depth++)
+    {
+        size += level_size;
+        level_size *= child_count;
+    }
+    return size;
 }
 
 void SierpinskiFill::debugOutput(SVG& svg)
@@ -66,7 +122,7 @@ void SierpinskiFill::process(int iteration)
 {
     const std::function<bool (SierpinskiFillEdge&, SierpinskiFillEdge&)> recurse_triangle = [this] (SierpinskiFillEdge& e1, SierpinskiFillEdge& e2)
         {
-            float supposed_density = density_provider(e1, e2);
+            float supposed_density = density_provider(e1.l, e1.r, e2.l, e2.r);
             
             const coord_t average_length = vSize((e1.l + e1.r) - (e2.l + e2.r)) / 2;
             // calculate area of triangle: base times height * .5
@@ -200,39 +256,15 @@ Polygon SierpinskiFill::generateSierpinski() const
 {
     Polygon ret;
 
-    const SierpinskiFillEdge* prev = &edges.back();
-    for (const SierpinskiFillEdge& e : edges)
+    
+    using Node = FingerTree<SierpinskiTriangle>::Node;
+    
+    FingerTree<SierpinskiTriangle>& pre_division_tree = const_cast<FingerTree<SierpinskiTriangle>&>(this->pre_division_tree);
+    
+    for (Node max_level_it = pre_division_tree.begin(max_depth); max_level_it != pre_division_tree.end(max_depth); ++max_level_it)
     {
-        Point c;
-        if (e.l == prev->l)
-        {
-            c = prev->r;
-        }
-        else
-        {
-//             assert (e.r == prev->r);
-            c = prev->l;
-        }
-        Point tot = e.l + e.r + c;
-        Point add;
-        coord_t lr_size2 = vSize2(e.r - e.l);
-        coord_t lc_size2 = vSize2(c - e.l);
-        coord_t rc_size2 = vSize2(c - e.r);
-        if (lr_size2 > lc_size2 + 10 && lr_size2 > rc_size2 + 10)
-        {
-            add = c;
-        }
-        else if (lc_size2 > lr_size2 + 10 && lc_size2 > rc_size2 + 10)
-        {
-            add = e.r;
-        }
-        else
-        {
-            add = e.l;
-        }
-        tot += add;
-        ret.add(tot / 4);
-        prev = &e;
+        SierpinskiTriangle& triangle = *max_level_it; 
+        ret.add((triangle.a + triangle.b + triangle.straight_corner) / 3);
     }
     
     return ret;

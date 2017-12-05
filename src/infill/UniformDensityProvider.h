@@ -24,7 +24,7 @@ public:
     {
     };
 
-    virtual float operator()(const SierpinskiFillEdge&, const SierpinskiFillEdge&) const
+    virtual float operator()(const Point&, const Point&, const Point&, const Point&) const
     {
         return density;
     };
