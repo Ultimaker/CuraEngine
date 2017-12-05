@@ -11,7 +11,10 @@ namespace cura
 class DensityProvider
 {
 public:
-    virtual float operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const = 0;
+    /*!
+     * \return the approximate required density of a quadrilateral
+     */
+    virtual float operator()(const Point& a, const Point& b, const Point& c, const Point& d) const = 0;
     virtual ~DensityProvider()
     {
     };

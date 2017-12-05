@@ -10,8 +10,11 @@
 
 #include "../utils/SVG.h"
 
+#include "../utils/FingerTree.h"
+
 #include "SierpinskiFillEdge.h"
 #include "DensityProvider.h"
+
 
 namespace cura
 {
@@ -64,7 +67,7 @@ public:
     /*!
      * Basic constructor
      */
-    SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width);
+    SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width, bool dithering);
 
     ~SierpinskiFill();
 
@@ -89,18 +92,71 @@ public:
     void debugOutput(SVG& svg);
 
 protected:
+    struct SierpinskiTriangle
+    {
+        enum class SierpinskiDirection
+        {
+            AC_TO_AB,
+            AC_TO_BC,
+            AB_TO_BC
+        };
+        Point straight_corner;
+        Point a;
+        Point b;
+        SierpinskiDirection dir;
+        bool straight_corner_is_left;
+        int depth;
+        
+        float total_value;
+        float density_value;
+        float density_color;
+        float error_left;
+        float error_right;
+
+        SierpinskiTriangle(Point straight_corner, Point a, Point b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
+        : straight_corner(straight_corner)
+        , a(a)
+        , b(b)
+        , dir(dir)
+        , straight_corner_is_left(straight_corner_is_left)
+        , depth(depth)
+        , total_value(0)
+        , error_left(0)
+        , error_right(0)
+        {}
+        SierpinskiTriangle()
+        : straight_corner(no_point)
+        , a(no_point)
+        , b(no_point)
+        , depth(0)
+        , total_value(0)
+        , error_left(0)
+        , error_right(0)
+        {}
+        bool isValid()
+        {
+            return straight_corner != no_point;
+        }
+    };
+
+    bool dithering;
+    const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
+    AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
+    coord_t line_width; //!< The line width of the fill lines
+    int max_depth; //!< Maximum recursion depth of the fractal
+
+    size_t pre_division_tree_size;
+    FingerTree<SierpinskiTriangle> pre_division_tree; //!< Tree with fully subdivided triangles to get accurate desnity estimated for each possible triangle.
+    
+    size_t calculatePreDivisionTreeSize(unsigned int max_depth);
+
+    std::list<SierpinskiFillEdge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
 
     /*!
      * Process a single step in the recursive fractal
      * \param iteration current recursion depth
      */
     void process(const int iteration);
-
-    const DensityProvider& density_provider; //!< function which determines whether to subdivide a triangle defined by two consecutive edges.
-
-    std::list<SierpinskiFillEdge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
-    AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
-    coord_t line_width; //!< The line width of the fill lines
 };
 } // namespace cura
 

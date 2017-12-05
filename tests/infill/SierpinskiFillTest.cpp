@@ -29,8 +29,9 @@ void SierpinskiFillTest::debugCheck()
 //     subdivider = new UniformSubdivider();
 //     srand(1);
     int max_depth = 12;
+    bool dithering = true;
     {
-        SierpinskiFill f(*subdivider, aabb, max_depth, 400);
+        SierpinskiFill f(*subdivider, aabb, max_depth, 400, dithering);
         SVG::Color color = SVG::Color::GREEN;
         switch (max_depth % 4)
         {
@@ -43,9 +44,9 @@ void SierpinskiFillTest::debugCheck()
         color = SVG::Color::RAINBOW;
         color = SVG::Color::BLACK;
 //         svg.writePolygon(f.generateCross(3000, 16), color, 4);
-        svg.writePolygon(f.generateCross(), color, 8);
-        svg.writePoints(f.generateCross());
-//         svg.writePolygon(f.generateSierpinski(), color);
+//         svg.writePolygon(f.generateCross(), color, 8);
+//         svg.writePoints(f.generateCross());
+        svg.writePolygon(f.generateSierpinski(), color);
 //         f.debugOutput(svg);
     }
     

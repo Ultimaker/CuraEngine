@@ -19,7 +19,7 @@ public:
 
     virtual ~ImageBasedDensityProvider();
 
-    virtual float operator()(const SierpinskiFillEdge& e1, const SierpinskiFillEdge& e2) const;
+    virtual float operator()(const Point& a, const Point& b, const Point& c, const Point& d) const;
 
 protected:
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.
