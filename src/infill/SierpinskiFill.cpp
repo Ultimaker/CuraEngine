@@ -21,7 +21,7 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
 , line_width(line_width)
 , max_depth(max_depth)
 , pre_division_tree_size(calculatePreDivisionTreeSize(max_depth))
-, pre_division_tree(2, pre_division_tree_size, SierpinskiTriangle())
+, pre_division_tree(pre_division_tree_size, SierpinskiTriangle())
 {
     Point m = aabb.min;
     Point lt = Point(m.X, aabb.max.Y);
@@ -30,7 +30,7 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
     edges.emplace_back(diagonal, m, aabb.max, 0);
     edges.emplace_back(straight, m, lt, 0);
     
-    using Node = FingerTree<SierpinskiTriangle>::Node;
+    using Node = FingerTree<SierpinskiTriangle, 2>::Node;
     pre_division_tree.getRoot()[0] = SierpinskiTriangle(rb, m, aabb.max, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
     pre_division_tree.getRoot()[1] = SierpinskiTriangle(lt, aabb.max, m, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
     for (unsigned int depth = 1; depth < max_depth; depth++)
@@ -257,9 +257,9 @@ Polygon SierpinskiFill::generateSierpinski() const
     Polygon ret;
 
     
-    using Node = FingerTree<SierpinskiTriangle>::Node;
+    using Node = FingerTree<SierpinskiTriangle, 2>::Node;
     
-    FingerTree<SierpinskiTriangle>& pre_division_tree = const_cast<FingerTree<SierpinskiTriangle>&>(this->pre_division_tree);
+    FingerTree<SierpinskiTriangle, 2>& pre_division_tree = const_cast<FingerTree<SierpinskiTriangle, 2>&>(this->pre_division_tree);
     
     for (Node max_level_it = pre_division_tree.begin(max_depth); max_level_it != pre_division_tree.end(max_depth); ++max_level_it)
     {

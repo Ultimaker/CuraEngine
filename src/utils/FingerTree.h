@@ -24,14 +24,14 @@ namespace cura
  *          *grand_child_it = 123;
  * 
  */
-template<typename T>
+template<typename T, int finger_count>
 class FingerTree
 {
 public:
     class Node; // forward decl
-    friend class FingerTree<T>::Node;
+    friend class FingerTree<T, finger_count>::Node;
 
-    FingerTree(unsigned int finger_count, size_t initial_capacity = 1, const T& default_value = T());
+    FingerTree(size_t initial_capacity = 1, const T& default_value = T());
 
     Node getRoot();
     void setRoot(T&& root_node);
@@ -58,7 +58,6 @@ public:
     Node end(unsigned int depth);
     
 protected:
-    unsigned int finger_count; //!< The amount of fingers on each node
     std::vector<T> elements; //!< The elements stored in a breadth first search manner (if the tree would be full)
     const T default_value; //!< The default value to use when expanding the capacity of the tree.
 };
@@ -72,11 +71,11 @@ protected:
  * for (T& child : node)
  *     child = getSomeValue();
  */
-template<typename T>
-class FingerTree<T>::Node
+template<typename T, int finger_count>
+class FingerTree<T, finger_count>::Node
 {
 public:
-    Node(FingerTree<T>* tree, size_t vector_index)
+    Node(FingerTree<T, finger_count>* tree, size_t vector_index)
     : tree(tree)
     , vector_index(vector_index)
     {}
@@ -147,7 +146,7 @@ public:
     }
     Node end()
     {
-        return Node(tree, getChildIndex(tree->finger_count - 1) + 1);
+        return Node(tree, getChildIndex(finger_count - 1) + 1);
     }
     
     bool operator==(const Node& rhs)
@@ -166,39 +165,38 @@ public:
 protected:
     size_t getChildIndex(unsigned int child_idx)
     {
-        assert(child_idx < tree->finger_count);
-        return vector_index * tree->finger_count + child_idx + 1;
+        assert(child_idx < finger_count);
+        return vector_index * finger_count + child_idx + 1;
     }
-    FingerTree<T>* tree; //!< pointer to the tree
+    FingerTree<T, finger_count>* tree; //!< pointer to the tree
     size_t vector_index; //!< index in the vector of all elements: \ref FingerTree::elements
     
 };
 
 
-template<typename T>
-FingerTree<T>::FingerTree(unsigned int finger_count, size_t initial_capacity, const T& default_value)
-: finger_count(finger_count)
-, elements(initial_capacity, default_value)
+template<typename T, int finger_count>
+FingerTree<T, finger_count>::FingerTree(size_t initial_capacity, const T& default_value)
+: elements(initial_capacity, default_value)
 , default_value(default_value)
 {
 }
 
-template<typename T>
-typename FingerTree<T>::Node FingerTree<T>::getRoot()
+template<typename T, int finger_count>
+typename FingerTree<T, finger_count>::Node FingerTree<T, finger_count>::getRoot()
 {
     return Node(this, 0);
 }
 
-template<typename T>
-void FingerTree<T>::setRoot(T&& root_node)
+template<typename T, int finger_count>
+void FingerTree<T, finger_count>::setRoot(T&& root_node)
 {
     assert(elements.size() > 0);
     elements[0] = std::move(root_node);
 }
 
 
-template<typename T>
-typename FingerTree<T>::Node FingerTree<T>::begin(unsigned int depth)
+template<typename T, int finger_count>
+typename FingerTree<T, finger_count>::Node FingerTree<T, finger_count>::begin(unsigned int depth)
 {
     unsigned int elems_per_level = 1;
     unsigned int level_start_index = 0;
@@ -210,8 +208,8 @@ typename FingerTree<T>::Node FingerTree<T>::begin(unsigned int depth)
     return Node(this, level_start_index);
 }
 
-template<typename T>
-typename FingerTree<T>::Node FingerTree<T>::end(unsigned int depth)
+template<typename T, int finger_count>
+typename FingerTree<T, finger_count>::Node FingerTree<T, finger_count>::end(unsigned int depth)
 {
     unsigned int elems_per_level = 1;
     unsigned int level_start_index = 0;
@@ -223,8 +221,8 @@ typename FingerTree<T>::Node FingerTree<T>::end(unsigned int depth)
     return Node(this, level_start_index + elems_per_level);
 }
 
-template<typename T>
-void FingerTree<T>::debugOutput()
+template<typename T, int finger_count>
+void FingerTree<T, finger_count>::debugOutput()
 {
     unsigned int next_depth = 1;
     unsigned int next_depth_idx = 1;

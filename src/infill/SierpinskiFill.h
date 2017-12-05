@@ -146,7 +146,7 @@ protected:
     int max_depth; //!< Maximum recursion depth of the fractal
 
     size_t pre_division_tree_size;
-    FingerTree<SierpinskiTriangle> pre_division_tree; //!< Tree with fully subdivided triangles to get accurate desnity estimated for each possible triangle.
+    FingerTree<SierpinskiTriangle, 2> pre_division_tree; //!< Tree with fully subdivided triangles to get accurate desnity estimated for each possible triangle.
     
     size_t calculatePreDivisionTreeSize(unsigned int max_depth);
 

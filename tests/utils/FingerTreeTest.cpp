@@ -37,8 +37,8 @@ void FingerTreeTest::copyTest()
         }
     };
     
-    using Node = FingerTree<NoCopy>::Node;
-    FingerTree<NoCopy> ft(2, 7, NoCopy(true)); // default value is allowed to be copied!
+    using Node = FingerTree<NoCopy, 2>::Node;
+    FingerTree<NoCopy, 2> ft(7, NoCopy(true)); // default value is allowed to be copied!
     /*
      * Create the following tree:
      *      0
@@ -58,9 +58,9 @@ void FingerTreeTest::copyTest()
 }
 void FingerTreeTest::testDepth()
 {
-    FingerTree<int> ft(4);
+    FingerTree<int, 4> ft;
     ft.setRoot(0);
-    using Node = FingerTree<int>::Node;
+    using Node = FingerTree<int, 4>::Node;
     Node root = ft.getRoot();
     for (int& child : root)
         child = 1;
