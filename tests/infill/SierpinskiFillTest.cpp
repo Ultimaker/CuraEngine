@@ -43,10 +43,10 @@ void SierpinskiFillTest::debugCheck()
         }
         color = SVG::Color::RAINBOW;
         color = SVG::Color::BLACK;
-//         svg.writePolygon(f.generateCross(3000, 16), color, 4);
+        svg.writePolygon(f.generateCross(1200, 16), color, 4);
 //         svg.writePolygon(f.generateCross(), color, 8);
 //         svg.writePoints(f.generateCross());
-        svg.writePolygon(f.generateSierpinski(), color);
+//         svg.writePolygon(f.generateSierpinski(), color);
 //         f.debugOutput(svg);
     }
     

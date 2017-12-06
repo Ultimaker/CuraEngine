@@ -10,9 +10,6 @@
 
 #include "../utils/SVG.h"
 
-#include "../utils/FingerTree.h"
-
-#include "SierpinskiFillEdge.h"
 #include "DensityProvider.h"
 
 
@@ -92,6 +89,10 @@ public:
     void debugOutput(SVG& svg);
 
 protected:
+    struct Edge
+    {
+        Point l, r;
+    };
     struct SierpinskiTriangle
     {
         enum class SierpinskiDirection
@@ -107,9 +108,10 @@ protected:
         bool straight_corner_is_left;
         int depth;
         
-        float total_value;
-        float density_value;
-        float density_color;
+        float area;
+        float requested_length;
+        float realized_length;
+        float total_child_realized_length;
         float error_left;
         float error_right;
 
@@ -120,7 +122,8 @@ protected:
         , dir(dir)
         , straight_corner_is_left(straight_corner_is_left)
         , depth(depth)
-        , total_value(0)
+        , requested_length(0)
+        , total_child_realized_length(0)
         , error_left(0)
         , error_right(0)
         {}
@@ -129,7 +132,8 @@ protected:
         , a(no_point)
         , b(no_point)
         , depth(0)
-        , total_value(0)
+        , requested_length(0)
+        , total_child_realized_length(0)
         , error_left(0)
         , error_right(0)
         {}
@@ -137,26 +141,154 @@ protected:
         {
             return straight_corner != no_point;
         }
+        Edge getFromEdge()
+        {
+            Edge ret;
+            switch(dir)
+            {
+                case SierpinskiDirection::AB_TO_BC:
+                    ret = Edge{a, b};
+                    break;
+                case SierpinskiDirection::AC_TO_AB:
+                    ret = Edge{straight_corner, a};
+                    break;
+                case SierpinskiDirection::AC_TO_BC:
+                    ret = Edge{straight_corner, a};
+                    break;
+            }
+            if (!straight_corner_is_left)
+            {
+                std::swap(ret.l, ret.r);
+            }
+            return ret;
+        }
+        Edge getToEdge()
+        {
+            Edge ret;
+            switch(dir)
+            {
+                case SierpinskiDirection::AB_TO_BC:
+                    ret = Edge{straight_corner, b};
+                    break;
+                case SierpinskiDirection::AC_TO_AB:
+                    ret = Edge{b, a};
+                    break;
+                case SierpinskiDirection::AC_TO_BC:
+                    ret = Edge{straight_corner, b};
+                    break;
+            }
+            if (!straight_corner_is_left)
+            {
+                std::swap(ret.l, ret.r);
+            }
+            return ret;
+        }
+        
+        float getTotalError()
+        {
+            return error_left + error_right;
+        }
+        float getErroredValue()
+        {
+            return requested_length + getTotalError(); 
+        }
+        float getSubdivisionError()
+        {
+            return getErroredValue() - total_child_realized_length;
+        }
+        float getValueError()
+        {
+            return getErroredValue() - realized_length;
+        }
+        
+        std::vector<SierpinskiTriangle> children;
     };
 
+
+    
     bool dithering;
+    bool constraint_error_diffusion; //!< Whether to diffuse errors caused by constraints between consecutive cells
+    
+    bool use_errors_in_dithering = true;
+    
+    
     const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
     AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
     coord_t line_width; //!< The line width of the fill lines
     int max_depth; //!< Maximum recursion depth of the fractal
 
     size_t pre_division_tree_size;
-    FingerTree<SierpinskiTriangle, 2> pre_division_tree; //!< Tree with fully subdivided triangles to get accurate desnity estimated for each possible triangle.
     
-    size_t calculatePreDivisionTreeSize(unsigned int max_depth);
+    SierpinskiTriangle root;
 
-    std::list<SierpinskiFillEdge> edges; //!< The edges of the triangles of the subdivision which are crossed by the fractal.
+    std::list<SierpinskiTriangle*> sequence; //!< The triangles of the subdivision which are crossed by the fractal.
+
+    
+
+    void createTree();
+    void createTree(SierpinskiTriangle& sub_root);
+    void createTreeStatistics(SierpinskiTriangle& sub_root);
+    void createTreeRequestedLengths(SierpinskiTriangle& sub_root);
+    
+    void createLowerBoundSequence();
+    
+    /*!
+     * Subdivide all nodes if possible.
+     * 
+     * Start trying cells with lower recursion level before trying cells with deeper recursion, i.e. higher density value.
+     * 
+     * \return Whether the sequence has changed.
+     */
+    bool subdivideAll();
 
     /*!
-     * Process a single step in the recursive fractal
-     * \param iteration current recursion depth
+     * Bubble up errors from nodes which like to subdivide more,
+     * but which are constrained by neighboring cells of lower recursion level.
+     * 
+     * \return Whether we have redistributed errors which could cause a new subdivision 
      */
-    void process(const int iteration);
+    bool bubbleUpConstraintErrors();
+
+    /*!
+     * Subdivide a node into its children.
+     * Redistribute leftover errors needed for this subdivision and account for errors needed to keep the children balanced.
+     * 
+     * \param it iterator to the node to subdivide
+     * \param redistribute_errors Whether to redistribute the accumulated errors to neighboring nodes and/or among children
+     * \return The last child, so that we can iterate further through the sequence on the input iterator.
+     */
+    std::list<SierpinskiTriangle*>::iterator subdivide(std::list<SierpinskiTriangle*>::iterator it, bool redistribute_errors);
+
+
+    /*!
+     * Redistribute positive errors in as much as they aren't needed to subdivide this node.
+     * If this node has received too much positive error then it will subdivide
+     * and pass along the error from whence it came.
+     * 
+     * This is called just before performing a subdivision.
+     */
+    void redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator it);
+
+    /*!
+     * Balance child values such that they account for the minimum value of their recursion level.
+     * 
+     * Account for errors caused by unbalanced children.
+     * Plain subdivision can lead to one child having a smaller value than the density_value associated with the recursion depth
+     * if another child has a high enough value such that the parent value will cause subdivision.
+     * 
+     * In order to compensate for the error incurred, we more error value from the high child to the low child
+     * such that the low child has an erroredValue of at least the density_value associated with the recusion depth.
+     * 
+     * \param node The parent node of the children to balance
+     */
+    void balanceNodeErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+
+    void diffuseError();
+
+    bool isConstrainedBackward(std::list<SierpinskiTriangle*>::iterator it);
+    bool isConstrainedForward(std::list<SierpinskiTriangle*>::iterator it);
+
+    
 };
 } // namespace cura
 

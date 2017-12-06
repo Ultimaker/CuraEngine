@@ -3,8 +3,6 @@
 #define INFILL_DENSITY_PROVIDER_H
 
 
-#include "SierpinskiFillEdge.h"
-
 namespace cura
 {
 
