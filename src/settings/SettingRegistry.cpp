@@ -35,12 +35,6 @@ std::string SettingRegistry::toString(rapidjson::Type type)
 }
 
 
-SettingConfig::SettingConfig(std::string key, std::string label)
-: SettingContainer(key, label)
-{
-//     std::cerr << key << std::endl; // debug output to show all frontend registered settings...
-}
-
 bool SettingRegistry::settingExists(std::string key) const
 {
     return setting_key_to_config.find(key) != setting_key_to_config.end();
