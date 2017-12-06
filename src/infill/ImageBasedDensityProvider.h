@@ -7,7 +7,6 @@
 #include "../utils/AABB3D.h"
 
 #include "DensityProvider.h"
-#include "SierpinskiFillEdge.h"
 
 namespace cura
 {
