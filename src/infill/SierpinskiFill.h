@@ -257,7 +257,7 @@ protected:
      * \param redistribute_errors Whether to redistribute the accumulated errors to neighboring nodes and/or among children
      * \return The last child, so that we can iterate further through the sequence on the input iterator.
      */
-    std::list<SierpinskiTriangle*>::iterator subdivide(std::list<SierpinskiTriangle*>::iterator it, bool redistribute_errors);
+    std::list<SierpinskiTriangle*>::iterator subdivide(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool redistribute_errors);
 
 
     /*!
@@ -267,7 +267,7 @@ protected:
      * 
      * This is called just before performing a subdivision.
      */
-    void redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator it);
+    void redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
 
     /*!
      * Balance child values such that they account for the minimum value of their recursion level.
@@ -281,14 +281,16 @@ protected:
      * 
      * \param node The parent node of the children to balance
      */
-    void balanceNodeErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+    void balanceErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
 
     void diffuseError();
 
     bool isConstrainedBackward(std::list<SierpinskiTriangle*>::iterator it);
     bool isConstrainedForward(std::list<SierpinskiTriangle*>::iterator it);
-
     
+    float getSubdivisionError(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+
+    void debugCheck(bool check_subdivision = true);
 };
 } // namespace cura
 
