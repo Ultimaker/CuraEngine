@@ -267,7 +267,7 @@ protected:
      * 
      * This is called just before performing a subdivision.
      */
-    void redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+    void redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool distribute_subdivision_errors);
 
     /*!
      * Balance child values such that they account for the minimum value of their recursion level.
@@ -282,6 +282,8 @@ protected:
      * \param node The parent node of the children to balance
      */
     void balanceErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+
+    void settleErrors();
 
     void diffuseError();
 

@@ -37,6 +37,8 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
     }
     debugCheck(true);
 
+    settleErrors();
+
     diffuseError();
 }
 
@@ -293,7 +295,7 @@ std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivi
     if (redistribute_errors && deep_debug_checking) debugCheck();
     if (redistribute_errors)
     { // move left-over errors
-        redistributeLeftoverErrors(begin, end);
+        redistributeLeftoverErrors(begin, end, true);
 
         SierpinskiTriangle* first = *begin;
         SierpinskiTriangle* last = *std::prev(end);
@@ -332,7 +334,7 @@ std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivi
     return last_child_it;
 }
 
-void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end)
+void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool distribute_subdivision_errors)
 {
     SierpinskiTriangle* prev = *std::prev(begin);
     SierpinskiTriangle* next = *end;
@@ -362,27 +364,27 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
         next->error_left += exchange;
     }
 
-    float total_subdiv_error = 0;
+    float total_superfluous_error = 0;
     for (auto it = begin; it != end; ++it)
     {
         SierpinskiTriangle* node = *it;
-        total_subdiv_error += node->getSubdivisionError();
+        total_superfluous_error += (distribute_subdivision_errors)? node->getSubdivisionError() : node->getValueError();
     }
-    if (total_subdiv_error < allowed_length_error)
+    if (total_superfluous_error < allowed_length_error)
     { // there is no left-over error
-        if (total_subdiv_error < -allowed_length_error)
+        if (distribute_subdivision_errors && total_superfluous_error < -allowed_length_error)
         {
-            std::cerr << "redistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: " << total_subdiv_error << "\n";
+            std::cerr << "redistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: " << total_superfluous_error << "\n";
             assert(false);
         }
         return;
     }
     if (begin != sequence.begin() && end != sequence.end() && first->error_left > allowed_length_error && last->error_right > allowed_length_error)
     {
-        float total_error = first->error_left + last->error_right;
-        float overflow = std::min(total_subdiv_error, total_error);
-        float left_spillover = overflow * first->error_left / total_error;
-        float right_spillover = overflow * last->error_right / total_error;
+        float total_error_input = first->error_left + last->error_right;
+        float overflow = std::min(total_superfluous_error, total_error_input);
+        float left_spillover = overflow * first->error_left / total_error_input;
+        float right_spillover = overflow * last->error_right / total_error_input;
         (*begin)->error_left -= left_spillover;
         prev->error_right += left_spillover;
         (*std::prev(end))->error_right -= right_spillover;
@@ -390,31 +392,18 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     }
     else if (begin != sequence.begin() && first->error_left > allowed_length_error)
     {
-        float overflow = std::min(total_subdiv_error, first->error_left);
+        float overflow = std::min(total_superfluous_error, first->error_left);
         (*begin)->error_left -= overflow;
         prev->error_right += overflow;
         assert(first->error_left > -allowed_length_error);
     }
     else if (end != sequence.end() && last->error_right > allowed_length_error)
     {
-        float overflow = std::min(total_subdiv_error, last->error_right);
+        float overflow = std::min(total_superfluous_error, last->error_right);
         last->error_right -= overflow;
         next->error_left += overflow;
         assert(last->error_right > -allowed_length_error);
     }
-
-    // check whether all left over errors are dispersed
-    /*
-    for (auto it = begin; it != end; ++it)
-    {
-        SierpinskiTriangle* node = *it;
-        if (std::abs(node->getSubdivisionError()) > allowed_length_error && node->getTotalError() > allowed_length_error)
-        {
-            std::cerr << "spillover error for subdivision not handled well! subdiv_err:" << node->getSubdivisionError() << " el:" << node->error_left << " er:" << node->error_right << '\n';
-            assert(false);
-        }
-    }
-    */
 }
 
 void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*>::iterator begin, std::list<SierpinskiFill::SierpinskiTriangle*>::iterator end)
@@ -507,6 +496,27 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     assert(energy < allowed_length_error);
 }
 
+void SierpinskiFill::settleErrors()
+{
+    std::vector<std::list<std::list<SierpinskiTriangle*>::iterator>> depth_ordered;
+    { // compute depth_ordered
+        for (int i = 0; i < max_depth + 1; i++)
+        {
+            depth_ordered.emplace_back();
+        }
+        for (std::list<SierpinskiTriangle*>::iterator it = sequence.begin(); it != sequence.end(); ++it)
+        {
+            SierpinskiTriangle* node = *it;
+            depth_ordered[node->depth].emplace_back(it);
+        }
+    }
+
+    for (std::list<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
+        for (std::list<SierpinskiTriangle*>::iterator it : depth_nodes)
+        {
+            redistributeLeftoverErrors(it, std::next(it), false);
+        }
+}
 
 void SierpinskiFill::diffuseError()
 {
