@@ -50,6 +50,8 @@ private:
     const Point border;
     const Point canvas_size;
     const double scale;
+    
+    bool output_is_html;
 
 public:
     SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024, 1024))
@@ -59,19 +61,30 @@ public:
     , canvas_size(canvas_size)
     , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
     {
+        output_is_html = strcmp(filename + strlen(filename) - 4, "html") == 0;
         out = fopen(filename, "w");
         if(!out)
         {
             logError("The file %s could not be opened for writing.",filename);
         }
-        fprintf(out, "<!DOCTYPE html><html><body>\n");
+        if (output_is_html)
+        {
+            fprintf(out, "<!DOCTYPE html><html><body>\n");
+        }
+        else
+        {
+            fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+        }
         fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
     }
 
     ~SVG()
     {
         fprintf(out, "</svg>\n");
-        fprintf(out, "</body></html>");
+        if (output_is_html)
+        {
+            fprintf(out, "</body></html>");
+        }
         fclose(out);
     }
 
@@ -88,7 +101,7 @@ public:
         fprintf(out, "<!-- %s -->\n", comment.c_str());
     }
 
-    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK, coord_t stroke_width = 1)
+    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK, coord_t stroke_width = 1) 
     {
         for(PolygonsPart& parts : polygons.splitIntoParts())
         {
@@ -101,17 +114,17 @@ public:
                     fprintf(out, "%lli,%lli ", fp.X, fp.Y);
                 }
                 if (j == 0)
-                    fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:1\" />\n", toString(color).c_str(), toString(outline_color).c_str());
+                    fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:%lli\" />\n", toString(color).c_str(), toString(outline_color).c_str(), stroke_width);
                 else
-                    fprintf(out, "\" style=\"fill:white;stroke:%s;stroke-width:1\" />\n", toString(outline_color).c_str());
+                    fprintf(out, "\" style=\"fill:white;stroke:%s;stroke-width:%lli\" />\n", toString(outline_color).c_str(), stroke_width);
             }
         }
     }
 
-    void writeAreas(std::vector<Point> polygon,Color color = Color::GRAY,Color outline_color = Color::BLACK)
+    void writeAreas(ConstPolygonRef polygon, Color color = Color::GRAY, Color outline_color = Color::BLACK, coord_t stroke_width = 1)
     {
-        fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"1\" points=\"",toString(color).c_str(),toString(outline_color).c_str()); //The beginning of the polygon tag.
-        for(Point& point : polygon) //Add every point to the list of points.
+        fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%lli\" points=\"",toString(color).c_str(),toString(outline_color).c_str(), stroke_width); //The beginning of the polygon tag.
+        for (const Point& point : polygon) //Add every point to the list of points.
         {
             Point transformed = transform(point);
             fprintf(out,"%lli,%lli ",transformed.X,transformed.Y);
