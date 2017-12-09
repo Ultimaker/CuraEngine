@@ -88,7 +88,7 @@ public:
         fprintf(out, "<!-- %s -->\n", comment.c_str());
     }
 
-    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
+    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK, coord_t stroke_width = 1)
     {
         for(PolygonsPart& parts : polygons.splitIntoParts())
         {
