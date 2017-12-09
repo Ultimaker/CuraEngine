@@ -20,18 +20,30 @@ void SierpinskiFillTest::tearDown()
 
 void SierpinskiFillTest::debugCheck()
 {
-    AABB aabb(Point(0,0), Point(1024, 1024)*32);
+    coord_t line_width = 400;
+    AABB aabb(Point(0,0), Point(line_width, line_width)*512);
     //aabb.expand(512);
-    SVG svg("output/sierpinski.html", aabb, Point(1000, 1000)*2);
+    Point canvas_size = Point(1000, 1000) * 2;
+    SVG svg("output/sierpinski.svg", aabb, canvas_size);
     
     
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb);
+    int drawing_line_width = line_width * canvas_size.X / aabb.max.X;
+    
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/lena.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/gradient.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/slight_gradient.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Cross Fractal/gray.png", aabb);
 //     subdivider = new UniformSubdivider();
 //     srand(1);
-    int max_depth = 12;
+    int max_depth = 1;
+    for (coord_t size = line_width; size < aabb.max.X; size = size << 1)
+    {
+        max_depth += 2;
+    }
     bool dithering = true;
     {
-        SierpinskiFill f(*subdivider, aabb, max_depth, 400, dithering);
+        SierpinskiFill f(*subdivider, aabb, max_depth, line_width, dithering);
         SVG::Color color = SVG::Color::GREEN;
         switch (max_depth % 4)
         {
@@ -43,8 +55,9 @@ void SierpinskiFillTest::debugCheck()
         }
         color = SVG::Color::RAINBOW;
         color = SVG::Color::BLACK;
-        svg.writePolygon(f.generateCross(1200, 16), color, 4);
-//         svg.writePolygon(f.generateCross(), color, 8);
+//         svg.writePolygon(f.generateCross(1200, 16), color, 4);
+//         svg.writePolygon(f.generateCross(), color, drawing_line_width);
+        svg.writeAreas(f.generateCross(), SVG::Color::WHITE, color, drawing_line_width);
 //         svg.writePoints(f.generateCross());
 //         svg.writePolygon(f.generateSierpinski(), color);
 //         f.debugOutput(svg);
