@@ -430,7 +430,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
 
     // sort children on value_error, i.e. sort on total_value
     std::vector<int> order;
-    for (int node_idx = 0; node_idx < nodes.size(); node_idx++)
+    for (unsigned int node_idx = 0; node_idx < nodes.size(); node_idx++)
     {
         order.emplace_back(node_idx);
     }
@@ -441,7 +441,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     
     // add error to children with too low value
     float added = 0;
-    int node_order_idx;
+    unsigned int node_order_idx;
     for (node_order_idx = 0; node_order_idx < nodes.size(); node_order_idx++)
     {
         int node_idx = order[node_order_idx];
@@ -465,7 +465,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     float subtracted = 0;
     // divide up added among remaining children in ratio to their value error
     float total_remaining_value_error = 0;
-    for (int remaining_node_order_idx = node_order_idx; remaining_node_order_idx < nodes.size(); remaining_node_order_idx++)
+    for (unsigned int remaining_node_order_idx = node_order_idx; remaining_node_order_idx < nodes.size(); remaining_node_order_idx++)
     {
         int node_idx = order[remaining_node_order_idx];
         SierpinskiTriangle* node = nodes[node_idx];
@@ -480,7 +480,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
         assert(false);
     }
     
-    for (int remaining_node_order_idx = node_order_idx; remaining_node_order_idx < nodes.size(); remaining_node_order_idx++)
+    for (unsigned int remaining_node_order_idx = node_order_idx; remaining_node_order_idx < nodes.size(); remaining_node_order_idx++)
     {
         int node_idx = order[remaining_node_order_idx];
         SierpinskiTriangle* node = nodes[node_idx];
@@ -498,7 +498,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     }
 
     float energy = 0;
-    for (int node_idx = 0; node_idx < nodes.size(); node_idx++)
+    for (unsigned int node_idx = 0; node_idx < nodes.size(); node_idx++)
     {
         nodes[node_idx]->error_left -= energy;
         energy += node_error_compensation[node_idx];
