@@ -5,9 +5,6 @@
 #include <functional> // function
 #include <iterator> // next, prev
 
-#include "../utils/linearAlg2D.h" // rotateAround
-#include "../utils/optional.h" // rotateAround
-
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
 
@@ -31,11 +28,15 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
 , max_depth(max_depth)
 {
     createTree();
-    
-    sequence.emplace_front(&root);
-    
+
     createLowerBoundSequence();
-    
+
+    for (SierpinskiTriangle* node : sequence)
+    {
+        assert(node->getValueError() > -allowed_length_error);
+    }
+    debugCheck(true);
+
     diffuseError();
 }
 
@@ -53,7 +54,9 @@ void SierpinskiFill::createTree()
     root.children.emplace_back(rb, m, aabb.max, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
     root.children.emplace_back(lt, aabb.max, m, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
     for (SierpinskiTriangle& triangle : root.children)
+    {
         createTree(triangle);
+    }
 
     // calculate node statistics
     createTreeStatistics(root);
@@ -109,14 +112,12 @@ void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
 {
     if (triangle.children.empty())
-    {
-    // set requested_length of leaves
+    { // set requested_length of leaves
         float density = density_provider(triangle.a, triangle.b, triangle.straight_corner, triangle.straight_corner);
         triangle.requested_length = density * triangle.area / INT2MM(line_width);
     }
     else
-    {
-    // bubble total up requested_length and total_child_realized_length
+    { // bubble total up requested_length and total_child_realized_length
         for (SierpinskiTriangle& child : triangle.children)
         {
             createTreeRequestedLengths(child);
@@ -129,14 +130,19 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
 
 void SierpinskiFill::createLowerBoundSequence()
 {
+    sequence.emplace_front(&root);
+
+    if (deep_debug_checking) debugCheck();
     for (int iteration = 0; iteration < 999; iteration++)
     {
         bool change = false;
         change |= subdivideAll();
+        if (deep_debug_checking) debugCheck();
         
         if (constraint_error_diffusion)
         {
             change |= bubbleUpConstraintErrors();
+            if (deep_debug_checking) debugCheck();
         }
         
         
@@ -158,7 +164,7 @@ bool SierpinskiFill::subdivideAll()
         }
         for (std::list<SierpinskiTriangle*>::iterator it = sequence.begin(); it != sequence.end(); ++it)
         {
-            SierpinskiTriangle*& node = *it;
+            SierpinskiTriangle* node = *it;
             depth_ordered[node->depth].emplace_back(it);
         }
     }
@@ -167,7 +173,7 @@ bool SierpinskiFill::subdivideAll()
     for (std::list<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
         for (std::list<SierpinskiTriangle*>::iterator it : depth_nodes)
         {
-            SierpinskiTriangle*& node = *it;
+            SierpinskiTriangle* node = *it;
             SierpinskiTriangle& triangle = *node;
             
             std::list<SierpinskiTriangle*>::iterator begin = it;
@@ -398,6 +404,7 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     }
 
     // check whether all left over errors are dispersed
+    /*
     for (auto it = begin; it != end; ++it)
     {
         SierpinskiTriangle* node = *it;
@@ -407,20 +414,9 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
             assert(false);
         }
     }
+    */
 }
 
-/*!
- * Balance child values such that they account for the minimum value of their recursion level.
- * 
- * Account for errors caused by unbalanced children.
- * Plain subdivision can lead to one child having a smaller value than the density_value associated with the recursion depth
- * if another child has a high enough value such that the parent value will cause subdivision.
- * 
- * In order to compensate for the error incurred, we more error value from the high child to the low child
- * such that the low child has an erroredValue of at least the density_value associated with the recusion depth.
- * 
- * \param node The parent node of the children to balance
- */
 void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*>::iterator begin, std::list<SierpinskiFill::SierpinskiTriangle*>::iterator end)
 {
     // copy sublist to array
@@ -439,9 +435,9 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
         order.emplace_back(node_idx);
     }
     std::sort(order.begin(), order.end(), [&nodes](int a, int b)
-            {
-                return nodes[a]->getValueError() < nodes[b]->getValueError();
-            });
+        {
+            return nodes[a]->getValueError() < nodes[b]->getValueError();
+        });
     
     // add error to children with too low value
     float added = 0;
@@ -449,7 +445,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     for (node_order_idx = 0; node_order_idx < nodes.size(); node_order_idx++)
     {
         int node_idx = order[node_order_idx];
-        SierpinskiTriangle*& node = nodes[node_idx];
+        SierpinskiTriangle* node = nodes[node_idx];
         float value_error = node->getValueError();
         if (value_error < 0)
         {
