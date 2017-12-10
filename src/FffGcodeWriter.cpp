@@ -408,7 +408,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        if (num_extruders > 1)
+        if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
