@@ -1268,7 +1268,12 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx]);
+                if (!infill_polygons.empty())
+                {
+                    constexpr bool force_comb_retract = false;
+                    gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
+                    gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx]);
+                }
                 gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
             }
         }
@@ -1348,7 +1353,12 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
-        gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0]);
+        if (!infill_polygons.empty())
+        {
+            constexpr bool force_comb_retract = false;
+            gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0]);
+        }
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"));
@@ -1776,7 +1786,12 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
-        gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
+        if (!skin_polygons.empty())
+        {
+            constexpr bool force_comb_retract = false;
+            gcode_layer.addTravel(skin_polygons[0][0], force_comb_retract);
+            gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
+        }
 
         std::optional<Point> near_start_location;
         const EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
@@ -2000,7 +2015,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             {
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
                 gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
+                if (!support_polygons.empty())
+                {
+                    constexpr bool force_comb_retract = false;
+                    gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
+                    gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
+                }
                 gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
                                                 (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
                 added_something = true;
@@ -2076,7 +2096,12 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     {
         gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_roof_config);
     }
-    gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
+    if (!roof_polygons.empty())
+    {
+        constexpr bool force_comb_retract = false;
+        gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
+        gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
+    }
     gcode_layer.addLinesByOptimizer(roof_lines, gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
 }
@@ -2126,7 +2151,12 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     }
     setExtruder_addPrime(storage, gcode_layer, bottom_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-    gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage.support_bottom_config);
+    if (!bottom_polygons.empty())
+    {
+        constexpr bool force_comb_retract = false;
+        gcode_layer.addTravel(bottom_polygons[0][0], force_comb_retract);
+        gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage.support_bottom_config);
+    }
     gcode_layer.addLinesByOptimizer(bottom_lines, gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
 }

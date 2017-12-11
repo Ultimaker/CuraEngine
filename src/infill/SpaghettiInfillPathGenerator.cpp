@@ -61,7 +61,12 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             {
                 added_something = true;
                 fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
+                if (!infill_polygons.empty())
+                {
+                    constexpr bool force_comb_retract = false;
+                    gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
+                    gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
+                }
                 switch(pattern)
                 {
                     case EFillMethod::GRID:
