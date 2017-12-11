@@ -708,6 +708,11 @@ Polygon SierpinskiFill::generateCross() const
         }
         ret.add(edge_middle / 2);
     }
+
+    float realized_length = INT2MM(ret.polygonLength());
+    float requested_length = root.requested_length;
+    float error = (realized_length - requested_length) / requested_length;
+    std::cerr << "realized_length: " << realized_length << ", requested_length: " << requested_length << "  :: " << (.01*(int(10000*error))) << "% error\n";
     
     return ret;
 }
