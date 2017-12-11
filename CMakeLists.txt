@@ -162,7 +162,6 @@ set(engine_TEST_INFILL
     SierpinskiFillTest
 )
 set(engine_TEST_UTILS
-    FingerTreeTest
     SparseGridTest
     IntPointTest
     LinearAlg2DTest
