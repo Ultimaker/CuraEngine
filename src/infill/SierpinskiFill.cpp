@@ -33,7 +33,11 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
 
     for (SierpinskiTriangle* node : sequence)
     {
-        assert(node->getValueError() > -allowed_length_error);
+        if (node->getValueError() < -allowed_length_error)
+        {
+            std::cerr << "Node is subdivided without the appropriate value! value_error: " << node->getValueError() << " from base " << node->requested_length << " el: " << node->error_left << " er: " << node->error_right << ", while the realized_length = " << node->realized_length << '\n';
+            assert(false);
+        }
     }
     debugCheck(true);
 
@@ -469,6 +473,11 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
         assert(false);
     }
     
+    if (std::abs(total_remaining_value_error) < .0001)
+    {
+        return;
+    }
+
     for (unsigned int remaining_node_order_idx = node_order_idx; remaining_node_order_idx < nodes.size(); remaining_node_order_idx++)
     {
         int node_idx = order[remaining_node_order_idx];
@@ -707,12 +716,12 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side) const
 
 void SierpinskiFill::debugCheck(bool check_subdivision)
 {
-    if (sequence.front()->error_left != 0)
+    if (std::abs(sequence.front()->error_left) > allowed_length_error)
     {
         std::cerr << "First node has error left!\n";
         assert(false);
     }
-    if (sequence.back()->error_right != 0)
+    if (std::abs(sequence.back()->error_right) > allowed_length_error)
     {
         std::cerr << "Last node has error right!\n";
         assert(false);
