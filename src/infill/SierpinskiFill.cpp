@@ -641,6 +641,51 @@ void SierpinskiFill::debugOutput(SVG& svg)
 }
 
 
+SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getFromEdge()
+{
+    Edge ret;
+    switch(dir)
+    {
+        case SierpinskiDirection::AB_TO_BC:
+            ret = Edge{a, b};
+            break;
+        case SierpinskiDirection::AC_TO_AB:
+            ret = Edge{straight_corner, a};
+            break;
+        case SierpinskiDirection::AC_TO_BC:
+            ret = Edge{straight_corner, a};
+            break;
+    }
+    if (!straight_corner_is_left)
+    {
+        std::swap(ret.l, ret.r);
+    }
+    return ret;
+}
+
+SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getToEdge()
+{
+    Edge ret;
+    switch(dir)
+    {
+        case SierpinskiDirection::AB_TO_BC:
+            ret = Edge{straight_corner, b};
+            break;
+        case SierpinskiDirection::AC_TO_AB:
+            ret = Edge{b, a};
+            break;
+        case SierpinskiDirection::AC_TO_BC:
+            ret = Edge{straight_corner, b};
+            break;
+    }
+    if (!straight_corner_is_left)
+    {
+        std::swap(ret.l, ret.r);
+    }
+    return ret;
+}
+
+
 Polygon SierpinskiFill::generateCross() const
 {
     Polygon ret;
