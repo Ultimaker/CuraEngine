@@ -48,11 +48,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
+    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
     constexpr bool include_helper_parts = false;
     for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
     {
         const coord_t diameter = radius_sample * radius_sample_resolution;
-        model_collision.emplace_back();
         model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
         for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
