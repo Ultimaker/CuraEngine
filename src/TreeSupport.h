@@ -42,6 +42,7 @@ private:
             distance_to_top = 0;
             skin_direction = false;
             support_roof_layers_below = 0;
+            to_buildplate = true;
         }
 
         /*!
@@ -59,12 +60,22 @@ private:
 
         /*!
          * \brief The number of support roof layers below this one.
+         *
          * When a contact point is created, it is determined whether the mesh
          * needs to be supported with support roof or not, since that is a
          * per-mesh setting. This is stored in this variable in order to track
          * how far we need to extend that support roof downwards.
          */
         int support_roof_layers_below;
+
+        /*!
+         * \brief Whether to try to go towards the build plate.
+         *
+         * If the node is inside the collision areas, it has no choice but to go
+         * towards the model. If it is not inside the collision areas, it must
+         * go towards the build plate to prevent a scar on the surface.
+         */
+        bool to_buildplate;
     };
 
     /*!
