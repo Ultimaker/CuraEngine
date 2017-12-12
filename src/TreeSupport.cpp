@@ -50,6 +50,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
     constexpr bool include_helper_parts = false;
+#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
     {
         const coord_t diameter = radius_sample * radius_sample_resolution;
@@ -123,6 +124,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
+#pragma omp parallel for shared(storage, contact_points, contact_nodes)
     for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
     {
         Polygons support_layer;
@@ -173,9 +175,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             outline.add(part);
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
         }
-        if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
+#pragma omp critical (support_max_layer_nr)
         {
-            storage.support.layer_nr_max_filled_layer = layer_nr;
+            if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
+            {
+                storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_nr);
+            }
         }
     }
 
