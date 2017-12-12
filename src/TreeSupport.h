@@ -68,6 +68,23 @@ private:
     };
 
     /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches.
+     *
+     * The result is a vector of 3D volumes that have to be avoided, where each
+     * volume consists of a number of layers where the branch would collide with
+     * the model.
+     * There will be a volume for each sample of branch radius. The radii of the
+     * branches are unknown at this point (there will be several radii at any
+     * given layer too), so a collision area is generated for every possible
+     * radius.
+     *
+     * \param storage The settings storage to get settings from.
+     * \param model_collision[out] A vector to fill with the output collision
+     * areas.
+     */
+    void collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision);
+
+    /*!
      * \brief Creates points where support contacts the model.
      *
      * A set of points is created for each layer.

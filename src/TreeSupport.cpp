@@ -46,39 +46,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Generate areas that have to be avoided.
+    std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
+    collisionAreas(storage, model_collision);
+
+    //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
+    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
-    std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
+    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
-    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
-    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
-    constexpr bool include_helper_parts = false;
-    size_t completed = 0;
-#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
-    for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
-    {
-        const coord_t diameter = radius_sample * radius_sample_resolution;
-        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
-        for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
-        {
-            model_collision[radius_sample].push_back(model_collision[radius_sample][layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
-            model_collision[radius_sample][layer_nr] = model_collision[radius_sample][layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
-        }
-#pragma omp atomic
-        completed++;
-#pragma omp critical (progress)
-        {
-            Progress::messageProgress(Progress::Stage::SUPPORT, completed * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + contact_points.size() * PROGRESS_WEIGHT_AREAS);
-        }
-    }
-
-    //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
-    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
-    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         MinimumSpanningTree mst(contact_points[layer_nr]);
@@ -204,6 +183,39 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     storage.support.generated = true;
+}
+
+void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
+{
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const double angle = storage.getSettingInAngleRadians("support_tree_angle");
+    const coord_t maximum_move_distance = tan(angle) * layer_height;
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
+    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
+    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
+
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
+    constexpr bool include_helper_parts = false;
+    size_t completed = 0; //To track progress in a multi-threaded environment.
+    #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
+    for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
+    {
+        const coord_t diameter = radius_sample * radius_sample_resolution;
+        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        {
+            model_collision[radius_sample].push_back(model_collision[radius_sample][layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
+            model_collision[radius_sample][layer_nr] = model_collision[radius_sample][layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        }
+#pragma omp atomic
+        completed++;
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, completed * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+        }
+    }
 }
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points, std::vector<std::unordered_map<Point, TreeSupport::Node>>& contact_nodes)
