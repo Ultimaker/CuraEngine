@@ -1,6 +1,7 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "progress/Progress.h"
 #include "utils/intpoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
@@ -10,6 +11,12 @@
 
 #define SQRT_2 1.4142135623730950488 //Square root of 2.
 #define CIRCLE_RESOLUTION 10 //The number of vertices in each circle.
+
+//The various stages of the process can be weighted differently in the progress bar.
+//These weights are obtained experimentally.
+#define PROGRESS_WEIGHT_COLLISION 50 //Generating collision areas.
+#define PROGRESS_WEIGHT_DROPDOWN 1 //Dropping down support.
+#define PROGRESS_WEIGHT_AREAS 1 //Creating support areas.
 
 namespace cura
 {
@@ -50,6 +57,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
     constexpr bool include_helper_parts = false;
+    size_t completed = 0;
 #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
     {
@@ -59,6 +67,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             model_collision[radius_sample].push_back(model_collision[radius_sample][layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
             model_collision[radius_sample][layer_nr] = model_collision[radius_sample][layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        }
+#pragma omp atomic
+        completed++;
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, completed * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + contact_points.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 
@@ -114,6 +128,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;
             contact_nodes[layer_nr - 1][next_layer_vertex].support_roof_layers_below = node.support_roof_layers_below - 1;
         }
+        Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + (contact_points.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + contact_points.size() * PROGRESS_WEIGHT_AREAS);
     }
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
@@ -181,6 +196,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             {
                 storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_nr);
             }
+        }
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + contact_points.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 
