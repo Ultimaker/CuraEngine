@@ -290,8 +290,9 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
 void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& infill_rotation)
 {
     const int64_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+
     PointMatrix rotation_matrix(infill_rotation);
-    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
+    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count, minimum_zag_line_length);
     generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
 

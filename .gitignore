@@ -15,6 +15,7 @@ callgrind/*
 ## Building result.
 build/*
 debug_build/*
+cmake-build-debug/*
 *.pyc
 *.exe
 *.a
@@ -22,6 +23,7 @@ debug_build/*
 CuraEngine
 _bin
 _obj
+x64/*
 
 ## CMake files
 cmake_install.cmake         

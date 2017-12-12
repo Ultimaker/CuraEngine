@@ -141,6 +141,7 @@ class SliceLayer
 {
 public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
+    int thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
@@ -337,7 +338,8 @@ public:
     /*!
      * Get the extruders used.
      * 
-     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
+     * \return A vector of booleans indicating whether the extruder with the
+     * corresponding index is used in the mesh group.
      */
     std::vector<bool> getExtrudersUsed() const;
 

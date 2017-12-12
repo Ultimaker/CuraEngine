@@ -145,6 +145,12 @@ int SettingsBaseVirtual::getSettingAsExtruderNr(std::string key) const
     {
         extruder_nr = getSettingAsIndex("extruder_nr");
     }
+    const int max_extruders = getSettingAsCount("machine_extruder_count");
+    if (extruder_nr >= max_extruders)
+    {
+        cura::logWarning("Trying to get extruder %s=%i, while there are only %i extruders.\n", key.c_str(), extruder_nr, max_extruders);
+        return 0;
+    }
     return extruder_nr;
 }
 
@@ -224,6 +230,8 @@ double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
     const std::string& value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
+
+
 
 double SettingsBaseVirtual::getSettingAsRatio(std::string key) const
 {
