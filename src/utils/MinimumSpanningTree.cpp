@@ -108,16 +108,20 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
 const std::vector<Point> MinimumSpanningTree::adjacentNodes(Point node)
 {
     std::vector<Point> result;
-    for (const Edge edge : (*adjacency_graph.find(node)).second)
+    std::unordered_map<Point, std::vector<Edge>>::const_iterator adjacency_entry = adjacency_graph.find(node);
+    if (adjacency_entry != adjacency_graph.end())
     {
-        //Get the opposite side.
-        if (edge.start == node)
+        for (const Edge edge : (*adjacency_entry).second)
         {
-            result.push_back(edge.end);
-        }
-        else
-        {
-            result.push_back(edge.start);
+            //Get the opposite side.
+            if (edge.start == node)
+            {
+                result.push_back(edge.end);
+            }
+            else
+            {
+                result.push_back(edge.start);
+            }
         }
     }
     return result;
