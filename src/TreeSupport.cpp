@@ -5,6 +5,7 @@
 #include "utils/intpoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
+#include "utils/polygon.h" //For splitting polygons into parts.
 #include "utils/polygonUtils.h" //For moveInside.
 
 #include "TreeSupport.h"
@@ -57,99 +58,139 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
-        std::unordered_set<Point> points_to_buildplate;
-        for (Node node : contact_nodes[layer_nr])
+        //Group together all nodes for each part.
+        std::vector<PolygonsPart> parts = model_collision[0][layer_nr].splitIntoParts();
+        std::vector<std::unordered_set<Node>> nodes_per_part;
+        nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
+        for (size_t part_index = 0; part_index < parts.size(); part_index++)
         {
-            if (node.to_buildplate)
-            {
-                points_to_buildplate.insert(node.position);
-            }
+            nodes_per_part.emplace_back();
         }
-        MinimumSpanningTree mst(points_to_buildplate);
-
-        //In the first pass, simply copy all nodes going to the build plate, so that we have a layer of nodes that we are allowed to edit.
-        //All nodes that are not going to the build plate need to be moved don't need multiple passes. They move directly towards the model.
-        std::unordered_set<Node> current_nodes;
         for (const Node& node : contact_nodes[layer_nr])
         {
             if (node.to_buildplate)
             {
-                current_nodes.insert(node);
+                nodes_per_part[0].insert(node);
             }
             else
             {
-                const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
-                const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
-
-                //Move towards centre of polygon.
-                Point closest_point_on_border = node.position;
-                PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
-                const coord_t distance = vSize(node.position - closest_point_on_border);
-                Point next_position = node.position;
-                PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], next_position, distance + maximum_move_distance); //Try moving a bit further inside.
-                //TODO: This starts vibrating at the centre. We may want to check the distance again and if it didn't become less then don't move at all.
-                
-                Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, node.to_buildplate);
-                insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
+                //Find which part this node is located in and group the nodes in the same part together.
+                for (size_t part_index = 0; part_index < parts.size(); part_index++)
+                {
+                    if (parts[part_index].inside(node.position))
+                    {
+                        nodes_per_part[part_index + 1].insert(node);
+                        break;
+                    }
+                }
             }
         }
-        //In the second pass, merge all leaf nodes.
-        for (Node node : current_nodes)
+        //Create a MST for every part.
+        std::vector<MinimumSpanningTree> spanning_trees;
+        for (std::unordered_set<Node> group : nodes_per_part)
         {
-            std::vector<Point> neighbours = mst.adjacentNodes(node.position);
-            if (neighbours.size() == 1)
-            if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance) //This leaf is about to collapse. Merge it with the neighbour.
+            std::unordered_set<Point> points_to_buildplate;
+            for (const Node& node : group)
             {
-                if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
+                points_to_buildplate.insert(node.position);
+            }
+            spanning_trees.emplace_back(points_to_buildplate);
+        }
+
+        for (size_t group_index = 0; group_index < nodes_per_part.size(); group_index++)
+        {
+            //In the first pass, simply copy all nodes, so that we have a layer of nodes that we are allowed to edit.
+            //All nodes that are not going to the build plate need to be moved don't need multiple passes. They move directly towards the model.
+            std::unordered_set<Node> current_nodes;
+            for (const Node& node : nodes_per_part[group_index])
+            {
+                current_nodes.insert(node);
+                /*if (node.to_buildplate)
                 {
-                    //Insert a completely new node and let both original nodes fade.
-                    Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
-
-                    //Avoid collisions.
-                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
-                    const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
-                    PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
-                    const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr - 1].inside(next_position);
-
-                    Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
-                    insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
+                    current_nodes.insert(node);
                 }
                 else
                 {
-                    //We'll drop this node, but modify some of the properties of its neighbour.
-                    Node neighbour_finder;
-                    neighbour_finder.position = neighbours[0]; //Find the node by its position (which is the hash and equals function).
-                    std::unordered_set<Node>::iterator neighbour = current_nodes.find(neighbour_finder);
-                    neighbour->distance_to_top = std::max(neighbour->distance_to_top, node.distance_to_top);
-                    neighbour->support_roof_layers_below = std::max(neighbour->support_roof_layers_below, node.support_roof_layers_below);
-                    current_nodes.erase(node);
-                }
+                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                    const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+
+                    //Move towards centre of polygon.
+                    Point closest_point_on_border = node.position;
+                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
+                    const coord_t distance = vSize(node.position - closest_point_on_border);
+                    Point next_position = node.position;
+                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], next_position, distance + maximum_move_distance); //Try moving a bit further inside.
+                    //TODO: This starts vibrating at the centre. We may want to check the distance again and if it didn't become less then don't move at all.
+
+                    Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, node.to_buildplate);
+                    insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
+                }*/
             }
-        }
-        //In the third pass, move all middle nodes.
-        for (Node node : current_nodes)
-        {
-            Point next_layer_vertex = node.position;
-            std::vector<Point> neighbours = mst.adjacentNodes(node.position);
-            if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
+            std::cout << "Group " << group_index << " size " << current_nodes.size() << std::endl;
+            //In the second pass, merge all leaf nodes.
+            for (Node node : current_nodes)
             {
-                //Move towards the average position of all neighbours.
-                Point sum_direction(0, 0);
-                for (Point neighbour : neighbours)
+                std::vector<Point> neighbours = spanning_trees[group_index].adjacentNodes(node.position);
+                if (neighbours.size() == 1)
+                if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance) //This leaf is about to collapse. Merge it with the neighbour.
                 {
-                    sum_direction += neighbour - node.position;
+                    if (spanning_trees[group_index].adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
+                    {
+                        //Insert a completely new node and let both original nodes fade.
+                        Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
+
+                        const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                        const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+                        if (group_index == 0)
+                        {
+                            //Avoid collisions.
+                            PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                        }
+
+                        const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr - 1].inside(next_position);;
+                        Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
+                        insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
+                    }
+                    else
+                    {
+                        //We'll drop this node, but modify some of the properties of its neighbour.
+                        Node neighbour_finder;
+                        neighbour_finder.position = neighbours[0]; //Find the node by its position (which is the hash and equals function).
+                        std::unordered_set<Node>::iterator neighbour = current_nodes.find(neighbour_finder);
+                        neighbour->distance_to_top = std::max(neighbour->distance_to_top, node.distance_to_top);
+                        neighbour->support_roof_layers_below = std::max(neighbour->support_roof_layers_below, node.support_roof_layers_below);
+                        current_nodes.erase(node);
+                    }
                 }
-                next_layer_vertex += normal(sum_direction, maximum_move_distance);
             }
+            //In the third pass, move all middle nodes.
+            for (Node node : current_nodes)
+            {
+                Point next_layer_vertex = node.position;
+                std::vector<Point> neighbours = spanning_trees[group_index].adjacentNodes(node.position);
+                if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
+                {
+                    //Move towards the average position of all neighbours.
+                    Point sum_direction(0, 0);
+                    for (Point neighbour : neighbours)
+                    {
+                        sum_direction += neighbour - node.position;
+                    }
+                    next_layer_vertex += normal(sum_direction, maximum_move_distance);
+                }
 
-            //Avoid collisions.
-            const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
-            const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
-            PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
-            const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex);
+                const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+                if (group_index == 0)
+                {
+                    //Avoid collisions.
+                    PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                }
 
-            Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
-            insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
+                const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex);
+                Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
+                insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
+            }
         }
         Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
