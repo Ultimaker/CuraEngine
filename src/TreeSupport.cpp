@@ -105,28 +105,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             for (const Node& node : nodes_per_part[group_index])
             {
                 current_nodes.insert(node);
-                /*if (node.to_buildplate)
-                {
-                    current_nodes.insert(node);
-                }
-                else
-                {
-                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
-                    const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
-
-                    //Move towards centre of polygon.
-                    Point closest_point_on_border = node.position;
-                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
-                    const coord_t distance = vSize(node.position - closest_point_on_border);
-                    Point next_position = node.position;
-                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], next_position, distance + maximum_move_distance); //Try moving a bit further inside.
-                    //TODO: This starts vibrating at the centre. We may want to check the distance again and if it didn't become less then don't move at all.
-
-                    Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, node.to_buildplate);
-                    insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
-                }*/
             }
-            std::cout << "Group " << group_index << " size " << current_nodes.size() << std::endl;
             //In the second pass, merge all leaf nodes.
             for (Node node : current_nodes)
             {
@@ -146,8 +125,23 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                             //Avoid collisions.
                             PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
                         }
+                        else
+                        {
+                            //Move towards centre of polygon.
+                            Point closest_point_on_border = node.position;
+                            PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
+                            const coord_t distance = vSize(node.position - closest_point_on_border);
+                            Point moved_inside = next_position;
+                            PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
+                            Point difference = moved_inside - node.position;
+                            if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
+                            {
+                                difference = normal(difference, maximum_move_distance);
+                            }
+                            next_position = node.position + difference;
+                        }
 
-                        const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr - 1].inside(next_position);;
+                        const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr - 1].inside(next_position);
                         Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
                         insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
                     }
@@ -185,6 +179,21 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 {
                     //Avoid collisions.
                     PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                }
+                else
+                {
+                    //Move towards centre of polygon.
+                    Point closest_point_on_border = node.position;
+                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
+                    const coord_t distance = vSize(node.position - closest_point_on_border);
+                    Point moved_inside = next_layer_vertex;
+                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
+                    Point difference = moved_inside - node.position;
+                    if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
+                    {
+                        difference = normal(difference, maximum_move_distance);
+                    }
+                    next_layer_vertex = node.position + difference;
                 }
 
                 const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex);
