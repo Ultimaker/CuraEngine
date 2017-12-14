@@ -67,11 +67,31 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         MinimumSpanningTree mst(points_to_buildplate);
 
-        //In the first pass, simply copy all nodes so that we have a layer of nodes that we are allowed to edit.
+        //In the first pass, simply copy all nodes going to the build plate, so that we have a layer of nodes that we are allowed to edit.
+        //All nodes that are not going to the build plate need to be moved don't need multiple passes. They move directly towards the model.
         std::unordered_set<Node> current_nodes;
         for (const Node& node : contact_nodes[layer_nr])
         {
-            current_nodes.insert(node);
+            if (node.to_buildplate)
+            {
+                current_nodes.insert(node);
+            }
+            else
+            {
+                const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+
+                //Move towards centre of polygon.
+                Point closest_point_on_border = node.position;
+                PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
+                const coord_t distance = vSize(node.position - closest_point_on_border);
+                Point next_position = node.position;
+                PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], next_position, distance + maximum_move_distance); //Try moving a bit further inside.
+                //TODO: This starts vibrating at the centre. We may want to check the distance again and if it didn't become less then don't move at all.
+                
+                Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, node.to_buildplate);
+                insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
+            }
         }
         //In the second pass, merge all leaf nodes.
         for (Node node : current_nodes)
