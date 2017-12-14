@@ -105,7 +105,7 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
     return result;
 }
 
-const std::vector<Point> MinimumSpanningTree::adjacentNodes(Point node)
+const std::vector<Point> MinimumSpanningTree::adjacentNodes(Point node) const
 {
     std::vector<Point> result;
     std::unordered_map<Point, std::vector<Edge>>::const_iterator adjacency_entry = adjacency_graph.find(node);

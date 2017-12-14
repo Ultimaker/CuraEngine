@@ -66,7 +66,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             nodes_per_part.emplace_back();
         }
-        for (const Node& node : contact_nodes[layer_nr])
+        for (Node node : contact_nodes[layer_nr])
         {
             if (node.to_buildplate)
             {
@@ -99,21 +99,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         for (size_t group_index = 0; group_index < nodes_per_part.size(); group_index++)
         {
-            //In the first pass, simply copy all nodes, so that we have a layer of nodes that we are allowed to edit.
-            //All nodes that are not going to the build plate need to be moved don't need multiple passes. They move directly towards the model.
-            std::unordered_set<Node> current_nodes;
-            for (const Node& node : nodes_per_part[group_index])
+            const MinimumSpanningTree& mst = spanning_trees[group_index];
+            //In the first pass, merge all leaf nodes.
+            for (Node node : nodes_per_part[group_index])
             {
-                current_nodes.insert(node);
-            }
-            //In the second pass, merge all leaf nodes.
-            for (const Node& node : current_nodes)
-            {
-                std::vector<Point> neighbours = spanning_trees[group_index].adjacentNodes(node.position);
-                if (neighbours.size() == 1)
+                std::vector<Point> neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance) //This leaf is about to collapse. Merge it with the neighbour.
                 {
-                    if (spanning_trees[group_index].adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
+                    if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
                     {
                         //Insert a completely new node and let both original nodes fade.
                         Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
@@ -150,18 +143,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                         //We'll drop this node, but modify some of the properties of its neighbour.
                         Node neighbour_finder;
                         neighbour_finder.position = neighbours[0]; //Find the node by its position (which is the hash and equals function).
-                        std::unordered_set<Node>::iterator neighbour = current_nodes.find(neighbour_finder);
+                        std::unordered_set<Node>::iterator neighbour = nodes_per_part[group_index].find(neighbour_finder);
                         neighbour->distance_to_top = std::max(neighbour->distance_to_top, node.distance_to_top);
                         neighbour->support_roof_layers_below = std::max(neighbour->support_roof_layers_below, node.support_roof_layers_below);
-                        current_nodes.erase(node);
+                        nodes_per_part[group_index].erase(node);
                     }
                 }
             }
-            //In the third pass, move all middle nodes.
-            for (const Node& node : current_nodes)
+            //In the second pass, move all middle nodes.
+            for (Node node : nodes_per_part[group_index])
             {
                 Point next_layer_vertex = node.position;
-                std::vector<Point> neighbours = spanning_trees[group_index].adjacentNodes(node.position);
+                std::vector<Point> neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
                 {
                     //Move towards the average position of all neighbours.
