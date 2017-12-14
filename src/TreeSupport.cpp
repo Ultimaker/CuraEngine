@@ -80,11 +80,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
                 {
                     //Insert a completely new node and let both original nodes fade.
-                    Node next_node;
-                    next_node.position = (node.position + neighbours[0]) / 2; //Average of the two nodes.
-                    next_node.distance_to_top = node.distance_to_top + 1;
-                    next_node.skin_direction = node.skin_direction;
-                    next_node.support_roof_layers_below = node.support_roof_layers_below - 1;
+                    constexpr bool to_buildplate = true;
+                    Node next_node((node.position + neighbours[0]) / 2, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate); //Average position of the two nodes.
 
                     //Avoid collisions.
                     const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
@@ -130,11 +127,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 continue;
             }
 
-            Node next_node;
-            next_node.position = next_layer_vertex;
-            next_node.distance_to_top = node.distance_to_top + 1;
-            next_node.skin_direction = node.skin_direction;
-            next_node.support_roof_layers_below = node.support_roof_layers_below - 1;
+            constexpr bool to_buildplate = true;
+            Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
             insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
         }
         Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
@@ -291,10 +285,9 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     constexpr bool border_is_inside = true;
                     if (overhang_part.inside(candidate, border_is_inside))
                     {
-                        Node contact_node;
-                        contact_node.position = candidate;
-                        contact_node.skin_direction = (layer_nr + z_distance_top_layers) % 2;
-                        contact_node.support_roof_layers_below = support_roof_layers;
+                        constexpr size_t distance_to_top = 0;
+                        constexpr bool to_buildplate = true;
+                        Node contact_node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate);
                         contact_nodes[layer_nr].insert(contact_node);
                         added = true;
                     }
@@ -304,10 +297,9 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             {
                 Point candidate = bounding_box.getMiddle();
                 PolygonUtils::moveInside(overhang_part, candidate);
-                Node contact_node;
-                contact_node.position = candidate;
-                contact_node.skin_direction = layer_nr % 2;
-                contact_node.support_roof_layers_below = support_roof_layers;
+                constexpr size_t distance_to_top = 0;
+                constexpr bool to_buildplate = true;
+                Node contact_node(candidate, distance_to_top, layer_nr % 2, support_roof_layers, to_buildplate);
                 contact_nodes[layer_nr].insert(contact_node);
             }
         }
