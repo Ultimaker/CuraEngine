@@ -57,12 +57,15 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
-        std::unordered_set<Point> contact_points;
+        std::unordered_set<Point> points_to_buildplate;
         for (Node node : contact_nodes[layer_nr])
         {
-            contact_points.insert(node.position);
+            if (node.to_buildplate)
+            {
+                points_to_buildplate.insert(node.position);
+            }
         }
-        MinimumSpanningTree mst(contact_points);
+        MinimumSpanningTree mst(points_to_buildplate);
 
         //In the first pass, simply copy all nodes so that we have a layer of nodes that we are allowed to edit.
         std::unordered_set<Node> current_nodes;
@@ -80,14 +83,15 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
                 {
                     //Insert a completely new node and let both original nodes fade.
-                    constexpr bool to_buildplate = true;
-                    Node next_node((node.position + neighbours[0]) / 2, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate); //Average position of the two nodes.
+                    Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
 
                     //Avoid collisions.
                     const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
                     const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
-                    PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_node.position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                    PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                    const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr - 1].inside(next_position);
 
+                    Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
                     insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
                 }
                 else
@@ -122,12 +126,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
             const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
             PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
-            if (model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex)) //We're stuck inside the model down there! Sadly, this branch will have to rest on the model.
-            {
-                continue;
-            }
+            const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex);
 
-            constexpr bool to_buildplate = true;
             Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
             insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
         }
