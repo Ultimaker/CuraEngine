@@ -107,7 +107,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 current_nodes.insert(node);
             }
             //In the second pass, merge all leaf nodes.
-            for (Node node : current_nodes)
+            for (const Node& node : current_nodes)
             {
                 std::vector<Point> neighbours = spanning_trees[group_index].adjacentNodes(node.position);
                 if (neighbours.size() == 1)
@@ -158,7 +158,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 }
             }
             //In the third pass, move all middle nodes.
-            for (Node node : current_nodes)
+            for (const Node& node : current_nodes)
             {
                 Point next_layer_vertex = node.position;
                 std::vector<Point> neighbours = spanning_trees[group_index].adjacentNodes(node.position);
