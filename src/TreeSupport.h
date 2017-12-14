@@ -31,7 +31,6 @@ public:
      */
     void generateSupportAreas(SliceDataStorage& storage);
 
-private:
     /*!
      * \brief Represents the metadata of a node in the tree.
      */
@@ -39,16 +38,25 @@ private:
     {
         Node()
         {
+            position = Point(0, 0);
             distance_to_top = 0;
             skin_direction = false;
             support_roof_layers_below = 0;
             to_buildplate = true;
         }
 
+        Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate)
+         : distance_to_top(distance_to_top), position(position), skin_direction(skin_direction), support_roof_layers_below(support_roof_layers_below), to_buildplate(to_buildplate) {}
+
         /*!
          * \brief The number of layers to go to the top of this branch.
          */
-        size_t distance_to_top;
+        mutable size_t distance_to_top;
+
+        /*!
+         * \brief The position of this node on the layer.
+         */
+        Point position;
 
         /*!
          * \brief The direction of the skin lines above the tip of the branch.
@@ -56,7 +64,7 @@ private:
          * This determines in which direction we should reduce the width of the
          * branch.
          */
-        bool skin_direction;
+        mutable bool skin_direction;
 
         /*!
          * \brief The number of support roof layers below this one.
@@ -66,7 +74,7 @@ private:
          * per-mesh setting. This is stored in this variable in order to track
          * how far we need to extend that support roof downwards.
          */
-        int support_roof_layers_below;
+        mutable int support_roof_layers_below;
 
         /*!
          * \brief Whether to try to go towards the build plate.
@@ -75,9 +83,15 @@ private:
          * towards the model. If it is not inside the collision areas, it must
          * go towards the build plate to prevent a scar on the surface.
          */
-        bool to_buildplate;
+        mutable bool to_buildplate;
+
+        bool operator==(const Node& other) const
+        {
+            return position == other.position;
+        }
     };
 
+private:
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches.
      *
@@ -100,16 +114,32 @@ private:
      *
      * A set of points is created for each layer.
      * \param mesh The mesh to get the overhang areas to support of.
-     * \param contact_points[out] A vector of sets to store the contact points
-     * in.
      * \param contact_nodes[out] A vector of mappings from contact points to
      * their tree nodes.
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points, std::vector<std::unordered_map<Point, Node>>& contact_nodes);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node>>& contact_nodes);
+
+    /*!
+     * \brief Add a node to the next layer.
+     *
+     * If a node is already at that position in the layer, the nodes are merged.
+     */
+    void insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node& node);
 };
 
+}
+
+namespace std
+{
+    template<> struct hash<cura::TreeSupport::Node>
+    {
+        size_t operator()(const cura::TreeSupport::Node& node) const
+        {
+            return hash<cura::Point>()(node.position);
+        }
+    };
 }
 
 #endif /* TREESUPPORT_H */

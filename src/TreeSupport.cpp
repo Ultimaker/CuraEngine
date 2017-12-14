@@ -27,13 +27,10 @@ TreeSupport::TreeSupport()
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    std::vector<std::unordered_set<Point>> contact_points;
-    std::vector<std::unordered_map<Point, Node>> contact_nodes;
-    contact_points.reserve(storage.support.supportLayers.size());
+    std::vector<std::unordered_set<Node>> contact_nodes;
     contact_nodes.reserve(storage.support.supportLayers.size());
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
     {
-        contact_points.emplace_back();
         contact_nodes.emplace_back();
     }
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -42,7 +39,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             return;
         }
-        generateContactPoints(mesh, contact_points, contact_nodes);
+        generateContactPoints(mesh, contact_nodes);
     }
 
     //Generate areas that have to be avoided.
@@ -58,39 +55,70 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
-    for (size_t layer_nr = contact_points.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
+    for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
-        MinimumSpanningTree mst(contact_points[layer_nr]);
-        for (Point vertex : contact_points[layer_nr])
+        std::unordered_set<Point> contact_points;
+        for (Node node : contact_nodes[layer_nr])
         {
-            const Node node = contact_nodes[layer_nr][vertex];
-            Point next_layer_vertex = vertex;
-            std::vector<Point> neighbours = mst.adjacentNodes(vertex);
-            if (!neighbours.empty()) //Need to move towards the neighbours.
+            contact_points.insert(node.position);
+        }
+        MinimumSpanningTree mst(contact_points);
+
+        //In the first pass, simply copy all nodes so that we have a layer of nodes that we are allowed to edit.
+        std::unordered_set<Node> current_nodes;
+        for (const Node& node : contact_nodes[layer_nr])
+        {
+            current_nodes.insert(node);
+        }
+        //In the second pass, merge all leaf nodes.
+        for (Node node : current_nodes)
+        {
+            std::vector<Point> neighbours = mst.adjacentNodes(node.position);
+            if (neighbours.size() == 1)
+            if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance) //This leaf is about to collapse. Merge it with the neighbour.
             {
-                Point sum_direction(0, 0);
-                for (Point neighbour : neighbours)
+                if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
                 {
-                    sum_direction += neighbour - vertex;
-                }
-                Point motion = normal(sum_direction, maximum_move_distance);
-                if (neighbours.size() == 1 && vSize2(sum_direction) < maximum_move_distance * maximum_move_distance)
-                {
-                    if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
-                    {
-                        next_layer_vertex += motion / 2;
-                    }
-                    else //This is a leaf that's about to collapse. Leave it out on the next layer.
-                    {
-                        contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top = std::max(contact_nodes[layer_nr - 1][neighbours[0]].distance_to_top, node.distance_to_top);
-                        contact_nodes[layer_nr - 1][neighbours[0]].support_roof_layers_below = std::max(contact_nodes[layer_nr - 1][neighbours[0]].support_roof_layers_below, node.support_roof_layers_below);
-                        continue;
-                    }
+                    //Insert a completely new node and let both original nodes fade.
+                    Node next_node;
+                    next_node.position = (node.position + neighbours[0]) / 2; //Average of the two nodes.
+                    next_node.distance_to_top = node.distance_to_top + 1;
+                    next_node.skin_direction = node.skin_direction;
+                    next_node.support_roof_layers_below = node.support_roof_layers_below - 1;
+
+                    //Avoid collisions.
+                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                    const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+                    PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_node.position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+
+                    insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
                 }
                 else
                 {
-                    next_layer_vertex += motion;
+                    //We'll drop this node, but modify some of the properties of its neighbour.
+                    Node neighbour_finder;
+                    neighbour_finder.position = neighbours[0]; //Find the node by its position (which is the hash and equals function).
+                    std::unordered_set<Node>::iterator neighbour = current_nodes.find(neighbour_finder);
+                    neighbour->distance_to_top = std::max(neighbour->distance_to_top, node.distance_to_top);
+                    neighbour->support_roof_layers_below = std::max(neighbour->support_roof_layers_below, node.support_roof_layers_below);
+                    current_nodes.erase(node);
                 }
+            }
+        }
+        //In the third pass, move all middle nodes.
+        for (Node node : current_nodes)
+        {
+            Point next_layer_vertex = node.position;
+            std::vector<Point> neighbours = mst.adjacentNodes(node.position);
+            if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
+            {
+                //Move towards the average position of all neighbours.
+                Point sum_direction(0, 0);
+                for (Point neighbour : neighbours)
+                {
+                    sum_direction += neighbour - node.position;
+                }
+                next_layer_vertex += normal(sum_direction, maximum_move_distance);
             }
 
             //Avoid collisions.
@@ -102,12 +130,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 continue;
             }
 
-            contact_points[layer_nr - 1].insert(next_layer_vertex);
-            contact_nodes[layer_nr - 1][next_layer_vertex].distance_to_top = node.distance_to_top + 1;
-            contact_nodes[layer_nr - 1][next_layer_vertex].skin_direction = node.skin_direction;
-            contact_nodes[layer_nr - 1][next_layer_vertex].support_roof_layers_below = node.support_roof_layers_below - 1;
+            Node next_node;
+            next_node.position = next_layer_vertex;
+            next_node.distance_to_top = node.distance_to_top + 1;
+            next_node.skin_direction = node.skin_direction;
+            next_node.support_roof_layers_below = node.support_roof_layers_below - 1;
+            insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
         }
-        Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + (contact_points.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + contact_points.size() * PROGRESS_WEIGHT_AREAS);
+        Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
@@ -118,15 +148,14 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
-#pragma omp parallel for shared(storage, contact_points, contact_nodes)
-    for (size_t layer_nr = 0; layer_nr < contact_points.size(); layer_nr++)
+#pragma omp parallel for shared(storage, contact_nodes)
+    for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
     {
         Polygons support_layer;
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
 
-        for (const Point point : contact_points[layer_nr])
+        for (const Node node : contact_nodes[layer_nr])
         {
-            const Node& node = contact_nodes[layer_nr][point];
             Polygon circle;
             const double scale = (double)(node.distance_to_top + 1) / tip_layers;
             for (Point corner : branch_circle)
@@ -146,7 +175,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 {
                     corner *= 1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor;
                 }
-                circle.add(point + corner);
+                circle.add(node.position + corner);
             }
             if (node.support_roof_layers_below >= 0)
             {
@@ -178,7 +207,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_points.size() * PROGRESS_WEIGHT_DROPDOWN + contact_points.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 
@@ -218,7 +247,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     }
 }
 
-void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Point>>& contact_points, std::vector<std::unordered_map<Point, TreeSupport::Node>>& contact_nodes)
+void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node>>& contact_nodes)
 {
     const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
@@ -262,10 +291,11 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     constexpr bool border_is_inside = true;
                     if (overhang_part.inside(candidate, border_is_inside))
                     {
-                        contact_points[layer_nr].insert(candidate);
-                        contact_nodes[layer_nr][candidate] = Node();
-                        contact_nodes[layer_nr][candidate].skin_direction = (layer_nr + z_distance_top_layers) % 2;
-                        contact_nodes[layer_nr][candidate].support_roof_layers_below = support_roof_layers;
+                        Node contact_node;
+                        contact_node.position = candidate;
+                        contact_node.skin_direction = (layer_nr + z_distance_top_layers) % 2;
+                        contact_node.support_roof_layers_below = support_roof_layers;
+                        contact_nodes[layer_nr].insert(contact_node);
                         added = true;
                     }
                 }
@@ -274,13 +304,27 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             {
                 Point candidate = bounding_box.getMiddle();
                 PolygonUtils::moveInside(overhang_part, candidate);
-                contact_points[layer_nr].insert(candidate);
-                contact_nodes[layer_nr][candidate] = Node();
-                contact_nodes[layer_nr][candidate].skin_direction = layer_nr % 2;
-                contact_nodes[layer_nr][candidate].support_roof_layers_below = support_roof_layers;
+                Node contact_node;
+                contact_node.position = candidate;
+                contact_node.skin_direction = layer_nr % 2;
+                contact_node.support_roof_layers_below = support_roof_layers;
+                contact_nodes[layer_nr].insert(contact_node);
             }
         }
     }
+}
+
+void TreeSupport::insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node& node)
+{
+    std::unordered_set<Node>::iterator conflicting_node = nodes_layer.find(node);
+    if (conflicting_node == nodes_layer.end()) //No conflict.
+    {
+        nodes_layer.insert(node);
+        return;
+    }
+
+    conflicting_node->distance_to_top = std::max(conflicting_node->distance_to_top, node.distance_to_top);
+    conflicting_node->support_roof_layers_below = std::max(conflicting_node->support_roof_layers_below, node.support_roof_layers_below);
 }
 
 }
