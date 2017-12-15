@@ -150,7 +150,7 @@ public:
      *
      * This is filled only when the top surface is needed.
      */
-    TopSurface* top_surface = nullptr;
+    TopSurface top_surface;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
