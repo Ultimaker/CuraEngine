@@ -48,6 +48,16 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     collisionAreas(storage, model_collision);
     std::vector<std::vector<Polygons>> model_avoidance; //For every sample of branch radius, the areas that have to be avoided in order to be able to go towards the build plate.
     propagateCollisionAreas(storage, model_collision, model_avoidance);
+    std::vector<std::vector<Polygons>> model_internal_guide; //A model to guide branches that are stuck inside towards the centre of the model while avoiding the model itself.
+    for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)
+    {
+        model_internal_guide.emplace_back();
+        for (size_t layer_nr = 0; layer_nr < model_avoidance[radius_sample].size(); layer_nr++)
+        {
+            Polygons layer_internal_guide = model_avoidance[radius_sample][layer_nr].difference(model_collision[radius_sample][layer_nr]);
+            model_internal_guide[radius_sample].push_back(layer_internal_guide);
+        }
+    }
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
@@ -126,10 +136,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                         {
                             //Move towards centre of polygon.
                             Point closest_point_on_border = node.position;
-                            PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
+                            PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], closest_point_on_border);
                             const coord_t distance = vSize(node.position - closest_point_on_border);
                             Point moved_inside = next_position;
-                            PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
+                            PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
                             Point difference = moved_inside - node.position;
                             if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
                             {
@@ -179,10 +189,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 {
                     //Move towards centre of polygon.
                     Point closest_point_on_border = node.position;
-                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], closest_point_on_border);
+                    PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], closest_point_on_border);
                     const coord_t distance = vSize(node.position - closest_point_on_border);
                     Point moved_inside = next_layer_vertex;
-                    PolygonUtils::moveInside(model_collision[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
+                    PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
                     Point difference = moved_inside - node.position;
                     if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
                     {
@@ -196,7 +206,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
             }
         }
-        Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
+        Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
 
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
@@ -266,7 +276,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 
@@ -403,7 +413,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_collision.size() >> 1) + (completed >> 1)) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_avoidance.size() >> 1) + (completed >> 1)) * PROGRESS_WEIGHT_COLLISION, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
