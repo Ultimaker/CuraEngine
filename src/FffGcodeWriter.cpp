@@ -1841,9 +1841,9 @@ bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLay
     bool added_something = false;
     const bool ironing_enabled = mesh.getSettingBoolean("ironing_enabled");
     const bool ironing_only_highest_layer = mesh.getSettingBoolean("ironing_only_highest_layer");
-    if (ironing_enabled && (!ironing_only_highest_layer || mesh.layer_nr_max_filled_layer == gcode_layer.getLayerNr()) && layer.top_surface)
+    if (ironing_enabled && (!ironing_only_highest_layer || mesh.layer_nr_max_filled_layer == gcode_layer.getLayerNr()))
     {
-        added_something |= layer.top_surface->ironing(mesh, line_config, gcode_layer);
+        added_something |= layer.top_surface.ironing(mesh, line_config, gcode_layer);
     }
     return added_something;
 }
