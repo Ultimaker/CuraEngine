@@ -56,6 +56,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
+    const bool support_rests_on_model = storage.getSettingAsSupportType("support_type") == ESupportType::EVERYWHERE;
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         //Group together all nodes for each part.
@@ -72,7 +73,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             {
                 nodes_per_part[0][node.position] = node;
             }
-            else
+            else if (support_rests_on_model)
             {
                 //Find which part this node is located in and group the nodes in the same part together.
                 for (size_t part_index = 0; part_index < parts.size(); part_index++)
