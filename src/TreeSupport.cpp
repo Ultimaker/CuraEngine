@@ -60,7 +60,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         //Group together all nodes for each part.
         std::vector<PolygonsPart> parts = model_collision[0][layer_nr].splitIntoParts();
-        std::vector<std::unordered_set<Node>> nodes_per_part;
+        std::vector<std::unordered_map<Point, Node>> nodes_per_part;
         nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
         for (size_t part_index = 0; part_index < parts.size(); part_index++)
         {
@@ -70,7 +70,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             if (node.to_buildplate)
             {
-                nodes_per_part[0].insert(node);
+                nodes_per_part[0][node.position] = node;
             }
             else
             {
@@ -79,7 +79,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 {
                     if (parts[part_index].inside(node.position))
                     {
-                        nodes_per_part[part_index + 1].insert(node);
+                        nodes_per_part[part_index + 1][node.position] = node;
                         break;
                     }
                 }
@@ -87,12 +87,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         //Create a MST for every part.
         std::vector<MinimumSpanningTree> spanning_trees;
-        for (std::unordered_set<Node> group : nodes_per_part)
+        for (const std::unordered_map<Point, Node> group : nodes_per_part)
         {
             std::unordered_set<Point> points_to_buildplate;
-            for (const Node& node : group)
+            for (std::pair<Point, Node> entry : group)
             {
-                points_to_buildplate.insert(node.position);
+                points_to_buildplate.insert(entry.first); //Just the position of the node.
             }
             spanning_trees.emplace_back(points_to_buildplate);
         }
@@ -101,8 +101,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             const MinimumSpanningTree& mst = spanning_trees[group_index];
             //In the first pass, merge all leaf nodes.
-            for (Node node : nodes_per_part[group_index])
+            for (std::pair<Point, Node> entry : nodes_per_part[group_index])
             {
+                const Node node = entry.second;
                 std::vector<Point> neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance) //This leaf is about to collapse. Merge it with the neighbour.
                 {
@@ -141,18 +142,16 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     else
                     {
                         //We'll drop this node, but modify some of the properties of its neighbour.
-                        Node neighbour_finder;
-                        neighbour_finder.position = neighbours[0]; //Find the node by its position (which is the hash and equals function).
-                        std::unordered_set<Node>::iterator neighbour = nodes_per_part[group_index].find(neighbour_finder);
-                        neighbour->distance_to_top = std::max(neighbour->distance_to_top, node.distance_to_top);
-                        neighbour->support_roof_layers_below = std::max(neighbour->support_roof_layers_below, node.support_roof_layers_below);
-                        nodes_per_part[group_index].erase(node);
+                        Node& neighbour = nodes_per_part[group_index][neighbours[0]];
+                        neighbour.distance_to_top = std::max(neighbour.distance_to_top, node.distance_to_top);
+                        neighbour.support_roof_layers_below = std::max(neighbour.support_roof_layers_below, node.support_roof_layers_below);
                     }
                 }
             }
             //In the second pass, move all middle nodes.
-            for (Node node : nodes_per_part[group_index])
+            for (std::pair<Point, Node> entry : nodes_per_part[group_index])
             {
+                Node node = entry.second;
                 Point next_layer_vertex = node.position;
                 std::vector<Point> neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
