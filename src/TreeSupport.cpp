@@ -46,6 +46,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     //Generate areas that have to be avoided.
     std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
     collisionAreas(storage, model_collision);
+    std::vector<std::vector<Polygons>> model_avoidance; //For every sample of branch radius, the areas that have to be avoided in order to be able to go towards the build plate.
+    propagateCollisionAreas(storage, model_collision, model_avoidance);
 
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
@@ -60,7 +62,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         //Group together all nodes for each part.
-        std::vector<PolygonsPart> parts = model_collision[0][layer_nr].splitIntoParts();
+        std::vector<PolygonsPart> parts = model_avoidance[0][layer_nr].splitIntoParts();
         std::vector<std::unordered_map<Point, Node>> nodes_per_part;
         nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
         for (size_t part_index = 0; part_index < parts.size(); part_index++)
@@ -118,7 +120,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                         if (group_index == 0)
                         {
                             //Avoid collisions.
-                            PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                            PolygonUtils::moveOutside(model_avoidance[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
                         }
                         else
                         {
@@ -136,7 +138,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                             next_position = node.position + difference;
                         }
 
-                        const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr - 1].inside(next_position);
+                        const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr - 1].inside(next_position);
                         Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
                         insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
                     }
@@ -171,7 +173,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 if (group_index == 0)
                 {
                     //Avoid collisions.
-                    PolygonUtils::moveOutside(model_collision[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
+                    PolygonUtils::moveOutside(model_avoidance[branch_radius_sample][layer_nr - 1], next_layer_vertex, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
                 }
                 else
                 {
@@ -189,7 +191,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     next_layer_vertex = node.position + difference;
                 }
 
-                const bool to_buildplate = !model_collision[branch_radius_sample][layer_nr].inside(next_layer_vertex);
+                const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr].inside(next_layer_vertex);
                 Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
                 insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
             }
@@ -275,8 +277,6 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
 {
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-    const double angle = storage.getSettingInAngleRadians("support_tree_angle");
-    const coord_t maximum_move_distance = tan(angle) * layer_height;
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
@@ -285,21 +285,20 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     constexpr bool include_helper_parts = false;
     size_t completed = 0; //To track progress in a multi-threaded environment.
-    #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
-    for (size_t radius_sample = 0; radius_sample <= (size_t)std::round((float)maximum_radius / radius_sample_resolution); radius_sample++)
+#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
+    for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
     {
         const coord_t diameter = radius_sample * radius_sample_resolution;
         model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
-        for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            model_collision[radius_sample].push_back(model_collision[radius_sample][layer_nr - 1].offset(-maximum_move_distance)); //Inset previous layer with maximum_move_distance to allow some movement.
-            model_collision[radius_sample][layer_nr] = model_collision[radius_sample][layer_nr].unionPolygons(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
         }
 #pragma omp atomic
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, completed * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, (completed >> 1) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
@@ -380,6 +379,33 @@ void TreeSupport::insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node&
 
     conflicting_node->distance_to_top = std::max(conflicting_node->distance_to_top, node.distance_to_top);
     conflicting_node->support_roof_layers_below = std::max(conflicting_node->support_roof_layers_below, node.support_roof_layers_below);
+}
+
+void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const std::vector<std::vector<Polygons>>& model_collision, std::vector<std::vector<Polygons>>& model_avoidance)
+{
+    model_avoidance.resize(model_collision.size());
+
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const double angle = storage.getSettingInAngleRadians("support_tree_angle");
+    const coord_t maximum_move_distance = tan(angle) * layer_height;
+    size_t completed = 0; //To track progress in a multi-threaded environment.
+#pragma omp parallel for shared(model_avoidance) schedule(dynamic)
+    for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)
+    {
+        model_avoidance[radius_sample].push_back(model_collision[radius_sample][0]);
+        for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        {
+            Polygons previous_layer = model_avoidance[radius_sample][layer_nr - 1].offset(-maximum_move_distance); //Inset previous layer with maximum_move_distance to allow some movement.
+            previous_layer = previous_layer.unionPolygons(model_collision[radius_sample][layer_nr]);
+            model_avoidance[radius_sample].push_back(previous_layer);
+        }
+#pragma omp atomic
+        completed++;
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_collision.size() >> 1) + (completed >> 1)) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+        }
+    }
 }
 
 }

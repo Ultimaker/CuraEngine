@@ -127,6 +127,30 @@ private:
      * If a node is already at that position in the layer, the nodes are merged.
      */
     void insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node& node);
+
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches
+     * in order to reach the build plate.
+     *
+     * The result is a vector of 3D volumes that have to be avoided, where each
+     * volume consists of a number of layers where the branch would collide with
+     * the model.
+     * There will be a volume for each sample of branch radius. The radii of the
+     * branches are unknown at this point (there will be several radii at any
+     * given layer too), so a collision area is generated for every possible
+     * radius.
+     *
+     * The input collision areas are inset by the maximum move distance and
+     * propagated upwards. This generates volumes so that the branches can
+     * predict in time when they need to be moving away in order to avoid
+     * hitting the model.
+     * \param storage The settings storage to get settings from.
+     * \param model_collision The collision areas that may not be hit by the
+     * model.
+     * \param model_avoidance[out] A vector to fill with the output avoidance
+     * areas.
+     */
+    void propagateCollisionAreas(const SliceDataStorage& storage, const std::vector<std::vector<Polygons>>& model_collision, std::vector<std::vector<Polygons>>& model_avoidance);
 };
 
 }
