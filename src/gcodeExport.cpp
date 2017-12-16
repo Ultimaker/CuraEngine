@@ -486,11 +486,11 @@ void GCodeExport::writeExtrusionMode(bool set_relative_extrusion_mode)
 {
     if (set_relative_extrusion_mode)
     {
-        *output_stream << "M83 ; relative extrusion mode" << new_line;
+        *output_stream << "M83 ;relative extrusion mode" << new_line;
     }
     else
     {
-        *output_stream << "M82 ; absolute extrusion mode" << new_line;
+        *output_stream << "M82 ;absolute extrusion mode" << new_line;
     }
 }
 
