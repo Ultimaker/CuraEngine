@@ -59,11 +59,152 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
+    //Drop nodes to lower layers.
+    dropNodes(storage, contact_nodes, model_avoidance, model_internal_guide);
+
+    //Generate support areas.
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
+    Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
+    for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
+    {
+        const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
+        branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
+    }
+    const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
+    const coord_t z_distance_bottom = storage.getSettingInMicrons("support_bottom_distance");
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const size_t z_distance_bottom_layers = std::max(0U, round_up_divide(z_distance_bottom, layer_height));
+    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
+#pragma omp parallel for shared(storage, contact_nodes)
+    for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
+    {
+        Polygons support_layer;
+        Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
+
+        //Draw the support areas and add the roofs appropriately to the support roof instead of normal areas.
+        for (const Node node : contact_nodes[layer_nr])
+        {
+            Polygon circle;
+            const double scale = (double)(node.distance_to_top + 1) / tip_layers;
+            for (Point corner : branch_circle)
+            {
+                if (node.distance_to_top < tip_layers) //We're in the tip.
+                {
+                    if (node.skin_direction)
+                    {
+                        corner = Point(corner.X * (0.5 + scale / 2) + corner.Y * (0.5 - scale / 2), corner.X * (0.5 - scale / 2) + corner.Y * (0.5 + scale / 2));
+                    }
+                    else
+                    {
+                        corner = Point(corner.X * (0.5 + scale / 2) - corner.Y * (0.5 - scale / 2), corner.X * (-0.5 + scale / 2) + corner.Y * (0.5 + scale / 2));
+                    }
+                }
+                else
+                {
+                    corner *= 1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor;
+                }
+                circle.add(node.position + corner);
+            }
+            if (node.support_roof_layers_below >= 0)
+            {
+                roof_layer.add(circle);
+            }
+            else
+            {
+                support_layer.add(circle);
+            }
+        }
+        support_layer = support_layer.unionPolygons();
+        roof_layer = roof_layer.unionPolygons();
+        support_layer = support_layer.difference(roof_layer);
+        const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
+        support_layer = support_layer.difference(model_collision[0][z_collision_layer]); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+        roof_layer = roof_layer.difference(model_collision[0][z_collision_layer]);
+        //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
+        const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
+        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
+
+        //Subtract support floors.
+        Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
+        const coord_t support_interface_resolution = storage.getSettingInMicrons("support_interface_skip_height");
+        const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
+        const coord_t support_bottom_height = storage.getSettingInMicrons("support_bottom_height");
+        const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
+        for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
+        {
+            const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
+            constexpr bool include_helper_parts = false;
+            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+        }
+        { //One additional sample at the complete bottom height.
+            const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(support_bottom_height_layers) - static_cast<int>(z_distance_bottom_layers)));
+            constexpr bool include_helper_parts = false;
+            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+        }
+        floor_layer.unionPolygons();
+        support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
+
+        for (PolygonRef part : support_layer) //Convert every part into a PolygonsPart for the support.
+        {
+            PolygonsPart outline;
+            outline.add(part);
+            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
+        }
+#pragma omp critical (support_max_layer_nr)
+        {
+            if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
+            {
+                storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_nr);
+            }
+        }
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
+        }
+    }
+
+    storage.support.generated = true;
+}
+
+void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
+{
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
+    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
+    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
+
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
+    constexpr bool include_helper_parts = false;
+    size_t completed = 0; //To track progress in a multi-threaded environment.
+#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
+    for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
+    {
+        const coord_t diameter = radius_sample * radius_sample_resolution;
+        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        {
+            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
+        }
+#pragma omp atomic
+        completed++;
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, (completed >> 1) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+        }
+    }
+}
+
+void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
+{
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = tan(angle) * layer_height;
-    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
@@ -207,136 +348,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             }
         }
         Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
-    }
-
-    const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
-    Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
-    for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
-    {
-        const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-        branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
-    }
-    const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
-    const coord_t z_distance_bottom = storage.getSettingInMicrons("support_bottom_distance");
-    const size_t z_distance_bottom_layers = std::max(0U, round_up_divide(z_distance_bottom, layer_height));
-#pragma omp parallel for shared(storage, contact_nodes)
-    for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
-    {
-        Polygons support_layer;
-        Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
-
-        //Draw the support areas and add the roofs appropriately to the support roof instead of normal areas.
-        for (const Node node : contact_nodes[layer_nr])
-        {
-            Polygon circle;
-            const double scale = (double)(node.distance_to_top + 1) / tip_layers;
-            for (Point corner : branch_circle)
-            {
-                if (node.distance_to_top < tip_layers) //We're in the tip.
-                {
-                    if (node.skin_direction)
-                    {
-                        corner = Point(corner.X * (0.5 + scale / 2) + corner.Y * (0.5 - scale / 2), corner.X * (0.5 - scale / 2) + corner.Y * (0.5 + scale / 2));
-                    }
-                    else
-                    {
-                        corner = Point(corner.X * (0.5 + scale / 2) - corner.Y * (0.5 - scale / 2), corner.X * (-0.5 + scale / 2) + corner.Y * (0.5 + scale / 2));
-                    }
-                }
-                else
-                {
-                    corner *= 1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor;
-                }
-                circle.add(node.position + corner);
-            }
-            if (node.support_roof_layers_below >= 0)
-            {
-                roof_layer.add(circle);
-            }
-            else
-            {
-                support_layer.add(circle);
-            }
-        }
-        support_layer = support_layer.unionPolygons();
-        roof_layer = roof_layer.unionPolygons();
-        support_layer = support_layer.difference(roof_layer);
-        const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
-        support_layer = support_layer.difference(model_collision[0][z_collision_layer]); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
-        roof_layer = roof_layer.difference(model_collision[0][z_collision_layer]);
-        //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
-        const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
-        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
-
-        //Subtract support floors.
-        Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
-        const coord_t support_interface_resolution = storage.getSettingInMicrons("support_interface_skip_height");
-        const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
-        const coord_t support_bottom_height = storage.getSettingInMicrons("support_bottom_height");
-        const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
-        for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
-        {
-            const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
-            constexpr bool include_helper_parts = false;
-            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
-        }
-        { //One additional sample at the complete bottom height.
-            const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(support_bottom_height_layers) - static_cast<int>(z_distance_bottom_layers)));
-            constexpr bool include_helper_parts = false;
-            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
-        }
-        floor_layer.unionPolygons();
-        support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
-
-        for (PolygonRef part : support_layer) //Convert every part into a PolygonsPart for the support.
-        {
-            PolygonsPart outline;
-            outline.add(part);
-            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
-        }
-#pragma omp critical (support_max_layer_nr)
-        {
-            if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
-            {
-                storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_nr);
-            }
-        }
-#pragma omp critical (progress)
-        {
-            Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
-        }
-    }
-
-    storage.support.generated = true;
-}
-
-void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
-{
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
-    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
-    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
-    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
-
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
-    constexpr bool include_helper_parts = false;
-    size_t completed = 0; //To track progress in a multi-threaded environment.
-#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
-    for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
-    {
-        const coord_t diameter = radius_sample * radius_sample_resolution;
-        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
-        for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
-        {
-            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
-        }
-#pragma omp atomic
-        completed++;
-#pragma omp critical (progress)
-        {
-            Progress::messageProgress(Progress::Stage::SUPPORT, (completed >> 1) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
-        }
     }
 }
 

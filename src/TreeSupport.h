@@ -110,6 +110,27 @@ private:
     void collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision);
 
     /*!
+     * \brief Drops down the nodes of the tree support towards the build plate.
+     *
+     * This is where the cleverness of tree support comes in: The nodes stay on
+     * their 2D layers but on the next layer they are slightly shifted. This
+     * causes them to move towards each other as they are copied to lower layers
+     * which ultimately results in a 3D tree.
+     *
+     * \param storage The settings storage to get settings from.
+     * \param contact_nodes[in, out] The nodes in the space that need to be
+     * dropped down. The nodes are dropped to lower layers inside the same
+     * vector of layers.
+     * \param model_avoidance For each sample of radius, a list of layers with
+     * the polygons that must be avoided if the branches wish to go towards the
+     * build plate.
+     * \param model_internal_guide For each sample of radius, a list of layers
+     * with the polygons that must be avoided if the branches wish to go towards
+     * the model.
+     */
+    void dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
+
+    /*!
      * \brief Creates points where support contacts the model.
      *
      * A set of points is created for each layer.
