@@ -225,6 +225,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         Polygons support_layer;
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
 
+        //Draw the support areas and add the roofs appropriately to the support roof instead of normal areas.
         for (const Node node : contact_nodes[layer_nr])
         {
             Polygon circle;
@@ -262,6 +263,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         support_layer = support_layer.difference(roof_layer);
         const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
         support_layer = support_layer.difference(model_collision[0][z_collision_layer]); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+        roof_layer = roof_layer.difference(model_collision[0][z_collision_layer]);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
