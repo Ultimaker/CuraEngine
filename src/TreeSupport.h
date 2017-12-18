@@ -110,6 +110,20 @@ private:
     void collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision);
 
     /*!
+     * \brief Draws circles around each node of the tree into the final support.
+     *
+     * This also handles the areas that have to become support roof, support
+     * bottom, the Z distances, etc.
+     *
+     * \param storage[in, out] The settings storage to get settings from and to
+     * save the resulting support polygons to.
+     * \param contact_nodes The nodes to draw as support.
+     * \param model_collision The model infill with the X/Y distance already
+     * subtracted.
+     */
+    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision);
+
+    /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
      *
      * This is where the cleverness of tree support comes in: The nodes stay on

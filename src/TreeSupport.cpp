@@ -63,6 +63,43 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     dropNodes(storage, contact_nodes, model_avoidance, model_internal_guide);
 
     //Generate support areas.
+    drawCircles(storage, contact_nodes, model_collision);
+
+    storage.support.generated = true;
+}
+
+void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
+{
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
+    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
+    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
+
+    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
+    constexpr bool include_helper_parts = false;
+    size_t completed = 0; //To track progress in a multi-threaded environment.
+#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
+    for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
+    {
+        const coord_t diameter = radius_sample * radius_sample_resolution;
+        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
+        for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        {
+            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
+        }
+#pragma omp atomic
+        completed++;
+#pragma omp critical (progress)
+        {
+            Progress::messageProgress(Progress::Stage::SUPPORT, (completed >> 1) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+        }
+    }
+}
+
+void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision)
+{
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
@@ -162,39 +199,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
-        }
-    }
-
-    storage.support.generated = true;
-}
-
-void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
-{
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
-    const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
-    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
-    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
-
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
-    constexpr bool include_helper_parts = false;
-    size_t completed = 0; //To track progress in a multi-threaded environment.
-#pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
-    for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
-    {
-        const coord_t diameter = radius_sample * radius_sample_resolution;
-        model_collision[radius_sample].push_back(storage.getLayerOutlines(0, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound));
-        for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
-        {
-            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
-        }
-#pragma omp atomic
-        completed++;
-#pragma omp critical (progress)
-        {
-            Progress::messageProgress(Progress::Stage::SUPPORT, (completed >> 1) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
