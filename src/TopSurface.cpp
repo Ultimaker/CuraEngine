@@ -13,7 +13,7 @@ TopSurface::TopSurface()
     //Do nothing. Areas stays empty.
 }
 
-TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number)
+void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number)
 {
     //The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
     Polygons mesh_above;
@@ -25,7 +25,7 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number)
     areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
 }
 
-bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer)
+bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const
 {
     if (areas.empty())
     {

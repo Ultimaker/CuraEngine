@@ -465,9 +465,9 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
     Polygons boundary;
-    if (comb_boundary_inside.size() > 0)
+    if (config.type == PrintFeatureType::Infill && comb_boundary_inside.size() > 0)
     {
-        // use the combing boundary inflated so that all skin/infill lines are inside the boundary
+        // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
         if (layer_nr >= 0)
         {
