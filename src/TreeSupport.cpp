@@ -258,6 +258,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
         support_layer = support_layer.difference(roof_layer);
+        support_layer = support_layer.difference(model_collision[0][layer_nr]); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
