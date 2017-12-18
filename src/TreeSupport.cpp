@@ -217,6 +217,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
+    const coord_t z_distance_bottom = storage.getSettingInMicrons("support_bottom_distance");
+    const size_t z_distance_bottom_layers = std::max(0U, round_up_divide(z_distance_bottom, layer_height));
 #pragma omp parallel for shared(storage, contact_nodes)
     for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
     {
@@ -258,7 +260,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
         support_layer = support_layer.difference(roof_layer);
-        support_layer = support_layer.difference(model_collision[0][layer_nr]); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+        const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
+        support_layer = support_layer.difference(model_collision[0][z_collision_layer]); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
