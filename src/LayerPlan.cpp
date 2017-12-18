@@ -461,7 +461,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
     Polygons boundary;
-    if (enable_travel_optimization && config.type == PrintFeatureType::Infill && comb_boundary_inside.size() > 0)
+    if (enable_travel_optimization && comb_boundary_inside.size() > 0)
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
