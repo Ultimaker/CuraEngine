@@ -321,7 +321,11 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     {
                         sum_direction += neighbour - node.position;
                     }
-                    next_layer_vertex += normal(sum_direction, maximum_move_distance);
+                    if(vSize2(sum_direction) <= maximum_move_distance * maximum_move_distance) {
+                        next_layer_vertex += sum_direction;
+                    } else {
+                        next_layer_vertex += normal(sum_direction, maximum_move_distance);
+                    }
                 }
 
                 const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
