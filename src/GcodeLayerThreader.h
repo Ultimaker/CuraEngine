@@ -78,7 +78,7 @@ private:
     bool finished();
 
 private:
-    // algorithm paramters
+    // algorithm parameters
     const int start_item_argument_index; //!< The first index with which \ref GcodeLayerThreader::produce_item will be called
     const int end_item_argument_index; //!< The end index with which \ref GcodeLayerThreader::produce_item will not be called any more
     const unsigned int item_count; //!< The number of items to produce and consume
