@@ -165,24 +165,27 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
 
         //Subtract support floors.
-        Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
-        const coord_t support_interface_resolution = storage.getSettingInMicrons("support_interface_skip_height");
-        const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
-        const coord_t support_bottom_height = storage.getSettingInMicrons("support_bottom_height");
-        const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
-        for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
+        if (storage.getSettingBoolean("support_bottom_enable"))
         {
-            const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
-            constexpr bool include_helper_parts = false;
-            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+            Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
+            const coord_t support_interface_resolution = storage.getSettingInMicrons("support_interface_skip_height");
+            const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
+            const coord_t support_bottom_height = storage.getSettingInMicrons("support_bottom_height");
+            const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
+            for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
+            {
+                const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
+                constexpr bool include_helper_parts = false;
+                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+            }
+            { //One additional sample at the complete bottom height.
+                const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(support_bottom_height_layers) - static_cast<int>(z_distance_bottom_layers)));
+                constexpr bool include_helper_parts = false;
+                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+            }
+            floor_layer.unionPolygons();
+            support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
         }
-        { //One additional sample at the complete bottom height.
-            const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(support_bottom_height_layers) - static_cast<int>(z_distance_bottom_layers)));
-            constexpr bool include_helper_parts = false;
-            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
-        }
-        floor_layer.unionPolygons();
-        support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
 
         for (PolygonRef part : support_layer) //Convert every part into a PolygonsPart for the support.
         {
