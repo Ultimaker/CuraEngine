@@ -371,6 +371,33 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node>>& contact_nodes, const std::vector<Polygons>& collision_areas)
 {
+    const coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
+
+    //First generate grid points to cover the entire area of the print.
+    AABB bounding_box = mesh.bounding_box.flatten();
+    //We want to create the grid pattern at an angle, so compute the bounding box required to cover that angle.
+    constexpr double rotate_angle = 22.0 / 180.0 * M_PI; //Rotation of 22 degrees provides better support of diagonal lines.
+    const Point bounding_box_size = bounding_box.max - bounding_box.min;
+    AABB rotated_bounding_box; //Bounding box is rotated around the lower left corner of the original bounding box, so translate everything to 0,0 and rotate.
+    rotated_bounding_box.include(Point(0, 0));
+    rotated_bounding_box.include(rotate(bounding_box_size, -rotate_angle));
+    rotated_bounding_box.include(rotate(Point(0, bounding_box_size.Y), -rotate_angle));
+    rotated_bounding_box.include(rotate(Point(bounding_box_size.X, 0), -rotate_angle));
+    AABB unrotated_bounding_box; //Take the AABB of that and rotate back around the lower left corner of the original bounding box (still 0,0 coordinate).
+    unrotated_bounding_box.include(rotate(rotated_bounding_box.min, rotate_angle));
+    unrotated_bounding_box.include(rotate(rotated_bounding_box.max, rotate_angle));
+    unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.min.X, rotated_bounding_box.max.Y), rotate_angle));
+    unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.max.X, rotated_bounding_box.min.Y), rotate_angle));
+
+    std::vector<Point> grid_points;
+    for (coord_t x = unrotated_bounding_box.min.X; x <= unrotated_bounding_box.max.X; x += point_spread)
+    {
+        for (coord_t y = unrotated_bounding_box.min.Y; y <= unrotated_bounding_box.max.Y; y += point_spread)
+        {
+            grid_points.push_back(rotate(Point(x, y), rotate_angle) + bounding_box.min); //Make the points absolute again by adding the position of the lower left corner of the original bounding box.
+        }
+    }
+
     const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
@@ -383,42 +410,20 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             continue;
         }
 
-        //First generate a lot of points in a grid pattern.
-        const Polygons outside_polygons = overhang.getOutsidePolygons();
-        const AABB bounding_box(outside_polygons); //To know how far we should generate points.
-        const coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
-
-        //We want to create the grid pattern at an angle, so compute the bounding box required to cover that angle.
-        constexpr double rotate_angle = 22.0 / 180.0 * M_PI; //Rotation of 22 degrees provides better support of diagonal lines.
-        const Point bounding_box_size = bounding_box.max - bounding_box.min;
-        AABB rotated_bounding_box;
-        rotated_bounding_box.include(Point(0, 0));
-        rotated_bounding_box.include(rotate(bounding_box_size, -rotate_angle));
-        rotated_bounding_box.include(rotate(Point(0, bounding_box_size.Y), -rotate_angle));
-        rotated_bounding_box.include(rotate(Point(bounding_box_size.X, 0), -rotate_angle));
-        AABB unrotated_bounding_box;
-        unrotated_bounding_box.include(rotate(rotated_bounding_box.min, rotate_angle));
-        unrotated_bounding_box.include(rotate(rotated_bounding_box.max, rotate_angle));
-        unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.min.X, rotated_bounding_box.max.Y), rotate_angle));
-        unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.max.X, rotated_bounding_box.min.Y), rotate_angle));
-
-        for (const ConstPolygonRef overhang_part : outside_polygons)
+        for (const ConstPolygonRef overhang_part : overhang)
         {
+            const AABB overhang_bounds(overhang_part); //Pre-generate the AABB for a quick pre-filter.
             bool added = false; //Did we add a point this way?
-            for (coord_t x = unrotated_bounding_box.min.X; x <= unrotated_bounding_box.max.X; x += point_spread)
+            for (const Point candidate : grid_points)
             {
-                for (coord_t y = unrotated_bounding_box.min.Y; y <= unrotated_bounding_box.max.Y; y += point_spread)
+                constexpr bool border_is_inside = true;
+                if (overhang_bounds.contains(candidate) && overhang_part.inside(candidate, border_is_inside) && !collision_areas[layer_nr].inside(candidate, border_is_inside))
                 {
-                    Point candidate = rotate(Point(x, y), rotate_angle) + bounding_box.min;
-                    constexpr bool border_is_inside = true;
-                    if (overhang_part.inside(candidate, border_is_inside) and !collision_areas[layer_nr].inside(candidate, border_is_inside))
-                    {
-                        constexpr size_t distance_to_top = 0;
-                        constexpr bool to_buildplate = true;
-                        Node contact_node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate);
-                        contact_nodes[layer_nr].insert(contact_node);
-                        added = true;
-                    }
+                    constexpr size_t distance_to_top = 0;
+                    constexpr bool to_buildplate = true;
+                    Node contact_node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate);
+                    contact_nodes[layer_nr].insert(contact_node);
+                    added = true;
                 }
             }
             if (!added) //If we didn't add any points due to bad luck, we want to add one anyway such that loose parts are also supported.
