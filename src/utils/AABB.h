@@ -26,6 +26,14 @@ public:
     void calculate(ConstPolygonRef poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
 
     /*!
+     * Whether the bounding box contains the specified point.
+     * \param point The point to check whether it is inside the bounding box.
+     * \return ``true`` if the bounding box contains the specified point, or
+     * ``false`` otherwise.
+     */
+    bool contains(const Point& point) const;
+
+    /*!
      * Get the middle of the bounding box
      */
     Point getMiddle() const;

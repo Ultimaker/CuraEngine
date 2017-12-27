@@ -58,6 +58,11 @@ void AABB::calculate(ConstPolygonRef poly)
     }
 }
 
+bool AABB::contains(const Point& point) const
+{
+    return point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
+}
+
 bool AABB::hit(const AABB& other) const
 {
     if (max.X < other.min.X) return false;
