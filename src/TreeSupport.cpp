@@ -265,51 +265,60 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
         for (size_t group_index = 0; group_index < nodes_per_part.size(); group_index++)
         {
             const MinimumSpanningTree& mst = spanning_trees[group_index];
-            //In the first pass, merge all leaf nodes.
+            //In the first pass, merge all nodes that are close together.
+            std::unordered_set<Node> to_delete;
             for (std::pair<Point, Node> entry : nodes_per_part[group_index])
             {
                 const Node node = entry.second;
-                std::vector<Point> neighbours = mst.adjacentNodes(node.position);
-                if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance) //This leaf is about to collapse. Merge it with the neighbour.
+                if (to_delete.find(node) != to_delete.end())
                 {
-                    if (mst.adjacentNodes(neighbours[0]).size() == 1) //We just have two nodes left!
+                    continue; //Delete this node (don't create a new node for it on the next layer).
+                }
+                std::vector<Point> neighbours = mst.adjacentNodes(node.position);
+                if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance && mst.adjacentNodes(neighbours[0]).size() == 1) //We have just two nodes left, and they're very close!
+                {
+                    //Insert a completely new node and let both original nodes fade.
+                    Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
+
+                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                    const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+                    if (group_index == 0)
                     {
-                        //Insert a completely new node and let both original nodes fade.
-                        Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
-
-                        const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
-                        const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
-                        if (group_index == 0)
-                        {
-                            //Avoid collisions.
-                            PolygonUtils::moveOutside(model_avoidance[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
-                        }
-                        else
-                        {
-                            //Move towards centre of polygon.
-                            const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, model_internal_guide[branch_radius_sample][layer_nr - 1]);
-                            const coord_t distance = vSize(node.position - closest_point_on_border.location);
-                            //Try moving a bit further inside: Current distance + 1 step.
-                            Point moved_inside = next_position;
-                            PolygonUtils::ensureInsideOrOutside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, closest_point_on_border, distance + maximum_move_distance);
-                            Point difference = moved_inside - node.position;
-                            if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
-                            {
-                                difference = normal(difference, maximum_move_distance);
-                            }
-                            next_position = node.position + difference;
-                        }
-
-                        const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr - 1].inside(next_position);
-                        Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
-                        insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
+                        //Avoid collisions.
+                        PolygonUtils::moveOutside(model_avoidance[branch_radius_sample][layer_nr - 1], next_position, radius_sample_resolution + 100, maximum_move_distance * maximum_move_distance); //Some extra offset to prevent rounding errors with the sample resolution.
                     }
                     else
                     {
-                        //We'll drop this node, but modify some of the properties of its neighbour.
-                        Node& neighbour = nodes_per_part[group_index][neighbours[0]];
-                        neighbour.distance_to_top = std::max(neighbour.distance_to_top, node.distance_to_top);
-                        neighbour.support_roof_layers_below = std::max(neighbour.support_roof_layers_below, node.support_roof_layers_below);
+                        //Move towards centre of polygon.
+                        const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, model_internal_guide[branch_radius_sample][layer_nr - 1]);
+                        const coord_t distance = vSize(node.position - closest_point_on_border.location);
+                        //Try moving a bit further inside: Current distance + 1 step.
+                        Point moved_inside = next_position;
+                        PolygonUtils::ensureInsideOrOutside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, closest_point_on_border, distance + maximum_move_distance);
+                        Point difference = moved_inside - node.position;
+                        if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
+                        {
+                            difference = normal(difference, maximum_move_distance);
+                        }
+                        next_position = node.position + difference;
+                    }
+
+                    const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr - 1].inside(next_position);
+                    Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
+                    insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
+                }
+                else if (neighbours.size() > 1) //Don't merge leaf nodes because we would then incur movement greater than the maximum move distance.
+                {
+                    //Remove all neighbours that are too close and merge them into this node.
+                    for (const Point& neighbour : neighbours)
+                    {
+                        if (vSize2(neighbour - node.position) < maximum_move_distance * maximum_move_distance)
+                        {
+                            const Node& neighbour_node = nodes_per_part[group_index][neighbour];
+                            node.distance_to_top = std::max(node.distance_to_top, neighbour_node.distance_to_top);
+                            node.support_roof_layers_below = std::max(node.support_roof_layers_below, neighbour_node.support_roof_layers_below);
+                            to_delete.insert(neighbour_node);
+                        }
                     }
                 }
             }
@@ -317,6 +326,10 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
             for (std::pair<Point, Node> entry : nodes_per_part[group_index])
             {
                 Node node = entry.second;
+                if (to_delete.find(node) != to_delete.end())
+                {
+                    continue;
+                }
                 Point next_layer_vertex = node.position;
                 std::vector<Point> neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
