@@ -151,10 +151,13 @@ private:
      * \param mesh The mesh to get the overhang areas to support of.
      * \param contact_nodes[out] A vector of mappings from contact points to
      * their tree nodes.
+     * \param collision_areas For every layer, the areas where a generated
+     * contact point would immediately collide with the model due to the X/Y
+     * distance.
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node>>& contact_nodes);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<Polygons>& collision_areas);
 
     /*!
      * \brief Add a node to the next layer.

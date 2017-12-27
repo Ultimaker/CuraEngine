@@ -28,21 +28,6 @@ TreeSupport::TreeSupport()
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    std::vector<std::unordered_set<Node>> contact_nodes;
-    contact_nodes.reserve(storage.support.supportLayers.size());
-    for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
-    {
-        contact_nodes.emplace_back();
-    }
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        if (!mesh.getSettingBoolean("support_tree_enable"))
-        {
-            return;
-        }
-        generateContactPoints(mesh, contact_nodes);
-    }
-
     //Generate areas that have to be avoided.
     std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
     collisionAreas(storage, model_collision);
@@ -57,6 +42,21 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             Polygons layer_internal_guide = model_avoidance[radius_sample][layer_nr].difference(model_collision[radius_sample][layer_nr]);
             model_internal_guide[radius_sample].push_back(layer_internal_guide);
         }
+    }
+
+    std::vector<std::unordered_set<Node>> contact_nodes;
+    contact_nodes.reserve(storage.support.supportLayers.size());
+    for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
+    {
+        contact_nodes.emplace_back();
+    }
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        if (!mesh.getSettingBoolean("support_tree_enable"))
+        {
+            return;
+        }
+        generateContactPoints(mesh, contact_nodes, model_collision[0]);
     }
 
     //Drop nodes to lower layers.
@@ -363,7 +363,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
     }
 }
 
-void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node>>& contact_nodes)
+void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node>>& contact_nodes, const std::vector<Polygons>& collision_areas)
 {
     const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
@@ -405,7 +405,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 {
                     Point candidate = rotate(Point(x, y), rotate_angle) + bounding_box.min;
                     constexpr bool border_is_inside = true;
-                    if (overhang_part.inside(candidate, border_is_inside))
+                    if (overhang_part.inside(candidate, border_is_inside) and !collision_areas[layer_nr].inside(candidate, border_is_inside))
                     {
                         constexpr size_t distance_to_top = 0;
                         constexpr bool to_buildplate = true;
