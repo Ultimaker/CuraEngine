@@ -115,6 +115,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = storage.getSettingInMicrons("support_line_width");
+    size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(storage, contact_nodes)
     for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
     {
@@ -200,9 +201,11 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_nr);
             }
         }
+#pragma omp atomic
+        completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + layer_nr * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + completed * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
@@ -466,7 +469,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_avoidance.size() >> 1) + (completed >> 1)) * PROGRESS_WEIGHT_COLLISION, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_collision.size() >> 1) + (completed >> 1)) * PROGRESS_WEIGHT_COLLISION, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
