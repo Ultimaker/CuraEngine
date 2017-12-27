@@ -209,7 +209,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
-    const coord_t maximum_move_distance = tan(angle) * layer_height;
+    const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
@@ -444,7 +444,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
 
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
-    const coord_t maximum_move_distance = tan(angle) * layer_height;
+    const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_avoidance) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)
