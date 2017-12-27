@@ -281,11 +281,11 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                         else
                         {
                             //Move towards centre of polygon.
-                            Point closest_point_on_border = node.position;
-                            PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], closest_point_on_border);
-                            const coord_t distance = vSize(node.position - closest_point_on_border);
+                            const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, model_internal_guide[branch_radius_sample][layer_nr - 1]);
+                            const coord_t distance = vSize(node.position - closest_point_on_border.location);
+                            //Try moving a bit further inside: Current distance + 1 step.
                             Point moved_inside = next_position;
-                            PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
+                            const ClosestPolygonPoint new_closest_point_on_border = PolygonUtils::ensureInsideOrOutside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, closest_point_on_border, distance + maximum_move_distance);
                             Point difference = moved_inside - node.position;
                             if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
                             {
@@ -321,9 +321,12 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     {
                         sum_direction += neighbour - node.position;
                     }
-                    if(vSize2(sum_direction) <= maximum_move_distance * maximum_move_distance) {
+                    if(vSize2(sum_direction) <= maximum_move_distance * maximum_move_distance)
+                    {
                         next_layer_vertex += sum_direction;
-                    } else {
+                    }
+                    else
+                    {
                         next_layer_vertex += normal(sum_direction, maximum_move_distance);
                     }
                 }
@@ -338,11 +341,11 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                 else
                 {
                     //Move towards centre of polygon.
-                    Point closest_point_on_border = node.position;
-                    PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], closest_point_on_border);
-                    const coord_t distance = vSize(node.position - closest_point_on_border);
+                    const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(next_layer_vertex, model_internal_guide[branch_radius_sample][layer_nr - 1]);
+                    const coord_t distance = vSize(node.position - closest_point_on_border.location);
+                    //Try moving a bit further inside: Current distance + 1 step.
                     Point moved_inside = next_layer_vertex;
-                    PolygonUtils::moveInside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, distance + maximum_move_distance); //Try moving a bit further inside.
+                    const ClosestPolygonPoint new_closest_point_on_border = PolygonUtils::ensureInsideOrOutside(model_internal_guide[branch_radius_sample][layer_nr - 1], moved_inside, closest_point_on_border, distance + maximum_move_distance);
                     Point difference = moved_inside - node.position;
                     if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
                     {

@@ -285,7 +285,7 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons = nullptr, const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, const ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons = nullptr, const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
     * Find the two points in two polygons with the smallest distance.

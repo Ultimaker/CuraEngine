@@ -492,17 +492,17 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
         const Point& x = on_boundary; // on_boundary is already projected on p1-p2
         
         Point inward_dir = turn90CCW(normal(p2 - p1, distance));
-        return x + inward_dir; 
+        return x + inward_dir;
     }
 }
 
 ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
+    const ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
     return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, loc_to_line_polygons, loc_to_line_grid, penalty_function);
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, const ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
     if (!closest_polygon_point.isValid())
     {
