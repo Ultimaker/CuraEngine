@@ -233,22 +233,45 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
         }
         for (Node node : contact_nodes[layer_nr])
         {
-            if (node.to_buildplate)
+            if (!support_rests_on_model && !node.to_buildplate) //Can't rest on model and unable to reach the build plate. Then we must drop the node and leave parts unsupported.
+            {
+                continue;
+            }
+            if (node.to_buildplate || parts.empty()) //It's outside, so make it go towards the build plate.
             {
                 nodes_per_part[0][node.position] = node;
+                continue;
             }
-            else if (support_rests_on_model)
+            /* Find which part this node is located in and group the nodes in
+             * the same part together. Since nodes have a radius and the
+             * avoidance areas are offset by that radius, the set of parts may
+             * be different per node. Here we consider a node to be inside the
+             * part that is closest. The node may be inside a bigger part that
+             * is actually two parts merged together due to an offset. In that
+             * case we may incorrectly keep two nodes separate, but at least
+             * every node falls into some group.
+             */
+            coord_t closest_part_distance2 = std::numeric_limits<coord_t>::max();
+            size_t closest_part = -1;
+            for (size_t part_index = 0; part_index < parts.size(); part_index++)
             {
-                //Find which part this node is located in and group the nodes in the same part together.
-                for (size_t part_index = 0; part_index < parts.size(); part_index++)
+                constexpr bool border_result = true;
+                if (parts[part_index].inside(node.position, border_result)) //If it's inside, the distance is 0 and this part is considered the best.
                 {
-                    if (parts[part_index].inside(node.position))
-                    {
-                        nodes_per_part[part_index + 1][node.position] = node;
-                        break;
-                    }
+                    closest_part = part_index;
+                    closest_part_distance2 = 0;
+                    break;
+                }
+                const ClosestPolygonPoint closest_point = PolygonUtils::findClosest(node.position, parts[part_index]);
+                const coord_t distance2 = vSize2(node.position - closest_point.location);
+                if (distance2 < closest_part_distance2)
+                {
+                    closest_part_distance2 = distance2;
+                    closest_part = part_index;
                 }
             }
+            //Put it in the best one.
+            nodes_per_part[closest_part + 1][node.position] = node; //Index + 1 because the 0th index is the outside part.
         }
         //Create a MST for every part.
         std::vector<MinimumSpanningTree> spanning_trees;
