@@ -303,7 +303,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     //Insert a completely new node and let both original nodes fade.
                     Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
 
-                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                    const coord_t branch_radius_node = ((node.distance_to_top + 1) > tip_layers) ? (branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor) : (branch_radius * (node.distance_to_top + 1) / tip_layers);
                     const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
                     if (group_index == 0)
                     {
@@ -373,7 +373,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     }
                 }
 
-                const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                const coord_t branch_radius_node = ((node.distance_to_top + 1) > tip_layers) ? (branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor) : (branch_radius * (node.distance_to_top + 1) / tip_layers);
                 const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
                 if (group_index == 0)
                 {
