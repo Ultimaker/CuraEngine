@@ -1129,19 +1129,7 @@ public:
      * \param border_result If the point is exactly on the border, this will be
      * returned instead.
      */
-    bool inside(Point p, bool border_result = false) const
-    {
-        if (size() < 1)
-            return false;
-        if (!(*this)[0].inside(p, border_result))
-            return false;
-        for(unsigned int n=1; n<paths.size(); n++)
-        {
-            if ((*this)[n].inside(p, border_result))
-                return false;
-        }
-        return true;
-    }
+    bool inside(Point p, bool border_result = false) const;
 };
 
 /*!
