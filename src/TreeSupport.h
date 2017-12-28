@@ -135,6 +135,9 @@ private:
      * \param contact_nodes[in, out] The nodes in the space that need to be
      * dropped down. The nodes are dropped to lower layers inside the same
      * vector of layers.
+     * \param model_collision For each sample of radius, a list of layers with
+     * the polygons of the collision areas of the model. Any node in there will
+     * collide with the model.
      * \param model_avoidance For each sample of radius, a list of layers with
      * the polygons that must be avoided if the branches wish to go towards the
      * build plate.
@@ -142,7 +145,7 @@ private:
      * with the polygons that must be avoided if the branches wish to go towards
      * the model.
      */
-    void dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
+    void dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
 
     /*!
      * \brief Creates points where support contacts the model.

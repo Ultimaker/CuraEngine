@@ -60,7 +60,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Drop nodes to lower layers.
-    dropNodes(storage, contact_nodes, model_avoidance, model_internal_guide);
+    dropNodes(storage, contact_nodes, model_collision, model_avoidance, model_internal_guide);
 
     //Generate support areas.
     drawCircles(storage, contact_nodes, model_collision);
@@ -210,7 +210,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     }
 }
 
-void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
+void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
 {
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
@@ -352,6 +352,16 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                 if (to_delete.find(node) != to_delete.end())
                 {
                     continue;
+                }
+                //If the branch falls completely inside a collision area (the entire branch would be removed by the X/Y offset), delete it.
+                if (group_index > 0 && model_collision[0][layer_nr].inside(node.position))
+                {
+                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, model_collision[0][layer_nr]);
+                    if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
+                    {
+                        continue;
+                    }
                 }
                 Point next_layer_vertex = node.position;
                 std::vector<Point> neighbours = mst.adjacentNodes(node.position);
