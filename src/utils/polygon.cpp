@@ -649,7 +649,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(new_p0) < 300000);
+            assert(vSize(new_p0) < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         }
@@ -678,7 +678,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(new_p2) < 300000);
+            assert(vSize(new_p2) < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
         }
@@ -799,8 +799,8 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             Point a = p1 + normal(v10, a1_size);
             Point b = p1 + normal(v12, a1_size);
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(a) < 300000);
-            assert(vSize(b) < 300000);
+            assert(vSize(a) < 400000);
+            assert(vSize(b) < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
@@ -824,7 +824,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(a) < 300000);
+                assert(vSize(a) < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             }
@@ -844,7 +844,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(b) < 300000);
+                assert(vSize(b) < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }
