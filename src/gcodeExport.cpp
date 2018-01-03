@@ -628,7 +628,7 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
     CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
     *output_stream << "G0";
-    writeFXYZE(speed, x, y, z, current_e_value, PrintFeatureType::MoveCombing);
+    writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
 }
 
 void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
