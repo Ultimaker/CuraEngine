@@ -70,7 +70,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
 void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
 {
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
@@ -92,14 +92,14 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, (completed >> 1) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, (completed / 2) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
 
 void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision)
 {
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
@@ -215,7 +215,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
     const double angle = storage.getSettingInAngleRadians("support_tree_angle");
     const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") >> 1;
+    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
@@ -526,7 +526,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_collision.size() >> 1) + (completed >> 1)) * PROGRESS_WEIGHT_COLLISION, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_collision.size() / 2) + (completed / 2)) * PROGRESS_WEIGHT_COLLISION, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
         }
     }
 }
