@@ -396,7 +396,7 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
 void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
 {
     Point p0 = polygon[start_idx];
-    addTravel(p0, always_retract);
+    addTravel(p0);
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
