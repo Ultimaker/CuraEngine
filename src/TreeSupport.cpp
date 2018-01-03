@@ -449,7 +449,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
     const size_t support_roof_layers = mesh.getSettingBoolean("support_roof_enable") ? round_divide(mesh.getSettingInMicrons("support_roof_height"), mesh.getSettingInMicrons("layer_height")) : 0; //How many roof layers, if roof is enabled.
     const coord_t half_overhang_distance = tan(mesh.getSettingInAngleRadians("support_angle")) * layer_height / 2;
-    for (size_t layer_nr = 0; layer_nr < mesh.overhang_areas.size() - z_distance_top_layers; layer_nr++)
+    for (size_t layer_nr = 1; (int)layer_nr < (int)mesh.overhang_areas.size() - (int)z_distance_top_layers; layer_nr++)
     {
         const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
         if (overhang.empty())
