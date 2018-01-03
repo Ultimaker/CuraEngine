@@ -448,6 +448,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
     const size_t support_roof_layers = mesh.getSettingBoolean("support_roof_enable") ? round_divide(mesh.getSettingInMicrons("support_roof_height"), mesh.getSettingInMicrons("layer_height")) : 0; //How many roof layers, if roof is enabled.
+    const coord_t half_overhang_distance = tan(mesh.getSettingInAngleRadians("support_angle")) * layer_height / 2;
     for (size_t layer_nr = 0; layer_nr < mesh.overhang_areas.size() - z_distance_top_layers; layer_nr++)
     {
         const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
@@ -458,18 +459,24 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
 
         for (const ConstPolygonRef overhang_part : overhang)
         {
-            const AABB overhang_bounds(overhang_part); //Pre-generate the AABB for a quick pre-filter.
+            AABB overhang_bounds(overhang_part); //Pre-generate the AABB for a quick pre-filter.
+            overhang_bounds.expand(half_overhang_distance); //Allow for points to be within half an overhang step of the overhang area.
             bool added = false; //Did we add a point this way?
-            for (const Point candidate : grid_points)
+            for (Point candidate : grid_points)
             {
-                constexpr bool border_is_inside = true;
-                if (overhang_bounds.contains(candidate) && overhang_part.inside(candidate, border_is_inside) && !collision_areas[layer_nr].inside(candidate, border_is_inside))
+                if (overhang_bounds.contains(candidate))
                 {
-                    constexpr size_t distance_to_top = 0;
-                    constexpr bool to_buildplate = true;
-                    Node contact_node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate);
-                    contact_nodes[layer_nr].insert(contact_node);
-                    added = true;
+                    constexpr coord_t distance_inside = 0; //Move point towards the border of the polygon if it is closer than half the overhang distance: Catch points that fall between overhang areas on constant surfaces.
+                    PolygonUtils::moveInside(overhang_part, candidate, distance_inside, half_overhang_distance * half_overhang_distance);
+                    constexpr bool border_is_inside = true;
+                    if (overhang_part.inside(candidate, border_is_inside) && !collision_areas[layer_nr].inside(candidate, border_is_inside))
+                    {
+                        constexpr size_t distance_to_top = 0;
+                        constexpr bool to_buildplate = true;
+                        Node contact_node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate);
+                        contact_nodes[layer_nr].insert(contact_node);
+                        added = true;
+                    }
                 }
             }
             if (!added) //If we didn't add any points due to bad luck, we want to add one anyway such that loose parts are also supported.
