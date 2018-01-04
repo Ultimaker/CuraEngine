@@ -405,7 +405,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     next_layer_vertex = node.position + difference;
                 }
 
-                const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr].inside(next_layer_vertex);
+                const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr - 1].inside(next_layer_vertex);
                 Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
                 insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
             }
@@ -518,7 +518,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
         model_avoidance[radius_sample].push_back(model_collision[radius_sample][0]);
         for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            Polygons previous_layer = model_avoidance[radius_sample][layer_nr - 1].offset(-maximum_move_distance); //Inset previous layer with maximum_move_distance to allow some movement.
+            Polygons previous_layer = model_avoidance[radius_sample][layer_nr - 1].offset(-maximum_move_distance).smooth(5); //Inset previous layer with maximum_move_distance to allow some movement. Smooth to avoid micrometre-segments.
             previous_layer = previous_layer.unionPolygons(model_collision[radius_sample][layer_nr]);
             model_avoidance[radius_sample].push_back(previous_layer);
         }
