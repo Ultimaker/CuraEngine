@@ -859,7 +859,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             for (PolygonsPart poly : supportLayer_this.splitIntoParts())
             {
                 const int64_t part_area = poly.area();
-                if (part_area < supportMinAreaSqrt * supportMinAreaSqrt)
+                if (part_area > 0 && part_area < supportMinAreaSqrt * supportMinAreaSqrt)
                 {
                     if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
