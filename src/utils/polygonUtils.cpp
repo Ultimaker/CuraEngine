@@ -288,7 +288,7 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
             { // x is projected to a point properly on the line segment (not onto a vertex). The case which looks like | .
                 projected_p_beyond_prev_segment = false;
                 Point x = a + ab * ax_length / ab_length;
-                
+
                 int64_t dist2 = vSize2(p - x);
                 if (dist2 < bestDist2)
                 {
@@ -327,6 +327,122 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
         return bestPoly;
     }
     return NO_INDEX;
+}
+
+//Version that works on single PolygonRef.
+unsigned int PolygonUtils::moveInside(const ConstPolygonRef polygon, Point& from, int distance, int64_t maxDist2)
+{
+    //TODO: This is copied from the moveInside of Polygons.
+    /*
+    We'd like to use this function as subroutine in moveInside(Polygons...), but
+    then we'd need to recompute the distance of the point to the polygon, which
+    is expensive. Or we need to return the distance. We need the distance there
+    to compare with the distance to other polygons.
+    */
+    Point ret = from;
+    int64_t bestDist2 = std::numeric_limits<int64_t>::max();
+    bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
+
+    if (polygon.size() < 2)
+    {
+        return 0;
+    }
+    Point p0 = polygon[polygon.size() - 2];
+    Point p1 = polygon.back();
+    bool projected_p_beyond_prev_segment = dot(p1 - p0, from - p0) >= vSize2(p1 - p0);
+    for(const Point& p2 : polygon)
+    {
+        // X = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+        // X = P projected on AB
+        const Point& a = p1;
+        const Point& b = p2;
+        const Point& p = from;
+        Point ab = b - a;
+        Point ap = p - a;
+        int64_t ab_length = vSize(ab);
+        if(ab_length <= 0) //A = B, i.e. the input polygon had two adjacent points on top of each other.
+        {
+            p1 = p2; //Skip only one of the points.
+            continue;
+        }
+        int64_t ax_length = dot(ab, ap) / ab_length;
+        if (ax_length <= 0) // x is projected to before ab
+        {
+            if (projected_p_beyond_prev_segment)
+            { //  case which looks like:   > .
+                projected_p_beyond_prev_segment = false;
+                Point& x = p1;
+
+                int64_t dist2 = vSize2(x - p);
+                if (dist2 < bestDist2)
+                {
+                    bestDist2 = dist2;
+                    if (distance == 0)
+                    {
+                        ret = x;
+                    }
+                    else
+                    {
+                        Point inward_dir = turn90CCW(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                        // MM2INT(10.0) to retain precision for the eventual normalization
+                        ret = x + normal(inward_dir, distance);
+                        is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
+                    }
+                }
+            }
+            else
+            {
+                projected_p_beyond_prev_segment = false;
+                p0 = p1;
+                p1 = p2;
+                continue;
+            }
+        }
+        else if (ax_length >= ab_length) // x is projected to beyond ab
+        {
+            projected_p_beyond_prev_segment = true;
+            p0 = p1;
+            p1 = p2;
+            continue;
+        }
+        else
+        { // x is projected to a point properly on the line segment (not onto a vertex). The case which looks like | .
+            projected_p_beyond_prev_segment = false;
+            Point x = a + ab * ax_length / ab_length;
+
+            int64_t dist2 = vSize2(p - x);
+            if (dist2 < bestDist2)
+            {
+                bestDist2 = dist2;
+                if (distance == 0)
+                {
+                    ret = x;
+                }
+                else
+                {
+                    Point inward_dir = turn90CCW(normal(ab, distance)); // inward or outward depending on the sign of [distance]
+                    ret = x + inward_dir;
+                    is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) >= 0;
+                }
+            }
+        }
+
+        p0 = p1;
+        p1 = p2;
+    }
+
+    if (is_already_on_correct_side_of_boundary) // when the best point is already inside and we're moving inside, or when the best point is already outside and we're moving outside
+    {
+        if (bestDist2 < distance * distance)
+        {
+            from = ret;
+        }
+    }
+    else if (bestDist2 < maxDist2)
+    {
+        from = ret;
+    }
+    return 0;
 }
 
 Point PolygonUtils::moveOutside(const ClosestPolygonPoint& cpp, const int distance)
@@ -376,17 +492,17 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
         const Point& x = on_boundary; // on_boundary is already projected on p1-p2
         
         Point inward_dir = turn90CCW(normal(p2 - p1, distance));
-        return x + inward_dir; 
+        return x + inward_dir;
     }
 }
 
 ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
+    const ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
     return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, loc_to_line_polygons, loc_to_line_grid, penalty_function);
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, const ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
     if (!closest_polygon_point.isValid())
     {
