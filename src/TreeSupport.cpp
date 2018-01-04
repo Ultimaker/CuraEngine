@@ -83,10 +83,10 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
 #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
     {
-        const coord_t diameter = radius_sample * radius_sample_resolution;
+        const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + diameter, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
+            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + radius, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
         }
 #pragma omp atomic
         completed++;
