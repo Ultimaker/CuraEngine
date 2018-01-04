@@ -77,7 +77,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     }
     if (!ironing_lines.empty())
     {
-        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, 0, ironing_flow);
+        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, false, 0, ironing_flow);
         added = true;
     }
     return added;
