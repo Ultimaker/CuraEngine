@@ -850,10 +850,11 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     }
     const bool conical_support = infill_settings.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
     const coord_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
+    const int supportMinAreaSqrt = infill_settings.getSettingInMicrons("support_minimal_diameter");
 
     for (unsigned int layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != (unsigned int)-1; layer_idx--)
     {
-        Polygons layer_this = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];;
+        Polygons layer_this = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
 
         if (extension_offset && !is_support_mesh_place_holder)
         {
@@ -885,9 +886,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         // make towers for small support
         if (use_towers)
         {
-            for (const ConstPolygonRef poly : layer_this)
+            for (PolygonsPart poly : layer_this.splitIntoParts())
             {
-                if (poly.area() < minimum_diameter * minimum_diameter)
+                const int64_t part_area = poly.area();
+                if (part_area > 0 && part_area < supportMinAreaSqrt * supportMinAreaSqrt)
                 {
                     constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
                     if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
@@ -1194,7 +1196,7 @@ void AreaSupport::handleTowers(
                 {
                     for (const Polygons& poly_below : overhang_points_below)
                     {
-                        poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt*2));
+                        poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt * 2));
                     }
                 }
             }
