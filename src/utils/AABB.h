@@ -26,6 +26,14 @@ public:
     void calculate(ConstPolygonRef poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
 
     /*!
+     * Whether the bounding box contains the specified point.
+     * \param point The point to check whether it is inside the bounding box.
+     * \return ``true`` if the bounding box contains the specified point, or
+     * ``false`` otherwise.
+     */
+    bool contains(const Point& point) const;
+
+    /*!
      * Get the middle of the bounding box
      */
     Point getMiddle() const;
@@ -55,6 +63,15 @@ public:
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);
+
+    /*!
+     * Expand the bounding box to a round increment.
+     *
+     * The coordinates are rounded to the specified increment, but the AABB can
+     * never become smaller with this operation.
+     * \param increment The size of the grid cells to round the bounding box to.
+     */
+    void round(const coord_t increment);
 
     /*!
      * Generate a square polygon which coincides with this aabb

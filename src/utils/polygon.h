@@ -1122,20 +1122,14 @@ public:
     {
         return this->paths[0];
     }
-    
-    bool inside(Point p) const
-    {
-        if (size() < 1)
-            return false;
-        if (!(*this)[0].inside(p))
-            return false;
-        for(unsigned int n=1; n<paths.size(); n++)
-        {
-            if ((*this)[n].inside(p))
-                return false;
-        }
-        return true;
-    }
+
+    /*!
+     * Tests whether the given point is inside this polygon part.
+     * \param p The point to test whether it is inside.
+     * \param border_result If the point is exactly on the border, this will be
+     * returned instead.
+     */
+    bool inside(Point p, bool border_result = false) const;
 };
 
 /*!
