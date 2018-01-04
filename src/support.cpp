@@ -824,9 +824,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     std::vector<Polygons> towerRoofs;
     Polygons stair_removal; // polygons to subtract from support because of stair-stepping
 
-    for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
+    for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int)-1; layer_idx--)
     {
-        Polygons supportLayer_this = full_overhang_per_layer[layer_idx + layerZdistanceTop];;
+        Polygons supportLayer_this = full_overhang_per_layer[layer_idx + layerZdistanceTop];
 
         if (extension_offset && !is_support_modifier_place_holder)
         {
@@ -856,9 +856,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         // make towers for small support
         if (use_towers)
         {
-            for (ConstPolygonRef poly : supportLayer_this)
+            for (PolygonsPart poly : supportLayer_this.splitIntoParts())
             {
-                if (poly.area() < supportMinAreaSqrt * supportMinAreaSqrt)
+                const int64_t part_area = poly.area();
+                if (part_area > 0 && part_area < supportMinAreaSqrt * supportMinAreaSqrt)
                 {
                     if (layer_idx < support_layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
@@ -1129,8 +1130,7 @@ void AreaSupport::detectOverhangPoints(
                     {
                         continue;
                     }
-                    std::vector<Polygons>& layer_overhang_points = overhang_points[layer_idx];
-                    layer_overhang_points.push_back(part_poly_recomputed);
+                    overhang_points[layer_idx].push_back(part_poly_recomputed);
                 }
             }
         }
@@ -1168,7 +1168,7 @@ void AreaSupport::handleTowers(
                 {
                     for (const Polygons& poly_below : overhang_points_below)
                     {
-                        poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt*2));
+                        poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt * 2));
                     }
                 }
             }
