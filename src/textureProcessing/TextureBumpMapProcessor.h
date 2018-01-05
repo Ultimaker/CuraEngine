@@ -142,8 +142,10 @@ protected:
 
     /*!
      * Get the offset to be applied at a given location
+     * 
+     * \param color_ratio The linear color value, the ratio of white filament to the total
      */
-    coord_t getOffset(const float color, const int face_idx);
+    coord_t getOffset(const float color_ratio, const int face_idx);
 
     /*!
      * Get how to handle variable offsetting of a corner.
