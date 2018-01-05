@@ -89,7 +89,7 @@ float Material::getColor(float x, float y, ColourUsage color) const
             float r = getColorData(x, y, (unsigned int) ColourUsage::RED);
             float g = getColorData(x, y, (unsigned int) ColourUsage::GREEN);
             float b = getColorData(x, y, (unsigned int) ColourUsage::BLUE);
-            return (r + g + b) / 3.0;
+            return  0.2989 * r + 0.5870 * g + 0.1141 * b; // (approximately) luminance Y value from XYZ color space
         }
     }
 }
