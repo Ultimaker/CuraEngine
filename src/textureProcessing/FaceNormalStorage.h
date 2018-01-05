@@ -20,21 +20,22 @@ public:
     FaceNormalStorage(Mesh* mesh);
 
     /*!
-     * Get the horizontal component of the face normal
+     * Get the ratio between the vertical and horizontal component of the face normal vector,
+     * i.e. the ratio between the horizontal and vertical component of the mesh face.
      * 
      * returns a negative amount for faces angling downward
      * (TODO verify above sentence)
-     * \return the ratio between the vertical and the horizontal aspect of the normal of the face with index \p face_index (in the list of faes in the \ref Mesh)
+     * \return the ratio between the vertical and the horizontal aspect of the normal of the face with index \p face_index (in the list of faces in the \ref Mesh)
      */
     float getFaceTanAngle(unsigned int face_idx);
 protected:
 
     /*!
-     * compute the tan angle of one face
+     * compute the normal of one face
      * \p p0, \p p1 and \p p2 should be in CCW order
      */
-    float computeFaceTanAngle(const Point3 p0, const Point3 p1, const Point3 p2) const;
-    std::vector<float> face_normal_vertical_component; //!< for each face the horizontal component of the normal angle
+    Point3 computeFaceNormal(const Point3 p0, const Point3 p1, const Point3 p2) const;
+    std::vector<Point3> face_normal; //!< for each face the normal angle
 };
 
 } // namespace cura
