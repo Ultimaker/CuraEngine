@@ -46,6 +46,11 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
     // note: the order is from thickest to thinnest height!
     for (int allowed_layer_height = this->layer_height + this->max_variation; allowed_layer_height >= this->layer_height - this->max_variation; allowed_layer_height -= this->step_size)
     {
+        // we should only consider using layer_heights that are > 0
+        if (allowed_layer_height <= 0)
+        {
+            break;
+        }
         this->allowed_layer_heights.push_back(allowed_layer_height);
     }
 }
@@ -76,7 +81,10 @@ void AdaptiveLayerHeights::calculateLayers()
     // loop while triangles are found
     while (!triangles_of_interest.empty() || this->layers.size() < 2)
     {
+        double global_min_slope = std::numeric_limits<double>::max();
+        int layer_height_for_global_min_slope = 0;
         // loop over all allowed layer heights starting with the largest
+        bool has_added_layer = false;
         for (auto & layer_height : this->allowed_layer_heights)
         {
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
@@ -125,12 +133,17 @@ void AdaptiveLayerHeights::calculateLayers()
             for (auto & triangle_index : triangles_of_interest)
             {
                 double slope = this->face_slopes.at(triangle_index);
-                if (slope > minimum_slope)
+                if (minimum_slope > slope)
                 {
                     minimum_slope = slope;
                 }
             }
             double minimum_slope_tan = std::tan(minimum_slope);
+            if (global_min_slope > minimum_slope)
+            {
+                global_min_slope = minimum_slope;
+                layer_height_for_global_min_slope = layer_height;
+            }
 
             // check if the maximum step size has been exceeded depending on layer height direction
             bool has_exceeded_step_size = false;
@@ -157,6 +170,7 @@ void AdaptiveLayerHeights::calculateLayers()
                 adaptive_layer->z_position = z_level;
                 previous_layer_height = adaptive_layer->layer_height;
                 this->layers.push_back(*adaptive_layer);
+                has_added_layer = true;
                 break;
             }
         }
@@ -165,6 +179,16 @@ void AdaptiveLayerHeights::calculateLayers()
         if (triangles_of_interest.empty())
         {
             break;
+        }
+        // this means we cannot find a layer height that has an angle lower than the threshold.
+        // in this case, we use the layer height with the lowest
+        if (!has_added_layer)
+        {
+            z_level += layer_height_for_global_min_slope;
+            auto * adaptive_layer = new AdaptiveLayer(layer_height_for_global_min_slope);
+            adaptive_layer->z_position = z_level;
+            previous_layer_height = adaptive_layer->layer_height;
+            this->layers.push_back(*adaptive_layer);
         }
     }
 }
