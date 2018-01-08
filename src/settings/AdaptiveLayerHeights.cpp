@@ -2,7 +2,7 @@
 
 #include <iterator>
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 #include "AdaptiveLayerHeights.h"
 
 namespace cura
