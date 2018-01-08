@@ -3,6 +3,7 @@
 #include <iterator>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include "AdaptiveLayerHeights.h"
 
 namespace cura
@@ -119,16 +120,16 @@ void AdaptiveLayerHeights::calculateLayers()
                 break;
             }
 
-            std::vector<double> slopes;
-
-            // find all slopes for interesting triangles
+            // find the minimum slope of all the interesting triangles
+            double minimum_slope = std::numeric_limits<double>::max();
             for (auto & triangle_index : triangles_of_interest)
             {
                 double slope = this->face_slopes.at(triangle_index);
-                slopes.push_back(slope);
+                if (slope > minimum_slope)
+                {
+                    minimum_slope = slope;
+                }
             }
-
-            double minimum_slope = *std::min_element(slopes.begin(), slopes.end());
             double minimum_slope_tan = std::tan(minimum_slope);
 
             // check if the maximum step size has been exceeded depending on layer height direction
