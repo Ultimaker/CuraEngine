@@ -40,7 +40,13 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -funroll-loops")
+
+option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
+    "Enable more optimization flags" ON)
+if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
+    message (STATUS "Compile with more optimization flags")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
+endif ()
 
 if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
