@@ -678,7 +678,8 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
 
 void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
-    if (!mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("support_tree_enable"))
+    const bool is_support_mesh_place_holder = mesh.getSettingBoolean("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
+    if (!mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("support_tree_enable") && !is_support_mesh_place_holder)
     {
         return;
     }
@@ -691,8 +692,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     //Don't generate overhang areas for support meshes. They are dropped down automatically if desired.
-    const bool is_support_modifier = mesh.getSettingBoolean("support_mesh");
-    if (is_support_modifier)
+    if (is_support_mesh_place_holder)
     {
         return;
     }
