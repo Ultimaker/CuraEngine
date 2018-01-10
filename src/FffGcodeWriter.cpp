@@ -1956,7 +1956,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         if (default_support_line_distance <= 0
             || part.infill_area_per_combine_per_density.empty())
         {
-            assert(!part.insets.empty() && "No empty support infill parts may exist.");
             continue;
         }
 
