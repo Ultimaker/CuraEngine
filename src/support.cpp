@@ -524,10 +524,11 @@ void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             continue;
         }
+        // it actually also initializes some buffers that are needed in generateSupport
         generateOverhangAreasForMesh(storage, mesh);
     }
 }
@@ -567,7 +568,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             continue;
         }
@@ -601,12 +602,13 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         std::vector<Polygons> mesh_support_areas_per_layer;
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
-        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
 
+        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
         for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
+
     }
 
     for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count ; layer_idx++)
@@ -678,7 +680,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
 
 void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
-    if (!mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("support_tree_enable"))
+    if (!mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("support_tree_enable") && !mesh.getSettingBoolean("support_mesh"))
     {
         return;
     }
