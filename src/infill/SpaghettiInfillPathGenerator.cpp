@@ -71,24 +71,24 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
                     case EFillMethod::TETRAHEDRAL:
                     case EFillMethod::QUARTER_CUBIC:
                     case EFillMethod::CUBICSUBDIV:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
                         break;
                     case EFillMethod::CROSS:
                     case EFillMethod::CROSS_3D:
                         if (mesh.getSettingBoolean("zig_zaggify_infill"))
                         {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, 0, flow_ratio);
+                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
                         }
                         else
                         {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
                         }
                         break;
                     case EFillMethod::ZIG_ZAG:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, 0, flow_ratio);
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
                         break;
                     default:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, 0, flow_ratio);
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, 0, flow_ratio);
                         break;
                 }
             }
