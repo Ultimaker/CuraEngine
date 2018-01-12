@@ -32,7 +32,7 @@ Point3 FaceNormalStorage::computeFaceNormal(const Point3 p0, const Point3 p1, co
     Point3 v02 = p2 - p0;
     Point3 v02_n = v02.normal(NORMAL_LENGTH);
     Point3 normal_dir = v01_n.cross(v02_n);
-    return normal_dir;
+    return normal_dir.normal(NORMAL_LENGTH);
 }
 
 float FaceNormalStorage::getFaceTanAngle(unsigned int face_idx)
@@ -57,5 +57,17 @@ float FaceNormalStorage::getFaceTanAngle(unsigned int face_idx)
     return ret;
 }
 
+float FaceNormalStorage::getFaceHorizontalComponent(unsigned int face_idx)
+{
+    Point3 normal_dir = face_normal[face_idx];
+    return INT2MM(normal_dir.z) / INT2MM(NORMAL_LENGTH);
+}
+
+float FaceNormalStorage::getFaceVerticalComponent(unsigned int face_idx)
+{
+    Point3 normal_dir = face_normal[face_idx];
+    coord_t xy_component = vSize(Point(normal_dir.x, normal_dir.y));
+    return INT2MM(xy_component) / INT2MM(NORMAL_LENGTH);
+}
 
 } // namespace cura

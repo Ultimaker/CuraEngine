@@ -12,6 +12,7 @@
 #include "../settings/settings.h"
 
 #include "../slicer/SlicerSegment.h"
+#include "SaggingModel.h"
 #include "TexturedMesh.h"
 #include "FaceNormalStorage.h"
 
@@ -31,6 +32,9 @@ public:
         coord_t amplitude;
         coord_t offset;
         bool alternate;
+        bool orthogonal_view;
+        SaggingModel sagging_model;
+        bool is_white;
         float face_angle_correction;
         float max_tan_correction_angle;
         ColourUsage color_usage;
@@ -40,6 +44,9 @@ public:
         , amplitude(settings_base->getSettingInMicrons("bump_map_amplitude"))
         , offset(settings_base->getSettingInMicrons("bump_map_offset"))
         , alternate(settings_base->getSettingBoolean("bump_map_alternate"))
+        , orthogonal_view(settings_base->getSettingBoolean("bump_map_orthogonal_view"))
+        , sagging_model(settings_base->getSettingAsRatio("bump_map_sagging_per_overhang"))
+        , is_white(settings_base->getSettingBoolean("bump_map_is_white"))
         , face_angle_correction(settings_base->getSettingAsRatio("bump_map_face_angle_correction"))
         , max_tan_correction_angle(std::tan(0.5 * M_PI - settings_base->getSettingInAngleRadians("bump_map_angle_correction_min")))
         , color_usage(settings_base->getSettingAsColourUsage("bump_map_texture_color"))

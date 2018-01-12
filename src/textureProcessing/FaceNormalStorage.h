@@ -28,6 +28,25 @@ public:
      * \return the ratio between the vertical and the horizontal aspect of the normal of the face with index \p face_index (in the list of faces in the \ref Mesh)
      */
     float getFaceTanAngle(unsigned int face_idx);
+
+    /*!
+     * Get the vertical component of the face normal vector,
+     * i.e. the horizontal component of the mesh face.
+     * 
+     * returns a negative amount for faces angling downward
+     * (TODO verify above sentence)
+     * \return the ratio between the vertical and the horizontal aspect of the normal of the face with index \p face_index (in the list of faces in the \ref Mesh)
+     */
+    float getFaceHorizontalComponent(unsigned int face_idx);
+
+    /*!
+     * Get the horizontal component of the face normal vector,
+     * i.e. the vertical component of the mesh face.
+     * 
+     * Always positive
+     * \return the ratio between the vertical and the horizontal aspect of the normal of the face with index \p face_index (in the list of faces in the \ref Mesh)
+     */
+    float getFaceVerticalComponent(unsigned int face_idx);
 protected:
 
     /*!

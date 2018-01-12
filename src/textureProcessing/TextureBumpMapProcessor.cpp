@@ -63,25 +63,66 @@ std::optional<TextureBumpMapProcessor::TexturedFaceSlice> TextureBumpMapProcesso
 
 coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int face_idx)
 {
-    coord_t extra_offset = 0;
-    if (face_normal_storage)
+    coord_t color_offset = 0;
+    if (settings.orthogonal_view)
     {
-        assert(face_idx >= 0 && "we must know for which face we are getting the color");
-        float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
-        float abs_tan_angle = std::fabs(tan_angle);
-        abs_tan_angle = std::min(abs_tan_angle, settings.max_tan_correction_angle);
-        extra_offset = settings.face_angle_correction * (color_ratio - 0.5) * abs_tan_angle * settings.layer_height;
-        // (color_ratio - 0.5) so that the color_ratio causes either an outset or an inset which is
-        // within the range [-0.5, 0.5] so that when at max it will coincide with the min on the previous layer:
-        //
-        //          for a black mesh
-        //  bridged gap = 4              applied offset = 2 and -2
-        //       ^^^^                     ^^
-        //   ____                     ______^^
-        //   :_______                 :_____
-        //   :   :   :  will become   :   :   :
+        if (face_normal_storage)
+        {
+            assert(face_idx >= 0 && "we must know for which face we are getting the color");
+            const float horizontal_component = face_normal_storage->getFaceHorizontalComponent(face_idx);
+            const float vertical_component = face_normal_storage->getFaceVerticalComponent(face_idx);
+            const coord_t diagonal_distance = settings.layer_height / vertical_component;
+            const coord_t horizontal_distance = diagonal_distance * horizontal_component;
+            // TODO apply max angle
+            int directionality = -1;
+            float color_ratio_used = color_ratio;
+            if (color_ratio > .5f)
+            { // always compute positive offset
+                color_ratio_used = 1.0f - color_ratio;
+                directionality *= -1;
+            }
+            color_offset = (.5f * (1.0f - 2.0f * color_ratio_used) / horizontal_component) * diagonal_distance;
+            if (std::abs(color_offset) > MM2INT(1))
+            {
+                assert(false && "offset is too large!!!!\n");
+            }
+            if (std::abs(horizontal_component) < 10 || std::abs(color_offset) > horizontal_distance / 2)
+            { // then sagging occurs
+                const float occlusion_overhang_ratio = settings.sagging_model.getOcclusionOverhangRatio(vertical_component, horizontal_component); // D
+                color_offset = ((2.0f * color_ratio_used - 1.0f - horizontal_component * occlusion_overhang_ratio) / (-2.0 * occlusion_overhang_ratio - 2.0 * horizontal_component)) * diagonal_distance;
+            }
+            if (std::abs(color_offset) > MM2INT(1))
+            {
+                assert(false && "offset is too large!!!!\n");
+            }
+            if (!settings.is_white)
+            {
+                directionality *= -1;
+            }
+            color_offset *= directionality;
+        }
     }
-    return color_ratio * (settings.amplitude * 2) - settings.amplitude + settings.offset + extra_offset;
+    else
+    {
+        if (face_normal_storage)
+        {
+            assert(face_idx >= 0 && "we must know for which face we are getting the color");
+            float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
+            float abs_tan_angle = std::fabs(tan_angle);
+            abs_tan_angle = std::min(abs_tan_angle, settings.max_tan_correction_angle);
+            color_offset = settings.face_angle_correction * (color_ratio - 0.5) * abs_tan_angle * settings.layer_height;
+            // (color_ratio - 0.5) so that the color_ratio causes either an outset or an inset which is
+            // within the range [-0.5, 0.5] so that when at max it will coincide with the min on the previous layer:
+            //
+            //          for a black mesh
+            //  bridged gap = 4              applied offset = 2 and -2
+            //       ^^^^                     ^^
+            //   ____                     ______^^
+            //   :_______                 :_____
+            //   :   :   :  will become   :   :   :
+        }
+    }
+    return color_ratio * (settings.amplitude * 2) - settings.amplitude + settings.offset + color_offset;
 }
 
 TextureBumpMapProcessor::CornerHandle TextureBumpMapProcessor::getCornerHandle(Point p0, Point p1, Point p2, std::optional< TextureBumpMapProcessor::TexturedFaceSlice >& textured_face_slice, std::optional< TextureBumpMapProcessor::TexturedFaceSlice >& next_textured_face_slice)

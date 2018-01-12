@@ -54,7 +54,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
     if (mesh->getSettingBoolean("bump_map_enabled"))
     {
         bump_map_settings.emplace(mesh);
-        if (mesh->getSettingAsRatio("bump_map_face_angle_correction") != 0.0)
+        if (mesh->getSettingAsRatio("bump_map_face_angle_correction") != 0.0 || mesh->getSettingBoolean("bump_map_orthogonal_view"))
         {
             face_normal_storage = new FaceNormalStorage(mesh);
         }
