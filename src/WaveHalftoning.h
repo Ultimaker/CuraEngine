@@ -35,7 +35,7 @@ public:
         bool inverse_color_usage; //!< Whether to align higher colors with inward offsets vs outward
         Settings(const SettingsBaseVirtual* settings_base)
         : max_amplitude(settings_base->getSettingInMicrons("wave_halftoning_amplitude"))
-        , dist_between_points(settings_base->getSettingInMicrons("wave_halftoning_wave_length"))
+        , dist_between_points(settings_base->getSettingInMicrons("wave_halftoning_wave_length") / 2)
         , color_usage(settings_base->getSettingAsColourUsage("wave_halftoning_texture_color"))
         , inverse_color_usage(!settings_base->getSettingBoolean("wave_halftoning_is_white"))
         {

@@ -12,9 +12,9 @@ WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_
 , insetCount(insetCount)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
 , remove_parts_with_no_insets(remove_parts_with_no_insets)
+, layer_nr(layer_nr)
 , wavy_walls(mesh.getSettingBoolean("wavy_walls"))
 , halftoner(mesh)
-, layer_nr(layer_nr)
 {
 }
 

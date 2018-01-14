@@ -141,7 +141,6 @@ void WaveHalftoning::makeCornerHalftoned(const unsigned int layer_nr, const Poin
     
     coord_t offset_amount = -carry_over.last_amplitude + 2 * carry_over.last_amplitude * carry_over.dist_left_over / settings.dist_between_points;
     Point offset = normal(corner_normal, offset_amount);
-    assert(vSizeMM(offset) < 2.0); // TODO: remove debug
     Point pr = p1 + offset;
     result.add(pr);
 }
@@ -163,7 +162,6 @@ void WaveHalftoning::makeSegmentHalftoned(const unsigned int layer_nr, const Poi
         const coord_t offset_amount = carry_over.direction * amplitude;
         Point offset = normal(carry_over.p0p1_perp, offset_amount);
         Point pa = px + offset;
-        assert(vSizeMM(offset) < 2.0); // TODO: remove debug
         result.add(pa);
         dist_last_point = p0pa_dist;
         dist_to_prev_point = settings.dist_between_points;
