@@ -3,6 +3,7 @@
 #define WALLS_COMPUTATION_H
 
 #include "sliceDataStorage.h"
+#include "WaveHalftoning.h"
 
 namespace cura 
 {
@@ -35,6 +36,11 @@ public:
     bool recompute_outline_based_on_outer_wall;
     bool remove_parts_with_no_insets; // Whether to remove parts which have no insets.
 
+    unsigned int layer_nr; //!< The layer at which this object is processing
+
+    bool wavy_walls; //!< Whether to apply wave-based halftoning to the outer wall
+    WaveHalftoning halftoner; //!< The algorithm container for applying wave-based halftoning to the outer wall
+
     /*!
      * Basic constructor initializing the parameters with which to perform the walls computation
      * 
@@ -44,8 +50,9 @@ public:
      * \param insetCount The number of insets to to generate
      * \param recompute_outline_based_on_outer_wall Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
      * \param remove_parts_with_no_insets Whether to remove parts if they get no single inset
+     * \param mesh The mesh data storage to get the wavy_walls settings from
      */
-    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
+    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets, SliceMeshStorage& mesh, unsigned int layer_nr);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.

@@ -113,7 +113,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = *meshgroup->meshes[mesh_idx];
-        if (mesh.getSettingBoolean("fuzz_map_enabled"))
+        if (mesh.getSettingBoolean("fuzz_map_enabled") || mesh.getSettingBoolean("wave_halftoning_map_enabled"))
         {
             coord_t proximity = mesh.getSettingInMicrons("wall_line_width_0");
             storage.meshes[mesh_idx].texture_proximity_processor = new TextureProximityProcessor(proximity, slice_layer_count);
@@ -666,9 +666,9 @@ void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMe
         {
             inset_count += ((layer_nr % 2) + 2) % 2;
         }
-        bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("fill_outline_gaps");
+        bool recompute_outline_based_on_outer_wall = (mesh.getSettingBoolean("support_enable") && !mesh.getSettingBoolean("fill_outline_gaps")) || mesh.getSettingBoolean("wavy_walls");
         bool remove_parts_with_no_insets = !mesh.getSettingBoolean("fill_outline_gaps");
-        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
+        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets, mesh, layer_nr);
         walls_computation.generateInsets(layer);
     }
     else

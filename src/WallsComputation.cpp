@@ -1,15 +1,20 @@
 /** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #include "WallsComputation.h"
 #include "utils/polygonUtils.h"
+
+
 namespace cura {
 
-WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
+WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets, SliceMeshStorage& mesh, unsigned int layer_nr)
 : wall_0_inset(wall_0_inset)
 , line_width_0(line_width_0)
 , line_width_x(line_width_x)
 , insetCount(insetCount)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
 , remove_parts_with_no_insets(remove_parts_with_no_insets)
+, wavy_walls(mesh.getSettingBoolean("wavy_walls"))
+, halftoner(mesh)
+, layer_nr(layer_nr)
 {
 }
 
@@ -34,6 +39,10 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         if (i == 0)
         {
             part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
+            if (wavy_walls)
+            {
+                part->insets[0] = halftoner.makeHalftoned(layer_nr, part->insets[0]);
+            }
         } else if (i == 1)
         {
             part->insets[1] = part->insets[0].offset(-line_width_0 / 2 + wall_0_inset - line_width_x / 2);

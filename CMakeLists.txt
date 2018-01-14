@@ -89,6 +89,7 @@ set(engine_SRCS # Except main.cpp.
     src/TopSurface.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
+    src/WaveHalftoning.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
 

@@ -516,7 +516,7 @@ ColourUsage SettingsBaseVirtual::getSettingAsColourUsage(std::string key) const
     {
         return ColourUsage::ALPHA;
     }
-    if (value == "grey")
+    if (value == "grey" || value == "gray")
     {
         return ColourUsage::GREY;
     }
