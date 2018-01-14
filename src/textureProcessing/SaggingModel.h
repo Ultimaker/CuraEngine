@@ -23,23 +23,26 @@ namespace cura
 class SaggingModel
 {
 public:
-    float Cy; //!< ratio of mm falling per mm overhang
-    float Cr; //!< ratio of mm increase in radius per mm overhang
     float Cx; //!< ratio of mm receding per mm overhangs
+    float C; //!< common term in some equations
 
     /*!
      * \param sagging_per_overhang Ratio of mm vertical sagging per mm overhang
      */
     SaggingModel(float sagging_per_overhang)
-    : Cy(0.5f * sagging_per_overhang)
-    , Cr(Cy)
-    , Cx(5.0 / 8.0 * M_PI * Cy)
+    : Cx(1.0f - sqrt(2.0f) / sagging_per_overhang)
+    , C((1 - 2*Cx + Cx*Cx))
     {
     }
 
-    float getOcclusionOverhangRatio(float vertical_face_component, float horizontal_face_component)
+    float getC()
     {
-        return Cy * vertical_face_component - Cx * horizontal_face_component + Cr;
+        return C;
+    }
+
+    float getCx()
+    {
+        return Cx;
     }
 };
 
