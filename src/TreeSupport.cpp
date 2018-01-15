@@ -28,6 +28,23 @@ TreeSupport::TreeSupport()
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
+    bool use_tree_support = storage.getSettingBoolean("support_tree_enable");
+
+    if (!use_tree_support)
+    {
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            if (mesh.getSettingBoolean("support_tree_enable"))
+            {
+                use_tree_support = true;
+                break;
+            }
+        }
+    }
+    if (!use_tree_support) {
+        return;
+    }
+
     //Generate areas that have to be avoided.
     std::vector<std::vector<Polygons>> model_collision; //For every sample of branch radius, the areas that have to be avoided by branches of that radius.
     collisionAreas(storage, model_collision);
@@ -54,7 +71,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         if (!mesh.getSettingBoolean("support_tree_enable"))
         {
-            return;
+            continue;
         }
         generateContactPoints(mesh, contact_nodes, model_collision[0]);
     }
