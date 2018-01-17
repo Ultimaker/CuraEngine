@@ -1,7 +1,7 @@
 /** Copyright (C) 2017 Ultimaker- Released under terms of the AGPLv3 License */
 #include "WaveHalftoning.h"
 
-#include "utils/SVG.h" // TODO remove debug stuff
+#include "textureProcessing/Color.h"
 
 // The length of a normalized vector. Cannot be 1 because points use integer logic.
 #define NORMAL_LENGTH 10000
@@ -19,7 +19,7 @@ WaveHalftoning::WaveHalftoning(const SliceMeshStorage& mesh)
         {
             assert(mesh.texture_proximity_processor && "When wave_halftoning_map_enabled there has to be a texture proximity processor!");
             TextureProximityProcessor& texture_proximity_processor = *mesh.texture_proximity_processor;
-            float color = texture_proximity_processor.getColor(p, layer_nr, settings.color_usage, 0.0); // TODO change default 0.0
+            float color = Color::degamma(texture_proximity_processor.getColor(p, layer_nr, settings.color_usage, 0.0)); // TODO change default 0.0
             if (settings.inverse_color_usage)
             {
                 color = 1.0 - color;
