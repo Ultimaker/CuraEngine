@@ -93,6 +93,7 @@ private:
     unsigned int extruder_count;
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
+    std::string machine_buildplate_type;
 
     std::ostream* output_stream;
     std::string new_line;
