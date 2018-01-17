@@ -99,10 +99,6 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
 
                 color_offset = MM2INT(o);
             }
-            if (std::abs(color_offset) > MM2INT(1))
-            {
-                assert(false && "offset is too large!!!!\n");
-            }
             if (!settings.is_white)
             {
                 directionality *= -1;
