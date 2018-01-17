@@ -78,6 +78,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
+    machine_buildplate_type = meshgroup->getSettingString("machine_buildplate_type");
 
     layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
@@ -167,6 +168,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
+        prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
         if (print_time)
