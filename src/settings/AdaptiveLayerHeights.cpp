@@ -66,13 +66,6 @@ void AdaptiveLayerHeights::calculateLayers()
     // the first layer has it's own independent height set, so we always add that
     z_level += this->initial_layer_height;
 
-    // compensate first layer thickness depending on slicing mode
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
-    {
-        z_level += this->initial_layer_height / 2;
-        this->initial_layer_height += this->initial_layer_height / 2;
-    }
-
     auto * adaptive_layer = new AdaptiveLayer(this->initial_layer_height);
     adaptive_layer->z_position = z_level;
     previous_layer_height = adaptive_layer->layer_height;
@@ -89,7 +82,8 @@ void AdaptiveLayerHeights::calculateLayers()
         {
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
             const int lower_bound = z_level;
-            const int upper_bound = z_level + layer_height;
+            // if slicing tolerance "middle" is used, a layer is interpreted as the middle of the upper and lower bounds.
+            const int upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? (layer_height / 2) : layer_height);
 
             if (layer_height == this->allowed_layer_heights[0])
             {
