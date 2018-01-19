@@ -1348,8 +1348,18 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
 
 double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
 {
-    double total_cost = 0; //The final answer.
-    
+    //We're dividing the support into 8 pieces.
+    //For each piece we want to know what the total volume of support is.
+    coord_t area_infill_buildplate_open = 0;
+    coord_t area_infill_buildplate_closed = 0;
+    coord_t area_infill_model_open = 0;
+    coord_t area_infill_model_closed = 0;
+    coord_t area_interface_buildplate_open = 0;
+    coord_t area_interface_buildplate_closed = 0;
+    coord_t area_interface_model_open = 0;
+    coord_t area_interface_model_closed = 0;
+
+    //Calculate the areas that are above the model, to distinguish between support above buildplate and above model.
     std::vector<Polygons> above_model;
     constexpr bool include_helper_parts = false;
     constexpr bool outside_only = false;
@@ -1358,9 +1368,7 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
     {
         above_model.push_back(storage.getLayerOutlines(layer_nr, include_helper_parts, outside_only).unionPolygons(above_model[layer_nr - 1]));
     }
-    
-    std::vector<Polygons> support_above_model;
-    std::vector<Polygons> support_above_buildplate;
+
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
     {
         Polygons support_layer;
@@ -1368,17 +1376,21 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             support_layer.add(support_infill_part.outline);
         }
-        support_above_model.push_back(support_layer.intersection(above_model[layer_nr]));
-        support_above_buildplate.push_back(support_layer.difference(above_model[layer_nr]));
-        if (support_above_model[layer_nr].size() > 0)
-        {
-            total_cost += 10000;
-        }
-        if (support_above_buildplate[layer_nr].size() > 0)
-        {
-            total_cost += 1;
-        }
+        Polygons support_above_model = support_layer.intersection(above_model[layer_nr]);
+        area_infill_model_open += support_above_model.area();
+        Polygons support_above_buildplate = support_layer.difference(above_model[layer_nr]);
+        area_infill_buildplate_open += support_above_buildplate.area();
     }
+    std::cout << "Infill buildplate open: " << area_infill_buildplate_open << std::endl;
+    std::cout << "Infill buildplate closed: " << area_infill_buildplate_closed << std::endl;
+    std::cout << "Infill model open: " << area_infill_model_open << std::endl;
+    std::cout << "Infill model closed: " << area_infill_model_closed << std::endl;
+    std::cout << "Interface buildplate open: " << area_interface_buildplate_open << std::endl;
+    std::cout << "Interface buildplate closed: " << area_interface_buildplate_closed << std::endl;
+    std::cout << "Interface model open: " << area_interface_model_open << std::endl;
+    std::cout << "Interface model closed: " << area_interface_model_closed << std::endl;
+    
+    double total_cost = 0; //TODO
     return total_cost;
 }
 
