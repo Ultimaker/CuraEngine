@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LayerPlanBuffer.h"
@@ -485,7 +485,10 @@ void LayerPlanBuffer::insertTempCommands()
         else
         {
             assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
-            logWarning("Empty extruder plans detected! Temperature control might suffer.\n");
+            if (preheat_config.usesFlowDependentTemp(extruder)) //Average flow is only used with flow dependent temperature.
+            {
+                logWarning("Empty extruder plans detected! Temperature control might suffer.\n");
+            }
             avg_flow = 0.0;
         }
 
