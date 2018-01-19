@@ -1465,6 +1465,7 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
             }
         }
     }
+    std::cout << area_infill_buildplate_open << "\t" << area_infill_buildplate_closed << "\t" << area_infill_model_open << "\t" << area_infill_model_closed << "\t" << area_roof_buildplate_open << "\t" << area_roof_buildplate_closed << "\t" << area_roof_model_open << "\t" << area_roof_model_closed << "\t" << area_bottom_buildplate_open << "\t" << area_bottom_buildplate_closed << "\t" << area_bottom_model_open << "\t" << area_bottom_model_closed << std::endl;
     std::cout << "Infill buildplate open: " << area_infill_buildplate_open << std::endl;
     std::cout << "Infill buildplate closed: " << area_infill_buildplate_closed << std::endl;
     std::cout << "Infill model open: " << area_infill_model_open << std::endl;
