@@ -1376,10 +1376,12 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             support_layer.add(support_infill_part.outline);
         }
-        Polygons support_above_model = support_layer.intersection(above_model[layer_nr]);
-        area_infill_model_open += support_above_model.area();
-        Polygons support_above_buildplate = support_layer.difference(above_model[layer_nr]);
-        area_infill_buildplate_open += support_above_buildplate.area();
+        area_infill_model_open += support_layer.intersection(above_model[layer_nr]).area();
+        area_interface_model_open += storage.support.supportLayers[layer_nr].support_roof.intersection(above_model[layer_nr]).area();
+        area_interface_model_open += storage.support.supportLayers[layer_nr].support_bottom.intersection(above_model[layer_nr]).area();
+        area_infill_buildplate_open += support_layer.difference(above_model[layer_nr]).area();
+        area_interface_buildplate_open += storage.support.supportLayers[layer_nr].support_roof.difference(above_model[layer_nr]).area();
+        area_interface_buildplate_open += storage.support.supportLayers[layer_nr].support_bottom.difference(above_model[layer_nr]).area();
     }
     std::cout << "Infill buildplate open: " << area_infill_buildplate_open << std::endl;
     std::cout << "Infill buildplate closed: " << area_infill_buildplate_closed << std::endl;
