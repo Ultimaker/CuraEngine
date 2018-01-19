@@ -1346,4 +1346,9 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
     support_areas = support_areas.difference(interface_polygons);
 }
 
+double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
+{
+    return 0; //TODO
+}
+
 }//namespace cura

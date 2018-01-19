@@ -311,6 +311,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     AreaSupport::generateSupportAreas(storage);
     TreeSupport tree_support_generator;
     tree_support_generator.generateSupportAreas(storage);
+    const double dissolving_time = AreaSupport::estimateDissolvingTime(storage);
+    std::cout << "Estimated dissolving time: " << dissolving_time << std::endl;
 
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)

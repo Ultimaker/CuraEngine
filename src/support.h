@@ -66,6 +66,14 @@ public:
      */
     static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
 
+    /*!
+     * Gives an estimation of how long support takes to dissolve.
+     *
+     * This estimation is just relative, without a unit. More indicates a longer
+     * dissolving time.
+     */
+    static double estimateDissolvingTime(const SliceDataStorage& storage);
+
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.
