@@ -1375,18 +1375,87 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
 
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
     {
+        constexpr bool outside_only = true;
+        Polygons layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, outside_only);
         Polygons support_layer;
         for (const SupportInfillPart& support_infill_part : storage.support.supportLayers[layer_nr].support_infill_parts)
         {
             support_layer.add(support_infill_part.outline);
         }
-        area_infill_model_open += support_layer.intersection(above_model[layer_nr]).area();
-        area_roof_model_open += storage.support.supportLayers[layer_nr].support_roof.intersection(above_model[layer_nr]).area();
-        area_bottom_model_open += storage.support.supportLayers[layer_nr].support_bottom.intersection(above_model[layer_nr]).area();
-        area_infill_buildplate_open += support_layer.difference(above_model[layer_nr]).area();
-        area_roof_buildplate_open += storage.support.supportLayers[layer_nr].support_roof.difference(above_model[layer_nr]).area();
-        area_bottom_buildplate_open += storage.support.supportLayers[layer_nr].support_bottom.difference(above_model[layer_nr]).area();
+        Polygons infill_model = support_layer.intersection(above_model[layer_nr]);
+        for (PolygonsPart part : infill_model.splitIntoParts())
+        {
+            if (part.difference(layer_outline).empty())
+            {
+                area_infill_model_closed += part.area();
+            }
+            else
+            {
+                area_infill_model_open += part.area();
+            }
+        }
+        Polygons roof_model = storage.support.supportLayers[layer_nr].support_roof.intersection(above_model[layer_nr]);
+        for (PolygonsPart part : roof_model.splitIntoParts())
+        {
+            if (part.difference(layer_outline).empty())
+            {
+                area_roof_model_closed += part.area();
+            }
+            else
+            {
+                area_roof_model_open += part.area();
+            }
+        }
+        Polygons bottom_model = storage.support.supportLayers[layer_nr].support_bottom.intersection(above_model[layer_nr]);
+        for (PolygonsPart part : bottom_model.splitIntoParts())
+        {
+            if (part.difference(layer_outline).empty())
+            {
+                area_bottom_model_closed += part.area();
+            }
+            else
+            {
+                area_bottom_model_open += part.area();
+            }
+        }
+        Polygons infill_buildplate = support_layer.difference(above_model[layer_nr]);
+        for (PolygonsPart part : infill_model.splitIntoParts())
+        {
+            if (part.difference(layer_outline).empty())
+            {
+                area_infill_buildplate_closed += part.area();
+            }
+            else
+            {
+                area_infill_buildplate_open += part.area();
+            }
+        }
+        Polygons roof_buildplate = storage.support.supportLayers[layer_nr].support_roof.difference(above_model[layer_nr]);
+        for (PolygonsPart part : roof_buildplate.splitIntoParts())
+        {
+            if (part.difference(layer_outline).empty())
+            {
+                area_roof_buildplate_closed += part.area();
+            }
+            else
+            {
+                area_roof_buildplate_open += part.area();
+            }
+        }
+        Polygons bottom_buildplate = storage.support.supportLayers[layer_nr].support_bottom.difference(above_model[layer_nr]);
+        for (PolygonsPart part : bottom_buildplate.splitIntoParts())
+        {
+            if (part.difference(layer_outline).empty())
+            {
+                area_bottom_buildplate_closed += part.area();
+            }
+            else
+            {
+                area_bottom_buildplate_open += part.area();
+            }
+        }
     }
+    area_infill_buildplate_open *= storage.support.
     std::cout << "Infill buildplate open: " << area_infill_buildplate_open << std::endl;
     std::cout << "Infill buildplate closed: " << area_infill_buildplate_closed << std::endl;
     std::cout << "Infill model open: " << area_infill_model_open << std::endl;
