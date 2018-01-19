@@ -1375,6 +1375,16 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
 
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
     {
+        const int infill_extruder_nr = (layer_nr <= 0) ? storage.getSettingAsIndex("support_extruder_nr_layer_0") : storage.getSettingAsIndex("support_infill_extruder_nr");
+        const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(infill_extruder_nr);
+        double infill_density = infill_extruder.getSettingAsRatio("support_infill_rate");
+        const int roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr");
+        const ExtruderTrain& roof_extruder = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
+        double roof_density = roof_extruder.getSettingAsRatio("support_roof_density");
+        const int bottom_extruder_nr = storage.getSettingAsIndex("support_bottom_extruder_nr");
+        const ExtruderTrain& bottom_extruder = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
+        double bottom_density = bottom_extruder.getSettingAsRatio("support_bottom_density");
+
         constexpr bool outside_only = true;
         Polygons layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, outside_only);
         Polygons support_layer;
@@ -1387,11 +1397,11 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             if (part.difference(layer_outline).empty())
             {
-                area_infill_model_closed += part.area();
+                area_infill_model_closed += (double)part.area() * infill_density;
             }
             else
             {
-                area_infill_model_open += part.area();
+                area_infill_model_open += (double)part.area() * infill_density;
             }
         }
         Polygons roof_model = storage.support.supportLayers[layer_nr].support_roof.intersection(above_model[layer_nr]);
@@ -1399,11 +1409,11 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             if (part.difference(layer_outline).empty())
             {
-                area_roof_model_closed += part.area();
+                area_roof_model_closed += (double)part.area() * roof_density;
             }
             else
             {
-                area_roof_model_open += part.area();
+                area_roof_model_open += (double)part.area() * roof_density;
             }
         }
         Polygons bottom_model = storage.support.supportLayers[layer_nr].support_bottom.intersection(above_model[layer_nr]);
@@ -1411,11 +1421,11 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             if (part.difference(layer_outline).empty())
             {
-                area_bottom_model_closed += part.area();
+                area_bottom_model_closed += (double)part.area() * bottom_density;
             }
             else
             {
-                area_bottom_model_open += part.area();
+                area_bottom_model_open += (double)part.area() * bottom_density;
             }
         }
         Polygons infill_buildplate = support_layer.difference(above_model[layer_nr]);
@@ -1423,11 +1433,11 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             if (part.difference(layer_outline).empty())
             {
-                area_infill_buildplate_closed += part.area();
+                area_infill_buildplate_closed += (double)part.area() * infill_density;
             }
             else
             {
-                area_infill_buildplate_open += part.area();
+                area_infill_buildplate_open += (double)part.area() * infill_density;
             }
         }
         Polygons roof_buildplate = storage.support.supportLayers[layer_nr].support_roof.difference(above_model[layer_nr]);
@@ -1435,11 +1445,11 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             if (part.difference(layer_outline).empty())
             {
-                area_roof_buildplate_closed += part.area();
+                area_roof_buildplate_closed += (double)part.area() * roof_density;
             }
             else
             {
-                area_roof_buildplate_open += part.area();
+                area_roof_buildplate_open += (double)part.area() * roof_density;
             }
         }
         Polygons bottom_buildplate = storage.support.supportLayers[layer_nr].support_bottom.difference(above_model[layer_nr]);
@@ -1447,15 +1457,14 @@ double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
         {
             if (part.difference(layer_outline).empty())
             {
-                area_bottom_buildplate_closed += part.area();
+                area_bottom_buildplate_closed += (double)part.area() * bottom_density;
             }
             else
             {
-                area_bottom_buildplate_open += part.area();
+                area_bottom_buildplate_open += (double)part.area() * bottom_density;
             }
         }
     }
-    area_infill_buildplate_open *= storage.support.
     std::cout << "Infill buildplate open: " << area_infill_buildplate_open << std::endl;
     std::cout << "Infill buildplate closed: " << area_infill_buildplate_closed << std::endl;
     std::cout << "Infill model open: " << area_infill_model_open << std::endl;
