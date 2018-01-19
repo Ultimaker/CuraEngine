@@ -1348,7 +1348,38 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
 
 double AreaSupport::estimateDissolvingTime(const SliceDataStorage& storage)
 {
-    return 0; //TODO
+    double total_cost = 0; //The final answer.
+    
+    std::vector<Polygons> above_model;
+    constexpr bool include_helper_parts = false;
+    constexpr bool outside_only = false;
+    above_model.push_back(storage.getLayerOutlines(0, include_helper_parts, outside_only));
+    for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+    {
+        above_model.push_back(storage.getLayerOutlines(layer_nr, include_helper_parts, outside_only).unionPolygons(above_model[layer_nr - 1]));
+    }
+    
+    std::vector<Polygons> support_above_model;
+    std::vector<Polygons> support_above_buildplate;
+    for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+    {
+        Polygons support_layer;
+        for (const SupportInfillPart& support_infill_part : storage.support.supportLayers[layer_nr].support_infill_parts)
+        {
+            support_layer.add(support_infill_part.outline);
+        }
+        support_above_model.push_back(support_layer.intersection(above_model[layer_nr]));
+        support_above_buildplate.push_back(support_layer.difference(above_model[layer_nr]));
+        if (support_above_model[layer_nr].size() > 0)
+        {
+            total_cost += 10000;
+        }
+        if (support_above_buildplate[layer_nr].size() > 0)
+        {
+            total_cost += 1;
+        }
+    }
+    return total_cost;
 }
 
 }//namespace cura
