@@ -1,4 +1,5 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
@@ -99,7 +100,9 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     if (!prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
     {
         prev_layer->setIsInside(new_layer_destination_state->second);
-        prev_layer->addTravel(first_location_new_layer);
+        const bool force_retract = prev_layer->storage.getSettingBoolean("retract_at_layer_change") ||
+          (prev_layer->storage.getSettingBoolean("travel_retract_before_outer_wall") && (prev_layer->storage.getSettingBoolean("outer_inset_first") || prev_layer->storage.getSettingAsCount("wall_line_count") == 1)); //Moving towards an outer wall.
+        prev_layer->addTravel(first_location_new_layer, force_retract);
     }
 }
 
@@ -376,7 +379,11 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
                 initial_print_temp = prev_extruder_plan.required_start_temperature;
             }
         }
-        assert(time_window != 0.0 && "ExtruderPlans have been added while they weren't needed! Current code cannot handle this situation. SliceDataStorage::getExtrudersUsed should probably be updated!");
+        if (time_window <= 0.0) //There was a move in this plan but it was length 0.
+        {
+            logWarning("Unneccesary extruder switch detected! SliceDataStorage::getExtrudersUsed should probably be updated.\n");
+            return;
+        }
         weighted_average_extrusion_temp /= time_window;
         time_window -= heated_pre_travel_time + heated_post_travel_time;
         assert(heated_pre_travel_time != -1 && "heated_pre_travel_time must have been computed; there must have been an extruder plan!");
@@ -482,7 +489,10 @@ void LayerPlanBuffer::insertTempCommands()
         else
         {
             assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
-            logWarning("Empty extruder plans detected! Temperature control might suffer.\n");
+            if (preheat_config.usesFlowDependentTemp(extruder)) //Average flow is only used with flow dependent temperature.
+            {
+                logWarning("Empty extruder plans detected! Temperature control might suffer.\n");
+            }
             avg_flow = 0.0;
         }
 

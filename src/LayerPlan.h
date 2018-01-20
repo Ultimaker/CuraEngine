@@ -17,6 +17,7 @@
 #include "SpaceFillType.h"
 #include "GCodePathConfig.h"
 #include "settings/PathConfigStorage.h"
+#include "pathOrderOptimizer.h"
 
 #include "utils/optional.h"
 
@@ -376,9 +377,9 @@ public:
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width) const
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate) const
     {
-        CommandSocket::sendLineTo(print_feature_type, to, line_width);
+        CommandSocket::sendLineTo(print_feature_type, to, line_width, line_thickness, line_feedrate);
     }
 
     /*!
@@ -471,25 +472,25 @@ public:
      * \param polygons The polygons
      * \param config The config with which to print the polygon lines
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
-     * \param z_seam_type The seam type / poly start optimizer
-     * \param z_seam_pos The location near where to start each part in case \p z_seam_type is 'back'
+     * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
      * \param polygons The lines
      * \param config The config of the lines
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
+     * \param enable_travel_optimization Whether to enable some potentially time consuming optimization of order the lines are printed to reduce the travel time required.
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

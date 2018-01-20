@@ -1,4 +1,4 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PolygonTest.h"
@@ -35,6 +35,21 @@ void PolygonTest::setUp()
     clipper_bug.emplace_back(107158, 120960);
     clipper_bug.emplace_back(106760, 120839);
     clipper_bug.emplace_back(106570, 120831);
+
+    clockwise_large.emplace_back(-100, -100);
+    clockwise_large.emplace_back(-100, 100);
+    clockwise_large.emplace_back(100, 100);
+    clockwise_large.emplace_back(100, -100);
+
+    clockwise_small.emplace_back(-50, -50);
+    clockwise_small.emplace_back(-50, 50);
+    clockwise_small.emplace_back(50, 50);
+    clockwise_small.emplace_back(50, -50);
+
+    Polygons outer, inner;
+    outer.add(clockwise_large);
+    inner.add(clockwise_small);
+    clockwise_donut = outer.difference(inner);
 }
 
 void PolygonTest::tearDown()
@@ -112,7 +127,49 @@ void PolygonTest::isInsideTest()
 
 }
 
+void PolygonTest::splitIntoPartsWithHoleTest()
+{
+    const std::vector<PolygonsPart> parts = clockwise_donut.splitIntoParts();
 
+    CPPUNIT_ASSERT_MESSAGE("difference between two polygons is not one PolygonsPart!", parts.size() == 1);
+}
+
+void PolygonTest::differenceContainsOriginalPointTest()
+{
+    PolygonsPart part = clockwise_donut.splitIntoParts()[0];
+    PolygonRef outer = part.outerPolygon();
+    CPPUNIT_ASSERT_MESSAGE("Outer vertex cannot be found in polygons difference!", std::find(outer.begin(), outer.end(), clockwise_large[0]) != outer.end());
+    PolygonRef inner = part[1];
+    CPPUNIT_ASSERT_MESSAGE("Inner vertex cannot be found in polygons difference!", std::find(inner.begin(), inner.end(), clockwise_small[0]) != inner.end());
+}
+
+void PolygonTest::differenceClockwiseTest()
+{
+    PolygonsPart part = clockwise_donut.splitIntoParts()[0];
+
+    PolygonRef outer = part.outerPolygon();
+    //Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
+    coord_t area = 0;
+    for (size_t point_index = 0; point_index < outer.size(); point_index++)
+    {
+        const size_t next_index = (point_index + 1) % outer.size();
+        const Point point = outer[point_index];
+        const Point next = outer[next_index];
+        area += (next.X - point.X) * (point.Y + next.Y);
+    }
+    CPPUNIT_ASSERT_MESSAGE("Outer polygon is not counter-clockwise!", area < 0);
+
+    PolygonRef inner = part[1];
+    area = 0;
+    for (size_t point_index = 0; point_index < inner.size(); point_index++)
+    {
+        const size_t next_index = (point_index + 1) % inner.size();
+        const Point point = inner[point_index];
+        const Point next = inner[next_index];
+        area += (next.X - point.X) * (point.Y + next.Y);
+    }
+    CPPUNIT_ASSERT_MESSAGE("Inner polygon is not clockwise!", area > 0);
+}
 
 
 }

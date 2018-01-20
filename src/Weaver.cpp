@@ -18,6 +18,7 @@ void Weaver::weave(MeshGroup* meshgroup)
     int maxz = meshgroup->max().z;
 
     int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
+    std::vector<AdaptiveLayer> layer_thicknesses;
 
     std::cerr << "Layer count: " << layer_count << "\n";
 
@@ -25,7 +26,10 @@ void Weaver::weave(MeshGroup* meshgroup)
 
     for(Mesh& mesh : meshgroup->meshes)
     {
-        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count,
+                                                mesh.getSettingBoolean("meshfix_keep_open_polygons"),
+                                                mesh.getSettingBoolean("meshfix_extensive_stitching"),
+                                                false, &layer_thicknesses);
         slicerList.push_back(slicer);
     }
 
@@ -52,8 +56,8 @@ void Weaver::weave(MeshGroup* meshgroup)
         int starting_z = -1;
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
-        
-        CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*0,*/ wireFrame.bottom_outline, 1);
+
+        CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*0,*/ wireFrame.bottom_outline, 1, 1, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -83,8 +87,8 @@ void Weaver::weave(MeshGroup* meshgroup)
             Polygons chainified;
 
             chainify_polygons(parts1, starting_point_in_layer, chainified);
-            
-            CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*layer_idx - starting_layer_idx,*/ chainified, 1);
+
+            CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*layer_idx - starting_layer_idx,*/ chainified, 1, 1, 1);
 
             if (chainified.size() > 0)
             {

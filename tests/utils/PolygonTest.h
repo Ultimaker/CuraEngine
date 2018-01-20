@@ -1,4 +1,4 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef POLYGON_TEST_H
@@ -22,6 +22,9 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(polygonOffsetBugTest);
     CPPUNIT_TEST(isOutsideTest);
     CPPUNIT_TEST(isInsideTest);
+    CPPUNIT_TEST(splitIntoPartsWithHoleTest);
+    CPPUNIT_TEST(differenceContainsOriginalPointTest);
+    CPPUNIT_TEST(differenceClockwiseTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -46,6 +49,9 @@ public:
     void polygonOffsetBugTest();
     void isOutsideTest();
     void isInsideTest();
+    void splitIntoPartsWithHoleTest();
+    void differenceContainsOriginalPointTest();
+    void differenceClockwiseTest();
 
 
 private:
@@ -53,11 +59,15 @@ private:
      * \brief The maximum allowed error in distance measurements.
      */
     static const int64_t maximum_error = 10;
-    
+
+    //Some fixtures.
     Polygon test_square;
     Polygon pointy_square;
     Polygon triangle;
     Polygon clipper_bug;
+    Polygon clockwise_large;
+    Polygon clockwise_small;
+    Polygons clockwise_donut;
 };
 
 }

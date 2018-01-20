@@ -144,6 +144,7 @@ protected:
     const int bottom_layer_count; //!< The number of layers of bottom skin
     const int top_layer_count; //!< The number of layers of top skin
     const int wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
+    const int skin_line_width; //!< The line width of the skin.
     const int wall_line_width_0; //!< The line width of the outer wall
     const int wall_line_width_x; //!< The line width of the inner most wall
     const int innermost_wall_line_width; //!< width of the innermost wall lines
@@ -154,9 +155,12 @@ protected:
 
     coord_t top_reference_wall_expansion; //!< The horizontal expansion to apply to the top reference wall in order to shrink the top skin
     coord_t bottom_reference_wall_expansion; //!< The horizontal expansion to apply to the bottom reference wall in order to shrink the bottom skin
+    coord_t top_skin_expand_distance; //!< The distance by which the top skins should be larger than the original top skins.
+    coord_t bottom_skin_expand_distance; //!< The distance by which the bottom skins should be larger than the original bottom skins.
     const int top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
     const int bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:
+    static coord_t getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the skin line width, which might be different for the first layer.
     static coord_t getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
     static coord_t getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
     static coord_t getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr, coord_t innermost_wall_line_width); //!< Compute the infill_skin_overlap

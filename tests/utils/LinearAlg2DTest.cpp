@@ -1,9 +1,11 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LinearAlg2DTest.h"
 
 #include <../src/utils/linearAlg2D.h>
+
+#define FUZZ_DISTANCE 2 //Error that is allowed to be introduced by rounding.
 
 namespace cura
 {
@@ -363,5 +365,33 @@ void LinearAlg2DTest::getPointOnLineWithDistAssert(const Point p, const Point a,
     CPPUNIT_ASSERT_MESSAGE(ss.str(), (!actual_returned && !supposed_returned) || (actual_returned && vSize2(actual_result - supposed_result) < 10 * 10 && std::abs(returned_dist - dist) < 10));
 }
 
+void LinearAlg2DTest::rotateAround90()
+{
+    rotateAroundAssert(Point(25, 30), Point(10, 17), 90, Point(-3, 32));
+}
+
+void LinearAlg2DTest::rotateAroundNegative90()
+{
+    rotateAroundAssert(Point(25, 30), Point(10, 17), -90, Point(23, 2));
+}
+
+void LinearAlg2DTest::rotateAround0()
+{
+    rotateAroundAssert(Point(-67, 14), Point(50, 50), 0, Point(-67, 14));
+}
+
+void LinearAlg2DTest::rotateAround12()
+{
+    rotateAroundAssert(Point(-67, 14), Point(50, 50), 12, Point(-57, -9)); //Actually [-57, -9.5]!
+}
+
+void LinearAlg2DTest::rotateAroundAssert(const Point point, const Point origin, const double angle, const Point expected_result)
+{
+    Point3Matrix mat = LinearAlg2D::rotateAround(origin, angle);
+    Point result = mat.apply(point);
+    std::stringstream ss;
+    ss << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle << " degrees resulted in " << result << " instead of expected " << expected_result << ".";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - expected_result) < FUZZ_DISTANCE);
+}
 
 }

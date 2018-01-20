@@ -43,6 +43,11 @@ const static int clipper_init = (0);
 
 class ConstPolygonPointer;
 
+/*!
+ * Outer polygons should be counter-clockwise,
+ * inner hole polygons should be clockwise.
+ * (When negative X is to the left and negative Y is downward.)
+ */
 class ConstPolygonRef
 {
     friend class Polygons;
@@ -435,6 +440,12 @@ public:
     { 
         path->pop_back();
     }
+
+    /*!
+     * Apply a matrix to each vertex in this polygon
+     */
+    void applyMatrix(const PointMatrix& matrix);
+    void applyMatrix(const Point3Matrix& matrix);
 };
 
 class ConstPolygonPointer
@@ -661,6 +672,12 @@ public:
 
     bool operator==(const Polygons& other) const =delete;
 
+    /*!
+     * Convert ClipperLib::PolyTree to a Polygons object,
+     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
+     */
+    static Polygons toPolygons(ClipperLib::PolyTree& poly_tree);
+
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
@@ -695,6 +712,12 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
         return ret;
     }
+
+    /*!
+     * Intersect polylines with this area Polygons object.
+     */
+    Polygons intersectionPolyLines(const Polygons& polylines) const;
+
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
@@ -788,13 +811,6 @@ public:
      * 
      */
     Polygons approxConvexHull(int extra_outset = 0);
-    
-    /*!
-     * Convex hull of all the points in the polygons.
-     * \return the convex hull
-     *
-     */
-    Polygon convexHull() const;
 
     /*!
      * Compute the area enclosed within the polygons (minus holes)
@@ -882,6 +898,12 @@ private:
      */
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+
+    /*!
+     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
+     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
+     */
+    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
@@ -1100,20 +1122,14 @@ public:
     {
         return this->paths[0];
     }
-    
-    bool inside(Point p) const
-    {
-        if (size() < 1)
-            return false;
-        if (!(*this)[0].inside(p))
-            return false;
-        for(unsigned int n=1; n<paths.size(); n++)
-        {
-            if ((*this)[n].inside(p))
-                return false;
-        }
-        return true;
-    }
+
+    /*!
+     * Tests whether the given point is inside this polygon part.
+     * \param p The point to test whether it is inside.
+     * \param border_result If the point is exactly on the border, this will be
+     * returned instead.
+     */
+    bool inside(Point p, bool border_result = false) const;
 };
 
 /*!

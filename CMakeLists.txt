@@ -21,7 +21,10 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
 endif()
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+if(NOT DEFINED LIB_SUFFIX)
+    set(LIB_SUFFIX "")
+endif()
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 
@@ -30,14 +33,20 @@ option(BUILD_TESTS OFF)
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     message(STATUS "Building debug release of CuraEngine.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
     add_definitions(-DDEBUG)
 endif()
 
-# Add warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
+
+option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
+    "Enable more optimization flags" ON)
+if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
+    message (STATUS "Compile with more optimization flags")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
+endif ()
 
 if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
@@ -89,6 +98,7 @@ set(engine_SRCS # Except main.cpp.
     src/support.cpp
     src/timeEstimate.cpp
     src/TopSurface.cpp
+    src/TreeSupport.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
@@ -96,6 +106,7 @@ set(engine_SRCS # Except main.cpp.
 
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/ZigzagConnectorProcessor.cpp
+    src/infill/SpaceFillingTreeFill.cpp
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
@@ -114,6 +125,8 @@ set(engine_SRCS # Except main.cpp.
     src/settings/SettingContainer.cpp
     src/settings/SettingRegistry.cpp
     src/settings/settings.cpp
+    src/settings/AdaptiveLayerHeights.cpp
+    src/settings/AdaptiveLayerHeights.h
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
@@ -122,18 +135,23 @@ set(engine_SRCS # Except main.cpp.
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
+    src/utils/MinimumSpanningTree.cpp
     src/utils/PolygonsPointIndex.cpp
     src/utils/PolygonProximityLinker.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
+    src/utils/socket.cpp
+    src/utils/SpaceFillingTree.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST_INFILL
+    SpaceFillingTreeFillTest
 )
 set(engine_TEST_UTILS
     SparseGridTest
+    IntPointTest
     LinearAlg2DTest
     PolygonUtilsTest
     PolygonTest

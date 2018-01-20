@@ -13,7 +13,7 @@ TopSurface::TopSurface()
     //Do nothing. Areas stays empty.
 }
 
-TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number)
+void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number)
 {
     //The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
     Polygons mesh_above;
@@ -25,7 +25,7 @@ TopSurface::TopSurface(SliceMeshStorage& mesh, size_t layer_number)
     areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
 }
 
-bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer)
+bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const
 {
     if (areas.empty())
     {
@@ -33,6 +33,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     }
     //Generate the lines to cover the surface.
     const EFillMethod pattern = mesh.getSettingAsFillMethod("ironing_pattern");
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const coord_t line_spacing = mesh.getSettingInMicrons("ironing_line_spacing");
     const coord_t outline_offset = -mesh.getSettingInMicrons("ironing_inset");
     const coord_t line_width = line_config.getLineWidth();
@@ -41,7 +42,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const double direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
     constexpr coord_t shift = 0;
-    Infill infill_generator(pattern, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
+    Infill infill_generator(pattern, zig_zaggify_infill, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);
@@ -71,12 +72,12 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const float ironing_flow = mesh.getSettingAsRatio("ironing_flow");
     if (!ironing_polygons.empty())
     {
-        layer.addPolygonsByOptimizer(ironing_polygons, line_config, nullptr, EZSeamType::SHORTEST, Point(0, 0), 0, false, ironing_flow);
+        layer.addPolygonsByOptimizer(ironing_polygons, line_config, nullptr, ZSeamConfig(), 0, false, ironing_flow);
         added = true;
     }
     if (!ironing_lines.empty())
     {
-        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, 0, ironing_flow);
+        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, false, 0, ironing_flow);
         added = true;
     }
     return added;
