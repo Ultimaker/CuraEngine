@@ -137,10 +137,11 @@ private:
      * \warning Changes \p total_layers
      * 
      * \param storage Input and Ouput parameter: stores all layers
-     * \param layer_height The height of each layer
+     * \param layer_height_0 The height of the first layer
+     * \param layer_height The height of subsequent layers
      * \param total_layers The total number of layers
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers);
+    void removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height_0, const int layer_height, unsigned int& total_layers);
 
     /*!
      * Set \ref SliceDataStorage::max_print_height_per_extruder and \ref SliceDataStorage::max_print_height_order and \ref SliceDataStorage::max_print_height_second_to_last_extruder
