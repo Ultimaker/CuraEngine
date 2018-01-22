@@ -68,12 +68,14 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
     {
         if (face_normal_storage)
         {
+            float color_offset_float = 0;
+            const float h = INT2MM(settings.layer_height);
             assert(face_idx >= 0 && "we must know for which face we are getting the color");
             const float horizontal_component = face_normal_storage->getFaceHorizontalComponent(face_idx);
             const float vertical_component = face_normal_storage->getFaceVerticalComponent(face_idx);
             const float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
-            const coord_t diagonal_distance = settings.layer_height / vertical_component;
-            const coord_t horizontal_distance = diagonal_distance * horizontal_component;
+            const float diagonal_distance = h / vertical_component;
+            const float horizontal_distance = diagonal_distance * horizontal_component;
             // TODO apply max angle
             int directionality = -1;
             float color_ratio_used = color_ratio;
@@ -82,28 +84,27 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
                 color_ratio_used = 1.0f - color_ratio;
                 directionality *= -1;
             }
-            color_offset = ((.5f - color_ratio_used) / horizontal_component) * diagonal_distance;
-            if (std::abs(horizontal_component) < 10 || std::abs(color_offset) > horizontal_distance / 2)
+            color_offset_float = ((.5f - color_ratio_used) / horizontal_component) * diagonal_distance;
+            if (std::abs(horizontal_distance) < .001 || std::abs(color_offset_float) > horizontal_distance / 2)
             { // then sagging occurs
-                const float h = INT2MM(settings.layer_height);
-                const float AC = INT2MM(diagonal_distance);
+                const float AC = diagonal_distance;
                 const float C = settings.sagging_model.getC();
                 const float Cx = settings.sagging_model.getCx();
 
-                const float a = -.5f / (h * AC) * C * (1 + vertical_component);
+                const float a = -.5f / (h * AC) * C * (1.0 + vertical_component);
                 const float b = .5f / AC * (C * tan_angle * (1.0 + vertical_component) + 2.0f * horizontal_component * (Cx - 1.0));
                 const float c = .5 - .5 * horizontal_component * (.25*C * tan_angle * (1 + vertical_component) - Cx * horizontal_component ) - color_ratio_used;
 
                 const float det = std::max(0.0f, b * b - 4.0f * a * c);
-                const float o = (-b - std::sqrt(det) ) / (2.0f * a);
-
-                color_offset = MM2INT(o);
+                color_offset_float = (-b - std::sqrt(det) ) / (2.0f * a);
             }
+            color_offset = MM2INT(color_offset_float);
             if (!settings.is_white)
             {
                 directionality *= -1;
             }
             color_offset *= directionality;
+            color_offset = std::max(static_cast<coord_t>(-5000), std::min(static_cast<coord_t>(5000), color_offset));
         }
     }
     else
