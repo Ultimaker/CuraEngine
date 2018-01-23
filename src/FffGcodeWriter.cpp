@@ -1409,6 +1409,9 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                             flow_adjuster = new WallOverlapComputation(outer_wall, mesh.getSettingInMicrons("wall_line_width_0"));
                         }
                     }
+                    added_something = true;
+                    setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                    gcode_layer.setIsInside(true); // going to print stuff inside print object
                     const ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), z_seam_pos, mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
                     gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, flow_adjuster, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, 1.0, retract_before_outer_wall);
                     if (flow_adjuster)
