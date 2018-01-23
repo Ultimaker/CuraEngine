@@ -71,7 +71,7 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
             float color_offset_float = 0;
             const float h = INT2MM(settings.layer_height);
             assert(face_idx >= 0 && "we must know for which face we are getting the color");
-            const float horizontal_component = face_normal_storage->getFaceHorizontalComponent(face_idx);
+            const float horizontal_component = std::abs(face_normal_storage->getFaceHorizontalComponent(face_idx));
             const float vertical_component = face_normal_storage->getFaceVerticalComponent(face_idx);
             const float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
             const float diagonal_distance = h / vertical_component;
