@@ -1132,7 +1132,7 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
         }
-        else if (getFlavor() != EGCodeFlavor::REPETIER)
+        else if (getFlavor() != EGCodeFlavor::REPETIER) //Repetier firmware changes the "temperature monitor" to 0 when encountering a M203 command, which is undesired.
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
         }
