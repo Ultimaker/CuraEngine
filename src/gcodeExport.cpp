@@ -1128,11 +1128,11 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        if (getFlavor() == EGCodeFlavor::REPRAP || getFlavor() == EGCodeFlavor::REPETIER)
+        if (getFlavor() == EGCodeFlavor::REPRAP)
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
         }
-        else
+        else if (getFlavor() != EGCodeFlavor::REPETIER)
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
         }
