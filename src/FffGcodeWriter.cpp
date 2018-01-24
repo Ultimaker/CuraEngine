@@ -1425,6 +1425,27 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
             }
         }
+        // for non-spiralized layers determine the shape of the solid areas below this part, this is used for detecting where walls are bridges
+        if (!spiralize && gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+        {
+            Polygons outlines_below;
+            AABB boundaryBox(part.outline);
+            for(auto prevLayerPart : mesh.layers[gcode_layer.getLayerNr() - 1].parts)
+            {
+                if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                {
+                    outlines_below.add(prevLayerPart.outline);
+                }
+            }
+            const int line_width = mesh_config.inset0_config.getLineWidth();
+            gcode_layer.setSolidBelow(part.outline.difference(outlines_below).offset(-line_width).offset(line_width));
+        }
+        else
+        {
+            // clear to disable use of bridging settings
+            gcode_layer.setSolidBelow(Polygons());
+        }
+
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
         // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
@@ -1458,7 +1479,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 // Outer wall is processed
                 if (processed_inset_number == 0)
                 {
-                    constexpr bool spiralize = false;
                     constexpr float flow = 1.0;
                     if (part.insets[0].size() > 0 && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                     {
@@ -1470,12 +1490,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addWalls(outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                         }
                         else
                         {
                             WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addWalls(outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                         }
                     }
                 }
@@ -1492,12 +1512,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         if (!compensate_overlap_x)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], mesh_config.insetX_config, wall_overlap_computation, z_seam_config);
+                            gcode_layer.addWalls(part.insets[processed_inset_number], mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
                         }
                         else
                         {
                             WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
-                            gcode_layer.addPolygonsByOptimizer(inner_wall, mesh_config.insetX_config, &wall_overlap_computation, z_seam_config);
+                            gcode_layer.addWalls(inner_wall, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
                         }
                     }
                 }
@@ -1747,7 +1767,8 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, mesh_config.skin_config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
+    const GCodePathConfig& config = (bridge > -1 && mesh.getSettingBoolean("bridge_settings_enabled")) ? mesh_config.bridge_skin_config : mesh_config.skin_config;
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, Polygons* perimeter_gaps_output, bool& added_something) const
