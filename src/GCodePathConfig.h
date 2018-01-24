@@ -30,8 +30,9 @@ private:
     const int layer_thickness; //!< current layer height in micron
     const double flow; //!< extrusion flow modifier in %
     const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
+    const bool is_bridge_path; //!< whether current config is used when bridging
 public:
-    GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives);
+    GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives, bool is_bridge_path = false);
 
     /*!
      * copy constructor
@@ -74,6 +75,8 @@ public:
     int getLineWidth() const;
 
     bool isTravelPath() const;
+
+    bool isBridgePath() const;
 
     double getFlowPercentage() const;
 

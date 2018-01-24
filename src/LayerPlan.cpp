@@ -471,7 +471,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     {
         Point p1 = wall[(start_idx + point_idx) % wall.size()];
         float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || solid_below.inside(p0)) ? non_bridge_config : bridge_config;
+        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || (solid_below.inside(p0) && solid_below.inside(p1))) ? non_bridge_config : bridge_config;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, false);
         p0 = p1;
     }
@@ -479,7 +479,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     {
         const Point& p1 = wall[start_idx];
         float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || solid_below.inside(p0)) ? non_bridge_config : bridge_config;
+        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || (solid_below.inside(p0) && solid_below.inside(p1))) ? non_bridge_config : bridge_config;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, false);
 
         if (wall_0_wipe_dist > 0)
@@ -515,10 +515,6 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
 
 void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
-    if (walls.size() == 0)
-    {
-        return;
-    }
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
@@ -965,6 +961,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)
             {
                 gcode.writeTypeComment(path.config->type);
+                if (path.config->isBridgePath())
+                {
+                    gcode.writeComment("BRIDGE");
+                }
                 last_extrusion_config = path.config;
                 update_extrusion_offset = true;
             } else {
@@ -1000,6 +1000,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {
+                if (path.config->isBridgePath())
+                {
+                    gcode.writeFanCommand(train->getSettingInPercentage("bridge_fan_speed"));
+                }
                 const CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 
                 if (coasting)
@@ -1030,6 +1034,19 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
                             gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                         }
+                    }
+                }
+                if (path.config->isBridgePath() && train->getSettingInPercentage("bridge_fan_speed") != extruder_plan.getFanSpeed())
+                {
+                    // if no more bridge extrusion paths follow, reset fan speed back to normal
+                    unsigned int pi = path_idx + 1;
+                    while (pi < paths.size() && !paths[pi].config->isBridgePath())
+                    {
+                        ++pi;
+                    }
+                    if (pi == paths.size())
+                    {
+                        gcode.writeFanCommand(extruder_plan.getFanSpeed());
                     }
                 }
             }

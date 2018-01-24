@@ -495,8 +495,30 @@ public:
      */
     void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
+    /*!
+     * Add a wall (a polygon) to the gcode starting at vertex \p startIdx
+     * \param wall The wall polygon
+     * \param startIdx The index of the starting vertex of \p wall
+     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
+     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
+     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     * \param wall_0_wipe_dist The distance to travel along the wall after it has been laid down, in order to wipe the start and end of the wall together
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param always_retract Whether to force a retraction when moving to the start of the wall (used for outer walls)
+     */
     void addWall(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
 
+    /*!
+     * Add walls (polygons) to the gcode with optimized order.
+     * \param walls The walls
+     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
+     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
+     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     * \param z_seam_config Optional configuration for z-seam
+     * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
+     */
     void addWalls(const Polygons& walls, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
