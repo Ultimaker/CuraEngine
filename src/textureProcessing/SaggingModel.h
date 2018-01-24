@@ -30,7 +30,7 @@ public:
      * \param sagging_per_overhang Ratio of mm vertical sagging per mm overhang
      */
     SaggingModel(float sagging_per_overhang)
-    : Cx(1.0f - sqrt(2.0f) / sagging_per_overhang)
+    : Cx(1.0f - sqrt(2.0f) * sagging_per_overhang)
     , C((1 - 2*Cx + Cx*Cx))
     {
     }
