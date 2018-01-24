@@ -265,7 +265,7 @@ private:
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
-
+    Polygons solid_below; //!< The regions below a layer part that are solid (not air), used for bridging
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
     
@@ -406,6 +406,15 @@ public:
         return extruder_plans.back().extruder;
     }
 
+    /*!
+     * Set solid_below.
+     *
+     * \param polys The solid areas below the part currently being processed.
+     */
+    void setSolidBelow(const Polygons& polys)
+    {
+        solid_below = polys;
+    }
 
     
     /*!
@@ -479,6 +488,10 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
     void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+
+    void addWall(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+
+    void addWalls(const Polygons& walls, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.

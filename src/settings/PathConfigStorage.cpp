@@ -62,12 +62,33 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
 )
+, bridge_inset0_config(
+    PrintFeatureType::OuterWall
+    , mesh.getSettingInMicrons("wall_line_width_0") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_0_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0")}
+)
+, bridge_insetX_config(
+    PrintFeatureType::InnerWall
+    , mesh.getSettingInMicrons("wall_line_width_x") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_x_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
+)
 , skin_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
     , layer_thickness
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+)
+, bridge_skin_config(
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("bridge_skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
 )
 , roofing_config(
     PrintFeatureType::Skin

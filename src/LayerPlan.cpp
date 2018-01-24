@@ -458,6 +458,75 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
     }
 }
+
+void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+{
+    Point p0 = wall[start_idx];
+    addTravel(p0, always_retract);
+    for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
+    {
+        Point p1 = wall[(start_idx + point_idx) % wall.size()];
+        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || solid_below.inside(p0)) ? non_bridge_config : bridge_config;
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, false);
+        p0 = p1;
+    }
+    if (wall.size() > 2)
+    {
+        const Point& p1 = wall[start_idx];
+        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || solid_below.inside(p0)) ? non_bridge_config : bridge_config;
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, false);
+
+        if (wall_0_wipe_dist > 0)
+        { // apply outer wall wipe
+            p0 = wall[start_idx];
+            int distance_traversed = 0;
+            for (unsigned int point_idx = 1; ; point_idx++)
+            {
+                Point p1 = wall[(start_idx + point_idx) % wall.size()];
+                int p0p1_dist = vSize(p1 - p0);
+                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                {
+                    Point vector = p1 - p0;
+                    Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    addTravel_simple(half_way);
+                    break;
+                }
+                else
+                {
+                    addTravel_simple(p1);
+                    distance_traversed += p0p1_dist;
+                }
+                p0 = p1;
+            }
+            forceNewPathStart();
+        }
+    }
+    else
+    {
+        logWarning("WARNING: line added as polygon! (LayerPlan)\n");
+    }
+}
+
+void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+{
+    if (walls.size() == 0)
+    {
+        return;
+    }
+    PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
+    {
+        orderOptimizer.addPolygon(walls[poly_idx]);
+    }
+    orderOptimizer.optimize();
+    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    {
+        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+    }
+}
+
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
     Polygons boundary;
