@@ -265,7 +265,7 @@ private:
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
-    Polygons air_below; //!< The regions of a layer part that are not supported, used for bridging
+    Polygons air_below_part; //!< The regions of a layer part that are not supported, used for bridging
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
     
@@ -407,13 +407,13 @@ public:
     }
 
     /*!
-     * Set air_below.
+     * Set air_below_part.
      *
      * \param polys The unsupported areas of the part currently being processed.
      */
-    void setAirBelow(const Polygons& polys)
+    void setAirBelowPart(const Polygons& polys)
     {
-        air_below = polys;
+        air_below_part = polys;
     }
 
     

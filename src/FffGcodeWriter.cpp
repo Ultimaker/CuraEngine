@@ -1437,12 +1437,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
             const int line_width = mesh_config.inset0_config.getLineWidth();
-            gcode_layer.setAirBelow(part.outline.difference(outlines_below).offset(-line_width).offset(line_width));
+            gcode_layer.setAirBelowPart(part.outline.difference(outlines_below).offset(-line_width).offset(line_width));
         }
         else
         {
             // clear to disable use of bridging settings
-            gcode_layer.setAirBelow(Polygons());
+            gcode_layer.setAirBelowPart(Polygons());
         }
 
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
