@@ -68,7 +68,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , layer_thickness
     , mesh.getSettingInPercentage("bridge_material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0")}
-    , true // is_bridge_config
+    , true // is_bridge_path
 )
 , bridge_insetX_config(
     PrintFeatureType::InnerWall
@@ -76,7 +76,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , layer_thickness
     , mesh.getSettingInPercentage("bridge_material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
-    , true // is_bridge_config
+    , true // is_bridge_path
 )
 , skin_config(
     PrintFeatureType::Skin
@@ -91,7 +91,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , layer_thickness
     , mesh.getSettingInPercentage("bridge_material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
-    , true // is_bridge_config
+    , true // is_bridge_path
 )
 , roofing_config(
     PrintFeatureType::Skin

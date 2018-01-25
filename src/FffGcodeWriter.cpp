@@ -1438,12 +1438,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
             const int line_width = mesh_config.inset0_config.getLineWidth();
-            gcode_layer.setAirBelow(part.outline.difference(outlines_below).offset(-line_width).offset(line_width));
+            gcode_layer.setAirBelowPart(part.outline.difference(outlines_below).offset(-line_width).offset(line_width));
         }
         else
         {
             // clear to disable use of bridging settings
-            gcode_layer.setAirBelow(Polygons());
+            gcode_layer.setAirBelowPart(Polygons());
         }
 
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
@@ -1751,11 +1751,12 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
     int bridge = -1;
+    Polygons supportedSkinPartRegions;
     {
         // calculate bridging angle
         if (gcode_layer.getLayerNr() > 0)
         {
-            bridge = bridgeAngle(skin_part.outline, &mesh.layers[gcode_layer.getLayerNr() - 1]);
+            bridge = bridgeAngle(skin_part.outline, &mesh.layers[gcode_layer.getLayerNr() - 1], supportedSkinPartRegions);
         }
         if (bridge > -1)
         {
@@ -1767,8 +1768,17 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-    const GCodePathConfig& config = (bridge > -1 && mesh.getSettingBoolean("bridge_settings_enabled")) ? mesh_config.bridge_skin_config : mesh_config.skin_config;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
+    bool use_bridge_config = false;
+    if (mesh.getSettingBoolean("bridge_settings_enabled"))
+    {
+        // if a bridge angle has been calculated or the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
+        if (bridge > -1 || (supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
+        {
+            pattern = EFillMethod::LINES; // force lines pattern when bridging
+            use_bridge_config = true;
+        }
+    }
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, (use_bridge_config) ? mesh_config.bridge_skin_config : mesh_config.skin_config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, Polygons* perimeter_gaps_output, bool& added_something) const
