@@ -489,6 +489,17 @@ public:
      */
     void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
 
+
+    /*!
+     * Add a single line that is part of a wall to the gcode.
+     * \param p0 The start vertex of the line
+     * \param p1 The end vertex of the line
+     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
+     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
+     * \param flow The ratio with which to multiply the extrusion amount
+     */
+    void addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow);
+
     /*!
      * Add a wall (a polygon) to the gcode starting at vertex \p startIdx
      * \param wall The wall polygon
