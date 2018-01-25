@@ -1767,8 +1767,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+
     bool use_bridge_config = false;
-    if (mesh.getSettingBoolean("bridge_settings_enabled"))
+    if (gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
     {
         // if a bridge angle has been calculated or the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
         if (bridge > -1 || (supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
