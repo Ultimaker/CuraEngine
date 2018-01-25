@@ -461,6 +461,18 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
+    // make sure wall start point is not above air!
+    if (!air_below.empty()) {
+        int count = wall.size(); // avoid infinite loop if none of the points are above a solid region
+        while (count-- > 0 && air_below.inside(wall[start_idx], true))
+        {
+            if (++start_idx >= (int)wall.size())
+            {
+                start_idx = 0;
+            }
+        }
+    }
+
     Point p0 = wall[start_idx];
     addTravel(p0, always_retract);
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
