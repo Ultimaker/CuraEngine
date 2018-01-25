@@ -463,24 +463,114 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     }
 }
 
+void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow)
+{
+    if (air_below.empty())
+    {
+        // no bridges required
+        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow);
+    }
+    else
+    {
+        // bridges may be required
+        if (PolygonUtils::polygonCollidesWithLineSegment(air_below, p0, p1))
+        {
+            // line crosses boundary between supported and non-supported regions
+
+            // segment line to reduce length of bridge sections
+
+            const float min_line_len2 = 25; // 5um
+            Polygon line_poly;
+            line_poly.add(p0);
+            line_poly.add(p1);
+            Polygons line_polys;
+            line_polys.add(line_poly);
+            line_polys = air_below.offset(1000).intersectionPolyLines(line_polys); // expand air_below so that bridge lines overlap solid regions
+            Point cur_point = p0;
+            while (line_polys.size() > 0)
+            {
+                // find the bridge line segment that's nearest to the current point
+                int nearest = 0;
+                float smallest_dist2 = vSize2f(cur_point - line_polys[0][0]);
+                for(unsigned i = 1; i < line_polys.size(); ++i)
+                {
+                    float dist2 = vSize2f(cur_point - line_polys[i][0]);
+                    if (dist2 < smallest_dist2)
+                    {
+                        nearest = i;
+                        smallest_dist2 = dist2;
+                    }
+                }
+                ConstPolygonRef bridge = line_polys[nearest];
+
+                Point b0 = bridge[0];
+                Point b1 = bridge[1];
+
+                if (vSize2f(cur_point - b1) < vSize2f(cur_point - b0))
+                {
+                    // swap vertex order
+                    b0 = bridge[1];
+                    b1 = bridge[0];
+                }
+                if (vSize2f(cur_point - b0) > min_line_len2)
+                {
+                    addExtrusionMove(b0, non_bridge_config, SpaceFillType::Polygons, flow);
+                    cur_point = b0;
+                }
+                if (vSize2f(b1 - b0) > min_line_len2)
+                {
+                    addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
+                    cur_point = b1;
+                }
+
+                line_polys.remove(nearest);
+            }
+            if (vSize2f(cur_point - p1) > min_line_len2)
+            {
+                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow);
+            }
+        }
+        else if (air_below.inside(p0, true))
+        {
+            // both p0 and p1 must be above air (the result will be ugly!)
+            addExtrusionMove(p1, bridge_config, SpaceFillType::Polygons, flow);
+        }
+        else
+        {
+            // no part of the line is above air
+            addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow);
+        }
+    }
+}
+
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
+    // make sure wall start point is not above air!
+    if (!air_below.empty()) {
+        int count = wall.size(); // avoid infinite loop if none of the points are above a solid region
+        while (count-- > 0 && air_below.inside(wall[start_idx], true))
+        {
+            if (++start_idx >= (int)wall.size())
+            {
+                start_idx = 0;
+            }
+        }
+    }
+
     Point p0 = wall[start_idx];
     addTravel(p0, always_retract);
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
     {
-        Point p1 = wall[(start_idx + point_idx) % wall.size()];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || (solid_below.inside(p0) && solid_below.inside(p1))) ? non_bridge_config : bridge_config;
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, false);
+        const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
+        const float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        addWallLine(p0, p1, non_bridge_config, bridge_config, flow);
         p0 = p1;
     }
     if (wall.size() > 2)
     {
         const Point& p1 = wall[start_idx];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-        const GCodePathConfig& config = (solid_below.empty() || !PolygonUtils::polygonCollidesWithLineSegment(solid_below, p0, p1) || (solid_below.inside(p0) && solid_below.inside(p1))) ? non_bridge_config : bridge_config;
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, false);
+        const float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        addWallLine(p0, p1, non_bridge_config, bridge_config, flow);
 
         if (wall_0_wipe_dist > 0)
         { // apply outer wall wipe

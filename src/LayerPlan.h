@@ -265,7 +265,7 @@ private:
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
-    Polygons solid_below; //!< The regions below a layer part that are solid (not air), used for bridging
+    Polygons air_below; //!< The regions of a layer part that are not supported, used for bridging
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
     
@@ -413,13 +413,13 @@ public:
     }
 
     /*!
-     * Set solid_below.
+     * Set air_below.
      *
-     * \param polys The solid areas below the part currently being processed.
+     * \param polys The unsupported areas of the part currently being processed.
      */
-    void setSolidBelow(const Polygons& polys)
+    void setAirBelow(const Polygons& polys)
     {
-        solid_below = polys;
+        air_below = polys;
     }
 
     
@@ -494,6 +494,17 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
     void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+
+
+    /*!
+     * Add a single line that is part of a wall to the gcode.
+     * \param p0 The start vertex of the line
+     * \param p1 The end vertex of the line
+     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
+     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
+     * \param flow The ratio with which to multiply the extrusion amount
+     */
+    void addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow);
 
     /*!
      * Add a wall (a polygon) to the gcode starting at vertex \p startIdx
