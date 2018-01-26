@@ -646,7 +646,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
-    orderOptimizer.optimize();
+    orderOptimizer.optimize(enable_travel_optimization);
     for (int poly_idx : orderOptimizer.polyOrder)
     {
         ConstPolygonRef polygon = polygons[poly_idx];
