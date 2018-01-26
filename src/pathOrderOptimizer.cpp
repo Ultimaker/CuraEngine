@@ -171,7 +171,7 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 /**
 *
 */
-void LineOrderOptimizer::optimize()
+void LineOrderOptimizer::optimize(bool find_chains)
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
@@ -205,7 +205,7 @@ void LineOrderOptimizer::optimize()
 
     Point incoming_perpundicular_normal(0, 0);
     Point prev_point = startPoint;
-    bool have_chains = true; // start by assuming that line segments are chained together (i.e. zigzags) and set to false later if no chains exist
+    bool have_chains = find_chains; // if find_chains is true, assume that line segments are chained together (i.e. zigzags) and set to false later if no chains exist
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
         int best_line_idx = -1;
