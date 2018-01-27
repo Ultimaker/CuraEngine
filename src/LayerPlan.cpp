@@ -471,17 +471,19 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
         // bridges may be required
         if (PolygonUtils::polygonCollidesWithLineSegment(air_below_part, p0, p1))
         {
-            // line crosses boundary between supported and non-supported regions
+            // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
 
-            // segment line to reduce length of bridge sections
+            // determine which segments of the line are bridges
 
-            const float min_line_len2 = 25; // 5um
+            const float min_line_len2 = 25; // we ignore lines less than 5um long
             Polygon line_poly;
             line_poly.add(p0);
             line_poly.add(p1);
             Polygons line_polys;
             line_polys.add(line_poly);
-            line_polys = air_below_part.offset(1000).intersectionPolyLines(line_polys); // expand air_below_part so that bridge lines overlap solid regions
+            const int margin = 1000; // expand air_below_part so that bridge lines overlap solid regions by this distance
+            line_polys = air_below_part.offset(margin).intersectionPolyLines(line_polys);
+            // line_polys now contains the wall lines that need to be printed using bridge_config
             Point cur_point = p0;
             while (line_polys.size() > 0)
             {
@@ -499,6 +501,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 }
                 ConstPolygonRef bridge = line_polys[nearest];
 
+                // set b0 to the nearest vertex and b1 the furthest
                 Point b0 = bridge[0];
                 Point b1 = bridge[1];
 
@@ -508,19 +511,25 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                     b0 = bridge[1];
                     b1 = bridge[0];
                 }
+
+                // extrude using non_bridge_config to the start of the next bridge segment
                 if (vSize2f(cur_point - b0) > min_line_len2)
                 {
                     addExtrusionMove(b0, non_bridge_config, SpaceFillType::Polygons, flow);
                     cur_point = b0;
                 }
+                // extrude using bridge_config the bridge segment
                 if (vSize2f(b1 - b0) > min_line_len2)
                 {
                     addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
                     cur_point = b1;
                 }
 
+                // finished with this segment
                 line_polys.remove(nearest);
             }
+
+            // if we haven't yet reached p1, fill the gap with non_bridge_config line
             if (vSize2f(cur_point - p1) > min_line_len2)
             {
                 addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow);
