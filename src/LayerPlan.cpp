@@ -1001,6 +1001,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         bool update_extrusion_offset = true;
 
+        GCodePath* end_bridge_fan_after = nullptr;
+
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
@@ -1083,9 +1085,21 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {
-                if (path.config->isBridgePath())
+                if (path.config->isBridgePath() && end_bridge_fan_after == nullptr)
                 {
-                    gcode.writeFanCommand(train->getSettingInPercentage("bridge_fan_speed"));
+                    const double bridge_fan_speed = train->getSettingInPercentage("bridge_fan_speed");
+                    if (bridge_fan_speed != extruder_plan.getFanSpeed())
+                    {
+                        gcode.writeFanCommand(bridge_fan_speed);
+                        // remember the last bridge path so we can reset the fan speed after it has been processed
+                        for (unsigned int pi = path_idx; pi < paths.size(); ++pi)
+                        {
+                            if (paths[pi].config->isBridgePath())
+                            {
+                                end_bridge_fan_after = &paths[pi];
+                            }
+                        }
+                    }
                 }
                 const CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 
@@ -1119,18 +1133,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         }
                     }
                 }
-                if (path.config->isBridgePath() && train->getSettingInPercentage("bridge_fan_speed") != extruder_plan.getFanSpeed())
+                if (end_bridge_fan_after == &path)
                 {
-                    // if no more bridge extrusion paths follow, reset fan speed back to normal
-                    unsigned int pi = path_idx + 1;
-                    while (pi < paths.size() && !paths[pi].config->isBridgePath())
-                    {
-                        ++pi;
-                    }
-                    if (pi == paths.size())
-                    {
-                        gcode.writeFanCommand(extruder_plan.getFanSpeed());
-                    }
+                    // reset fan speed back to normal
+                    gcode.writeFanCommand(extruder_plan.getFanSpeed());
                 }
             }
             else
