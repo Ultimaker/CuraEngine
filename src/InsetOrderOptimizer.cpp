@@ -527,7 +527,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         {
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addWalls(remaining, mesh_config.insetX_config, mesh_config.bridge_inset0_config, wall_overlapper_x);
+            gcode_layer.addWalls(remaining, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
             added_something = true;
         }
     }
