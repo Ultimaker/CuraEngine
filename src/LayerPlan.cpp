@@ -481,8 +481,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             line_poly.add(p1);
             Polygons line_polys;
             line_polys.add(line_poly);
-            const int margin = 1000; // expand air_below_part so that bridge lines overlap solid regions by this distance
-            line_polys = air_below_part.offset(margin).intersectionPolyLines(line_polys);
+            line_polys = air_below_part.intersectionPolyLines(line_polys);
             // line_polys now contains the wall lines that need to be printed using bridge_config
             Point cur_point = p0;
             while (line_polys.size() > 0)
