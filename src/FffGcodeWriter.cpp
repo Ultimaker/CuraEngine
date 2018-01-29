@@ -1424,9 +1424,10 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
             }
         }
-        // for non-spiralized layers determine the shape of the solid areas below this part, this is used for detecting where walls are bridges
+        // for non-spiralized layers, if bridging is enabled, determine the shape of the unsupported areas below this part
         if (!spiralize && gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
         {
+            // accumulate the outlines of all of the parts that are on the layer below
             Polygons outlines_below;
             AABB boundaryBox(part.outline);
             for(auto prevLayerPart : mesh.layers[gcode_layer.getLayerNr() - 1].parts)
@@ -1436,8 +1437,18 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     outlines_below.add(prevLayerPart.outline);
                 }
             }
-            const int max_air_gap = mesh_config.inset0_config.getLineWidth() * mesh.getSettingInPercentage("bridge_wall_max_air_gap") / 100;
-            gcode_layer.setAirBelowPart(part.outline.difference(outlines_below).offset(-max_air_gap).offset(max_air_gap));
+            const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth();
+            // max_air_gap is the max allowed width of the unsupported region below the wall line
+            // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
+            // it can be from 0 to 1/2 the outer wall line width
+            const int max_air_gap = half_outer_wall_width * mesh.getSettingInPercentage("bridge_wall_max_air_gap") / 100;
+            // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
+            // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
+            Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
+            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
+            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
+            // but, instead, are 1/2 a line width inset from the outline
+            gcode_layer.setAirBelowPart(compressed_air.offset(max_air_gap + half_outer_wall_width));
         }
         else
         {
