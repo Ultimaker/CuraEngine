@@ -1437,8 +1437,8 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     outlines_below.add(prevLayerPart.outline);
                 }
             }
-            const int line_width = mesh_config.inset0_config.getLineWidth();
-            gcode_layer.setAirBelowPart(part.outline.difference(outlines_below).offset(-line_width).offset(line_width));
+            const int max_air_gap = mesh_config.inset0_config.getLineWidth() * mesh.getSettingInPercentage("bridge_wall_max_air_gap") / 100;
+            gcode_layer.setAirBelowPart(part.outline.difference(outlines_below).offset(-max_air_gap).offset(max_air_gap));
         }
         else
         {
