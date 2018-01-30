@@ -104,7 +104,7 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
                 directionality *= -1;
             }
             color_offset *= directionality;
-            color_offset = std::max(static_cast<coord_t>(-5000), std::min(static_cast<coord_t>(5000), color_offset));
+            color_offset = std::max(static_cast<coord_t>(-1000), std::min(static_cast<coord_t>(1000), color_offset));
         }
     }
     else
