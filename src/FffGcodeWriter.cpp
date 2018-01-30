@@ -499,6 +499,17 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     {
         gcode.writeExtrusionMode(true);
     }
+    if (gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
+    {
+        // ensure extruder is zeroed
+        gcode.resetExtrusionValue();
+
+        if (getSettingBoolean("retraction_enable"))
+        {
+            // retract before first travel move
+            gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
+        }
+    }
 }
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
