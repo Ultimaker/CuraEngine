@@ -501,11 +501,11 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     }
     if (gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        // ensure extruder is zeroed
-        gcode.resetExtrusionValue();
-
         if (getSettingBoolean("retraction_enable"))
         {
+            // ensure extruder is zeroed
+            gcode.resetExtrusionValue();
+
             // retract before first travel move
             gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
         }
