@@ -120,6 +120,7 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
         }
         prev_inset = &next_inset;
     }
+    std::reverse(std::begin(result), std::end(result));
 }
 
 void Infill::generateConcentric3DInfill(Polygons& result)
