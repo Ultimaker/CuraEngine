@@ -116,7 +116,14 @@ public:
             this->polygons.push_back(polygons[i]);
     }
 
-    void optimize(); //!< sets #polyStart and #polyOrder
+    /*!
+     * Do the optimization
+     *
+     * \param find_chains Whether to determine when lines are chained together (i.e. zigzag infill)
+     *
+     * \return The squared travel distance between the two points
+     */
+    void optimize(bool find_chains = true); //!< sets #polyStart and #polyOrder
 
 private:
     /*!
