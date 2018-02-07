@@ -743,7 +743,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         // find printZ of first actual printed mesh
         for (const SliceMeshStorage& mesh : storage.meshes)
         {
-            if (mesh.getSettingBoolean("support_mesh")
+            if (layer_nr >= static_cast<int>(mesh.layers.size())
+                || mesh.getSettingBoolean("support_mesh")
                 || mesh.getSettingBoolean("anti_overhang_mesh")
                 || mesh.getSettingBoolean("cutting_mesh")
                 || mesh.getSettingBoolean("infill_mesh"))
