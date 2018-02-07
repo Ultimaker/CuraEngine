@@ -350,7 +350,7 @@ int main(int argc, char **argv)
     std::cerr << std::boolalpha;
     logAlways("\n");
     logAlways("Cura_SteamEngine version %s\n", VERSION);
-    logAlways("Copyright (C) 2017 Ultimaker\n");
+    logAlways("Copyright (C) 2018 Ultimaker\n");
     logAlways("\n");
     logAlways("This program is free software: you can redistribute it and/or modify\n");
     logAlways("it under the terms of the GNU Affero General Public License as published by\n");
