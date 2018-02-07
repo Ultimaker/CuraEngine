@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "FffPolygonGenerator.h"
@@ -189,7 +189,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("cutting_mesh"))
         {
-            storage.print_layer_count = std::max(storage.print_layer_count, (unsigned int)slicer->layers.size());
+            storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
         }
     }
     storage.support.supportLayers.resize(storage.print_layer_count);
@@ -312,12 +312,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     TreeSupport tree_support_generator;
     tree_support_generator.generateSupportAreas(storage);
 
-    // we need to remove empty layers after we have procesed the insets
+    // we need to remove empty layers after we have processed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
     // only remove empty layers if we haven't generate support, because then support was added underneath the model.
-    //   for some materials it's better to print on support than on the buildplate.
-    if (getSettingBoolean("remove_empty_first_layers")) {
+    //   for some materials it's better to print on support than on the build plate.
+    if (getSettingBoolean("remove_empty_first_layers"))
+    {
         removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
     }
     if (storage.print_layer_count == 0)
@@ -776,10 +777,10 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     return true;
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, size_t& total_layers)
 {
     int n_empty_first_layers = 0;
-    for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
+    for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         if (isEmptyLayer(storage, layer_idx))
         {
