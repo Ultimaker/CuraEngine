@@ -857,7 +857,6 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
             coord_t z = layer_z[layer_nr];
 
             if (z < minZ) continue;
-            if (layer_nr < 0) continue;
 
             SlicerSegment s;
             s.endVertex = nullptr;
