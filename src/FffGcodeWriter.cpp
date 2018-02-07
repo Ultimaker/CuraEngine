@@ -66,7 +66,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     size_t total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        total_layers = std::max(total_layers, mesh.layers.size());
+        if (mesh.isPrinted()) //No need to process higher layers if the non-printed meshes are higher than the normal meshes.
+        {
+            total_layers = std::max(total_layers, mesh.layers.size());
+        }
 
         setInfillAndSkinAngles(mesh);
     }

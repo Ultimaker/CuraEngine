@@ -263,6 +263,13 @@ public:
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
 
     /*!
+     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
+     * etc.)
+     * \return True if it's a mesh that gets printed.
+     */
+    bool isPrinted() const;
+
+    /*!
      * \return the mesh's user specified z seam hint
      */
     Point getZSeamHint() const;

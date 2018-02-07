@@ -187,7 +187,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
-        if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh"))
+        if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("cutting_mesh"))
         {
             storage.print_layer_count = std::max(storage.print_layer_count, (unsigned int)slicer->layers.size());
         }
