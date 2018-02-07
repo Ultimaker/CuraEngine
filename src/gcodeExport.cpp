@@ -78,6 +78,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
+    machine_buildplate_type = meshgroup->getSettingString("machine_buildplate_type");
 
     layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
@@ -167,6 +168,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
+        prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
         if (print_time)
@@ -1123,11 +1125,11 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        if (getFlavor() == EGCodeFlavor::REPRAP || getFlavor() == EGCodeFlavor::REPETIER)
+        if (getFlavor() == EGCodeFlavor::REPRAP)
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
         }
-        else
+        else if (getFlavor() != EGCodeFlavor::REPETIER) //Repetier firmware changes the "temperature monitor" to 0 when encountering a M203 command, which is undesired.
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
         }
