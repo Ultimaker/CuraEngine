@@ -805,7 +805,8 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
 
     TimeKeeper slice_timer;
 
-    layers.resize(slice_layer_count);
+    std::vector<coord_t> layer_z; //For each layer its Z coordinate.
+    layer_z.resize(slice_layer_count);
 
     // compensate first layer thickness depending on slicing mode
     int initial = initial_layer_thickness - thickness;
@@ -819,14 +820,15 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
     {
         if (use_variable_layer_heights)
         {
-            layers[layer_nr].z = adaptive_layers->at(layer_nr).z_position;
+            layer_z[layer_nr] = adaptive_layers->at(layer_nr).z_position;
         }
         else
         {
-            layers[layer_nr].z = initial + (thickness * layer_nr);
+            layer_z[layer_nr] = initial + (thickness * layer_nr);
         }
     }
 
+    layers.reserve(slice_layer_count); //Reserve for the maximum number of layers (but fill with only the layers that are not empty).
     // loop over all mesh faces
     for (unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
     {
@@ -850,9 +852,9 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         if (p2.z > maxZ) maxZ = p2.z;
 
         // calculate all intersections between a layer plane and a triangle
-        for (unsigned int layer_nr = 0; layer_nr < layers.size(); layer_nr++)
+        for (size_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
         {
-            int32_t z = layers.at(layer_nr).z;
+            coord_t z = layer_z[layer_nr];
 
             if (z < minZ) continue;
             if (layer_nr < 0) continue;
@@ -911,6 +913,10 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
             }
 
             // store the segments per layer
+            while (layers.size() <= layer_nr) //Lazily make sure that there are a sufficient number of layers.
+            {
+                layers.emplace_back();
+            }
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
             s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
