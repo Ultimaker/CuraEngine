@@ -279,7 +279,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
         // if no line ends close to prev_point, see if we can find a point on a line that could be the start of a chain of lines
         if (best_line_idx == -1 && have_chains)
         {
-            have_chains = false; // now assume that we don't have any chains and change back to true below if we find any joined line segments
+            unsigned num_chain_ends = 0;
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
                 if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
@@ -306,7 +306,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                             {
                                 // candidate line exactly meets a line that has already been picked so consider this vertex as a start point
                                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
-                                have_chains = true;
+                                ++num_chain_ends;
                             }
                         }
                     }
@@ -315,14 +315,24 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 {
                     // vertex 0 of candidate line starts a chain of 2 or more lines
                     updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 0);
-                    have_chains = true;
+                    ++num_chain_ends;
                 }
                 if (num_joined_lines[1] == 0 && num_joined_lines[0] != 0)
                 {
                     // vertex 1 of candidate line starts a chain of 2 or more lines
                     updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 1);
-                    have_chains = true;
+                    ++num_chain_ends;
                 }
+            }
+            if (num_chain_ends == 0)
+            {
+                // no chains found, don't bother to search for any more
+                have_chains = false;
+            }
+            else if (num_chain_ends > 200)
+            {
+                logWarning("Found %u chain ends so turning off chain finding\n", num_chain_ends);
+                have_chains = false;
             }
         }
 
