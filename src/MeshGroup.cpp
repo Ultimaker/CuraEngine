@@ -92,6 +92,10 @@ Point3 MeshGroup::min() const
 
     for (const Mesh& mesh : meshes)
     {
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        {
+            continue;
+        }
         Point3 min = mesh.min();
         ret.x = std::min(ret.x, min.x);
         ret.y = std::min(ret.y, min.y);
@@ -106,6 +110,10 @@ Point3 MeshGroup::max() const
 
     for (const Mesh& mesh : meshes)
     {
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        {
+            continue;
+        }
         Point3 max = mesh.max();
         ret.x = std::max(ret.x, max.x);
         ret.y = std::max(ret.y, max.y);
