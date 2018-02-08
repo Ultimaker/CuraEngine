@@ -40,7 +40,13 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -funroll-loops")
+
+option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
+    "Enable more optimization flags" ON)
+if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
+    message (STATUS "Compile with more optimization flags")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
+endif ()
 
 if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
@@ -154,7 +160,7 @@ set(engine_TEST_UTILS
 
 # Generating ProtoBuf protocol
 if (ENABLE_ARCUS)
-protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 # Compiling CuraEngine itself.
@@ -166,10 +172,26 @@ endif ()
 
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
+if(WIN32)
+  message(STATUS "Using windres")
+  set(RES_FILES "CuraEngine.rc")
+  set(CMAKE_RC_COMPILER_INIT windres)
+  ENABLE_LANGUAGE(RC)
+  SET(CMAKE_RC_COMPILE_OBJECT
+      "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
+      )
+endif(WIN32)
+
 if (UNIX)
     target_link_libraries(_CuraEngine pthread)
 endif()
-add_executable(CuraEngine src/main.cpp) #Then compile main.cpp as separate executable, and link the library to it.
+
+if (NOT WIN32)
+  add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
+else()
+  add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
+endif(NOT WIN32)
+
 target_link_libraries(CuraEngine _CuraEngine)
 
 # Compiling the test environment.

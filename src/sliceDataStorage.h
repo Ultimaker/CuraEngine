@@ -263,6 +263,13 @@ public:
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
 
     /*!
+     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
+     * etc.)
+     * \return True if it's a mesh that gets printed.
+     */
+    bool isPrinted() const;
+
+    /*!
      * \return the mesh's user specified z seam hint
      */
     Point getZSeamHint() const;
@@ -273,7 +280,7 @@ class SliceDataStorage : public SettingsMessenger, NoCopy
 public:
     MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
 
-    unsigned int print_layer_count; //!< The total number of layers (except the raft and filler layers)
+    size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;

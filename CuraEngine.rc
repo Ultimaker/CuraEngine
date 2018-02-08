@@ -1,0 +1,25 @@
+main ICON "CuraEngine.ico"
+
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080904E4"
+    BEGIN
+      VALUE "CompanyName", "Ultimaker BV."
+      VALUE "FileDescription", "Slicing engine for Cura"
+      VALUE "FileVersion", "1.0"
+      VALUE "InternalName", "CuraEngine"
+      VALUE "LegalCopyright", "Ultimaker BV."
+      VALUE "OriginalFilename", "CuraEngine.exe"
+      VALUE "ProductName", "CuraEngine"
+      VALUE "ProductVersion", "1.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1252
+  END
+END

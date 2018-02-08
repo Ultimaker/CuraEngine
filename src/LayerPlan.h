@@ -314,6 +314,12 @@ public:
      * \return the settings base of the last extruder planned.
      */
     SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
+
+    const Polygons* getCombBoundaryInside() const
+    {
+        return &comb_boundary_inside;
+    }
+
 private:
     /*!
      * Compute the boundary within which to comb, or to move into when performing a retraction.

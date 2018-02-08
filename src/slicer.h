@@ -1,4 +1,5 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 #ifndef SLICER_H
 #define SLICER_H
 
@@ -488,7 +489,7 @@ public:
 
     const Mesh* mesh = nullptr; //!< The sliced mesh
 
-    Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keepNoneClosed,
+    Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t thickness, const size_t slice_layer_count, bool keepNoneClosed,
            bool extensiveStitching, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
 
     /*!

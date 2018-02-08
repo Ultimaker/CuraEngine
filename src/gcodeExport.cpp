@@ -78,6 +78,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
+    machine_buildplate_type = meshgroup->getSettingString("machine_buildplate_type");
 
     layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
@@ -167,6 +168,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
+        prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
         if (print_time)
@@ -495,21 +497,18 @@ void GCodeExport::writeExtrusionMode(bool set_relative_extrusion_mode)
 
 void GCodeExport::resetExtrusionValue()
 {
-    if (flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
+    if (!relative_extrusion)
     {
-        if (!relative_extrusion)
-        {
-            *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
-        }
-        double current_extruded_volume = getCurrentExtrudedVolume();
-        extruder_attr[current_extruder].totalFilament += current_extruded_volume;
-        for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
-        { // update the extruded_volume_at_previous_n_retractions only of the current extruder, since other extruders don't extrude the current volume
-            extruded_volume_at_retraction -= current_extruded_volume;
-        }
-        current_e_value = 0.0;
-        extruder_attr[current_extruder].retraction_e_amount_at_e_start = extruder_attr[current_extruder].retraction_e_amount_current;
+        *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
     }
+    double current_extruded_volume = getCurrentExtrudedVolume();
+    extruder_attr[current_extruder].totalFilament += current_extruded_volume;
+    for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
+    { // update the extruded_volume_at_previous_n_retractions only of the current extruder, since other extruders don't extrude the current volume
+        extruded_volume_at_retraction -= current_extruded_volume;
+    }
+    current_e_value = 0.0;
+    extruder_attr[current_extruder].retraction_e_amount_at_e_start = extruder_attr[current_extruder].retraction_e_amount_current;
 }
 
 void GCodeExport::writeDelay(double timeAmount)
@@ -748,7 +747,7 @@ void GCodeExport::writeUnretractionAndPrime()
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         }
-        if (getCurrentExtrudedVolume() > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+        if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB && flavor != EGCodeFlavor::MAKERBOT) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
         {
             resetExtrusionValue();
         }
@@ -909,7 +908,7 @@ void GCodeExport::startExtruder(int new_extruder)
     CommandSocket::setExtruderForSend(new_extruder);
     CommandSocket::setSendCurrentPosition( getPositionXY() );
 
-    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
+    //Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;
 }
 
@@ -1126,11 +1125,11 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        if (getFlavor() == EGCodeFlavor::REPRAP || getFlavor() == EGCodeFlavor::REPETIER)
+        if (getFlavor() == EGCodeFlavor::REPRAP)
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
         }
-        else
+        else if (getFlavor() != EGCodeFlavor::REPETIER) //Repetier firmware changes the "temperature monitor" to 0 when encountering a M203 command, which is undesired.
         {
             *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
         }
