@@ -1,5 +1,4 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string.h>
@@ -89,34 +88,36 @@ const ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr) const
 
 Point3 MeshGroup::min() const
 {
-    if (meshes.size() < 1)
+    Point3 ret(0, 0, 0);
+
+    for (const Mesh& mesh : meshes)
     {
-        return Point3(0, 0, 0);
-    }
-    Point3 ret = meshes[0].min();
-    for(unsigned int i=1; i<meshes.size(); i++)
-    {
-        Point3 v = meshes[i].min();
-        ret.x = std::min(ret.x, v.x);
-        ret.y = std::min(ret.y, v.y);
-        ret.z = std::min(ret.z, v.z);
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        {
+            continue;
+        }
+        Point3 min = mesh.min();
+        ret.x = std::min(ret.x, min.x);
+        ret.y = std::min(ret.y, min.y);
+        ret.z = std::min(ret.z, min.z);
     }
     return ret;
 }
 
 Point3 MeshGroup::max() const
 {
-    if (meshes.size() < 1)
+    Point3 ret(0, 0, 0);
+
+    for (const Mesh& mesh : meshes)
     {
-        return Point3(0, 0, 0);
-    }
-    Point3 ret = meshes[0].max();
-    for(unsigned int i=1; i<meshes.size(); i++)
-    {
-        Point3 v = meshes[i].max();
-        ret.x = std::max(ret.x, v.x);
-        ret.y = std::max(ret.y, v.y);
-        ret.z = std::max(ret.z, v.z);
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        {
+            continue;
+        }
+        Point3 max = mesh.max();
+        ret.x = std::max(ret.x, max.x);
+        ret.y = std::max(ret.y, max.y);
+        ret.z = std::max(ret.z, max.z);
     }
     return ret;
 }
