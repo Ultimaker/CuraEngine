@@ -199,7 +199,7 @@ int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
 
 static inline bool pointsAreCoincident(const Point& a, const Point& b)
 {
-    return vSize2(a - b) < 25; // points are closer than 5uM, consider them coincident
+    return vSize2(a - b) < 100; // points are closer than 10uM, consider them coincident
 }
 
 /**
