@@ -290,31 +290,38 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
                 // does this line either end in thin air (doesn't join another line) or join another line that has already been picked?
                 // check both of its ends and see if it's a possible candidate to be used to start the next sequence
+                int num_joined_lines[2];
                 for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
                 {
-                    int num_joined_lines = 0;
+                    num_joined_lines[point_idx] = 0;
                     const Point& p = (*polygons[poly_idx])[point_idx];
                     // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
                     for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
                     {
                         if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
                         {
-                            have_chains = true; // we have found a joint between line segments so we have chains
-
-                            ++num_joined_lines;
+                            ++num_joined_lines[point_idx];
 
                             if (picked[close_line_idx])
                             {
                                 // candidate line exactly meets a line that has already been picked so consider this vertex as a start point
                                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
+                                have_chains = true;
                             }
                         }
                     }
-                    if (num_joined_lines == 0)
-                    {
-                        // candidate line ends in thin air so this vertex could possibly be located at the end of a sequence of lines
-                        updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
-                    }
+                }
+                if (num_joined_lines[0] == 0 && num_joined_lines[1] != 0)
+                {
+                    // vertex 0 of candidate line starts a chain of 2 or more lines
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 0);
+                    have_chains = true;
+                }
+                if (num_joined_lines[1] == 0 && num_joined_lines[0] != 0)
+                {
+                    // vertex 1 of candidate line starts a chain of 2 or more lines
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 1);
+                    have_chains = true;
                 }
             }
         }
