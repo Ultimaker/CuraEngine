@@ -39,7 +39,6 @@ public:
         items.push_back(item);
         size_t handle = parent_index.size(); //Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
         element_to_position[item] = handle;
-        std::cout << "Adding item " << (size_t)&item << std::endl;
         parent_index.push_back(handle);
         return handle;
     }
@@ -53,7 +52,6 @@ public:
      */
     size_t find(const E& item) const
     {
-        std::cout << "Finding item " << (size_t)&item << std::endl;
         const typename std::unordered_map<E, size_t>::const_iterator it = element_to_position.find(item);
         assert(it != element_to_position.end() && "The item must be present in the union-find data structure.");
         const size_t index = it->second;
