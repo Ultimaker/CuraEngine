@@ -56,7 +56,7 @@ public:
         const typename std::unordered_map<E, size_t>::const_iterator it = element_to_position.find(item);
         if (it == element_to_position.end())
         {
-            return -1;
+            return -1; //This item is not in the data structure at all.
         }
         const size_t index = it->second;
         return find(index);
@@ -72,7 +72,7 @@ public:
     size_t find(const size_t item_handle) const
     {
         const size_t parent = parent_index[item_handle];
-        if (parent == (size_t)-1) //This is a root.
+        if (parent == item_handle) //This is a root.
         {
             return item_handle;
         }
@@ -109,8 +109,7 @@ private:
      *
      * Items belong to the set of their most ancient ancestor, so to find if two
      * items are in the same set, find if they have any ancestor in common.
-     * Items with parent -1 (or actually max of size_t since it's unsigned) are
-     * root. There may be multiple roots.
+     * Items with itself as parent are root. There may be multiple roots.
      */
     std::vector<size_t> parent_index;
 };
