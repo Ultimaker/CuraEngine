@@ -5,7 +5,8 @@
 #define UNIONFIND_H
 
 #include <stddef.h> //For size_t.
-#include <vector>
+#include <vector> //Holds the main data.
+#include <unordered_map> //To map the data type to indices for user's convenience.
 
 namespace cura
 {
@@ -32,7 +33,7 @@ public:
      * \return The handle of the set that the item gets placed in. This can be
      * used to combine its set with another set.
      */
-    size_t add(const E item);
+    size_t add(const E& item);
 
     /*!
      * Finds the set that an item is part of.
@@ -40,7 +41,7 @@ public:
      * the handles of the sets that other items are part of to determine if they
      * are in the same set.
      */
-    size_t find(const E item) const;
+    size_t find(const E& item) const;
 
     /*!
      * Unite two sets to be together in one set.
@@ -54,7 +55,13 @@ private:
     /*!
      * Holds all items in the entire data structure.
      */
-    std::vector<E> items;
+    std::vector<const E&> items;
+
+    /*!
+     * Tracks where each element is, so that we can find it back when the user
+     * only specifies an element parameter.
+     */
+    std::unordered_map<const E&, size_t> element_to_position;
 
     /*!
      * For each item, the set handle of the parent item.
