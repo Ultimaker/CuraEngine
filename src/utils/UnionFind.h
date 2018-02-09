@@ -50,7 +50,7 @@ public:
      * the handles of the sets that other items are part of to determine if they
      * are in the same set.
      */
-    size_t find(const E& item) const
+    size_t find(const E& item)
     {
         const typename std::unordered_map<E, size_t>::const_iterator it = element_to_position.find(item);
         assert(it != element_to_position.end() && "The item must be present in the union-find data structure.");
@@ -65,15 +65,14 @@ public:
      * the handles of the sets that other items are part of to determine if they
      * are in the same set.
      */
-    size_t find(const size_t item_handle) const
+    size_t find(const size_t item_handle)
     {
         const size_t parent = parent_index[item_handle];
-        if (parent == item_handle) //This is a root.
+        if (parent != item_handle) //This is a root.
         {
-            return item_handle;
+            parent_index[item_handle] = find(parent);
         }
-        //TODO: Implement path compression.
-        return find(parent);
+        return parent_index[item_handle];
     }
 
     /*!
