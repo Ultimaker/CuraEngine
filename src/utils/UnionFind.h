@@ -48,9 +48,9 @@ public:
      * the handles of the sets that other items are part of to determine if they
      * are in the same set.
      */
-    size_t find(E& item) const
+    size_t find(const E& item) const
     {
-        const typename std::unordered_map<E*, size_t>::const_iterator it = element_to_position.find(&item);
+        const typename std::unordered_map<const E*, size_t>::const_iterator it = element_to_position.find(&item);
         if (it == element_to_position.end())
         {
             return -1;
@@ -99,7 +99,7 @@ private:
      * Tracks where each element is, so that we can find it back when the user
      * only specifies an element parameter.
      */
-    std::unordered_map<E*, size_t> element_to_position;
+    std::unordered_map<const E*, size_t> element_to_position;
 
     /*!
      * For each item, the set handle of the parent item.
