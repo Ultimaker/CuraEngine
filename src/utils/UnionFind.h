@@ -40,6 +40,7 @@ public:
         size_t handle = parent_index.size(); //Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
         element_to_position[item] = handle;
         parent_index.push_back(handle);
+        rank.push_back(0);
         return handle;
     }
 
@@ -83,8 +84,20 @@ public:
      */
     size_t unite(const size_t first, const size_t second)
     {
-        parent_index[first] = second;
-        return second;
+        const size_t first_root = find(first);
+        const size_t second_root = find(second);
+
+        //The tree with the greatest rank becomes the parent. This creates shallower trees.
+        if (rank[first_root] < rank[second_root])
+        {
+            parent_index[first] = second;
+            return second;
+        }
+        else
+        {
+            parent_index[second] = first;
+            return first;
+        }
     }
 
 private:
@@ -107,6 +120,15 @@ private:
      * Items with itself as parent are root. There may be multiple roots.
      */
     std::vector<size_t> parent_index;
+
+    /*!
+     * For each item, a rank that roughly indicates how large the subtree is
+     * beneath that item.
+     *
+     * Items with a higher rank get used as the parent element more often, so
+     * that the trees become shorter.
+     */
+    std::vector<size_t> rank;
 };
 
 }
