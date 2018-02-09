@@ -15,14 +15,20 @@ size_t UnionFind<E>::add(const E& item)
     return set_handle;
 }
 
-template <class E>
+template<class E>
 size_t UnionFind<E>::find(const E& item) const
 {
     const size_t index = element_to_position[item];
-    const size_t parent = parent_index[index];
+    return find(index);
+}
+
+template <class E>
+size_t UnionFind<E>::find(const size_t item_handle) const
+{
+    const size_t parent = parent_index[item_handle];
     if (parent == (size_t)-1) //This is a root.
     {
-        return index;
+        return item_handle;
     }
     //TODO: Implement path compression.
     return find(parent);

@@ -37,11 +37,21 @@ public:
 
     /*!
      * Finds the set that an item is part of.
+     * \param item The item to find the set of.
      * \return The handle of the set that the item is part of. Compare this to
      * the handles of the sets that other items are part of to determine if they
      * are in the same set.
      */
     size_t find(const E& item) const;
+
+    /*!
+     * Finds the set that an item is part of.
+     * \param item_handle The handle of an item, as returned by the add method.
+     * \return The handle of the set that the item is part of. Compare this to
+     * the handles of the sets that other items are part of to determine if they
+     * are in the same set.
+     */
+    size_t find(const size_t item_handle) const;
 
     /*!
      * Unite two sets to be together in one set.
