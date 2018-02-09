@@ -20,9 +20,8 @@ void UnionFindTest::tearDown()
 
 void UnionFindTest::findSimpleTest()
 {
-    char data = 'A';
-    union_find.add(data);
-    size_t result = union_find.find(data);
+    union_find.add('A');
+    size_t result = union_find.find('A');
     CPPUNIT_ASSERT_MESSAGE("The set of the first element may not be -1.", result != (size_t)-1);
 }
 
