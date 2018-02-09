@@ -42,4 +42,19 @@ void UnionFindTest::findMultipleTest()
     CPPUNIT_ASSERT_MESSAGE("B must not be in the same set as C.", result_b != result_c);
 }
 
+void UnionFindTest::uniteTwoTest()
+{
+    union_find.add('A');
+    union_find.add('B');
+    size_t original_a = union_find.find('A');
+    size_t original_b = union_find.find('B');
+    CPPUNIT_ASSERT_MESSAGE("A must not yet be in the same set as B.", original_a != original_b);
+
+    union_find.unite(original_a, original_b);
+
+    size_t united_a = union_find.find('A');
+    size_t united_b = union_find.find('B');
+    CPPUNIT_ASSERT_MESSAGE("A must now be in the same set as B.", united_a == united_b);
+}
+
 }
