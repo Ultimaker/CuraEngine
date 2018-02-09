@@ -32,6 +32,7 @@ template <class E>
 size_t UnionFind<E>::unite(const size_t first, const size_t second)
 {
     parent_index[first] = second;
+    return second;
 }
 
 }
