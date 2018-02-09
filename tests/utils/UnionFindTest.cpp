@@ -10,7 +10,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(UnionFindTest);
 
 void UnionFindTest::setUp()
 {
-    union_find = UnionFind<int>(); //Recreate the UnionFind data structure.
+    union_find = UnionFind<char>(); //Recreate the UnionFind data structure.
 }
 
 void UnionFindTest::tearDown()
@@ -20,7 +20,7 @@ void UnionFindTest::tearDown()
 
 void UnionFindTest::findSimpleTest()
 {
-    int data = 5;
+    char data = 'A';
     union_find.add(data);
     size_t result = union_find.find(data);
     CPPUNIT_ASSERT_MESSAGE("The set of the first element may not be -1.", result != (size_t)-1);

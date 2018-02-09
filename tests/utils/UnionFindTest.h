@@ -17,7 +17,7 @@ class UnionFindTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(UnionFindTest);
     CPPUNIT_TEST(findSimpleTest);
     CPPUNIT_TEST_SUITE_END();
-    
+
 public:
     /*!
      * \brief Sets up the test suite to prepare for testing.
@@ -33,7 +33,7 @@ public:
     void findSimpleTest(); //Simple adding and finding back.
 
 private:
-    UnionFind<int> union_find; //An empty union find for easy use by tests.
+    UnionFind<char> union_find; //An empty union find for easy use by tests.
 };
 
 }
