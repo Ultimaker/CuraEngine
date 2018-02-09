@@ -4,6 +4,7 @@
 #ifndef UNIONFIND_H
 #define UNIONFIND_H
 
+#include <assert.h>
 #include <stddef.h> //For size_t.
 #include <vector> //Holds the main data.
 #include <unordered_map> //To map the data type to indices for user's convenience.
@@ -54,10 +55,7 @@ public:
     {
         std::cout << "Finding item " << (size_t)&item << std::endl;
         const typename std::unordered_map<E, size_t>::const_iterator it = element_to_position.find(item);
-        if (it == element_to_position.end())
-        {
-            return -1; //This item is not in the data structure at all.
-        }
+        assert(it != element_to_position.end() && "The item must be present in the union-find data structure.");
         const size_t index = it->second;
         return find(index);
     }
