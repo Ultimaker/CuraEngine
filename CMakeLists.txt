@@ -143,6 +143,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/ProximityPointLink.cpp
     src/utils/socket.cpp
     src/utils/SpaceFillingTree.cpp
+    src/utils/UnionFind.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
