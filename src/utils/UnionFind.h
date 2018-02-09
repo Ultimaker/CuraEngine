@@ -20,7 +20,7 @@ namespace cura
  *
  * This data structure is not thread-safe.
  */
-template <class E>
+template <typename E>
 class UnionFind
 {
 public:
@@ -36,9 +36,11 @@ public:
     size_t add(const E item)
     {
         items.push_back(item);
-        size_t set_handle = parent_index.size(); //Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
-        parent_index.push_back(set_handle);
-        return set_handle;
+        size_t handle = parent_index.size(); //Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
+        element_to_position[&item] = handle;
+        std::cout << "Adding item " << (size_t)&item << std::endl;
+        parent_index.push_back(handle);
+        return handle;
     }
 
     /*!
@@ -50,6 +52,7 @@ public:
      */
     size_t find(const E& item) const
     {
+        std::cout << "Finding item " << (size_t)&item << std::endl;
         const typename std::unordered_map<const E*, size_t>::const_iterator it = element_to_position.find(&item);
         if (it == element_to_position.end())
         {
