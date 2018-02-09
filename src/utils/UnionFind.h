@@ -50,7 +50,7 @@ public:
      */
     size_t find(E& item) const
     {
-        auto it = element_to_position.find(&item);
+        const typename std::unordered_map<E*, size_t>::const_iterator it = element_to_position.find(&item);
         if (it == element_to_position.end())
             return -1;
         const size_t index = it->second;
