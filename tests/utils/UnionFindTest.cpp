@@ -77,4 +77,32 @@ void UnionFindTest::uniteThreeTest()
     CPPUNIT_ASSERT_MESSAGE("A, B and C must now be in the same set.", united_a == united_b && united_b == united_c);
 }
 
+void UnionFindTest::uniteSetsTest()
+{
+    size_t original_a = union_find.add('A');
+    size_t original_b = union_find.add('B');
+    size_t original_c = union_find.add('C');
+    size_t original_d = union_find.add('D');
+    CPPUNIT_ASSERT_MESSAGE("A, B, C and D must not yet be in the same set!", original_a != original_b && original_a != original_c && original_a != original_d && original_b != original_c && original_b != original_d && original_c != original_d);
+
+    union_find.unite(original_a, original_b);
+    union_find.unite(original_c, original_d);
+    //At this point we have two sets of two.
+
+    size_t united_a = union_find.find('A');
+    size_t united_b = union_find.find('B');
+    size_t united_c = union_find.find('C');
+    size_t united_d = union_find.find('D');
+    CPPUNIT_ASSERT_MESSAGE("A and B must now be in the same set.", united_a == united_b);
+    CPPUNIT_ASSERT_MESSAGE("C and D must now be in the same set.", united_c == united_d);
+    CPPUNIT_ASSERT_MESSAGE("A+B and C+D must not yet be in the same set.", united_a != united_c);
+
+    union_find.unite(united_a, united_c);
+    united_a = union_find.find('A');
+    united_b = union_find.find('B');
+    united_c = union_find.find('C');
+    united_d = union_find.find('D');
+    CPPUNIT_ASSERT_MESSAGE("A, B, C and D must now be in the same set.", united_a == united_b && united_b == united_c && united_c == united_d);
+}
+
 }

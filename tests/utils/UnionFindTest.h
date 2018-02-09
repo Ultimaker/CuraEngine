@@ -19,6 +19,7 @@ class UnionFindTest : public CppUnit::TestFixture
     CPPUNIT_TEST(findMultipleTest);
     CPPUNIT_TEST(uniteTwoTest);
     CPPUNIT_TEST(uniteThreeTest);
+    CPPUNIT_TEST(uniteSetsTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -37,6 +38,7 @@ public:
     void findMultipleTest(); //Finding between multiple items.
     void uniteTwoTest(); //Uniting two items.
     void uniteThreeTest(); //Uniting three items.
+    void uniteSetsTest(); //Uniting sets that already have multiple items.
 
 private:
     UnionFind<char> union_find; //An empty union find for easy use by tests.
