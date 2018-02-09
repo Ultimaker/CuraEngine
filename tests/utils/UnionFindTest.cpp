@@ -6,6 +6,8 @@
 namespace cura
 {
 
+CPPUNIT_TEST_SUITE_REGISTRATION(UnionFindTest);
+
 void UnionFindTest::setUp()
 {
     union_find = UnionFind<int>(); //Recreate the UnionFind data structure.
