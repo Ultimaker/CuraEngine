@@ -26,4 +26,20 @@ void UnionFindTest::findSimpleTest()
     CPPUNIT_ASSERT_MESSAGE("Find must return the original key that was returned when adding.", result == original);
 }
 
+void UnionFindTest::findMultipleTest()
+{
+    size_t original_a = union_find.add('A');
+    size_t original_b = union_find.add('B');
+    size_t original_c = union_find.add('C');
+    size_t result_a = union_find.find('A');
+    size_t result_b = union_find.find('B');
+    size_t result_c = union_find.find('C');
+
+    CPPUNIT_ASSERT_MESSAGE("A must be the same as when adding it.", original_a == result_a);
+    CPPUNIT_ASSERT_MESSAGE("B must be the same as when adding it.", original_b == result_b);
+    CPPUNIT_ASSERT_MESSAGE("C must be the same as when adding it.", original_c == result_c);
+    CPPUNIT_ASSERT_MESSAGE("A must not be in the same set as B or C.", result_a != result_b && result_a != result_c);
+    CPPUNIT_ASSERT_MESSAGE("B must not be in the same set as C.", result_b != result_c);
+}
+
 }
