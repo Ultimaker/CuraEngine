@@ -20,9 +20,10 @@ void UnionFindTest::tearDown()
 
 void UnionFindTest::findSimpleTest()
 {
-    union_find.add('A');
+    size_t original = union_find.add('A');
     size_t result = union_find.find('A');
     CPPUNIT_ASSERT_MESSAGE("The set of the first element may not be -1.", result != (size_t)-1);
+    CPPUNIT_ASSERT_MESSAGE("Find must return the original key that was returned when adding.", result == original);
 }
 
 }
