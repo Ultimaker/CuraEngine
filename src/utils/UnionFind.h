@@ -7,7 +7,6 @@
 #include <stddef.h> //For size_t.
 #include <vector> //Holds the main data.
 #include <unordered_map> //To map the data type to indices for user's convenience.
-#include <map> //To map the data type to indices for user's convenience.
 
 namespace cura
 {
@@ -98,7 +97,7 @@ private:
      * Tracks where each element is, so that we can find it back when the user
      * only specifies an element parameter.
      */
-    std::map<E*, size_t> element_to_position;
+    std::unordered_map<E*, size_t> element_to_position;
 
     /*!
      * For each item, the set handle of the parent item.
