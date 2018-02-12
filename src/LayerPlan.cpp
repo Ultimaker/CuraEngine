@@ -160,7 +160,10 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
             }
             else
             {
-                layer.getSecondOrInnermostWalls(comb_boundary);
+                // shrink boundary to workaround combing bug that can cause the nozzle to move from one wall to another across an air gap
+                Polygons temp;
+                layer.getSecondOrInnermostWalls(temp);
+                comb_boundary.add(temp.offset(-10));
             }
         }
         return comb_boundary;
