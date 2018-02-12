@@ -82,13 +82,17 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
 {
     for (const SliceLayerPart& part : parts)
     {
-        // we want the 2nd inner walls
-        if (part.insets.size() >= 2) {
-            layer_walls.add(part.insets[1]);
-            continue;
+        bool done = false;
+        for (unsigned wallIdx = part.insets.size() - 1; !done && wallIdx > 0; --wallIdx)
+        {
+            // we want the inner wall but only if it has not been reduced down to nothing anywhere
+            if (part.insets[wallIdx].size() == part.insets[0].size()) {
+                layer_walls.add(part.insets[wallIdx]);
+                done = true;
+            }
         }
-        // but we'll also take the inner wall if the 2nd doesn't exist
-        if (part.insets.size() == 1) {
+        // but we'll also take the outer wall if the inner doesn't exist or is not complete
+        if (!done && part.insets.size() >= 1) {
             layer_walls.add(part.insets[0]);
             continue;
         }
