@@ -193,6 +193,7 @@ else()
 endif(NOT WIN32)
 
 target_link_libraries(CuraEngine _CuraEngine)
+set_target_properties(CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
 # Compiling the test environment.
 if (BUILD_TESTS)
