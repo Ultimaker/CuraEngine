@@ -313,6 +313,53 @@ private:
      * \param[in/out] result_lines The lines to connect together.
      */
     void connectLines(Polygons& result_lines);
+
+    struct InfillLineSegment
+    {
+        /*!
+         * Creates a new infill line segment.
+         *
+         * The previous and next line segments will not yet be connected. You
+         * have to set those separately.
+         * \param start Where the line segment starts.
+         * \param end Where the line segment ends.
+         */
+        InfillLineSegment(const Point start, const Point end);
+
+        /*!
+         * Where the line segment starts.
+         */
+        const Point start;
+
+        /*!
+         * Where the line segment ends.
+         */
+        const Point end;
+
+        /*!
+         * The previous line segment that this line segment is connected to, if
+         * any.
+         */
+        InfillLineSegment* previous;
+
+        /*!
+         * The next line segment that this line segment is connected to, if any.
+         */
+        InfillLineSegment* next;
+
+        /*!
+         * Compares two infill line segments for equality.
+         *
+         * This is necessary for putting line segments in a hash set.
+         * \param other The line segment to compare this line segment with.
+         */
+        bool operator ==(const InfillLineSegment& other) const;
+    };
+
+    struct HashInfillLineSegment
+    {
+        std::size_t operator()(const InfillLineSegment& infill_line_segment) const;
+    };
 };
 
 }//namespace cura
