@@ -75,6 +75,13 @@ public:
      */
     size_t size() const;
 
+    /*!
+     * Returns whether there are any vertices in this polygon.
+     * \return ``true`` if the polygon has no vertices at all, or ``false`` if
+     * it does have vertices.
+     */
+    bool empty() const;
+
     const Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
