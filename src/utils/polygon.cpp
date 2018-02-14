@@ -10,6 +10,11 @@
 namespace cura 
 {
 
+size_t ConstPolygonRef::size() const
+{
+    return path->size();
+}
+
 bool ConstPolygonRef::shorterThan(int64_t check_length) const
 {
     const ConstPolygonRef& polygon = *this;
