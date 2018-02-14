@@ -105,6 +105,13 @@ public:
 
 private:
     /*!
+     * Stores the crossings (a vector) on each line of a polygon (a vector) for
+     * each polygon in a Polygons object that we create a zig-zaggified infill
+     * pattern for.
+     */
+    std::vector<std::vector<std::vector<Point>>> crossings_on_line;
+
+    /*!
      * Generate sparse concentric infill
      * 
      * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
@@ -296,6 +303,16 @@ private:
      * \return the distance the infill pattern should be shifted
      */
     int64_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+
+    /*!
+     * Connects infill lines together so that they form polylines.
+     *
+     * In most cases it will end up with only one long line that is more or less
+     * optimal. The lines are connected on their ends by extruding along the
+     * border of the infill area, similar to the zigzag pattern.
+     * \param[in/out] result_lines The lines to connect together.
+     */
+    void connectLines(Polygons& result_lines);
 };
 
 }//namespace cura

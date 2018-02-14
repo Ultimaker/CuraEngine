@@ -399,7 +399,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
 {
     if (int(part.insets.size()) < wall_line_count)
     {
-        return; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
+        return; // the last wall is not present, the part should only get inter perimeter gaps, but no infill.
     }
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
     const coord_t infill_line_distance = mesh.getSettingInMicrons("infill_line_distance");

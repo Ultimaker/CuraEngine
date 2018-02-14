@@ -1,8 +1,11 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "infill.h"
 #include "functional"
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
+#include "utils/UnionFind.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -87,6 +90,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         logError("Fill pattern has unknown value.\n");
         break;
     }
+
+    if (zig_zaggify)
+    {
+        connectLines(result_lines);
+    }
+    crossings_on_line.clear();
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
@@ -353,6 +362,12 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     {
         return;
     }
+    //TODO: Currently we find the outline every time for each rotation.
+    //We should compute it only once and rotate that accordingly.
+    //We'll also have the guarantee that they have the same size every time.
+    //Currently we assume that the above operations are all rotation-invariant,
+    //which they aren't if vertices fall on the same coordinate due to rounding.
+    crossings_on_line.resize(outline.size()); //One for each polygon.
 
     outline.applyMatrix(rotation_matrix);
 
@@ -377,19 +392,20 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         cut_list.push_back(std::vector<int64_t>());
     }
 
-    for(unsigned int poly_idx = 0; poly_idx < outline.size(); poly_idx++)
+    for(size_t poly_idx = 0; poly_idx < outline.size(); poly_idx++)
     {
         PolygonRef poly = outline[poly_idx];
+        crossings_on_line[poly_idx].resize(poly.size()); //One for each line in this polygon.
         Point p0 = poly.back();
         zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
-        for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        for(size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = poly[point_idx];
             if (p1.X == p0.X)
             {
                 zigzag_connector_processor.registerVertex(p1); 
                 // TODO: how to make sure it always adds the shortest line? (in order to prevent overlap with the zigzag connectors)
-                // note: this is already a problem for normal infill, but hasn't really cothered anyone so far.
+                // note: this is already a problem for normal infill, but hasn't really bothered anyone so far.
                 p0 = p1;
                 continue; 
             }
@@ -401,7 +417,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             // otherwise only 1 will be created, counting as an actual intersection
             int direction = 1;
             if (p0.X < p1.X) 
-            { 
+            {
                 scanline_idx0 = computeScanSegmentIdx(p0.X - shift, line_distance) + 1; // + 1 cause we don't cross the scanline of the first scan segment
                 scanline_idx1 = computeScanSegmentIdx(p1.X - shift, line_distance); // -1 cause the vertex point is handled in the next segment (or not in the case which looks like >)
             }
@@ -420,6 +436,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
+                crossings_on_line[poly_idx][point_idx].push_back(scanline_linesegment_intersection); //Save this crossing as belonging to this line.
             }
             zigzag_connector_processor.registerVertex(p1);
             p0 = p1;
@@ -437,6 +454,26 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     }
 
     addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
+}
+
+void Infill::connectLines(Polygons& result_lines)
+{
+    if (result_lines.empty()) //Too small area or a pattern that generates polygons instead of lines.
+    {
+        return;
+    }
+    if (pattern == EFillMethod::ZIG_ZAG) //TODO: For now, we skip ZigZag because it has its own algorithms. Eventually we want to replace all that with the new algorithm.
+    {
+        return;
+    }
+
+    //TODO: We're reconstructing the outline here. We should store it and compute it only once.
+    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
+
+    for (const ConstPolygonRef& polygon : outline)
+    {
+        //TODO: Connect the infill lines along this polygon.
+    }
 }
 
 }//namespace cura
