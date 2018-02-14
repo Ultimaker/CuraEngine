@@ -1438,6 +1438,8 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
             const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth();
+            // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+            outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
             // max_air_gap is the max allowed width of the unsupported region below the wall line
             // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
             // it can be from 0 to 1/2 the outer wall line width
