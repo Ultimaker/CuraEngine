@@ -104,12 +104,59 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
+    struct InfillLineSegment
+    {
+        /*!
+         * Creates a new infill line segment.
+         *
+         * The previous and next line segments will not yet be connected. You
+         * have to set those separately.
+         * \param start Where the line segment starts.
+         * \param end Where the line segment ends.
+         */
+        InfillLineSegment(const Point start, const Point end) : start(start), end(end) {};
+
+        /*!
+         * Where the line segment starts.
+         */
+        const Point start;
+
+        /*!
+         * Where the line segment ends.
+         */
+        const Point end;
+
+        /*!
+         * The previous line segment that this line segment is connected to, if
+         * any.
+         */
+        InfillLineSegment* previous;
+
+        /*!
+         * The next line segment that this line segment is connected to, if any.
+         */
+        InfillLineSegment* next;
+
+        /*!
+         * Compares two infill line segments for equality.
+         *
+         * This is necessary for putting line segments in a hash set.
+         * \param other The line segment to compare this line segment with.
+         */
+        bool operator ==(const InfillLineSegment& other) const;
+    };
+
+    struct HashInfillLineSegment
+    {
+        std::size_t operator()(const InfillLineSegment& infill_line_segment) const;
+    };
+
     /*!
-     * Stores the crossings (a vector) on each line of a polygon (a vector) for
-     * each polygon in a Polygons object that we create a zig-zaggified infill
-     * pattern for.
+     * Stores the infill lines (a vector) for each line of a polygon (a vector)
+     * for each polygon in a Polygons object that we create a zig-zaggified
+     * infill pattern for.
      */
-    std::vector<std::vector<std::vector<Point>>> crossings_on_line;
+    std::vector<std::vector<std::vector<InfillLineSegment>>> crossings_on_line;
 
     /*!
      * Generate sparse concentric infill
@@ -313,53 +360,6 @@ private:
      * \param[in/out] result_lines The lines to connect together.
      */
     void connectLines(Polygons& result_lines);
-
-    struct InfillLineSegment
-    {
-        /*!
-         * Creates a new infill line segment.
-         *
-         * The previous and next line segments will not yet be connected. You
-         * have to set those separately.
-         * \param start Where the line segment starts.
-         * \param end Where the line segment ends.
-         */
-        InfillLineSegment(const Point start, const Point end);
-
-        /*!
-         * Where the line segment starts.
-         */
-        const Point start;
-
-        /*!
-         * Where the line segment ends.
-         */
-        const Point end;
-
-        /*!
-         * The previous line segment that this line segment is connected to, if
-         * any.
-         */
-        InfillLineSegment* previous;
-
-        /*!
-         * The next line segment that this line segment is connected to, if any.
-         */
-        InfillLineSegment* next;
-
-        /*!
-         * Compares two infill line segments for equality.
-         *
-         * This is necessary for putting line segments in a hash set.
-         * \param other The line segment to compare this line segment with.
-         */
-        bool operator ==(const InfillLineSegment& other) const;
-    };
-
-    struct HashInfillLineSegment
-    {
-        std::size_t operator()(const InfillLineSegment& infill_line_segment) const;
-    };
 };
 
 }//namespace cura

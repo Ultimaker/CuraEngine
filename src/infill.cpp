@@ -436,7 +436,10 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
-                crossings_on_line[poly_idx][point_idx].push_back(scanline_linesegment_intersection); //Save this crossing as belonging to this line.
+                //TODO: How to get start and end? We only know of one crossing here.
+                Point start(0, 0);
+                Point end(0, 0);
+                crossings_on_line[poly_idx][point_idx].emplace_back(start, end); //Save this crossing as belonging to this vertex of the polygon.
             }
             zigzag_connector_processor.registerVertex(p1);
             p0 = p1;
@@ -470,9 +473,56 @@ void Infill::connectLines(Polygons& result_lines)
     //TODO: We're reconstructing the outline here. We should store it and compute it only once.
     Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
-    for (const ConstPolygonRef& polygon : outline)
+    //TODO: Sort crossings on every line by how far they are from their initial point.
+
+    UnionFind<InfillLineSegment, HashInfillLineSegment> connected_lines; //Keeps track of which lines are connected to which.
+    std::vector<InfillLineSegment> connecting_lines; //Keeps all connecting lines in memory, as to not invalidate the pointers.
+    connecting_lines.reserve(result_lines.size());
+
+    for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
     {
-        //TODO: Connect the infill lines along this polygon.
+        if (outline[polygon_index].empty())
+        {
+            continue;
+        }
+
+        InfillLineSegment* previous_crossing = nullptr; //The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
+        Point vertex_before = outline[polygon_index][0];
+        for (size_t vertex_index = 1; vertex_index < outline[polygon_index].size(); vertex_index++)
+        {
+            Point vertex_after = outline[polygon_index][vertex_index];
+
+            for (InfillLineSegment crossing : crossings_on_line[polygon_index][vertex_index])
+            {
+                if (!previous_crossing) //If we're not yet drawing, then we have been trying to find the next vertex. We found it! Let's start drawing.
+                {
+                    previous_crossing = &crossing;
+                }
+                else
+                {
+                    connecting_lines.emplace_back(previous_crossing->end, crossing.start);
+                    connecting_lines.back().previous = previous_crossing;
+                    previous_crossing->next = &connecting_lines.back();
+                    connecting_lines.back().next = &crossing;
+                    crossing.previous = &connecting_lines.back();
+                    const size_t crossing_handle = connected_lines.find(crossing);
+                    const size_t previous_crossing_handle = connected_lines.find(*previous_crossing);
+                    connected_lines.unite(crossing_handle, previous_crossing_handle);
+                    previous_crossing = nullptr;
+                }
+            }
+
+            //Upon going to the next vertex, if we're drawing, put an extra vertex in our infill lines.
+            if (previous_crossing)
+            {
+                connecting_lines.emplace_back(previous_crossing->end, vertex_after);
+                connecting_lines.back().previous = previous_crossing;
+                previous_crossing->next = &connecting_lines.back();
+                previous_crossing = &connecting_lines.back();
+            }
+
+            vertex_before = vertex_after;
+        }
     }
 }
 
