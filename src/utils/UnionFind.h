@@ -78,7 +78,7 @@ public:
             return end();
         }
         const size_t index = it->second;
-        return find(index);
+        return findByHandle(index);
     }
 
     /*!
@@ -88,7 +88,7 @@ public:
      * the handles of the sets that other items are part of to determine if they
      * are in the same set.
      */
-    size_t find(const size_t item_handle)
+    size_t findByHandle(const size_t item_handle)
     {
         if (item_handle >= parent_index.size())
         {
@@ -97,7 +97,7 @@ public:
         const size_t parent = parent_index[item_handle];
         if (parent != item_handle) //This is a root.
         {
-            parent_index[item_handle] = find(parent);
+            parent_index[item_handle] = findByHandle(parent);
         }
         return parent_index[item_handle];
     }
@@ -110,8 +110,8 @@ public:
      */
     size_t unite(const size_t first, const size_t second)
     {
-        const size_t first_root = find(first);
-        const size_t second_root = find(second);
+        const size_t first_root = findByHandle(first);
+        const size_t second_root = findByHandle(second);
 
         //The tree with the greatest rank becomes the parent. This creates shallower trees.
         if (rank[first_root] < rank[second_root])
