@@ -603,9 +603,4 @@ bool Infill::InfillLineSegment::operator ==(const InfillLineSegment& other) cons
     return start == other.start && end == other.end;
 }
 
-size_t Infill::HashInfillLineSegment::operator()(const InfillLineSegment& infill_line_segment) const
-{
-    return std::hash<Point>()(infill_line_segment.start) ^ (std::hash<Point>()(infill_line_segment.end) << 7);
-}
-
 }//namespace cura

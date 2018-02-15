@@ -164,11 +164,6 @@ private:
         bool operator ==(const InfillLineSegment& other) const;
     };
 
-    struct HashInfillLineSegment
-    {
-        std::size_t operator()(const InfillLineSegment& infill_line_segment) const;
-    };
-
     /*!
      * A collection of all infill.line segments we found so that we can access
      * these segments by pointer in the vector.
