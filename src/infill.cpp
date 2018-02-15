@@ -514,7 +514,7 @@ void Infill::connectLines(Polygons& result_lines)
     }
 
     std::vector<InfillLineSegment> connecting_lines; //Keeps all connecting lines in memory, as to not invalidate the pointers.
-    connecting_lines.reserve(result_lines.size());
+    connecting_lines.reserve(in_outline.pointCount() + result_lines.size() * 2);
 
     for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
     {
