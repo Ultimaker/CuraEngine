@@ -52,18 +52,6 @@ public:
     }
 
     /*!
-     * Returns a value meaning that it couldn't be found when checked against
-     * the result of ``find``.
-     *
-     * Normally this is the end of iteration, but it's also commonplace to check
-     * against ``end()`` when using a find function.
-     */
-    size_t end() const
-    {
-        return std::numeric_limits<size_t>::max();
-    }
-
-    /*!
      * Finds the set that an item is part of.
      * \param item The item to find the set of.
      * \return The handle of the set that the item is part of. Compare this to
@@ -75,7 +63,7 @@ public:
         const typename std::unordered_map<E, size_t, Hash>::const_iterator it = element_to_position.find(item);
         if (it == element_to_position.end())
         {
-            return end();
+            return (size_t)-1;
         }
         const size_t index = it->second;
         return findByHandle(index);
@@ -92,7 +80,7 @@ public:
     {
         if (item_handle >= parent_index.size())
         {
-            return end();
+            return (size_t)-1;
         }
         const size_t parent = parent_index[item_handle];
         if (parent != item_handle) //This is a root.
@@ -124,6 +112,70 @@ public:
             parent_index[second] = first;
             return first;
         }
+    }
+
+    //Some aliases to allow people to use UnionFind::iterator and UnionFind::const_iterator without knowing that it's actually a vector iterator.
+    using iterator = typename std::vector<E>::iterator;
+    using const_iterator = typename std::vector<E>::iterator;
+
+    /*!
+     * Beginning of iteration over all items in this Union Find data structure.
+     *
+     * The items are iterated over in no particular order.
+     */
+    iterator begin()
+    {
+        return items.begin();
+    }
+
+    /*!
+     * Ending of iteration over all items in this Union Find data structure.
+     *
+     * The items are iterated over in no particular order.
+     */
+    iterator end()
+    {
+        return items.end();
+    }
+
+    /*!
+     * Beginning of iteration over all items in this Union Find data structure.
+     *
+     * The items are iterated over in no particular order.
+     */
+    const_iterator begin() const
+    {
+        return items.begin();
+    }
+
+    /*!
+     * Ending of iteration over all items in this Union Find data structure.
+     *
+     * The items are iterated over in no particular order.
+     */
+    const_iterator end() const
+    {
+        return items.end();
+    }
+
+    /*!
+     * Beginning of iteration over all items in this Union Find data structure.
+     *
+     * The items are iterated over in no particular order.
+     */
+    const_iterator cbegin() const
+    {
+        return items.cbegin();
+    }
+
+    /*!
+     * Ending of iteration over all items in this Union Find data structure.
+     *
+     * The items are iterated over in no particular order.
+     */
+    const_iterator cend() const
+    {
+        return items.cend();
     }
 
 private:
