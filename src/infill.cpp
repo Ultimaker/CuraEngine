@@ -487,8 +487,8 @@ void Infill::connectLines(Polygons& result_lines)
         }
 
         InfillLineSegment* previous_crossing = nullptr; //The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
-        Point vertex_before = outline[polygon_index][0];
-        for (size_t vertex_index = 1; vertex_index < outline[polygon_index].size(); vertex_index++)
+        Point vertex_before = outline[polygon_index].back();
+        for (size_t vertex_index = 0; vertex_index < outline[polygon_index].size(); vertex_index++)
         {
             Point vertex_after = outline[polygon_index][vertex_index];
 
