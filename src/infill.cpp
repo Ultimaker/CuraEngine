@@ -1,6 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <algorithm> //For std::sort.
+
 #include "infill.h"
 #include "functional"
 #include "utils/polygonUtils.h"
@@ -398,6 +400,24 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         crossings_on_line[poly_idx].resize(poly.size()); //One for each line in this polygon.
         Point p0 = poly.back();
         zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
+
+        //When we find crossings, keep track of which crossing belongs to which scanline and to which polygon line segment.
+        //Then we can later join two crossings together to form lines and still know what polygon line segments that infill line connected to.
+        struct Crossing
+        {
+            Crossing(Point coordinate, size_t vertex_index): coordinate(coordinate), vertex_index(vertex_index) {};
+            Point coordinate;
+            size_t vertex_index;
+            bool operator <(const Crossing& other) const //Crossings will be ordered by their X coordinate so that they get ordered along the scanline.
+            {
+                return coordinate.X < other.coordinate.X;
+            }
+        };
+        std::vector<std::vector<Crossing>> crossings_per_scanline;
+        const int min_scanline_index = computeScanSegmentIdx(poly.min().X - shift, line_distance) + 1;
+        const int max_scanline_index = computeScanSegmentIdx(poly.max().X - shift, line_distance) + 1;
+        crossings_per_scanline.resize(max_scanline_index - min_scanline_index);
+
         for(size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = poly[point_idx];
@@ -436,15 +456,27 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
-                //TODO: How to get start and end? We only know of one crossing here.
-                Point start(0, 0);
-                Point end(0, 0);
-                crossings_on_line[poly_idx][point_idx].emplace_back(start, end); //Save this crossing as belonging to this vertex of the polygon.
+                crossings_per_scanline[scanline_idx].emplace_back(scanline_linesegment_intersection, point_idx);
             }
             zigzag_connector_processor.registerVertex(p1);
             p0 = p1;
         }
         zigzag_connector_processor.registerPolyFinished();
+
+        //Gather all crossings per scanline and find out which crossings belong together, then store them in crossings_on_line.
+        for (int scanline_index = min_scanline_index; scanline_index < max_scanline_index; scanline_index++)
+        {
+            std::sort(crossings_per_scanline[scanline_index].begin(), crossings_per_scanline[scanline_index].end()); //Sorts them by X coordinate.
+            for (size_t crossing_index = 0; crossing_index < crossings_per_scanline[scanline_index].size() - 1; crossing_index += 2) //Combine each 2 subsequent crossings together.
+            {
+                const Crossing& first = crossings_per_scanline[scanline_index][crossing_index];
+                const Crossing& second = crossings_per_scanline[scanline_index][crossing_index + 1];
+                const InfillLineSegment infill_line(first.coordinate, second.coordinate);
+                //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
+                crossings_on_line[poly_idx][first.vertex_index].push_back(infill_line);
+                crossings_on_line[poly_idx][second.vertex_index].push_back(infill_line);
+            }
+        }
     }
 
     if (cut_list.size() == 0)
@@ -500,6 +532,8 @@ void Infill::connectLines(Polygons& result_lines)
                 }
                 else
                 {
+                    //Join two infill lines together with a connecting line.
+                    //Here the InfillLineSegments function as a linked list, so that they can easily be joined.
                     connecting_lines.emplace_back(previous_crossing->end, crossing.start);
                     connecting_lines.back().previous = previous_crossing;
                     previous_crossing->next = &connecting_lines.back();
