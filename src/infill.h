@@ -114,7 +114,7 @@ private:
          * \param start Where the line segment starts.
          * \param end Where the line segment ends.
          */
-        InfillLineSegment(const Point start, const Point end) : start(start), end(end) {};
+        InfillLineSegment(const Point start, const size_t start_segment, const Point end, const size_t end_segment) : start(start), start_segment(start_segment), end(end), end_segment(end_segment) {};
 
         /*!
          * Where the line segment starts.
@@ -122,9 +122,27 @@ private:
         Point start;
 
         /*!
+         * Which polygon line segment the start of this infill line belongs to.
+         *
+         * This is an index of a vertex in the PolygonRef that this infill line
+         * is inside. It is used to disambiguate between the start and end of
+         * the line segment.
+         */
+        size_t start_segment;
+
+        /*!
          * Where the line segment ends.
          */
         Point end;
+
+        /*!
+         * Which polygon line segment the end of this infill line belongs to.
+         *
+         * This is an index of a vertex in the PolygonRef that this infill line
+         * is inside. It is used to disambiguate between the start and end of
+         * the line segment.
+         */
+        size_t end_segment;
 
         /*!
          * The previous line segment that this line segment is connected to, if
@@ -152,11 +170,17 @@ private:
     };
 
     /*!
+     * A collection of all infill.line segments we found so that we can access
+     * these segments by pointer in the vector.
+     */
+    std::vector<InfillLineSegment> all_infill_lines;
+
+    /*!
      * Stores the infill lines (a vector) for each line of a polygon (a vector)
      * for each polygon in a Polygons object that we create a zig-zaggified
      * infill pattern for.
      */
-    std::vector<std::vector<std::vector<InfillLineSegment>>> crossings_on_line;
+    std::vector<std::vector<std::vector<InfillLineSegment*>>> crossings_on_line;
 
     /*!
      * Generate sparse concentric infill
