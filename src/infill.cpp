@@ -472,7 +472,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             {
                 const Crossing& first = crossings_per_scanline[scanline_index][crossing_index];
                 const Crossing& second = crossings_per_scanline[scanline_index][crossing_index + 1];
-                all_infill_lines.emplace_back(first.coordinate, first.vertex_index, second.coordinate, second.vertex_index);
+                all_infill_lines.emplace_back(rotation_matrix.unapply(first.coordinate), first.vertex_index, rotation_matrix.unapply(second.coordinate), second.vertex_index);
                 //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
                 crossings_on_line[poly_idx][first.vertex_index].push_back(&all_infill_lines.back());
                 crossings_on_line[poly_idx][second.vertex_index].push_back(&all_infill_lines.back());
