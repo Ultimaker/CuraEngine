@@ -505,8 +505,6 @@ void Infill::connectLines(Polygons& result_lines)
     //TODO: We're reconstructing the outline here. We should store it and compute it only once.
     Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
-    //TODO: Sort crossings on every line by how far they are from their initial point.
-
     UnionFind<InfillLineSegment, HashInfillLineSegment> connected_lines; //Keeps track of which lines are connected to which.
     std::vector<InfillLineSegment> connecting_lines; //Keeps all connecting lines in memory, as to not invalidate the pointers.
     connecting_lines.reserve(result_lines.size());
@@ -523,6 +521,18 @@ void Infill::connectLines(Polygons& result_lines)
         for (size_t vertex_index = 0; vertex_index < outline[polygon_index].size(); vertex_index++)
         {
             Point vertex_after = outline[polygon_index][vertex_index];
+
+            //Sort crossings on every line by how far they are from their initial point.
+            struct CompareByDistance
+            {
+                CompareByDistance(Point to_point): to_point(to_point) {};
+                Point to_point; //The distance to this point is compared.
+                inline bool operator ()(const InfillLineSegment& left_hand_side, const InfillLineSegment& right_hand_side) const
+                {
+                    return vSize(left_hand_side.end - to_point) < vSize(right_hand_side.end - to_point); //TODO: Which endpoint of the line segments, actually?
+                }
+            };
+            std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before));
 
             for (InfillLineSegment crossing : crossings_on_line[polygon_index][vertex_index])
             {

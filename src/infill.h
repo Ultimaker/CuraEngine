@@ -119,12 +119,12 @@ private:
         /*!
          * Where the line segment starts.
          */
-        const Point start;
+        Point start;
 
         /*!
          * Where the line segment ends.
          */
-        const Point end;
+        Point end;
 
         /*!
          * The previous line segment that this line segment is connected to, if
