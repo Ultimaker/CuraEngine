@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
+#include <unordered_set>
 
 #include "infill.h"
 #include "functional"
@@ -600,6 +601,43 @@ void Infill::connectLines(Polygons& result_lines)
 
             vertex_before = vertex_after;
         }
+    }
+
+    //Save all lines, now connected, to the output.
+    std::unordered_set<size_t> completed_groups;
+    for (InfillLineSegment* infill_line : connected_lines)
+    {
+        const size_t group = connected_lines.find(infill_line);
+        if (completed_groups.find(group) == completed_groups.end()) //We already completed this group.
+        {
+            continue;
+        }
+
+        //Find where the polyline ends by searching through previous and next lines.
+        //Note that the "previous" and "next" lines don't necessarily match up though, because the direction while connecting infill lines was not yet known.
+        Point previous_vertex = infill_line->start; //Take one side arbitrarily to start from. This variable indicates the vertex that connects to the previous line.
+        InfillLineSegment* current_infill_line = infill_line;
+        while (current_infill_line->next && current_infill_line->previous)
+        {
+            InfillLineSegment* next_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+            previous_vertex =                     (previous_vertex == current_infill_line->start) ? next_infill_line->end : next_infill_line->start;
+            current_infill_line = next_infill_line;
+        }
+
+        //Now go along the linked list of infill lines and output the infill lines to the actual result.
+        Point first_vertex = previous_vertex;
+        previous_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
+        result_lines.addLine(first_vertex, previous_vertex);
+        current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
+        while (current_infill_line)
+        {
+            Point other_vertex = previous_vertex;
+            previous_vertex = (other_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
+            result_lines.addLine(other_vertex, previous_vertex);
+            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
+        }
+
+        completed_groups.insert(group);
     }
 }
 
