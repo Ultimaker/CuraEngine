@@ -180,7 +180,7 @@ private:
     /*!
      * Generate sparse concentric infill
      * 
-     * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
+     * Also adds \ref Infill::perimeter_gaps between \ref Infill::in_outline and the first wall
      * 
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons

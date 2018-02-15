@@ -507,6 +507,11 @@ void Infill::connectLines(Polygons& result_lines)
     Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
+    for (InfillLineSegment& infill_line : all_infill_lines) //Put every line in there as separate set.
+    {
+        connected_lines.add(&infill_line);
+    }
+
     std::vector<InfillLineSegment> connecting_lines; //Keeps all connecting lines in memory, as to not invalidate the pointers.
     connecting_lines.reserve(result_lines.size());
 
