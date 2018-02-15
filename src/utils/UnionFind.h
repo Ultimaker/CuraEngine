@@ -5,6 +5,7 @@
 #define UNIONFIND_H
 
 #include <assert.h>
+#include <limits> //To get the max size_t as invalid value for the result of find().
 #include <stddef.h> //For size_t.
 #include <vector> //Holds the main data.
 #include <unordered_map> //To map the data type to indices for user's convenience.
@@ -45,6 +46,18 @@ public:
     }
 
     /*!
+     * Returns a value meaning that it couldn't be found when checked against
+     * the result of ``find``.
+     *
+     * Normally this is the end of iteration, but it's also commonplace to check
+     * against ``end()`` when using a find function.
+     */
+    size_t end() const
+    {
+        return std::numeric_limits<size_t>::max();
+    }
+
+    /*!
      * Finds the set that an item is part of.
      * \param item The item to find the set of.
      * \return The handle of the set that the item is part of. Compare this to
@@ -54,7 +67,10 @@ public:
     size_t find(const E& item)
     {
         const typename std::unordered_map<E, size_t>::const_iterator it = element_to_position.find(item);
-        assert(it != element_to_position.end() && "The item must be present in the union-find data structure.");
+        if (it == element_to_position.end())
+        {
+            return end();
+        }
         const size_t index = it->second;
         return find(index);
     }
@@ -68,6 +84,10 @@ public:
      */
     size_t find(const size_t item_handle)
     {
+        if (item_handle >= parent_index.size())
+        {
+            return end();
+        }
         const size_t parent = parent_index[item_handle];
         if (parent != item_handle) //This is a root.
         {
