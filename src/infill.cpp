@@ -458,7 +458,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
-                crossings_per_scanline[scanline_idx].emplace_back(scanline_linesegment_intersection, point_idx);
+                crossings_per_scanline[scanline_idx - min_scanline_index].emplace_back(scanline_linesegment_intersection, point_idx);
             }
             zigzag_connector_processor.registerVertex(p1);
             p0 = p1;
@@ -468,11 +468,11 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         //Gather all crossings per scanline and find out which crossings belong together, then store them in crossings_on_line.
         for (int scanline_index = min_scanline_index; scanline_index < max_scanline_index; scanline_index++)
         {
-            std::sort(crossings_per_scanline[scanline_index].begin(), crossings_per_scanline[scanline_index].end()); //Sorts them by X coordinate.
-            for (size_t crossing_index = 0; crossing_index < crossings_per_scanline[scanline_index].size() - 1; crossing_index += 2) //Combine each 2 subsequent crossings together.
+            std::sort(crossings_per_scanline[scanline_index - min_scanline_index].begin(), crossings_per_scanline[scanline_index - min_scanline_index].end()); //Sorts them by X coordinate.
+            for (size_t crossing_index = 0; crossing_index < crossings_per_scanline[scanline_index - min_scanline_index].size() - 1; crossing_index += 2) //Combine each 2 subsequent crossings together.
             {
-                const Crossing& first = crossings_per_scanline[scanline_index][crossing_index];
-                const Crossing& second = crossings_per_scanline[scanline_index][crossing_index + 1];
+                const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
+                const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
                 all_infill_lines.emplace_back(rotation_matrix.unapply(first.coordinate), first.vertex_index, rotation_matrix.unapply(second.coordinate), second.vertex_index);
                 //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
                 crossings_on_line[poly_idx][first.vertex_index].push_back(&all_infill_lines.back());
