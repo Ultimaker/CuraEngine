@@ -1,5 +1,6 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2018 Ruben Dulek, Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
+//UnionFind's base structure is released under CC0. See https://github.com/Ghostkeeper/Hattusa
 
 #ifndef UNIONFIND_H
 #define UNIONFIND_H
