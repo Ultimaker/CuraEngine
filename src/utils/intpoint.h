@@ -143,7 +143,7 @@ inline Point3 operator*(const double d, const Point3& rhs) {
 
 using coord_t = ClipperLib::cInt;
 
-/* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
+/* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
 
 class IntPoint {

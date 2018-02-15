@@ -22,10 +22,15 @@ namespace cura
  *
  * This data structure is not thread-safe.
  */
-template <typename E>
+template <typename E, class Hash = std::hash<E>>
 class UnionFind
 {
 public:
+    UnionFind(const Hash& hash = Hash())
+    {
+        element_to_position = std::unordered_map<E, size_t, Hash>(10, hash);
+    }
+
     /*!
      * Adds a new item to the union-find data structure.
      *
@@ -66,7 +71,7 @@ public:
      */
     size_t find(const E& item)
     {
-        const typename std::unordered_map<E, size_t>::const_iterator it = element_to_position.find(item);
+        const typename std::unordered_map<E, size_t, Hash>::const_iterator it = element_to_position.find(item);
         if (it == element_to_position.end())
         {
             return end();
@@ -130,7 +135,7 @@ private:
      * Tracks where each element is, so that we can find it back when the user
      * only specifies an element parameter.
      */
-    std::unordered_map<E, size_t> element_to_position;
+    std::unordered_map<E, size_t, Hash> element_to_position;
 
     /*!
      * For each item, the set handle of the parent item.
