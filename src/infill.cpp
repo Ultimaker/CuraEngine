@@ -98,6 +98,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+    all_infill_lines.clear();
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
