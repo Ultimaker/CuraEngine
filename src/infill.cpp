@@ -603,7 +603,7 @@ void Infill::connectLines(Polygons& result_lines)
             if (previous_crossing)
             {
                 InfillLineSegment* new_segment;
-                if (vertex_after == previous_segment->end)
+                if (vertex_index == previous_segment->start_segment)
                 {
                     new_segment = new InfillLineSegment(previous_segment->start, vertex_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size());
                     previous_segment->previous = new_segment;
@@ -635,7 +635,7 @@ void Infill::connectLines(Polygons& result_lines)
         //Note that the "previous" and "next" lines don't necessarily match up though, because the direction while connecting infill lines was not yet known.
         Point previous_vertex = infill_line->start; //Take one side arbitrarily to start from. This variable indicates the vertex that connects to the previous line.
         InfillLineSegment* current_infill_line = infill_line;
-        while (current_infill_line->next && current_infill_line->previous)
+        while (current_infill_line->next && current_infill_line->previous) //Until we reached an endpoint.
         {
             const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
             current_infill_line =     (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
