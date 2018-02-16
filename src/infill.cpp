@@ -622,7 +622,7 @@ void Infill::connectLines(Polygons& result_lines)
     for (InfillLineSegment* infill_line : connected_lines)
     {
         const size_t group = connected_lines.find(infill_line);
-        if (completed_groups.find(group) == completed_groups.end()) //We already completed this group.
+        if (completed_groups.find(group) != completed_groups.end()) //We already completed this group.
         {
             continue;
         }
