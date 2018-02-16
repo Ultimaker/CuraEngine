@@ -412,7 +412,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             size_t vertex_index;
             bool operator <(const Crossing& other) const //Crossings will be ordered by their X coordinate so that they get ordered along the scanline.
             {
-                return coordinate.X < other.coordinate.X;
+                return coordinate.Y < other.coordinate.Y;
             }
         };
         std::vector<std::vector<Crossing>> crossings_per_scanline;
