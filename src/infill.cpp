@@ -629,22 +629,24 @@ void Infill::connectLines(Polygons& result_lines)
         InfillLineSegment* current_infill_line = infill_line;
         while (current_infill_line->next && current_infill_line->previous)
         {
-            InfillLineSegment* next_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
-            previous_vertex =                     (previous_vertex == current_infill_line->start) ? next_infill_line->end : next_infill_line->start;
-            current_infill_line = next_infill_line;
+            Point next_vertex =   (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
+            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+            previous_vertex = next_vertex;
         }
 
         //Now go along the linked list of infill lines and output the infill lines to the actual result.
         std::vector<Point> polyline;
         polyline.push_back(previous_vertex);
-        previous_vertex =     (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
+        Point next_vertex =   (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
         current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
+        previous_vertex = next_vertex;
         while (current_infill_line)
         {
             polyline.push_back(previous_vertex);
-            InfillLineSegment* old_line = current_infill_line;
-            previous_vertex =     (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
-            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
+            InfillLineSegment* old_line = current_infill_line; //We'll delete this after we've traversed to the next line.
+            next_vertex =         (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
+            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+            previous_vertex = next_vertex;
             delete old_line;
         }
         PolygonRef polyline_polygon(polyline);
