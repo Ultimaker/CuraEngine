@@ -639,19 +639,20 @@ void Infill::connectLines(Polygons& result_lines)
         }
 
         //Now go along the linked list of infill lines and output the infill lines to the actual result.
-        Point first_vertex = previous_vertex;
-        previous_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
-        result_lines.addLine(first_vertex, previous_vertex);
+        std::vector<Point> polyline;
+        polyline.push_back(previous_vertex);
+        previous_vertex =     (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
         current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
         while (current_infill_line)
         {
-            Point other_vertex = previous_vertex;
-            previous_vertex = (other_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
-            result_lines.addLine(other_vertex, previous_vertex);
+            polyline.push_back(previous_vertex);
             InfillLineSegment* old_line = current_infill_line;
+            previous_vertex =     (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
             current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
             delete old_line;
         }
+        PolygonRef polyline_polygon(polyline);
+        result_lines.add(polyline_polygon);
 
         completed_groups.insert(group);
     }
