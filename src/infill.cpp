@@ -593,7 +593,6 @@ void Infill::connectLines(Polygons& result_lines)
                     {
                         crossing->next = new_segment;
                     }
-                    crossing->previous = new_segment;
                     connected_lines.unite(crossing_handle, previous_crossing_handle);
                     previous_crossing = nullptr;
                     previous_segment = nullptr;
