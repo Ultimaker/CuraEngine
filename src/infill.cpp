@@ -602,9 +602,18 @@ void Infill::connectLines(Polygons& result_lines)
             //Upon going to the next vertex, if we're drawing, put an extra vertex in our infill lines.
             if (previous_crossing)
             {
-                InfillLineSegment* new_segment = new InfillLineSegment(previous_segment->end, vertex_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size());
+                InfillLineSegment* new_segment;
+                if (vertex_after == previous_segment->end)
+                {
+                    new_segment = new InfillLineSegment(previous_segment->start, vertex_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size());
+                    previous_segment->previous = new_segment;
+                }
+                else
+                {
+                    new_segment = new InfillLineSegment(previous_segment->end, vertex_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size());
+                    previous_segment->next = new_segment;
+                }
                 new_segment->previous = previous_segment;
-                previous_segment->next = new_segment;
                 previous_segment = new_segment;
             }
 
