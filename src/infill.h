@@ -114,7 +114,15 @@ private:
          * \param start Where the line segment starts.
          * \param end Where the line segment ends.
          */
-        InfillLineSegment(const Point start, const size_t start_segment, const Point end, const size_t end_segment) : start(start), start_segment(start_segment), end(end), end_segment(end_segment) {};
+        InfillLineSegment(const Point start, const size_t start_segment, const Point end, const size_t end_segment)
+            : start(start)
+            , start_segment(start_segment)
+            , end(end)
+            , end_segment(end_segment)
+            , previous(nullptr)
+            , next(nullptr)
+        {
+        };
 
         /*!
          * Where the line segment starts.
