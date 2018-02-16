@@ -524,6 +524,7 @@ void Infill::connectLines(Polygons& result_lines)
         }
 
         InfillLineSegment* previous_crossing = nullptr; //The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
+        InfillLineSegment* previous_segment = nullptr; //The last segment we were connecting while drawing a line along the border.
         Point vertex_before = outline[polygon_index].back();
         for (size_t vertex_index = 0; vertex_index < outline[polygon_index].size(); vertex_index++)
         {
@@ -550,11 +551,14 @@ void Infill::connectLines(Polygons& result_lines)
                 if (!previous_crossing) //If we're not yet drawing, then we have been trying to find the next vertex. We found it! Let's start drawing.
                 {
                     previous_crossing = crossing;
+                    previous_segment = crossing;
                 }
                 else
                 {
                     const size_t crossing_handle = connected_lines.find(crossing);
+                    assert (crossing_handle != (size_t)-1);
                     const size_t previous_crossing_handle = connected_lines.find(previous_crossing);
+                    assert (previous_crossing_handle != (size_t)-1);
                     if (crossing_handle == previous_crossing_handle) //These two infill lines are already connected. Don't create a loop now. Continue connecting with the next crossing.
                     {
                         continue;
@@ -562,18 +566,18 @@ void Infill::connectLines(Polygons& result_lines)
 
                     //Join two infill lines together with a connecting line.
                     //Here the InfillLineSegments function as a linked list, so that they can easily be joined.
-                    const Point previous_point = (previous_crossing->start_segment == vertex_index) ? previous_crossing->start : previous_crossing->end;
+                    const Point previous_point = (previous_segment->start_segment == vertex_index) ? previous_segment->start : previous_segment->end;
                     const Point next_point = (crossing->start_segment == vertex_index) ? crossing->start : crossing->end;
                     connecting_lines.emplace_back(previous_point, vertex_index, next_point, vertex_index);
                     InfillLineSegment* new_segment = &connecting_lines.back();
-                    new_segment->previous = previous_crossing;
-                    if (previous_crossing->start_segment == vertex_index)
+                    new_segment->previous = previous_segment;
+                    if (previous_segment->start_segment == vertex_index)
                     {
-                        previous_crossing->previous = new_segment;
+                        previous_segment->previous = new_segment;
                     }
                     else
                     {
-                        previous_crossing->next = new_segment;
+                        previous_segment->next = new_segment;
                     }
                     new_segment->next = crossing;
                     if (crossing->start_segment == vertex_index)
@@ -587,16 +591,17 @@ void Infill::connectLines(Polygons& result_lines)
                     crossing->previous = new_segment;
                     connected_lines.unite(crossing_handle, previous_crossing_handle);
                     previous_crossing = nullptr;
+                    previous_segment = nullptr;
                 }
             }
 
             //Upon going to the next vertex, if we're drawing, put an extra vertex in our infill lines.
             if (previous_crossing)
             {
-                connecting_lines.emplace_back(previous_crossing->end, vertex_index, vertex_after, vertex_index + 1);
-                connecting_lines.back().previous = previous_crossing;
-                previous_crossing->next = &connecting_lines.back();
-                previous_crossing = &connecting_lines.back();
+                connecting_lines.emplace_back(previous_segment->end, vertex_index, vertex_after, vertex_index + 1);
+                connecting_lines.back().previous = previous_segment;
+                previous_segment->next = &connecting_lines.back();
+                previous_segment = &connecting_lines.back();
             }
 
             vertex_before = vertex_after;
