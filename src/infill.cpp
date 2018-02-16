@@ -640,8 +640,9 @@ void Infill::connectLines(Polygons& result_lines)
 
         //Now go along the linked list of infill lines and output the infill lines to the actual result.
         InfillLineSegment* old_line = current_infill_line;
-        const Point first_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
-        current_infill_line =      (first_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+        const Point first_vertex = (!current_infill_line->previous) ? current_infill_line->start : current_infill_line->end;
+        previous_vertex =          (!current_infill_line->previous) ? current_infill_line->end : current_infill_line->start;
+        current_infill_line = (first_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
         result_lines.addLine(first_vertex, previous_vertex);
         delete old_line;
         while (current_infill_line)
