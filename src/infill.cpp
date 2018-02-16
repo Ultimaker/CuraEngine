@@ -522,9 +522,6 @@ void Infill::connectLines(Polygons& result_lines)
         }
     }
 
-    std::vector<InfillLineSegment> connecting_lines; //Keeps all connecting lines in memory, as to not invalidate the pointers.
-    connecting_lines.reserve(in_outline.pointCount() + result_lines.size() * 2);
-
     for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
     {
         if (outline[polygon_index].empty())
@@ -577,8 +574,7 @@ void Infill::connectLines(Polygons& result_lines)
                     //Here the InfillLineSegments function as a linked list, so that they can easily be joined.
                     const Point previous_point = (previous_segment->start_segment == vertex_index) ? previous_segment->start : previous_segment->end;
                     const Point next_point = (crossing->start_segment == vertex_index) ? crossing->start : crossing->end;
-                    connecting_lines.emplace_back(previous_point, vertex_index, next_point, vertex_index);
-                    InfillLineSegment* new_segment = &connecting_lines.back();
+                    InfillLineSegment* new_segment = new InfillLineSegment(previous_point, vertex_index, next_point, vertex_index); //A connecting line between them.
                     new_segment->previous = previous_segment;
                     if (previous_segment->start_segment == vertex_index)
                     {
@@ -607,10 +603,10 @@ void Infill::connectLines(Polygons& result_lines)
             //Upon going to the next vertex, if we're drawing, put an extra vertex in our infill lines.
             if (previous_crossing)
             {
-                connecting_lines.emplace_back(previous_segment->end, vertex_index, vertex_after, vertex_index + 1);
-                connecting_lines.back().previous = previous_segment;
-                previous_segment->next = &connecting_lines.back();
-                previous_segment = &connecting_lines.back();
+                InfillLineSegment* new_segment = new InfillLineSegment(previous_segment->end, vertex_index, vertex_after, vertex_index + 1);
+                new_segment->previous = previous_segment;
+                previous_segment->next = new_segment;
+                previous_segment = new_segment;
             }
 
             vertex_before = vertex_after;
