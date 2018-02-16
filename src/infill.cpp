@@ -40,6 +40,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
+
     switch(pattern)
     {
     case EFillMethod::GRID:
@@ -99,7 +100,6 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         connectLines(result_lines);
     }
     crossings_on_line.clear();
-    all_infill_lines.clear();
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
@@ -473,10 +473,10 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             {
                 const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
                 const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
-                all_infill_lines.emplace_back(rotation_matrix.unapply(first.coordinate), first.vertex_index, rotation_matrix.unapply(second.coordinate), second.vertex_index);
+                InfillLineSegment* new_segment = new InfillLineSegment(rotation_matrix.unapply(first.coordinate), first.vertex_index, rotation_matrix.unapply(second.coordinate), second.vertex_index);
                 //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
-                crossings_on_line[poly_idx][first.vertex_index].push_back(&all_infill_lines.back());
-                crossings_on_line[poly_idx][second.vertex_index].push_back(&all_infill_lines.back());
+                crossings_on_line[poly_idx][first.vertex_index].push_back(new_segment);
+                crossings_on_line[poly_idx][second.vertex_index].push_back(new_segment);
             }
         }
     }
@@ -508,9 +508,18 @@ void Infill::connectLines(Polygons& result_lines)
     Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
-    for (InfillLineSegment& infill_line : all_infill_lines) //Put every line in there as separate set.
+    for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
     {
-        connected_lines.add(&infill_line);
+        for (std::vector<InfillLineSegment*>& crossings_on_polygon_segment : crossings_on_polygon)
+        {
+            for (InfillLineSegment* infill_line : crossings_on_polygon_segment)
+            {
+                if (connected_lines.find(infill_line) == (size_t)-1)
+                {
+                    connected_lines.add(infill_line); //Put every line in there as a separate set.
+                }
+            }
+        }
     }
 
     std::vector<InfillLineSegment> connecting_lines; //Keeps all connecting lines in memory, as to not invalidate the pointers.
@@ -639,7 +648,9 @@ void Infill::connectLines(Polygons& result_lines)
             Point other_vertex = previous_vertex;
             previous_vertex = (other_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
             result_lines.addLine(other_vertex, previous_vertex);
+            InfillLineSegment* old_line = current_infill_line;
             current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
+            delete old_line;
         }
 
         completed_groups.insert(group);

@@ -165,12 +165,6 @@ private:
     };
 
     /*!
-     * A collection of all infill.line segments we found so that we can access
-     * these segments by pointer in the vector.
-     */
-    std::vector<InfillLineSegment> all_infill_lines;
-
-    /*!
      * Stores the infill lines (a vector) for each line of a polygon (a vector)
      * for each polygon in a Polygons object that we create a zig-zaggified
      * infill pattern for.
