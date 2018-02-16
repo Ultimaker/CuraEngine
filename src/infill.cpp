@@ -629,24 +629,25 @@ void Infill::connectLines(Polygons& result_lines)
         InfillLineSegment* current_infill_line = infill_line;
         while (current_infill_line->next && current_infill_line->previous)
         {
-            Point next_vertex =   (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
-            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+            const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
+            current_infill_line =     (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
             previous_vertex = next_vertex;
         }
 
         //Now go along the linked list of infill lines and output the infill lines to the actual result.
-        Point next_vertex =   (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
-        current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->previous : current_infill_line->next;
-        result_lines.addLine(previous_vertex, next_vertex);
-        previous_vertex = next_vertex;
+        InfillLineSegment* old_line = current_infill_line;
+        const Point first_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
+        current_infill_line =      (first_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+        result_lines.addLine(first_vertex, previous_vertex);
+        //delete old_line;
         while (current_infill_line)
         {
-            InfillLineSegment* old_line = current_infill_line; //We'll delete this after we've traversed to the next line.
-            next_vertex =         (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
-            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+            old_line = current_infill_line; //We'll delete this after we've traversed to the next line.
+            const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
+            current_infill_line =     (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
             result_lines.addLine(previous_vertex, next_vertex);
             previous_vertex = next_vertex;
-            delete old_line;
+            //delete old_line;
         }
 
         completed_groups.insert(group);
