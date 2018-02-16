@@ -495,10 +495,6 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
 void Infill::connectLines(Polygons& result_lines)
 {
-    if (result_lines.empty()) //Too small area or a pattern that generates polygons instead of lines.
-    {
-        return;
-    }
     if (pattern == EFillMethod::ZIG_ZAG) //TODO: For now, we skip ZigZag because it has its own algorithms. Eventually we want to replace all that with the new algorithm.
     {
         return;
