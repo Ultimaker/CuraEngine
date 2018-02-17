@@ -553,12 +553,12 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
         // optimization disabled
         return false;
     }
-    if (part.insets.size() < 2 && part.insets[0].size() < 2)
+    if (part.insets.size() < 2 || part.insets[0].size() < 2)
     {
-        // only a single outline and no holes, definitely not worth optimizing
+        // only a single outline or no holes, not worth optimizing as the original inset processing code now aligns the z-seams of the outside walls
         return false;
     }
-    // the default is to optimize as it will make the inner insets start near to the z seam location
+    // optimize all other combinations of walls and holes
     return true;
 }
 
