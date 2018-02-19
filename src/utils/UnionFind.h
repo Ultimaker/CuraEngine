@@ -47,7 +47,7 @@ public:
         size_t handle = parent_index.size(); //Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
         element_to_position[item] = handle;
         parent_index.push_back(handle);
-        rank.push_back(0);
+        rank.push_back(1);
         return handle;
     }
 
@@ -105,11 +105,13 @@ public:
         if (rank[first_root] < rank[second_root])
         {
             parent_index[first] = second;
+            rank[second_root] += rank[first_root];
             return second;
         }
         else
         {
             parent_index[second] = first;
+            rank[first_root] += rank[second_root];
             return first;
         }
     }
