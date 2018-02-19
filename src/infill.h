@@ -114,11 +114,13 @@ private:
          * \param start Where the line segment starts.
          * \param end Where the line segment ends.
          */
-        InfillLineSegment(const Point start, const size_t start_segment, const Point end, const size_t end_segment)
+        InfillLineSegment(const Point start, const size_t start_segment, const size_t start_polygon, const Point end, const size_t end_segment, const size_t end_polygon)
             : start(start)
             , start_segment(start_segment)
+            , start_polygon(start_polygon)
             , end(end)
             , end_segment(end_segment)
+            , end_polygon(end_polygon)
             , previous(nullptr)
             , next(nullptr)
         {
@@ -139,6 +141,14 @@ private:
         size_t start_segment;
 
         /*!
+         * Which polygon the start of this infill line belongs to.
+         *
+         * This is an index of a PolygonRef that this infill line
+         * is inside. It is used to know which polygon the start segment belongs to.
+         */
+        size_t start_polygon;
+
+        /*!
          * Where the line segment ends.
          */
         Point end;
@@ -151,6 +161,14 @@ private:
          * the line segment.
          */
         size_t end_segment;
+
+        /*!
+         * Which polygon the end of this infill line belongs to.
+         *
+         * This is an index of a PolygonRef that this infill line
+         * is inside. It is used to know which polygon the end segment belongs to.
+         */
+        size_t end_polygon;
 
         /*!
          * The previous line segment that this line segment is connected to, if
