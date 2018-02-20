@@ -95,7 +95,8 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         break;
     }
 
-    if (zig_zaggify)
+    // TODO The connected lines algorithm is for now available just for the tringles or grid patterns when zig_zaggify is selected
+    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID))
     {
         connectLines(result_lines);
     }
@@ -275,7 +276,11 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
             { // segment is too short to create infill
                 continue;
             }
-            result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
+            // Add this check to allow creating lines when they are not created by the method connectLines
+            if (!zig_zaggify || (pattern != EFillMethod::TRIANGLES && pattern != EFillMethod::GRID))
+            {
+                result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
+            }
         }
         scanline_idx += 1;
     }
@@ -496,7 +501,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
 void Infill::connectLines(Polygons& result_lines)
 {
-    if (pattern == EFillMethod::ZIG_ZAG) //TODO: For now, we skip ZigZag because it has its own algorithms. Eventually we want to replace all that with the new algorithm.
+    if (pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D) //TODO: For now, we skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
     {
         return;
     }
