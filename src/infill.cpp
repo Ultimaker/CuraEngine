@@ -95,8 +95,14 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         break;
     }
 
-    // TODO The connected lines algorithm is for now available just for the tringles or grid patterns when zig_zaggify is selected
-    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID))
+    //TODO: The connected lines algorithm is only available for linear-based infill, for now.
+    //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
+    //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
+    if (pattern != EFillMethod::TRIANGLES && pattern != EFillMethod::GRID && pattern != EFillMethod::CUBIC && pattern != EFillMethod::TETRAHEDRAL && pattern != EFillMethod::QUARTER_CUBIC && pattern != EFillMethod::TRIHEXAGON)
+    {
+        zig_zaggify = false;
+    }
+    if (zig_zaggify)
     {
         connectLines(result_lines);
     }
@@ -276,8 +282,8 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
             { // segment is too short to create infill
                 continue;
             }
-            // Add this check to allow creating lines when they are not created by the method connectLines
-            if (!zig_zaggify || (pattern != EFillMethod::TRIANGLES && pattern != EFillMethod::GRID))
+            //We have to create our own lines when they are not created by the method connectLines.
+            if (!zig_zaggify)
             {
                 result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
             }
@@ -501,11 +507,6 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
 void Infill::connectLines(Polygons& result_lines)
 {
-    if (pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D) //TODO: For now, we skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
-    {
-        return;
-    }
-
     //TODO: We're reconstructing the outline here. We should store it and compute it only once.
     Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
