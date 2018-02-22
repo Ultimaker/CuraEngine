@@ -542,6 +542,10 @@ void Infill::connectLines(Polygons& result_lines)
         Point vertex_before = outline[polygon_index].back();
         for (size_t vertex_index = 0; vertex_index < outline[polygon_index].size(); vertex_index++)
         {
+            if (vertex_index == 44)
+            {
+                std::cout << "Vertex 44!" << std::endl;
+            }
             Point vertex_after = outline[polygon_index][vertex_index];
 
             //Sort crossings on every line by how far they are from their initial point.
@@ -598,9 +602,12 @@ void Infill::connectLines(Polygons& result_lines)
                     {
                         new_segment = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); //A connecting line between them.
                         new_segment->previous = previous_segment;
-                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) {
+                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
+                        {
                             previous_segment->previous = new_segment;
-                        } else {
+                        }
+                        else
+                        {
                             previous_segment->next = new_segment;
                         }
                         new_segment->next = crossing;
@@ -626,16 +633,36 @@ void Infill::connectLines(Polygons& result_lines)
                 InfillLineSegment* new_segment;
                 if (vertex_index == previous_segment->start_segment && polygon_index == previous_segment->start_polygon)
                 {
-                    new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
-                    previous_segment->previous = new_segment;
+                    if (previous_segment->start == vertex_after)
+                    {
+                        //Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
+                        previous_segment = nullptr;
+                        previous_crossing = nullptr;
+                    }
+                    else
+                    {
+                        new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
+                        previous_segment->previous = new_segment;
+                        new_segment->previous = previous_segment;
+                        previous_segment = new_segment;
+                    }
                 }
                 else
                 {
-                    new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
-                    previous_segment->next = new_segment;
+                    if (previous_segment->end == vertex_after)
+                    {
+                        //Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
+                        previous_segment = nullptr;
+                        previous_crossing = nullptr;
+                    }
+                    else
+                    {
+                        new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
+                        previous_segment->next = new_segment;
+                        new_segment->previous = previous_segment;
+                        previous_segment = new_segment;
+                    }
                 }
-                new_segment->previous = previous_segment;
-                previous_segment = new_segment;
             }
 
             vertex_before = vertex_after;
