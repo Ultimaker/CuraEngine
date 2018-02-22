@@ -98,11 +98,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     //TODO: The connected lines algorithm is only available for linear-based infill, for now.
     //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
     //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-    if (pattern != EFillMethod::TRIANGLES && pattern != EFillMethod::GRID && pattern != EFillMethod::CUBIC && pattern != EFillMethod::TETRAHEDRAL && pattern != EFillMethod::QUARTER_CUBIC && pattern != EFillMethod::TRIHEXAGON)
-    {
-        zig_zaggify = false;
-    }
-    if (zig_zaggify)
+    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
     {
         connectLines(result_lines);
     }
@@ -283,7 +279,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
                 continue;
             }
             //We have to create our own lines when they are not created by the method connectLines.
-            if (!zig_zaggify)
+            if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG)
             {
                 result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
             }
