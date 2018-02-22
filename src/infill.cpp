@@ -486,6 +486,11 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         {
             const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
             const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
+            //Avoid creating zero length crossing lines
+            if (first.coordinate == second.coordinate)
+            {
+                continue;
+            }
             InfillLineSegment* new_segment = new InfillLineSegment(rotation_matrix.unapply(first.coordinate), first.vertex_index, first.polygon_index, rotation_matrix.unapply(second.coordinate), second.vertex_index, second.polygon_index);
             //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
             crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
@@ -578,17 +583,29 @@ void Infill::connectLines(Polygons& result_lines)
                     //Here the InfillLineSegments function as a linked list, so that they can easily be joined.
                     const Point previous_point = (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) ? previous_segment->start : previous_segment->end;
                     const Point next_point = (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index) ? crossing->start : crossing->end;
-                    InfillLineSegment* new_segment = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); //A connecting line between them.
-                    new_segment->previous = previous_segment;
-                    if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
+                    InfillLineSegment* new_segment;
+                    // If the segment is zero length, we avoid creating it but still want to connect the crossing with the previous segment
+                    if (previous_point == next_point)
                     {
-                        previous_segment->previous = new_segment;
+                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) {
+                            previous_segment->previous = crossing;
+                        } else {
+                            previous_segment->next = crossing;
+                        }
+                        new_segment = previous_segment;
                     }
                     else
                     {
-                        previous_segment->next = new_segment;
+                        new_segment = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); //A connecting line between them.
+                        new_segment->previous = previous_segment;
+                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) {
+                            previous_segment->previous = new_segment;
+                        } else {
+                            previous_segment->next = new_segment;
+                        }
+                        new_segment->next = crossing;
                     }
-                    new_segment->next = crossing;
+
                     if (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index)
                     {
                         crossing->previous = new_segment;
