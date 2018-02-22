@@ -487,11 +487,13 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
             const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
             //Avoid creating zero length crossing lines
-            if (first.coordinate == second.coordinate)
+            const Point unrotated_first = rotation_matrix.unapply(first.coordinate);
+            const Point unrotated_second = rotation_matrix.unapply(second.coordinate);
+            if (unrotated_first == unrotated_second)
             {
                 continue;
             }
-            InfillLineSegment* new_segment = new InfillLineSegment(rotation_matrix.unapply(first.coordinate), first.vertex_index, first.polygon_index, rotation_matrix.unapply(second.coordinate), second.vertex_index, second.polygon_index);
+            InfillLineSegment* new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
             //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
             crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
             crossings_on_line[second.polygon_index][second.vertex_index].push_back(new_segment);
@@ -591,9 +593,12 @@ void Infill::connectLines(Polygons& result_lines)
                     // If the segment is zero length, we avoid creating it but still want to connect the crossing with the previous segment
                     if (previous_point == next_point)
                     {
-                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) {
+                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
+                        {
                             previous_segment->previous = crossing;
-                        } else {
+                        }
+                        else
+                        {
                             previous_segment->next = crossing;
                         }
                         new_segment = previous_segment;
