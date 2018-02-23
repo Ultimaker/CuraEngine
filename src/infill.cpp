@@ -279,7 +279,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
                 continue;
             }
             //We have to create our own lines when they are not created by the method connectLines.
-            if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG)
+            if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES)
             {
                 result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
             }
