@@ -10,6 +10,8 @@
 #include "PrintFeature.h"
 #include "raft.h"
 
+#define CIRCLE_RESOLUTION 32 //The number of vertices in each circle.
+
 namespace cura 
 {
 
@@ -32,6 +34,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 
     int64_t prime_tower_wall_thickness = storage.getSettingInMicrons("prime_tower_wall_thickness");
     int64_t tower_size = storage.getSettingInMicrons("prime_tower_size");
+    bool circular_prime_tower = storage.getSettingBoolean("prime_tower_circular");
 
     if (prime_tower_wall_thickness * 2 < tower_size)
     {
@@ -42,10 +45,21 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     int tower_distance = 0; 
     int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
     int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
-    p.add(Point(x + tower_distance, y + tower_distance));
-    p.add(Point(x + tower_distance, y + tower_distance + tower_size));
-    p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
-    p.add(Point(x + tower_distance - tower_size, y + tower_distance));
+    if (circular_prime_tower)
+    {
+        double_t tower_radius = tower_size / 2;
+        for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
+        {
+            const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
+            p.add(Point(x - tower_radius + tower_distance + cos(angle) * tower_radius, y + tower_radius + tower_distance + sin(angle) * tower_radius));
+        }
+    }
+    else {
+        p.add(Point(x + tower_distance, y + tower_distance));
+        p.add(Point(x + tower_distance, y + tower_distance + tower_size));
+        p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
+        p.add(Point(x + tower_distance - tower_size, y + tower_distance));
+    }
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     if (is_hollow)
@@ -73,6 +87,14 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     int extra_infill_shift = 0;
 
     int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
+    EFillMethod infill_method;
+    if (storage.getSettingBoolean("prime_tower_circular"))
+    {
+        infill_method = EFillMethod::CONCENTRIC;
+    }
+    else{
+        infill_method = EFillMethod::LINES;
+    }
 
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
@@ -87,9 +109,9 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             int outline_offset = -line_width;
             int line_distance = line_width;
             double fill_angle = 45 + pattern_idx * 90;
-            Polygons result_polygons; // should remain empty, since we generate lines pattern!
+            Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
             constexpr bool zig_zaggify_infill = false;
-            Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+            Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
             infill_comp.generate(result_polygons, result_lines);
         }
         int line_width_layer0 = line_width;
@@ -103,10 +125,9 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         int outline_offset = -line_width_layer0;
         int line_distance = line_width_layer0;
         double fill_angle = 45;
-        Polygons result_polygons;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, ground_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-        infill_comp.generate(result_polygons, pattern.lines);
+        Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }
 
