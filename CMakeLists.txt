@@ -11,6 +11,14 @@ if (ENABLE_ARCUS)
     add_definitions(-DARCUS)
 endif ()
 
+
+option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
+
+if(USE_SYSTEM_LIBS)
+    set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+    find_package(RapidJSON CONFIG REQUIRED)
+    find_package(Polyclipping REQUIRED)
+
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_DEBUG_INIT})
 else()
@@ -68,9 +76,12 @@ if (ENABLE_OPENMP)
     endif()
 endif()
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} libs)
-
-add_library(clipper STATIC libs/clipper/clipper.cpp)
+if(USE_SYSTEM_LIBS)
+    include_directories(${Polyclipping_INCLUDE_DIRS} ${CMAKE_BINARY_DIR} ${RAPIDJSON_INCLUDE_DIRS})
+else()
+    include_directories(${CMAKE_CURRENT_BINARY_DIR} libs libs/clipper)
+    add_library(clipper STATIC libs/clipper/clipper.cpp)
+endif()
 
 set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
@@ -172,7 +183,13 @@ endif ()
 
 # Compiling CuraEngine itself.
 add_library(_CuraEngine ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
-target_link_libraries(_CuraEngine clipper)
+
+if(USE_SYSTEM_LIBS)
+    target_link_libraries(_CuraEngine ${Polyclipping_LIBRARIES})
+else()
+    target_link_libraries(_CuraEngine clipper)
+endif()
+
 if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine Arcus)
 endif ()
