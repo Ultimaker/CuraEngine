@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "Preheat.h"
 
 namespace cura 
@@ -179,6 +182,5 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
     }
     return result;
 }
-
 
 }//namespace cura

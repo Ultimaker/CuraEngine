@@ -314,6 +314,12 @@ public:
      * \return the settings base of the last extruder planned.
      */
     SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
+
+    const Polygons* getCombBoundaryInside() const
+    {
+        return &comb_boundary_inside;
+    }
+
 private:
     /*!
      * Compute the boundary within which to comb, or to move into when performing a retraction.
@@ -485,11 +491,12 @@ public:
      * \param polygons The lines
      * \param config The config of the lines
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
+     * \param enable_travel_optimization Whether to enable some potentially time consuming optimization of order the lines are printed to reduce the travel time required.
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

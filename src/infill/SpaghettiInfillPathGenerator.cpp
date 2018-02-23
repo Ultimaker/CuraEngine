@@ -61,7 +61,12 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
             {
                 added_something = true;
                 fff_gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
+                if (!infill_polygons.empty())
+                {
+                    constexpr bool force_comb_retract = false;
+                    gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
+                    gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
+                }
                 switch(pattern)
                 {
                     case EFillMethod::GRID:
@@ -71,24 +76,24 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
                     case EFillMethod::TETRAHEDRAL:
                     case EFillMethod::QUARTER_CUBIC:
                     case EFillMethod::CUBICSUBDIV:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
                         break;
                     case EFillMethod::CROSS:
                     case EFillMethod::CROSS_3D:
                         if (mesh.getSettingBoolean("zig_zaggify_infill"))
                         {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, 0, flow_ratio);
+                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
                         }
                         else
                         {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
+                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
                         }
                         break;
                     case EFillMethod::ZIG_ZAG:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, 0, flow_ratio);
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
                         break;
                     default:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, 0, flow_ratio);
+                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, 0, flow_ratio);
                         break;
                 }
             }

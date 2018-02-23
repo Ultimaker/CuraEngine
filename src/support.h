@@ -25,11 +25,25 @@ public:
     static bool handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer);
 
     /*!
-     * Generate the support areas and support skin areas for all models.
-     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     * \param layer_count total number of layers
+     * \brief Generate the overhang areas for all models.
+     * \param storage Data storage containing the input layer data and
+     * containing the output support storage per layer.
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
+    static void generateOverhangAreas(SliceDataStorage& storage);
+
+    /*!
+     * Generate the support areas and support skin areas for all models.
+     * \param storage Data storage containing the input layer outline data and
+     * containing the output support storage per layer.
+     */
+    static void generateSupportAreas(SliceDataStorage& storage);
+
+    /*!
+     * \brief Computes the base tree for cross infill of support.
+     * \param storage[in,out] Data storage containing the input support outlines
+     * and where to store the output tree.
+     */
+    static void precomputeCrossInfillTree(SliceDataStorage& storage);
 
     /*!
      * Generates all gradual support infill features.
@@ -50,7 +64,7 @@ public:
      * \param inset_count The number of perimeters to surround the support infill outline.
      * \param wall_line_width_x The wall line width in microns on the X axis.
      */
-    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, int inset_count, int wall_line_width_x);
+    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
 
 private:
     /*!
@@ -107,6 +121,17 @@ private:
     static void combineSupportInfillLayers(SliceDataStorage& storage);
 
     /*!
+     * \brief Generate the overhang areas and points for a specific mesh.
+     *
+     * This function also handles small overhang areas and single walls which
+     * would otherwise fall over. The anti_overhang areas are also taken into
+     * account.
+     * \param storage Data storage containing the input layer outlines.
+     * \param mesh The object for which to generate overhang areas.
+     */
+    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh);
+
+    /*!
      * Generate support polygons over all layers for one object.
      * 
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
@@ -124,7 +149,7 @@ private:
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      */
-    static void generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
+    static void generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, const size_t mesh_idx, const size_t layer_count, std::vector<Polygons>& support_areas);
 
     /*!
      * Generate support bottom areas for a given mesh.
@@ -206,18 +231,17 @@ private:
     static void moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
-     * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).
-     * \param storage input layer outline information
-     * \param overhang_points stores overhang_points of each layer
-     * \param layer_count total number of layers
-     * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
+     * Joins the layer part outlines of all meshes and collects the overhang
+     * points (small areas).
+     * \param storage Input layer outline information.
+     * \param mesh Output mesh to store the resulting overhang points in.
+     * \param minimum_diameter Diameter of the minimal area which can be
+     * supported without a specialised strut.
      */
     static void detectOverhangPoints(
         const SliceDataStorage& storage,
-        const SliceMeshStorage& mesh,
-        std::vector<std::vector<Polygons>>& overhang_points,
-        int layer_count,
-        int supportMinAreaSqrt
+        SliceMeshStorage& mesh,
+        const coord_t minimum_diameter
     );
     
     /*!

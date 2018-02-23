@@ -237,6 +237,9 @@ public:
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
     std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
+    std::vector<Polygons> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
+    std::vector<Polygons> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the areas of the next layers.
+    std::vector<std::vector<Polygons>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area, such as a corner pointing downwards.
     AABB3D bounding_box; //!< the mesh's bounding box
 
     SubDivCube* base_subdiv_cube;
@@ -260,6 +263,13 @@ public:
     bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
 
     /*!
+     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
+     * etc.)
+     * \return True if it's a mesh that gets printed.
+     */
+    bool isPrinted() const;
+
+    /*!
      * \return the mesh's user specified z seam hint
      */
     Point getZSeamHint() const;
@@ -270,7 +280,7 @@ class SliceDataStorage : public SettingsMessenger, NoCopy
 public:
     MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
 
-    unsigned int print_layer_count; //!< The total number of layers (except the raft and filler layers)
+    size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;

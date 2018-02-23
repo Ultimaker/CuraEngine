@@ -268,6 +268,11 @@ bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr, int layer_nr) const
     return false;
 }
 
+bool SliceMeshStorage::isPrinted() const
+{
+    return !getSettingBoolean("infill_mesh") && !getSettingBoolean("cutting_mesh") && !getSettingBoolean("anti_overhang_mesh") && !getSettingBoolean("support_mesh");
+}
+
 Point SliceMeshStorage::getZSeamHint() const
 {
     Point pos(getSettingInMicrons("z_seam_x"), getSettingInMicrons("z_seam_y"));
@@ -439,7 +444,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // support is presupposed to be present...
     for (const SliceMeshStorage& mesh : meshes)
     {
-        if (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_mesh"))
+        if (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_tree_enable") || mesh.getSettingBoolean("support_mesh"))
         {
             ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
             ret[getSettingAsIndex("support_infill_extruder_nr")] = true;

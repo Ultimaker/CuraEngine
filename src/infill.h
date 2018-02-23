@@ -104,10 +104,103 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
+    struct InfillLineSegment
+    {
+        /*!
+         * Creates a new infill line segment.
+         *
+         * The previous and next line segments will not yet be connected. You
+         * have to set those separately.
+         * \param start Where the line segment starts.
+         * \param end Where the line segment ends.
+         */
+        InfillLineSegment(const Point start, const size_t start_segment, const size_t start_polygon, const Point end, const size_t end_segment, const size_t end_polygon)
+            : start(start)
+            , start_segment(start_segment)
+            , start_polygon(start_polygon)
+            , end(end)
+            , end_segment(end_segment)
+            , end_polygon(end_polygon)
+            , previous(nullptr)
+            , next(nullptr)
+        {
+        };
+
+        /*!
+         * Where the line segment starts.
+         */
+        Point start;
+
+        /*!
+         * Which polygon line segment the start of this infill line belongs to.
+         *
+         * This is an index of a vertex in the PolygonRef that this infill line
+         * is inside. It is used to disambiguate between the start and end of
+         * the line segment.
+         */
+        size_t start_segment;
+
+        /*!
+         * Which polygon the start of this infill line belongs to.
+         *
+         * This is an index of a PolygonRef that this infill line
+         * is inside. It is used to know which polygon the start segment belongs to.
+         */
+        size_t start_polygon;
+
+        /*!
+         * Where the line segment ends.
+         */
+        Point end;
+
+        /*!
+         * Which polygon line segment the end of this infill line belongs to.
+         *
+         * This is an index of a vertex in the PolygonRef that this infill line
+         * is inside. It is used to disambiguate between the start and end of
+         * the line segment.
+         */
+        size_t end_segment;
+
+        /*!
+         * Which polygon the end of this infill line belongs to.
+         *
+         * This is an index of a PolygonRef that this infill line
+         * is inside. It is used to know which polygon the end segment belongs to.
+         */
+        size_t end_polygon;
+
+        /*!
+         * The previous line segment that this line segment is connected to, if
+         * any.
+         */
+        InfillLineSegment* previous;
+
+        /*!
+         * The next line segment that this line segment is connected to, if any.
+         */
+        InfillLineSegment* next;
+
+        /*!
+         * Compares two infill line segments for equality.
+         *
+         * This is necessary for putting line segments in a hash set.
+         * \param other The line segment to compare this line segment with.
+         */
+        bool operator ==(const InfillLineSegment& other) const;
+    };
+
+    /*!
+     * Stores the infill lines (a vector) for each line of a polygon (a vector)
+     * for each polygon in a Polygons object that we create a zig-zaggified
+     * infill pattern for.
+     */
+    std::vector<std::vector<std::vector<InfillLineSegment*>>> crossings_on_line;
+
     /*!
      * Generate sparse concentric infill
      * 
-     * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
+     * Also adds \ref Infill::perimeter_gaps between \ref Infill::in_outline and the first wall
      * 
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
@@ -296,6 +389,16 @@ private:
      * \return the distance the infill pattern should be shifted
      */
     int64_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+
+    /*!
+     * Connects infill lines together so that they form polylines.
+     *
+     * In most cases it will end up with only one long line that is more or less
+     * optimal. The lines are connected on their ends by extruding along the
+     * border of the infill area, similar to the zigzag pattern.
+     * \param[in/out] result_lines The lines to connect together.
+     */
+    void connectLines(Polygons& result_lines);
 };
 
 }//namespace cura

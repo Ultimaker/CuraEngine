@@ -1,4 +1,5 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 #include <stdio.h>
 
 #include <algorithm> // remove_if
@@ -794,7 +795,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 }
 
-Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching,
+Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t thickness, const size_t slice_layer_count, bool keep_none_closed, bool extensive_stitching,
                bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
@@ -854,7 +855,6 @@ Slicer::Slicer(Mesh* mesh, int initial_layer_thickness, int thickness, int slice
             int32_t z = layers.at(layer_nr).z;
 
             if (z < minZ) continue;
-            if (layer_nr < 0) continue;
 
             SlicerSegment s;
             s.endVertex = nullptr;

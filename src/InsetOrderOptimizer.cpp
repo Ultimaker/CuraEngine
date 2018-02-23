@@ -128,7 +128,9 @@ void InsetOrderOptimizer::processHoleInsets()
         const unsigned outer_poly_start_idx = order_optimizer.polyStart[0];
         start_point = (*inset_polys[0][0])[outer_poly_start_idx];
     }
-    PathOrderOptimizer order_optimizer(start_point, z_seam_config);
+    Polygons comb_boundary(*gcode_layer.getCombBoundaryInside());
+    comb_boundary.simplify(100, 100);
+    PathOrderOptimizer order_optimizer(start_point, z_seam_config, &comb_boundary);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);

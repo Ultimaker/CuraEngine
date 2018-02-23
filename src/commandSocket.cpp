@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/logoutput.h"
@@ -212,6 +212,7 @@ public:
      * CommandSocket layer message storage.
      */
     void flushPathSegments();
+
     /*!
      * Move the current point of this path to \position.
      */
@@ -237,6 +238,7 @@ private:
         points.push_back(INT2MM(point.Y));
         last_point = point;
     }
+
     /*!
      * Implements the functionality of adding a single 2D line segment to the path data. All member functions adding a 2D line segment should use this functions.
      */

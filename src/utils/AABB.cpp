@@ -58,6 +58,11 @@ void AABB::calculate(ConstPolygonRef poly)
     }
 }
 
+bool AABB::contains(const Point& point) const
+{
+    return point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
+}
+
 bool AABB::hit(const AABB& other) const
 {
     if (max.X < other.min.X) return false;
@@ -85,6 +90,18 @@ void AABB::expand(int dist)
     min.Y -= dist;
     max.X += dist;
     max.Y += dist;
+}
+
+void AABB::round(const coord_t increment)
+{
+    if (increment <= 1) //If rounding to single microns we don't have to do anything. Anything lower than that doesn't make sense so ignore that.
+    {
+        return;
+    }
+    min.X = (min.X - (min.X >= 0) * (increment - 1)) / increment * increment; //Round the min vector towards negative.
+    min.Y = (min.Y - (min.Y >= 0) * (increment - 1)) / increment * increment;
+    max.X = (max.X + (max.X >= 0) * (increment - 1)) / increment * increment; //Round the max vector towards positive.
+    max.Y = (max.Y + (max.Y >= 0) * (increment - 1)) / increment * increment;
 }
 
 Polygon AABB::toPolygon() const

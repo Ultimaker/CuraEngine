@@ -11,18 +11,24 @@ if (ENABLE_ARCUS)
     add_definitions(-DARCUS)
 endif ()
 
+
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 
 if(USE_SYSTEM_LIBS)
     set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
     find_package(RapidJSON CONFIG REQUIRED)
     find_package(Polyclipping REQUIRED)
+
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_DEBUG_INIT})
+else()
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE_INIT})
 endif()
 
 if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
     set(CMAKE_CXX_STANDARD 11)
 else()
-    set(CMAKE_CXX_FLAGS "-std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -47,8 +53,14 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     add_definitions(-DDEBUG)
 endif()
 
-# Add warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
+
+option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
+    "Enable more optimization flags" ON)
+if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
+    message (STATUS "Compile with more optimization flags")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
+endif ()
 
 if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
@@ -103,6 +115,7 @@ set(engine_SRCS # Except main.cpp.
     src/support.cpp
     src/timeEstimate.cpp
     src/TopSurface.cpp
+    src/TreeSupport.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
@@ -139,13 +152,14 @@ set(engine_SRCS # Except main.cpp.
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
+    src/utils/MinimumSpanningTree.cpp
     src/utils/PolygonsPointIndex.cpp
     src/utils/PolygonProximityLinker.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
-    src/utils/SpaceFillingTree.cpp
     src/utils/socket.cpp
+    src/utils/SpaceFillingTree.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
@@ -159,11 +173,12 @@ set(engine_TEST_UTILS
     PolygonUtilsTest
     PolygonTest
     StringTest
+    UnionFindTest
 )
 
 # Generating ProtoBuf protocol
 if (ENABLE_ARCUS)
-protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 # Compiling CuraEngine itself.
@@ -181,11 +196,28 @@ endif ()
 
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
+if(WIN32)
+  message(STATUS "Using windres")
+  set(RES_FILES "CuraEngine.rc")
+  set(CMAKE_RC_COMPILER_INIT windres)
+  ENABLE_LANGUAGE(RC)
+  SET(CMAKE_RC_COMPILE_OBJECT
+      "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
+      )
+endif(WIN32)
+
 if (UNIX)
     target_link_libraries(_CuraEngine pthread)
 endif()
-add_executable(CuraEngine src/main.cpp) #Then compile main.cpp as separate executable, and link the library to it.
+
+if (NOT WIN32)
+  add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
+else()
+  add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
+endif(NOT WIN32)
+
 target_link_libraries(CuraEngine _CuraEngine)
+set_target_properties(CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
 # Compiling the test environment.
 if (BUILD_TESTS)

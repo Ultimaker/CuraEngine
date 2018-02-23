@@ -126,8 +126,13 @@ public:
 
 };
 
-static Point3 no_point3(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
-    
+/*!
+ * \brief Placeholder coordinate point (3D).
+ *
+ * Its value is something that is rarely used.
+ */
+static Point3 no_point3(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
+
 inline Point3 operator*(const int32_t i, const Point3& rhs) {
     return rhs * i;
 }
@@ -138,7 +143,7 @@ inline Point3 operator*(const double d, const Point3& rhs) {
 
 using coord_t = ClipperLib::cInt;
 
-/* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
+/* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
 
 class IntPoint {
@@ -149,7 +154,7 @@ public:
 #define POINT_MIN std::numeric_limits<ClipperLib::cInt>::min()
 #define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
 
-static Point no_point(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
+static Point no_point(std::numeric_limits<ClipperLib::cInt>::min(), std::numeric_limits<ClipperLib::cInt>::min());
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
 INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
@@ -210,6 +215,14 @@ INLINE Point turn90CCW(const Point& p0)
 {
     return Point(-p0.Y, p0.X);
 }
+
+INLINE Point rotate(const Point& p0, double angle)
+{
+    const double cos_component = std::cos(angle);
+    const double sin_component = std::sin(angle);
+    return Point(cos_component * p0.X - sin_component * p0.Y, sin_component * p0.X + cos_component * p0.Y);
+}
+
 INLINE int64_t dot(const Point& p0, const Point& p1)
 {
     return p0.X * p1.X + p0.Y * p1.Y;
