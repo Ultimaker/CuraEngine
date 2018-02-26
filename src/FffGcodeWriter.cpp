@@ -1989,7 +1989,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     {
         support_pattern = EFillMethod::GRID;
     }
-    const bool zig_zaggify_infill = support_pattern == EFillMethod::ZIG_ZAG || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D;
+    const bool zig_zaggify_infill = infill_extruder.getSettingBoolean("zig_zaggify_support");
     const bool skip_some_zags = infill_extruder.getSettingBoolean("support_skip_some_zags");
     const int zag_skip_count = infill_extruder.getSettingAsCount("support_zag_skip_count");
 
@@ -2056,7 +2056,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here /= 2;
                 }
 
-                const int offset_from_outline = 0;
+                constexpr int offset_from_outline = 0;
 
                 bool use_endpieces = true;
                 Polygons* perimeter_gaps = nullptr;

@@ -176,6 +176,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";PRINT.TIME:" << static_cast<int>(*print_time) << new_line;
         }
 
+        if (total_bounding_box.min.x > total_bounding_box.max.x) //We haven't encountered any movement (yet). This probably means we're command-line slicing.
+        {
+            //Put some small default in there.
+            total_bounding_box.min = Point3(0, 0, 0);
+            total_bounding_box.max = Point3(10, 10, 10);
+        }
         prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box.min.x) << new_line;
         prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box.min.y) << new_line;
         prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box.min.z) << new_line;

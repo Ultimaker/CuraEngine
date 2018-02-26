@@ -9,7 +9,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define INLINE static inline
 
 //Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include <clipper/clipper.hpp>
+#include <clipper.hpp>
 
 #include <limits>
 #include <stdint.h>
@@ -143,7 +143,7 @@ inline Point3 operator*(const double d, const Point3& rhs) {
 
 using coord_t = ClipperLib::cInt;
 
-/* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
+/* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
 
 class IntPoint {
