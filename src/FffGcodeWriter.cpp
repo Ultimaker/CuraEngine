@@ -1437,7 +1437,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     outlines_below.add(prevLayerPart.outline);
                 }
             }
-            const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth();
+            const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
             // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
             outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
             // max_air_gap is the max allowed width of the unsupported region below the wall line
