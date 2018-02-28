@@ -295,7 +295,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
             // start purging away from middle to prevent tower in the middle of the purge tower
             const Point purge_move = prime_start - middle;
             const coord_t purge_dist = vSize(purge_move);
-            coord_t pre_move_dist = std::min(start_dist, purge_dist / 3); // avoid middle by twice the nozzle size, but shorten the purge move by at most a third
+            coord_t pre_move_dist = purge_dist / 4; // shorten the purge move by a third
             Point purge_start = middle + normal(purge_move, pre_move_dist);
             gcode_layer.addTravel(purge_start);
 
