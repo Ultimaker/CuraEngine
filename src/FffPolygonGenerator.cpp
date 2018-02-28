@@ -106,11 +106,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     if (use_variable_layer_heights)
     {
         // Calculate adaptive layer heights
-        Mesh& mesh = meshgroup->meshes.front();
         coord_t variable_layer_height_max_variation = getSettingInMicrons("adaptive_layer_height_variation");
         coord_t variable_layer_height_variation_step = getSettingInMicrons("adaptive_layer_height_variation_step");
         double adaptive_threshold = getSettingInAngleDegrees("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(&mesh, layer_thickness, initial_layer_thickness,
+        adaptive_layer_heights = new AdaptiveLayerHeights(meshgroup, layer_thickness, initial_layer_thickness,
                                                           variable_layer_height_max_variation,
                                                           variable_layer_height_variation_step, adaptive_threshold);
 

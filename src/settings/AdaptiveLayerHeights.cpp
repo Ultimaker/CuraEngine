@@ -14,10 +14,10 @@ AdaptiveLayer::AdaptiveLayer(int layer_height)
     this->layer_height = layer_height;
 }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(Mesh* mesh, int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
+AdaptiveLayerHeights::AdaptiveLayerHeights(MeshGroup* mesh_group, int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
 {
     // store the required parameters
-    this->mesh = mesh;
+    this->mesh_group = mesh_group;
     this->layer_height = layer_thickness;
     this->initial_layer_height = initial_layer_thickness;
     this->max_variation = static_cast<int>(variation);
@@ -58,7 +58,7 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
 void AdaptiveLayerHeights::calculateLayers()
 {
     const int minimum_layer_height = *std::min_element(this->allowed_layer_heights.begin(), this->allowed_layer_heights.end());
-    SlicingTolerance slicing_tolerance = this->mesh->getSettingAsSlicingTolerance("slicing_tolerance");
+    SlicingTolerance slicing_tolerance = this->mesh_group->getSettingAsSlicingTolerance("slicing_tolerance");
     std::vector<int> triangles_of_interest;
     int z_level = 0;
     int previous_layer_height = 0;
@@ -190,38 +190,47 @@ void AdaptiveLayerHeights::calculateLayers()
 void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
 {
     // loop over all mesh faces (triangles) and find their slopes
-    for (const auto &face : this->mesh->faces)
+    for (const auto& mesh : this->mesh_group->meshes)
     {
-        const MeshVertex& v0 = this->mesh->vertices[face.vertex_index[0]];
-        const MeshVertex& v1 = this->mesh->vertices[face.vertex_index[1]];
-        const MeshVertex& v2 = this->mesh->vertices[face.vertex_index[2]];
-
-        FPoint3 p0 = v0.p;
-        FPoint3 p1 = v1.p;
-        FPoint3 p2 = v2.p;
-
-        float minZ = p0.z;
-        float maxZ = p0.z;
-
-        if (p1.z < minZ) minZ = p1.z;
-        if (p2.z < minZ) minZ = p2.z;
-        if (p1.z > maxZ) maxZ = p1.z;
-        if (p2.z > maxZ) maxZ = p2.z;
-
-        // calculate the angle of this triangle in the z direction
-        FPoint3 n = FPoint3(p1 - p0).cross(p2 - p0);
-        FPoint3 normal = n.normalized();
-        double z_angle = std::acos(std::abs(normal.z));
-
-        // prevent flat surfaces from influencing the algorithm
-        if (z_angle == 0)
+        // Skip meshes that are not printable
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
         {
-            z_angle = M_PI;
+            continue;
         }
 
-        this->face_min_z_values.push_back(minZ * 1000);
-        this->face_max_z_values.push_back(maxZ * 1000);
-        this->face_slopes.push_back(z_angle);
+        for (const auto &face : mesh.faces)
+        {
+            const MeshVertex& v0 = mesh.vertices[face.vertex_index[0]];
+            const MeshVertex& v1 = mesh.vertices[face.vertex_index[1]];
+            const MeshVertex& v2 = mesh.vertices[face.vertex_index[2]];
+
+            FPoint3 p0 = v0.p;
+            FPoint3 p1 = v1.p;
+            FPoint3 p2 = v2.p;
+
+            float minZ = p0.z;
+            float maxZ = p0.z;
+
+            if (p1.z < minZ) minZ = p1.z;
+            if (p2.z < minZ) minZ = p2.z;
+            if (p1.z > maxZ) maxZ = p1.z;
+            if (p2.z > maxZ) maxZ = p2.z;
+
+            // calculate the angle of this triangle in the z direction
+            FPoint3 n = FPoint3(p1 - p0).cross(p2 - p0);
+            FPoint3 normal = n.normalized();
+            double z_angle = std::acos(std::abs(normal.z));
+
+            // prevent flat surfaces from influencing the algorithm
+            if (z_angle == 0)
+            {
+                z_angle = M_PI;
+            }
+
+            this->face_min_z_values.push_back(minZ * 1000);
+            this->face_max_z_values.push_back(maxZ * 1000);
+            this->face_slopes.push_back(z_angle);
+        }
     }
 }
 
