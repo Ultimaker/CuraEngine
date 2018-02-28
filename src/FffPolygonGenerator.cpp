@@ -673,6 +673,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
+        if (mesh.getSettingBoolean("infill_support_enabled"))
+        {// create gradual infill areas
+            SkinInfillAreaComputation::generateInfillSupport(mesh);
+        }
+
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 

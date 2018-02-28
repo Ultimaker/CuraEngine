@@ -446,6 +446,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     else
     {
         part.infill_area = final_infill;
+        part.infill_area = final_infill;
     }
 }
 
@@ -492,6 +493,45 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             }
             skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
             skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+        }
+    }
+}
+
+void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
+{
+    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
+    const double support_angle = mesh.getSettingInAngleRadians("infill_support_angle");
+    const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
+    const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
+
+    for (int layer_idx = mesh.layers.size() - 2; layer_idx >= 0; layer_idx--)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        SliceLayer& layer_above = mesh.layers[layer_idx + 1];
+        
+        Polygons inside_above;
+        Polygons infill_above;
+        for (SliceLayerPart& part_above : layer_above.parts)
+        {
+            inside_above.add(part_above.infill_area);
+            infill_above.add(part_above.getOwnInfillArea());
+        }
+
+        for (SliceLayerPart& part : layer.parts)
+        {
+            const Polygons& infill_area = part.infill_area;
+            if (infill_area.empty())
+            {
+                continue;
+            }
+
+            const Polygons unsupported = infill_area.offset(-max_dist_from_lower_layer);
+            const Polygons basic_overhang = unsupported.difference(inside_above);
+            const Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +100 for easier joining with support from layer above
+            const Polygons full_overhang = overhang_extented.difference(inside_above);
+            const Polygons infill_support = infill_above.unionPolygons(full_overhang);
+
+            part.infill_area_own = infill_support.intersection(part.getOwnInfillArea());
         }
     }
 }
