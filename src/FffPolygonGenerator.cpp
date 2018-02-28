@@ -303,10 +303,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     if (isEmptyLayer(storage, 0) && !isEmptyLayer(storage, 1))
     {
-        // the first layer is empty, the second is not empty, this can occur when the slicing tolerance is not inclusive.
-        // so remove the empty first layer as support isn't going to be generated under it.
+        // the first layer is empty, the second is not empty, so remove the empty first layer as support isn't going to be generated under it.
         // Do this irrespective of the value of remove_empty_first_layers as that setting is hidden when support is enabled and so cannot be relied upon
-        removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height_0"), getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
+
+        removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
     }
 
     log("Layer count: %i\n", storage.print_layer_count);
@@ -324,10 +324,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
     // only remove empty layers if we haven't generate support, because then support was added underneath the model.
-    //   for some materials it's better to print on support than on the buildplate.
+    //   for some materials it's better to print on support than on the build plate.
     if (getSettingBoolean("remove_empty_first_layers"))
     {
-        removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height_0"), getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
+        removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
     }
     if (storage.print_layer_count == 0)
     {
@@ -785,7 +785,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     return true;
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height_0, const int layer_height, size_t& total_layers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, size_t& total_layers)
 {
     int n_empty_first_layers = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
@@ -804,12 +804,11 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         log("Removing %d layers because they are empty\n", n_empty_first_layers);
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            const int deltaZ = layer_height_0 + layer_height * (n_empty_first_layers - 1);
             std::vector<SliceLayer>& layers = mesh.layers;
             layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
             for (SliceLayer& layer : layers)
             {
-                layer.printZ -= deltaZ;
+                layer.printZ -= n_empty_first_layers * layer_height;
             }
             mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
         }
