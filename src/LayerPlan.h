@@ -497,9 +497,11 @@ public:
      * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param flow The ratio with which to multiply the extrusion amount
-     * \param non_bridge_length_so_far The length of non-bridge lines that have preceeded this line
+     * \param non_bridge_line_volume A pseudo-volume that is derived from the print speed and flow of the non-bridge lines that have preceeded this line
+     * \param speed_factor This modifies the print speed when accelerating after a bridge line
+     * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
      */
-    void addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_length_so_far);
+    void addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start);
 
     /*!
      * Add a wall (a polygon) to the gcode starting at vertex \p startIdx
