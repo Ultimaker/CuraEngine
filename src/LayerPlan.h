@@ -265,7 +265,7 @@ private:
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
-    Polygons air_below_part; //!< The regions of a layer part that are not supported, used for bridging
+    Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
     
@@ -413,13 +413,13 @@ public:
     }
 
     /*!
-     * Set air_below_part.
+     * Set bridge_wall_mask.
      *
-     * \param polys The unsupported areas of the part currently being processed.
+     * \param polys The unsupported areas of the part currently being processed that will require bridges.
      */
-    void setAirBelowPart(const Polygons& polys)
+    void setBridgeWallMask(const Polygons& polys)
     {
-        air_below_part = polys;
+        bridge_wall_mask = polys;
     }
 
     
@@ -503,9 +503,11 @@ public:
      * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param flow The ratio with which to multiply the extrusion amount
-     * \param non_bridge_length_so_far The length of non-bridge lines that have preceeded this line
+     * \param non_bridge_line_volume A pseudo-volume that is derived from the print speed and flow of the non-bridge lines that have preceeded this line
+     * \param speed_factor This modifies the print speed when accelerating after a bridge line
+     * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
      */
-    void addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_length_so_far);
+    void addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start);
 
     /*!
      * Add a wall (a polygon) to the gcode starting at vertex \p startIdx
