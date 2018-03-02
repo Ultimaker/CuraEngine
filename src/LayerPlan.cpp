@@ -600,9 +600,9 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     // make sure wall start point is not above air!
-    if (!air_below_part.empty()) {
+    if (!bridge_wall_mask.empty()) {
         int count = wall.size(); // avoid infinite loop if none of the points are above a solid region
-        while (count-- > 0 && air_below_part.inside(wall[start_idx], true))
+        while (count-- > 0 && bridge_wall_mask.inside(wall[start_idx], true))
         {
             if (++start_idx >= (int)wall.size())
             {

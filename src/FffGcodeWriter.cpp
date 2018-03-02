@@ -1455,12 +1455,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
             // which is required because when the walls are being generated, the vertices do not fall on the part's outline
             // but, instead, are 1/2 a line width inset from the outline
-            gcode_layer.setAirBelowPart(compressed_air.offset(max_air_gap + half_outer_wall_width));
+            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
         }
         else
         {
             // clear to disable use of bridging settings
-            gcode_layer.setAirBelowPart(Polygons());
+            gcode_layer.setBridgeWallMask(Polygons());
         }
 
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
