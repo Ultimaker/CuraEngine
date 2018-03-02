@@ -193,7 +193,7 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
     for (const auto& mesh : this->mesh_group->meshes)
     {
         // Skip meshes that are not printable
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             continue;
         }
