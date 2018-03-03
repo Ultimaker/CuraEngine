@@ -1768,22 +1768,36 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
     int bridge = -1;
+    bool use_bridge_config2 = false;
+    const unsigned layer_nr = gcode_layer.getLayerNr();
+    coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons supportedSkinPartRegions;
     {
         // calculate bridging angle
-        if (gcode_layer.getLayerNr() > 0)
+        if (layer_nr > 0)
         {
-            bridge = bridgeAngle(skin_part.outline, &mesh.layers[gcode_layer.getLayerNr() - 1], supportedSkinPartRegions);
+            bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], supportedSkinPartRegions);
         }
         if (bridge > -1)
         {
             pattern = EFillMethod::LINES; // force lines pattern when bridging
             skin_angle = bridge;
         }
+        else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_settings_enabled") && mesh.getSettingBoolean("bridge_modify_skins_above"))
+        {
+            // if this is the second or third bridge layer use bridge_skin_config2
+            Polygons unused;
+            if (bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], unused) > -1 ||
+                (layer_nr > 2 && bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], unused) > -1))
+            {
+                use_bridge_config2 = true;
+                pattern = EFillMethod::ZIG_ZAG; // force zigzag pattern on upper bridge skins
+                skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.bridge_skin_config2.getLineWidth() / 4)); // force a minimum amount of skin_overlap
+            }
+        }
     }
 
     // calculate polygons and lines
-    const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
 
     bool use_bridge_config = false;
@@ -1796,7 +1810,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             use_bridge_config = true;
         }
     }
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, (use_bridge_config) ? mesh_config.bridge_skin_config : mesh_config.skin_config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, (use_bridge_config2) ? mesh_config.bridge_skin_config2 : (use_bridge_config) ? mesh_config.bridge_skin_config : mesh_config.skin_config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, Polygons* perimeter_gaps_output, bool& added_something) const

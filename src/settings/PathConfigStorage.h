@@ -40,7 +40,8 @@ public:
         GCodePathConfig bridge_inset0_config;
         GCodePathConfig bridge_insetX_config;
         GCodePathConfig skin_config;
-        GCodePathConfig bridge_skin_config;
+        GCodePathConfig bridge_skin_config;  // used for first bridge layer
+        GCodePathConfig bridge_skin_config2; // used for second and third bridge layers
         GCodePathConfig roofing_config;
         std::vector<GCodePathConfig> infill_config;
         GCodePathConfig ironing_config;
