@@ -1810,6 +1810,17 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 pattern = EFillMethod::ZIG_ZAG; // force zigzag pattern on upper bridge skins
                 skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.bridge_skin_config2.getLineWidth() / 4)); // force a minimum amount of skin_overlap
             }
+            else if (layer_nr > 2)
+            {
+                // if this is the third bridge layer, use the same skin_angle as the first with the normal skin config
+                Polygons supportedSkinPartRegions3;
+                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], supportedSkinPartRegions3);
+                if (bridge3 > -1)
+                {
+                    skin_angle = bridge3;
+                    pattern = EFillMethod::ZIG_ZAG; // force zigzag pattern on upper bridge skins
+                }
+            }
         }
     }
 
