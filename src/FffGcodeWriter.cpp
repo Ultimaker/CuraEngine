@@ -1777,7 +1777,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize");
 
-    EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
+    const unsigned layer_nr = gcode_layer.getLayerNr();
+
+    EFillMethod pattern = (layer_nr == 0)?
         mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
         mesh.getSettingAsFillMethod("top_bottom_pattern");
 
@@ -1785,37 +1787,51 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     bool skin_alternate_rotation = mesh.getSettingBoolean("skin_alternate_rotation") && (mesh.getSettingAsCount("top_layers") >= 4 || mesh.getSettingAsCount("bottom_layers") >= 4 );
     if (mesh.skin_angles.size() > 0)
     {
-        skin_angle = mesh.skin_angles.at(gcode_layer.getLayerNr() % mesh.skin_angles.size());
+        skin_angle = mesh.skin_angles.at(layer_nr % mesh.skin_angles.size());
     }
-    if (skin_alternate_rotation && ( gcode_layer.getLayerNr() / 2 ) & 1)
+    if (skin_alternate_rotation && (layer_nr / 2 ) & 1)
     {
         skin_angle -= 45;
     }
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
     int bridge = -1;
+    bool use_bridge_config = false;
     bool use_bridge_config2 = false;
-    const unsigned layer_nr = gcode_layer.getLayerNr();
     coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons supportedSkinPartRegions;
+
+    // calculate bridging angle
+    if (layer_nr > 0)
     {
-        // calculate bridging angle
-        if (layer_nr > 0)
-        {
-            bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], supportedSkinPartRegions);
-        }
-        if (bridge > -1)
+        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], supportedSkinPartRegions);
+    }
+    if (bridge > -1)
+    {
+        pattern = EFillMethod::LINES; // force lines pattern when bridging
+        skin_angle = bridge;
+        use_bridge_config = mesh.getSettingBoolean("bridge_settings_enabled");
+    }
+    else if (layer_nr > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+    {
+        // if the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
+        if ((supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
         {
             pattern = EFillMethod::LINES; // force lines pattern when bridging
-            skin_angle = bridge;
+            use_bridge_config = true;
         }
-        else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_settings_enabled") && mesh.getSettingBoolean("bridge_modify_skins_above"))
+        else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_process_second_skin"))
         {
-            // if this is the second or third bridge layer use bridge_skin_config2
-            Polygons unused;
-            if (bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], unused) > -1 ||
-                (layer_nr > 2 && bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], unused) > -1))
+            // if this is the second bridge layer use bridge_skin_config2
+            Polygons supportedSkinPartRegions2;
+            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], supportedSkinPartRegions2);
+            if (bridge2 > -1 || (supportedSkinPartRegions2.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
             {
+                if (bridge2 > -1)
+                {
+                    // orientate second bridge skin at 90 deg to first
+                    skin_angle = (bridge2 + 90) % 360;
+                }
                 use_bridge_config2 = true;
                 pattern = EFillMethod::ZIG_ZAG; // force zigzag pattern on upper bridge skins
                 skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.bridge_skin_config2.getLineWidth() / 4)); // force a minimum amount of skin_overlap
@@ -1826,16 +1842,6 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
 
-    bool use_bridge_config = false;
-    if (gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
-    {
-        // if a bridge angle has been calculated or the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
-        if (bridge > -1 || (supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
-        {
-            pattern = EFillMethod::LINES; // force lines pattern when bridging
-            use_bridge_config = true;
-        }
-    }
     processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, (use_bridge_config2) ? mesh_config.bridge_skin_config2 : (use_bridge_config) ? mesh_config.bridge_skin_config : mesh_config.skin_config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
 }
 
