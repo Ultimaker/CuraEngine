@@ -69,6 +69,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("bridge_wall_material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0")}
     , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed")
 )
 , bridge_insetX_config(
     PrintFeatureType::InnerWall
@@ -77,6 +78,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("bridge_wall_material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
     , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed")
 )
 , skin_config(
     PrintFeatureType::Skin
@@ -92,6 +94,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("bridge_skin_material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
     , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed")
 )
 , bridge_skin_config2(
     PrintFeatureType::Skin
@@ -100,6 +103,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
     , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed_2")
 )
 , roofing_config(
     PrintFeatureType::Skin

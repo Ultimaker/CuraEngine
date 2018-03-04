@@ -14,12 +14,13 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 , flow(other.flow)
 , extrusion_mm3_per_mm(other.extrusion_mm3_per_mm)
 , is_bridge_path(other.is_bridge_path)
+, fan_speed(other.fan_speed)
 {
 }
 
 
 
-GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, bool is_bridge_path)
+GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, bool is_bridge_path, double fan_speed)
 : type(type)
 , speed_derivatives(speed_derivatives)
 , line_width(line_width)
@@ -27,6 +28,7 @@ GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int laye
 , flow(flow)
 , extrusion_mm3_per_mm(calculateExtrusion())
 , is_bridge_path(is_bridge_path)
+, fan_speed(fan_speed)
 {
 }
 
@@ -81,6 +83,11 @@ bool GCodePathConfig::isTravelPath() const
 bool GCodePathConfig::isBridgePath() const
 {
     return is_bridge_path;
+}
+
+double GCodePathConfig::getFanSpeed() const
+{
+    return fan_speed;
 }
 
 double GCodePathConfig::getFlowPercentage() const

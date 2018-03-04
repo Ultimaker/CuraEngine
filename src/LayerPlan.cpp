@@ -1183,8 +1183,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         bool update_extrusion_offset = true;
 
-        GCodePath* end_bridge_fan_after = nullptr;
-
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
@@ -1267,22 +1265,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {
-                if (path.config->isBridgePath() && end_bridge_fan_after == nullptr)
-                {
-                    const double bridge_fan_speed = train->getSettingInPercentage("bridge_fan_speed");
-                    if (bridge_fan_speed != extruder_plan.getFanSpeed())
-                    {
-                        gcode.writeFanCommand(bridge_fan_speed);
-                        // remember the last bridge path so we can reset the fan speed after it has been processed
-                        for (unsigned int pi = path_idx; pi < paths.size(); ++pi)
-                        {
-                            if (paths[pi].config->isBridgePath())
-                            {
-                                end_bridge_fan_after = &paths[pi];
-                            }
-                        }
-                    }
-                }
+                // if path provides a valid (in range 0-100) fan speed, use it
+                const double path_fan_speed = path.config->getFanSpeed();
+                gcode.writeFanCommand(path_fan_speed >= 0 ? path_fan_speed : extruder_plan.getFanSpeed());
+
                 const CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 
                 if (coasting)
@@ -1314,11 +1300,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                         }
                     }
-                }
-                if (end_bridge_fan_after == &path)
-                {
-                    // reset fan speed back to normal
-                    gcode.writeFanCommand(extruder_plan.getFanSpeed());
                 }
             }
             else
