@@ -100,8 +100,8 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
     , layer_thickness
-    , mesh.getSettingInPercentage("material_flow")
-    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    , mesh.getSettingInPercentage("bridge_skin_material_flow_2")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed_2"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
     , true // is_bridge_path
     , mesh.getSettingInPercentage("bridge_fan_speed_2")
 )
