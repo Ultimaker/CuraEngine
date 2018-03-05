@@ -1467,20 +1467,24 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
 
             // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+
             outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
             // max_air_gap is the max allowed width of the unsupported region below the wall line
             // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
             // it can be from 0 to 1/2 the outer wall line width
+
             const int max_air_gap = half_outer_wall_width * mesh.getSettingInPercentage("bridge_wall_max_overhang") / 100;
 
             // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
             // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
+
             Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
             // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
             // which is required because when the walls are being generated, the vertices do not fall on the part's outline
             // but, instead, are 1/2 a line width inset from the outline
+
             gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
         }
         else
