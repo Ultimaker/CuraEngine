@@ -1106,7 +1106,11 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
     if (support_layer.anti_overhang.size())
     {
-        basic_overhang = basic_overhang.difference(support_layer.anti_overhang);
+        // Merge anti overhang into one polygon, otherwise overlapping polygons
+        // will create opposite effect.
+        Polygons merged_polygons = support_layer.anti_overhang.unionPolygons();
+        
+        basic_overhang = basic_overhang.difference(merged_polygons);
     }
 
 //     Polygons support_extension = basic_overhang.offset(max_dist_from_lower_layer);
