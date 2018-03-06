@@ -490,8 +490,13 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             // if a bridge is present in this wall, this particular segment may need to be partially or wholely coasted
             if (distance_to_bridge_start > 0)
             {
-                // coast distance is proportional to distance, speed and flow of non-bridge segments just printed
-                const double coast_dist = std::min(non_bridge_line_volume, 100000.0f) * bridge_wall_coast / 5000;
+                // speed_flow_factor approximates how the extrusion rate alters between the non-bridge wall line and the following bridge wall line
+                // if the extrusion rates are the same, its value will be 1, if the bridge config extrusion rate is < the non-bridge config extrusion rate, the value is < 1
+
+                const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
+
+                // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
+                const double coast_dist = std::min(non_bridge_line_volume, 100000.0f) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
