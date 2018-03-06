@@ -188,6 +188,7 @@ set(engine_TEST
 )
 set(engine_TEST_INFILL
     SierpinskiFillTest
+    FractalInfillTest
 )
 set(engine_TEST_SETTINGS
     SettingsTest

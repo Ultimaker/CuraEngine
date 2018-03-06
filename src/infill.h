@@ -7,6 +7,7 @@
 #include "utils/polygon.h"
 #include "settings/Settings.h"
 #include "settings/types/AngleDegrees.h"
+#include "infill/InfillFractal.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"
