@@ -1454,6 +1454,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         if (!spiralize && gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
         {
             // accumulate the outlines of all of the parts that are on the layer below
+
             Polygons outlines_below;
             AABB boundaryBox(part.outline);
             for(auto prevLayerPart : mesh.layers[gcode_layer.getLayerNr() - 1].parts)
@@ -1461,6 +1462,41 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 if (boundaryBox.hit(prevLayerPart.boundaryBox))
                 {
                     outlines_below.add(prevLayerPart.outline);
+                }
+            }
+
+            // if support is enabled, add the support outlines also so we don't generate bridges over support
+
+            if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
+            {
+                const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+                const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+                const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+                const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
+
+                if (support_layer_nr > 0)
+                {
+                    const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+
+                    if (!support_layer.support_roof.empty())
+                    {
+                        AABB support_roof_bb(support_layer.support_roof);
+                        if (boundaryBox.hit(support_roof_bb))
+                        {
+                            outlines_below.add(support_layer.support_roof);
+                        }
+                    }
+                    else
+                    {
+                        for (auto support_part : support_layer.support_infill_parts)
+                        {
+                            AABB support_part_bb(support_part.getInfillArea());
+                            if (boundaryBox.hit(support_part_bb))
+                            {
+                                outlines_below.add(support_part.getInfillArea());
+                            }
+                        }
+                    }
                 }
             }
 
