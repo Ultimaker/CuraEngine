@@ -105,6 +105,15 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , true // is_bridge_path
     , mesh.getSettingInPercentage("bridge_fan_speed_2")
 )
+, bridge_skin_config3( // use bridge skin 3 flow, speed and fan
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_skin_material_flow_3")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed_3"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed_3")
+)
 , roofing_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("roofing_line_width")
