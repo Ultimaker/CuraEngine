@@ -817,7 +817,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         }
         else if (extruder_plan_idx == 0 && layer_nr != 0 && storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("retract_at_layer_change"))
         {
-            gcode.writeRetraction(retraction_config);
+            // only do the retract if the paths are not spiralized
+            if (!storage.getSettingBoolean("magic_spiralize"))
+            {
+                gcode.writeRetraction(retraction_config);
+            }
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
