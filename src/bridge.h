@@ -6,7 +6,7 @@ namespace cura {
     class Polygons;
     class SliceLayer;
 
-int bridgeAngle(Polygons outline, const SliceLayer* prevLayer);
+int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, Polygons& supportedRegions);
 
 }//namespace cura
 

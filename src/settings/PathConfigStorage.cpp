@@ -62,12 +62,57 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , (layer_nr == 0)? mesh.getSettingInPercentage("material_flow_layer_0") : mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
 )
+, bridge_inset0_config(
+    PrintFeatureType::OuterWall
+    , mesh.getSettingInMicrons("wall_line_width_0") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_wall_material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0")}
+    , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed")
+)
+, bridge_insetX_config(
+    PrintFeatureType::InnerWall
+    , mesh.getSettingInMicrons("wall_line_width_x") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_wall_material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_wall_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x")}
+    , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed")
+)
 , skin_config(
     PrintFeatureType::Skin
     , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
     , layer_thickness
     , (layer_nr == 0)? mesh.getSettingInPercentage("material_flow_layer_0") : mesh.getSettingInPercentage("material_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+)
+, bridge_skin_config( // use bridge skin flow, speed and fan
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_skin_material_flow")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed")
+)
+, bridge_skin_config2( // use bridge skin 2 flow, speed and fan
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_skin_material_flow_2")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed_2"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed_2")
+)
+, bridge_skin_config3( // use bridge skin 3 flow, speed and fan
+    PrintFeatureType::Skin
+    , mesh.getSettingInMicrons("skin_line_width") * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")]
+    , layer_thickness
+    , mesh.getSettingInPercentage("bridge_skin_material_flow_3")
+    , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("bridge_skin_speed_3"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom")}
+    , true // is_bridge_path
+    , mesh.getSettingInPercentage("bridge_fan_speed_3")
 )
 , roofing_config(
     PrintFeatureType::Skin

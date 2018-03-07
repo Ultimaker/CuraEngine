@@ -5,7 +5,7 @@
 
 namespace cura {
 
-int bridgeAngle(Polygons outline, const SliceLayer* prevLayer)
+int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, Polygons& supportedRegions)
 {
     AABB boundaryBox(outline);
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
@@ -18,6 +18,7 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer)
         
         islands.add(outline.intersection(prevLayerPart.outline));
     }
+    supportedRegions = islands;
     if (islands.size() > 5 || islands.size() < 1)
         return -1;
     

@@ -1449,6 +1449,85 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
             }
         }
+        // for non-spiralized layers, if bridging is enabled, determine the shape of the unsupported areas below this part
+        if (!spiralize && gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+        {
+            // accumulate the outlines of all of the parts that are on the layer below
+
+            Polygons outlines_below;
+            AABB boundaryBox(part.outline);
+            for(auto prevLayerPart : mesh.layers[gcode_layer.getLayerNr() - 1].parts)
+            {
+                if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                {
+                    outlines_below.add(prevLayerPart.outline);
+                }
+            }
+
+            // if support is enabled, add the support outlines also so we don't generate bridges over support
+
+            if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
+            {
+                const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+                const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+                const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+                const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
+
+                if (support_layer_nr > 0)
+                {
+                    const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+
+                    if (!support_layer.support_roof.empty())
+                    {
+                        AABB support_roof_bb(support_layer.support_roof);
+                        if (boundaryBox.hit(support_roof_bb))
+                        {
+                            outlines_below.add(support_layer.support_roof);
+                        }
+                    }
+                    else
+                    {
+                        for (auto support_part : support_layer.support_infill_parts)
+                        {
+                            AABB support_part_bb(support_part.getInfillArea());
+                            if (boundaryBox.hit(support_part_bb))
+                            {
+                                outlines_below.add(support_part.getInfillArea());
+                            }
+                        }
+                    }
+                }
+            }
+
+            const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
+
+            // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+
+            outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
+
+            // max_air_gap is the max allowed width of the unsupported region below the wall line
+            // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
+            // it can be from 0 to 1/2 the outer wall line width
+
+            const int max_air_gap = half_outer_wall_width * mesh.getSettingInPercentage("bridge_wall_max_overhang") / 100;
+
+            // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
+            // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
+
+            Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
+
+            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
+            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
+            // but, instead, are 1/2 a line width inset from the outline
+
+            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+        }
+        else
+        {
+            // clear to disable use of bridging settings
+            gcode_layer.setBridgeWallMask(Polygons());
+        }
+
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
         // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
@@ -1482,7 +1561,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 // Outer wall is processed
                 if (processed_inset_number == 0)
                 {
-                    constexpr bool spiralize = false;
                     constexpr float flow = 1.0;
                     if (part.insets[0].size() > 0 && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                     {
@@ -1494,12 +1572,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addWalls(outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                         }
                         else
                         {
                             WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addWalls(outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                         }
                     }
                 }
@@ -1516,12 +1594,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         if (!compensate_overlap_x)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], mesh_config.insetX_config, wall_overlap_computation, z_seam_config);
+                            gcode_layer.addWalls(part.insets[processed_inset_number], mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
                         }
                         else
                         {
                             WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
-                            gcode_layer.addPolygonsByOptimizer(inner_wall, mesh_config.insetX_config, &wall_overlap_computation, z_seam_config);
+                            gcode_layer.addWalls(inner_wall, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
                         }
                     }
                 }
@@ -1721,9 +1799,10 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
         roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
     }
 
+    const double skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, perimeter_gaps_output, added_something);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const
@@ -1738,7 +1817,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && !getSettingBoolean("magic_spiralize");
 
-    EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
+    const unsigned layer_nr = gcode_layer.getLayerNr();
+
+    EFillMethod pattern = (layer_nr == 0)?
         mesh.getSettingAsFillMethod("top_bottom_pattern_0") :
         mesh.getSettingAsFillMethod("top_bottom_pattern");
 
@@ -1746,35 +1827,85 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     bool skin_alternate_rotation = mesh.getSettingBoolean("skin_alternate_rotation") && (mesh.getSettingAsCount("top_layers") >= 4 || mesh.getSettingAsCount("bottom_layers") >= 4 );
     if (mesh.skin_angles.size() > 0)
     {
-        skin_angle = mesh.skin_angles.at(gcode_layer.getLayerNr() % mesh.skin_angles.size());
+        skin_angle = mesh.skin_angles.at(layer_nr % mesh.skin_angles.size());
     }
-    if (skin_alternate_rotation && ( gcode_layer.getLayerNr() / 2 ) & 1)
+    if (skin_alternate_rotation && (layer_nr / 2 ) & 1)
     {
         skin_angle -= 45;
     }
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
     int bridge = -1;
+    bool use_bridge_config = false;
+    bool use_bridge_config2 = false;
+    bool use_bridge_config3 = false;
+    double skin_density = 1.0;
+    coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
+    Polygons supportedSkinPartRegions;
+
+    // calculate bridging angle
+    if (layer_nr > 0)
     {
-        // calculate bridging angle
-        if (gcode_layer.getLayerNr() > 0)
+        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], supportedSkinPartRegions);
+    }
+    if (bridge > -1)
+    {
+        pattern = EFillMethod::LINES; // force lines pattern when bridging
+        skin_angle = bridge;
+        use_bridge_config = mesh.getSettingBoolean("bridge_settings_enabled");
+        if (use_bridge_config)
         {
-            bridge = bridgeAngle(skin_part.outline, &mesh.layers[gcode_layer.getLayerNr() - 1]);
+            skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
         }
-        if (bridge > -1)
+    }
+    else if (layer_nr > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+    {
+        // if the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
+        if ((supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
         {
             pattern = EFillMethod::LINES; // force lines pattern when bridging
-            skin_angle = bridge;
+            use_bridge_config = true;
+        }
+        else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_enable_more_layers"))
+        {
+            // if this is the second bridge layer use bridge_skin_config2
+            Polygons supportedSkinPartRegions2;
+            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], supportedSkinPartRegions2);
+            if (bridge2 > -1 || (supportedSkinPartRegions2.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
+            {
+                if (bridge2 > -1)
+                {
+                    // orientate second bridge skin at 90 deg to first
+                    skin_angle = (bridge2 + 90) % 360;
+                }
+                use_bridge_config2 = true;
+                pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
+                skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)); // force a minimum amount of skin_overlap
+                skin_density = mesh.getSettingInPercentage("bridge_skin_density_2") / 100;
+            }
+            else if (layer_nr > 2)
+            {
+                // if this is the third bridge layer, use the same skin_angle as the first
+                Polygons supportedSkinPartRegions3;
+                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], supportedSkinPartRegions3);
+                if (bridge3 > -1)
+                {
+                    skin_angle = bridge3;
+                    pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
+                    skin_density = mesh.getSettingInPercentage("bridge_skin_density_3") / 100;
+                    use_bridge_config3 = true;
+                }
+            }
         }
     }
 
     // calculate polygons and lines
-    const coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, mesh_config.skin_config, pattern, skin_angle, skin_overlap, perimeter_gaps_output, added_something);
+
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, (use_bridge_config3) ? mesh_config.bridge_skin_config3 : (use_bridge_config2) ? mesh_config.bridge_skin_config2 : (use_bridge_config) ? mesh_config.bridge_skin_config : mesh_config.skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, Polygons* perimeter_gaps_output, bool& added_something) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -1792,7 +1923,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     const coord_t maximum_resolution = mesh.getSettingInMicrons("meshfix_maximum_resolution");
 
     Infill infill_comp(
-        pattern, zig_zaggify_infill, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth(), skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, infill_origin, perimeter_gaps_output,
+        pattern, zig_zaggify_infill, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, skin_angle, gcode_layer.z, extra_infill_shift, infill_origin, perimeter_gaps_output,
         connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, apply_pockets_alternatingly, pocket_size, maximum_resolution
         );
     infill_comp.generate(skin_polygons, skin_lines);
