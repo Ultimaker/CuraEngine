@@ -1,9 +1,11 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (C) 2013 Ultimaker
+//Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string.h>
 #include <strings.h>
 #include <stdio.h>
+#include <limits>
 
 #include "MeshGroup.h"
 #include "utils/gettime.h"
@@ -88,36 +90,42 @@ const ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr) const
 
 Point3 MeshGroup::min() const
 {
-    Point3 ret(0, 0, 0);
-
+    if (meshes.size() < 1)
+    {
+        return Point3(0, 0, 0);
+    }
+    Point3 ret(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
     for (const Mesh& mesh : meshes)
     {
         if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
         {
             continue;
         }
-        Point3 min = mesh.min();
-        ret.x = std::min(ret.x, min.x);
-        ret.y = std::min(ret.y, min.y);
-        ret.z = std::min(ret.z, min.z);
+        Point3 v = mesh.min();
+        ret.x = std::min(ret.x, v.x);
+        ret.y = std::min(ret.y, v.y);
+        ret.z = std::min(ret.z, v.z);
     }
     return ret;
 }
 
 Point3 MeshGroup::max() const
 {
-    Point3 ret(0, 0, 0);
-
+    if (meshes.size() < 1)
+    {
+        return Point3(0, 0, 0);
+    }
+    Point3 ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
         if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
         {
             continue;
         }
-        Point3 max = mesh.max();
-        ret.x = std::max(ret.x, max.x);
-        ret.y = std::max(ret.y, max.y);
-        ret.z = std::max(ret.z, max.z);
+        Point3 v = mesh.max();
+        ret.x = std::max(ret.x, v.x);
+        ret.y = std::max(ret.y, v.y);
+        ret.z = std::max(ret.z, v.z);
     }
     return ret;
 }
