@@ -113,7 +113,8 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];
-                if (carved_mesh.getSettingBoolean("cutting_mesh"))
+                //Do not apply cutting_mesh for meshes which have settings (cutting_mesh, anti_overhang_mesh).
+                if (carved_mesh.getSettingBoolean("cutting_mesh") || carved_mesh.getSettingBoolean("anti_overhang_mesh"))
                 {
                     continue;
                 }
