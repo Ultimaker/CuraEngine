@@ -1844,10 +1844,26 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
     Polygons supportedSkinPartRegions;
 
+    // if support is enabled, consider the support outlines so we don't generate bridges over support
+
+    const SupportLayer* support_layer = nullptr;
+
+    if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
+    {
+        const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+        const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+        const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+        const int support_layer_nr = layer_nr - z_distance_top_layers;
+        if (support_layer_nr >= 0)
+        {
+            support_layer = &storage.support.supportLayers[support_layer_nr];
+        }
+    }
+
     // calculate bridging angle
     if (layer_nr > 0)
     {
-        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], supportedSkinPartRegions);
+        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], support_layer, supportedSkinPartRegions);
     }
     if (bridge > -1)
     {
@@ -1871,7 +1887,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         {
             // if this is the second bridge layer use bridge_skin_config2
             Polygons supportedSkinPartRegions2;
-            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], supportedSkinPartRegions2);
+            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], support_layer, supportedSkinPartRegions2);
             if (bridge2 > -1 || (supportedSkinPartRegions2.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
             {
                 if (bridge2 > -1)
@@ -1888,7 +1904,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             {
                 // if this is the third bridge layer, use the same skin_angle as the first
                 Polygons supportedSkinPartRegions3;
-                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], supportedSkinPartRegions3);
+                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], support_layer, supportedSkinPartRegions3);
                 if (bridge3 > -1)
                 {
                     skin_angle = bridge3;

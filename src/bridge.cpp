@@ -1,11 +1,9 @@
 /** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
 #include "bridge.h"
 
-#include "sliceDataStorage.h"
-
 namespace cura {
 
-int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, Polygons& supportedRegions)
+int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, const SupportLayer* supportLayer, Polygons& supportedRegions)
 {
     AABB boundaryBox(outline);
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
@@ -19,6 +17,44 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, Polygons& support
         islands.add(outline.intersection(prevLayerPart.outline));
     }
     supportedRegions = islands;
+
+    if (supportLayer)
+    {
+        // add the regions of the skin that have support below them to supportedRegions
+        // but don't add these regions to islands because that can actually cause the code
+        // below to consider the skin a bridge when it isn't (e.g. a skin that is supported by
+        // the model on one side but the remainder of the skin is above support would look like
+        // a bridge because it would have two islands) - FIXME more work required here?
+
+        if (!supportLayer->support_roof.empty())
+        {
+            AABB support_roof_bb(supportLayer->support_roof);
+            if (boundaryBox.hit(support_roof_bb))
+            {
+                Polygons supported_skin(outline.intersection(supportLayer->support_roof));
+                if (!supported_skin.empty())
+                {
+                    supportedRegions.add(supported_skin);
+                }
+            }
+        }
+        else
+        {
+            for (auto support_part : supportLayer->support_infill_parts)
+            {
+                AABB support_part_bb(support_part.getInfillArea());
+                if (boundaryBox.hit(support_part_bb))
+                {
+                    Polygons supported_skin(outline.intersection(support_part.getInfillArea()));
+                    if (!supported_skin.empty())
+                    {
+                        supportedRegions.add(supported_skin);
+                    }
+                }
+            }
+        }
+    }
+
     if (islands.size() > 5 || islands.size() < 1)
         return -1;
     
