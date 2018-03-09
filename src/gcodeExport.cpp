@@ -203,7 +203,24 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         }
         else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN)
         {
-            prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
+            prefix << ";Filament used: ";
+            if (filament_used.size() > 0)
+            {
+                const unsigned num_lengths = (flavor == EGCodeFlavor::REPRAP) ? filament_used.size() : 1;
+                for (unsigned i = 0; i < num_lengths; ++i)
+                {
+                    if (i > 0)
+                    {
+                        prefix << ", ";
+                    }
+                    prefix << filament_used[i] / (1000 * extruder_attr[i].filament_area) << "m";
+                }
+            }
+            else
+            {
+                prefix << "0m";
+            }
+            prefix << new_line;
             prefix << ";Layer height: " << layer_height << new_line;
         }
     }
