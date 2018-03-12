@@ -59,8 +59,10 @@ private:
 
     /*!
      * Generate the insets for the outer walls of a given layer part after optimizing the ordering.
+     * \param include_outer true if the outermost inset is to be output
+     * \param include_inners true if the innermost insets are to be output
      */
-    void processOuterWallInsets();
+    void processOuterWallInsets(const bool include_outer, const bool include_inners);
 
     /*!
      * Generate a travel move from the current position to inside the part.
