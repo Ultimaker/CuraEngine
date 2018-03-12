@@ -655,6 +655,8 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
 
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
     const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
+    const double wall_min_flow = extr->getSettingInPercentage("wall_min_flow") / 100;
+    const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -739,6 +741,8 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         }
     };
 
+    bool travel_required = false; // true when a wall has been omitted due to its flow being less than the minimum required
+
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
     {
         const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
@@ -749,9 +753,29 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
         }
 
-        addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+        // HACK ALERT
+        // the overlap compensation is not perfect, it can produce short non-flow reduced line segments within a sequence of flow reduced
+        // line segments and so to try and avoid printing the spurious fat line segments we require that their lengths are above a threshold
+
+        const int64_t max_spurious_fat_segment_length = 50; // microns
+
+        if (flow >= wall_min_flow && (!travel_required || vSize(p0 - p1) > max_spurious_fat_segment_length))
+        {
+            if (travel_required)
+            {
+                addTravel(p0, wall_min_flow_retract);
+                travel_required = false;
+            }
+            addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+        }
+        else
+        {
+            travel_required = true;
+        }
+
         p0 = p1;
     }
+
     if (wall.size() > 2)
     {
         const Point& p1 = wall[start_idx];
@@ -762,31 +786,42 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
         }
 
-        addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
-
-        if (wall_0_wipe_dist > 0)
-        { // apply outer wall wipe
-            p0 = wall[start_idx];
-            int distance_traversed = 0;
-            for (unsigned int point_idx = 1; ; point_idx++)
+        if (flow >= wall_min_flow)
+        {
+            if (travel_required)
             {
-                Point p1 = wall[(start_idx + point_idx) % wall.size()];
-                int p0p1_dist = vSize(p1 - p0);
-                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                {
-                    Point vector = p1 - p0;
-                    Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
-                    addTravel_simple(half_way);
-                    break;
-                }
-                else
-                {
-                    addTravel_simple(p1);
-                    distance_traversed += p0p1_dist;
-                }
-                p0 = p1;
+                addTravel(p0, wall_min_flow_retract);
             }
-            forceNewPathStart();
+            addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+
+            if (wall_0_wipe_dist > 0)
+            { // apply outer wall wipe
+                p0 = wall[start_idx];
+                int distance_traversed = 0;
+                for (unsigned int point_idx = 1; ; point_idx++)
+                {
+                    Point p1 = wall[(start_idx + point_idx) % wall.size()];
+                    int p0p1_dist = vSize(p1 - p0);
+                    if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                    {
+                        Point vector = p1 - p0;
+                        Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                        addTravel_simple(half_way);
+                        break;
+                    }
+                    else
+                    {
+                        addTravel_simple(p1);
+                        distance_traversed += p0p1_dist;
+                    }
+                    p0 = p1;
+                }
+                forceNewPathStart();
+            }
+        }
+        else
+        {
+            addTravel(p1, wall_min_flow_retract);
         }
     }
     else
