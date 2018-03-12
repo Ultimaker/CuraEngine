@@ -321,19 +321,25 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 }
             }
 
+            float dist = 0;
+            Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.size() == 0)
                 {
                     continue;
                 }
-                path->retract = retract;
-                // don't perform a z-hop
                 for (Point& combPoint : combPath)
                 {
                     path->points.push_back(combPoint);
+                    dist += vSize(last_point - combPoint);
+                    last_point = combPoint;
                 }
                 last_planned_position = combPath.back();
+                dist += vSize(last_point - p);
+                const double retract_threshold = extr->getSettingInMicrons("retraction_combing_max_distance");
+                path->retract = retract || (retract_threshold > 0 && dist > retract_threshold);
+                // don't perform a z-hop
             }
         }
     }
