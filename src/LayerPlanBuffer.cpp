@@ -381,7 +381,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         }
         if (time_window <= 0.0) //There was a move in this plan but it was length 0.
         {
-            logWarning("Unneccesary extruder switch detected! SliceDataStorage::getExtrudersUsed should probably be updated.\n");
+            logWarning("Unnecesary extruder switch detected! SliceDataStorage::getExtrudersUsed should probably be updated.\n");
             return;
         }
         weighted_average_extrusion_temp /= time_window;
@@ -391,7 +391,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
     if (!initial_print_temp)
     { // none of the extruder plans had unretracted moves
-        logWarning("Unneccesary extruder switch detected! Discarding final print temperature commands.\n");
+        logWarning("Unnecesary extruder switch detected! Discarding final print temperature commands.\n");
         return;
     }
 
