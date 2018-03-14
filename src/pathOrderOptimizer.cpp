@@ -279,7 +279,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
         // if no line ends close to prev_point, see if we can find a point on a line that could be the start of a chain of lines
         if (best_line_idx == -1 && have_chains)
         {
-            have_chains = false; // now assume that we don't have any chains and change back to true below if we find any joined line segments
+            unsigned num_chain_ends = 0;
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
                 if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
@@ -290,32 +290,49 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
                 // does this line either end in thin air (doesn't join another line) or join another line that has already been picked?
                 // check both of its ends and see if it's a possible candidate to be used to start the next sequence
+                int num_joined_lines[2];
                 for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
                 {
-                    int num_joined_lines = 0;
+                    num_joined_lines[point_idx] = 0;
                     const Point& p = (*polygons[poly_idx])[point_idx];
                     // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
                     for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
                     {
                         if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
                         {
-                            have_chains = true; // we have found a joint between line segments so we have chains
-
-                            ++num_joined_lines;
+                            ++num_joined_lines[point_idx];
 
                             if (picked[close_line_idx])
                             {
                                 // candidate line exactly meets a line that has already been picked so consider this vertex as a start point
                                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
+                                ++num_chain_ends;
                             }
                         }
                     }
-                    if (num_joined_lines == 0)
-                    {
-                        // candidate line ends in thin air so this vertex could possibly be located at the end of a sequence of lines
-                        updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
-                    }
                 }
+                if (num_joined_lines[0] == 0 && num_joined_lines[1] != 0)
+                {
+                    // vertex 0 of candidate line starts a chain of 2 or more lines
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 0);
+                    ++num_chain_ends;
+                }
+                if (num_joined_lines[1] == 0 && num_joined_lines[0] != 0)
+                {
+                    // vertex 1 of candidate line starts a chain of 2 or more lines
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 1);
+                    ++num_chain_ends;
+                }
+            }
+            if (num_chain_ends == 0)
+            {
+                // no chains found, don't bother to search for any more
+                have_chains = false;
+            }
+            else if (num_chain_ends > 200)
+            {
+                logWarning("Found %u chain ends so turning off chain finding\n", num_chain_ends);
+                have_chains = false;
             }
         }
 
