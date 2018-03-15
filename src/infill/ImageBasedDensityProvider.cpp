@@ -62,6 +62,7 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
     AABB query_box(Point(query_cube.min.x, query_cube.min.y), Point(query_cube.max.x, query_cube.max.y));
     Point img_min = (query_box.min - print_aabb.min - Point(1,1)) * image_size.x / (print_aabb.max.X - print_aabb.min.X);
     Point img_max = (query_box.max - print_aabb.min + Point(1,1)) * image_size.y / (print_aabb.max.Y - print_aabb.min.Y);
+
     long total_lightness = 0;
     int value_count = 0;
     for (int x = std::max((coord_t)0, img_min.X); x <= std::min((coord_t)image_size.x - 1, img_max.X); x++)
