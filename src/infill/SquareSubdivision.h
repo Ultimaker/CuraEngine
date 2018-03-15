@@ -17,8 +17,8 @@ class SquareSubdivision : public InfillFractal<AABB, 4, 2>
     using Parent = InfillFractal<AABB, 4, 2>;
     using LinkIterator = Parent::LinkIterator;
 public:
-    SquareSubdivision(const DensityProvider& density_provider, coord_t line_width)
-    : Parent(density_provider, line_width)
+    SquareSubdivision(const DensityProvider& density_provider, const AABB aabb, coord_t line_width)
+    : Parent(density_provider, aabb, line_width)
     {
     }
 protected:
@@ -58,6 +58,10 @@ protected:
         int parent_depth = sub_tree_root.depth;
         if (parent_depth >= max_depth)
         {
+            for (int child_idx = 0; child_idx < 4; child_idx++)
+            {
+                sub_tree_root.children[child_idx] = nullptr;
+            }
             return;
         }
         
@@ -101,8 +105,10 @@ protected:
     
     virtual void createTree()
     {
-        int max_depth = 10; // TODO
-        assert(root && "Root must be initialized when building the tree");
+        int max_depth = 8; // TODO
+        
+        root = new Cell(aabb, 0, number_of_sides);
+        
         createTree(*root, max_depth);
         
         getSpecificationAllowance(*root);
@@ -231,14 +237,62 @@ protected:
             
         }
         
-        
+        cell.is_subdivided = true;
     }
     
+public:
     
-    
-    void debugOutput(SVG& svg)
+    void testSubdivision()
     {
+        subdivide(*root);
         
+        subdivide(*root->children[1]);
+        subdivide(*root->children[1]->children[2]);
+    }
+    
+    void debugOutput(SVG& svg, Cell& sub_tree_root, int drawing_line_width)
+    {
+        if (sub_tree_root.is_subdivided)
+        {
+            for (Cell* child : sub_tree_root.children)
+            {
+                assert(child);
+                debugOutput(svg, *child, drawing_line_width);
+            }
+        }
+        else
+        {
+            svg.writePolygon(sub_tree_root.elem.toPolygon(), SVG::Color::BLACK, drawing_line_width);
+            
+            const Point from_middle = sub_tree_root.elem.getMiddle();
+            
+            // draw links
+            for (std::list<Link>& side : sub_tree_root.adjacent_cells)
+            {
+                for (Link& link : side)
+                {
+                    const Point to_middle = link.to->elem.getMiddle();
+                    const Point link_vector = to_middle - from_middle;
+                    Point arrow_from = from_middle + link_vector / 5 * 1 - turn90CCW(link_vector / 20);
+                    Point arrow_to = from_middle + link_vector / 5 * 4 - turn90CCW(link_vector / 20);
+                    
+                    Point arrow_head_back_l = arrow_to - link_vector / 15 + turn90CCW(link_vector / 30);
+                    Point arrow_head_back_r = arrow_to - link_vector / 15 - turn90CCW(link_vector / 30);
+                    svg.writeLine(arrow_from, arrow_to, SVG::Color::BLUE);
+                    svg.writeLine(arrow_to, arrow_head_back_l, SVG::Color::BLUE);
+                    svg.writeLine(arrow_to, arrow_head_back_r, SVG::Color::BLUE);
+                    svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::Color::BLUE);
+                }
+            }
+        }
+    }
+    
+    void debugOutput(SVG& svg, int drawing_line_width)
+    {
+        if (root)
+        {
+            debugOutput(svg, *root, drawing_line_width);
+        }
     }
 };
 

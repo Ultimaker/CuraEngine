@@ -52,6 +52,7 @@ public:
         int depth;
         float area; //!< The area of the triangle or square in mm^2
         float filled_area_allowance; //!< The area to be filled corresponding to the average density requested by the volumetric density specification.
+        bool is_subdivided;
         std::vector<std::list<Link>> adjacent_cells; //!< the adjecent cells for each edge/face of this cell
         
         std::array<Cell*, subdivision_count> children;
@@ -61,6 +62,7 @@ public:
         , depth(depth)
         , area(-1)
         , filled_area_allowance(-1)
+        , is_subdivided(false)
         , adjacent_cells(number_of_sides)
         {
         }
@@ -85,10 +87,13 @@ public:
     
     Cell* root;
     
-    InfillFractal(const DensityProvider& density_provider, coord_t line_width)
+    AABB aabb;
+    
+    InfillFractal(const DensityProvider& density_provider, const AABB aabb, coord_t line_width)
     : line_width(line_width)
     , density_provider(density_provider)
     , root(nullptr)
+    , aabb(aabb)
     {
     }
 
