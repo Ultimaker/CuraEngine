@@ -6,24 +6,26 @@
 #include <cassert>
 
 #include "../utils/IntPoint.h"
-
-#include "../utils/FingerTree.h"
+#include "DensityProvider.h"
 
 namespace cura
 {
 
 /*!
  * Generic class which encompasses subdivision fractals and space filling curves used for infill generation.
+ * 
+ * The vocabulary of money is adopted to make explanations easier.
+ * Rather than talking about the error between the requested density by the density provider and the actualized density by the pattern,
+ * we talk about the liquid assets which have yet to be solidified.
+ * 
+ * \tparam Elem The element type to store, e.g. squares or triangles.
+ * \tparam subdivision_count The amount of smaller shapes an element subdivides into
+ * \tparam dimensionality The amount of directions in which an element is subdivided. A space filing curve is 1-dimensional.
  */
 template<class Elem, unsigned char subdivision_count, unsigned char dimensionality>
 class InfillFractal
 {
 public:
-    struct AreaStatistics
-    {
-        float area; //!< The area of the triangle or square in mm^2
-        float filled_area_allowance; //!< The area to be filled corresponding to the average density requested by the volumetric density specification.
-    };
     struct Cell; // forward decl
     struct Link
     {
@@ -44,13 +46,31 @@ public:
     struct Cell
     {
         Elem elem;
-        typename FingerTree<AreaStatistics, subdivision_count>::Node* area_statistics;
+        int depth;
+        float area; //!< The area of the triangle or square in mm^2
+        float filled_area_allowance; //!< The area to be filled corresponding to the average density requested by the volumetric density specification.
         std::vector<std::list<Link>> adjacent_cells; //!< the adjecent cells for each edge/face of this cell
         
-        Cell(const Elem& elem, unsigned char number_of_sides)
+        std::array<Cell*, subdivision_count> children;
+        
+        Cell(const Elem& elem, const int depth, unsigned char number_of_sides)
         : elem(elem)
+        , depth(depth)
+        , area(-1)
+        , filled_area_allowance(-1)
         , adjacent_cells(number_of_sides)
         {
+        }
+        
+        ~Cell()
+        {
+            for (Cell* child : children)
+            {
+                if (child)
+                {
+                    delete child;
+                }
+            }
         }
     };
     
@@ -58,52 +78,33 @@ public:
     
     coord_t line_width; //!< The line width of the fill lines
     
+    const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
     
-    Cell* origin;
+    Cell* root;
     
-    FingerTree<AreaStatistics, subdivision_count> statistics_tree;
-    
-    InfillFractal()
-    : origin(nullptr)
+    InfillFractal(const DensityProvider& density_provider, coord_t line_width)
+    : line_width(line_width)
+    , density_provider(density_provider)
+    , root(nullptr)
     {
-//         createStatsticsTree();
     }
 
     virtual ~InfillFractal()
     {
-        if (!origin)
+        if (!root)
         {
             return;
         }
-        std::unordered_set<Cell*> all_cells;
-        std::list<Cell*> to_be_handled;
-        to_be_handled.push_front(origin);
-
-        while (!to_be_handled.empty())
-        {
-            Cell* handling = to_be_handled.front();
-            to_be_handled.pop_front();
-            if (all_cells.find(handling) != all_cells.end())
-            {
-                all_cells.emplace(handling);
-                for (std::list<Link>& neighbors : handling->adjacent_cells)
-                {
-                    for (Link& link : neighbors)
-                    {
-                        to_be_handled.push_back(link.to);
-                    }
-                }
-            }
-        }
-        
-        for (Cell* cell : all_cells)
-        {
-            delete cell;
-        }
+        delete root;
+    }
+    
+    void initialize()
+    {
+        createTree();
     }
 
 protected:
-//     virtual void createStatsticsTree() = 0;
+    virtual void createTree() = 0;
     
     virtual void subdivide(Cell* cell) = 0;
     

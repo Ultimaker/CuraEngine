@@ -1,8 +1,8 @@
-//Copyright (c) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SIERPINSKI_FILL_TEST_H
-#define SIERPINSKI_FILL_TEST_H
+#ifndef FRACTAL_INFILL_TEST_H
+#define FRACTAL_INFILL_TEST_H
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
@@ -43,5 +43,5 @@ private:
 
 }
 
-#endif //SIERPINSKI_FILL_TEST_H
+#endif //FRACTAL_INFILL_TEST_H
 
