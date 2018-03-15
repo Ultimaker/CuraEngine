@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <cassert>
 
+#include "../utils/optional.h"
 #include "../utils/IntPoint.h"
 #include "DensityProvider.h"
 
@@ -27,18 +28,19 @@ class InfillFractal
 {
 public:
     struct Cell; // forward decl
+    struct Link;
+    using LinkIterator = typename std::list<Link>::iterator;
     struct Link
     {
         Cell* to;
-        Link* reverse; //!< The link in the inverse direction
+        std::optional<LinkIterator> reverse; //!< The link in the inverse direction
         float loan; //!< amount of requested_filled_area loaned from one cell to another, when subdivision of the former is prevented by the latter. This value should always be positive.
         Cell* from()
         {
-            return reverse->to;
+            return (*reverse)->to;
         }
-        Link(Cell* to, Link* reverse)
-        : to(to)
-        , reverse(reverse)
+        Link(Cell& to)
+        : to(&to)
         , loan(0.0)
         {}
     };
@@ -106,7 +108,7 @@ public:
 protected:
     virtual void createTree() = 0;
     
-    virtual void subdivide(Cell* cell) = 0;
+    virtual void subdivide(Cell& cell) = 0;
     
     virtual float getActualizedArea(const Cell& cell) = 0;
     

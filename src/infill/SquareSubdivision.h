@@ -1,8 +1,6 @@
 #ifndef INFILL_SQUARE_SUBDIVISION_H
 #define INFILL_SQUARE_SUBDIVISION_H
 
-#include <functional> // function
-
 #include "../utils/AABB.h"
 #include "../utils/Range.h"
 #include "../utils/SVG.h"
@@ -109,14 +107,14 @@ protected:
     static constexpr char number_of_sides = 4;
     
     
-    void initialConnection(Cell* before, Cell* after, Direction dir)
+    void initialConnection(Cell& before, Cell& after, Direction dir)
     {
-        before->adjacent_cells[static_cast<size_t>(dir)].emplace_front(after, nullptr);
-        after->adjacent_cells[static_cast<size_t>(opposite(dir))].emplace_front(before, nullptr);
-        Link& before_to_after = before->adjacent_cells[static_cast<size_t>(dir)].front();
-        Link& after_to_before = after->adjacent_cells[static_cast<size_t>(opposite(dir))].front();
-        before_to_after.reverse = &after_to_before;
-        after_to_before.reverse = &before_to_after;
+        before.adjacent_cells[static_cast<size_t>(dir)].emplace_front(after);
+        after.adjacent_cells[static_cast<size_t>(opposite(dir))].emplace_front(before);
+        Parent::LinkIterator before_to_after = before.adjacent_cells[static_cast<size_t>(dir)].begin();
+        Parent::LinkIterator after_to_before = after.adjacent_cells[static_cast<size_t>(opposite(dir))].begin();
+        before_to_after->reverse = after_to_before;
+        after_to_before->reverse = before_to_after;
     }
     
     /*!
@@ -139,20 +137,13 @@ protected:
         return a_range.expand(-10).overlap(b_range); // TODO: move allowed error to central place?
     }
     
-    void subdivide(Cell* cell)
+    void subdivide(Cell& cell)
     {
-        if (!cell)
-        {
-            assert(false && "Subdivide called on nullptr!");
-            return;
-        }
-        
-        Cell* child_lb = cell->children[0];
-        Cell* child_rb = cell->children[1];
-        Cell* child_lt = cell->children[2];
-        Cell* child_rt = cell->children[3];
-        
-        assert(child_lb && child_lt && child_rb && child_rt && "Children must be initialized for subdivision!");
+        assert(cell.children[0] && cell.children[1] && cell.children[2] && cell.children[3] && "Children must be initialized for subdivision!");
+        Cell& child_lb = *cell.children[0];
+        Cell& child_rb = *cell.children[1];
+        Cell& child_lt = *cell.children[2];
+        Cell& child_rt = *cell.children[3];
         
         initialConnection(child_lt, child_rt, Direction::RIGHT);
         initialConnection(child_lb, child_rb, Direction::RIGHT);
@@ -163,20 +154,27 @@ protected:
         {
             int edge_dim = !(side / 2);
             
-            for (Link& neighbor : cell->adjacent_cells[side])
+            for (Link& neighbor : cell.adjacent_cells[side])
             {
-                for (Cell* child : cell->children)
+                assert(neighbor.reverse);
+                Cell& neighboring_cell = *neighbor.to;
+                std::list<Link>& neighboring_edge_links = neighboring_cell.adjacent_cells[static_cast<int>(opposite(static_cast<Direction>(side)))];
+                for (Cell* child : cell.children)
                 {
                     assert(child);
                     assert(neighbor.to);
                     if (isNextTo(*child, *neighbor.to, !edge_dim))
                     {
-                        neighbor.reverse->to = child; // TODO: should insert each neighboring child!
+                        neighboring_edge_links.emplace(*neighbor.reverse, *child);
                     }
+                    
                 }
+                neighboring_edge_links.erase(*neighbor.reverse);
             }
             
         }
+        
+        
     }
     
     
