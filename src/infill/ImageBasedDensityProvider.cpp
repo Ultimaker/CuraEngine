@@ -62,6 +62,10 @@ float ImageBasedDensityProvider::operator()(const Point& a, const Point& b, cons
     aabb_here.include(b);
     aabb_here.include(c);
     aabb_here.include(d);
+    return operator()(aabb_here);
+}
+float ImageBasedDensityProvider::operator()(const AABB& aabb_here) const
+{
     Point min = (aabb_here.min - aabb.min - Point(1,1)) * image_size.x / (aabb.max.X - aabb.min.X);
     Point max = (aabb_here.max - aabb.min + Point(1,1)) * image_size.y / (aabb.max.Y - aabb.min.Y);
     long total_lightness = 0;

@@ -27,6 +27,10 @@ public:
     {
         return density;
     };
+    virtual float operator()(const AABB&) const
+    {
+        return density;
+    };
 protected:
     float density;
 };
