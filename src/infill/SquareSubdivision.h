@@ -15,6 +15,7 @@ namespace cura
 class SquareSubdivision : public InfillFractal<AABB, 4, 2>
 {
     using Parent = InfillFractal<AABB, 4, 2>;
+    using LinkIterator = Parent::LinkIterator;
 public:
     SquareSubdivision(const DensityProvider& density_provider, coord_t line_width)
     : Parent(density_provider, line_width)
@@ -46,6 +47,10 @@ protected:
             case Direction::DOWN: return Direction::UP;
             default: return Direction::COUNT;
         }
+    }
+    int opposite(int in)
+    {
+        return static_cast<int>(opposite(static_cast<Direction>(in)));
     }
     
     void createTree(Cell& sub_tree_root, int max_depth)
@@ -111,8 +116,8 @@ protected:
     {
         before.adjacent_cells[static_cast<size_t>(dir)].emplace_front(after);
         after.adjacent_cells[static_cast<size_t>(opposite(dir))].emplace_front(before);
-        Parent::LinkIterator before_to_after = before.adjacent_cells[static_cast<size_t>(dir)].begin();
-        Parent::LinkIterator after_to_before = after.adjacent_cells[static_cast<size_t>(opposite(dir))].begin();
+        LinkIterator before_to_after = before.adjacent_cells[static_cast<size_t>(dir)].begin();
+        LinkIterator after_to_before = after.adjacent_cells[static_cast<size_t>(opposite(dir))].begin();
         before_to_after->reverse = after_to_before;
         after_to_before->reverse = before_to_after;
     }
@@ -137,6 +142,20 @@ protected:
         return a_range.expand(-10).overlap(b_range); // TODO: move allowed error to central place?
     }
     
+    /*!
+     * Transfer the loans from an old link to the new links after subdivision
+     */
+    void transferLoans(Link& old, const std::list<Link*>& new_links)
+    {
+        // TODO
+        // this implements naive equal transfer
+        int new_link_count = new_links.size();
+        for (Link* link : new_links)
+        {
+            link->loan = old.loan / new_link_count;
+        }
+    }
+    
     void subdivide(Cell& cell)
     {
         assert(cell.children[0] && cell.children[1] && cell.children[2] && cell.children[3] && "Children must be initialized for subdivision!");
@@ -154,23 +173,61 @@ protected:
         {
             int edge_dim = !(side / 2);
             
-            for (Link& neighbor : cell.adjacent_cells[side])
+            /* two possible cases:
+             * 1                                                                             ______          __  __
+             * neighbor is refined more                                                   [][      ]      [][  ][  ]
+             *      __                                                     deeper example [][      ]  =>  [][__][__]
+             * [][][  ]  => [][][][]                                                      [][      ]      [][  ][  ]
+             * [][][__]     [][][][]    We have the same amount of links                  [][______]      [][__][__]
+             *       ^parent cell
+             * 2
+             * neighbor is refined less or equal                                           ______  __       ______
+             *  __  __        __                                                          [      ][  ]     [      ][][]
+             * [  ][  ]  =>  [  ][][]                                                     [      ][__]  => [      ][][]
+             * [__][__]      [__][][]                                      deeper example [      ][  ]     [      ][][]
+             *       ^parent cell                                                         [______][__]     [______][][]
+             * Each link from a neighbor cell is split
+             * into two links to two child cells
+             * 
+             * Both cases are cought by replacing each link with as many as needed,
+             * which is either 1 or 2, because
+             * in the new situation there are either 1 or 2 child cells neigghboring a beighbor cell of the parent.
+             */
+            for (LinkIterator neighbor_it = cell.adjacent_cells[side].begin(); neighbor_it != cell.adjacent_cells[side].end(); ++neighbor_it)
             {
+                Link& neighbor = *neighbor_it;
                 assert(neighbor.reverse);
                 Cell& neighboring_cell = *neighbor.to;
-                std::list<Link>& neighboring_edge_links = neighboring_cell.adjacent_cells[static_cast<int>(opposite(static_cast<Direction>(side)))];
+                std::list<Link>& neighboring_edge_links = neighboring_cell.adjacent_cells[opposite(side)];
+                
+                std::list<Link*> new_incoming_links;
+                std::list<Link*> new_outgoing_links;
                 for (Cell* child : cell.children)
                 {
                     assert(child);
                     assert(neighbor.to);
                     if (isNextTo(*child, *neighbor.to, !edge_dim))
                     {
+                        child->adjacent_cells[side].emplace_front(*neighbor.to);
+                        LinkIterator outlink = child->adjacent_cells[side].begin();
+                        
                         neighboring_edge_links.emplace(*neighbor.reverse, *child);
+                        LinkIterator inlink = *neighbor.reverse;
+                        inlink--;
+                        
+                        outlink->reverse = inlink;
+                        inlink->reverse = outlink;
+                        
+                        new_incoming_links.push_back(&*inlink);
+                        new_outgoing_links.push_back(&*outlink);
                     }
                     
                 }
+                transferLoans(**neighbor.reverse, new_incoming_links);
+                transferLoans(neighbor, new_outgoing_links);
                 neighboring_edge_links.erase(*neighbor.reverse);
             }
+            cell.adjacent_cells[side].clear();
             
         }
         

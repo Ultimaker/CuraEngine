@@ -37,6 +37,7 @@ public:
         float loan; //!< amount of requested_filled_area loaned from one cell to another, when subdivision of the former is prevented by the latter. This value should always be positive.
         Cell* from()
         {
+            assert(reverse);
             return (*reverse)->to;
         }
         Link(Cell& to)
