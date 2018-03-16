@@ -61,7 +61,7 @@ public:
         : elem(elem)
         , depth(depth)
         , area(-1)
-        , filled_area_allowance(-1)
+        , filled_area_allowance(0)
         , is_subdivided(false)
         , adjacent_cells(number_of_sides)
         {
@@ -111,6 +111,46 @@ public:
         createTree();
     }
 
+    /*!
+     * Create a pattern with no dithering and no balancing.
+     */
+    void createMinimalErrorPattern()
+    {
+        std::list<Cell*> to_be_checked;
+        to_be_checked.push_back(root);
+        
+        while (!to_be_checked.empty())
+        {
+            Cell* checking = to_be_checked.front();
+            to_be_checked.pop_front();
+            
+            if (checking->filled_area_allowance > getActualizedArea(*checking))
+                // TODO: don't simply check on lower boundary (filled_area_allowance) but in middle between lower and upper boundary
+            {
+                bool can_subdivide = true;
+                for (std::list<Link>& side : checking->adjacent_cells)
+                {
+                    for (Link& neighbor : side)
+                    {
+                        if (isConstrainedBy(*checking, *neighbor.to))
+                        {
+                            can_subdivide = false;
+                            break;
+                        }
+                    }
+                }
+                if (can_subdivide)
+                {
+                    subdivide(*checking);
+                    for (Cell* child : checking->children)
+                    {
+                        to_be_checked.push_back(child);
+                    }
+                }
+            }
+        }
+    }
+
 protected:
     virtual void createTree() = 0;
     
@@ -118,7 +158,7 @@ protected:
     
     virtual float getActualizedArea(const Cell& cell) = 0;
     
-//     virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) = 0;
+    virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) = 0;
 
     float getBalance(const Cell& cell)
     {

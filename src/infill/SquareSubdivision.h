@@ -103,7 +103,12 @@ protected:
         }
     }
     
-    virtual void createTree()
+    bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer)
+    {
+        return false; // TODO: not implemented constraintsyet
+    }
+    
+    void createTree()
     {
         int max_depth = 8; // TODO
         
@@ -248,16 +253,19 @@ public:
         
         subdivide(*root->children[1]);
         subdivide(*root->children[1]->children[2]);
+        subdivide(*root->children[3]);
+        subdivide(*root->children[3]->children[0]);
+        subdivide(*root->children[3]->children[0]->children[1]);
     }
     
-    void debugOutput(SVG& svg, Cell& sub_tree_root, int drawing_line_width)
+    void debugOutput(SVG& svg, Cell& sub_tree_root, int drawing_line_width, bool draw_arrows)
     {
         if (sub_tree_root.is_subdivided)
         {
             for (Cell* child : sub_tree_root.children)
             {
                 assert(child);
-                debugOutput(svg, *child, drawing_line_width);
+                debugOutput(svg, *child, drawing_line_width, draw_arrows);
             }
         }
         else
@@ -267,31 +275,34 @@ public:
             const Point from_middle = sub_tree_root.elem.getMiddle();
             
             // draw links
-            for (std::list<Link>& side : sub_tree_root.adjacent_cells)
+            if (draw_arrows)
             {
-                for (Link& link : side)
+                for (std::list<Link>& side : sub_tree_root.adjacent_cells)
                 {
-                    const Point to_middle = link.to->elem.getMiddle();
-                    const Point link_vector = to_middle - from_middle;
-                    Point arrow_from = from_middle + link_vector / 5 * 1 - turn90CCW(link_vector / 20);
-                    Point arrow_to = from_middle + link_vector / 5 * 4 - turn90CCW(link_vector / 20);
-                    
-                    Point arrow_head_back_l = arrow_to - link_vector / 15 + turn90CCW(link_vector / 30);
-                    Point arrow_head_back_r = arrow_to - link_vector / 15 - turn90CCW(link_vector / 30);
-                    svg.writeLine(arrow_from, arrow_to, SVG::Color::BLUE);
-                    svg.writeLine(arrow_to, arrow_head_back_l, SVG::Color::BLUE);
-                    svg.writeLine(arrow_to, arrow_head_back_r, SVG::Color::BLUE);
-                    svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::Color::BLUE);
+                    for (Link& link : side)
+                    {
+                        const Point to_middle = link.to->elem.getMiddle();
+                        const Point link_vector = to_middle - from_middle;
+                        Point arrow_from = from_middle + link_vector / 5 * 1 - turn90CCW(link_vector / 20);
+                        Point arrow_to = from_middle + link_vector / 5 * 4 - turn90CCW(link_vector / 20);
+                        
+                        Point arrow_head_back_l = arrow_to - link_vector / 15 + turn90CCW(link_vector / 30);
+                        Point arrow_head_back_r = arrow_to - link_vector / 15 - turn90CCW(link_vector / 30);
+                        svg.writeLine(arrow_from, arrow_to, SVG::Color::BLUE);
+                        svg.writeLine(arrow_to, arrow_head_back_l, SVG::Color::BLUE);
+                        svg.writeLine(arrow_to, arrow_head_back_r, SVG::Color::BLUE);
+                        svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::Color::BLUE);
+                    }
                 }
             }
         }
     }
     
-    void debugOutput(SVG& svg, int drawing_line_width)
+    void debugOutput(SVG& svg, int drawing_line_width, bool draw_arrows)
     {
         if (root)
         {
-            debugOutput(svg, *root, drawing_line_width);
+            debugOutput(svg, *root, drawing_line_width, draw_arrows);
         }
     }
 };
