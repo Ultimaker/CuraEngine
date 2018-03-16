@@ -124,28 +124,29 @@ public:
             Cell* checking = to_be_checked.front();
             to_be_checked.pop_front();
             
-            if (checking->filled_area_allowance > getActualizedArea(*checking))
-                // TODO: don't simply check on lower boundary (filled_area_allowance) but in middle between lower and upper boundary
+            if (!checking->children[0])
+            { // cell has no children
+                continue;
+            }
+            
+            bool is_constrained = false;
+            for (std::list<Link>& side : checking->adjacent_cells)
             {
-                bool can_subdivide = true;
-                for (std::list<Link>& side : checking->adjacent_cells)
+                for (Link& neighbor : side)
                 {
-                    for (Link& neighbor : side)
+                    if (isConstrainedBy(*checking, *neighbor.to))
                     {
-                        if (isConstrainedBy(*checking, *neighbor.to))
-                        {
-                            can_subdivide = false;
-                            break;
-                        }
+                        is_constrained = true;
+                        break;
                     }
                 }
-                if (can_subdivide)
+            }
+            if (!is_constrained && checking->filled_area_allowance > (getActualizedArea(*checking) + getChildrenActualizedArea(*checking)) / 2)
+            {
+                subdivide(*checking);
+                for (Cell* child : checking->children)
                 {
-                    subdivide(*checking);
-                    for (Cell* child : checking->children)
-                    {
-                        to_be_checked.push_back(child);
-                    }
+                    to_be_checked.push_back(child);
                 }
             }
         }
@@ -157,6 +158,8 @@ protected:
     virtual void subdivide(Cell& cell) = 0;
     
     virtual float getActualizedArea(const Cell& cell) = 0;
+
+    virtual float getChildrenActualizedArea(const Cell& cell) = 0;
     
     virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) = 0;
 

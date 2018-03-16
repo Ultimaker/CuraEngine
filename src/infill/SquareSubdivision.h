@@ -29,6 +29,22 @@ protected:
         return INT2MM(Parent::line_width) * INT2MM(diagonal.X + diagonal.Y);
     }
     
+    float getChildrenActualizedArea(const Cell& cell)
+    {
+        // The actualized area of squares doesn't depend on surrounding cells,=
+        // so we just call getActualizedArea(.)
+        float actualized_area = 0;
+        for (Cell* child : cell.children)
+        {
+            if (!child)
+            {
+                continue;
+            }
+            getActualizedArea(*child);
+        }
+        return actualized_area;
+    }
+    
     enum class Direction : int
     {
         LEFT = 0, // ordered on polarity and dimension: first X from less to more, then Y
@@ -110,7 +126,7 @@ protected:
     
     void createTree()
     {
-        int max_depth = 8; // TODO
+        int max_depth = 10; // TODO
         
         root = new Cell(aabb, 0, number_of_sides);
         
@@ -270,7 +286,9 @@ public:
         }
         else
         {
-            svg.writePolygon(sub_tree_root.elem.toPolygon(), SVG::Color::BLACK, drawing_line_width);
+            AABB square = sub_tree_root.elem;
+            svg.writeLine(square.min, Point(square.max.X, square.min.Y), SVG::Color::BLACK, drawing_line_width);
+            svg.writeLine(square.max, Point(square.max.X, square.min.Y), SVG::Color::BLACK, drawing_line_width);
             
             const Point from_middle = sub_tree_root.elem.getMiddle();
             
@@ -302,6 +320,7 @@ public:
     {
         if (root)
         {
+            svg.writePolygon(root->elem.toPolygon(), SVG::Color::BLACK, drawing_line_width);
             debugOutput(svg, *root, drawing_line_width, draw_arrows);
         }
     }

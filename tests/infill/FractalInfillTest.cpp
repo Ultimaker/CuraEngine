@@ -22,7 +22,7 @@ void FractalInfillTest::tearDown()
 void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
-    AABB aabb(Point(0,0), Point(line_width, line_width)*512);
+    AABB aabb(Point(0,0), Point(line_width, line_width)*256);
     
     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
