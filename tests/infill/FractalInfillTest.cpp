@@ -22,7 +22,7 @@ void FractalInfillTest::tearDown()
 void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
-    AABB aabb(Point(0,0), Point(line_width, line_width)*256);
+    AABB aabb(Point(0,0), Point(line_width, line_width)*512);
     
     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
@@ -43,10 +43,11 @@ void FractalInfillTest::debugCheck()
     
     SquareSubdivision ss(*subdivider, aabb, line_width);
     ss.initialize();
-    ss.createMinimalErrorPattern();
+//     ss.createMinimalErrorPattern(false);
+    ss.createDitheredPattern();
     
     {
-        Point canvas_size = Point(1000, 1000);
+        Point canvas_size = Point(1024, 1024);
         SVG svg("output/subdiv_dither.svg", aabb, canvas_size);
         
         int drawing_line_width = line_width * canvas_size.X / aabb.max.X;

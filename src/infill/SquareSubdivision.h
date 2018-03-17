@@ -40,7 +40,7 @@ protected:
             {
                 continue;
             }
-            getActualizedArea(*child);
+            actualized_area += getActualizedArea(*child);
         }
         return actualized_area;
     }
@@ -174,6 +174,10 @@ protected:
      */
     void transferLoans(Link& old, const std::list<Link*>& new_links)
     {
+        if (old.loan == 0.0)
+        {
+            return;
+        }
         // TODO
         // this implements naive equal transfer
         int new_link_count = new_links.size();
@@ -185,6 +189,8 @@ protected:
     
     void subdivide(Cell& cell)
     {
+        const float total_loan_balance_before = getTotalLoanBalance(cell);
+        
         assert(cell.children[0] && cell.children[1] && cell.children[2] && cell.children[3] && "Children must be initialized for subdivision!");
         Cell& child_lb = *cell.children[0];
         Cell& child_rb = *cell.children[1];
@@ -250,7 +256,7 @@ protected:
                     }
                     
                 }
-                transferLoans(**neighbor.reverse, new_incoming_links);
+                transferLoans(neighbor.getReverse(), new_incoming_links);
                 transferLoans(neighbor, new_outgoing_links);
                 neighboring_edge_links.erase(*neighbor.reverse);
             }
@@ -259,9 +265,86 @@ protected:
         }
         
         cell.is_subdivided = true;
+        
+        
+        float total_loan_balance_after = 0.0;
+        for (const Cell* child : cell.children)
+        {
+            assert(child && " we just subdivided!");
+            total_loan_balance_after += getTotalLoanBalance(*child);
+        }
+        assert(std::abs(total_loan_balance_after - total_loan_balance_before) < 0.0001);
     }
     
 public:
+    
+    void createDitheredPattern()
+    {
+        bool midway_decision_boundary = false;
+        createMinimalErrorPattern(midway_decision_boundary);
+        
+        if (root)
+        {
+            dither(*root);
+        }
+    }
+    
+    void dither(Cell& parent)
+    {
+        if (parent.is_subdivided)
+        {
+            for (Cell* child : parent.children)
+            {
+                if (child)
+                {
+                    dither(*child);
+                }
+            }
+        }
+        else
+        {
+            const float balance = getBalance(parent);
+            const float parent_actualized_area = getActualizedArea(parent);
+            const float subdivided_actualized_area = getChildrenActualizedArea(parent);
+//             std::cerr << balance << ", " << parent_actualized_area << ", " << subdivided_actualized_area << '\n';
+//             const float decision_boundary = subdivided_actualized_area  ; // TODO put back
+            const float range = subdivided_actualized_area - parent_actualized_area;
+//             const float decision_boundary = (rand() % 100) * range / 100;
+//             const float decision_boundary = (.01 * (rand() % 101) * .5 + .25) * range;
+            const float decision_boundary = range / 2;
+            bool do_subdivide = balance > decision_boundary;
+            float actualized_area = (do_subdivide)? subdivided_actualized_area : parent_actualized_area;
+            
+            const float left_over = balance - (actualized_area - parent_actualized_area); // might be negative
+            
+            // divide left_over equally per cell capacity, which is linearly related to the cell area
+            float total_weighted_forward_cell_area = 0;
+            Direction forwards[] = { Direction::RIGHT, Direction::UP };
+            float direction_weights[] = { .7, .3 }; // TODO: determine resoned weights!
+            for (Direction direction : forwards)
+            {
+                std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
+                for (Link& neighbor : side)
+                {
+                    total_weighted_forward_cell_area += direction_weights[static_cast<size_t>(direction)] * neighbor.to->area;
+                }
+            }
+            for (Direction direction : forwards)
+            {
+                std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
+                for (Link& neighbor : side)
+                {
+                    Link& loan_link = (left_over > 0)? neighbor : neighbor.getReverse();
+                    loan_link.loan += std::abs(left_over) * direction_weights[static_cast<size_t>(direction)] * neighbor.to->area / total_weighted_forward_cell_area;
+                }
+            }
+            
+            if (do_subdivide)
+            {
+                subdivide(parent);
+            }
+        }
+    }
     
     void testSubdivision()
     {

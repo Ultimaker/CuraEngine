@@ -40,6 +40,11 @@ public:
             assert(reverse);
             return (*reverse)->to;
         }
+        Link& getReverse() const
+        {
+            assert(reverse);
+            return **reverse;
+        }
         Link(Cell& to)
         : to(&to)
         , loan(0.0)
@@ -113,8 +118,10 @@ public:
 
     /*!
      * Create a pattern with no dithering and no balancing.
+     * 
+     * \param middle_decision_boundary Whether to divide when required area is more than midway between the actualized area and the children actualized area. Set to false to create the minimal required subdivision before dithering
      */
-    void createMinimalErrorPattern()
+    void createMinimalErrorPattern(bool middle_decision_boundary = true)
     {
         std::list<Cell*> to_be_checked;
         to_be_checked.push_back(root);
@@ -141,7 +148,10 @@ public:
                     }
                 }
             }
-            if (!is_constrained && checking->filled_area_allowance > (getActualizedArea(*checking) + getChildrenActualizedArea(*checking)) / 2)
+            float decision_boundary = (middle_decision_boundary)?
+                                        (getActualizedArea(*checking) + getChildrenActualizedArea(*checking)) / 2
+                                        : getChildrenActualizedArea(*checking);
+            if (!is_constrained && checking->filled_area_allowance > decision_boundary)
             {
                 subdivide(*checking);
                 for (Cell* child : checking->children)
@@ -151,6 +161,8 @@ public:
             }
         }
     }
+    
+    virtual void createDitheredPattern() = 0;
 
 protected:
     virtual void createTree() = 0;
@@ -165,16 +177,23 @@ protected:
 
     float getBalance(const Cell& cell)
     {
-        float balance = cell.area_statistics->filled_area_allowance - getActualizedArea(cell);
-        for (std::list<Link>& neighbors_in_a_given_direction : cell.adjacent_cells)
+        float balance = cell.filled_area_allowance - getActualizedArea(cell) + getTotalLoanBalance(cell);
+        return balance;
+    }
+    
+    float getTotalLoanBalance(const Cell& cell)
+    {
+        float loan = 0.0;
+        
+        for (const std::list<Link>& neighbors_in_a_given_direction : cell.adjacent_cells)
         {
-            for (Link& link : neighbors_in_a_given_direction)
+            for (const Link& link : neighbors_in_a_given_direction)
             {
-                balance -= link.loan;
-                balance += link.reverse->loan;
+                loan -= link.loan;
+                loan += link.getReverse().loan;
             }
         }
-        return balance;
+        return loan;
     }
 
     void distributeLeftOvers(Cell& from, float left_overs)
@@ -186,10 +205,10 @@ protected:
         {
             for (Link& link : neighbors_in_a_given_direction)
             {
-                if (link.reverse->loan > 0.00001)
+                if (link.getReverse().loan > 0.00001)
                 {
-                    total_loan += link.reverse->loan;
-                    loaners.push_back(link.reverse);
+                    total_loan += link.getReverse().loan;
+                    loaners.push_back(&link.getReverse());
                 }
             }
         }
