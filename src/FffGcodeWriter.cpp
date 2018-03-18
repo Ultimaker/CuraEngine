@@ -1842,7 +1842,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     bool use_bridge_config3 = false;
     double skin_density = 1.0;
     coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-    Polygons supportedSkinPartRegions;
+    Polygons supported_skin_part_regions;
+    const bool bridge_settings_enabled = mesh.getSettingBoolean("bridge_settings_enabled");
+    const double support_threshold = bridge_settings_enabled ? mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100 : 0;
 
     // if support is enabled, consider the support outlines so we don't generate bridges over support
 
@@ -1863,32 +1865,33 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate bridging angle
     if (layer_nr > 0)
     {
-        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], support_layer, supportedSkinPartRegions);
+        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], support_layer, supported_skin_part_regions, support_threshold);
     }
     if (bridge > -1)
     {
         pattern = EFillMethod::LINES; // force lines pattern when bridging
         skin_angle = bridge;
-        use_bridge_config = mesh.getSettingBoolean("bridge_settings_enabled");
+        use_bridge_config = bridge_settings_enabled;
         if (use_bridge_config)
         {
             skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
         }
     }
-    else if (layer_nr > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+    else if (layer_nr > 0 && bridge_settings_enabled)
     {
         // if the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
-        if ((supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
+        if ((supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
         {
             pattern = EFillMethod::LINES; // force lines pattern when bridging
             use_bridge_config = true;
+            skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
         }
         else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_enable_more_layers"))
         {
             // if this is the second bridge layer use bridge_skin_config2
-            Polygons supportedSkinPartRegions2;
-            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], support_layer, supportedSkinPartRegions2);
-            if (bridge2 > -1 || (supportedSkinPartRegions2.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
+            Polygons supported_skin_part_regions2;
+            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], support_layer, supported_skin_part_regions2, support_threshold);
+            if (bridge2 > -1 || (supported_skin_part_regions2.area() / (skin_part.outline.area() + 1) < support_threshold))
             {
                 if (bridge2 > -1)
                 {
@@ -1903,8 +1906,8 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             else if (layer_nr > 2)
             {
                 // if this is the third bridge layer, use the same skin_angle as the first
-                Polygons supportedSkinPartRegions3;
-                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], support_layer, supportedSkinPartRegions3);
+                Polygons supported_skin_part_regions3;
+                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], support_layer, supported_skin_part_regions3, support_threshold);
                 if (bridge3 > -1)
                 {
                     skin_angle = bridge3;
