@@ -72,7 +72,7 @@ void SVG::writeComment(std::string comment)
     fprintf(out, "<!-- %s -->\n", comment.c_str());
 }
 
-void SVG::writeAreas(const Polygons& polygons, Color color, Color outline_color, coord_t stroke_width) 
+void SVG::writeAreas(const Polygons& polygons, Color color, Color outline_color, float stroke_width) 
 {
     for(PolygonsPart& parts : polygons.splitIntoParts())
     {
@@ -85,16 +85,16 @@ void SVG::writeAreas(const Polygons& polygons, Color color, Color outline_color,
                 fprintf(out, "%lli,%lli ", fp.X, fp.Y);
             }
             if (j == 0)
-                fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:%lli\" />\n", toString(color).c_str(), toString(outline_color).c_str(), stroke_width);
+                fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:%f\" />\n", toString(color).c_str(), toString(outline_color).c_str(), stroke_width);
             else
-                fprintf(out, "\" style=\"fill:white;stroke:%s;stroke-width:%lli\" />\n", toString(outline_color).c_str(), stroke_width);
+                fprintf(out, "\" style=\"fill:white;stroke:%s;stroke-width:%f\" />\n", toString(outline_color).c_str(), stroke_width);
         }
     }
 }
 
-void SVG::writeAreas(ConstPolygonRef polygon, Color color, Color outline_color, coord_t stroke_width)
+void SVG::writeAreas(ConstPolygonRef polygon, Color color, Color outline_color, float stroke_width)
 {
-    fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%lli\" points=\"",toString(color).c_str(),toString(outline_color).c_str(), stroke_width); //The beginning of the polygon tag.
+    fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" points=\"",toString(color).c_str(),toString(outline_color).c_str(), stroke_width); //The beginning of the polygon tag.
     for (const Point& point : polygon) //Add every point to the list of points.
     {
         Point transformed = transform(point);
@@ -154,11 +154,11 @@ void SVG::writeLine(const Point& a, const Point& b, Color color, float stroke_wi
     fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str(), stroke_width);
 }
 
-void SVG::writeLineRGB(const Point& from, const Point& to, int r, int g, int b, int stroke_width)
+void SVG::writeLineRGB(const Point& from, const Point& to, int r, int g, int b, float stroke_width)
 {
     Point fa = transform(from);
     Point fb = transform(to);
-    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%i\" />\n", fa.X, fa.Y, fb.X, fb.Y, r, g, b, stroke_width);
+    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%f\" />\n", fa.X, fa.Y, fb.X, fb.Y, r, g, b, stroke_width);
 }
 
 void SVG::writeDashedLine(const Point& a, const Point& b, Color color)
@@ -173,7 +173,7 @@ void SVG::writeText(Point p, std::string txt, Color color, coord_t font_size)
     Point pf = transform(p);
     fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: %llipx;\" fill=\"%s\">%s</text>\n",pf.X, pf.Y, font_size, toString(color).c_str(), txt.c_str());
 }
-void SVG::writePolygons(const Polygons& polys, Color color, int stroke_width)
+void SVG::writePolygons(const Polygons& polys, Color color, float stroke_width)
 {
     for (ConstPolygonRef poly : polys)
     {
@@ -181,7 +181,7 @@ void SVG::writePolygons(const Polygons& polys, Color color, int stroke_width)
     }
 }
 
-void SVG::writePolygon(ConstPolygonRef poly, Color color, int stroke_width)
+void SVG::writePolygon(ConstPolygonRef poly, Color color, float stroke_width)
 {
     if (poly.size() == 0)
     {
