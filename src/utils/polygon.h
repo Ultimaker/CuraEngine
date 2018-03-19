@@ -546,9 +546,16 @@ public:
     {
     }
 
-    Polygon& operator=(const ConstPolygonRef& other)
+    Polygon& operator=(const ConstPolygonRef& other) = delete; // copying a single polygon is generally not what you want
+//     {
+//         path = other.path;
+//         poly = *other.path;
+//         return *this;
+//     }
+
+    Polygon& operator=(Polygon&& other) //!< move assignment
     {
-        path = other.path;
+        poly = std::move(other.poly);
         return *this;
     }
 };
