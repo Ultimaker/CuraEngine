@@ -51,8 +51,9 @@ void FractalInfillTest::debugCheck()
         Point canvas_size = Point(1024, 1024);
         SVG svg("output/subdiv_dither.svg", aabb, canvas_size);
         
-        float drawing_line_width = line_width * svg.getScale();
         bool draw_arrows = false;
+        float drawing_line_width = line_width * svg.getScale();
+        if (draw_arrows) drawing_line_width *= .2;
         ss.debugOutput(svg, drawing_line_width, draw_arrows);
     }
 }

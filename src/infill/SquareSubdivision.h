@@ -4,6 +4,7 @@
 #include "../utils/AABB.h"
 #include "../utils/Range.h"
 #include "../utils/SVG.h"
+#include "../utils/string.h" // writing loan to svg
 #include "InfillFractal.h"
 #include "SubdivSquare.h"
 
@@ -413,7 +414,7 @@ public:
         subdivide(*root->children[3]->children[0]->children[1]);
     }
     
-    void debugOutput(SVG& svg, Cell& sub_tree_root, int drawing_line_width, bool draw_arrows)
+    void debugOutput(SVG& svg, Cell& sub_tree_root, float drawing_line_width, bool draw_arrows)
     {
         if (sub_tree_root.is_subdivided)
         {
@@ -449,13 +450,17 @@ public:
                         svg.writeLine(arrow_to, arrow_head_back_l, SVG::Color::BLUE);
                         svg.writeLine(arrow_to, arrow_head_back_r, SVG::Color::BLUE);
                         svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::Color::BLUE);
+                        
+                        std::ostringstream os;
+                        os << PrecisionedDouble{ 2, link.loan};
+                        svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 10) + link_vector / 10, os.str(), SVG::Color::BLACK, 4);
                     }
                 }
             }
         }
     }
     
-    void debugOutput(SVG& svg, int drawing_line_width, bool draw_arrows)
+    void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows)
     {
         if (root)
         {
