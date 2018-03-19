@@ -143,7 +143,7 @@ void SVG::writeLines(std::vector<Point> polyline, Color color)
     }
     
     FPoint3 transformed = transformF(polyline[0]); //Element 0 must exist due to the check above.
-    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.x,transformed.y); //Write the start of the path tag and the first endpoint.
+    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f",toString(color).c_str(), transformed.x, transformed.y); //Write the start of the path tag and the first endpoint.
     for(size_t point = 1;point < polyline.size();point++)
     {
         transformed = transformF(polyline[point]);
