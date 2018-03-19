@@ -41,6 +41,12 @@ public:
     Point getMiddle() const;
 
     /*!
+     * Get the vector from min to max.
+     * \return the size of the aabb
+     */
+    Point getVector() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      * 
      * In the boundary case false is returned.

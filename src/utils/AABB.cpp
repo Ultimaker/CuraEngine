@@ -35,6 +35,11 @@ Point AABB::getMiddle() const
     return (min + max) / 2;
 }
 
+Point AABB::getVector() const
+{
+    return max - min;
+}
+
 void AABB::calculate(const Polygons& polys)
 {
     min = Point(POINT_MAX, POINT_MAX);
