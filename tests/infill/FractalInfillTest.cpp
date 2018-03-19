@@ -22,7 +22,8 @@ void FractalInfillTest::tearDown()
 void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
-    AABB aabb(Point(0,0), Point(line_width, line_width)*512);
+    int max_depth = 8;
+    AABB aabb(Point(0,0), Point(line_width, line_width)*(1 << max_depth));
     
     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
@@ -41,7 +42,7 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/soulpilot_dark.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/cura-logo.jpg", aabb);
     
-    SquareSubdivision ss(*subdivider, aabb, line_width);
+    SquareSubdivision ss(*subdivider, aabb, max_depth - 1, line_width);
     ss.initialize();
 //     ss.createMinimalErrorPattern(false);
     ss.createDitheredPattern();

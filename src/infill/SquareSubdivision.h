@@ -17,19 +17,19 @@ class SquareSubdivision : public InfillFractal<AABB, 4, 2>
     using Parent = InfillFractal<AABB, 4, 2>;
     using LinkIterator = Parent::LinkIterator;
 public:
-    SquareSubdivision(const DensityProvider& density_provider, const AABB aabb, coord_t line_width)
-    : Parent(density_provider, aabb, line_width)
+    SquareSubdivision(const DensityProvider& density_provider, const AABB aabb, const int max_depth, coord_t line_width)
+    : Parent(density_provider, aabb, max_depth, line_width)
     {
     }
 protected:
-    float getActualizedArea(const Parent::Cell& node)
+    float getActualizedArea(const Parent::Cell& node) const
     {
         const AABB& aabb = node.elem;
         Point diagonal = aabb.max - aabb.min;
         return INT2MM(Parent::line_width) * INT2MM(diagonal.X + diagonal.Y);
     }
     
-    float getChildrenActualizedArea(const Cell& cell)
+    float getChildrenActualizedArea(const Cell& cell) const
     {
         // The actualized area of squares doesn't depend on surrounding cells,=
         // so we just call getActualizedArea(.)
@@ -98,7 +98,7 @@ protected:
         }
     }
     
-    void getSpecificationAllowance(Cell& sub_tree_root)
+    void setSpecificationAllowance(Cell& sub_tree_root)
     {
         Point area_dimensions = sub_tree_root.elem.max - sub_tree_root.elem.min;
         sub_tree_root.area = INT2MM(area_dimensions.X) * INT2MM(area_dimensions.Y);
@@ -108,7 +108,7 @@ protected:
         {
             for (Cell* child : sub_tree_root.children)
             {
-                getSpecificationAllowance(*child);
+                setSpecificationAllowance(*child);
                 sub_tree_root.filled_area_allowance += child->filled_area_allowance;
             }
         }
@@ -119,7 +119,7 @@ protected:
         }
     }
     
-    bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer)
+    bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const
     {
         return false; // TODO: not implemented constraintsyet
     }
@@ -132,7 +132,7 @@ protected:
         
         createTree(*root, max_depth);
         
-        getSpecificationAllowance(*root);
+        setSpecificationAllowance(*root);
     }
     
     
@@ -153,7 +153,7 @@ protected:
      * 
      * \param dimension The dimension to check whether they are next to each other. 0 for X if you want to check if the cells are besides each other, 1 for on top of each other.
      */
-    bool isNextTo(const Cell& a, const Cell& b, int dimension)
+    bool isNextTo(const Cell& a, const Cell& b, int dimension) const
     {
         AABB a_square_expanded = a.elem;
         a_square_expanded.expand(10); // TODO: move allowed error to central place?
@@ -306,13 +306,11 @@ public:
             const float balance = getBalance(parent);
             const float parent_actualized_area = getActualizedArea(parent);
             const float subdivided_actualized_area = getChildrenActualizedArea(parent);
-//             std::cerr << balance << ", " << parent_actualized_area << ", " << subdivided_actualized_area << '\n';
-//             const float decision_boundary = subdivided_actualized_area  ; // TODO put back
             const float range = subdivided_actualized_area - parent_actualized_area;
 //             const float decision_boundary = (rand() % 100) * range / 100;
 //             const float decision_boundary = (.01 * (rand() % 101) * .5 + .25) * range;
             const float decision_boundary = range / 2;
-            bool do_subdivide = balance > decision_boundary;
+            bool do_subdivide = balance > decision_boundary && canSubdivide(parent);
             float actualized_area = (do_subdivide)? subdivided_actualized_area : parent_actualized_area;
             
             const float left_over = balance - (actualized_area - parent_actualized_area); // might be negative

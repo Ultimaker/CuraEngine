@@ -86,19 +86,22 @@ public:
     
     
     
+    AABB aabb;
+    
+    int max_depth;
+    
     coord_t line_width; //!< The line width of the fill lines
     
     const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
     
     Cell* root;
     
-    AABB aabb;
-    
-    InfillFractal(const DensityProvider& density_provider, const AABB aabb, coord_t line_width)
-    : line_width(line_width)
+    InfillFractal(const DensityProvider& density_provider, const AABB aabb, const int max_depth, coord_t line_width)
+    : aabb(aabb)
+    , max_depth(max_depth)
+    , line_width(line_width)
     , density_provider(density_provider)
     , root(nullptr)
-    , aabb(aabb)
     {
     }
 
@@ -116,6 +119,35 @@ public:
         createTree();
     }
 
+    
+    
+    bool canSubdivide(Cell& cell) const
+    {
+        if (cell.depth >= max_depth && !isConstrained(cell))
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    
+    bool isConstrained(const Cell& cell) const
+    {
+        for (const std::list<Link>& side : cell.adjacent_cells)
+        {
+            for (const Link& neighbor : side)
+            {
+                if (isConstrainedBy(cell, *neighbor.to))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     /*!
      * Create a pattern with no dithering and no balancing.
      * 
@@ -136,22 +168,10 @@ public:
                 continue;
             }
             
-            bool is_constrained = false;
-            for (std::list<Link>& side : checking->adjacent_cells)
-            {
-                for (Link& neighbor : side)
-                {
-                    if (isConstrainedBy(*checking, *neighbor.to))
-                    {
-                        is_constrained = true;
-                        break;
-                    }
-                }
-            }
             float decision_boundary = (middle_decision_boundary)?
                                         (getActualizedArea(*checking) + getChildrenActualizedArea(*checking)) / 2
                                         : getChildrenActualizedArea(*checking);
-            if (!is_constrained && checking->filled_area_allowance > decision_boundary)
+            if (canSubdivide(*checking) && checking->filled_area_allowance > decision_boundary)
             {
                 subdivide(*checking);
                 for (Cell* child : checking->children)
@@ -169,19 +189,19 @@ protected:
     
     virtual void subdivide(Cell& cell) = 0;
     
-    virtual float getActualizedArea(const Cell& cell) = 0;
+    virtual float getActualizedArea(const Cell& cell) const = 0;
 
-    virtual float getChildrenActualizedArea(const Cell& cell) = 0;
+    virtual float getChildrenActualizedArea(const Cell& cell) const = 0;
     
-    virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) = 0;
+    virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const = 0;
 
-    float getBalance(const Cell& cell)
+    float getBalance(const Cell& cell) const
     {
         float balance = cell.filled_area_allowance - getActualizedArea(cell) + getTotalLoanBalance(cell);
         return balance;
     }
     
-    float getTotalLoanBalance(const Cell& cell)
+    float getTotalLoanBalance(const Cell& cell) const
     {
         float loan = 0.0;
         
