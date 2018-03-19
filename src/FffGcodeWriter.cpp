@@ -1847,6 +1847,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
     // if support is enabled, consider the support outlines so we don't generate bridges over support
 
+    int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
 
     if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
@@ -1854,16 +1855,16 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
         const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
-        const int support_layer_nr = layer_nr - z_distance_top_layers;
-        if (support_layer_nr >= 0)
-        {
-            support_layer = &storage.support.supportLayers[support_layer_nr];
-        }
+        support_layer_nr = layer_nr - z_distance_top_layers;
     }
 
     // calculate bridging angle
     if (layer_nr > 0)
     {
+        if (support_layer_nr >= 0)
+        {
+            support_layer = &storage.support.supportLayers[support_layer_nr];
+        }
         bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], support_layer, supported_skin_part_regions, support_threshold);
     }
     if (bridge > -1)
@@ -1889,6 +1890,10 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         {
             // if this is the second bridge layer use bridge_skin_config2
             Polygons supported_skin_part_regions2;
+            if (support_layer_nr >= 1)
+            {
+                support_layer = &storage.support.supportLayers[support_layer_nr - 1];
+            }
             int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], support_layer, supported_skin_part_regions2, support_threshold);
             if (bridge2 > -1 || (supported_skin_part_regions2.area() / (skin_part.outline.area() + 1) < support_threshold))
             {
@@ -1906,6 +1911,10 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             {
                 // if this is the third bridge layer, use the same skin_angle as the first
                 Polygons supported_skin_part_regions3;
+                if (support_layer_nr >= 2)
+                {
+                    support_layer = &storage.support.supportLayers[support_layer_nr - 2];
+                }
                 int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], support_layer, supported_skin_part_regions3, support_threshold);
                 if (bridge3 > -1)
                 {
