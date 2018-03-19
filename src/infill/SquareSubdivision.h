@@ -288,6 +288,45 @@ public:
             dither(*root);
         }
     }
+
+    /*!
+     * Get the right up diagonal neighbor
+     * for which the left lower corner coincides with the right uper corner of this cell
+     * if any, otherwise return nullptr
+     *           __ __
+     * :        |__|__|             but dont get this one  or this one
+     * :________|▓▓|__|                           ^             ^
+     * |       ↗|     |             | X X X X X |         |     |  X
+     * | from   |_____|             |___________|         |_____|  X
+     * |        |     |             |from |     |         |from |  X
+     * |________|_____|             |_____|_____|         |_____|____
+     */
+    Link* getDiagonalNeighbor(Cell& cell) const
+    {
+        std::list<Link>& right_side = cell.adjacent_cells[static_cast<size_t>(Direction::RIGHT)];
+        if (!right_side.empty())
+        {
+            std::list<Link>& right_side_up_side = right_side.back().to->adjacent_cells[static_cast<size_t>(Direction::UP)];
+            if (!right_side_up_side.empty())
+            {
+                Link& ru_diag_neighbor = right_side_up_side.front();
+                std::list<Link>& up_side = cell.adjacent_cells[static_cast<size_t>(Direction::UP)];
+                if (!up_side.empty())
+                {
+                    std::list<Link>& up_side_right_side = up_side.back().to->adjacent_cells[static_cast<size_t>(Direction::RIGHT)];
+                    if (!up_side_right_side.empty())
+                    {
+                        Link& ur_diag_neighbor = up_side_right_side.front();
+                        if (ru_diag_neighbor.to == ur_diag_neighbor.to)
+                        {
+                            return &ru_diag_neighbor;
+                        }
+                    }
+                }
+            }
+        }
+        return nullptr;
+    }
     
     void dither(Cell& parent)
     {
@@ -318,23 +357,42 @@ public:
             // divide left_over equally per cell capacity, which is linearly related to the cell area
             float total_weighted_forward_cell_area = 0;
             Direction forwards[] = { Direction::RIGHT, Direction::UP };
-            float direction_weights[] = { .7, .3 }; // TODO: determine resoned weights!
-            for (Direction direction : forwards)
+            
+            float direction_weights[] = { .5, .3 }; // TODO: determine reasoned weights!
+            float diag_weight = .2;
+            
+            for (int side_idx = 0; side_idx < 2; side_idx++)
             {
+                Direction direction = forwards[side_idx];
                 std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
                 for (Link& neighbor : side)
                 {
-                    total_weighted_forward_cell_area += direction_weights[static_cast<size_t>(direction)] * neighbor.to->area;
+                    assert(neighbor.to->area > 0 && "area must be computed");
+                    total_weighted_forward_cell_area += direction_weights[side_idx] * neighbor.to->area;
                 }
             }
-            for (Direction direction : forwards)
+            Link* diag_neighbor = getDiagonalNeighbor(parent);
+            if (diag_neighbor)
             {
+                total_weighted_forward_cell_area += diag_weight * diag_neighbor->to->area;
+            }
+
+            assert(total_weighted_forward_cell_area >= 0.0);
+            assert(total_weighted_forward_cell_area < 100.0);
+            for (int side_idx = 0; side_idx < 2; side_idx++)
+            {
+                Direction direction = forwards[side_idx];
                 std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
                 for (Link& neighbor : side)
                 {
                     Link& loan_link = (left_over > 0)? neighbor : neighbor.getReverse();
-                    loan_link.loan += std::abs(left_over) * direction_weights[static_cast<size_t>(direction)] * neighbor.to->area / total_weighted_forward_cell_area;
+                    loan_link.loan += std::abs(left_over) * direction_weights[side_idx] * neighbor.to->area / total_weighted_forward_cell_area;
                 }
+            }
+            if (diag_neighbor)
+            {
+                Link& diag_loan_link = (left_over > 0)? *diag_neighbor : diag_neighbor->getReverse();
+                diag_loan_link.loan += std::abs(left_over) * diag_weight * diag_neighbor->to->area / total_weighted_forward_cell_area;
             }
             
             if (do_subdivide)
