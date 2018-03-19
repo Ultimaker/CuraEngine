@@ -65,6 +65,16 @@ protected:
             default: return Direction::COUNT;
         }
     }
+    enum class ChildSide : int
+    {
+        LEFT_BOTTOM = 0,
+        RIGHT_BOTTOM = 1,
+        LEFT_TOP = 2,
+        RIGHT_TOP = 3,
+        COUNT = 4,
+        FIRST = LEFT_BOTTOM
+    };
+    
     int opposite(int in)
     {
         return static_cast<int>(opposite(static_cast<Direction>(in)));
@@ -284,9 +294,10 @@ public:
         bool midway_decision_boundary = false;
         createMinimalErrorPattern(midway_decision_boundary);
         
+        std::vector<ChildSide> tree_path(max_depth, ChildSide::COUNT);
         if (root)
         {
-            dither(*root);
+            dither(*root, tree_path);
         }
     }
 
@@ -302,9 +313,9 @@ public:
      * |        |     |             |from |     |         |from |  X
      * |________|_____|             |_____|_____|         |_____|____
      */
-    Link* getDiagonalNeighbor(Cell& cell) const
-    {
-        std::list<Link>& right_side = cell.adjacent_cells[static_cast<size_t>(Direction::RIGHT)];
+    Link* getDiagonalNeighbor(Cell& cell, Direction left_right) const
+    { // implementation naming assumes left_right is right
+        std::list<Link>& right_side = cell.adjacent_cells[static_cast<size_t>(left_right)];
         if (!right_side.empty())
         {
             std::list<Link>& right_side_up_side = right_side.back().to->adjacent_cells[static_cast<size_t>(Direction::UP)];
@@ -314,7 +325,7 @@ public:
                 std::list<Link>& up_side = cell.adjacent_cells[static_cast<size_t>(Direction::UP)];
                 if (!up_side.empty())
                 {
-                    std::list<Link>& up_side_right_side = up_side.back().to->adjacent_cells[static_cast<size_t>(Direction::RIGHT)];
+                    std::list<Link>& up_side_right_side = up_side.back().to->adjacent_cells[static_cast<size_t>(left_right)];
                     if (!up_side_right_side.empty())
                     {
                         Link& ur_diag_neighbor = up_side_right_side.front();
@@ -329,15 +340,54 @@ public:
         return nullptr;
     }
     
-    void dither(Cell& parent)
+    /*!
+     * Check whetehr we can propagate error to the cell diagonally left up of this cell.
+     * This is only possible of we hadn't already processed that cell,
+     * which is the case if this is a ll cell after a lb cell after the last right cell.
+     */
+    bool canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path)
+    {
+        if (cell.depth == 0)
+        {
+            return false;
+        }
+        if (tree_path[cell.depth - 1] == ChildSide::LEFT_BOTTOM)
+        {
+            return false;
+        }
+        if (tree_path[cell.depth - 1] != ChildSide::LEFT_TOP)
+        {
+            return true;
+        }
+        int tree_path_idx;
+        for (tree_path_idx = cell.depth - 1; tree_path_idx >= 0; tree_path_idx--)
+        {
+            if (tree_path[tree_path_idx] == ChildSide::RIGHT_BOTTOM || tree_path[tree_path_idx] == ChildSide::RIGHT_TOP)
+            {
+                break;
+            }
+        }
+        for (; tree_path_idx < cell.depth; tree_path_idx++)
+        {
+            if (tree_path[tree_path_idx] == ChildSide::LEFT_BOTTOM)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    void dither(Cell& parent, std::vector<ChildSide>& tree_path)
     {
         if (parent.is_subdivided)
         {
-            for (Cell* child : parent.children)
+            for (int path_dir = static_cast<int>(ChildSide::FIRST); path_dir < static_cast<int>(ChildSide::COUNT); path_dir++)
             {
+                Cell* child = parent.children[path_dir];;
                 if (child)
                 {
-                    dither(*child);
+                    tree_path[parent.depth] = static_cast<ChildSide>(path_dir);
+                    dither(*child, tree_path);
                 }
             }
         }
@@ -359,8 +409,14 @@ public:
             float total_weighted_forward_cell_area = 0;
             Direction forwards[] = { Direction::RIGHT, Direction::UP };
             
-            float direction_weights[] = { .5, .3 }; // TODO: determine reasoned weights!
-            float diag_weight = .2;
+            /* Floyd Steinberg weights:
+             * 3 5 1
+             *   * 7
+             */
+            
+            float direction_weights[] = { 7, 5 }; // TODO: determine reasoned weights!
+            float diag_weight = 0;//1;
+            float backward_diag_weight = 3; //3; // TODO: error is still being propagated to already processed cells
             
             for (int side_idx = 0; side_idx < 2; side_idx++)
             {
@@ -372,12 +428,29 @@ public:
                     total_weighted_forward_cell_area += direction_weights[side_idx] * neighbor.to->area;
                 }
             }
-            Link* diag_neighbor = getDiagonalNeighbor(parent);
+            Link* diag_neighbor = getDiagonalNeighbor(parent, Direction::RIGHT);
             if (diag_neighbor)
             {
                 total_weighted_forward_cell_area += diag_weight * diag_neighbor->to->area;
             }
-
+            Link* backward_diag_neighbor = getDiagonalNeighbor(parent, Direction::LEFT);
+            if (!canPropagateLU(parent, tree_path))
+            {
+                backward_diag_neighbor = nullptr;
+            }
+            if (backward_diag_neighbor)
+            {
+                /*!
+                 * TODO avoid error being propagated to already processed cells!!:
+                 *  ___ ___ ___ ___
+                 * | 3 | 4 | 7 | 8 |
+                 * |___|__↖|___|___|
+                 * | 1 | 2 |↖5 | 6 |
+                 * |___|___|___|___|
+                 */
+                total_weighted_forward_cell_area += backward_diag_weight * backward_diag_neighbor->to->area;
+            }
+            
             assert(total_weighted_forward_cell_area >= 0.0);
             assert(total_weighted_forward_cell_area < 100.0);
             for (int side_idx = 0; side_idx < 2; side_idx++)
@@ -394,6 +467,11 @@ public:
             {
                 Link& diag_loan_link = (left_over > 0)? *diag_neighbor : diag_neighbor->getReverse();
                 diag_loan_link.loan += std::abs(left_over) * diag_weight * diag_neighbor->to->area / total_weighted_forward_cell_area;
+            }
+            if (backward_diag_neighbor)
+            {
+                Link& diag_loan_link = (left_over > 0)? *backward_diag_neighbor : backward_diag_neighbor->getReverse();
+                diag_loan_link.loan += std::abs(left_over) * backward_diag_weight * backward_diag_neighbor->to->area / total_weighted_forward_cell_area;
             }
             
             if (do_subdivide)
@@ -412,6 +490,39 @@ public:
         subdivide(*root->children[3]);
         subdivide(*root->children[3]->children[0]);
         subdivide(*root->children[3]->children[0]->children[1]);
+    }
+    
+    void debugCheck()
+    {
+        float total_length = getTotalLength();
+        float error = (root->filled_area_allowance - total_length) / root->filled_area_allowance * 100;
+        std::cerr << "Acquired " << total_length << " for " << root->filled_area_allowance << " requested. (" << error << "% error)\n";
+    }
+    
+    float getTotalLength(const Cell& sub_tree_root) const
+    {
+        float total_length = 0.0;
+        if (sub_tree_root.is_subdivided)
+        {
+            for (Cell* child : sub_tree_root.children)
+            {
+                total_length += getTotalLength(*child);
+            }
+            return total_length;
+        }
+        else
+        {
+            return getActualizedArea(sub_tree_root);
+        }
+    }
+
+    float getTotalLength() const
+    {
+        if (root)
+        {
+            return getTotalLength(*root);
+        }
+        else return 0.0;
     }
     
     void debugOutput(SVG& svg, Cell& sub_tree_root, float drawing_line_width, bool draw_arrows)

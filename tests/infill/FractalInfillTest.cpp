@@ -22,11 +22,11 @@ void FractalInfillTest::tearDown()
 void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
-    int max_depth = 8;
+    int max_depth = 9;
     AABB aabb(Point(0,0), Point(line_width, line_width) * (2 << max_depth));
     
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/slight_gradient.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/simple.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gray.png", aabb);
@@ -35,7 +35,7 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/hitler.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/cheshire_cat.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/vader.jpg", aabb);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/sinterklaas.jpg", aabb);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/sinterklaas.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/diamond.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/trex.jpeg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/soulpilot.jpg", aabb);
@@ -46,6 +46,7 @@ void FractalInfillTest::debugCheck()
     ss.initialize();
 //     ss.createMinimalErrorPattern(false);
     ss.createDitheredPattern();
+    ss.debugCheck();
     
     {
         Point canvas_size = Point(1024, 1024);
