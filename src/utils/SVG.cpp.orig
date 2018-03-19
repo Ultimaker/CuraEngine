@@ -1,3 +1,4 @@
+<<<<<<< facc8c844a67c3be60ce27867a41d7e54a53104d
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SVG.h"
 
@@ -55,11 +56,6 @@ SVG::~SVG()
         fprintf(out, "</body></html>");
     }
     fclose(out);
-}
-
-double SVG::getScale() const
-{
-    return scale;
 }
 
 Point SVG::transform(const Point& p) 
@@ -147,11 +143,11 @@ void SVG::writeLines(std::vector<Point> polyline, Color color)
     fprintf(out,"\" />\n"); //Write the end of the tag.
 }
 
-void SVG::writeLine(const Point& a, const Point& b, Color color, float stroke_width)
+void SVG::writeLine(const Point& a, const Point& b, Color color, int stroke_width)
 {
     Point fa = transform(a);
     Point fb = transform(b);
-    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str(), stroke_width);
+    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:%i\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str(), stroke_width);
 }
 
 void SVG::writeLineRGB(const Point& from, const Point& to, int r, int g, int b, int stroke_width)
@@ -210,3 +206,48 @@ void SVG::writePolygon(ConstPolygonRef poly, Color color, int stroke_width)
 }
 
 } // namespace cura 
+||||||| merged common ancestors
+=======
+/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
+#include "SVG.h"
+
+
+namespace cura {
+
+void SVG::writeLineRGB(const Point& from, const Point& to, int r, int g, int b, int stroke_width)
+{
+    Point fa = transform(from);
+    Point fb = transform(to);
+    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%i\" />\n", fa.X, fa.Y, fb.X, fb.Y, r, g, b, stroke_width);
+}
+
+void SVG::writePolygon(ConstPolygonRef poly, Color color, int stroke_width)
+{
+    if (poly.size() == 0)
+    {
+        return;
+    }
+    int size = poly.size();
+    Point p0 = poly.back();
+    int i = 0;
+    for (Point p1 : poly)
+    {
+        if (color == Color::RAINBOW)
+        {
+            int g = (i * 255 * 11 / size) % (255 * 2);
+            if (g > 255) g = 255 * 2 - g;
+            int b = (i * 255 * 5 / size) % (255 * 2);
+            if (b > 255) b = 255 * 2 - b;
+            writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
+        }
+        else
+        {
+            writeLine(p0, p1, color, stroke_width);
+        }
+        p0 = p1;
+        i++;
+    }
+}
+
+} // namespace cura 
+>>>>>>> rainbow SVG coloring
