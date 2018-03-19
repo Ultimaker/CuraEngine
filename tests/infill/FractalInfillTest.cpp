@@ -23,10 +23,10 @@ void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
     int max_depth = 8;
-    AABB aabb(Point(0,0), Point(line_width, line_width)*(1 << max_depth));
+    AABB aabb(Point(0,0), Point(line_width, line_width) * (2 << max_depth));
     
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/slight_gradient.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/simple.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gray.png", aabb);
@@ -42,7 +42,7 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/soulpilot_dark.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/cura-logo.jpg", aabb);
     
-    SquareSubdivision ss(*subdivider, aabb, max_depth - 1, line_width);
+    SquareSubdivision ss(*subdivider, aabb, max_depth, line_width);
     ss.initialize();
 //     ss.createMinimalErrorPattern(false);
     ss.createDitheredPattern();
@@ -51,7 +51,7 @@ void FractalInfillTest::debugCheck()
         Point canvas_size = Point(1024, 1024);
         SVG svg("output/subdiv_dither.svg", aabb, canvas_size);
         
-        int drawing_line_width = line_width * canvas_size.X / aabb.max.X;
+        float drawing_line_width = line_width * svg.getScale();
         bool draw_arrows = false;
         ss.debugOutput(svg, drawing_line_width, draw_arrows);
     }

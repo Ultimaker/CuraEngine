@@ -27,7 +27,7 @@ void SierpinskiFillTest::debugCheck()
     SVG svg("output/sierpinski.svg", aabb, canvas_size);
     
     
-    int drawing_line_width = line_width * canvas_size.X / aabb.max.X;
+    int drawing_line_width = line_width * svg.getScale();
     
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/lena.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/Cross Fractal/gradient.png", aabb);
