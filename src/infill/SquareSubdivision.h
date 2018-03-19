@@ -200,8 +200,8 @@ protected:
         
         initialConnection(child_lt, child_rt, Direction::RIGHT);
         initialConnection(child_lb, child_rb, Direction::RIGHT);
-        initialConnection(child_lt, child_lb, Direction::UP);
-        initialConnection(child_rt, child_rb, Direction::UP);
+        initialConnection(child_lb, child_lt, Direction::UP);
+        initialConnection(child_rb, child_rt, Direction::UP);
         
         for (int side = 0; side < number_of_sides; side++)
         {
