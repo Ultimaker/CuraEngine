@@ -64,7 +64,12 @@ double SVG::getScale() const
 
 Point SVG::transform(const Point& p) 
 {
-    return Point((p.X-aabb.min.X)*scale, canvas_size.X - border.X - (p.Y-aabb.min.Y)*scale) + border;
+    return Point((p.X - aabb.min.X) * scale, canvas_size.X - border.X - (p.Y - aabb.min.Y) * scale) + border;
+}
+
+FPoint3 SVG::transformF(const Point& p) 
+{
+    return FPoint3((p.X - aabb.min.X) * scale + border.X, canvas_size.X - border.X + border.Y - (p.Y-aabb.min.Y) * scale, 0.0);
 }
 
 void SVG::writeComment(std::string comment)
@@ -81,8 +86,8 @@ void SVG::writeAreas(const Polygons& polygons, Color color, Color outline_color,
             fprintf(out, "<polygon points=\"");
             for (Point& p : parts[j])
             {
-                Point fp = transform(p);
-                fprintf(out, "%lli,%lli ", fp.X, fp.Y);
+                FPoint3 fp = transformF(p);
+                fprintf(out, "%f,%f ", fp.x, fp.y);
             }
             if (j == 0)
                 fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:%f\" />\n", toString(color).c_str(), toString(outline_color).c_str(), stroke_width);
@@ -97,20 +102,20 @@ void SVG::writeAreas(ConstPolygonRef polygon, Color color, Color outline_color, 
     fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" points=\"",toString(color).c_str(),toString(outline_color).c_str(), stroke_width); //The beginning of the polygon tag.
     for (const Point& point : polygon) //Add every point to the list of points.
     {
-        Point transformed = transform(point);
-        fprintf(out,"%lli,%lli ",transformed.X,transformed.Y);
+        FPoint3 transformed = transformF(point);
+        fprintf(out,"%f,%f ",transformed.x,transformed.y);
     }
     fprintf(out,"\" />\n"); //The end of the polygon tag.
 }
 
 void SVG::writePoint(const Point& p, bool write_coords, int size, Color color)
 {
-    Point pf = transform(p);
-    fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.X, pf.Y, size, toString(color).c_str(), toString(color).c_str());
+    FPoint3 pf = transformF(p);
+    fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.x, pf.y, size, toString(color).c_str(), toString(color).c_str());
     
     if (write_coords)
     {
-        fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
+        fprintf(out, "<text x=\"%f\" y=\"%f\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n",pf.x, pf.y, p.X, p.Y);
     }
 }
 
@@ -137,41 +142,41 @@ void SVG::writeLines(std::vector<Point> polyline, Color color)
         return;
     }
     
-    Point transformed = transform(polyline[0]); //Element 0 must exist due to the check above.
-    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.X,transformed.Y); //Write the start of the path tag and the first endpoint.
+    FPoint3 transformed = transformF(polyline[0]); //Element 0 must exist due to the check above.
+    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.x,transformed.y); //Write the start of the path tag and the first endpoint.
     for(size_t point = 1;point < polyline.size();point++)
     {
-        transformed = transform(polyline[point]);
-        fprintf(out,"L%lli,%lli",transformed.X,transformed.Y); //Write a line segment to the next point.
+        transformed = transformF(polyline[point]);
+        fprintf(out,"L%f,%f", transformed.x, transformed.y); //Write a line segment to the next point.
     }
     fprintf(out,"\" />\n"); //Write the end of the tag.
 }
 
 void SVG::writeLine(const Point& a, const Point& b, Color color, float stroke_width)
 {
-    Point fa = transform(a);
-    Point fb = transform(b);
-    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str(), stroke_width);
+    FPoint3 fa = transformF(a);
+    FPoint3 fb = transformF(b);
+    fprintf(out, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.x, fa.y, fb.x, fb.y, toString(color).c_str(), stroke_width);
 }
 
 void SVG::writeLineRGB(const Point& from, const Point& to, int r, int g, int b, float stroke_width)
 {
-    Point fa = transform(from);
-    Point fb = transform(to);
-    fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%f\" />\n", fa.X, fa.Y, fb.X, fb.Y, r, g, b, stroke_width);
+    FPoint3 fa = transformF(from);
+    FPoint3 fb = transformF(to);
+    fprintf(out, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%f\" />\n", fa.x, fa.y, fb.x, fb.y, r, g, b, stroke_width);
 }
 
 void SVG::writeDashedLine(const Point& a, const Point& b, Color color)
 {
-    Point fa = transform(a);
-    Point fb = transform(b);
-    fprintf(out,"<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",fa.X,fa.Y,fb.X,fb.Y,toString(color).c_str());
+    FPoint3 fa = transformF(a);
+    FPoint3 fb = transformF(b);
+    fprintf(out,"<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",fa.x,fa.y,fb.x,fb.y,toString(color).c_str());
 }
 
 void SVG::writeText(Point p, std::string txt, Color color, coord_t font_size)
 {
-    Point pf = transform(p);
-    fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: %llipx;\" fill=\"%s\">%s</text>\n",pf.X, pf.Y, font_size, toString(color).c_str(), txt.c_str());
+    FPoint3 pf = transformF(p);
+    fprintf(out, "<text x=\"%f\" y=\"%f\" style=\"font-size: %llipx;\" fill=\"%s\">%s</text>\n",pf.x, pf.y, font_size, toString(color).c_str(), txt.c_str());
 }
 void SVG::writePolygons(const Polygons& polys, Color color, float stroke_width)
 {

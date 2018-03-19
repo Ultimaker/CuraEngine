@@ -5,6 +5,7 @@
 
 #include "polygon.h"
 #include "intpoint.h"
+#include "floatpoint.h"
 #include "AABB.h"
 #include "logoutput.h"
 #include "NoCopy.h"
@@ -52,6 +53,11 @@ public:
      * transform a point in real space to canvas space
      */
     Point transform(const Point& p);
+
+    /*!
+     * transform a point in real space to canvas space with more precision
+     */
+    FPoint3 transformF(const Point& p);
 
     void writeComment(std::string comment);
 
