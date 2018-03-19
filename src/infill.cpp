@@ -39,7 +39,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const Subdivider* cross_fill_subdivider, const SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -86,12 +86,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         break;
     case EFillMethod::CROSS:
     case EFillMethod::CROSS_3D:
-        if (!cross_fill_pattern)
+        if (!cross_fill_subdivider)
         {
             logError("Cannot generate Cross infill without a pregenerated cross fill pattern!\n");
             break;
         }
-        generateCrossInfill(*cross_fill_pattern, result_polygons, result_lines);
+        generateCrossInfill(*cross_fill_subdivider, result_polygons, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -215,7 +215,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     addLineSegmentsInfill(result, uncropped);
 }
 
-void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines)
+void Infill::generateCrossInfill(const Subdivider& cross_fill_subdivider, Polygons& result_polygons, Polygons& result_lines)
 {
     if (zig_zaggify)
     {
@@ -224,42 +224,40 @@ void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern,
     Polygons outline = in_outline.offset(outline_offset);
 
     AABB aabb(in_outline);
-    Subdivider* subdivider;
-    if (true)
+    SierpinskiFill fill(cross_fill_subdivider, aabb, 17); // TODO: hardcoded max depth
+    Polygon cross_pattern_polygon;
+    if (pattern == EFillMethod::CROSS_3D)
     {
-        subdivider = new ImageBasedSubdivider("/home/t.kuipers/Documents/PhD/Cross Fractal/simple.png", aabb, 400);
+        cross_pattern_polygon = fill.generateCross(z, infill_line_width / 2);
     }
     else
     {
-        subdivider = new UniformSubdivider();
+        cross_pattern_polygon = fill.generateCross();
     }
-
-    SierpinskiFill fill(*subdivider, aabb, 17);
-    Polygon pol = fill.generateCross(z, infill_line_width / 2);
-    Polygons i;
-    i.add(pol);
-    result_polygons.add(i.intersection(outline));
-    
-    
-    delete subdivider;
-    
-    return;
-
-    coord_t shift = line_distance / 2;
-    bool use_odd_in_junctions = false;
-    bool use_odd_out_junctions = false;
-    if (pattern == EFillMethod::CROSS_3D)
+    if (zig_zaggify)
     {
-        coord_t period = line_distance * 2;
-        shift = z % period;
-        shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
-        shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
-        shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
-
-        use_odd_in_junctions = ((z + period / 2) / period) % 2 == 1; // change junction halfway in between each period when the in-junctions occur
-        use_odd_out_junctions = (z / period) % 2 == 1; // out junctions occur halfway at each periods
+        Polygons cross_pattern_polygons;
+        cross_pattern_polygons.add(cross_pattern_polygon);
+        result_polygons.add(outline.intersection(cross_pattern_polygons));
     }
-    cross_fill_pattern.generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
+    else
+    {
+        if (cross_pattern_polygon.size() > 0)
+        { // make the polyline closed in order to change from a polygon to a polyline representation
+            cross_pattern_polygon.add(cross_pattern_polygon[0]);
+        }
+        Polygons cross_pattern_polygons;
+        cross_pattern_polygons.add(cross_pattern_polygon);
+        Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
+        
+        for (PolygonRef poly_line : poly_lines)
+        {
+            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            {
+                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+            }
+        }
+    }
 }
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)

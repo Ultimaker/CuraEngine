@@ -5,7 +5,7 @@
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
 #include "infill/SubDivCube.h" // For the destructor
-#include "infill/SpaceFillingTreeFill.h" // for destructor
+#include "infill/Subdivider.h" // for destructor
 
 
 namespace cura
@@ -14,16 +14,16 @@ namespace cura
 SupportStorage::SupportStorage()
 : generated(false)
 , layer_nr_max_filled_layer(-1)
-, cross_fill_pattern(nullptr)
+, cross_fill_subdivider(nullptr)
 {
 }
 
 SupportStorage::~SupportStorage()
 {
     supportLayers.clear(); 
-    if (cross_fill_pattern)
+    if (cross_fill_subdivider)
     {
-        delete cross_fill_pattern;
+        delete cross_fill_subdivider;
     }
 }
 
@@ -103,7 +103,7 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
 , layer_nr_max_filled_layer(0)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
-, cross_fill_pattern(nullptr)
+, cross_fill_subdivider(nullptr)
 {
     layers.resize(slice_layer_count);
 }
@@ -114,9 +114,9 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
-    if (cross_fill_pattern)
+    if (cross_fill_subdivider)
     {
-        delete cross_fill_pattern;
+        delete cross_fill_subdivider;
     }
 }
 

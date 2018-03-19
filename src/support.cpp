@@ -6,6 +6,7 @@
 #include <utility> // pair
 #include <deque>
 #include <cmath> // round
+#include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -15,7 +16,8 @@
 
 #include "utils/math.h"
 #include "progress/Progress.h"
-#include "infill/SpaceFillingTreeFill.h"
+#include "infill/ImageBasedSubdivider.h"
+#include "infill/UniformSubdivider.h"
 
 namespace cura 
 {
@@ -671,7 +673,16 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
-        storage.support.cross_fill_pattern = new SpaceFillingTreeFill(infill_extr.getSettingInMicrons("support_line_distance"), aabb);
+        std::string cross_subdisivion_spec_image_file = infill_extr.getSettingString("cross_support_density_image");
+        std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+        if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
+        {
+            storage.support.cross_fill_subdivider = new ImageBasedSubdivider(cross_subdisivion_spec_image_file, aabb.getAABB(), infill_extr.getSettingInMicrons("support_line_width"));
+        }
+        else
+        {
+            storage.support.cross_fill_subdivider = new UniformSubdivider();
+        }
     }
 }
 

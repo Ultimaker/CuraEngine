@@ -10,7 +10,7 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"
-#include "infill/SpaceFillingTreeFill.h"
+#include "infill/Subdivider.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 
@@ -99,9 +99,9 @@ public:
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
-     * \param[in] cross_fill_pattern Where the cross fractal precomputation is stored
+     * \param[in] cross_fill_subdivider The cross fractal subdivision decision functor
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(Polygons& result_polygons, Polygons& result_lines, const Subdivider* cross_fill_subdivider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     struct InfillLineSegment
@@ -276,11 +276,11 @@ private:
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
-     * \param[in] cross_fill_pattern Where the cross fractal precomputation is stored
+     * \param[in] cross_fill_subdivider Where the cross fractal precomputation is stored
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines);
+    void generateCrossInfill(const Subdivider& cross_fill_subdivider, Polygons& result_polygons, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
