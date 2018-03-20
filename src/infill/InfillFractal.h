@@ -125,7 +125,7 @@ public:
     
     bool canSubdivide(Cell& cell) const
     {
-        if (cell.depth >= max_depth && !isConstrained(cell))
+        if (cell.depth >= max_depth || isConstrained(cell))
         {
             return false;
         }
