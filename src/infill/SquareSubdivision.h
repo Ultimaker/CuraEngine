@@ -80,6 +80,21 @@ protected:
         return static_cast<int>(opposite(static_cast<Direction>(in)));
     }
     
+    float getDensity(const Cell& cell) const
+    {
+        return density_provider(cell.elem);
+    }
+    
+    int getNumberOfSides() const
+    {
+        return 4;
+    }
+    
+    Cell* createRoot() const
+    {
+        return new Cell(aabb, 0, getNumberOfSides());
+    }
+    
     void createTree(Cell& sub_tree_root, int max_depth)
     {
         int parent_depth = sub_tree_root.depth;
@@ -94,10 +109,10 @@ protected:
         
         const AABB& parent_aabb = sub_tree_root.elem;
         Point middle = parent_aabb.getMiddle();
-        Cell* child_lb = new Cell(AABB(parent_aabb.min, middle), parent_depth + 1, number_of_sides);
-        Cell* child_rb = new Cell(AABB(Point(middle.X, parent_aabb.min.Y), Point(parent_aabb.max.X, middle.Y)), parent_depth + 1, number_of_sides);
-        Cell* child_lt = new Cell(AABB(Point(parent_aabb.min.X, middle.Y), Point(middle.X, parent_aabb.max.Y)), parent_depth + 1, number_of_sides);
-        Cell* child_rt = new Cell(AABB(middle, parent_aabb.max), parent_depth + 1, number_of_sides);
+        Cell* child_lb = new Cell(AABB(parent_aabb.min, middle), parent_depth + 1, getNumberOfSides());
+        Cell* child_rb = new Cell(AABB(Point(middle.X, parent_aabb.min.Y), Point(parent_aabb.max.X, middle.Y)), parent_depth + 1, getNumberOfSides());
+        Cell* child_lt = new Cell(AABB(Point(parent_aabb.min.X, middle.Y), Point(middle.X, parent_aabb.max.Y)), parent_depth + 1, getNumberOfSides());
+        Cell* child_rt = new Cell(AABB(middle, parent_aabb.max), parent_depth + 1, getNumberOfSides());
         sub_tree_root.children[0] = child_lb; // ordered on polarity and dimension: first X from less to more, then Y
         sub_tree_root.children[1] = child_rb;
         sub_tree_root.children[2] = child_lt;
@@ -109,46 +124,10 @@ protected:
         }
     }
     
-    void setSpecificationAllowance(Cell& sub_tree_root)
-    {
-        Point area_dimensions = sub_tree_root.elem.max - sub_tree_root.elem.min;
-        sub_tree_root.area = INT2MM(area_dimensions.X) * INT2MM(area_dimensions.Y);
-        
-        bool has_children = sub_tree_root.children[0] != nullptr;
-        if (has_children)
-        {
-            for (Cell* child : sub_tree_root.children)
-            {
-                setSpecificationAllowance(*child);
-                sub_tree_root.filled_area_allowance += child->filled_area_allowance;
-            }
-        }
-        else
-        {
-            float requested_density = density_provider(sub_tree_root.elem);
-            sub_tree_root.filled_area_allowance = sub_tree_root.area * requested_density;
-        }
-    }
-    
     bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const
     {
         return false; // TODO: not implemented constraintsyet
     }
-    
-    void createTree()
-    {
-        int max_depth = 10; // TODO
-        
-        root = new Cell(aabb, 0, number_of_sides);
-        
-        createTree(*root, max_depth);
-        
-        setSpecificationAllowance(*root);
-    }
-    
-    
-    static constexpr char number_of_sides = 4;
-    
     
     void initialConnection(Cell& before, Cell& after, Direction dir)
     {
@@ -213,7 +192,7 @@ protected:
         initialConnection(child_lb, child_lt, Direction::UP);
         initialConnection(child_rb, child_rt, Direction::UP);
         
-        for (int side = 0; side < number_of_sides; side++)
+        for (int side = 0; side < getNumberOfSides(); side++)
         {
             int edge_dim = !(side / 2);
             

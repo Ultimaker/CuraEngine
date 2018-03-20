@@ -57,6 +57,7 @@ public:
         int depth;
         float area; //!< The area of the triangle or square in mm^2
         float filled_area_allowance; //!< The area to be filled corresponding to the average density requested by the volumetric density specification.
+        float minimally_required_density; //!< The largest required density across this area. For when the density specification is the minimal density at each locatoin.
         bool is_subdivided;
         std::vector<std::list<Link>> adjacent_cells; //!< the adjecent cells for each edge/face of this cell
         
@@ -67,6 +68,7 @@ public:
         , depth(depth)
         , area(-1)
         , filled_area_allowance(0)
+        , minimally_required_density(-1)
         , is_subdivided(false)
         , adjacent_cells(number_of_sides)
         {
@@ -184,8 +186,53 @@ public:
     
     virtual void createDitheredPattern() = 0;
 
+    virtual void createTree(Cell& sub_tree_root, int max_depth) = 0;
+    
+    virtual Cell* createRoot() const = 0;
+    
+    virtual float getDensity(const Cell& cell) const = 0;
+
+    /*!
+     * Get the number of sides of the basic subdivision unit.
+     * Triangle has 3, cube as 6, square has 4, etc.
+     */
+    virtual int getNumberOfSides() const = 0;
+    
 protected:
-    virtual void createTree() = 0;
+    
+    
+    void setSpecificationAllowance(Cell& sub_tree_root)
+    {
+        Point area_dimensions = sub_tree_root.elem.max - sub_tree_root.elem.min;
+        sub_tree_root.area = INT2MM(area_dimensions.X) * INT2MM(area_dimensions.Y);
+        
+        bool has_children = sub_tree_root.children[0] != nullptr;
+        if (has_children)
+        {
+            for (Cell* child : sub_tree_root.children)
+            {
+                setSpecificationAllowance(*child);
+                sub_tree_root.filled_area_allowance += child->filled_area_allowance;
+                sub_tree_root.minimally_required_density = std::max(sub_tree_root.minimally_required_density, child->minimally_required_density);
+            }
+        }
+        else
+        {
+            float requested_density = getDensity(sub_tree_root);
+            sub_tree_root.minimally_required_density = requested_density;
+            sub_tree_root.filled_area_allowance = sub_tree_root.area * requested_density;
+        }
+    }
+    
+    void createTree()
+    {
+        root = createRoot();
+        
+        createTree(*root, max_depth);
+        
+        setSpecificationAllowance(*root);
+    }
+    
     
     virtual void subdivide(Cell& cell) = 0;
     
