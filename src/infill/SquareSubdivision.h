@@ -18,8 +18,8 @@ class SquareSubdivision : public InfillFractal<AABB, 4, 2>
     using Parent = InfillFractal<AABB, 4, 2>;
     using LinkIterator = Parent::LinkIterator;
 public:
-    SquareSubdivision(const DensityProvider& density_provider, const AABB aabb, const int max_depth, coord_t line_width)
-    : Parent(density_provider, aabb, max_depth, line_width)
+    SquareSubdivision(const DensityProvider& density_provider, const AABB aabb, const int max_depth, coord_t line_width, bool consecutivity_constraint)
+    : Parent(density_provider, aabb, max_depth, line_width, consecutivity_constraint)
     {
     }
 protected:
@@ -122,11 +122,6 @@ protected:
         {
             createTree(*child, max_depth);
         }
-    }
-    
-    bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const
-    {
-        return false; // TODO: not implemented constraintsyet
     }
     
     void initialConnection(Cell& before, Cell& after, Direction dir)

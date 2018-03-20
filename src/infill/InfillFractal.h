@@ -4,6 +4,7 @@
 #include <list>
 #include <unordered_set>
 #include <cassert>
+#include <functional> // function
 
 #include "../utils/optional.h"
 #include "../utils/IntPoint.h"
@@ -94,14 +95,17 @@ public:
     
     coord_t line_width; //!< The line width of the fill lines
     
+    bool consecutivity_constraint; //!< Whether to enforce that neighboring/consecutive cells differ only by one recursion level at most
+    
     const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
     
     Cell* root;
     
-    InfillFractal(const DensityProvider& density_provider, const AABB aabb, const int max_depth, coord_t line_width)
+    InfillFractal(const DensityProvider& density_provider, const AABB aabb, const int max_depth, coord_t line_width, bool consecutivity_constraint)
     : aabb(aabb)
     , max_depth(max_depth)
     , line_width(line_width)
+    , consecutivity_constraint(consecutivity_constraint)
     , density_provider(density_provider)
     , root(nullptr)
     {
@@ -183,6 +187,65 @@ public:
             }
         }
     }
+
+    /*!
+     * Create a pattern with the required density or more at each location.
+     */
+    void createMinimalDensityPattern()
+    {
+        // TODO: subdivide contraining cells
+        std::list<Cell*> all_to_be_subdivided;
+        
+        std::function<bool(const Cell&)> shouldBeSubdivided =
+            [this](const Cell& cell)
+            {
+                return getActualizedArea(cell) / cell.area < cell.minimally_required_density;
+            };
+        
+        if (!shouldBeSubdivided(*root))
+        {
+            return;
+        }
+
+        all_to_be_subdivided.push_back(root);
+        
+        while (!all_to_be_subdivided.empty())
+        {
+            Cell& to_be_subdivided = *all_to_be_subdivided.front();
+            
+            if (!to_be_subdivided.children[0])
+            { // cell has no children
+                continue;
+            }
+            
+            if (canSubdivide(to_be_subdivided))
+            {
+                all_to_be_subdivided.pop_front();
+                subdivide(to_be_subdivided);
+                for (Cell* child : to_be_subdivided.children)
+                {
+                    if (child && shouldBeSubdivided(*child))
+                    {
+                        all_to_be_subdivided.push_back(child);
+                    }
+                }
+            }
+            else
+            {
+                all_to_be_subdivided.push_front(&to_be_subdivided); // retry after subdividing all neighbors
+                for (std::list<Link>& side : to_be_subdivided.adjacent_cells)
+                {
+                    for (Link& neighbor : side)
+                    {
+                        if (isConstrainedBy(to_be_subdivided, *neighbor.to))
+                        {
+                            all_to_be_subdivided.push_front(neighbor.to);
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     virtual void createDitheredPattern() = 0;
 
@@ -240,7 +303,14 @@ protected:
 
     virtual float getChildrenActualizedArea(const Cell& cell) const = 0;
     
-    virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const = 0;
+    virtual bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const
+    {
+        if (consecutivity_constraint)
+        {
+            return constrainer.depth < constrainee.depth;
+        }
+        return false;
+    }
 
     float getBalance(const Cell& cell) const
     {

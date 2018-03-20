@@ -42,10 +42,12 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot_dark.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cura-logo.jpg", aabb);
     
-    SquareSubdivision ss(*subdivider, aabb, max_depth, line_width);
+    bool consecutivity_constraint = true;
+    SquareSubdivision ss(*subdivider, aabb, max_depth, line_width, consecutivity_constraint);
     ss.initialize();
 //     ss.createMinimalErrorPattern(false);
-    ss.createDitheredPattern();
+//     ss.createDitheredPattern();
+    ss.createMinimalDensityPattern();
     ss.debugCheck();
     
     {
