@@ -236,8 +236,10 @@ void LineOrderOptimizer::optimize(bool find_chains)
         picked[poly_idx] = false;
     }
 
-    std::vector<int> chain_end_poly_idxs; // the indices of the lines (polys) that start/end a chain of lines
-    std::vector<int> chain_end_point_masks; // a mask value for each chain start/end line that indicates which of the line's points are at the end of the chain
+    // a map with an entry for each chain end discovered
+    //   keys are the indices of the lines (polys) that start/end a chain of lines
+    //   values indicate which of the line's points are at the end of the chain
+    std::map<unsigned, unsigned> chain_ends;
 
     if (find_chains)
     {
@@ -261,22 +263,15 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 }
                 num_joined_lines[point_idx] = joined_lines.size();
             }
-            int point_mask = 0;
             if (num_joined_lines[0] != 1 && num_joined_lines[1] == 1)
             {
                 // point 0 of candidate line starts a chain of 2 or more lines
-                point_mask |= 1;
+                chain_ends[poly_idx] = 0;
             }
-            if (num_joined_lines[1] != 1 && num_joined_lines[0] == 1)
+            else if (num_joined_lines[1] != 1 && num_joined_lines[0] == 1)
             {
                 // point 1 of candidate line starts a chain of 2 or more lines
-                point_mask |= 2;
-            }
-            if (point_mask)
-            {
-                // this line is a chain end, remember it
-                chain_end_poly_idxs.push_back(poly_idx);
-                chain_end_point_masks.push_back(point_mask);
+                chain_ends[poly_idx] = 1;
             }
         }
     }
@@ -312,27 +307,42 @@ void LineOrderOptimizer::optimize(bool find_chains)
             best_score = std::numeric_limits<float>::infinity();
         }
 
-        if (best_line_idx != -1 && chain_end_poly_idxs.size() > 0 && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
+        if (best_line_idx != -1 && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
         {
             // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
             // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
-            best_line_idx = -1;
-            best_score = std::numeric_limits<float>::infinity();
+            for (auto it = chain_ends.begin(); it != chain_ends.end(); ++it )
+            {
+                if (!picked[it->first])
+                {
+                    best_line_idx = -1;
+                    best_score = std::numeric_limits<float>::infinity();
+                    break;
+                }
+            }
         }
 
         if (best_line_idx == -1)
         {
+            std::vector<std::map<unsigned, unsigned>::iterator> zombies; // chain end lines that have already been output
+
             // no point is close to the previous point, consider the points on the chain end lines that have yet to be picked
-            for (unsigned i = 0; i < chain_end_poly_idxs.size(); ++i)
+
+            for (auto it = chain_ends.begin(); it != chain_ends.end(); ++it )
             {
-                if (chain_end_point_masks[i] & 1)
+                if (picked[it->first])
                 {
-                    updateBestLine(chain_end_poly_idxs[i], best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 0);
+                    zombies.push_back(it);
                 }
-                if (chain_end_point_masks[i] & 2)
+                else
                 {
-                    updateBestLine(chain_end_poly_idxs[i], best_line_idx, best_score, prev_point, incoming_perpundicular_normal, 1);
+                    updateBestLine(it->first, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, it->second);
                 }
+            }
+
+            for (auto zombie : zombies)
+            {
+                chain_ends.erase(zombie);
             }
         }
 
@@ -366,17 +376,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
-
-            // if the chosen line was a chain end line, it has to be removed from the collection of not yet processed chain end lines
-            for (unsigned i = 0; i < chain_end_poly_idxs.size() && best_line_idx >= chain_end_poly_idxs[i]; ++i)
-            {
-                if (best_line_idx == chain_end_poly_idxs[i])
-                {
-                    chain_end_poly_idxs.erase(chain_end_poly_idxs.begin() + i);
-                    chain_end_point_masks.erase(chain_end_point_masks.begin() + i);
-                    break;
-                }
-            }
         }
         else
         {
