@@ -142,7 +142,7 @@ void SVG::writePoints(Polygons& polygons, bool write_coords, int size, Color col
     }
 }
 
-void SVG::writeLines(std::vector<Point> polyline, Color color)
+void SVG::writeLines(std::vector<Point> polyline, Color color, float stroke_width)
 {
     if(polyline.size() <= 1) //Need at least 2 points.
     {
@@ -150,7 +150,7 @@ void SVG::writeLines(std::vector<Point> polyline, Color color)
     }
     
     FPoint3 transformed = transformF(polyline[0]); //Element 0 must exist due to the check above.
-    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f",toString(color).c_str(), transformed.x, transformed.y); //Write the start of the path tag and the first endpoint.
+    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"%f\" d=\"M%f,%f",toString(color).c_str(), stroke_width, transformed.x, transformed.y); //Write the start of the path tag and the first endpoint.
     for(size_t point = 1;point < polyline.size();point++)
     {
         transformed = transformF(polyline[point]);
@@ -202,22 +202,23 @@ void SVG::writePolygon(ConstPolygonRef poly, Color color, float stroke_width)
     int size = poly.size();
     Point p0 = poly.back();
     int i = 0;
-    for (Point p1 : poly)
+    if (color == Color::RAINBOW)
     {
-        if (color == Color::RAINBOW)
+        for (Point p1 : poly)
         {
             int g = (i * 255 * 11 / size) % (255 * 2);
             if (g > 255) g = 255 * 2 - g;
             int b = (i * 255 * 5 / size) % (255 * 2);
             if (b > 255) b = 255 * 2 - b;
             writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
-        }
-        else
-        {
-            writeLine(p0, p1, color, stroke_width);
-        }
         p0 = p1;
         i++;
+    }
+    }
+    else
+    {
+        writeLines(*poly, color, stroke_width);
+        writeLine(poly.back(), poly[0], color, stroke_width);
     }
 }
 

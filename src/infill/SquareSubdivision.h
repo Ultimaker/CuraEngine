@@ -499,6 +499,129 @@ public:
         else return 0.0;
     }
     
+    Polygon createHilbertLine()
+    {
+        std::vector<Cell*> pattern = createHilbertPattern();
+        Polygon ret;
+        for (Cell* cell : pattern)
+        {
+            ret.add(cell->elem.getMiddle());
+        }
+        return ret;
+    }
+    
+    std::vector<Cell*> createHilbertPattern()
+    {
+        std::vector<Cell*> ret;
+        
+        if (!root)
+        {
+            return ret;
+        }
+        
+        ret.reserve(std::pow(4, max_depth));
+        
+        createHilbertPattern(*root, ret, 0, 1);
+        
+        return ret;
+    }
+    
+    
+    void createHilbertPattern(Cell& sub_tree_root, std::vector<Cell*>& pattern, uint_fast8_t starting_child, int_fast8_t winding_dir)
+    {
+        if (sub_tree_root.is_subdivided)
+        {
+            /* Basic order of Hilbert curve for first iteration:
+             * 1 2
+             * 0 3
+             */
+            constexpr ChildSide child_nr_to_child_side[] { ChildSide::LEFT_BOTTOM, ChildSide::LEFT_TOP, ChildSide::RIGHT_TOP, ChildSide::RIGHT_BOTTOM };
+            /*  child_winding_dirs         child_starting_child
+             *     +---+   +---+              1---2   1---2
+             *     |CW |   | CW|              |   |   |   |
+             *     +   +···+   +             *0   3···0*  3
+             *     :           :              :           :
+             *     +---+   +---+              1---2   1---2*
+             *      CCW|   |CCW                   |   |
+             *     +---+   +---+             *0---3   0---3
+             */
+            constexpr int_fast8_t child_winding_dirs[] { -1, 1, 1, -1 };
+            constexpr int_fast8_t child_starting_child[] { 0, 0, 0, 2 };
+            for (uint_fast8_t child_idx_offset = 0; child_idx_offset < 4; child_idx_offset++)
+            {
+                uint8_t child_idx = (starting_child + winding_dir * child_idx_offset + 4 ) % 4;
+                Cell* child = sub_tree_root.children[static_cast<int_fast8_t>(child_nr_to_child_side[child_idx])];
+                assert(child);
+                createHilbertPattern(*child, pattern, (starting_child + winding_dir * child_starting_child[child_idx_offset] + 4 ) % 4, winding_dir * child_winding_dirs[child_idx_offset]);
+            }
+        }
+        else
+        {
+            pattern.push_back(&sub_tree_root);
+        }
+    }
+    
+    Polygon createMooreLine()
+    {
+        std::vector<Cell*> pattern = createMoorePattern();
+        Polygon ret;
+        for (Cell* cell : pattern)
+        {
+            ret.add(cell->elem.getMiddle());
+        }
+        return ret;
+    }
+    
+    std::vector<Cell*> createMoorePattern()
+    {
+        std::vector<Cell*> ret;
+        
+        if (!root)
+        {
+            return ret;
+        }
+        
+        ret.reserve(std::pow(4, max_depth));
+        
+        createMoorePattern(*root, ret, 0, 1);
+        
+        return ret;
+    }
+    
+    void createMoorePattern(Cell& sub_tree_root, std::vector<Cell*>& pattern, uint_fast8_t starting_child, int_fast8_t winding_dir)
+    {
+        if (sub_tree_root.is_subdivided)
+        {
+            /* Basic order of Moore curve for first iteration:
+             * 1 2
+             * 0 3
+             */
+            constexpr ChildSide child_nr_to_child_side[] { ChildSide::LEFT_BOTTOM, ChildSide::LEFT_TOP, ChildSide::RIGHT_TOP, ChildSide::RIGHT_BOTTOM };
+            /*  child_winding_dirs  and child_starting_child
+             *     1---2···1---2
+             *     |CW     * CW|
+             *     0---3*  0---3
+             *         :   :
+             *     1---2  *1---2
+             *     | CW      CW|
+             *     0---3*  0---3
+             */
+            constexpr int_fast8_t child_winding_dirs[] { 1, 1, 1, 1 };
+            constexpr int_fast8_t child_starting_child[] { 3, 3, 1, 1 };
+            for (uint_fast8_t child_idx_offset = 0; child_idx_offset < 4; child_idx_offset++)
+            {
+                uint8_t child_idx = (starting_child + winding_dir * child_idx_offset + 4 ) % 4;
+                Cell* child = sub_tree_root.children[static_cast<int_fast8_t>(child_nr_to_child_side[child_idx])];
+                assert(child);
+                createHilbertPattern(*child, pattern, (starting_child + winding_dir * child_starting_child[child_idx_offset] + 4 ) % 4, winding_dir * child_winding_dirs[child_idx_offset]);
+            }
+        }
+        else
+        {
+            pattern.push_back(&sub_tree_root);
+        }
+    }
+    
     void debugOutput(SVG& svg, Cell& sub_tree_root, float drawing_line_width, bool draw_arrows)
     {
         if (sub_tree_root.is_subdivided)
@@ -543,6 +666,19 @@ public:
                 }
             }
         }
+    }
+    
+    
+    void outputHilbert(SVG& svg, float drawing_line_width)
+    {
+        Polygon hilbert = createHilbertLine();
+        svg.writeLines(*hilbert, SVG::Color::BLACK, drawing_line_width);
+    }
+    
+    void outputMoore(SVG& svg, float drawing_line_width)
+    {
+        Polygon moore = createMooreLine();
+        svg.writePolygon(moore, SVG::Color::BLACK, drawing_line_width);
     }
     
     void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows)

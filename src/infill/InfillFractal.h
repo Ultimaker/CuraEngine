@@ -154,6 +154,31 @@ public:
         return false;
     }
     
+    void subdivideUpto(int depth)
+    {
+        std::list<Cell*> to_be_subdivided;
+        to_be_subdivided.push_back(root);
+        
+        while (!to_be_subdivided.empty())
+        {
+            Cell* current = to_be_subdivided.front();
+            to_be_subdivided.pop_front();
+            
+            if (!current->children[0])
+            { // cell has no children
+                continue;
+            }
+            subdivide(*current);
+            if (current->depth < depth)
+            {
+                for (Cell* child : current->children)
+                {
+                    to_be_subdivided.push_back(child);
+                }
+            }
+        }
+    }
+    
     /*!
      * Create a pattern with no dithering and no balancing.
      * 

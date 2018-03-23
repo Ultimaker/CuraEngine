@@ -22,7 +22,7 @@ void FractalInfillTest::tearDown()
 void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
-    int max_depth = 9;
+    int max_depth = 7;
     AABB aabb(Point(0,0), Point(line_width, line_width) * (2 << max_depth));
     
     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb);
@@ -38,16 +38,21 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/sinterklaas.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/diamond.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/trex.jpeg", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/bagelorb.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot_dark.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cura-logo.jpg", aabb);
     
-    bool consecutivity_constraint = true;
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/nessy.jpg", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/smize.png", aabb);
+    
+    bool consecutivity_constraint = false;
     SquareSubdivision ss(*subdivider, aabb, max_depth, line_width, consecutivity_constraint);
     ss.initialize();
+//     ss.subdivideUpto(2);
 //     ss.createMinimalErrorPattern(false);
-//     ss.createDitheredPattern();
-    ss.createMinimalDensityPattern();
+    ss.createDitheredPattern();
+//     ss.createMinimalDensityPattern();
     ss.debugCheck();
     
     {
@@ -57,7 +62,11 @@ void FractalInfillTest::debugCheck()
         bool draw_arrows = false;
         float drawing_line_width = line_width * svg.getScale();
         if (draw_arrows) drawing_line_width *= .2;
-        ss.debugOutput(svg, drawing_line_width, draw_arrows);
+        
+        
+//         ss.debugOutput(svg, drawing_line_width, draw_arrows);
+//         ss.outputHilbert(svg, drawing_line_width * 2);
+        ss.outputMoore(svg, drawing_line_width * 2);
     }
 }
 

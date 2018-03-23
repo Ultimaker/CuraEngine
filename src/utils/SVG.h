@@ -87,7 +87,7 @@ public:
      * \param color The colour of the line segments. If this is not specified,
      * black will be used.
      */
-    void writeLines(std::vector<Point> polyline, Color color = Color::BLACK);
+    void writeLines(std::vector<Point> polyline, Color color = Color::BLACK, float stroke_width = 1);
 
     void writeLine(const Point& a, const Point& b, Color color = Color::BLACK, float stroke_width = 1);
 

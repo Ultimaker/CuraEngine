@@ -23,11 +23,11 @@ void SierpinskiFillTest::debugCheck()
     coord_t line_width = 400;
     AABB aabb(Point(0,0), Point(line_width, line_width)*512);
     //aabb.expand(512);
-    Point canvas_size = Point(1000, 1000) * 2;
+    Point canvas_size = Point(1024, 1024);
     SVG svg("output/sierpinski.svg", aabb, canvas_size);
     
     
-    int drawing_line_width = line_width * svg.getScale();
+    float drawing_line_width = line_width * svg.getScale();
     
     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gradient.png", aabb);
