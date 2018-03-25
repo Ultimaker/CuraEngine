@@ -8,6 +8,8 @@
 
 namespace cura {
 
+const ZSeamConfig PathOrderOptimizer::default_config;
+
 /**
 *
 */
