@@ -310,7 +310,32 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
                 && (next_textured_face_slice || !shorterThen(p2 - p1, SLICE_SEGMENT_SNAP_GAP)) // don't introduce corner points for gap closer poly segments
                 )
             { // add offset point for corner
-                result.add(p1 + corner_handle_p1.corner_offset_vector);
+                Point p1p0 = *p0 - p1;
+                Point p1p2 = p2 - p1;
+                coord_t projection_dist_10 = dot(corner_handle_p1.corner_offset_vector, p1p0) / vSize(p1p0);
+                coord_t projection_dist_12 = dot(corner_handle_p1.corner_offset_vector, p1p2) / vSize(p1p2);
+                if (projection_dist_12 > dist_left_over || projection_dist_10 > settings.point_distance - dist_left_over)
+                {
+                    /* don't add point, because it is too far from the corner. Example:
+                     * 
+                     * sampling points
+                     *     v
+                     *     o|    |
+                     *      |....|..
+                     *      |   /   }
+                     *     o|  /    } distance is farther than nearby sampling points
+                     *      |./.....}
+                     *     / /                  .
+                     *   o/ /                   .
+                     *   / /                    .
+                     *  / /                     .
+                     *o/ /                      .
+                     */
+                }
+                else
+                {
+                    result.add(p1 + corner_handle_p1.corner_offset_vector);
+                }
             }
             p0 = &p1;
             corner_handle_p0 = corner_handle_p1;
