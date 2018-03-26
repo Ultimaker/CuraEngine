@@ -81,7 +81,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         //   to other
         if (!are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(to_it, to_it, to_link, to_other_next_it, to_other_it);
+            overlap_area = std::max(overlap_area, handlePotentialOverlap(to_it, to_it, to_link, to_other_next_it, to_other_it));
         }
 
         // handle multiple points  linked to [to_other]
@@ -92,7 +92,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         bool all_are_in_same_general_direction = are_in_same_general_direction && dot(from - to, to_other_it.prev().p() - to_other_it.p()) > 0;
         if (!all_are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_it);
+            overlap_area = std::max(overlap_area, handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_it));
         }
 
         // handle normal case where the segment from-to overlaps with another segment
@@ -105,7 +105,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         //       to other
         if (!are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_next_it, to_other_it);
+            overlap_area = std::max(overlap_area, handlePotentialOverlap(from_it, to_it, to_link, to_other_next_it, to_other_it));
         }
     }
 
