@@ -98,9 +98,9 @@ float Material::getColor(float x, float y, ColourUsage color) const
 float Material::getColorData(float x, float y, unsigned int z) const
 {
     unsigned int x_idx = (unsigned int) (x * (width - 1) + 0.5);
-    assert(x_idx >= 0 && x_idx < width && "requested X is out of bounds!");
+    assert(static_cast<int>(x_idx) >= 0 && x_idx < width && "requested X is out of bounds!");
     unsigned int y_idx = (unsigned int) (y * (height - 1) + 0.5);
-    assert(y_idx >= 0 && y_idx < height && "requested Y is out of bounds!");
+    assert(static_cast<int>(y_idx) >= 0 && y_idx < height && "requested Y is out of bounds!");
 
     unsigned char col = data.get()[((height - y_idx - 1) * width + x_idx) * depth + z];
     return (float) col / std::numeric_limits<unsigned char>::max();
