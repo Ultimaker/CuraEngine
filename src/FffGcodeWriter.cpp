@@ -1706,7 +1706,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                             && !getSettingBoolean("magic_spiralize")
                             && extruder_nr == wall_0_extruder_nr;
 
-    Point z_seam_pos(0, 0); // not used
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
