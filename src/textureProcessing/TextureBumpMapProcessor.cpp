@@ -71,9 +71,9 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
             float color_offset_float = 0;
             const float h = INT2MM(settings.layer_height);
             assert(face_idx >= 0 && "we must know for which face we are getting the color");
-            const float horizontal_component = std::abs(face_normal_storage->getFaceHorizontalComponent(face_idx));
-            const float vertical_component = face_normal_storage->getFaceVerticalComponent(face_idx);
-            const float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
+            const float horizontal_component = std::min(settings.horizontal_component_max_angle_from_z, std::abs(face_normal_storage->getFaceHorizontalComponent(face_idx)));
+            const float vertical_component = std::max(settings.vertical_component_max_angle_from_z, face_normal_storage->getFaceVerticalComponent(face_idx));
+            const float tan_angle = std::min(settings.tan_max_angle_from_z, face_normal_storage->getFaceTanAngle(face_idx));
             const float diagonal_distance = h / vertical_component;
             const float horizontal_distance = diagonal_distance * horizontal_component;
             // TODO apply max angle
@@ -114,7 +114,7 @@ coord_t TextureBumpMapProcessor::getOffset(const float color_ratio, const int fa
             assert(face_idx >= 0 && "we must know for which face we are getting the color");
             float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
             float abs_tan_angle = std::fabs(tan_angle);
-            abs_tan_angle = std::min(abs_tan_angle, settings.max_tan_correction_angle);
+            abs_tan_angle = std::min(abs_tan_angle, settings.tan_max_angle_from_z);
             color_offset = settings.face_angle_correction * (color_ratio - 0.5) * abs_tan_angle * settings.layer_height;
             // (color_ratio - 0.5) so that the color_ratio causes either an outset or an inset which is
             // within the range [-0.5, 0.5] so that when at max it will coincide with the min on the previous layer:

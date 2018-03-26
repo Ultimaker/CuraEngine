@@ -36,7 +36,10 @@ public:
         SaggingModel sagging_model;
         bool is_white;
         float face_angle_correction;
-        float max_tan_correction_angle;
+        float max_angle_from_z;
+        float tan_max_angle_from_z;
+        float horizontal_component_max_angle_from_z;
+        float vertical_component_max_angle_from_z;
         ColourUsage color_usage;
         Settings(SettingsBaseVirtual* settings_base)
         : layer_height(settings_base->getSettingInMicrons("layer_height"))
@@ -48,7 +51,10 @@ public:
         , sagging_model(settings_base->getSettingAsRatio("bump_map_sagging_per_overhang"))
         , is_white(settings_base->getSettingBoolean("bump_map_is_white"))
         , face_angle_correction(settings_base->getSettingAsRatio("bump_map_face_angle_correction"))
-        , max_tan_correction_angle(std::tan(0.5 * M_PI - settings_base->getSettingInAngleRadians("bump_map_angle_correction_min")))
+        , max_angle_from_z(0.5 * M_PI - settings_base->getSettingInAngleRadians("bump_map_angle_correction_min"))
+        , tan_max_angle_from_z(std::tan(max_angle_from_z))
+        , horizontal_component_max_angle_from_z(std::sin(max_angle_from_z))
+        , vertical_component_max_angle_from_z(std::cos(max_angle_from_z))
         , color_usage(settings_base->getSettingAsColourUsage("bump_map_texture_color"))
         {
         }
