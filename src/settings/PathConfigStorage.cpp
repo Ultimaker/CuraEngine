@@ -242,7 +242,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
     }
 
     const int initial_speedup_layer_count = storage.getSettingAsCount("speed_slowdown_layers");
-    if (layer_nr < initial_speedup_layer_count)
+    if (layer_nr >= 0 && layer_nr < initial_speedup_layer_count)
     {
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
     }
