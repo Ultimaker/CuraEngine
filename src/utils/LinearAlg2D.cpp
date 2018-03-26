@@ -162,18 +162,20 @@ Point LinearAlg2D::variableCornerOffsetVector(const Point a, const Point b, cons
         return Point(normal(bc, -offset_ab));
     }
 
-    coord_t determinant = ba.Y * bc.X - ba.X * bc.Y;
-    if (determinant > -10 && determinant < 10)
+    coord_t ba_size2 = vSize2(ba);
+    coord_t bc_size2 = vSize2(bc);
+    coord_t determinant = ba.X * bc.Y - ba.Y * bc.X;
+    if (determinant * determinant < 15 * (ba_size2 + bc_size2) )
     { // segments are collinear
         return (normal(turn90CCW(-1 * ba), offset_ab) + normal(turn90CCW(bc), offset_bc)) / 2;
     }
     coord_t ab_size = vSize(ba);
     coord_t bc_size = vSize(bc);
 
+    Point delta0 = -offset_ab * ab_size * bc;
     Point delta1 = offset_bc * bc_size * ba;
-    Point delta0 = offset_ab * ab_size * bc;
 
-    Point delta = (delta0 + delta1) / determinant;
+    Point delta = (delta0 - delta1) / determinant;
     return Point(delta);
 }
 
