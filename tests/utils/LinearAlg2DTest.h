@@ -67,6 +67,36 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(rotateAroundNegative90);
     CPPUNIT_TEST(rotateAround0);
     CPPUNIT_TEST(rotateAround12);
+
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalBluntCornerUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalBluntCornerPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalBluntCornerNegativeOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalSharpCornerUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalSharpCornerPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalSharpCornerNegativeOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalColinearUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalColinearPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorHorizontalColinearNegativeOffsets);
+
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalBluntCornerUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalBluntCornerPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalBluntCornerNegativeOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalSharpCornerUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalSharpCornerPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalSharpCornerNegativeOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalColinearUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalColinearPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorVerticalColinearNegativeOffsets);
+
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalBluntCornerUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalBluntCornerPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalBluntCornerNegativeOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalSharpCornerUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalSharpCornerPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalSharpCornerNegativeOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalColinearUnevenSign);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalColinearPositiveOffsets);
+    CPPUNIT_TEST(variableCornerOffsetVectorDiagonalColinearNegativeOffsets);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -141,6 +171,34 @@ public:
     void rotateAround0();
     void rotateAround12();
 
+    void variableCornerOffsetVectorHorizontalBluntCornerUnevenSign();
+    void variableCornerOffsetVectorHorizontalBluntCornerPositiveOffsets();
+    void variableCornerOffsetVectorHorizontalBluntCornerNegativeOffsets();
+    void variableCornerOffsetVectorHorizontalSharpCornerUnevenSign();
+    void variableCornerOffsetVectorHorizontalSharpCornerPositiveOffsets();
+    void variableCornerOffsetVectorHorizontalSharpCornerNegativeOffsets();
+    void variableCornerOffsetVectorHorizontalColinearUnevenSign();
+    void variableCornerOffsetVectorHorizontalColinearPositiveOffsets();
+    void variableCornerOffsetVectorHorizontalColinearNegativeOffsets();
+    void variableCornerOffsetVectorVerticalBluntCornerUnevenSign();
+    void variableCornerOffsetVectorVerticalBluntCornerPositiveOffsets();
+    void variableCornerOffsetVectorVerticalBluntCornerNegativeOffsets();
+    void variableCornerOffsetVectorVerticalSharpCornerUnevenSign();
+    void variableCornerOffsetVectorVerticalSharpCornerPositiveOffsets();
+    void variableCornerOffsetVectorVerticalSharpCornerNegativeOffsets();
+    void variableCornerOffsetVectorVerticalColinearUnevenSign();
+    void variableCornerOffsetVectorVerticalColinearPositiveOffsets();
+    void variableCornerOffsetVectorVerticalColinearNegativeOffsets();
+    void variableCornerOffsetVectorDiagonalBluntCornerUnevenSign();
+    void variableCornerOffsetVectorDiagonalBluntCornerPositiveOffsets();
+    void variableCornerOffsetVectorDiagonalBluntCornerNegativeOffsets();
+    void variableCornerOffsetVectorDiagonalSharpCornerUnevenSign();
+    void variableCornerOffsetVectorDiagonalSharpCornerPositiveOffsets();
+    void variableCornerOffsetVectorDiagonalSharpCornerNegativeOffsets();
+    void variableCornerOffsetVectorDiagonalColinearUnevenSign();
+    void variableCornerOffsetVectorDiagonalColinearPositiveOffsets();
+    void variableCornerOffsetVectorDiagonalColinearNegativeOffsets();
+
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.
@@ -188,6 +246,11 @@ private:
      * \param expected_result The new location of the point, after rotating.
      */
     void rotateAroundAssert(const Point point, const Point origin, const double angle, const Point expected_result);
+
+    /*!
+     * \param visualize Enable to generate debug.svg to visually verify results.
+     */
+    void variableCornerOffsetVectorAssert(Point a, Point b, Point c, coord_t offset_ab, coord_t offset_bc, Point expected_result, bool visualize = false);
 };
 
 }

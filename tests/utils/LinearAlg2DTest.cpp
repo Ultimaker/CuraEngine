@@ -4,6 +4,7 @@
 #include "LinearAlg2DTest.h"
 
 #include <../src/utils/linearAlg2D.h>
+#include "../src/utils/SVG.h" // for visualization of geometry
 
 #define FUZZ_DISTANCE 2 //Error that is allowed to be introduced by rounding.
 
@@ -392,6 +393,153 @@ void LinearAlg2DTest::rotateAroundAssert(const Point point, const Point origin, 
     std::stringstream ss;
     ss << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle << " degrees resulted in " << result << " instead of expected " << expected_result << ".";
     CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - expected_result) < FUZZ_DISTANCE);
+}
+
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalBluntCornerUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 50), Point(200, 0), 80, -50, Point(-145, 15));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalBluntCornerPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 50), Point(200, 0), 80, 50, Point(-35, 74));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalBluntCornerNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 50), Point(200, 0), -80, -50, Point(33, -72));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalSharpCornerUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 250), Point(200, 0), 80, -50, Point(-69, 40));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalSharpCornerPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 250), Point(200, 0), 80, 50, Point(-16, 174));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalSharpCornerNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 250), Point(200, 0), -80, -50, Point(16, -174));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalColinearUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 1), Point(200, 0), 80, -50, Point(0, 15));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalColinearPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 1), Point(200, 0), 80, 50, Point(0, 65));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorHorizontalColinearNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(100, 1), Point(200, 0), -80, -50, Point(0, -65));
+}
+
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalBluntCornerUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(50, 100), Point(0, 200), 80, -50, Point(-16, 144));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalBluntCornerPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(50, 100), Point(0, 200), 80, 50, Point(-72, 33));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalBluntCornerNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(50, 100), Point(0, 200), -80, -50, Point(72, -33));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalSharpCornerUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(250, 100), Point(0, 200), 80, -50, Point(-40, 69));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalSharpCornerPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(250, 100), Point(0, 200), 80, 50, Point(-174, 16));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalSharpCornerNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(250, 100), Point(0, 200), -80, -50, Point(174, -16));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalColinearUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(1, 100), Point(0, 200), 80, -50, Point(-15, 0));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalColinearPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(1, 100), Point(0, 200), 80, 50, Point(-65, 0));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorVerticalColinearNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 0), Point(1, 100), Point(0, 200), -80, -50, Point(65, 0));
+}
+
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalBluntCornerUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(70, 70), Point(100, 0), 80, -50, Point(-112, 134));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalBluntCornerPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(70, 70), Point(100, 0), 80, 50, Point(20, 77));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalBluntCornerNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(70, 70), Point(100, 0), -80, -50, Point(-20, -77));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalSharpCornerUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(150, 150), Point(100, 0), 80, -50, Point(-27, 75));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalSharpCornerPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(150, 150), Point(100, 0), 80, 50, Point(90, 114));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalSharpCornerNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(150, 150), Point(100, 0), -80, -50, Point(-90, -114));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalColinearUnevenSign()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(51, 49), Point(100, 0), 80, -50, Point(10, 10));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalColinearPositiveOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(51, 49), Point(100, 0), 80, 50, Point(45, 45));
+}
+void LinearAlg2DTest::variableCornerOffsetVectorDiagonalColinearNegativeOffsets()
+{
+    variableCornerOffsetVectorAssert(Point(0, 100), Point(51, 49), Point(100, 0), -80, -50, Point(-45, -45));
+}
+
+void LinearAlg2DTest::variableCornerOffsetVectorAssert(Point a, Point b, Point c, coord_t offset_ab, coord_t offset_bc, Point expected_result, bool visualize)
+{
+    Point result = LinearAlg2D::variableCornerOffsetVector(a, b, c, offset_ab, offset_bc);
+
+    if (visualize)
+    {
+        AABB aabb;
+        aabb.include(a);
+        aabb.include(b);
+        aabb.include(c);
+        aabb.expand(std::max(std::abs(offset_ab), std::abs(offset_bc)) * 2);
+        SVG svg("output/debug.svg", aabb);
+        svg.writeLine(a, b);
+        svg.writeLine(b, c);
+        svg.writePoint(a, false, 2);
+        svg.writePoint(b, false, 2);
+        svg.writePoint(c, false, 2);
+        svg.writeText(a, "a", SVG::Color::BLACK, 20);
+        svg.writeText(b, "b", SVG::Color::BLACK, 20);
+        svg.writeText(c, "c", SVG::Color::BLACK, 20);
+        svg.writePoint(b + expected_result, false, 8, SVG::Color::GREEN);
+        svg.writePoint(b + result, false, 4, SVG::Color::RED);
+        
+        Point ab = b - a;
+        Point ab_offset = normal(turn90CCW(ab), offset_ab);
+        svg.writeLine(a + ab_offset - ab * 2, b + ab_offset + ab * 2, SVG::Color::BLUE);
+        Point bc = c - b;
+        Point bc_offset = normal(turn90CCW(bc), offset_bc);
+        svg.writeLine(b + bc_offset - bc * 2, c + bc_offset + bc * 2, SVG::Color::BLUE);
+        std::cerr << "result was: " << result << '\n';
+    }
+    std::stringstream ss;
+    ss << "LinearAlg2D::variableCornerOffsetVector failed: abc: " << a << ", " << b << ", " << c << " for offsets " << offset_ab << ", " << offset_bc << " resulted in a corner offset of " << result << " instead of expected " << expected_result << ".";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - expected_result) < maximum_error);
 }
 
 }
