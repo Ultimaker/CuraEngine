@@ -23,7 +23,7 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
   
-Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_other_parts, coord_t travel_avoid_distance, coord_t move_inside_distance)
+Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
@@ -39,9 +39,9 @@ Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_b
 , inside_loc_to_line_minimum(PolygonUtils::createLocToLineGrid(boundary_inside_minimum, comb_boundary_offset))
 , inside_loc_to_line_optimal(PolygonUtils::createLocToLineGrid(boundary_inside_optimal, comb_boundary_offset))
 , boundary_outside(
-        [&storage, layer_nr, travel_avoid_distance]()
+        [&storage, layer_nr, travel_avoid_supports, travel_avoid_distance]()
         {
-            return storage.getLayerOutlines(layer_nr, false).offset(travel_avoid_distance);
+            return storage.getLayerOutlines(layer_nr, travel_avoid_supports).offset(travel_avoid_distance);
         }
     )
 , outside_loc_to_line(

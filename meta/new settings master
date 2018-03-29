@@ -98,6 +98,7 @@ support_roof_line_width
 
 travel_avoid_distance
 travel_avoid_other_parts
+travel_avoid_supports
 travel_compensate_overlapping_walls_enabled
 
 z_seam_type
