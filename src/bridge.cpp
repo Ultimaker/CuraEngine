@@ -121,6 +121,13 @@ int bridgeAngle(const Polygons& skinOutline, const SliceLayer* prevLayer, const 
         }
     }
 
+    // if the proportion of the skin region that is supported is >= supportThreshold, it's not considered to be a bridge
+
+    if (supportThreshold > 0 && (supportedRegions.area() / (skinOutline.area() + 1)) >= supportThreshold)
+    {
+        return -1;
+    }
+
     if (islands.size() > 5 || islands.size() < 1)
         return -1;
     
