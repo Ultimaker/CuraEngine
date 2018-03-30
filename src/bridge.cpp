@@ -3,9 +3,10 @@
 
 namespace cura {
 
-int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, const SupportLayer* supportLayer, Polygons& supportedRegions)
+int bridgeAngle(const Polygons& skinOutline, const SliceLayer* prevLayer, const SupportLayer* supportLayer, Polygons& supportedRegions, const double supportThreshold)
 {
-    AABB boundaryBox(outline);
+    AABB boundaryBox(skinOutline);
+
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     // This gives us the islands that the layer rests on.
     Polygons islands;
@@ -14,7 +15,7 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, const SupportLaye
         if (!boundaryBox.hit(prevLayerPart.boundaryBox))
             continue;
         
-        islands.add(outline.intersection(prevLayerPart.outline));
+        islands.add(skinOutline.intersection(prevLayerPart.outline));
     }
     supportedRegions = islands;
 
@@ -31,7 +32,7 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, const SupportLaye
             AABB support_roof_bb(supportLayer->support_roof);
             if (boundaryBox.hit(support_roof_bb))
             {
-                Polygons supported_skin(outline.intersection(supportLayer->support_roof));
+                Polygons supported_skin(skinOutline.intersection(supportLayer->support_roof));
                 if (!supported_skin.empty())
                 {
                     supportedRegions.add(supported_skin);
@@ -45,7 +46,7 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, const SupportLaye
                 AABB support_part_bb(support_part.getInfillArea());
                 if (boundaryBox.hit(support_part_bb))
                 {
-                    Polygons supported_skin(outline.intersection(support_part.getInfillArea()));
+                    Polygons supported_skin(skinOutline.intersection(support_part.getInfillArea()));
                     if (!supported_skin.empty())
                     {
                         supportedRegions.add(supported_skin);
@@ -53,6 +54,13 @@ int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, const SupportLaye
                 }
             }
         }
+    }
+
+    // if the proportion of the skin region that is supported is >= supportThreshold, it's not considered to be a bridge
+
+    if (supportThreshold > 0 && (supportedRegions.area() / (skinOutline.area() + 1)) >= supportThreshold)
+    {
+        return -1;
     }
 
     if (islands.size() > 5 || islands.size() < 1)
