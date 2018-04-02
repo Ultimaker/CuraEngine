@@ -784,7 +784,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     if (texture_bump_map && !polygons.empty())
     {
-        polygons = polygons.unionPolygons();
         texture_bump_map->processBumpMap(polygons, layer_nr);
     }
 
