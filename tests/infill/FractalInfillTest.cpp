@@ -22,10 +22,11 @@ void FractalInfillTest::tearDown()
 void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
-    int max_depth = 7;
+    int max_depth = 8;
     AABB aabb(Point(0,0), Point(line_width, line_width) * (2 << max_depth));
+    std::cerr << "AABB: " << aabb.max << "\n";
     
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gradient.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/slight_gradient.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/simple.png", aabb);
@@ -42,6 +43,7 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot_dark.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cura-logo.jpg", aabb);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/deer.png", aabb);
     
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/nessy.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/smize.png", aabb);
@@ -60,7 +62,7 @@ void FractalInfillTest::debugCheck()
         SVG svg("output/subdiv_dither.svg", aabb, canvas_size);
         
         bool draw_arrows = false;
-        float drawing_line_width = line_width * svg.getScale();
+        float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
         if (draw_arrows) drawing_line_width *= .2;
         
         
