@@ -1881,6 +1881,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     }
     else if (layer_nr > 0 && bridge_settings_enabled)
     {
+        const int bottom_layers = mesh.getSettingAsCount("bottom_layers");
         // if the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
         if ((supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
         {
@@ -1889,7 +1890,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             skin_overlap = more_skin_overlap;
             skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
         }
-        else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_enable_more_layers"))
+        else if (layer_nr > 1 && bottom_layers > 1 && mesh.getSettingBoolean("bridge_enable_more_layers"))
         {
             // if this is the second bridge layer use bridge_skin_config2
             Polygons supported_skin_part_regions2;
@@ -1902,26 +1903,38 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             {
                 if (bridge2 > -1)
                 {
-                    // orientate second bridge skin at 90 deg to first
-                    skin_angle = (bridge2 + 90) % 360;
+                    if (bottom_layers > 2)
+                    {
+                        // orientate second bridge skin at +45 deg to first
+                        skin_angle = (bridge2 + 45) % 360;
+                    }
+                    else
+                    {
+                        // orientate second bridge skin at 90 deg to first
+                        skin_angle = (bridge2 + 90) % 360;
+                    }
                 }
-                use_bridge_config2 = true;
                 pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
                 skin_overlap = more_skin_overlap;
                 skin_density = mesh.getSettingInPercentage("bridge_skin_density_2") / 100;
+                use_bridge_config2 = true;
             }
-            else if (layer_nr > 2)
+            else if (layer_nr > 2 && bottom_layers > 2)
             {
-                // if this is the third bridge layer, use the same skin_angle as the first
+                // if this is the third bridge layer use bridge_skin_config3
                 Polygons supported_skin_part_regions3;
                 if (support_layer_nr >= 2)
                 {
                     support_layer = &storage.support.supportLayers[support_layer_nr - 2];
                 }
                 int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], support_layer, supported_skin_part_regions3, support_threshold);
-                if (bridge3 > -1)
+                if (bridge3 > -1 || (supported_skin_part_regions3.area() / (skin_part.outline.area() + 1) < support_threshold))
                 {
-                    skin_angle = bridge3;
+                    if (bridge3 > -1)
+                    {
+                        // orientate third bridge skin at 135 (same result as -45) deg to first
+                        skin_angle = (bridge3 + 135) % 360;
+                    }
                     pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
                     skin_overlap = more_skin_overlap;
                     skin_density = mesh.getSettingInPercentage("bridge_skin_density_3") / 100;
