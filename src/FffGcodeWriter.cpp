@@ -1841,6 +1841,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     bool use_bridge_config3 = false;
     double skin_density = 1.0;
     coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
+    const coord_t more_skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)); // force a minimum amount of skin_overlap
     Polygons supported_skin_part_regions;
     const bool bridge_settings_enabled = mesh.getSettingBoolean("bridge_settings_enabled");
     const double support_threshold = bridge_settings_enabled ? mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100 : 0;
@@ -1874,6 +1875,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         use_bridge_config = bridge_settings_enabled;
         if (use_bridge_config)
         {
+            skin_overlap = more_skin_overlap;
             skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
         }
     }
@@ -1884,6 +1886,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         {
             pattern = EFillMethod::LINES; // force lines pattern when bridging
             use_bridge_config = true;
+            skin_overlap = more_skin_overlap;
             skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
         }
         else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_enable_more_layers"))
@@ -1904,7 +1907,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 }
                 use_bridge_config2 = true;
                 pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
-                skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)); // force a minimum amount of skin_overlap
+                skin_overlap = more_skin_overlap;
                 skin_density = mesh.getSettingInPercentage("bridge_skin_density_2") / 100;
             }
             else if (layer_nr > 2)
@@ -1920,6 +1923,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 {
                     skin_angle = bridge3;
                     pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
+                    skin_overlap = more_skin_overlap;
                     skin_density = mesh.getSettingInPercentage("bridge_skin_density_3") / 100;
                     use_bridge_config3 = true;
                 }
