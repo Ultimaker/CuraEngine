@@ -331,6 +331,7 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
                      *  / /                     .
                      *o/ /                      .
                      */
+                    corner_handle_p1.next_segment_disregard_distance = settings.point_distance;
                 }
                 else
                 {
