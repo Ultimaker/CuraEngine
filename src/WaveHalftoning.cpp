@@ -24,7 +24,7 @@ WaveHalftoning::WaveHalftoning(const SliceMeshStorage& mesh)
             {
                 color = 1.0 - color;
             }
-            coord_t ret = color * settings.max_amplitude;
+            coord_t ret = color * (settings.max_amplitude - settings.min_amplitude) + settings.min_amplitude;
             return ret;
         };
     }
