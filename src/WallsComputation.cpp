@@ -21,7 +21,6 @@ WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_
  */
 void WallsComputation::generateInsets(SliceLayerPart* part)
 {
-    const float undersize_factor = 0.95f; // allow innermost inset to be this much narrower than normal
     if (insetCount == 0)
     {
         part->insets.push_back(part->outline);
@@ -44,7 +43,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
                 // if a slightly thinner line would fit, allow it as the overlap is so small
                 // this helps when you have parts such as tubes whose walls are an exact number of line widths wide
                 // e.g. when the tube wall is 1.5mm wide and the line widths are 0.5mm
-                part->insets[1] = part->insets[0].offset(offset * undersize_factor);
+                part->insets[1] = part->insets[0].offset(offset * 0.99f);
             }
         } else
         {
@@ -52,7 +51,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
             if (part->insets[i].size() == 0)
             {
                 // if a slightly thinner line would fit, allow it as the overlap is so small
-                part->insets[i] = part->insets[i-1].offset(-line_width_x * undersize_factor);
+                part->insets[i] = part->insets[i-1].offset(-line_width_x * 0.99f);
             }
         }
 
