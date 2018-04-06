@@ -271,8 +271,8 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
 
     const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-    const int inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
-    const int start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
+    const coord_t inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
+    const coord_t start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
     const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - prime_end;
     const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
@@ -292,6 +292,13 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
 
         if (purge_volume > 0)
         {
+            // start purging away from middle to prevent tower in the middle of the purge tower
+            const Point purge_move = prime_start - middle;
+            const coord_t purge_dist = vSize(purge_move);
+            coord_t pre_move_dist = purge_dist / 4; // shorten the purge move by a third
+            Point purge_start = middle + normal(purge_move, pre_move_dist);
+            gcode_layer.addTravel(purge_start);
+
             addPurgeMove(gcode_layer, extruder_nr, train, middle, prime_start, purge_volume);
         }
         else
