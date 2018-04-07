@@ -769,7 +769,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     }
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (layer_idx < mesh.layers.size())
+        if (layer_idx >= mesh.layers.size())
         {
             continue;
         }
