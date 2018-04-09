@@ -314,7 +314,8 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 if (combPaths.size() == 1)
                 {
                     CombPath comb_path = combPaths[0];
-                    if (combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
+                    if (extr->getSettingBoolean("limit_support_retractions") &&
+                        combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }
