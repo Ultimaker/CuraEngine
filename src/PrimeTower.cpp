@@ -181,7 +181,7 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPl
 
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
-    gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
+    gcode_layer.addPolygonsByOptimizer(pattern.polygons, config, nullptr, ZSeamConfig(), 0, false, 1.0, false, true);
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 }
 

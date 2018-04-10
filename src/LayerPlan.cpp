@@ -394,16 +394,28 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     last_planned_position = p;
 }
 
-void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_direction)
 {
     Point p0 = polygon[start_idx];
     addTravel(p0, always_retract);
-    for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
-    {
-        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
-        p0 = p1;
+    
+    if(reverse_direction){
+        for (unsigned int point_idx = polygon.size(); point_idx > 1; point_idx--)
+        {
+            Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+            float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+            addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+            p0 = p1;
+        }
+    }
+    else{
+        for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
+        {
+            Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+            float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+            addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+            p0 = p1;
+        }
     }
     if (polygon.size() > 2)
     {
@@ -442,7 +454,7 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_inner_polygon)
 {
     if (polygons.size() == 0)
     {
@@ -454,9 +466,22 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
+
+    unsigned int polygons_counter = polygons.size() / 2;
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        // reverse direction of inner polygon, if there is infill between inner 
+        // and outer wall, then it also should be reversed. Otherwise infill will
+        // have opposite direction
+        if (reverse_inner_polygon && polygons_counter > 0)
+        {
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_inner_polygon);
+            polygons_counter--;
+        }
+        else
+        {
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        }
     }
 }
 
