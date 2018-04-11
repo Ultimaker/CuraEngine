@@ -53,6 +53,7 @@ private:
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
+    Polygons ground_poly_first_layer; //!< The outline of the prime tower to be used for each layer for the first layer
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how

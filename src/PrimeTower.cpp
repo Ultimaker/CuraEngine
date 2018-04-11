@@ -22,14 +22,15 @@ PrimeTower::PrimeTower(const SliceDataStorage& storage)
     enabled = storage.getSettingBoolean("prime_tower_enable")
            && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
            && storage.getSettingInMicrons("prime_tower_size") > 10;
-    if (enabled)
-    {
-        generateGroundpoly(storage);
-    }
 }
 
 void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 {
+    if (!enabled)
+    {
+        return;
+    }
+
     extruder_count = storage.meshgroup->getExtruderCount();
 
     int64_t prime_tower_wall_thickness = storage.getSettingInMicrons("prime_tower_wall_thickness");
@@ -62,6 +63,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     }
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
+    ground_poly_first_layer = ground_poly;  // for the first layer, we always generate a non-hollow prime tower
     if (is_hollow)
     {
         ground_poly = ground_poly.difference(ground_poly.offset(-prime_tower_wall_thickness));
@@ -121,12 +123,12 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         }
         pattern_per_extruder_layer0.emplace_back();
         ExtrusionMoves& pattern = pattern_per_extruder_layer0.back();
-        pattern.polygons = ground_poly.offset(-line_width_layer0 / 2);
+        pattern.polygons = ground_poly_first_layer.offset(-line_width_layer0 / 2);
         int outline_offset = -line_width_layer0;
         int line_distance = line_width_layer0;
         double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly_first_layer, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }
@@ -151,7 +153,9 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     bool pre_wipe = storage.meshgroup->getExtruderTrain(new_extruder)->getSettingBoolean("dual_pre_wipe");
     bool post_wipe = storage.meshgroup->getExtruderTrain(prev_extruder)->getSettingBoolean("prime_tower_wipe_enabled");
 
-    if (prev_extruder == new_extruder)
+    // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
+    const int layer_nr = gcode_layer.getLayerNr();
+    if (prev_extruder == new_extruder || layer_nr == 0)
     {
         pre_wipe = false;
         post_wipe = false;

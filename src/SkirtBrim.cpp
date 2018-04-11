@@ -55,7 +55,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
         }
         if (storage.primeTower.enabled)
         {
-            first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
+            first_layer_outline.add(storage.primeTower.ground_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }
     }
     constexpr int join_distance = 20;
