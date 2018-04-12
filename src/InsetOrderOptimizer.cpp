@@ -462,7 +462,8 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         {
             wall_x_polys.add(part.insets[inset_level]);
         }
-        wall_overlapper_x = new WallOverlapComputation(wall_x_polys, mesh_config.insetX_config.getLineWidth());
+        // use a slightly reduced line width so that compensation only occurs between insets at the same level (and not between insets in adjacent levels)
+        wall_overlapper_x = new WallOverlapComputation(wall_x_polys, mesh_config.insetX_config.getLineWidth() - 1);
     }
 
     // create a vector of vectors containing all the inset polys

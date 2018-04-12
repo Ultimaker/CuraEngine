@@ -337,6 +337,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
+    storage.primeTower.generateGroundpoly(storage);
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
 
@@ -769,6 +770,10 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     }
     for (SliceMeshStorage& mesh : storage.meshes)
     {
+        if (layer_idx >= mesh.layers.size())
+        {
+            continue;
+        }
         SliceLayer& layer = mesh.layers[layer_idx];
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
         {

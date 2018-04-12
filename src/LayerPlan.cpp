@@ -314,7 +314,8 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 if (combPaths.size() == 1)
                 {
                     CombPath comb_path = combPaths[0];
-                    if (combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
+                    if (extr->getSettingBoolean("limit_support_retractions") &&
+                        combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }
@@ -805,7 +806,9 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        unsigned int point_idx = PolygonUtils::findNearestVert(orderOptimizer.startPoint, walls[poly_idx]);
+
+        addWall(walls[poly_idx], point_idx, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
