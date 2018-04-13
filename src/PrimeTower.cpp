@@ -37,7 +37,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     int64_t tower_size = storage.getSettingInMicrons("prime_tower_size");
     bool circular_prime_tower = storage.getSettingBoolean("prime_tower_circular");
 
-    if (prime_tower_wall_thickness * 2 < tower_size)
+    if (!circular_prime_tower && prime_tower_wall_thickness * 2 < tower_size)
     {
         is_hollow = true;
     }
@@ -90,12 +90,15 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 
     int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
     EFillMethod infill_method;
+    EFillMethod first_layer_infill_method;
     if (storage.getSettingBoolean("prime_tower_circular"))
     {
-        infill_method = EFillMethod::CONCENTRIC;
+        infill_method = EFillMethod::NONE;
+        first_layer_infill_method = EFillMethod::CONCENTRIC;
     }
     else{
         infill_method = EFillMethod::LINES;
+        first_layer_infill_method = EFillMethod::LINES;
     }
 
     for (int extruder = 0; extruder < extruder_count; extruder++)
@@ -128,7 +131,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         int line_distance = line_width_layer0;
         double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly_first_layer, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, ground_poly_first_layer, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }
