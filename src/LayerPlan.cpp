@@ -473,6 +473,8 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     }
 }
 
+static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
+
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
 {
     const double min_line_len = 5; // we ignore lines less than 5um long
@@ -510,7 +512,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
-                const double coast_dist = std::min(non_bridge_line_volume, 100000.0f) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
+                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
@@ -611,7 +613,27 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
 
                     if (bridge_line_len > min_line_len)
                     {
-                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
+                        if (non_bridge_config.getFlowPercentage() > bridge_config.getFlowPercentage())
+                        {
+                            // to help reduce underextrusion after the bridge segment, the flow is increased to match the normal line flow as the end of the bridge
+                            // is approached. The distance over which the flow reverts back to normal is determined by end_flow_duration and is limited to max_end_flow_len
+
+                            const float end_flow_duration = 0.25; // number of seconds flow should revert back to normal when approaching the end of the bridge segment
+                            const float max_end_flow_len = bridge_line_len * 0.5; // maximum distance flow should revert back to normal
+
+                            float end_flow_len = std::min(static_cast<float>(MM2INT(bridge_config.getSpeed() * end_flow_duration)), max_end_flow_len);
+                            const Point end_flow_start = b1 + (cur_point - b1) * (end_flow_len / bridge_line_len);
+
+                            addExtrusionMove(end_flow_start, bridge_config, SpaceFillType::Polygons, flow);
+                            if (end_flow_len > min_line_len)
+                            {
+                                addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow * non_bridge_config.getFlowPercentage() / bridge_config.getFlowPercentage());
+                            }
+                        }
+                        else
+                        {
+                            addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
+                        }
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
@@ -663,7 +685,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     Point p0 = wall[start_idx];
     addTravel(p0, always_retract);
 
-    float non_bridge_line_volume = 0; // zero before first non-bridge line is output
+    float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
