@@ -459,6 +459,8 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     }
 }
 
+static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
+
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
 {
     const double min_line_len = 5; // we ignore lines less than 5um long
@@ -496,7 +498,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
-                const double coast_dist = std::min(non_bridge_line_volume, 100000.0f) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
+                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
@@ -649,7 +651,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     Point p0 = wall[start_idx];
     addTravel(p0, always_retract);
 
-    float non_bridge_line_volume = 0; // zero before first non-bridge line is output
+    float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
