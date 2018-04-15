@@ -62,6 +62,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         //           to other
 
         bool are_in_same_general_direction = dot(from - to, to_other_it.p() - to_other_next_it.p()) > 0;
+#if 0
         // handle multiple points  linked to [to]
         //   o<<<T<<<F
         //     / |
@@ -85,7 +86,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         {
             overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_it);
         }
-
+#endif
         // handle normal case where the segment from-to overlaps with another segment
         //   o<<<T<<<F
         //       |   |
@@ -109,7 +110,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
 
 int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt from_other_it, const ListPolyIt to_other_it)
 {
-    if (from_it == to_other_it && from_it == from_other_it)
+    if (from_it == to_other_it && to_it == from_other_it)
     { // don't compute overlap with a line and itself
         return 0;
     }
@@ -128,26 +129,14 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
 
 int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist)
 {
-    const int64_t overlap_width_2 = line_width * 2 - from_dist - to_dist; //Twice the width of the overlap area, perpendicular to the lines.
-
     // check whether the line segment overlaps with the point if one of the line segments is just a point
     if (from == to)
     {
-        if (LinearAlg2D::pointIsProjectedBeyondLine(from, other_from, other_to) != 0)
-        {
-            return 0;
-        }
-        const int64_t overlap_length_2 = vSize(other_to - other_from); //Twice the length of the overlap area, alongside the lines.
-        return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
+        return 0;
     }
     if (other_from == other_to)
     {
-        if (LinearAlg2D::pointIsProjectedBeyondLine(other_from, from, to) != 0)
-        {
-            return 0;
-        }
-        const int64_t overlap_length_2 = vSize(from - to); //Twice the length of the overlap area, alongside the lines.
-        return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
+        return 0;
     }
 
     short from_rel = LinearAlg2D::pointIsProjectedBeyondLine(from, other_from, other_to);
@@ -181,7 +170,10 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         const Point vec = from - to;
         const int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
 
-        const int64_t overlap_length_2 = to_proj + other_to_proj; //Twice the length of the overlap area, alongside the lines.
+        // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
+        // the line width minus the average distance between the two lines
+        const int64_t overlap_length_2 = to_proj + other_to_proj;
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
     if (to_rel != 0 && to_rel == other_to_rel && from_rel == 0 && other_from_rel == 0)
@@ -201,16 +193,30 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         const Point vec = to - from;
         const int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
 
-        const int64_t overlap_length_2 = from_proj + other_from_proj; //Twice the length of the overlap area, alongside the lines.
+        // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
+        // the line width minus the average distance between the two lines
+        const int64_t overlap_length_2 = from_proj + other_from_proj;
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
 
-    //More complex case.
-    const Point from_middle = other_to + from; // don't divide by two just yet
-    const Point to_middle = other_from + to; // don't divide by two just yet
-
-    const int64_t overlap_length_2 = vSize(from_middle - to_middle); //(An approximation of) twice the length of the overlap area, alongside the lines.
-    return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
+    // shortest segment is overlapped completely - use the length of whichever segment is shortest
+    const int64_t len = vSize(to - from);
+    const int64_t other_len = vSize(other_to - other_from);
+    // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
+    // the line width minus the average distance between the two lines
+    if (len <= other_len)
+    {
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
+        const int64_t overlap_length_2 = len * 2;
+        return overlap_length_2 * overlap_width_2 / 4;
+    }
+    else
+    {
+        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to));
+        const int64_t overlap_length_2 = other_len * 2;
+        return overlap_length_2 * overlap_width_2 / 4;
+    }
 }
 
 bool WallOverlapComputation::getIsPassed(const ProximityPointLink& link_a, const ProximityPointLink& link_b)

@@ -191,11 +191,15 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_point_it, Li
 
     int64_t dist = sqrt(dist2);
 
-    if (shorterThen(closest - b_from, 10))
+    // increased these distances - previously they were 10 and that had the effect of creating very short
+    // line segments that typically occurred when you have a tube section that has two walls surrounding a hole
+    // and the outer wall is printed after the inner wall - the short segments that are introduced are not getting
+    // flow reduced and so you get an ugly spike on the layer view where each short segment occurs
+    if (shorterThen(closest - b_from, 50))
     {
         addProximityLink(a_point_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
     }
-    else if (shorterThen(closest - b_to, 10))
+    else if (shorterThen(closest - b_to, 50))
     {
         addProximityLink(a_point_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
     }
