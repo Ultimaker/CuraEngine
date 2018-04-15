@@ -599,27 +599,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
 
                     if (bridge_line_len > min_line_len)
                     {
-                        if (non_bridge_config.getFlowPercentage() > bridge_config.getFlowPercentage())
-                        {
-                            // to help reduce underextrusion after the bridge segment, the flow is increased to match the normal line flow as the end of the bridge
-                            // is approached. The distance over which the flow reverts back to normal is determined by end_flow_duration and is limited to max_end_flow_len
-
-                            const float end_flow_duration = 0.25; // number of seconds flow should revert back to normal when approaching the end of the bridge segment
-                            const float max_end_flow_len = bridge_line_len * 0.5; // maximum distance flow should revert back to normal
-
-                            float end_flow_len = std::min(static_cast<float>(MM2INT(bridge_config.getSpeed() * end_flow_duration)), max_end_flow_len);
-                            const Point end_flow_start = b1 + (cur_point - b1) * (end_flow_len / bridge_line_len);
-
-                            addExtrusionMove(end_flow_start, bridge_config, SpaceFillType::Polygons, flow);
-                            if (end_flow_len > min_line_len)
-                            {
-                                addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow * non_bridge_config.getFlowPercentage() / bridge_config.getFlowPercentage());
-                            }
-                        }
-                        else
-                        {
-                            addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
-                        }
+                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
