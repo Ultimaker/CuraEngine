@@ -37,12 +37,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     int64_t tower_size = storage.getSettingInMicrons("prime_tower_size");
     bool circular_prime_tower = storage.getSettingBoolean("prime_tower_circular");
 
-    if (!circular_prime_tower && prime_tower_wall_thickness * 2 < tower_size)
-    {
-        is_hollow = true;
-    }
-
-    PolygonRef p = ground_poly.newPoly();
+    PolygonRef p = outer_poly.newPoly();
     int tower_distance = 0; 
     int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
     int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
@@ -65,10 +60,11 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     }
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
-    ground_poly_first_layer = ground_poly;  // for the first layer, we always generate a non-hollow prime tower
-    if (is_hollow)
+    inner_poly = outer_poly;  // for the first layer, we always generate a non-hollow prime tower
+    if (prime_tower_wall_thickness * 2 < tower_size)
     {
-        ground_poly = ground_poly.difference(ground_poly.offset(-prime_tower_wall_thickness));
+        is_hollow = true;
+        inner_poly = outer_poly.difference(outer_poly.offset(-prime_tower_wall_thickness));
     }
 
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
@@ -91,19 +87,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     int extra_infill_shift = 0;
 
     int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
-    EFillMethod infill_method;
     EFillMethod first_layer_infill_method;
-    if (storage.getSettingBoolean("prime_tower_circular"))
-    {
-        infill_method = EFillMethod::NONE;
-        first_layer_infill_method = EFillMethod::CONCENTRIC;
-    }
-    else
-    {
-        infill_method = EFillMethod::LINES;
-        first_layer_infill_method = EFillMethod::LINES;
-    }
-
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
         int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
@@ -112,31 +96,35 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
         patterns.resize(n_patterns);
 
+        // If the prime tower is circular, instead of creating a concentric infill in the normal layers, the tower is
+        // built as walls, in order to keep always the same direction while printing
         if (storage.getSettingBoolean("prime_tower_circular"))
         {
+            first_layer_infill_method = EFillMethod::CONCENTRIC;
             const int walls = std::ceil(wall_thickness / line_width);
-            logAlways("Number of walls: %d\n", walls);
-
             for (int wall_nr = 0; wall_nr < walls; wall_nr++)
             {
-                int64_t inset = wall_nr * line_width;
-                logAlways("Inset %d\n", inset);
-                patterns[0].polygons.add(ground_poly.offset(-inset));
-                patterns[1].polygons.add(ground_poly.offset(-inset));
+                // Create a new polygon with an offset from the outer polygon. The polygon is copied
+                Polygons polygons = outer_poly.offset(-wall_nr * line_width);
+                for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
+                {
+                    patterns[pattern_idx].polygons.add(polygons);
+                }
             }
         }
         else
         {
+            first_layer_infill_method = EFillMethod::LINES;
             for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
             {
-                patterns[pattern_idx].polygons = ground_poly.offset(-line_width / 2);
+                patterns[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
                 Polygons& result_lines = patterns[pattern_idx].lines;
                 int outline_offset = -line_width;
                 int line_distance = line_width;
                 double fill_angle = 45 + pattern_idx * 90;
                 Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
                 constexpr bool zig_zaggify_infill = false;
-                Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly, outline_offset, line_width,
+                Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, inner_poly, outline_offset, line_width,
                                    line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
                 infill_comp.generate(result_polygons, result_lines);
             }
@@ -148,12 +136,12 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         }
         pattern_per_extruder_layer0.emplace_back();
         ExtrusionMoves& pattern = pattern_per_extruder_layer0.back();
-        pattern.polygons = ground_poly_first_layer.offset(-line_width_layer0 / 2);
+        pattern.polygons = outer_poly.offset(-line_width_layer0 / 2);
         int outline_offset = -line_width_layer0;
         int line_distance = line_width_layer0;
         double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, ground_poly_first_layer, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }
@@ -260,7 +248,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     {
         // take the same start as end point so that the whole poly os covered.
         // find the inner polygon.
-        segment_start = segment_end = PolygonUtils::findNearestVert(middle, ground_poly);
+        segment_start = segment_end = PolygonUtils::findNearestVert(middle, inner_poly);
     }
     else
     {
@@ -274,7 +262,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
         Point from = getLocationBeforePrimeTower(storage);
 
         // find the single line segment closest to [from] pointing most toward [from]
-        PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, ground_poly);
+        PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, outer_poly);
         PolygonsPointIndex prev = closest_vert.prev();
         PolygonsPointIndex next = closest_vert.next();
         int64_t prev_dot_score = dot(from - closest_vert.p(), turn90CCW(prev.p() - closest_vert.p()));
@@ -357,7 +345,7 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
-    const Polygons outside_polygon = ground_poly.getOutsidePolygons();
+    const Polygons outside_polygon = outer_poly.getOutsidePolygons();
     AABB outside_polygon_boundary_box(outside_polygon);
     for(size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
