@@ -5,6 +5,7 @@
 
 #include "polygon.h"
 #include "intpoint.h"
+#include "floatpoint.h"
 #include "AABB.h"
 #include "logoutput.h"
 #include "NoCopy.h"
@@ -44,15 +45,25 @@ public:
     ~SVG();
 
     /*!
+     * get the scaling factor applied to convert real space to canvas space
+     */
+    double getScale() const;
+    
+    /*!
      * transform a point in real space to canvas space
      */
     Point transform(const Point& p);
 
+    /*!
+     * transform a point in real space to canvas space with more precision
+     */
+    FPoint3 transformF(const Point& p);
+
     void writeComment(std::string comment);
 
-    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK, coord_t stroke_width = 1);
+    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK, float stroke_width = 1);
 
-    void writeAreas(ConstPolygonRef polygon, Color color = Color::GRAY, Color outline_color = Color::BLACK, coord_t stroke_width = 1);
+    void writeAreas(ConstPolygonRef polygon, Color color = Color::GRAY, Color outline_color = Color::BLACK, float stroke_width = 1);
 
     void writePoint(const Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK);
 
@@ -73,9 +84,9 @@ public:
      */
     void writeLines(std::vector<Point> polyline, Color color = Color::BLACK);
 
-    void writeLine(const Point& a, const Point& b, Color color = Color::BLACK, int stroke_width = 1);
+    void writeLine(const Point& a, const Point& b, Color color = Color::BLACK, float stroke_width = 1);
 
-    void writeLineRGB(const Point& from, const Point& to, int r = 0, int g = 0, int b = 0, int stroke_width = 1);
+    void writeLineRGB(const Point& from, const Point& to, int r = 0, int g = 0, int b = 0, float stroke_width = 1);
 
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
@@ -93,9 +104,9 @@ public:
 
     void writeText(Point p, std::string txt, Color color = Color::BLACK, coord_t font_size = 10);
 
-    void writePolygons(const Polygons& polys, Color color = Color::BLACK, int stroke_width = 1);
+    void writePolygons(const Polygons& polys, Color color = Color::BLACK, float stroke_width = 1);
 
-    void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK, int stroke_width = 1);
+    void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK, float stroke_width = 1);
 
 };
 
