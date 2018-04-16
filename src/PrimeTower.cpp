@@ -51,11 +51,13 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
         double_t tower_radius = tower_size / 2;
         for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
         {
-            const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-            p.add(Point(x - tower_radius + tower_distance + cos(angle) * tower_radius, y + tower_radius + tower_distance + sin(angle) * tower_radius));
+            const double angle = (double) i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
+            p.add(Point(x - tower_radius + tower_distance + cos(angle) * tower_radius,
+                        y + tower_radius + tower_distance + sin(angle) * tower_radius));
         }
     }
-    else {
+    else
+    {
         p.add(Point(x + tower_distance, y + tower_distance));
         p.add(Point(x + tower_distance, y + tower_distance + tower_size));
         p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
@@ -96,7 +98,8 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         infill_method = EFillMethod::NONE;
         first_layer_infill_method = EFillMethod::CONCENTRIC;
     }
-    else{
+    else
+    {
         infill_method = EFillMethod::LINES;
         first_layer_infill_method = EFillMethod::LINES;
     }
@@ -104,20 +107,39 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
         int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
+        int wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
         patterns_per_extruder.emplace_back(n_patterns);
         std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
         patterns.resize(n_patterns);
-        for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
+
+        if (storage.getSettingBoolean("prime_tower_circular"))
         {
-            patterns[pattern_idx].polygons = ground_poly.offset(-line_width / 2);
-            Polygons& result_lines = patterns[pattern_idx].lines;
-            int outline_offset = -line_width;
-            int line_distance = line_width;
-            double fill_angle = 45 + pattern_idx * 90;
-            Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
-            constexpr bool zig_zaggify_infill = false;
-            Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-            infill_comp.generate(result_polygons, result_lines);
+            const int walls = std::ceil(wall_thickness / line_width);
+            logAlways("Number of walls: %d\n", walls);
+
+            for (int wall_nr = 0; wall_nr < walls; wall_nr++)
+            {
+                int64_t inset = wall_nr * line_width;
+                logAlways("Inset %d\n", inset);
+                patterns[0].polygons.add(ground_poly.offset(-inset));
+                patterns[1].polygons.add(ground_poly.offset(-inset));
+            }
+        }
+        else
+        {
+            for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
+            {
+                patterns[pattern_idx].polygons = ground_poly.offset(-line_width / 2);
+                Polygons& result_lines = patterns[pattern_idx].lines;
+                int outline_offset = -line_width;
+                int line_distance = line_width;
+                double fill_angle = 45 + pattern_idx * 90;
+                Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
+                constexpr bool zig_zaggify_infill = false;
+                Infill infill_comp(infill_method, zig_zaggify_infill, ground_poly, outline_offset, line_width,
+                                   line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+                infill_comp.generate(result_polygons, result_lines);
+            }
         }
         int line_width_layer0 = line_width;
         if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
