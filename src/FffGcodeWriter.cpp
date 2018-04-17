@@ -1898,8 +1898,24 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             {
                 support_layer = &storage.support.supportLayers[support_layer_nr - 1];
             }
-            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], support_layer, supported_skin_part_regions2, support_threshold);
-            if (bridge2 > -1 || (supported_skin_part_regions2.area() / (skin_part.outline.area() + 1) < support_threshold))
+            // outline used is union of current skin part and those skin parts from the 1st bridge layer that overlap the curent skin part
+
+            // this is done because if we only use skin_part.outline for this layer and that outline is different (i.e. smaller) than
+            // the skin outline used to compute the bridge angle for the first skin, the angle computed for this (second) skin could
+            // be different and we would prefer it to be the same as computed for the first bridge layer
+            Polygons skin2_outline(skin_part.outline);
+            for (auto layer_part : mesh.layers[layer_nr - 1].parts)
+            {
+                for (auto other_skin_part : layer_part.skin_parts)
+                {
+                    if (PolygonUtils::polygonsIntersect(skin_part.outline.outerPolygon(), other_skin_part.outline.outerPolygon()))
+                    {
+                        skin2_outline = skin2_outline.unionPolygons(other_skin_part.outline);
+                    }
+                }
+            }
+            int bridge2 = bridgeAngle(skin2_outline, &mesh.layers[layer_nr - 2], support_layer, supported_skin_part_regions2, support_threshold);
+            if (bridge2 > -1 || (supported_skin_part_regions2.area() / (skin2_outline.area() + 1) < support_threshold))
             {
                 if (bridge2 > -1)
                 {
@@ -1927,8 +1943,20 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 {
                     support_layer = &storage.support.supportLayers[support_layer_nr - 2];
                 }
-                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], support_layer, supported_skin_part_regions3, support_threshold);
-                if (bridge3 > -1 || (supported_skin_part_regions3.area() / (skin_part.outline.area() + 1) < support_threshold))
+                // outline used is union of current skin part and those skin parts from the 1st bridge layer that overlap the curent skin part
+                Polygons skin3_outline(skin_part.outline);
+                for (auto layer_part : mesh.layers[layer_nr - 2].parts)
+                {
+                    for (auto other_skin_part : layer_part.skin_parts)
+                    {
+                        if (PolygonUtils::polygonsIntersect(skin_part.outline.outerPolygon(), other_skin_part.outline.outerPolygon()))
+                        {
+                            skin3_outline = skin3_outline.unionPolygons(other_skin_part.outline);
+                        }
+                    }
+                }
+                int bridge3 = bridgeAngle(skin3_outline, &mesh.layers[layer_nr - 3], support_layer, supported_skin_part_regions3, support_threshold);
+                if (bridge3 > -1 || (supported_skin_part_regions3.area() / (skin3_outline.area() + 1) < support_threshold))
                 {
                     if (bridge3 > -1)
                     {
