@@ -334,6 +334,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     else 
     {
         Polygons total;
+        coord_t maximum_resolution = std::numeric_limits<coord_t>::max();
         if (layer_nr >= 0)
         {
             for (const SliceMeshStorage& mesh : meshes)
@@ -348,6 +349,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
                 }
+                maximum_resolution = std::min(maximum_resolution, mesh.getSettingInMicrons("meshfix_maximum_resolution"));
             }
         }
         if (include_helper_parts)
@@ -367,6 +369,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
                 total.add(primeTower.ground_poly);
             }
         }
+        total.simplify(maximum_resolution * maximum_resolution, maximum_resolution * maximum_resolution);
         return total;
     }
 }
