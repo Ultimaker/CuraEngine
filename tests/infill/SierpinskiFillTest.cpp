@@ -40,6 +40,8 @@ void SierpinskiFillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/hitler.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cheshire_cat.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/vader.jpg", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/einstein.jpg", aabb);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/kop.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/sinterklaas.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/diamond.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/trex.jpeg", aabb);
@@ -59,7 +61,7 @@ void SierpinskiFillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/deer_inv.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/wolf_inv.png", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/hawk_skull_inv.jpg", aabb);
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/womb_inv.png", aabb);
+//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/womb_inv.png", aabb);
 //     subdivider = new UniformSubdivider();
 //     srand(1);
     int max_depth = 1;
@@ -80,10 +82,10 @@ void SierpinskiFillTest::debugCheck()
             case 3: color = SVG::Color::YELLOW; break;
         }
         color = SVG::Color::RAINBOW;
-        color = SVG::Color::BLACK;
+//         color = SVG::Color::BLACK;
 //         svg.writePolygon(f.generateCross(1200, 16), color, 4);
-//         svg.writePolygon(f.generateCross(), color, drawing_line_width);
-        svg.writeAreas(f.generateCross(), SVG::Color::WHITE, color, drawing_line_width);
+        svg.writePolygon(f.generateCross(), color, drawing_line_width);
+//         svg.writeAreas(f.generateCross(), SVG::Color::WHITE, color, drawing_line_width);
 //         svg.writePoints(f.generateCross());
 //         svg.writePolygon(f.generateSierpinski(), color);
 //         f.debugOutput(svg);
