@@ -20,7 +20,9 @@ class DensityProvider
 {
 public:
     /*!
+     * Defaults to a naive density estimate based on the minimal bounding box of the quadrilateral.
      * \return the approximate required density of a cube
+     * 
      */
     virtual float operator()(const AABB3D& aabb) const = 0;
     virtual ~DensityProvider()

@@ -82,7 +82,8 @@ protected:
     
     float getDensity(const Cell& cell) const
     {
-        return density_provider(cell.elem);
+        AABB3D aabb3d(Point3(cell.elem.min.X, cell.elem.min.Y, 0), Point3(cell.elem.max.X, cell.elem.max.Y, 1));
+        return density_provider(aabb3d);
     }
     
     int getNumberOfSides() const
