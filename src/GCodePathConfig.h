@@ -31,9 +31,9 @@ private:
     const double flow; //!< extrusion flow modifier in %
     const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
     const bool is_bridge_path; //!< whether current config is used when bridging
-    const double fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    const float fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
 public:
-    GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives, bool is_bridge_path = false, double fan_speed = -1);
+    GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, SpeedDerivatives speed_derivatives, bool is_bridge_path = false, float fan_speed = FAN_SPEED_DEFAULT);
 
     /*!
      * copy constructor
@@ -79,7 +79,7 @@ public:
 
     bool isBridgePath() const;
 
-    double getFanSpeed() const;
+    float getFanSpeed() const;
 
     double getFlowPercentage() const;
 

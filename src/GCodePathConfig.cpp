@@ -20,7 +20,7 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 
 
 
-GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, bool is_bridge_path, double fan_speed)
+GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, bool is_bridge_path, float fan_speed)
 : type(type)
 , speed_derivatives(speed_derivatives)
 , line_width(line_width)
@@ -85,7 +85,7 @@ bool GCodePathConfig::isBridgePath() const
     return is_bridge_path;
 }
 
-double GCodePathConfig::getFanSpeed() const
+float GCodePathConfig::getFanSpeed() const
 {
     return fan_speed;
 }
