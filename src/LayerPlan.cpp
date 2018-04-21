@@ -397,12 +397,14 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor, float fan_speed)
 {
     // ignore extrusions less than 5uM long
     if(vSize2(p - *last_planned_position) >= 25)
     {
-        getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
+        GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor);
+        path->points.push_back(p);
+        path->setFanSpeed(fan_speed);
         last_planned_position = p;
     }
 }
@@ -864,7 +866,7 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
     }
 }
 
-void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
+void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, float fan_speed)
 {
     Polygons boundary;
     if (enable_travel_optimization && comb_boundary_inside.size() > 0)
@@ -902,13 +904,13 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         const Point& p0 = polygon[start];
         addTravel(p0);
         const Point& p1 = polygon[end];
-        addExtrusionMove(p1, config, space_fill_type, flow_ratio);
+        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
         if (wipe_dist != 0)
         {
             int line_width = config.getLineWidth();
             if (vSize2(p1-p0) > line_width * line_width * 4)
             { // otherwise line will get optimized by combining multiple into a single extrusion move
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0);
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
     }
@@ -1342,8 +1344,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (!spiralize) // normal (extrusion) move (with coasting
             {
                 // if path provides a valid (in range 0-100) fan speed, use it
-                const double path_fan_speed = path.config->getFanSpeed();
-                gcode.writeFanCommand(path_fan_speed >= 0 ? path_fan_speed : extruder_plan.getFanSpeed());
+                const float path_fan_speed = path.getFanSpeed();
+                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
                 const CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 
