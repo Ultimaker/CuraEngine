@@ -24,6 +24,7 @@ public:
         double jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
     };
     const PrintFeatureType type; //!< name of the feature type
+    static constexpr float FAN_SPEED_DEFAULT = -1;
 private:
     SpeedDerivatives speed_derivatives; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     const int line_width; //!< width of the line extruded
