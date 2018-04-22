@@ -1972,9 +1972,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
     float fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
-    if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && bridge < 0)
+    if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && mesh.getSettingBoolean("support_fan_enable"))
     {
-        // skin isn't a bridge but is it above support?
+        // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
         AABB skin_bb(skin_part.outline);
 
@@ -2006,9 +2006,10 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 }
             }
         }
+
         if (supported)
         {
-            fan_speed = 100;
+            fan_speed = mesh.getSettingInPercentage("support_supported_skin_fan_speed");
         }
     }
 
