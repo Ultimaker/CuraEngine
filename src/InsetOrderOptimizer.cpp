@@ -60,7 +60,7 @@ void InsetOrderOptimizer::processHoleInsets()
     const coord_t wall_0_wipe_dist = mesh.getSettingInMicrons("wall_0_wipe_dist");
     const bool retract_before_outer_wall = mesh.getSettingBoolean("travel_retract_before_outer_wall");
     const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
-        || (layer_nr == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM && !mesh.getSettingBoolean("brim_outside_only"));
+        || (layer_nr == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
     const unsigned int num_insets = part.insets.size();
     constexpr float flow = 1.0;
 
