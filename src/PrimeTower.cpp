@@ -104,8 +104,9 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             const int walls = std::ceil(wall_thickness / line_width);
             for (int wall_nr = 0; wall_nr < walls; wall_nr++)
             {
-                // Create a new polygon with an offset from the outer polygon. The polygon is copied
-                Polygons polygons = outer_poly.offset(-wall_nr * line_width);
+                // Create a new polygon with an offset from the outer polygon. The polygon is copied in the n_patterns,
+                // since printing walls will be the same in each layer.
+                Polygons polygons = outer_poly.offset(-wall_nr * line_width - line_width / 2);
                 for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
                 {
                     patterns[pattern_idx].polygons.add(polygons);
@@ -341,6 +342,8 @@ void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gco
 
     float flow = 0.0001; // Force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
     gcode_layer.addExtrusionMove(prime_end, gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
+    // Explicitly add a travel move to the wipe location to force the planner to start from the inner_poly.
+    gcode_layer.addTravel(wipe_location.location);
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
