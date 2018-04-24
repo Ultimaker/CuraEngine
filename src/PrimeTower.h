@@ -52,8 +52,8 @@ private:
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
-    Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
-    Polygons ground_poly_first_layer; //!< The outline of the prime tower to be used for each layer for the first layer
+    Polygons inner_poly; //!< The inline of the prime tower to be used for each layer if it is hollow
+    Polygons outer_poly; //!< The outline of the prime tower to be used for each layer for the first layer
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
@@ -66,7 +66,7 @@ public:
     /*!
      * Generate the prime tower area to be used on each layer
      * 
-     * Fills \ref PrimeTower::ground_poly and sets \ref PrimeTower::middle
+     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
      * 
      * \param storage Where to retrieve prime tower settings from
      */
@@ -111,7 +111,7 @@ private:
 
     /*!
      * \param storage where to get settings from
-     * Depends on ground_poly being generated
+     * Depends on inner_poly being generated
      */
     void generateWipeLocations(const SliceDataStorage& storage);
 
