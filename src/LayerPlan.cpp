@@ -1195,6 +1195,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         bool update_extrusion_offset = true;
 
+        bool spiralize_used = false;
+
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
@@ -1316,6 +1318,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             else
             { // SPIRALIZE
+                spiralize_used = true;
                 //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
                 float totalLength = 0.0;
                 Point p0 = gcode.getPositionXY();
@@ -1360,7 +1363,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
+        if (!spiralize_used && train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
             const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
