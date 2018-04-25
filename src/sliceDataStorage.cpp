@@ -365,7 +365,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
                 total.add(primeTower.inner_poly);
             }
         }
-        total.simplify(maximum_resolution * maximum_resolution, maximum_resolution * maximum_resolution);
+        total.simplify(maximum_resolution, maximum_resolution);
         return total;
     }
 }
