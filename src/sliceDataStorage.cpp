@@ -366,10 +366,10 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             }
             if (primeTower.enabled)
             {
-                total.add(primeTower.ground_poly);
+                total.add(primeTower.inner_poly);
             }
         }
-        total.simplify(maximum_resolution * maximum_resolution, maximum_resolution * maximum_resolution);
+        total.simplify(maximum_resolution, maximum_resolution);
         return total;
     }
 }
@@ -416,7 +416,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             }
             if (primeTower.enabled)
             {
-                total.add(primeTower.ground_poly);
+                total.add(primeTower.inner_poly);
             }
         }
         return total;
