@@ -819,10 +819,6 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
                 forceNewPathStart();
             }
         }
-        else
-        {
-            addTravel(p1, wall_min_flow_retract);
-        }
     }
     else
     {
