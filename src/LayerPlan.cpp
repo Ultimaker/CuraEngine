@@ -776,7 +776,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         }
     };
 
-    bool travel_required = true; // true at the start of the line and when a wall has been omitted due to its flow being less than the minimum required
+    bool travel_required = false; // true when a wall has been omitted due to its flow being less than the minimum required
 
     bool first_line = true;
 
@@ -798,9 +798,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
 
         const int64_t max_spurious_fat_segment_length = 50; // microns
 
-        if (flow >= wall_min_flow && (!travel_required || vSize(p0 - p1) > max_spurious_fat_segment_length))
+        if (flow >= wall_min_flow && (first_line || !travel_required || vSize(p0 - p1) > max_spurious_fat_segment_length))
         {
-            if (travel_required)
+            if (first_line || travel_required)
             {
                 addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
                 first_line = false;
