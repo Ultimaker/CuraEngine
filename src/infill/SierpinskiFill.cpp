@@ -72,10 +72,12 @@ void SierpinskiFill::createTree()
 
 void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 {
-    if (sub_root.depth < max_depth)
+    if (sub_root.depth < max_depth) //We need to subdivide.
     {
         SierpinskiTriangle& t = sub_root;
         Point middle = (t.a + t.b) / 2;
+        //At each subdivision we divide the triangle in two.
+        //Figure out which sort of triangle each child will be:
         SierpinskiTriangle::SierpinskiDirection first_dir, second_dir;
         switch(t.dir)
         {
@@ -189,7 +191,7 @@ bool SierpinskiFill::subdivideAll()
                 && end != sequence.end()
             )
             {
-                continue; // don't subdivide these two tringles just yet, wait till next iteration
+                continue; // don't subdivide these two triangles just yet, wait till next iteration
             }
             if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC
                 && begin != sequence.begin()
@@ -213,7 +215,7 @@ bool SierpinskiFill::subdivideAll()
                     }
                 }
             }
-            if (node->depth == max_depth)
+            if (node->depth == max_depth) //Never subdivide beyond maximum depth.
                 continue;
             float total_subdiv_error = getSubdivisionError(begin, end);
             if (
@@ -253,9 +255,11 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
         {
             SierpinskiTriangle* node = *it;
             SierpinskiTriangle& triangle = *node;
-            
-            float unresolvable_error = triangle.getValueError(); // node.getSubdivisionError();
-            
+
+            float unresolvable_error = triangle.getValueError();
+
+            //If constrained in one direction, resolve the error in the other direction only.
+            //If constrained in both directions, divide the error equally over both directions.
             bool is_constrained_forward = isConstrainedForward(it);
             bool is_constrained_backward = isConstrainedBackward(it);
             if (
@@ -375,7 +379,7 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
         total_superfluous_error += (distribute_subdivision_errors)? node->getSubdivisionError() : node->getValueError();
     }
     if (total_superfluous_error < allowed_length_error)
-    { // there is no left-over error
+    { // there is no significant left-over error
         if (distribute_subdivision_errors && total_superfluous_error < -allowed_length_error)
         {
             std::cerr << "redistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: " << total_superfluous_error << "\n";
@@ -418,7 +422,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     {
         nodes.emplace_back(*it);
     }
-    
+
     std::vector<float> node_error_compensation(nodes.size());
 
     // sort children on value_error, i.e. sort on total_value
@@ -473,7 +477,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
         assert(false);
     }
     
-    if (std::abs(total_remaining_value_error) < .0001)
+    if (std::abs(total_remaining_value_error) < .0001) //Error is insignificant.
     {
         return;
     }
