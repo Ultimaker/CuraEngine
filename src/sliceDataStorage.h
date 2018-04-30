@@ -173,16 +173,10 @@ public:
 
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * \return The collection of all polygons thus obtained
-     */
-    Polygons getSecondOrInnermostWalls() const;
-
-    /*!
-     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
      * Add those polygons to @p result.
      * \param result The result: the collection of all polygons thus obtained
      */
-    void getInnermostWalls(Polygons& result, int max_inset_size) const;
+    void getInnermostWalls(Polygons& result, int max_inset) const;
 
     ~SliceLayer();
 };

@@ -74,24 +74,24 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         return true;
     }
 
-    //Move start and end point inside the comb boundary
+    //Move start and end point inside the optimal comb boundary
     unsigned int start_inside_poly = NO_INDEX;
-    const bool startInside = moveInside(boundary_inside_optimal, _startInside, startPoint, start_inside_poly, inside_loc_to_line_optimal);
+    const bool startInside = moveInside(boundary_inside_optimal, _startInside, inside_loc_to_line_optimal, startPoint, start_inside_poly);
 
     unsigned int end_inside_poly = NO_INDEX;
-    const bool endInside = moveInside(boundary_inside_optimal, _endInside, endPoint, end_inside_poly, inside_loc_to_line_optimal);
+    const bool endInside = moveInside(boundary_inside_optimal, _endInside, inside_loc_to_line_optimal, endPoint, end_inside_poly);
 
     unsigned int start_part_boundary_poly_idx;
     unsigned int end_part_boundary_poly_idx;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside_optimal.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside_optimal.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
 
-    //Move start and end point inside the comb boundary
+    //Move start and end point inside the minimum comb boundary
     unsigned int start_inside_poly_min = NO_INDEX;
-    const bool startInsideMin = moveInside(boundary_inside_minimum, _startInside, startPoint, start_inside_poly_min, inside_loc_to_line_minimum);
+    const bool startInsideMin = moveInside(boundary_inside_minimum, _startInside, inside_loc_to_line_minimum, startPoint, start_inside_poly_min);
 
     unsigned int end_inside_poly_min = NO_INDEX;
-    const bool endInsideMin = moveInside(boundary_inside_minimum, _endInside, endPoint, end_inside_poly_min, inside_loc_to_line_minimum);
+    const bool endInsideMin = moveInside(boundary_inside_minimum, _endInside, inside_loc_to_line_minimum, endPoint, end_inside_poly_min);
 
     unsigned int start_part_boundary_poly_idx_min;
     unsigned int end_part_boundary_poly_idx_min;
@@ -105,7 +105,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         return LinePolygonsCrossings::comb(part, *inside_loc_to_line_optimal, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     }
     else if (startInsideMin && endInsideMin && start_part_idx_min == end_part_idx_min)
-    { // normal combing within part
+    { // normal combing within part using minimum comb boundary
         PolygonsPart part = partsView_inside_minimum.assemblePart(start_part_idx_min);
         combPaths.emplace_back();
         return LinePolygonsCrossings::comb(part, *inside_loc_to_line_minimum, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
@@ -243,7 +243,7 @@ Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, con
     }
 }
 
-bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, Point& dest_point, unsigned int& inside_poly, LocToLineGrid* inside_loc_to_line)
+bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& inside_poly)
 {
     if (is_inside)
     {
