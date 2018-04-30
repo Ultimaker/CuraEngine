@@ -137,11 +137,12 @@ private:
     /*!
      * Move the startPoint or endPoint inside when it should be inside
      * \param is_inside[in] Whether the \p dest_point should be inside
+     * \param inside_loc_to_line[in] A SparseGrid mapping locations to line segments of \p polygons
      * \param dest_point[in,out] The point to move
      * \param start_inside_poly[out] The polygon in which the point has been moved
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Polygons& boundary_inside, bool is_inside, Point& dest_point, unsigned int& start_inside_poly, LocToLineGrid* inside_loc_to_line);
+    bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& start_inside_poly);
 
 public:
     /*!

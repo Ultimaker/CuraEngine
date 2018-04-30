@@ -71,18 +71,11 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-Polygons SliceLayer::getSecondOrInnermostWalls() const
-{
-    Polygons ret;
-    getInnermostWalls(ret, 2);
-    return ret;
-}
-
-void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset_size) const
+void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
 {
     for (const SliceLayerPart& part : parts)
     {
-        switch (max_inset_size) {
+        switch (max_inset) {
             case 1:
                 // take the inner wall
                 if (part.insets.size() >= 1) {
