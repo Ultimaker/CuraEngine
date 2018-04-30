@@ -1531,7 +1531,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
         // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
         // one part higher up. Once all the parts have merged, layers above that level will be spiralized
-        const bool first_layer_brim = gcode_layer.getLayerNr() == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM;
         if (spiralize && &mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
         {
             if (part.insets.size() > 0 && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
@@ -1542,14 +1541,15 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part);
             }
         }
-        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part) && !first_layer_brim)
+        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
         {
             InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr(), z_seam_pos);
             return ioo.processInsetsWithOptimizedOrdering();
         }
         else
         {
-            const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first") || first_layer_brim;
+            const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
+                || (gcode_layer.getLayerNr() == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
             int processed_inset_number = -1;
             for (int inset_number = part.insets.size() - 1; inset_number > -1; inset_number--)
             {
