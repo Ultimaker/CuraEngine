@@ -115,8 +115,8 @@ private:
 
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
-    Polygons boundary_inside_minimum; //!< The boundary within which to comb. (Will be reordered by the partsView_inside)
-    Polygons boundary_inside_optimal; //!< The boundary within which to comb. (Will be reordered by the partsView_inside)
+    Polygons boundary_inside_minimum; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_minimum)
+    Polygons boundary_inside_optimal; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_optimal)
     const PartsView partsView_inside_minimum; //!< Structured indices onto boundary_inside_minimum which shows which polygons belong to which part.
     const PartsView partsView_inside_optimal; //!< Structured indices onto boundary_inside_optimal which shows which polygons belong to which part.
     LocToLineGrid* inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
@@ -143,6 +143,8 @@ private:
      * \return Whether we have moved the point inside
      */
     bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& start_inside_poly);
+
+    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, LocToLineGrid* inside_loc_to_line, CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!
