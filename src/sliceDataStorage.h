@@ -182,7 +182,7 @@ public:
      * Add those polygons to @p result.
      * \param result The result: the collection of all polygons thus obtained
      */
-    void getSecondOrInnermostWalls(Polygons& result) const;
+    void getInnermostWalls(Polygons& result, int max_inset_size) const;
 
     ~SliceLayer();
 };

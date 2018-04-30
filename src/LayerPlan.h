@@ -263,7 +263,8 @@ private:
     bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
-    Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_inside1; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_inside2; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
     Comb* comb;
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
 
@@ -317,7 +318,7 @@ public:
 
     const Polygons* getCombBoundaryInside() const
     {
-        return &comb_boundary_inside;
+        return &comb_boundary_inside2;
     }
 
 private:
@@ -326,7 +327,7 @@ private:
      * \param combing_mode Whether combing is enabled and full or within infill only.
      * \return the comb_boundary_inside
      */
-    Polygons computeCombBoundaryInside(CombingMode combing_mode);
+    Polygons computeCombBoundaryInside(CombingMode combing_mode, int max_inset);
 
 public:
     int getLayerNr() const

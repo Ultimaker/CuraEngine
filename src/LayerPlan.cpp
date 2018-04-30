@@ -84,7 +84,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
-, comb_boundary_inside(computeCombBoundaryInside(combing_mode))
+, comb_boundary_inside1(computeCombBoundaryInside(combing_mode, 1))
+, comb_boundary_inside2(computeCombBoundaryInside(combing_mode, 2))
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     int current_extruder = start_extruder;
@@ -93,7 +94,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
-        comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
     else
     {
@@ -125,7 +126,7 @@ SettingsBaseVirtual* LayerPlan::getLastPlannedExtruderTrainSettings()
 }
 
 
-Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
+Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_inset)
 {
     if (combing_mode == CombingMode::OFF)
     {
@@ -160,7 +161,7 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
             }
             else
             {
-                layer.getSecondOrInnermostWalls(comb_boundary);
+                layer.getInnermostWalls(comb_boundary, max_inset);
             }
         }
         return comb_boundary;
@@ -230,11 +231,11 @@ void LayerPlan::moveInsideCombBoundary(int distance)
     int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
+    if (PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2);
-        if (comb_boundary_inside.inside(p))
+        PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2);
+        if (comb_boundary_inside2.inside(p))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
@@ -823,7 +824,7 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
     Polygons boundary;
-    if (enable_travel_optimization && comb_boundary_inside.size() > 0)
+    if (enable_travel_optimization && comb_boundary_inside2.size() > 0)
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
@@ -840,7 +841,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_inside.offset(dist));
+        boundary.add(comb_boundary_inside2.offset(dist));
         // simplify boundary to cut down processing time
         boundary.simplify(100, 100);
     }
