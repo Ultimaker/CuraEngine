@@ -107,16 +107,18 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     unsigned int start_part_idx_min =   (start_inside_poly_min == NO_INDEX)?    NO_INDEX : partsView_inside_minimum.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
     unsigned int end_part_idx_min =     (end_inside_poly_min == NO_INDEX)?      NO_INDEX : partsView_inside_minimum.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
 
+    CombPath result_path;
+    bool comb_result;
+
     // normal combing within part using minimum comb boundary
     if (startInsideMin && endInsideMin && start_part_idx_min == end_part_idx_min)
     {
         PolygonsPart part = partsView_inside_minimum.assemblePart(start_part_idx_min);
         combPaths.emplace_back();
-        CombPath path;
-        bool result;
-        result = LinePolygonsCrossings::comb(part, *inside_loc_to_line_minimum, startPoint, endPoint, path, -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
-        Comb::moveCombPathInside(boundary_inside_minimum, boundary_inside_optimal, inside_loc_to_line_minimum, path, combPaths.back());
-        return result;
+
+        comb_result = LinePolygonsCrossings::comb(part, *inside_loc_to_line_minimum, startPoint, endPoint, result_path, -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        Comb::moveCombPathInside(boundary_inside_minimum, boundary_inside_optimal, inside_loc_to_line_minimum, result_path, combPaths.back());  // add altered result_path to combPaths.back()
+        return comb_result;
     }
 
     // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed)
@@ -237,6 +239,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     return true;
 }
 
+//  Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comp_path_output
 void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, LocToLineGrid* inside_loc_to_line, CombPath& comb_path_input, CombPath& comb_path_output)
 {
     int dist = move_inside_distance;
