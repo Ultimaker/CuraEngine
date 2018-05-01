@@ -23,7 +23,7 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
   
-Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_other_parts, coord_t travel_avoid_distance)
+Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_other_parts, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
@@ -52,6 +52,7 @@ Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_b
         , this
         , offset_from_inside_to_outside
     )
+, move_inside_distance(move_inside_distance)
 {
 }
 
@@ -113,7 +114,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         combPaths.emplace_back();
         CombPath path;
         bool result;
-        //LinePolygonsCrossings::comb(part, *inside_loc_to_line_minimum, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
         result = LinePolygonsCrossings::comb(part, *inside_loc_to_line_minimum, startPoint, endPoint, path, -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
         Comb::moveCombPathInside(boundary_inside_minimum, boundary_inside_optimal, inside_loc_to_line_minimum, path, combPaths.back());
         return result;
@@ -239,7 +239,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
 void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, LocToLineGrid* inside_loc_to_line, CombPath& comb_path_input, CombPath& comb_path_output)
 {
-    int dist = MM2INT(0.5);
+    int dist = move_inside_distance;
     int dist2 = dist * dist;
 
     if (comb_path_input.size() == 0)

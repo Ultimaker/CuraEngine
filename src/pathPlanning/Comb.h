@@ -123,6 +123,7 @@ private:
     LocToLineGrid* inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+    coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
@@ -155,12 +156,13 @@ public:
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
      * \param comb_boundary_inside_optimal The better comb boundary within which to comb within layer parts.
-     * \param comb_boundary_inside_fallback The minimum comb boundary within which to comb within layer parts.
+     * \param comb_boundary_inside_minimum The minimum comb boundary within which to comb within layer parts.
      * \param offset_from_outlines The offset from the outline polygon, to create the combing boundary in case there is no second wall.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
+     * \param move_inside_distance When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_other_parts, coord_t travel_avoid_distance);
+    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_other_parts, coord_t travel_avoid_distance, coord_t move_inside_distance);
 
     ~Comb();
 
