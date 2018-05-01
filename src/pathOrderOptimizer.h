@@ -44,14 +44,14 @@ class PathOrderOptimizer
 {
 public:
     Point startPoint; //!< A location near the prefered start location
-    const ZSeamConfig& config;
+    const ZSeamConfig config;
     std::vector<ConstPolygonPointer> polygons; //!< the parts of the layer (in arbitrary order)
     std::vector<int> polyStart; //!< polygons[i][polyStart[i]] = point of polygon i which is to be the starting point in printing the polygon
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
     LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary;
 
-    PathOrderOptimizer(Point startPoint, const ZSeamConfig& config = ZSeamConfig(), const Polygons* combing_boundary = nullptr)
+    PathOrderOptimizer(Point startPoint, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr)
     : startPoint(startPoint)
     , config(config)
     , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)

@@ -265,6 +265,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
+    const coord_t maximum_travel_resolution = extr->getSettingInMicrons("meshfix_maximum_travel_resolution");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
@@ -314,7 +315,8 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 if (combPaths.size() == 1)
                 {
                     CombPath comb_path = combPaths[0];
-                    if (combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
+                    if (extr->getSettingBoolean("limit_support_retractions") &&
+                        combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }
@@ -329,11 +331,14 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 {
                     continue;
                 }
-                for (Point& combPoint : combPath)
+                for (Point& comb_point : combPath)
                 {
-                    path->points.push_back(combPoint);
-                    dist += vSize(last_point - combPoint);
-                    last_point = combPoint;
+                    if (path->points.empty() || vSize2(path->points.back() - comb_point) > maximum_travel_resolution * maximum_travel_resolution)
+                    {
+                        path->points.push_back(comb_point);
+                        dist += vSize(last_point - comb_point);
+                        last_point = comb_point;
+                    }
                 }
                 last_planned_position = combPath.back();
                 dist += vSize(last_point - p);
@@ -844,7 +849,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
-    orderOptimizer.optimize(enable_travel_optimization || polygons.size() <= 1000);
+    orderOptimizer.optimize();
     for (int poly_idx : orderOptimizer.polyOrder)
     {
         ConstPolygonRef polygon = polygons[poly_idx];

@@ -738,7 +738,7 @@ void GCodeExport::writeUnretractionAndPrime()
         { // note that BFB is handled differently
             *output_stream << "G11" << new_line;
             //Assume default UM2 retraction settings.
-            if (prime_volume > 0)
+            if (prime_volume != 0)
             {
                 *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
@@ -759,7 +759,7 @@ void GCodeExport::writeUnretractionAndPrime()
         }
         extruder_attr[current_extruder].retraction_e_amount_current = 0.0;
     }
-    else if (prime_volume > 0.0)
+    else if (prime_volume != 0.0)
     {
         const double output_e = (relative_extrusion)? prime_volume_e : current_e_value;
         *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter;

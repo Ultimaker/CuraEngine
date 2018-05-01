@@ -126,14 +126,19 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
     }
     if (extruder_nr >= extruder_train_ids.size())
     {
-        logWarning("Couldn't load extruder.def.json file for extruder %i. Index out of bounds.\n Loading first extruder definition instead.\n", extruder_nr);
+        logWarning("Couldn't load .def.json file for extruder %i. Index out of bounds.\n Loading first extruder definition instead.\n", extruder_nr);
         extruder_nr = 0;
     }
     std::string definition_file;
     bool found = getDefinitionFile(extruder_train_ids[extruder_nr], definition_file);
     if (!found)
     {
-        logError("Couldn't find extruder.def.json file for extruder %i.\n", extruder_nr);
+        logError("Couldn't find %s.def.json file for extruder %i.\n", extruder_train_ids[extruder_nr].c_str(), extruder_nr);
+        logError("Search paths:\n");
+        for (const std::string search_path : search_paths)
+        {
+            logError((search_path + "\n").c_str());
+        }
         return -1;
     }
     bool warn_base_file_duplicates = false;
