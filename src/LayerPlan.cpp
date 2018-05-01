@@ -265,6 +265,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
+    const coord_t maximum_travel_resolution = extr->getSettingInMicrons("meshfix_maximum_travel_resolution");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
@@ -330,11 +331,14 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 }
                 path->retract = retract;
                 // don't perform a z-hop
-                for (Point& combPoint : combPath)
+                for (Point& comb_point : combPath)
                 {
-                    path->points.push_back(combPoint);
+                    if (path->points.empty() || vSize2(path->points.back() - comb_point) > maximum_travel_resolution * maximum_travel_resolution)
+                    {
+                        path->points.push_back(comb_point);
+                        last_planned_position = comb_point;
+                    }
                 }
-                last_planned_position = combPath.back();
             }
         }
     }
