@@ -779,7 +779,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     const coord_t line_segment_resolution = mesh->getSettingInMicrons("meshfix_maximum_resolution");
-    polygons.simplify(line_segment_resolution, line_segment_resolution / 2); //Maximum error is half of the resolution so it's only a limit when removing really sharp corners.
+    //Use a maximum error of 0 to help maintain z-seam vertical alignment - points are only discarded if they are closer than meshfix_maximum_resolution
+    polygons.simplify(line_segment_resolution, 0);
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
