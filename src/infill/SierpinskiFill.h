@@ -162,7 +162,7 @@ class SierpinskiFillTest;
  * - Iteratively push the cut downward toward the leaves of the tree, while mitigating sharp contrast edges.
  * Each iteration:
  * 1- Move error length values introduced by constraining triangles from constrained triangle to constraining triangle.
- * 2- (Use errors to) subdivide each node where the total errored value 
+ * 2- (Use errors to) subdivide each node where the total errored value is now large enough
  * 
  * 2.1
  * From highest density cells currently in the sequence to lowest density:
