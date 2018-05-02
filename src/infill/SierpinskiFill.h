@@ -80,15 +80,18 @@ class SierpinskiFillTest;
  * 
  * === BALANCING ===
  * 
- * If the total realized length of all children of a triangle is less than the average requested length of the parent triangle,
+ * If for any single triangle in the pattern the total realized length of all/both children is less than the average requested length of that parent triangle,
  * the parent triangle would definitely like to be subdivided.
- * (When dithering, we may subdivide at a lower threshold and a constraint may cause such a triangle not to be subdivided after all. See CONSTRAINTS.)
- * However, it might occur that one child then ends up with a requested lengthlower than its realized length,
+ *     (When dithering, we may subdivide at a lower threshold and a constraint may cause such a triangle not to be subdivided after all. See CONSTRAINTS.)
+ * However, it might occur that one child then ends up with a requested length lower than its realized length,
  * namely when the other child has a surplus of requested length.
  * The error thus induced should be recorded.
  * Value will be transported from the child with a surplus to the child with a lack of requested length.
  * 
- * 
+ * Example:
+ * Parent cell realizes 10mm filament, but child 1 requests 100mm and child 2 requests 2mm.
+ * Subdivision would lead to two cells with 14mm filament realized.
+ * Cell 2 therefore obtains 12mm filament from cell 1, where 12mm is recorded as an error.
  * 
  * === CONSTRAINTS ===
  * 
