@@ -708,6 +708,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             }
             else
             {
+                if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
+                {
+                    logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
+                    std::exit(-1);
+                }
                 mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"));
             }
         }
