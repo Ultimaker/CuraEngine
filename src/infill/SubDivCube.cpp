@@ -227,7 +227,7 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Po
         *distance2 = 0;
     }
     Polygons collide;
-    mesh.layers[layer_nr].getSecondOrInnermostWalls(collide);
+    mesh.layers[layer_nr].getInnermostWalls(collide, 2);
     Point centerpoint = location;
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);

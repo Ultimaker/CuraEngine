@@ -71,26 +71,30 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-Polygons SliceLayer::getSecondOrInnermostWalls() const
-{
-    Polygons ret;
-    getSecondOrInnermostWalls(ret);
-    return ret;
-}
-
-void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
+void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
 {
     for (const SliceLayerPart& part : parts)
     {
-        // we want the 2nd inner walls
-        if (part.insets.size() >= 2) {
-            layer_walls.add(part.insets[1]);
-            continue;
-        }
-        // but we'll also take the inner wall if the 2nd doesn't exist
-        if (part.insets.size() == 1) {
-            layer_walls.add(part.insets[0]);
-            continue;
+        switch (max_inset) {
+            case 1:
+                // take the inner wall
+                if (part.insets.size() >= 1) {
+                    layer_walls.add(part.insets[0]);
+                    continue;
+                }
+                break;
+            case 2:
+            default:
+                // we want the 2nd inner walls
+                if (part.insets.size() >= 2) {
+                    layer_walls.add(part.insets[1]);
+                    continue;
+                }
+                // but we'll also take the inner wall if the 2nd doesn't exist
+                if (part.insets.size() == 1) {
+                    layer_walls.add(part.insets[0]);
+                    continue;
+                }
         }
         // offset_from_outlines was so large that it completely destroyed our isle,
         // so we'll just use the regular outline
@@ -391,7 +395,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             for (const SliceMeshStorage& mesh : meshes)
             {
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                layer.getSecondOrInnermostWalls(total);
+                layer.getInnermostWalls(total, 2);
                 if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
