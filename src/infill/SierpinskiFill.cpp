@@ -379,9 +379,9 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     if (begin != sequence.begin() && end != sequence.end() && first->error_left > allowed_length_error && last->error_right > allowed_length_error)
     {
         float total_error_input = first->error_left + last->error_right;
-        float overflow = std::min(total_superfluous_error, total_error_input);
-        float left_spillover = overflow * first->error_left / total_error_input;
-        float right_spillover = overflow * last->error_right / total_error_input;
+        total_superfluous_error = std::min(total_superfluous_error, total_error_input); // total superfluous error cannot be more than the influx of error
+        float left_spillover = total_superfluous_error * first->error_left / total_error_input;
+        float right_spillover = total_superfluous_error * last->error_right / total_error_input;
         (*begin)->error_left -= left_spillover;
         prev->error_right += left_spillover;
         (*std::prev(end))->error_right -= right_spillover;
@@ -389,16 +389,16 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     }
     else if (begin != sequence.begin() && first->error_left > allowed_length_error)
     {
-        float overflow = std::min(total_superfluous_error, first->error_left);
-        (*begin)->error_left -= overflow;
-        prev->error_right += overflow;
+        total_superfluous_error = std::min(total_superfluous_error, first->error_left); // total superfluous error cannot be more than the influx of error
+        (*begin)->error_left -= total_superfluous_error;
+        prev->error_right += total_superfluous_error;
         assert(first->error_left > -allowed_length_error);
     }
     else if (end != sequence.end() && last->error_right > allowed_length_error)
     {
-        float overflow = std::min(total_superfluous_error, last->error_right);
-        last->error_right -= overflow;
-        next->error_left += overflow;
+        total_superfluous_error = std::min(total_superfluous_error, last->error_right); // total superfluous error cannot be more than the influx of error
+        last->error_right -= total_superfluous_error;
+        next->error_left += total_superfluous_error;
         assert(last->error_right > -allowed_length_error);
     }
 }
