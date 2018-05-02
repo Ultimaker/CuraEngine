@@ -226,7 +226,8 @@ bool SierpinskiFill::subdivideAll()
                 && !is_constrained
                 )
             {
-                subdivide(begin, end, true);
+                bool redistribute_errors = true;
+                subdivide(begin, end, redistribute_errors);
                 change = true;
             }
         }
@@ -306,7 +307,8 @@ std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivi
     if (redistribute_errors && deep_debug_checking) debugCheck();
     if (redistribute_errors)
     { // move left-over errors
-        redistributeLeftoverErrors(begin, end, true);
+        bool distribute_subdivision_errors = true;
+        redistributeLeftoverErrors(begin, end, distribute_subdivision_errors);
 
         SierpinskiTriangle* first = *begin;
         SierpinskiTriangle* last = *std::prev(end);
@@ -528,10 +530,12 @@ void SierpinskiFill::settleErrors()
     }
 
     for (std::list<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
+    {
         for (std::list<SierpinskiTriangle*>::iterator it : depth_nodes)
         {
             redistributeLeftoverErrors(it, std::next(it), false);
         }
+    }
 }
 
 void SierpinskiFill::diffuseError()
