@@ -234,7 +234,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     else
     {
         if (cross_pattern_polygon.size() > 0)
-        { // make the polyline closed in order to change from a polygon to a polyline representation
+        { // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
             cross_pattern_polygon.add(cross_pattern_polygon[0]);
         }
         Polygons cross_pattern_polygons;
