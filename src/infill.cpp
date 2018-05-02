@@ -225,6 +225,11 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width);
 
+    if (cross_pattern_polygon.empty())
+    {
+        return;
+    }
+
     if (zig_zaggify)
     {
         Polygons cross_pattern_polygons;
@@ -233,10 +238,9 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     }
     else
     {
-        if (cross_pattern_polygon.size() > 0)
-        { // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
-            cross_pattern_polygon.add(cross_pattern_polygon[0]);
-        }
+        // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
+        cross_pattern_polygon.add(cross_pattern_polygon[0]);
+
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
         Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
