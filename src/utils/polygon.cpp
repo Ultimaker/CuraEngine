@@ -404,7 +404,8 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     }
 
     { // stage II: keep removing skipped verts (and skip the next vert if it was a skipped vert)
-        auto skip = [&skipped_verts, &result_list_poly](unsigned int& skipped_vert_idx, const ListPolyIt skipped_vert, std::vector<ListPolyIt>& new_skipped_verts)
+        std::vector<ListPolygon::iterator> erased_points; // remember which points have been erased
+        auto skip = [&skipped_verts, &result_list_poly, &erased_points](unsigned int& skipped_vert_idx, const ListPolyIt skipped_vert, std::vector<ListPolyIt>& new_skipped_verts)
         {
             unsigned int next_skipped_vert_idx = skipped_vert_idx + 1;
             if (next_skipped_vert_idx < skipped_verts.size() && skipped_vert.next() == skipped_verts[next_skipped_vert_idx])
@@ -412,9 +413,9 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 skipped_vert_idx++;
                 new_skipped_verts.emplace_back(skipped_verts[next_skipped_vert_idx]);
             }
-            result_list_poly.erase(skipped_vert.it);
+            erased_points.emplace_back(skipped_vert.it);
         };
-        while (!skipped_verts.empty() && result_list_poly.size() >= 3)
+        while (!skipped_verts.empty() && (result_list_poly.size() - erased_points.size()) >= 3)
         {
             std::vector<ListPolyIt> new_skipped_verts;
 
@@ -422,7 +423,27 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             {
                 ListPolyIt skipped_vert = skipped_verts[skipped_vert_idx];
                 const Point& here = skipped_vert.p();
-                const Point& prev = skipped_vert.prev().p();
+                ListPolyIt prev_it = skipped_vert.prev();
+
+                // helper function that returns true if the specified point has already been erased
+                auto is_erased = [&erased_points](ListPolyIt& list_poly_it)
+                {
+                    for (auto erased : erased_points)
+                    {
+                        if (list_poly_it.it == erased)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                // locate the last point that hasn't been erased
+                while (is_erased(prev_it))
+                {
+                    --prev_it;
+                }
+                const Point& prev = prev_it.p();
 
                 const Point& next = skipped_vert.next().p();
                 if ( vSize2(here - prev) < smallest_line_segment_squared && vSize2(next - here) < smallest_line_segment_squared )
@@ -443,6 +464,11 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 }
             }
             skipped_verts = new_skipped_verts;
+        }
+        // now it's safe to erase those points we don't want
+        for (int i = erased_points.size() - 1; i >= 0; --i)
+        {
+            result_list_poly.erase(erased_points[i]);
         }
     }
 
