@@ -170,16 +170,11 @@ void SierpinskiFill::createLowerBoundSequence()
 std::vector<std::vector<std::list<SierpinskiFill::SierpinskiTriangle*>::iterator>> SierpinskiFill::getDepthOrdered()
 {
     std::vector<std::vector<std::list<SierpinskiTriangle*>::iterator>> depth_ordered(max_depth + 1);
-    { // compute depth_ordered
-        for (int i = 0; i < max_depth + 1; i++)
-        {
-            depth_ordered.emplace_back();
-        }
-        for (std::list<SierpinskiTriangle*>::iterator it = sequence.begin(); it != sequence.end(); ++it)
-        {
-            SierpinskiTriangle* node = *it;
-            depth_ordered[node->depth].emplace_back(it);
-        }
+    depth_ordered.resize(max_depth);
+    for (std::list<SierpinskiTriangle*>::iterator it = sequence.begin(); it != sequence.end(); ++it)
+    {
+        SierpinskiTriangle* node = *it;
+        depth_ordered[node->depth].emplace_back(it);
     }
     return depth_ordered;
 }
