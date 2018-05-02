@@ -53,12 +53,13 @@ SierpinskiFill::~SierpinskiFill()
 
 void SierpinskiFill::createTree()
 {
-    Point m = aabb.min;
-    Point lt = Point(m.X, aabb.max.Y);
-    Point rb = Point(aabb.max.X, m.Y);
-    
-    root.children.emplace_back(rb, m, aabb.max, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
-    root.children.emplace_back(lt, aabb.max, m, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, false, 1);
+    Point lt = Point(aabb.min.X, aabb.max.Y);
+    Point rb = Point(aabb.max.X, aabb.min.Y);
+
+    bool root_straight_corner_is_left = false;
+    int root_depth = 1;
+    root.children.emplace_back(rb, aabb.min, aabb.max, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, root_straight_corner_is_left, root_depth);
+    root.children.emplace_back(lt, aabb.max, aabb.min, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, root_straight_corner_is_left, root_depth);
     for (SierpinskiTriangle& triangle : root.children)
     {
         createTree(triangle);
