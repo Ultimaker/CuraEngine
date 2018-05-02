@@ -520,12 +520,11 @@ void SierpinskiFill::diffuseError()
     float error = 0;
     for (std::list<SierpinskiTriangle*>::iterator it = sequence.begin(); it != sequence.end(); ++it)
     {
-        SierpinskiTriangle* node = *it;
-        SierpinskiTriangle& triangle = *node;
+        SierpinskiTriangle& triangle = *(*it);
 
         float boundary = (triangle.realized_length + triangle.total_child_realized_length) * .5f;
         
-        float nodal_value = ((use_errors_in_dithering)? node->getErroredValue() : node->requested_length);
+        float nodal_value = ((use_errors_in_dithering)? triangle.getErroredValue() : triangle.requested_length);
         
         float boundary_error = nodal_value - boundary + error;
 
@@ -562,7 +561,7 @@ void SierpinskiFill::diffuseError()
             unconstrained_nodes++;
         if (!is_constrained
             && boundary_error >= 0
-            && !node->children.empty()
+            && !triangle.children.empty()
             )
         {
             subdivided_nodes++;
