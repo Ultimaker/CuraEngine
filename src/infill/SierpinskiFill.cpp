@@ -169,7 +169,8 @@ void SierpinskiFill::createLowerBoundSequence()
 
 bool SierpinskiFill::subdivideAll()
 {
-    std::vector<std::list<std::list<SierpinskiTriangle*>::iterator>> depth_ordered;
+    std::vector<std::vector<std::list<SierpinskiTriangle*>::iterator>> depth_ordered;
+    depth_ordered.reserve(max_depth + 1);
     { // compute depth_ordered
         for (int i = 0; i < max_depth + 1; i++)
         {
@@ -183,7 +184,7 @@ bool SierpinskiFill::subdivideAll()
     }
     
     bool change = false;
-    for (std::list<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
+    for (std::vector<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
         for (std::list<SierpinskiTriangle*>::iterator it : depth_nodes)
         {
             SierpinskiTriangle* node = *it;
@@ -234,7 +235,8 @@ bool SierpinskiFill::subdivideAll()
 
 bool SierpinskiFill::bubbleUpConstraintErrors()
 {
-    std::vector<std::list<std::list<SierpinskiTriangle*>::iterator>> depth_ordered(max_depth + 1);
+    std::vector<std::vector<std::list<SierpinskiTriangle*>::iterator>> depth_ordered(max_depth + 1);
+    depth_ordered.reserve(max_depth + 1);
     { // compute depth_ordered
         for (int i = 0; i < max_depth + 1; i++)
         {
@@ -251,7 +253,7 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
     
     for (int depth = max_depth; depth >= 0; depth--)
     {
-        std::list<std::list<SierpinskiTriangle*>::iterator>& depth_nodes = depth_ordered[depth];
+        std::vector<std::list<SierpinskiTriangle*>::iterator>& depth_nodes = depth_ordered[depth];
         for (std::list<SierpinskiTriangle*>::iterator it : depth_nodes)
         {
             SierpinskiTriangle* node = *it;
