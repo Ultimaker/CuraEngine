@@ -35,7 +35,7 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
     {
         if (node->getValueError() < -allowed_length_error)
         {
-            std::cerr << "Node is subdivided without the appropriate value! value_error: " << node->getValueError() << " from base " << node->requested_length << " el: " << node->error_left << " er: " << node->error_right << ", while the realized_length = " << node->realized_length << '\n';
+            logError("Node is subdivided without the appropriate value! value_error: %f from base %f el: %f er: %f, while the realized_length = %f\n", node->getValueError(), node->requested_length, node->error_left, node->error_right, node->realized_length);
             assert(false);
         }
     }
@@ -152,17 +152,16 @@ void SierpinskiFill::createLowerBoundSequence()
         bool change = false;
         change |= subdivideAll();
         if (deep_debug_checking) debugCheck();
-        
+
         if (constraint_error_diffusion)
         {
             change |= bubbleUpConstraintErrors();
             if (deep_debug_checking) debugCheck();
         }
-        
-        
+
         if (!change)
         {
-            std::cerr << "Finished after "<<(iteration + 1)<<" iterations, with max_depth = "<<max_depth << '\n';
+            logDebug("Finished after %i iterations, with a max depth of %i.\n", iteration + 1, max_depth);
             break;
         }
     }
@@ -366,7 +365,7 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
         SierpinskiTriangle* next = *std::next(it);
         if (std::abs(node->error_right + next->error_left) > allowed_length_error)
         {
-            std::cerr << "Nodes aren't balanced! er: " << node->error_right << " next el: " << next->error_left << '\n';
+            logWarning("Nodes aren't balanced! er: %f next el: %f\n", node->error_right, next->error_left);
             assert(false);
         }
         float exchange = node->error_right;
@@ -388,7 +387,7 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     { // there is no significant left-over error
         if (distribute_subdivision_errors && total_superfluous_error < -allowed_length_error)
         {
-            std::cerr << "redistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: " << total_superfluous_error << "\n";
+            logWarning("redistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: %f\n", total_superfluous_error);
             assert(false);
         }
         return;
@@ -479,7 +478,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     
     if (total_remaining_value_error < added - allowed_length_error)
     {
-        std::cerr << "total_remaining:" << total_remaining_value_error << " should be > " << added << '\n';
+        logWarning("total_remaining: %f should be > %f\n", total_remaining_value_error, added);
         assert(false);
     }
     
@@ -501,7 +500,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     }
     if (std::abs(subtracted - added) > allowed_length_error)
     {
-        std::cerr << "Redistribution didn't distribute well!! added " << added << " subtracted" << subtracted << '\n';
+        logWarning("Redistribution didn't distribute well!! added %f subtracted %f\n", added, subtracted);
         assert(false);
     }
 
@@ -602,7 +601,7 @@ void SierpinskiFill::diffuseError()
                 error += nodal_value - triangle.realized_length;
         }
     }
-    std::cerr << "pair_constrained_nodes: " << pair_constrained_nodes << ", constrained_nodes: " << constrained_nodes << ", unconstrained_nodes: " << unconstrained_nodes << ", subdivided_nodes: " << subdivided_nodes << '\n';
+    logDebug("pair_constrained_nodes: %i, constrained_nodes: %i, unconstrained_nodes: %i, subdivided_nodes: %i\n", pair_constrained_nodes, constrained_nodes, unconstrained_nodes, subdivided_nodes);
 }
 
 bool SierpinskiFill::isConstrainedBackward(std::list<SierpinskiTriangle*>::iterator it)
@@ -742,8 +741,7 @@ Polygon SierpinskiFill::generateCross() const
     float realized_length = INT2MM(ret.polygonLength());
     float requested_length = root.requested_length;
     float error = (realized_length - requested_length) / requested_length;
-    std::cerr << "realized_length: " << realized_length << ", requested_length: " << requested_length << "  :: " << (.01*(int(10000*error))) << "% error\n";
-    
+    logDebug("realized_length: %f, requested_length: %f  :: %f% error\n", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
     return ret;
 }
 Polygon SierpinskiFill::generateSierpinski() const
@@ -798,12 +796,12 @@ void SierpinskiFill::debugCheck(bool check_subdivision)
 {
     if (std::abs(sequence.front()->error_left) > allowed_length_error)
     {
-        std::cerr << "First node has error left!\n";
+        logWarning("First node has error left!\n");
         assert(false);
     }
     if (std::abs(sequence.back()->error_right) > allowed_length_error)
     {
-        std::cerr << "Last node has error right!\n";
+        logWarning("Last node has error right!\n");
         assert(false);
     }
 
@@ -818,12 +816,12 @@ void SierpinskiFill::debugCheck(bool check_subdivision)
 
         if (std::abs(node->error_right + next->error_left) > allowed_length_error)
         {
-            std::cerr << "Consecutive nodes don't have the same error! er: "<< node->error_right << ", nel: "<< next->error_left << "\n";
+            logWarning("Consecutive nodes in fractal don't have the same error! er: %f , nel: %f\n", node->error_right, next->error_left);
             assert(false);
         }
         if (check_subdivision && node->getValueError() < -allowed_length_error)
         {
-            std::cerr << "Node shouldn't have been subdivided!\n";
+            logWarning("Fractal node shouldn't have been subdivided!\n");
             assert(false);
         }
     }
