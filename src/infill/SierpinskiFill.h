@@ -297,25 +297,13 @@ protected:
         //! Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
         Edge getToEdge();
         //! Get the total error value modulating the \ref requested_length
-        float getTotalError()
-        {
-            return error_left + error_right;
-        }
+        float getTotalError();
         //! Get the total modulated \ref requested_length
-        float getErroredValue()
-        {
-            return requested_length + getTotalError(); 
-        }
+        float getErroredValue();
         //! Get the error induced by subdividing this triangle.
-        float getSubdivisionError()
-        {
-            return getErroredValue() - total_child_realized_length;
-        }
+        float getSubdivisionError();
         //! Get the total error currently acting on this traingle.
-        float getValueError()
-        {
-            return getErroredValue() - realized_length;
-        }
+        float getValueError();
         //! The children into which this triangle would be subdivided. Empty if this is a leaf node.
         std::vector<SierpinskiTriangle> children;
     };

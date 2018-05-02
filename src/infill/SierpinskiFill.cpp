@@ -694,6 +694,26 @@ SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getToEdge()
     return ret;
 }
 
+float SierpinskiFill::SierpinskiTriangle::getTotalError()
+{
+    return error_left + error_right;
+}
+
+float SierpinskiFill::SierpinskiTriangle::getErroredValue()
+{
+    return requested_length + getTotalError();
+}
+
+float SierpinskiFill::SierpinskiTriangle::getSubdivisionError()
+{
+    return getErroredValue() - total_child_realized_length;
+}
+
+float SierpinskiFill::SierpinskiTriangle::getValueError()
+{
+    return getErroredValue() - realized_length;
+}
+
 
 Polygon SierpinskiFill::generateCross() const
 {
