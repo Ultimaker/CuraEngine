@@ -343,12 +343,8 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     SierpinskiTriangle* last = *std::prev(end);
 
     // exchange intermediate errors
-    for (auto it = begin; it != end; ++it)
+    for (auto it = begin; it != end && std::next(it) != end; ++it)
     {
-        if (std::next(it) == end)
-        {
-            break;
-        }
         SierpinskiTriangle* node = *it;
         SierpinskiTriangle* next = *std::next(it);
         if (std::abs(node->error_right + next->error_left) > allowed_length_error)
