@@ -355,10 +355,6 @@ public:
     }
 
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
-//     {
-//         *path = *other.path;
-//         return *this;
-//     }
 
     Point& operator[] (unsigned int index)
     {
