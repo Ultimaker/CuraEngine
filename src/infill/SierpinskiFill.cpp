@@ -504,20 +504,9 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
 
 void SierpinskiFill::settleErrors()
 {
-    std::vector<std::list<std::list<SierpinskiTriangle*>::iterator>> depth_ordered;
-    { // compute depth_ordered
-        for (int i = 0; i < max_depth + 1; i++)
-        {
-            depth_ordered.emplace_back();
-        }
-        for (std::list<SierpinskiTriangle*>::iterator it = sequence.begin(); it != sequence.end(); ++it)
-        {
-            SierpinskiTriangle* node = *it;
-            depth_ordered[node->depth].emplace_back(it);
-        }
-    }
+    std::vector<std::vector<std::list<SierpinskiTriangle*>::iterator>> depth_ordered = getDepthOrdered();
 
-    for (std::list<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
+    for (std::vector<std::list<SierpinskiTriangle*>::iterator>& depth_nodes : depth_ordered)
     {
         for (std::list<SierpinskiTriangle*>::iterator it : depth_nodes)
         {
