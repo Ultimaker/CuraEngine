@@ -188,7 +188,10 @@ bool SierpinskiFill::subdivideAll()
         {
             SierpinskiTriangle* node = *it;
             SierpinskiTriangle& triangle = *node;
-            
+
+            // The range of consecutive triangles to consider for subdivision simultaneously.
+            // Two triangles connected to each other via the long edge must be subdivided simultaneously,
+            // so then the range will be two long rather than one.
             std::list<SierpinskiTriangle*>::iterator begin = it;
             std::list<SierpinskiTriangle*>::iterator end = std::next(it);
             if (
@@ -209,17 +212,10 @@ bool SierpinskiFill::subdivideAll()
             {
                 assert(begin == std::prev(end));
             }
-            bool is_constrained = false;
-            if (is_constrained)
-            {
-                for (auto nested_it = begin; nested_it != end; ++nested_it)
-                {
-                    if (isConstrainedBackward(nested_it) || isConstrainedForward(nested_it))
-                    {
-                        is_constrained = true;
-                    }
-                }
-            }
+            bool is_constrained = isConstrainedBackward(begin) || isConstrainedForward(std::prev(end));
+            // Don't check for constraining in between the cells in the range;
+            // the range is defined as the range of triangles which are constraining each other simultaneously.
+
             if (node->depth == max_depth) //Never subdivide beyond maximum depth.
                 continue;
             float total_subdiv_error = getSubdivisionError(begin, end);
