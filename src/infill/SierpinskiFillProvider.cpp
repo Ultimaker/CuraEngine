@@ -1,7 +1,7 @@
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SierpinskiFillProvider.h"
 
-
+#include "../utils/math.h"
 
 namespace cura
 {
@@ -68,10 +68,10 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         aabb_size *= 2;
         depth += 2;
     }
-    const float sqrt2 = .5 * std::sqrt(2.0);
-    if (aabb_size * sqrt2 >= max_side_length)
+    const float half_sqrt2 = .5 * sqrt2;
+    if (aabb_size * half_sqrt2 >= max_side_length)
     {
-        aabb_size *= sqrt2;
+        aabb_size *= half_sqrt2;
         depth--;
     }
 
