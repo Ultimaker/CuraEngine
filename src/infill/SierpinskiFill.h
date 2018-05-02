@@ -368,6 +368,11 @@ protected:
     void createLowerBoundSequence();
 
     /*!
+     * Order the triangles on depth.
+     */
+    std::vector<std::vector<std::list<SierpinskiTriangle*>::iterator>> getDepthOrdered();
+
+    /*!
      * For each noe: subdivide if possible.
      * 
      * Start trying cells with lower recursion level before trying cells with deeper recursion depth, i.e. higher density value.
