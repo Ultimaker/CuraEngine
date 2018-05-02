@@ -349,7 +349,6 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
 //
 
     ClipperLib::Path this_path = *path;
-    coord_t min_length_2 = std::min(smallest_line_segment_squared, allowed_error_distance_squared);
 
     ListPolygon result_list_poly;
     result_list_poly.emplace_back(path->front());
@@ -382,7 +381,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             { // disregard duplicate points without skipping the next point
                 continue;
             }
-            if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
+            if ( vSize2(here - prev) < smallest_line_segment_squared && vSize2(next - here) < smallest_line_segment_squared )
             {
                 // don't add [here] to the result
                 // skip checking whether the next point has to be removed for now
@@ -426,7 +425,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 const Point& prev = skipped_vert.prev().p();
 
                 const Point& next = skipped_vert.next().p();
-                if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
+                if ( vSize2(here - prev) < smallest_line_segment_squared && vSize2(next - here) < smallest_line_segment_squared )
                 {
                     // skip checking whether the next point has to be removed for now
                     skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
