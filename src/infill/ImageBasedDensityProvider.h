@@ -18,14 +18,13 @@ public:
 
     virtual ~ImageBasedDensityProvider();
 
-    virtual float operator()(const Point& a, const Point& b, const Point& c, const Point& d) const;
-    virtual float operator()(const AABB& aabb) const;
+    virtual float operator()(const AABB3D& aabb) const;
 
 protected:
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.
     unsigned char* image = nullptr; //!< image data: rows of channel data per pixel.
 
-    AABB aabb; //!< bounding box of print coordinates in which to apply the image
+    AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
 };
 
 } // namespace cura

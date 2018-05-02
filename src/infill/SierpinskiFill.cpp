@@ -121,7 +121,12 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
 {
     if (triangle.children.empty())
     { // set requested_length of leaves
-        float density = density_provider(triangle.a, triangle.b, triangle.straight_corner, triangle.straight_corner);
+        AABB triangle_aabb;
+        triangle_aabb.include(triangle.a);
+        triangle_aabb.include(triangle.b);
+        triangle_aabb.include(triangle.straight_corner);
+        AABB3D triangle_aabb3d(Point3(triangle_aabb.min.X, triangle_aabb.min.Y, 0), Point3(triangle_aabb.max.X, triangle_aabb.max.Y, 1));
+        float density = density_provider(triangle_aabb3d); // The density of the square around the triangle is a rough estimate of the density of the triangle.
         triangle.requested_length = density * triangle.area / INT2MM(line_width);
     }
     else

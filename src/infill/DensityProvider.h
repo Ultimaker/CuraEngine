@@ -3,7 +3,7 @@
 #define INFILL_DENSITY_PROVIDER_H
 
 #include "../utils/intpoint.h"
-#include "../utils/AABB.h"
+#include "../utils/AABB3D.h"
 
 namespace cura
 {
@@ -17,13 +17,9 @@ class DensityProvider
 {
 public:
     /*!
-     * \return the approximate required density of a quadrilateral
+     * \return the approximate required density of a cube
      */
-    virtual float operator()(const Point& a, const Point& b, const Point& c, const Point& d) const = 0;
-    /*!
-     * \return the approximate required density of a square
-     */
-    virtual float operator()(const AABB& aabb) const = 0;
+    virtual float operator()(const AABB3D& aabb) const = 0;
     virtual ~DensityProvider()
     {
     };

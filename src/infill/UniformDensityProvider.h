@@ -23,11 +23,7 @@ public:
     {
     };
 
-    virtual float operator()(const Point&, const Point&, const Point&, const Point&) const
-    {
-        return density;
-    };
-    virtual float operator()(const AABB&) const
+    virtual float operator()(const AABB3D&) const
     {
         return density;
     };
