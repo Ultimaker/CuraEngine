@@ -88,7 +88,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     case EFillMethod::CROSS_3D:
         if (!cross_fill_provider)
         {
-            logError("Cannot generate Cross infill without a pregenerated cross fill pattern!\n");
+            logError("Cannot generate Cross infill without a cross fill provider!\n");
             break;
         }
         generateCrossInfill(*cross_fill_provider, mesh->bounding_box, result_polygons, result_lines);
