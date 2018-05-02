@@ -6,6 +6,11 @@
 namespace cura
 {
 
+/*!
+ * Parent class of function objects which return the density required for a given region.
+ * 
+ * This density requirement can be based on user input, distance to the 3d model shell, Z distance to top skin, etc.
+ */
 class DensityProvider
 {
 public:
