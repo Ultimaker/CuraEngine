@@ -13,11 +13,17 @@ namespace cura
 {
 
 /*!
- * TODO
+ * Class for generating infill patterns using the SierpinskiFill class.
+ * 
+ * This class handles determining the maximum recursion depth, the initial triangle
+ * and in general the configuration the SierpinskiFill class requires to be used as fill pattern.
+ * 
+ * This class also handles the density provider which is used to determine the local density at each location - if there is one.
  */
 class SierpinskiFillProvider
 {
     static constexpr bool get_constructor = true;
+    static constexpr bool use_dithering = true;
 protected:
     struct FractalConfig
     {
@@ -28,19 +34,18 @@ public:
     FractalConfig fractal_config;
     DensityProvider* density_provider;
     std::optional<SierpinskiFill> fill_pattern_for_all_layers;
-    
+
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
     , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
-    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, true) // TODO hardcoded value
+    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
     {
-        
     }
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
     , density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.getAABB()))
-    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, true) // TODO hardcoded value
+    , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
     {
     }
 
@@ -80,7 +85,7 @@ protected:
         Point model_aabb_size = model_aabb.max - model_aabb.min;
         coord_t max_side_length = std::max(model_aabb_size.X, model_aabb_size.Y);
         Point model_middle = model_aabb.getMiddle();
-        
+
         int depth = 0;
         coord_t aabb_size = min_line_distance;
         while (aabb_size < max_side_length)
@@ -94,7 +99,7 @@ protected:
             aabb_size *= sqrt2;
             depth--;
         }
-        
+
         Point radius(aabb_size / 2, aabb_size / 2);
         AABB aabb(model_middle - radius, model_middle + radius);
         return FractalConfig{depth, aabb};
