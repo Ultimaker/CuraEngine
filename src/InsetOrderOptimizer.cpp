@@ -408,6 +408,12 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
             {
                 gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
+            else
+            {
+                // as we may have been printing holes after the outer inset was printed, add this move to the start point of the inner wall we want to be printed first
+                const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
+                gcode_layer.addTravel(dest);
+            }
             gcode_layer.addWalls(part_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
         }
         else
