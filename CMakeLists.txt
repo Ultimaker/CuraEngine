@@ -1,6 +1,7 @@
 project(CuraEngine)
 
 cmake_minimum_required(VERSION 2.8.12)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option (ENABLE_ARCUS
     "Enable support for ARCUS" ON)
@@ -11,30 +12,12 @@ if (ENABLE_ARCUS)
     add_definitions(-DARCUS)
 endif ()
 
-
-# STB image lib
-include(ExternalProject)
-ExternalProject_Add(
-  Stb
-
-  GIT_REPOSITORY "https://github.com/nothings/stb.git"
-  GIT_TAG "master"
-
-  PATCH_COMMAND ""
-
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/stb"
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-  TEST_COMMAND ""
-)
-
-
+#For reading image files.
+find_package(Stb REQUIRED)
+include_directories(${Stb_INCLUDE_DIRS})
 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
-
 if(USE_SYSTEM_LIBS)
-    set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
     find_package(RapidJSON CONFIG REQUIRED)
     find_package(Polyclipping REQUIRED)
 endif()
@@ -204,6 +187,7 @@ endif ()
 # Compiling CuraEngine itself.
 add_library(_CuraEngine ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
 
+add_dependencies(_CuraEngine Stb)
 if(USE_SYSTEM_LIBS)
     target_link_libraries(_CuraEngine ${Polyclipping_LIBRARIES})
 else()
