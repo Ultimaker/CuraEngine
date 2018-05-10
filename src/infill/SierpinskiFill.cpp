@@ -752,11 +752,15 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
 
     if (pocket_size > 10)
     {
-        coord_t sqrt_pocket_size = pocket_size * sqrt2 / 2;
-        std::cerr << sqrt_pocket_size << '\n';
-        
+        // round off corners by half square root 2 of the pocket size so that the whole hole will be sqrt_pocket_size wide
+        // \      /     \      /
+        //  \    /  ==>  \____/
+        //   \  /}\       ^^^^--pocket_size / 2
+        //    \/} / pocket_size_side
+        coord_t pocket_size_side = pocket_size * sqrt2 / 2;
+
         Polygon pocketed;
-        //pocketed.reserve(ret.size() * 3 / 2);
+        pocketed.reserve(ret.size() * 3 / 2);
 
         Point p0 = ret.back();
         for (size_t poly_idx = 0; poly_idx < ret.size(); poly_idx++)
@@ -767,14 +771,10 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
             Point v1 = p2 - p1;
 
             coord_t prod = std::abs(dot(v0, v1));
-            if (true || prod < 100) // allow for rounding errors of up to 10
+            bool is_straight_corner = prod < sqrt(vSize(v0) * vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
+            if (is_straight_corner)
             {
-                // round off corners by the square root of the pocket size so that the whole hole will be sqrt_pocket_size wide
-                // \      /     \      /
-                //  \    /  ==>  \____/
-                //   \  /}\       ^^^^--pocket_size / 2
-                //    \/} /sqrt_pocket_size
-                coord_t pocket_rounding = std::min(std::min(sqrt_pocket_size, vSize(v0) / 3), vSize(v1) / 3);
+                coord_t pocket_rounding = std::min(std::min(pocket_size_side, vSize(v0) / 3), vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
                 pocketed.add(p1 + normal(v0, pocket_rounding));
                 pocketed.add(p1 + normal(v1, pocket_rounding));
             }
