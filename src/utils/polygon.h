@@ -354,6 +354,11 @@ public:
     {
     }
 
+    void reserve(size_t min_size)
+    {
+        path->reserve(min_size);
+    }
+
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 
     Point& operator[] (unsigned int index)
