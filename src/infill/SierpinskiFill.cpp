@@ -719,7 +719,7 @@ Polygon SierpinskiFill::generateCross() const
     return ret;
 }
 
-Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side) const
+Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const
 {
     
     Polygon ret;
@@ -749,8 +749,49 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side) const
     }
     assert(last_triangle);
     ret.add(get_edge_crossing_location(last_triangle->depth, last_triangle->getToEdge()));
-    
-    return ret;
+
+    if (pocket_size > 10)
+    {
+        coord_t sqrt_pocket_size = pocket_size * sqrt2 / 2;
+        std::cerr << sqrt_pocket_size << '\n';
+        
+        Polygon pocketed;
+        //pocketed.reserve(ret.size() * 3 / 2);
+
+        Point p0 = ret.back();
+        for (size_t poly_idx = 0; poly_idx < ret.size(); poly_idx++)
+        {
+            Point p1 = ret[poly_idx];
+            Point p2 = ret[(poly_idx + 1) % ret.size()];
+            Point v0 = p0 - p1;
+            Point v1 = p2 - p1;
+
+            coord_t prod = std::abs(dot(v0, v1));
+            if (true || prod < 100) // allow for rounding errors of up to 10
+            {
+                // round off corners by the square root of the pocket size so that the whole hole will be sqrt_pocket_size wide
+                // \      /     \      /
+                //  \    /  ==>  \____/
+                //   \  /}\       ^^^^--pocket_size / 2
+                //    \/} /sqrt_pocket_size
+                coord_t pocket_rounding = std::min(std::min(sqrt_pocket_size, vSize(v0) / 3), vSize(v1) / 3);
+                pocketed.add(p1 + normal(v0, pocket_rounding));
+                pocketed.add(p1 + normal(v1, pocket_rounding));
+            }
+            else
+            {
+                pocketed.add(p1);
+            }
+            p0 = p1;
+        }
+
+        return pocketed;
+    }
+    else
+    {
+        return ret;
+    }
+
 }
 
 void SierpinskiFill::debugCheck(bool check_subdivision)

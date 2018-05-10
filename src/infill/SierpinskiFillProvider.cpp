@@ -24,13 +24,13 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
 }
 
-Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width) const
+Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
 {
     if (fill_pattern_for_all_layers)
     {
         if (pattern == EFillMethod::CROSS_3D)
         {
-            return fill_pattern_for_all_layers->generateCross(z, line_width / 2);
+            return fill_pattern_for_all_layers->generateCross(z, line_width / 2, pocket_size);
         }
         else
         {

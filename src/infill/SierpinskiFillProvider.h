@@ -41,7 +41,7 @@ public:
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file);
 
-    Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width) const;
+    Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const;
 
     ~SierpinskiFillProvider();
 protected:

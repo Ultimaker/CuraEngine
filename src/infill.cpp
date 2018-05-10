@@ -223,7 +223,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     }
     Polygons outline = in_outline.offset(outline_offset);
 
-    Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width);
+    Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
 
     if (cross_pattern_polygon.empty())
     {
