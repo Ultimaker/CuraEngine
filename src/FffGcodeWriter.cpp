@@ -921,8 +921,31 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
-    gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
-    gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+    
+    if(train->getSettingBoolean("brim_outside_only") == true)
+    {   
+        gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
+        gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+    }
+    else
+    {
+        Polygons outer_brim, inner_brim;
+        for(unsigned int index = 0; index < skirt_brim.size(); index++)
+        {
+            ConstPolygonRef polygon = skirt_brim[index];
+            if(polygon.area() > 0)
+            {
+                outer_brim.add(polygon);
+            }
+            else
+            {
+                inner_brim.add(polygon);
+            }
+        }
+        gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
+        gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        gcode_layer.addPolygonsByOptimizerReverse(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+    }
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
