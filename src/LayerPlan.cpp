@@ -478,6 +478,24 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     }
 }
 
+void LayerPlan::addPolygonsByOptimizerReverse(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+{
+    if (polygons.size() == 0)
+    {
+        return;
+    }
+    PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    {
+        orderOptimizer.addPolygon(polygons[poly_idx]);
+    }
+    orderOptimizer.optimize();
+    for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index){
+        int poly_idx = orderOptimizer.polyOrder[index];
+        addPolygon(polygons[poly_idx], orderOptimizer.polyOrder[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+    }
+}
+
 static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
