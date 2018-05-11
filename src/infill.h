@@ -103,6 +103,21 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
+    /*!
+     * Generate the infill pattern without the infill_multiplier functionality
+     */
+    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+
+    /*!
+     * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
+     * 
+     * This is done in a way such that there is not overlap between the lines
+     * except the middle original one if the multiplier is odd.
+     * 
+     * This introduces a lot of line segments.
+     */
+    void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
+
     struct InfillLineSegment
     {
         /*!

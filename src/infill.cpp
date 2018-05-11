@@ -41,6 +41,25 @@ namespace cura {
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
+    if (infill_multiplier > 1)
+    {
+        bool zig_zaggify_real = zig_zaggify;
+        if (infill_multiplier % 2 == 0)
+        {
+            zig_zaggify = false; // generate the basic infill pattern without going via the borders
+        }
+        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+        zig_zaggify = zig_zaggify_real;
+        multiplyInfill(result_polygons, result_lines);
+    }
+    else
+    {
+        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+    }
+}
+
+void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+{
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
 
@@ -111,6 +130,74 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+}
+
+void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
+{
+    if (pattern == EFillMethod::CONCENTRIC || pattern == EFillMethod::CONCENTRIC_3D)
+    {
+        result_polygons = result_polygons.processEvenOdd(); // make into areas
+    }
+
+    Polygons outline = in_outline.offset(outline_offset);
+
+    bool odd_multiplier = infill_multiplier % 2 == 1;
+    coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
+
+    Polygons result;
+    Polygons first_offset = result_lines.offsetPolyLine(offset).unionPolygons(result_polygons.offset(offset).difference(result_polygons.offset(-offset)));
+    if (zig_zaggify)
+    {
+        first_offset = outline.difference(first_offset);
+    }
+    result.add(first_offset);
+    Polygons reference_polygons = first_offset;
+    for (int infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
+    {
+        Polygons extra_offset = reference_polygons.offset(-infill_line_width); // .difference(reference_polygons.offset(-infill_line_width));
+        result.add(extra_offset);
+        reference_polygons = std::move(extra_offset);
+    }
+
+    if (zig_zaggify)
+    {
+        result = result.intersection(outline);
+    }
+
+    if (!odd_multiplier)
+    {
+        result_polygons.clear();
+        result_lines.clear();
+    }
+    result_polygons.add(result);
+    if (!zig_zaggify)
+    {
+        for (PolygonRef poly : result_polygons)
+        { // make polygons into polylines
+            if (poly.empty())
+            {
+                continue;
+            }
+            poly.add(poly[0]);
+        }
+        Polygons polylines = outline.intersectionPolyLines(result_polygons);
+        for (PolygonRef polyline : polylines)
+        {
+            Point last_point = no_point;
+            for (Point point : polyline)
+            {
+                Polygon line;
+                if (last_point != no_point)
+                {
+                    line.add(last_point);
+                    line.add(point);
+                    result_lines.add(line);
+                }
+                last_point = point;
+            }
+        }
+        result_polygons.clear();
+    }
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
