@@ -54,13 +54,13 @@ public:
     Infill(EFillMethod pattern
         , bool zig_zaggify
         , const Polygons& in_outline
-        , int outline_offset
-        , int infill_line_width
-        , int line_distance
-        , int infill_overlap
+        , coord_t outline_offset
+        , coord_t infill_line_width
+        , coord_t line_distance
+        , coord_t infill_overlap
         , double fill_angle
-        , int64_t z
-        , int64_t shift
+        , coord_t z
+        , coord_t shift
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
