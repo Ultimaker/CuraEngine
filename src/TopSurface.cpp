@@ -41,8 +41,9 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     assert(top_most_skin_angles.size() > 0);
     const double direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
+    constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
-    Infill infill_generator(pattern, zig_zaggify_infill, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
+    Infill infill_generator(pattern, zig_zaggify_infill, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);

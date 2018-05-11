@@ -84,6 +84,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 {
     int n_patterns = 2; // alternating patterns between layers
     int infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
+    constexpr int infill_multiplier = 1;
     int extra_infill_shift = 0;
 
     int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
@@ -126,7 +127,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
                 Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
                 constexpr bool zig_zaggify_infill = false;
                 Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, inner_poly, outline_offset, line_width,
-                                   line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+                                   line_distance, infill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift);
                 infill_comp.generate(result_polygons, result_lines);
             }
         }
@@ -142,7 +143,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         int line_distance = line_width_layer0;
         double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }
