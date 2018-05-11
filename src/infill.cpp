@@ -154,7 +154,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     Polygons reference_polygons = first_offset;
     for (int infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
     {
-        Polygons extra_offset = reference_polygons.offset(-infill_line_width); // .difference(reference_polygons.offset(-infill_line_width));
+        Polygons extra_offset = reference_polygons.offset(-infill_line_width);
         result.add(extra_offset);
         reference_polygons = std::move(extra_offset);
     }
