@@ -32,6 +32,7 @@
 #include "raft.h"
 #include "comb.h"
 #include "gcodeExport.h"
+#include "polygonHelper.h"
 #include "fffProcessor.h"
 
 void print_usage()

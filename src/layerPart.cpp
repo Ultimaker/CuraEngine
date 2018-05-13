@@ -3,7 +3,7 @@
 
 #include "layerPart.h"
 #include "settings.h"
-
+#include "polygonHelper.h"
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
 It takes the result of the Slice step, which is an unordered list of polygons, and makes groups of polygons,
@@ -58,6 +58,7 @@ void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllT
         storage.layers[layerNr].printZ = slicer->layers[layerNr].z;
         createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
     }
+    //PolygonHelper::savePartsToFile(storage);
 }
 
 void dumpLayerparts(SliceDataStorage& storage, const char* filename)
