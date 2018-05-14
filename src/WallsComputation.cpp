@@ -74,8 +74,8 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
             }
         }
 
-        //Finally optimize all the polygons. Every point removed saves time in the long run.
-        part->insets[i].simplify();
+        //Previously, simplify() was called here with the default params but as the polygons have already been simplified using meshfix_maximum_resolution
+        //it's better to not simplify again as it can introduce z-seam wobble
         part->insets[i].removeDegenerateVerts();
         if (i == 0)
         {

@@ -354,26 +354,9 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     ListPolygon result_list_poly;
     result_list_poly.emplace_back(path->front());
 
-    std::vector<ListPolyIt> skipped_verts;
-    // add the first point as starting point for the algorithm
-    // whether the first point has to be removed is checked separately afterwards
-    skipped_verts.emplace_back(result_list_poly, result_list_poly.begin());
-
     char here_is_beyond_line = 0;
     { // stage I: convert to a ListPolygon and remove verts, but don't remove verts just after removed verts (i.e. skip them)
         Point prev = this_path[0];
-        auto skip = [this, &result_list_poly, &this_path, &prev, &skipped_verts](unsigned int& poly_idx)
-        {
-            poly_idx++;
-            if (poly_idx >= size())
-            { // don't wrap around, the first point has already been added
-                return;
-            }
-            result_list_poly.emplace_back(this_path[poly_idx]);
-            prev = result_list_poly.back();
-            skipped_verts.emplace_back(result_list_poly, --result_list_poly.end());
-        };
-
         for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
         {
             const Point& here = this_path[poly_idx];
@@ -384,66 +367,86 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             }
             if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
             {
-                // don't add [here] to the result
-                // skip checking whether the next point has to be removed for now
-                skip(poly_idx);
+                // don't add [here] to the result but add the next point
+                if (++poly_idx < size())
+                {
+                    prev = next;
+                    result_list_poly.emplace_back(prev);
+                }
                 continue;
             }
             int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
             if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
             {
-                // don't add [here] to the result
+                // don't add [here] to the result but add the next point
                 // skip checking whether the next point has to be removed for now
-                skip(poly_idx);
+                if (++poly_idx < size())
+                {
+                    prev = next;
+                    result_list_poly.emplace_back(prev);
+                }
             }
             else
             {
-                result_list_poly.emplace_back(here);
-                prev = result_list_poly.back();
+                prev = here;
+                result_list_poly.emplace_back(prev);
             }
         }
     }
 
-    { // stage II: keep removing skipped verts (and skip the next vert if it was a skipped vert)
-        auto skip = [&skipped_verts, &result_list_poly](unsigned int& skipped_vert_idx, const ListPolyIt skipped_vert, std::vector<ListPolyIt>& new_skipped_verts)
-        {
-            unsigned int next_skipped_vert_idx = skipped_vert_idx + 1;
-            if (next_skipped_vert_idx < skipped_verts.size() && skipped_vert.next() == skipped_verts[next_skipped_vert_idx])
+    if (result_list_poly.size() < size())
+    {
+        // repeat process until no further points are removed
+        while (result_list_poly.size() > 3) {
+            ListPolygon new_result_list_poly;
+            ListPolyIt points(result_list_poly, result_list_poly.begin());
+            Point prev = points.p();
+            ++points;
+            new_result_list_poly.emplace_back(prev);
+            for (unsigned int poly_idx = 1; poly_idx < result_list_poly.size(); poly_idx++)
             {
-                skipped_vert_idx++;
-                new_skipped_verts.emplace_back(skipped_verts[next_skipped_vert_idx]);
-            }
-            result_list_poly.erase(skipped_vert.it);
-        };
-        while (!skipped_verts.empty() && result_list_poly.size() >= 3)
-        {
-            std::vector<ListPolyIt> new_skipped_verts;
-
-            for (unsigned int skipped_vert_idx = 0; skipped_vert_idx < skipped_verts.size(); skipped_vert_idx++)
-            {
-                ListPolyIt skipped_vert = skipped_verts[skipped_vert_idx];
-                const Point& here = skipped_vert.p();
-                const Point& prev = skipped_vert.prev().p();
-
-                const Point& next = skipped_vert.next().p();
+                const Point& here = points.p();
+                ++points;
+                const Point& next = points.p();
                 if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
                 {
-                    // skip checking whether the next point has to be removed for now
-                    skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
+                    // don't add [here] to the result but add the next point
+                    if (++poly_idx < result_list_poly.size())
+                    {
+                        prev = next;
+                        new_result_list_poly.emplace_back(next);
+                        ++points;
+                    }
                     continue;
                 }
                 int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
                 if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
                 {
+                    // don't add [here] to the result but add the next point
                     // skip checking whether the next point has to be removed for now
-                    skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
+                    if (++poly_idx < result_list_poly.size())
+                    {
+                        prev = next;
+                        new_result_list_poly.emplace_back(next);
+                        ++points;
+                    }
                 }
                 else
                 {
-                    // keep the point
+                    prev = here;
+                    new_result_list_poly.emplace_back(prev);
                 }
             }
-            skipped_verts = new_skipped_verts;
+            if (new_result_list_poly.size() < result_list_poly.size())
+            {
+                // some points were removed, go round again and see if more can be removed
+                result_list_poly = new_result_list_poly;
+            }
+            else
+            {
+                // no points were removed, time to give up
+                break;
+            }
         }
     }
 
