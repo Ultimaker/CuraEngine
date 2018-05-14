@@ -1013,7 +1013,7 @@ void GCodeExport::writePrimeTrain(double travel_speed)
 
 void GCodeExport::writeFanCommand(double speed)
 {
-    if (currentFanSpeed == speed)
+    if (std::abs(currentFanSpeed - speed) < 0.1)
         return;
     if (speed > 0)
     {
