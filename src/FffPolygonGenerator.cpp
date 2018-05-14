@@ -1004,7 +1004,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
     int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     int64_t range_random_point_dist = avg_dist_between_points / 2;
-    for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
+    unsigned int start_layer_nr = (mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM)? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
+    for (unsigned int layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
