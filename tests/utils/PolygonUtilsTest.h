@@ -51,6 +51,15 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(farMoveTest2);
     CPPUNIT_TEST(spreadDotsTestSegment);
     CPPUNIT_TEST(spreadDotsTestFull);
+    CPPUNIT_TEST(getNextParallelIntersectionTest1);
+    CPPUNIT_TEST(getNextParallelIntersectionTest2);
+    CPPUNIT_TEST(getNextParallelIntersectionTest3);
+    CPPUNIT_TEST(getNextParallelIntersectionTest4);
+    CPPUNIT_TEST(getNextParallelIntersectionTest5);
+    CPPUNIT_TEST(getNextParallelIntersectionTest6);
+    CPPUNIT_TEST(getNextParallelIntersectionTest7);
+    CPPUNIT_TEST(getNextParallelIntersectionTest8);
+    CPPUNIT_TEST(getNextParallelIntersectionTest9);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -109,6 +118,15 @@ public:
     void spreadDotsTestSegment();
     void spreadDotsTestFull();
 
+    void getNextParallelIntersectionTest1();
+    void getNextParallelIntersectionTest2();
+    void getNextParallelIntersectionTest3();
+    void getNextParallelIntersectionTest4();
+    void getNextParallelIntersectionTest5();
+    void getNextParallelIntersectionTest6();
+    void getNextParallelIntersectionTest7();
+    void getNextParallelIntersectionTest8();
+    void getNextParallelIntersectionTest9();
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.
@@ -138,6 +156,11 @@ private:
      * cppunit assert for PolygonUtils::spreadDots
      */
     void spreadDotsAssert(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, const std::vector<ClosestPolygonPoint>& supposed);
+
+    /*!
+     * cppunit assert for PolygonUtils::getNextParallelIntersection
+     */
+    void getNextParallelIntersectionAssert(std::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist);
 };
 
 }

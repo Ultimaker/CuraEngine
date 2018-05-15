@@ -1020,6 +1020,56 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, ConstPolyg
 }
 
 
+std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward)
+{
+    // <--o--t-----y----< poly 1
+    //       :     :
+    // >---o :====>:shift
+    //      \:     :
+    //       s     x
+    //        \    :
+    //         \   :
+    //          o--r----->  poly 2
+    //  s=start
+    //  r=result
+    //  t=line_to
+
+    ConstPolygonRef poly = *start.poly;
+    const Point s = start.p();
+    const Point t = line_to;
+
+    const Point st = t - s;
+    const Point shift = normal(turn90CCW(st), dist);
+
+    Point prev_vert = s;
+    coord_t prev_projected = 0;
+    for (unsigned int next_point_nr = 0; next_point_nr < poly.size(); next_point_nr++)
+    {
+        const unsigned int next_point_idx = forward? (start.point_idx + 1 + next_point_nr) % poly.size() : (start.point_idx - next_point_nr + poly.size()) % poly.size();
+        const Point next_vert = poly[next_point_idx];
+        const Point so = next_vert - s;
+        const coord_t projected = dot(shift, so) / dist;
+        if (std::abs(projected) > dist)
+        { // segment crosses the line through xy (or the one on the other side of st)
+            const Point segment_vector = next_vert - prev_vert;
+            const coord_t segment_length = vSize(segment_vector);
+            const coord_t projected_segment_length = std::abs(projected - prev_projected);
+            const char sign = (projected > 0)? 1 : -1;
+            const coord_t projected_inter_segment_length = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
+            const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
+            const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
+
+            return ClosestPolygonPoint(intersection, next_point_idx - (forward? 1 : 0), poly);
+        }
+
+        prev_vert = next_vert;
+        prev_projected = projected;
+    }
+
+    return std::optional<ClosestPolygonPoint>();
+}
+
+
 bool PolygonUtils::polygonCollidesWithLineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
 {
     bool ret = false;

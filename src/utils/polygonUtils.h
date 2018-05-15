@@ -429,6 +429,19 @@ public:
     static bool getNextPointWithDistance(Point from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
 
+    /*!
+     * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.
+     * 
+     * Note that the looking direction \p forward doesn't neccesarily determine on which side of the line we cross a parallel line.
+     * Depending on the geometry of the polygon the next intersection may be left or right of the input line.
+     * 
+     * \param start The starting point of the search and the starting point of the line
+     * \param line_to The end point of the line
+     * \param dist The distance from the parallel line to the line defined by the previous two parameters
+     * \param forward Whether to look forward from \p start in the direction of the polygon, or go in the other direction.
+     * \return The earliest point on the polygon in the given direction which crosses a line parallel to the given one at the distance \p dist - if any
+     */
+    static std::optional<ClosestPolygonPoint> getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
