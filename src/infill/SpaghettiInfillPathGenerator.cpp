@@ -67,35 +67,10 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
                     gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
                     gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
                 }
-                switch(pattern)
-                {
-                    case EFillMethod::GRID:
-                    case EFillMethod::LINES:
-                    case EFillMethod::TRIANGLES:
-                    case EFillMethod::CUBIC:
-                    case EFillMethod::TETRAHEDRAL:
-                    case EFillMethod::QUARTER_CUBIC:
-                    case EFillMethod::CUBICSUBDIV:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-                        break;
-                    case EFillMethod::CROSS:
-                    case EFillMethod::CROSS_3D:
-                        if (mesh.getSettingBoolean("zig_zaggify_infill"))
-                        {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
-                        }
-                        else
-                        {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-                        }
-                        break;
-                    case EFillMethod::ZIG_ZAG:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
-                        break;
-                    default:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, 0, flow_ratio);
-                        break;
-                }
+                const bool is_zigzag = mesh.getSettingBoolean("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
+                const coord_t wipe_dist = is_zigzag ? 0 : -mesh.getSettingInMicrons("infill_wipe_dist");
+                const SpaceFillType line_type = is_zigzag ? SpaceFillType::Lines : SpaceFillType::PolyLines;
+                gcode_layer.addLinesByOptimizer(infill_lines, config, line_type, false, wipe_dist, flow_ratio);
             }
         }
         else
