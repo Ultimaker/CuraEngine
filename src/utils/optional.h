@@ -49,6 +49,13 @@ public:
     : instance(new T(args...))
     {
     }
+    template<class U = T
+        , typename = typename std::enable_if<std::is_assignable<T&, U>::value>::type // type U is T, T& or T&&
+        >
+    optional(U&& value)
+    {
+        instance = new T(value);
+    }
     virtual ~optional() //!< simple destructor
     {
         if (instance)
