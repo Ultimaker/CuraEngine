@@ -165,6 +165,18 @@ public:
             instance = new T(args...);
         }
     }
+    template<class U>
+    constexpr bool operator==(const optional<U>& rhs)
+    {
+        if (*this && rhs)
+        {
+            return **this == *rhs;
+        }
+        else
+        {
+            return static_cast<bool>(*this) == static_cast<bool>(rhs);
+        }
+    }
 };
 
 }//namespace std
