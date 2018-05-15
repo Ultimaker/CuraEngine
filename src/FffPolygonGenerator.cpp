@@ -300,6 +300,14 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
+    if (isEmptyLayer(storage, 0) && !isEmptyLayer(storage, 1))
+    {
+        // the first layer is empty, the second is not empty, so remove the empty first layer as support isn't going to be generated under it.
+        // Do this irrespective of the value of remove_empty_first_layers as that setting is hidden when support is enabled and so cannot be relied upon
+
+        removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
+    }
+
     log("Layer count: %i\n", storage.print_layer_count);
 
     //layerparts2HTML(storage, "output/output.html");
@@ -329,6 +337,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
+    storage.primeTower.generateGroundpoly(storage);
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
 
@@ -735,7 +744,8 @@ void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMe
         }
         bool recompute_outline_based_on_outer_wall = (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_tree_enable")) && !mesh.getSettingBoolean("fill_outline_gaps");
         bool remove_parts_with_no_insets = !mesh.getSettingBoolean("fill_outline_gaps");
-        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
+        const bool try_line_thickness = mesh.getSettingBoolean("wall_try_line_thickness");
+        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets, try_line_thickness);
         walls_computation.generateInsets(layer);
     }
     else
@@ -760,6 +770,10 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     }
     for (SliceMeshStorage& mesh : storage.meshes)
     {
+        if (layer_idx >= mesh.layers.size())
+        {
+            continue;
+        }
         SliceLayer& layer = mesh.layers[layer_idx];
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
         {
@@ -990,7 +1004,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
     int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     int64_t range_random_point_dist = avg_dist_between_points / 2;
-    for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
+    unsigned int start_layer_nr = (mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM)? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
+    for (unsigned int layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)

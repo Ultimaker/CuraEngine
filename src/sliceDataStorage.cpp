@@ -71,26 +71,30 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-Polygons SliceLayer::getSecondOrInnermostWalls() const
-{
-    Polygons ret;
-    getSecondOrInnermostWalls(ret);
-    return ret;
-}
-
-void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
+void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
 {
     for (const SliceLayerPart& part : parts)
     {
-        // we want the 2nd inner walls
-        if (part.insets.size() >= 2) {
-            layer_walls.add(part.insets[1]);
-            continue;
-        }
-        // but we'll also take the inner wall if the 2nd doesn't exist
-        if (part.insets.size() == 1) {
-            layer_walls.add(part.insets[0]);
-            continue;
+        switch (max_inset) {
+            case 1:
+                // take the inner wall
+                if (part.insets.size() >= 1) {
+                    layer_walls.add(part.insets[0]);
+                    continue;
+                }
+                break;
+            case 2:
+            default:
+                // we want the 2nd inner walls
+                if (part.insets.size() >= 2) {
+                    layer_walls.add(part.insets[1]);
+                    continue;
+                }
+                // but we'll also take the inner wall if the 2nd doesn't exist
+                if (part.insets.size() == 1) {
+                    layer_walls.add(part.insets[0]);
+                    continue;
+                }
         }
         // offset_from_outlines was so large that it completely destroyed our isle,
         // so we'll just use the regular outline
@@ -330,6 +334,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     else 
     {
         Polygons total;
+        coord_t maximum_resolution = std::numeric_limits<coord_t>::max();
         if (layer_nr >= 0)
         {
             for (const SliceMeshStorage& mesh : meshes)
@@ -344,6 +349,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
                 }
+                maximum_resolution = std::min(maximum_resolution, mesh.getSettingInMicrons("meshfix_maximum_resolution"));
             }
         }
         if (include_helper_parts)
@@ -360,9 +366,10 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             }
             if (primeTower.enabled)
             {
-                total.add(primeTower.ground_poly);
+                total.add(primeTower.inner_poly);
             }
         }
+        total.simplify(maximum_resolution, maximum_resolution);
         return total;
     }
 }
@@ -388,7 +395,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             for (const SliceMeshStorage& mesh : meshes)
             {
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                layer.getSecondOrInnermostWalls(total);
+                layer.getInnermostWalls(total, 2);
                 if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
@@ -409,7 +416,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             }
             if (primeTower.enabled)
             {
-                total.add(primeTower.ground_poly);
+                total.add(primeTower.inner_poly);
             }
         }
         return total;
