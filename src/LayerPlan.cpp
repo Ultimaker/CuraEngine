@@ -269,7 +269,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
     const coord_t maximum_travel_resolution = extr->getSettingInMicrons("meshfix_maximum_travel_resolution");
 
-    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
+    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
     const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
