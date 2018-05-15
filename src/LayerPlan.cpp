@@ -454,8 +454,9 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_order)
 {
+    
     if (polygons.size() == 0)
     {
         return;
@@ -466,27 +467,21 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    
+    if(reverse_order == false)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        {
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        }
     }
-}
-
-void LayerPlan::addPolygonsByOptimizerReverse(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
-{
-    if (polygons.size() == 0)
+    else
     {
-        return;
-    }
-    PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
-    {
-        orderOptimizer.addPolygon(polygons[poly_idx]);
-    }
-    orderOptimizer.optimize();
-    for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index){
-        int poly_idx = orderOptimizer.polyOrder[index];
-        addPolygon(polygons[poly_idx], orderOptimizer.polyOrder[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index)
+        {
+            int poly_idx = orderOptimizer.polyOrder[index];
+            addPolygon(polygons[poly_idx], orderOptimizer.polyOrder[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        }
     }
 }
 

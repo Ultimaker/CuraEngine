@@ -944,7 +944,9 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         }
         gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
         gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
-        gcode_layer.addPolygonsByOptimizerReverse(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        
+        //Add polygon in reverse order
+        gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], nullptr, ZSeamConfig(), 0, false, 1.0, false, true);
     }
 }
 
