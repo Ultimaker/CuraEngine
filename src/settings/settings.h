@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "../utils/floatpoint.h"
+#include "../utils/string.h"
 
 #include "../FlowTempGraph.h"
 
@@ -327,7 +328,7 @@ public:
         {
             if (!pair.second.empty())
             {
-                sstream << " -s " << pair.first << "=\"" << pair.second << "\"";
+                sstream << " -s " << pair.first << "=\"" << Escaped{pair.second.c_str()} << '\"';
             }
         }
         return sstream.str();

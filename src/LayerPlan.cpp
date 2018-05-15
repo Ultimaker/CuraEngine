@@ -72,7 +72,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
@@ -84,7 +84,9 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
-, comb_boundary_inside(computeCombBoundaryInside(combing_mode))
+, comb_boundary_inside1(computeCombBoundaryInside(combing_mode, 1))
+, comb_boundary_inside2(computeCombBoundaryInside(combing_mode, 2))
+, comb_move_inside_distance(comb_move_inside_distance)
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     int current_extruder = start_extruder;
@@ -93,7 +95,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
-        comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance, comb_move_inside_distance);
     }
     else
     {
@@ -125,7 +127,7 @@ SettingsBaseVirtual* LayerPlan::getLastPlannedExtruderTrainSettings()
 }
 
 
-Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
+Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_inset)
 {
     if (combing_mode == CombingMode::OFF)
     {
@@ -160,7 +162,7 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode)
             }
             else
             {
-                layer.getSecondOrInnermostWalls(comb_boundary);
+                layer.getInnermostWalls(comb_boundary, max_inset);
             }
         }
         return comb_boundary;
@@ -230,11 +232,11 @@ void LayerPlan::moveInsideCombBoundary(int distance)
     int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
+    if (PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2);
-        if (comb_boundary_inside.inside(p))
+        PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2);
+        if (comb_boundary_inside2.inside(p))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
@@ -265,6 +267,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
+    const coord_t maximum_travel_resolution = extr->getSettingInMicrons("meshfix_maximum_travel_resolution");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
@@ -314,26 +317,36 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 if (combPaths.size() == 1)
                 {
                     CombPath comb_path = combPaths[0];
-                    if (combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
+                    if (extr->getSettingBoolean("limit_support_retractions") &&
+                        combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }
                 }
             }
 
+            float dist = 0;
+            Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.size() == 0)
                 {
                     continue;
                 }
-                path->retract = retract;
-                // don't perform a z-hop
-                for (Point& combPoint : combPath)
+                for (Point& comb_point : combPath)
                 {
-                    path->points.push_back(combPoint);
+                    if (path->points.empty() || vSize2(path->points.back() - comb_point) > maximum_travel_resolution * maximum_travel_resolution)
+                    {
+                        path->points.push_back(comb_point);
+                        dist += vSize(last_point - comb_point);
+                        last_point = comb_point;
+                    }
                 }
                 last_planned_position = combPath.back();
+                dist += vSize(last_point - p);
+                const double retract_threshold = extr->getSettingInMicrons("retraction_combing_max_distance");
+                path->retract = retract || (retract_threshold > 0 && dist > retract_threshold);
+                // don't perform a z-hop
             }
         }
     }
@@ -441,8 +454,9 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_order)
 {
+    
     if (polygons.size() == 0)
     {
         return;
@@ -453,9 +467,21 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    
+    if(reverse_order == false)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        {
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        }
+    }
+    else
+    {
+        for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index)
+        {
+            int poly_idx = orderOptimizer.polyOrder[index];
+            addPolygon(polygons[poly_idx], orderOptimizer.polyOrder[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        }
     }
 }
 
@@ -812,7 +838,7 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
 {
     Polygons boundary;
-    if (enable_travel_optimization && comb_boundary_inside.size() > 0)
+    if (enable_travel_optimization && comb_boundary_inside2.size() > 0)
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
@@ -829,7 +855,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_inside.offset(dist));
+        boundary.add(comb_boundary_inside2.offset(dist));
         // simplify boundary to cut down processing time
         boundary.simplify(100, 100);
     }
@@ -838,7 +864,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
-    orderOptimizer.optimize(enable_travel_optimization || polygons.size() <= 1000);
+    orderOptimizer.optimize();
     for (int poly_idx : orderOptimizer.polyOrder)
     {
         ConstPolygonRef polygon = polygons[poly_idx];

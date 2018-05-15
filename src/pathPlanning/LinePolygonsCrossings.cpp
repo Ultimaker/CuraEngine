@@ -146,7 +146,7 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
 {
     ConstPolygonRef poly = boundary[polyCrossings.poly_idx];
     combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
-    if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size() 
+    if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + (int)poly.size() ) % poly.size()
         < poly.size() / 2 )
     { // follow the path in the same direction as the winding order of the boundary polygon
         for(unsigned int point_idx = polyCrossings.min.point_idx
