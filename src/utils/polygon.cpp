@@ -408,6 +408,10 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 const Point& here = points.p();
                 ++points;
                 const Point& next = points.p();
+                if (here == next)
+                { // disregard duplicate points without skipping the next point
+                    continue;
+                }
                 if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
                 {
                     // don't add [here] to the result but add the next point
