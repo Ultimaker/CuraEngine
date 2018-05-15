@@ -60,6 +60,7 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getNextParallelIntersectionTest7);
     CPPUNIT_TEST(getNextParallelIntersectionTest8);
     CPPUNIT_TEST(getNextParallelIntersectionTest9);
+    CPPUNIT_TEST(getNextParallelIntersectionTest10);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -127,6 +128,7 @@ public:
     void getNextParallelIntersectionTest7();
     void getNextParallelIntersectionTest8();
     void getNextParallelIntersectionTest9();
+    void getNextParallelIntersectionTest10();
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.

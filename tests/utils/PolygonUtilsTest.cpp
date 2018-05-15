@@ -494,6 +494,15 @@ void PolygonUtilsTest::getNextParallelIntersectionTest9()
     getNextParallelIntersectionAssert(std::optional<Point>(), start_point, line_to, forward, dist);
 }
 
+void PolygonUtilsTest::getNextParallelIntersectionTest10()
+{
+    Point start_point(5, 100);
+    Point line_to = Point(105, 200);
+    bool forward = true;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(0, 45), start_point, line_to, forward, dist);
+}
+
 void PolygonUtilsTest::getNextParallelIntersectionAssert(std::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist)
 {
     ClosestPolygonPoint start = PolygonUtils::findClosest(start_point, test_squares);
