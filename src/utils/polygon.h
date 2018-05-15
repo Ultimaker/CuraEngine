@@ -487,6 +487,11 @@ public:
     {
         return path;
     }
+
+    bool operator==(const ConstPolygonPointer& rhs)
+    {
+        return path == rhs.path;
+    }
 };
 
 class PolygonPointer
