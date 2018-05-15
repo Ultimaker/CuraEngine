@@ -63,15 +63,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
 
     // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    unsigned int wall_line_count = 0;  // no wall for zig zag.
-    if (support_pattern == EFillMethod::GRID
-        || support_pattern == EFillMethod::TRIANGLES
-        || support_pattern == EFillMethod::CONCENTRIC)
-    {
-        // for other patterns which require a wall, we will generate 2 insets.
-        // the first inset is the wall line, and the second inset is the infill area
-        wall_line_count = 1;
-    }
+    unsigned int wall_line_count = infill_extr.getSettingAsCount("support_wall_count");
 
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
@@ -79,7 +71,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         unsigned int wall_line_count_this_layer = wall_line_count;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
         { // the first layer will be printed wit ha grid pattern
-            wall_line_count_this_layer = 1;
+            wall_line_count_this_layer++;
         }
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
