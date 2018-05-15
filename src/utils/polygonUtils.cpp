@@ -604,7 +604,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
-    if (!poly1_result.isValid() || !poly2_result.isValid())
+    if (!poly1_result.poly || !poly2_result.poly)
     {
         return;
     }
@@ -617,23 +617,25 @@ void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, Clo
     
     int bestDist2 = -1;
     
-    int step1 = std::max<unsigned int>(2, poly1.size() / sample_size);
-    int step2 = std::max<unsigned int>(2, poly2.size() / sample_size);
+    int step1 = std::max<unsigned int>(1, poly1.size() / sample_size);
+    int step2 = std::max<unsigned int>(1, poly2.size() / sample_size);
     for (unsigned int i = 0; i < poly1.size(); i += step1)
     {
         for (unsigned int j = 0; j < poly2.size(); j += step2)
-        {   
+        {
             int dist2 = vSize2(poly1[i] - poly2[j]);
             if (bestDist2 == -1 || dist2 < bestDist2)
-            {   
+            {
                 bestDist2 = dist2;
                 poly1_result.point_idx = i;
                 poly2_result.point_idx = j;
             }
         }
     }
-    
-    walkToNearestSmallestConnection(poly1_result, poly2_result);    
+
+    poly1_result.location = poly1[poly1_result.point_idx];
+    poly2_result.location = poly2[poly2_result.point_idx];
+    walkToNearestSmallestConnection(poly1_result, poly2_result);
 }
 
 void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
