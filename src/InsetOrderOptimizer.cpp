@@ -54,13 +54,21 @@ void InsetOrderOptimizer::moveInside()
 
 void InsetOrderOptimizer::processHoleInsets()
 {
+    if (inset_polys[0].size() < 2)
+    {
+        // part has no holes - the code below has a problem in that it causes the z-seams not
+        // to be aligned in the specific situation where infill was being printed before walls, the
+        // inner walls were printed before the outer and the part has no holes!
+        return;
+    }
+
     const coord_t wall_line_width_0 = mesh_config.inset0_config.getLineWidth();
     const coord_t wall_line_width_x = mesh_config.insetX_config.getLineWidth();
     const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
     const coord_t wall_0_wipe_dist = mesh.getSettingInMicrons("wall_0_wipe_dist");
     const bool retract_before_outer_wall = mesh.getSettingBoolean("travel_retract_before_outer_wall");
     const bool outer_inset_first = mesh.getSettingBoolean("outer_inset_first")
-        || (layer_nr == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM && !mesh.getSettingBoolean("brim_outside_only"));
+        || (layer_nr == 0 && mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM);
     const unsigned int num_insets = part.insets.size();
     constexpr float flow = 1.0;
 
@@ -462,7 +470,8 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         {
             wall_x_polys.add(part.insets[inset_level]);
         }
-        wall_overlapper_x = new WallOverlapComputation(wall_x_polys, mesh_config.insetX_config.getLineWidth());
+        // use a slightly reduced line width so that compensation only occurs between insets at the same level (and not between insets in adjacent levels)
+        wall_overlapper_x = new WallOverlapComputation(wall_x_polys, mesh_config.insetX_config.getLineWidth() - 1);
     }
 
     // create a vector of vectors containing all the inset polys
@@ -551,9 +560,9 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
         // optimization disabled
         return false;
     }
-    if (part.insets.size() < 2 || part.insets[0].size() < 2)
+    if (part.insets.size() < 2 && part.insets[0].size() < 2)
     {
-        // only a single outline or no holes, not worth optimizing as the original inset processing code now aligns the z-seams of the outside walls
+        // only a single outline and no holes, definitely not worth optimizing
         return false;
     }
     // optimize all other combinations of walls and holes

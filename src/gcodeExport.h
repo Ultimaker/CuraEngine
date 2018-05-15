@@ -125,7 +125,7 @@ private:
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
     int current_extruder;
-    int currentFanSpeed;
+    double currentFanSpeed;
     EGCodeFlavor flavor;
 
     std::vector<double> total_print_times; //!< The total estimated print time in seconds for each feature

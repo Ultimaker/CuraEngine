@@ -144,7 +144,6 @@ set(engine_SRCS # Except main.cpp.
     src/settings/SettingRegistry.cpp
     src/settings/settings.cpp
     src/settings/AdaptiveLayerHeights.cpp
-    src/settings/AdaptiveLayerHeights.h
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
@@ -159,6 +158,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
+    src/utils/SVG.cpp
     src/utils/socket.cpp
     src/utils/SpaceFillingTree.cpp
 )
