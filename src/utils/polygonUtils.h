@@ -35,6 +35,12 @@ struct ClosestPolygonPoint
     {
         return point_idx != NO_INDEX;
     }
+    bool operator==(const ClosestPolygonPoint& rhs)
+    {
+        // no need to compare on poy_idx
+        // it's sometimes unused while poly is always initialized
+        return poly == rhs.poly && point_idx == rhs.point_idx && location == rhs.location;
+    }
 };
 
 /*!
