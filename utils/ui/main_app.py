@@ -56,9 +56,9 @@ class MainApp:
         self._create_panel_main()
 
         # fill in screen
-        # w = self.master.winfo_screenwidth()
-        # h = self.master.winfo_screenheight()
-        # self.master.geometry("%dx%d+0+0" % (w, h))
+        w = self.master.winfo_screenwidth()
+        h = self.master.winfo_screenheight()
+        self.master.geometry("%dx%d+0+0" % (w, h))
 
     def _create_panel_main(self):
         self.file_panel = Frame(self.master, name="file")
@@ -71,13 +71,12 @@ class MainApp:
         self.file_path_lable = Label(self.file_panel, textvariable=self.file_path_label_text)
         self.file_path_lable.grid(row=0, column=1, sticky=E+W)
 
-        ### plot
+        # plot
         self.figure = Figure()
-        self.ax = self.figure.add_subplot(111)
-        # self.line, = self.ax.plot(range(10))
+        self.ax = self.figure.add_subplot(111, aspect='equal')
 
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.master)
-        self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=1, column=0, sticky=N+S, padx=5, pady=5)
 
         # grid layout
@@ -107,28 +106,19 @@ class MainApp:
     def refresh_graph(self, layer_index=0):
         parts = self._storage.get_volume(0).get_layer(layer_index)
         self.ax.clear()
-        all_x = list()
-        all_y = list()
-        lines = list()
+        self.ax.set_xlim(0, self._storage.model_size_x / 1000)
+        self.ax.set_ylim(0, self._storage.model_size_y / 1000)
         for part_nr in range(parts.get_parts_size()):
             for outline_nr in range(parts.get_part(part_nr).get_outlines_size()):
                 x = parts.get_part(part_nr).get_outline(outline_nr).get_all_points_at_x()
                 y = parts.get_part(part_nr).get_outline(outline_nr).get_all_points_at_y()
                 x = [e/1000 for e in x]
                 y = [e/1000 for e in y]
-                all_x = all_x + x
-                all_y = all_y + y
                 # end point connects to begin point
                 x.append(x[0])
                 y.append(y[0])
-                lines.append(Line2D(x, y))
+                self.ax.fill(x, y, 'b')
 
-        for line in lines:
-            self.ax.add_line(line)
-
-        self.ax.set_xlim(0, max(all_x))
-        self.ax.set_ylim(0, max(all_y))
-        plt.gca().set_aspect('equal', adjustable='box')
         self.canvas.draw()
 
     def update_layer_index(self, value):
