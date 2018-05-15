@@ -63,11 +63,19 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
         {
             svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::Color::BLUE);
             svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::Color::GREEN);
+            Polygon connected = pc.connect(*computed);
+            svg.writePolygon(connected, SVG::Color::YELLOW);
+//             svg.writePoints(connected, true, 5, SVG::Color::YELLOW);
+//             int c = 0;
+//             for (Point p : connected)
+//                 svg.writeText(p, std::to_string(c++));
+            std::cerr << "written\n";
         }
         else
         {
             std::cerr << "Couldn't find any connection!\n";
         }
+        
     }
     
 

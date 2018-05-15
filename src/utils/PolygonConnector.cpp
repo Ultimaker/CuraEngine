@@ -13,6 +13,75 @@ Polygons PolygonConnector::connect()
 }
 
 
+Polygon PolygonConnector::connect(const PolygonConnector::PolygonBridge& bridge)
+{
+    // enforce the following orientations:
+    //
+    // <<<<<<X......X<<<<<<< poly2
+    //       ^      v
+    //       ^      v
+    //       ^ a  b v bridge
+    //       ^      v
+    // >>>>>>X......X>>>>>>> poly1
+    //
+    // this should work independent from whether it is a hole polygon or a outline polygon
+    Polygon ret;
+    addPolygonSegment(bridge.b.from, bridge.a.from, ret);
+    addPolygonSegment(bridge.a.to, bridge.b.to, ret);
+    return ret;
+}
+
+void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result)
+{
+    //        ^             v
+    //        ^             v
+    // >>>>>>>.end.....start.>>>>>>>
+    assert(a.poly == b.poly && "We can only bridge from one polygon from the other if both connections depart from the one polygon!");
+    ConstPolygonRef poly = *end.poly;
+    char dir = getPolygonDirection(end, start); // we get the direction of the polygon in between the bridge connections, while we add the segment of the polygon not in between the segments
+
+    result.add(start.p());
+    bool first_iter = true;
+    for (size_t vert_nr = 0; vert_nr < poly.size(); vert_nr++)
+    {
+        size_t vert_idx =
+            (dir > 0)?
+            (start.point_idx + 1 + vert_nr) % poly.size()
+            : (start.point_idx - vert_nr + poly.size()) % poly.size();
+        if (!first_iter && vert_idx == (end.point_idx + ((dir > 0)? 1 : 0)) % poly.size())
+        {
+            break;
+        }
+        first_iter = false;
+        result.add(poly[vert_idx]);
+    }
+    result.add(end.p());
+}
+
+char PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to)
+{
+    assert(a.poly == b.poly && "We can only bridge from one polygon from the other if both connections depart from the one polygon!");
+    ConstPolygonRef poly = *from.poly;
+    if (from.point_idx == to.point_idx)
+    {
+        const Point prev_vert = poly[from.point_idx];
+        const coord_t from_dist2 = vSize2(from.p() - prev_vert);
+        const coord_t to_dist2 = vSize2(to.p() - prev_vert);
+        return (to_dist2 > from_dist2)? 1 : -1;
+    }
+    // TODO: replace naive implementation by robust implementation
+    // naive idea: there are less vertices in between the connection points than around
+    const size_t a_to_b_vertex_count = (to.point_idx - from.point_idx + poly.size()) % poly.size();
+    if (a_to_b_vertex_count > poly.size() / 2)
+    {
+        return 1; // from a to b is in the reverse direction as the vertices are saved in the polygon
+    }
+    else
+    {
+        return -1; // from a to b is in the same direction as the vertices are saved in the polygon
+    }
+}
+
 std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(ConstPolygonRef from_poly, std::vector<ConstPolygonPointer>& to_polygons)
 {
     std::optional<PolygonConnector::PolygonConnection> connection = getConnection(from_poly, to_polygons);
@@ -28,6 +97,13 @@ std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Const
         PolygonBridge result;
         result.a = *connection;
         result.b = *second_connection;
+        // ensure that b is always the right connection and a the left
+        Point a_vec = result.a.to.p() - result.a.from.p();
+        Point shift = turn90CCW(a_vec);
+        if (dot(shift, result.b.from.p() - result.a.from.p()) > 0)
+        {
+            std::swap(result.a, result.b);
+        }
         return result;
     }
     else

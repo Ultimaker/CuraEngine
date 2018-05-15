@@ -40,7 +40,7 @@ public:
 protected:
     coord_t line_width;
     coord_t max_dist;
-    std::vector<ConstPolygonRef> input_polygons;
+    std::vector<ConstPolygonPointer> input_polygons;
 
     /*!
      * Line segment to connect two polygons
@@ -57,6 +57,11 @@ protected:
     };
     /*!
      * bridge to connect two polygons twice in order to make it into one polygon
+     *     -----o-----o-----
+     *          ^     v
+     *        a ^     v b
+     *          ^     v
+     *     -----o-----o----
      */
     struct PolygonBridge
     {
@@ -64,9 +69,13 @@ protected:
         PolygonConnection b; //!< second connection
     };
 
-    std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<ConstPolygonPointer>& polygons);
-    std::optional<PolygonConnector::PolygonConnection> getSecondConnection(PolygonConnection& first);
+    Polygon connect(const PolygonBridge& bridge);
+    
+    void addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result);
+    char getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<ConstPolygonPointer>& polygons);
+    std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<ConstPolygonPointer>& polygons);
+    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
 };
 
 
