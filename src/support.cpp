@@ -1,3 +1,4 @@
+//Copyright (C) 2013 Ultimaker
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
@@ -5,6 +6,7 @@
 #include <utility> // pair
 #include <deque>
 #include <cmath> // round
+#include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -14,7 +16,8 @@
 
 #include "utils/math.h"
 #include "progress/Progress.h"
-#include "infill/SpaceFillingTreeFill.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
 
 namespace cura 
 {
@@ -662,10 +665,16 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
-        for (unsigned int density_idx = 0; density_idx <= (unsigned int)infill_extr.getSettingAsCount("gradual_support_infill_steps"); ++density_idx)
+        
+        std::string cross_subdisivion_spec_image_file = infill_extr.getSettingString("cross_support_density_image");
+        std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+        if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            coord_t line_distance = infill_extr.getSettingInMicrons("support_line_distance") << density_idx;
-            storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(line_distance, aabb));
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"), cross_subdisivion_spec_image_file);
+        }
+        else
+        {
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), ((float) infill_extr.getSettingInMicrons("support_line_width")) / infill_extr.getSettingInMicrons("support_line_distance"));
         }
     }
 }

@@ -354,11 +354,12 @@ public:
     {
     }
 
+    void reserve(size_t min_size)
+    {
+        path->reserve(min_size);
+    }
+
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
-//     {
-//         *path = *other.path;
-//         return *this;
-//     }
 
     Point& operator[] (unsigned int index)
     {
@@ -546,9 +547,16 @@ public:
     {
     }
 
-    Polygon& operator=(const ConstPolygonRef& other)
+    Polygon& operator=(const ConstPolygonRef& other) = delete; // copying a single polygon is generally not what you want
+//     {
+//         path = other.path;
+//         poly = *other.path;
+//         return *this;
+//     }
+
+    Polygon& operator=(Polygon&& other) //!< move assignment
     {
-        path = other.path;
+        poly = std::move(other.poly);
         return *this;
     }
 };
