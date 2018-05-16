@@ -1230,6 +1230,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config);
             }
 
+            if (!path.retract && path.config->isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && z == gcode.getPositionZ())
+            {
+                // ignore travel moves to the current location to avoid needless change of acceleration/jerk
+                continue;
+            }
+
             if (acceleration_enabled)
             {
                 if (path.config->isTravelPath())
