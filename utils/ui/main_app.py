@@ -2,8 +2,6 @@ import matplotlib
 import sys
 import os
 from helper.data_file_helper import DataFileHelper
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 
 matplotlib.use("TkAgg")
 
@@ -29,7 +27,7 @@ else:
 
 class MainApp:
     DEFAULT_FILE_PATH = '/tmp/parts_by_layers.txt'
-
+    DEFAULT_WINDOWS_TITLE = 'Parts Viewer'
     def __init__(self):
         # initialized variables
         self._storage = None
@@ -48,7 +46,7 @@ class MainApp:
     def _create_widgets(self):
         # create master
         self.master = Tk()
-        self.master.title('Parts Viewer')
+        self.master.title(MainApp.DEFAULT_WINDOWS_TITLE)
         # hook up window delete event
         self.master.protocol("WM_DELETE_WINDOW", self.quit)
 
@@ -63,13 +61,12 @@ class MainApp:
     def _create_panel_main(self):
         self.file_panel = Frame(self.master, name="file")
         self.file_panel.grid(row=0, column=0)
+        # file panel
+        open_file_button = Button(self.file_panel, text='Open parts file...', command=self.ask_parts_file_dialog)
+        open_file_button.grid(row=0, column=0, padx=20, pady=5, sticky=E)
 
-        a_button = Button(self.file_panel, text='Open parts file...', command=self.ask_parts_file_dialog)
-        a_button.grid(row=0, column=0, padx=20, pady=5, sticky=W)
-        self.file_path_label_text = StringVar()
-        self.file_path_label_text.set(self._file_path)
-        self.file_path_lable = Label(self.file_panel, textvariable=self.file_path_label_text)
-        self.file_path_lable.grid(row=0, column=1, sticky=E+W)
+        refresh_button = Button(self.file_panel, text='Refresh', command=self.refresh_loading)
+        refresh_button.grid(row=0, column=1, padx=20, pady=5, sticky=W)
 
         # plot
         self.figure = Figure()
@@ -94,14 +91,19 @@ class MainApp:
         file_path = FD.askopenfilename()
         if file_path is not None and len(file_path) != 0:
             self._update_file_path(file_path)
-            self.load_parts_data(file_path)
-            self.refresh_graph()
+            self.refresh_loading()
         return file_path
+
+    def refresh_loading(self):
+        if self._file_path is not None and os.path.isfile(self._file_path):
+            self.load_parts_data(self._file_path)
+            self.refresh_graph()
 
     def load_parts_data(self, file_path):
         if os.path.isfile(file_path):
             self._storage, msg = DataFileHelper.load_part_file(file_path)
             self.scale.config(to=self._storage.get_volume(0).get_layer_size())
+            self.master.title(MainApp.DEFAULT_WINDOWS_TITLE + ' -- ' + self._file_path)
 
     def refresh_graph(self, layer_index=0):
         parts = self._storage.get_volume(0).get_layer(layer_index)
