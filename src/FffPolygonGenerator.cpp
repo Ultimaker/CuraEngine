@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -24,7 +25,9 @@
 #include "SkirtBrim.h"
 #include "skin.h"
 #include "infill/SpaghettiInfill.h"
-#include "infill/SpaceFillingTreeFill.h"
+#include "infill/DensityProvider.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
 #include "infill.h"
 #include "raft.h"
 #include "progress/Progress.h"
@@ -697,9 +700,20 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 || mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CROSS_3D)
         )
         {
-            for (unsigned int gradual_step = 0; gradual_step <= (unsigned int)mesh.getSettingAsCount("gradual_infill_steps"); gradual_step++)
+            std::string cross_subdisivion_spec_image_file = mesh.getSettingString("cross_infill_density_image");
+            std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+            if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
             {
-                mesh.cross_fill_patterns.push_back(new SpaceFillingTreeFill(mesh.getSettingInMicrons("infill_line_distance") << gradual_step, mesh.bounding_box));
+                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"), cross_subdisivion_spec_image_file);
+            }
+            else
+            {
+                if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
+                {
+                    logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
+                    std::exit(-1);
+                }
+                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"));
             }
         }
 

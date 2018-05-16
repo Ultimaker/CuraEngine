@@ -4,6 +4,8 @@
 
 #include <limits>
 
+#include "AABB.h"
+
 namespace cura
 {
 
@@ -88,6 +90,10 @@ void AABB3D::expandXY(int outset)
     }
 }
 
+AABB AABB3D::getAABB() const
+{
+    return AABB(Point(min.x, min.y), Point(max.x, max.y));
+}
 
 }//namespace cura
 

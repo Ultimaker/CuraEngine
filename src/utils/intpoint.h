@@ -191,7 +191,7 @@ INLINE bool shorterThen(const Point& p0, int32_t len)
     return vSize2(p0) <= len*len;
 }
 
-INLINE int64_t vSize(const Point& p0)
+INLINE coord_t vSize(const Point& p0)
 {
     return sqrt(vSize2(p0));
 }
