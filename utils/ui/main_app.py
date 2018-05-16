@@ -117,7 +117,12 @@ class MainApp:
                 # end point connects to begin point
                 x.append(x[0])
                 y.append(y[0])
-                self.ax.fill(x, y, 'b')
+                if outline_nr == 0:
+                    # the first outlines filled in blue
+                    fill_color = 'b'
+                else:
+                    fill_color = 'w'
+                self.ax.fill(x, y, fill_color)
 
         self.canvas.draw()
 

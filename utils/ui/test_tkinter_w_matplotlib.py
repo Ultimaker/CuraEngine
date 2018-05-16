@@ -14,7 +14,6 @@ else:
     text = str
 
 
-
 class App:
     def __init__(self, master):
         # Create a container
