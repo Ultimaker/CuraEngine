@@ -664,6 +664,31 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
             break;
         }
     }
+
+    // check surrounding verts in order to prevent local optima like the following:
+    //o      o
+    // \.....| 
+    //  \_.-'|
+    //   \---|
+    //    \-'|
+    //     o o >> should find connection here
+    coord_t best_distance2 = vSize2(poly1_result.p() - poly2_result.p());
+    auto check_neighboring_vert = [&best_distance2](ConstPolygonRef from_poly, ConstPolygonRef to_poly, ClosestPolygonPoint& from_poly_result, ClosestPolygonPoint& to_poly_result, bool vertex_after)
+        {
+            const Point after_poly2_result = to_poly[(to_poly_result.point_idx + vertex_after) % to_poly.size()];
+            const ClosestPolygonPoint poly1_after_poly2_result = findNearestClosest(after_poly2_result, from_poly, from_poly_result.point_idx);
+            const coord_t poly1_after_poly2_result_dist2 = vSize2(poly1_after_poly2_result.p() - after_poly2_result);
+            if (poly1_after_poly2_result_dist2 < best_distance2)
+            {
+                from_poly_result = poly1_after_poly2_result;
+                to_poly_result.location = after_poly2_result;
+                best_distance2 = poly1_after_poly2_result_dist2;
+            }
+        };
+    check_neighboring_vert(poly1, poly2, poly1_result, poly2_result, false);
+    check_neighboring_vert(poly1, poly2, poly1_result, poly2_result, true);
+    check_neighboring_vert(poly2, poly1, poly2_result, poly1_result, false);
+    check_neighboring_vert(poly2, poly1, poly2_result, poly1_result, true);
 }
 
 ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef polygon, int start_idx)
