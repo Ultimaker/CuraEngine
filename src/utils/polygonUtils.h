@@ -303,7 +303,7 @@ public:
     * 
     * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
     * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
-    * \param sample_size The number of points on each polygon to start the hill climbing search from. 
+    * \param sample_size The number of points on each polygon to start the hill climbing search from. Use negative values for checking all combinations of points.
     */
     static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
 
