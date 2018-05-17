@@ -76,6 +76,8 @@ protected:
         PolygonConnection b; //!< second connection
     };
 
+    std::vector<PolygonBridge> all_bridges; // just for keeping scores
+
     Polygon connect(const PolygonBridge& bridge);
     void addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result);
     char getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);

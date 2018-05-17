@@ -3,6 +3,7 @@
 
 #include "PolygonConnectorTest.h"
 
+#include <unordered_set>
 
 namespace cura
 {
@@ -10,61 +11,93 @@ namespace cura
 
 void PolygonConnectorTest::setUp()
 {
+    
     test_square.emplace_back(0, 0);
-    test_square.emplace_back(100, 0);
-    test_square.emplace_back(100, 100);
-    test_square.emplace_back(0, 100);
+    test_square.emplace_back(1000, 0);
+    test_square.emplace_back(1000, 1000);
+    test_square.emplace_back(0, 1000);
     test_shapes.add(test_square);
+    
+    test_square2.emplace_back(1100, 1500);
+    test_square2.emplace_back(2000, 1500);
+    test_square2.emplace_back(2000, -500);
+    test_square2.emplace_back(1100, -500);
+    test_shapes.add(test_square2);
 
-    test_triangle.emplace_back(50, 110);
-    test_triangle.emplace_back(150, 210);
-    test_triangle.emplace_back(0, 210);
+    test_triangle.emplace_back(0, 2100);
+    test_triangle.emplace_back(500, 1100);
+    test_triangle.emplace_back(1500, 2100);
     test_shapes.add(test_triangle);
+    
+    for (double a = 0; a < 1.0; a += .05)
+    {
+        test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
+    }
+    test_shapes.add(test_circle);
 
+    Polygons inset = test_shapes;
+    while (!inset.empty())
+    {
+        inset = inset.offset(-100);
+        test_shapes.add(inset);
+//         break;
+    }
+
+    line_width = 100;
+    max_dist = 170;
+    pc = new PolygonConnector(line_width, max_dist);
+    pc->add(test_shapes);
+    connecteds = pc->connect();
+    CPPUNIT_ASSERT_MESSAGE("PolygonConnector gave no output polygons!!", connecteds.size() > 0);
 }
 
 void PolygonConnectorTest::tearDown()
 {
-    //Do nothing.
+    delete pc;
 }
 
 void PolygonConnectorTest::getBridgeTest()
 {
-    std::vector<ConstPolygonPointer> polys;
+    std::vector<Polygon> polys;
     polys.push_back(test_triangle);
-    polys.push_back(test_square);
+
     PolygonConnector::PolygonBridge predicted;
-    predicted.a.from = ClosestPolygonPoint(Point(50,100), 2, test_square);
-    predicted.a.to = ClosestPolygonPoint(Point(50, 110), 0, test_triangle);
-    predicted.b.from = ClosestPolygonPoint(Point(60,100), 2, test_square);
-    predicted.b.to = ClosestPolygonPoint(Point(60, 120), 0, test_triangle);
+    predicted.a.from = ClosestPolygonPoint(Point(500, 1000), 2, test_square);
+    predicted.a.to = ClosestPolygonPoint(Point(500, 1100), 0, test_triangle);
+    predicted.b.from = ClosestPolygonPoint(Point(600, 1000), 2, test_square);
+    predicted.b.to = ClosestPolygonPoint(Point(600, 1200), 0, test_triangle);
     getBridgeAssert(predicted, test_square, polys);
 }
 
-void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<ConstPolygonPointer>& to_polygons)
+void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
-    const coord_t line_width = 10;
-    const coord_t max_dist = 15;
-    PolygonConnector pc(line_width, max_dist);
-    pc.add(test_shapes);
-
-    std::optional<PolygonConnector::PolygonBridge> computed = pc.getBridge(from_poly, to_polygons);
+    std::optional<PolygonConnector::PolygonBridge> computed = pc->getBridge(from_poly, to_polygons);
     
     std::stringstream ss;
-    ss << "PolygonUtils::getBridge(test_square, test_triangle) ";
+    ss << "PolygonConnector::getBridge(test_square, test_triangle) ";
 
-    constexpr bool draw_problem_scenario = true; // make this true if you are debugging the function getNextParallelIntersection(.)
+    constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
 
     if (draw_problem_scenario)
     {
-        SVG svg("output/bs.svg", AABB(test_shapes), Point(500,500));
-        svg.writePolygons(test_shapes);
+        AABB aabb(from_poly);
+        for (PolygonRef poly : to_polygons)
+        {
+            aabb.include(AABB(poly).min);
+            aabb.include(AABB(poly).max);
+        }
+        SVG svg("output/bs.svg", aabb, Point(500, 500));
+        svg.writePolygon(from_poly, SVG::Color::YELLOW, 4);
+        for (PolygonRef poly : to_polygons)
+        {
+            svg.writePolygon(poly, SVG::Color::GRAY, 4);
+        }
         if (computed)
         {
-            svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::Color::BLUE);
-            svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::Color::GREEN);
-            Polygon connected = pc.connect(*computed);
-            svg.writePolygon(connected, SVG::Color::YELLOW);
+            svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::Color::BLUE, 4);
+            svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::Color::GREEN, 4);
+            Polygon connected = pc->connect(*computed);
+            svg.writePolygon(connected, SVG::Color::RED, 1);
 //             svg.writePoints(connected, true, 5, SVG::Color::YELLOW);
 //             int c = 0;
 //             for (Point p : connected)
@@ -78,7 +111,6 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
         
     }
     
-
     if (predicted && computed)
     {
         coord_t a_from_error = vSize(predicted->a.from.p() - computed->a.from.p());
@@ -93,6 +125,63 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
             && b_to_error < maximum_error
         );
     }
+    else if (predicted && !computed)
+    {
+        ss << " didn't give an answer, but it was predicted to give one!\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    else if (!predicted && computed)
+    {
+        ss << " gave an answer, but it was predicted to not be possible!\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
 }
+
+void PolygonConnectorTest::connectionLengthTest()
+{
+
+    constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
+
+    std::unordered_set<Point> input_verts;
+    for (ConstPolygonRef poly : test_shapes)
+    {
+        for (Point p : poly)
+        {
+            input_verts.emplace(p);
+        }
+    }
+    if (draw_problem_scenario)
+    {
+        SVG svg("output/bs2.svg", AABB(test_shapes), Point(500, 500));
+        svg.writePolygons(test_shapes, SVG::Color::YELLOW);
+        svg.writePolygons(connecteds, SVG::Color::RED);
+        for (PolygonConnector::PolygonBridge bridge : pc->all_bridges)
+        {
+            svg.writeLine(bridge.a.from.p(), bridge.a.to.p(), SVG::Color::BLUE);
+            svg.writeLine(bridge.b.from.p(), bridge.b.to.p(), SVG::Color::GREEN);
+        }
+        std::cerr << "written\n";\
+    }
+    
+    coord_t longest_connection_dist = 0;
+    size_t too_long_connection_count = 0;
+    for (PolygonConnector::PolygonBridge bridge : pc->all_bridges)
+    {
+        for (auto connection : {bridge.a, bridge.b})
+        {
+            coord_t connection_dist = vSize(connection.to.p() - connection.from.p());
+            if (connection_dist > max_dist)
+            {
+                too_long_connection_count++;
+                longest_connection_dist = std::max(longest_connection_dist, connection_dist);
+            }
+        }
+    }
+
+    std::stringstream ss;
+    ss << "PolygonConnector::connect() obtained " << too_long_connection_count << " too long bridge connections! Longest is " << INT2MM(longest_connection_dist) << "\n";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), too_long_connection_count == 0);
+}
+
 
 }
