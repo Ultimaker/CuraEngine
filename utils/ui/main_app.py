@@ -28,20 +28,17 @@ else:
 class MainApp:
     DEFAULT_FILE_PATH = '/tmp/parts_by_layers.txt'
     DEFAULT_WINDOWS_TITLE = 'Parts Viewer'
+
     def __init__(self):
         # initialized variables
         self._storage = None
-        if os.path.isfile(MainApp.DEFAULT_FILE_PATH):
-            self._file_path = MainApp.DEFAULT_FILE_PATH
-        else:
-            self._file_path = None
+        self._file_path = None
         self._layer_index = None
         self.file_path_lable = None
         # create widgets
         self._create_widgets()
         # load data by default file path
-        self.load_parts_data(self._file_path)
-        self.refresh_graph()
+        self.load_data(MainApp.DEFAULT_FILE_PATH)
 
     def _create_widgets(self):
         # create master
@@ -65,7 +62,7 @@ class MainApp:
         open_file_button = Button(self.file_panel, text='Open parts file...', command=self.ask_parts_file_dialog)
         open_file_button.grid(row=0, column=0, padx=20, pady=5, sticky=E)
 
-        refresh_button = Button(self.file_panel, text='Refresh', command=self.refresh_loading)
+        refresh_button = Button(self.file_panel, text='Refresh', command=lambda: self.load_data(self._file_path))
         refresh_button.grid(row=0, column=1, padx=20, pady=5, sticky=W)
 
         # plot
@@ -90,16 +87,18 @@ class MainApp:
     def ask_parts_file_dialog(self):
         file_path = FD.askopenfilename()
         if file_path is not None and len(file_path) != 0:
-            self._update_file_path(file_path)
-            self.refresh_loading()
+            self.load_data(file_path)
         return file_path
 
-    def refresh_loading(self):
-        if self._file_path is not None and os.path.isfile(self._file_path):
-            self.load_parts_data(self._file_path)
+    def load_data(self, file_path):
+        if file_path is not None and os.path.isfile(file_path):
+            self._file_path = file_path
+            # load parts data
+            self._load_parts_data(self._file_path)
+            # refresh graph drawing
             self.refresh_graph()
 
-    def load_parts_data(self, file_path):
+    def _load_parts_data(self, file_path):
         if os.path.isfile(file_path):
             self._storage, msg = DataFileHelper.load_part_file(file_path)
             self.scale.config(to=self._storage.get_volume(0).get_layer_size())
@@ -131,10 +130,6 @@ class MainApp:
     def update_layer_index(self, value):
         if self._storage is not None:
             self.refresh_graph(self.selected_layer_index.get() - 1)
-
-    def _update_file_path(self, file_path):
-        self._file_path = file_path
-        self.file_path_label_text.set(file_path)
 
     def quit(self):
         self.master.destroy()
