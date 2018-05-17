@@ -9,7 +9,38 @@ namespace cura
 
 Polygons PolygonConnector::connect()
 {
-    logError("Unimplemented!\n");
+    Polygons ret;
+    
+    std::vector<Polygon> to_connect;
+    to_connect.reserve(input_polygons.size());
+    for (ConstPolygonPointer poly : input_polygons)
+    {
+        to_connect.emplace_back(*poly); // copy into list
+    }
+
+    while (!to_connect.empty())
+    {
+        Polygon current = std::move(to_connect.back());
+        to_connect.pop_back();
+
+        std::optional<PolygonBridge> bridge = getBridge(current, to_connect);
+        if (bridge)
+        {
+            all_bridges.push_back(*bridge); // just for keeping scores
+            // remove other poly from the list and put the newly connected one on the list
+            // i.e. replace the old other poly by the new one
+            PolygonRef other_poly(*const_cast<ClipperLib::Path*>(bridge->a.to.poly.operator->())); // const casting a ConstPolygonPointer is difficult!
+            other_poly = std::move(connect(*bridge)); // connect the bridged parts and overwrite the other polygon with it.
+
+            // don't store the current poly, it has just been connected and stored
+        }
+        else
+        {
+            ret.add(std::move(current));
+        }
+    }
+
+    return ret;
 }
 
 
