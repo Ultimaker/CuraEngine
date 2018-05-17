@@ -711,7 +711,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
         {
             best = closest_here;
             closestDist = dist;
-            bestPos = p1_idx;
+            bestPos = (direction > 0)? p1_idx : p2_idx;
         }
         else 
         {
