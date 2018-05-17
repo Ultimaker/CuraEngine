@@ -82,7 +82,7 @@ char PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, cons
     }
 }
 
-std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(ConstPolygonRef from_poly, std::vector<ConstPolygonPointer>& to_polygons)
+std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
     std::optional<PolygonConnector::PolygonConnection> connection = getConnection(from_poly, to_polygons);
     if (!connection || connection->getDistance2() > max_dist * max_dist)
@@ -189,19 +189,19 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
 }
 
 
-std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnection(ConstPolygonRef from_poly, std::vector<ConstPolygonPointer>& to_polygons)
+std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnection(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
     constexpr int sample_size = 6; //!< TODO: hardcoded sample size parameter!
     PolygonConnection best_connection;
     coord_t best_connection_distance2 = std::numeric_limits<coord_t>::max();
     ClosestPolygonPoint from_location(from_poly);
-    for (ConstPolygonPointer to_poly : to_polygons)
+    for (ConstPolygonRef to_poly : to_polygons)
     {
-        if (to_poly->data() == from_poly.data())
+        if (to_poly.data() == from_poly.data())
         { // don't connect a polygon to itself
             continue;
         }
-        ClosestPolygonPoint to_location(*to_poly);
+        ClosestPolygonPoint to_location(to_poly);
         PolygonUtils::findSmallestConnection(from_location, to_location, sample_size);
 
         coord_t connection_distance2 = vSize2(to_location.p() - from_location.p());

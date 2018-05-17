@@ -70,11 +70,11 @@ protected:
     };
 
     Polygon connect(const PolygonBridge& bridge);
-    
     void addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result);
     char getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
-    std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<ConstPolygonPointer>& polygons);
-    std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<ConstPolygonPointer>& polygons);
+
+    std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
+    std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<Polygon>& polygons);
     std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
 };
 
