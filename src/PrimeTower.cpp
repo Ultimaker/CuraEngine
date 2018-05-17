@@ -125,7 +125,8 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
                 double fill_angle = 45 + pattern_idx * 90;
                 Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
                 constexpr bool zig_zaggify_infill = false;
-                Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, inner_poly, outline_offset, line_width,
+                constexpr bool connect_polygons = true; // travel moves can make the tower knock over more easily
+                Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, connect_polygons, inner_poly, outline_offset, line_width,
                                    line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
                 infill_comp.generate(result_polygons, result_lines);
             }
@@ -142,7 +143,8 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         int line_distance = line_width_layer0;
         double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        constexpr bool connect_polygons = true; // travel moves can make the tower knock over more easily
+        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, connect_polygons, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }

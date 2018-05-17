@@ -11,6 +11,7 @@
 #include "utils/UnionFind.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/ImageBasedDensityProvider.h"
+#include "utils/PolygonConnector.h"
 #include "infill/UniformDensityProvider.h"
 
 /*!
@@ -111,6 +112,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+
+    if (connect_polygons)
+    {
+        PolygonConnector connector(infill_line_width, line_distance * 2);
+        connector.add(result_polygons);
+        result_polygons = connector.connect();
+    }
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
