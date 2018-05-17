@@ -57,6 +57,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     {
         _generate(result_polygons, result_lines, cross_fill_provider, mesh);
     }
+
+    if (connect_polygons)
+    {
+        PolygonConnector connector(infill_line_width, line_distance * 3 / 2);
+        connector.add(result_polygons);
+        result_polygons = connector.connect();
+    }
 }
 
 void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
@@ -131,13 +138,6 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         connectLines(result_lines);
     }
     crossings_on_line.clear();
-
-    if (connect_polygons)
-    {
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
-        connector.add(result_polygons);
-        result_polygons = connector.connect();
-    }
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
