@@ -115,7 +115,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 
     if (connect_polygons)
     {
-        PolygonConnector connector(infill_line_width, line_distance * 2);
+        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
         connector.add(result_polygons);
         result_polygons = connector.connect();
     }
