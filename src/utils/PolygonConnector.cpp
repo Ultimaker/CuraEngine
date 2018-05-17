@@ -232,7 +232,6 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
 
 std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnection(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
-    constexpr int sample_size = 6; //!< TODO: hardcoded sample size parameter!
     PolygonConnection best_connection;
     coord_t best_connection_distance2 = std::numeric_limits<coord_t>::max();
     ClosestPolygonPoint from_location(from_poly);
@@ -243,7 +242,7 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnecti
             continue;
         }
         ClosestPolygonPoint to_location(to_poly);
-        PolygonUtils::findSmallestConnection(from_location, to_location, sample_size);
+        PolygonUtils::findSmallestConnection(from_location, to_location);
 
         coord_t connection_distance2 = vSize2(to_location.p() - from_location.p());
         if (connection_distance2 < best_connection_distance2)

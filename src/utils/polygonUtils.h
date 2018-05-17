@@ -296,8 +296,10 @@ public:
     /*!
     * Find the two points in two polygons with the smallest distance.
     * 
-    * Note: The amount of preliminary distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
+    * Note: The amount of preliminary vertex-to-vertex distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
     * Further convergence time depends on polygon size and shape.
+    * 
+    * From these distance checks the closest pair is chosen and from there we walk to the nearest smallest connection.
     * 
     * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
     * 
@@ -306,6 +308,19 @@ public:
     * \param sample_size The number of points on each polygon to start the hill climbing search from. Use negative values for checking all combinations of points.
     */
     static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
+
+    /*!
+    * Find the two points in two polygons with the smallest distance.
+    * 
+    * The final connection will be close to the center of mass of the first polygon.
+    * 
+    * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
+    * 
+    * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
+    * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
+    * \param sample_size The number of points on each polygon to start the hill climbing search from. Use negative values for checking all combinations of points.
+    */
+    static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result);
 
     /*!
     * 

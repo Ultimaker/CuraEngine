@@ -638,6 +638,27 @@ void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, Clo
     walkToNearestSmallestConnection(poly1_result, poly2_result);
 }
 
+
+void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
+{
+    if (!poly1_result.poly || !poly2_result.poly)
+    {
+        return;
+    }
+    ConstPolygonRef poly1 = *poly1_result.poly;
+    ConstPolygonRef poly2 = *poly2_result.poly;
+    if (poly1.size() == 0 || poly2.size() == 0)
+    {
+        return;
+    }
+
+    Point center1 = poly1.centerOfMass();
+
+    poly2_result = findClosest(center1, poly2);
+    poly1_result = findClosest(poly2_result.p(), poly1);
+    walkToNearestSmallestConnection(poly1_result, poly2_result);
+}
+
 void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
 {
     if (!poly1_result.isValid() || !poly2_result.isValid())
