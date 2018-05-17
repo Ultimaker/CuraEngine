@@ -35,6 +35,17 @@ void PolygonConnectorTest::setUp()
     }
     test_shapes.add(test_circle);
 
+    test_convex_shape.emplace_back(-300, 0);
+    test_convex_shape.emplace_back(-100, 500);
+    test_convex_shape.emplace_back(-100, 600);
+    test_convex_shape.emplace_back(-200, 1000);
+    test_convex_shape.emplace_back(-500, 1500);
+    test_convex_shape.emplace_back(-1500, 1500);
+    test_convex_shape.emplace_back(-1500, 1500);
+    test_convex_shape.emplace_back(-1600, 1100);
+    test_convex_shape.emplace_back(-700, 200);
+    test_shapes.add(test_convex_shape);
+
     Polygons inset = test_shapes;
     while (!inset.empty())
     {
@@ -58,14 +69,14 @@ void PolygonConnectorTest::tearDown()
 
 void PolygonConnectorTest::getBridgeTest()
 {
-    std::vector<Polygon> polys;
-    polys.push_back(test_triangle);
 
     PolygonConnector::PolygonBridge predicted;
-    predicted.a.from = ClosestPolygonPoint(Point(500, 1000), 2, test_square);
-    predicted.a.to = ClosestPolygonPoint(Point(500, 1100), 0, test_triangle);
-    predicted.b.from = ClosestPolygonPoint(Point(600, 1000), 2, test_square);
-    predicted.b.to = ClosestPolygonPoint(Point(600, 1200), 0, test_triangle);
+    predicted.a.from = ClosestPolygonPoint(Point(0, 500), 2, test_square);
+    predicted.a.to = ClosestPolygonPoint(Point(-100, 500), 0, test_convex_shape);
+    predicted.b.from = ClosestPolygonPoint(Point(0, 600), 2, test_square);
+    predicted.b.to = ClosestPolygonPoint(Point(-100, 600), 0, test_convex_shape);
+    std::vector<Polygon> polys;
+    polys.push_back(test_convex_shape);
     getBridgeAssert(predicted, test_square, polys);
 }
 

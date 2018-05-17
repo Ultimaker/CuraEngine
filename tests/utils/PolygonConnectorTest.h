@@ -53,6 +53,8 @@ private:
     Polygon test_square2; // larger and more to the right
     Polygon test_triangle;
     Polygon test_circle;
+    Polygon test_convex_shape;
+
     Polygons test_shapes; // all above polygons
 
     coord_t line_width;
