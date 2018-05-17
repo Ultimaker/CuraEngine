@@ -84,7 +84,7 @@ protected:
 
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
     std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<Polygon>& polygons);
-    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
+    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first, coord_t shift);
 };
 
 

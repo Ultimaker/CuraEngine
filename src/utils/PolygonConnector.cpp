@@ -123,7 +123,16 @@ std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Const
     }
 
     // try to get the other connection forward
-    std::optional<PolygonConnector::PolygonConnection> second_connection = PolygonConnector::getSecondConnection(*connection);
+    std::optional<PolygonConnector::PolygonConnection> second_connection = PolygonConnector::getSecondConnection(*connection, line_width);
+    if (!second_connection)
+    {
+        // try to get a bridge with the connections on both sides of the initially calculated connection
+        second_connection = PolygonConnector::getSecondConnection(*connection, line_width / 2);
+        if (second_connection)
+        {
+            connection = PolygonConnector::getSecondConnection(*connection, line_width);
+        }
+    }
     if (connection && second_connection)
     {
         PolygonBridge result;
@@ -145,22 +154,22 @@ std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Const
     }
 }
 
-std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondConnection(PolygonConnection& first)
+std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondConnection(PolygonConnection& first, coord_t shift_distance)
 {
     bool forward = true;
-    std::optional<ClosestPolygonPoint> from_a = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), line_width, forward);
+    std::optional<ClosestPolygonPoint> from_a = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), shift_distance, forward);
     if (!from_a)
     { // then there's also not going to be a b
         return std::optional<PolygonConnector::PolygonConnection>();
     }
-    std::optional<ClosestPolygonPoint> from_b = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), line_width, !forward);
+    std::optional<ClosestPolygonPoint> from_b = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), shift_distance, !forward);
 
-    std::optional<ClosestPolygonPoint> to_a = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), line_width, forward);
+    std::optional<ClosestPolygonPoint> to_a = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), shift_distance, forward);
     if (!to_a)
     {
         return std::optional<PolygonConnector::PolygonConnection>();
     }
-    std::optional<ClosestPolygonPoint> to_b = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), line_width, !forward);
+    std::optional<ClosestPolygonPoint> to_b = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), shift_distance, !forward);
 
 
     const Point shift = turn90CCW(first.from.p() - first.to.p());
@@ -210,7 +219,7 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
             break;
         }
     }
-    if (best_total_distance2 > max_dist * max_dist + 2 * (line_width + 10) * (line_width + 10))
+    if (best_total_distance2 > max_dist * max_dist + 2 * (shift_distance + 10) * (shift_distance + 10))
     {
         return std::optional<PolygonConnector::PolygonConnection>();
     }
