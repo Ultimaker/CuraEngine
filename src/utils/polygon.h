@@ -350,6 +350,10 @@ public:
     : ConstPolygonRef(polygon)
     {}
 
+    PolygonRef(const PolygonRef& other)
+    : ConstPolygonRef(*other.path)
+    {}
+
     virtual ~PolygonRef()
     {
     }
@@ -360,6 +364,15 @@ public:
     }
 
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+
+    PolygonRef& operator=(ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+//     { path = other.path; return *this; }
+
+    PolygonRef& operator=(PolygonRef&& other)
+    {
+        *path = std::move(*other.path);
+        return *this;
+    }
 
     Point& operator[] (unsigned int index)
     {
@@ -391,8 +404,6 @@ public:
     {
         path->push_back(p);
     }
-
-    PolygonRef& operator=(ConstPolygonRef& other) { path = other.path; return *this; }
 
     ClipperLib::Path& operator*()
     {
@@ -536,7 +547,13 @@ public:
     {
     }
 
-    Polygon(ConstPolygonRef& other)
+    Polygon(const ConstPolygonRef& other)
+    : PolygonRef(poly)
+    , poly(*other.path)
+    {
+    }
+
+    Polygon(const Polygon& other)
     : PolygonRef(poly)
     , poly(*other.path)
     {
