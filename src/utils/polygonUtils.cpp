@@ -697,10 +697,11 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
     int64_t closestDist = vSize2(from - best);
     int bestPos = 0;
 
-    for (unsigned int p = 0; p<polygon.size(); p++)
+    size_t poly_size = polygon.size();
+    for (int p = 0; p < poly_size; p++)
     {
-        int p1_idx = ((int)polygon.size() + direction*p + start_idx) % polygon.size();
-        int p2_idx = ((int)polygon.size() + direction*(p+1) + start_idx) % polygon.size();
+        int p1_idx = (poly_size + direction * p + start_idx) % poly_size;
+        int p2_idx = (poly_size + direction * (p + 1) + start_idx) % poly_size;
         const Point& p1 = polygon[p1_idx];
         const Point& p2 = polygon[p2_idx];
 
@@ -1047,7 +1048,10 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
     coord_t prev_projected = 0;
     for (unsigned int next_point_nr = 0; next_point_nr < poly.size(); next_point_nr++)
     {
-        const unsigned int next_point_idx = forward? (start.point_idx + 1 + next_point_nr) % poly.size() : (start.point_idx - next_point_nr + poly.size()) % poly.size();
+        const unsigned int next_point_idx =
+            forward?
+                (start.point_idx + 1 + next_point_nr) % poly.size()
+                : (static_cast<size_t>(start.point_idx) - next_point_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
         const Point next_vert = poly[next_point_idx];
         const Point so = next_vert - s;
         const coord_t projected = dot(shift, so) / dist;
@@ -1061,7 +1065,13 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
             const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
 
-            return ClosestPolygonPoint(intersection, next_point_idx - (forward? 1 : 0), poly);
+            unsigned int vert_before_idx = next_point_idx;
+            if (forward)
+            {
+                vert_before_idx = (next_point_idx > 0)? vert_before_idx - 1 : poly.size() - 1;
+            }
+            assert(vert_before_idx < poly.size() && vert_before_idx >= 0);
+            return ClosestPolygonPoint(intersection, vert_before_idx, poly);
         }
 
         prev_vert = next_vert;
