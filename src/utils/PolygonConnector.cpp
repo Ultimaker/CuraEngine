@@ -33,6 +33,7 @@ Polygon PolygonConnector::connect(const PolygonConnector::PolygonBridge& bridge)
 
 void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result)
 {
+    // <<<<<<<.start     end.<<<<<<<<
     //        ^             v
     //        ^             v
     // >>>>>>>.end.....start.>>>>>>>
@@ -47,7 +48,7 @@ void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const
         size_t vert_idx =
             (dir > 0)?
             (start.point_idx + 1 + vert_nr) % poly.size()
-            : (start.point_idx - vert_nr + poly.size()) % poly.size();
+            : (static_cast<size_t>(start.point_idx) - vert_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
         if (!first_iter && vert_idx == (end.point_idx + ((dir > 0)? 1 : 0)) % poly.size())
         {
             break;
@@ -71,14 +72,14 @@ char PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, cons
     }
     // TODO: replace naive implementation by robust implementation
     // naive idea: there are less vertices in between the connection points than around
-    const size_t a_to_b_vertex_count = (to.point_idx - from.point_idx + poly.size()) % poly.size();
+    const size_t a_to_b_vertex_count = (static_cast<size_t>(to.point_idx) - from.point_idx + poly.size()) % poly.size(); // cast in order to accomodate subtracting
     if (a_to_b_vertex_count > poly.size() / 2)
     {
-        return 1; // from a to b is in the reverse direction as the vertices are saved in the polygon
+        return -1; // from a to b is in the reverse direction as the vertices are saved in the polygon
     }
     else
     {
-        return -1; // from a to b is in the same direction as the vertices are saved in the polygon
+        return 1; // from a to b is in the same direction as the vertices are saved in the polygon
     }
 }
 

@@ -23,7 +23,14 @@ class PolygonConnector
     friend class PolygonConnectorTest;
 public:
     PolygonConnector(coord_t line_width, coord_t max_dist)
-    : line_width(line_width)
+    : line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines
+    //                |                     |                      |
+    // ----------o    |      ----------o    |       ----------o,,,,o
+    //           |    |  ==>           |    |  ==>
+    // -----o    |    |      -----o----o    |       -----o----o----o
+    //      |    |    |                     |                      |
+    //      |    |    |           o''''o    |            o''''o    |
+    //      |    |    |           |    |    |            |    |    |
     , max_dist(max_dist)
     {}
 
