@@ -110,7 +110,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
     if (perimeter_gaps)
     {
@@ -151,9 +151,9 @@ void Infill::generateConcentric3DInfill(Polygons& result)
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
     Polygons first_wall;
     // in contrast to concentric infill we dont do "- infill_line_width / 2" cause this is already handled by the max two lines above
-    first_wall = in_outline.offset(outline_offset - shift);
+    first_wall = in_outline.offset(outline_offset + infill_overlap - shift);
     generateConcentricInfill(first_wall, result, period);
-    first_wall = in_outline.offset(outline_offset - period + shift);
+    first_wall = in_outline.offset(outline_offset + infill_overlap - period + shift);
     generateConcentricInfill(first_wall, result, period);
 }
 
@@ -370,23 +370,15 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         return;
     }
 
-    int shift = extra_shift + this->shift;
+    coord_t shift = extra_shift + this->shift;
 
-    Polygons outline;
-    if (outline_offset != 0)
+    if (outline_offset != 0 && perimeter_gaps)
     {
-        outline = in_outline.offset(outline_offset);
-        if (perimeter_gaps)
-        {
-            perimeter_gaps->add(in_outline.difference(outline.offset(infill_line_width / 2 + perimeter_gaps_extra_offset)));
-        }
-    }
-    else
-    {
-        outline = in_outline;
+        const Polygons gaps_outline = in_outline.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
+        perimeter_gaps->add(in_outline.difference(gaps_outline));
     }
 
-    outline = outline.offset(infill_overlap);
+    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
     if (outline.size() == 0)
     {
