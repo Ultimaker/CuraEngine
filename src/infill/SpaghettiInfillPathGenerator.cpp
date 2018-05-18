@@ -20,6 +20,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
     const unsigned int infill_line_width = config.getLineWidth();
     constexpr int infill_multiplier = 1;
     const int64_t infill_shift = 0;
+    constexpr int wall_line_count = 0;
     const int64_t outline_offset = 0;
     const double layer_height_mm = (gcode_layer.getLayerNr() == 0) ? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
 
@@ -42,7 +43,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         const bool use_endpieces = false;
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, area, outline_offset
             , infill_line_width, infill_line_distance, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
-            infill_shift, infill_origin, perimeter_gaps_output, connected_zigzags, use_endpieces
+            infill_shift, wall_line_count, infill_origin, perimeter_gaps_output, connected_zigzags, use_endpieces
             , mesh.getSettingInMicrons("cross_infill_pocket_size"));
         // cross_fill_patterns is only generated when spaghetti infill is not used,
         // so we pass nullptr here.
