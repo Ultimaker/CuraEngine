@@ -35,6 +35,17 @@
 #include "polygonHelper.h"
 #include "fffProcessor.h"
 
+#ifdef USE_G3LOG
+#include "g3log/g3log.hpp"
+#include "g3log/logworker.hpp"
+#include "g3log/std2_make_unique.hpp"
+
+#include "utils/g3logcoloroutsink.h"
+
+using namespace g3;
+
+#endif
+
 void print_usage()
 {
     cura::logError("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-c <config file>] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
@@ -55,6 +66,16 @@ int main(int argc, char **argv)
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
     //Lower the process priority on linux and mac. On windows this is done on process creation from the GUI.
     setpriority(PRIO_PROCESS, 0, 10);
+#endif
+
+#ifdef USE_G3LOG
+    // create log worker
+    auto worker = LogWorker::createLogWorker();
+    worker->addDefaultLogger("CuraEngine.log", "/tmp");
+    worker->addSink(std2::make_unique<ColorCoutSink>(), &ColorCoutSink::ReceiveLogMessage);
+
+    // logger is initialized
+    initializeLogging(worker.get());
 #endif
 
     //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.

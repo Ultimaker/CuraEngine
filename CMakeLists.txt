@@ -65,10 +65,14 @@ if (ENABLE_OPENMP)
     endif()
 endif()
 
-
-# G3log for logging
-# find_package(G3LOG REQUIRED)
-# include_directories(${G3LOG_INCLUDE_DIRS})
+option (ENABLE_G3LOG "Enable G3log for logging" OFF)
+if (ENABLE_G3LOG)
+    message (STATUS "Compile with G3log for logging")
+    add_definitions(-DUSE_G3LOG)
+    # G3log for logging
+    find_package(G3LOG REQUIRED)
+    include_directories(${G3LOG_INCLUDE_DIRS})
+endif()
 
 # Mac needed variables (adapt for your needs - http://www.cmake.org/Wiki/CMake_RPATH_handling#Mac_OS_X_and_the_RPATH)
 set(CMAKE_MACOSX_RPATH ON)
@@ -124,6 +128,10 @@ target_link_libraries(_CuraEngine clipper)
 
 if (UNIX)
     target_link_libraries(_CuraEngine pthread)
+endif()
+
+if (ENABLE_G3LOG)
+    target_link_libraries(_CuraEngine ${G3LOG_LIBRARIES})
 endif()
 
 add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
