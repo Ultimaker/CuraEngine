@@ -370,23 +370,15 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         return;
     }
 
-    int shift = extra_shift + this->shift;
+    coord_t shift = extra_shift + this->shift;
 
-    Polygons outline;
-    if (outline_offset != 0)
+    if (outline_offset != 0 && perimeter_gaps)
     {
-        outline = in_outline.offset(outline_offset);
-        if (perimeter_gaps)
-        {
-            perimeter_gaps->add(in_outline.difference(outline.offset(infill_line_width / 2 + perimeter_gaps_extra_offset)));
-        }
-    }
-    else
-    {
-        outline = in_outline;
+        const Polygons gaps_outline = in_outline.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
+        perimeter_gaps->add(in_outline.difference(gaps_outline));
     }
 
-    outline = outline.offset(infill_overlap);
+    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
     if (outline.size() == 0)
     {
