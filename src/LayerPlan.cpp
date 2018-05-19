@@ -692,6 +692,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
     const double wall_min_flow = extr->getSettingInPercentage("wall_min_flow") / 100;
     const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
+    const int64_t small_feature_max_length = extr->getSettingInMicrons("small_feature_max_length");
+    const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
+    const double small_feature_speed_factor = extr->getSettingInPercentage("small_feature_speed_factor") / 100;
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -806,7 +809,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
                 first_line = false;
                 travel_required = false;
             }
-            addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            if (is_small_feature)
+            {
+                const bool spiralize = false;
+                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+            }
+            else
+            {
+                addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            }
         }
         else
         {
@@ -832,7 +843,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             {
                 addTravel(p0, wall_min_flow_retract);
             }
-            addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            if (is_small_feature)
+            {
+                const bool spiralize = false;
+                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+            }
+            else
+            {
+                addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            }
 
             if (wall_0_wipe_dist > 0)
             { // apply outer wall wipe
