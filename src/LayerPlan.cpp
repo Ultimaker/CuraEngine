@@ -684,9 +684,6 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         }
     }
 
-    Point p0 = wall[start_idx];
-    addTravel(p0, always_retract);
-
     float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
@@ -779,7 +776,11 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         }
     };
 
-    bool travel_required = false; // true when a wall has been omitted due to its flow being less than the minimum required
+    bool travel_required = true; // true at the start of the line and when a wall has been omitted due to its flow being less than the minimum required
+
+    bool first_line = true;
+
+    Point p0 = wall[start_idx];
 
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
     {
@@ -801,7 +802,8 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         {
             if (travel_required)
             {
-                addTravel(p0, wall_min_flow_retract);
+                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                first_line = false;
                 travel_required = false;
             }
             addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
