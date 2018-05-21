@@ -157,7 +157,23 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
             {
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    comb_boundary.add(part.infill_area);
+                    int line_width = mesh.getSettingInMicrons((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0");
+
+                    // we need to include the walls in the comb boundary otherwise it's not possible to tell if a travel move crosses a skin region
+                    // so we combine the part's infill area with the area that is from just inside (by 10um) the part's inner wall
+                    // to just outside the centre line of the part's outer wall - the slight expansion (+/- 10um) is to ensure that all vertices
+                    // in the wall polygons are within the combing area and that the infill area polygons that extend to the part's walls do get joined
+                    // to the wall polygons so that combing travels can route via the combined infill and wall regions
+
+                    Polygons walls_and_infill;
+                    for (int innermost = part.insets.size() - 1; innermost >= 0 && walls_and_infill.size() == 0; --innermost)
+                    {
+                        if (part.insets[innermost].size() > 0)
+                        {
+                            walls_and_infill = part.infill_area.unionPolygons(part.insets[0].offset(10).difference(part.insets[innermost].offset(-10-line_width/2)));
+                        }
+                    }
+                    comb_boundary.add(walls_and_infill);
                 }
             }
             else
