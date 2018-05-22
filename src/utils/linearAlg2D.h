@@ -350,6 +350,11 @@ public:
         Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
         return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
     }
+
+    /*!
+     * Get the area spanned by two vectors in square micron
+     */
+    coord_t getTriangleArea(Point vector_a, Point vector_b);
 };
 
 
