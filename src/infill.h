@@ -277,11 +277,10 @@ private:
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
      * \param[in] cross_fill_provider Where the cross fractal precomputation is stored
-     * \param[in] aabb_3d The vounding box of all infill to be generated with the \p cross_fill_provider
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, AABB3D aabb_3d, Polygons& result_polygons, Polygons& result_lines);
+    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

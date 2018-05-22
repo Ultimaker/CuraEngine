@@ -674,7 +674,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         }
         else
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), ((float) infill_extr.getSettingInMicrons("support_line_width")) / infill_extr.getSettingInMicrons("support_line_distance"));
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"));
         }
     }
 }
