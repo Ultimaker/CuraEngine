@@ -165,15 +165,15 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
                     // in the wall polygons are within the combing area and that the infill area polygons that extend to the part's walls do get joined
                     // to the wall polygons so that combing travels can route via the combined infill and wall regions
 
-                    Polygons walls_and_infill;
-                    for (int innermost = part.insets.size() - 1; innermost >= 0 && walls_and_infill.size() == 0; --innermost)
+                    Polygons walls;
+                    for (int innermost = part.insets.size() - 1; innermost >= 0 && walls.size() == 0; --innermost)
                     {
                         if (part.insets[innermost].size() > 0)
                         {
-                            walls_and_infill = part.infill_area.unionPolygons(part.insets[0].offset(10).difference(part.insets[innermost].offset(-10-line_width/2)));
+                            walls = part.insets[0].offset(10).difference(part.insets[innermost].offset(-10-line_width/2));
                         }
                     }
-                    comb_boundary.add(walls_and_infill);
+                    comb_boundary.add(part.infill_area.unionPolygons(walls));
                 }
             }
             else
