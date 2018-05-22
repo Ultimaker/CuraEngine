@@ -91,7 +91,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
             logError("Cannot generate Cross infill without a cross fill provider!\n");
             break;
         }
-        generateCrossInfill(*cross_fill_provider, mesh->bounding_box, result_polygons, result_lines);
+        generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -215,7 +215,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     addLineSegmentsInfill(result, uncropped);
 }
 
-void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, AABB3D aabb_3d, Polygons& result_polygons, Polygons& result_lines)
+void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
     if (zig_zaggify)
     {
