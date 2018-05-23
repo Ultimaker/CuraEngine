@@ -217,6 +217,9 @@ private:
             for(unsigned int layerNr=0; layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
                 storage.volumes[volumeIdx].layers[layerNr].printZ += config.raftBaseThickness + config.raftInterfaceThickness;
         }
+        //DEBUG: output parts
+        dumpLayerparts(storage, "/tmp/parts.html");
+        cura::PolygonHelper::savePartsToFile(storage);
         cura::log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
         return true;
     }

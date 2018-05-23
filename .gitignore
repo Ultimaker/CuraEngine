@@ -18,3 +18,5 @@ build/*
 NUL
 CuraEngine.layout
 CuraEngine.cbp
+qt-cura-engine.*
+utils/venv/

@@ -2,6 +2,17 @@
 #ifndef LOGOUTPUT_H
 #define LOGOUTPUT_H
 
+#ifdef USE_G3LOG
+
+#include "g3log/g3log.hpp"
+#include "g3log/logworker.hpp"
+#include "g3log/std2_make_unique.hpp"
+using namespace g3;
+
+#include "g3logcoloroutsink.h"
+
+#endif
+
 namespace cura {
 
 void increaseVerboseLevel();
