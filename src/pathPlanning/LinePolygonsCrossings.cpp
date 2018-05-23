@@ -144,29 +144,54 @@ void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
 
 void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
 {
+    // minimise the path length by measuring the length of both paths around the polygon so we can determine the shorter path
+
     ConstPolygonRef poly = boundary[polyCrossings.poly_idx];
     combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
-    if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + (int)poly.size() ) % poly.size()
-        < poly.size() / 2 )
-    { // follow the path in the same direction as the winding order of the boundary polygon
-        for(unsigned int point_idx = polyCrossings.min.point_idx
-            ; point_idx != polyCrossings.max.point_idx
-            ; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
-        {
-            combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
-        }
-    }
-    else
-    { // follow the path in the opposite direction of the winding order of the boundary polygon
-        unsigned int min_idx = (polyCrossings.min.point_idx == 0)? poly.size() - 1: polyCrossings.min.point_idx - 1;
-        unsigned int max_idx = (polyCrossings.max.point_idx == 0)? poly.size() - 1: polyCrossings.max.point_idx - 1;
 
-        for(unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
-        {
-            combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
-        }
+    // follow the path in the same direction as the winding order of the boundary polygon
+    std::vector<Point> fwd_points;
+    Point prev = combPath.back();
+    coord_t fwd_len = 0;
+    for (unsigned int point_idx = polyCrossings.min.point_idx; point_idx != polyCrossings.max.point_idx; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
+    {
+        const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
+        fwd_points.push_back(p);
+        fwd_len += vSize(p - prev);
+        prev = p;
     }
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
+
+    // follow the path in the opposite direction of the winding order of the boundary polygon
+    std::vector<Point> rev_points;
+    prev = combPath.back();
+    coord_t rev_len = 0;
+    unsigned int min_idx = (polyCrossings.min.point_idx == 0)? poly.size() - 1 : polyCrossings.min.point_idx - 1;
+    unsigned int max_idx = (polyCrossings.max.point_idx == 0)? poly.size() - 1 : polyCrossings.max.point_idx - 1;
+    for (unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
+    {
+        const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
+        rev_points.push_back(p);
+        rev_len += vSize(p - prev);
+        prev = p;
+    }
+
+    const Point last = transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y));
+
+    if (fwd_points.size() > 0)
+    {
+        fwd_len += vSize(last - fwd_points.back());
+    }
+    if (rev_points.size() > 0)
+    {
+        rev_len += vSize(last - rev_points.back());
+    }
+
+    // use the points from the shortest path
+    for (auto& p : (fwd_len < rev_len) ? fwd_points : rev_points)
+    {
+        combPath.push_back(p);
+    }
+    combPath.push_back(last);
 }
 
 
