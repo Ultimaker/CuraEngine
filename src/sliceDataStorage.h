@@ -225,6 +225,7 @@ class SubDivCube; // forward declaration to prevent dependency loop
 class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
 public:
+    SliceDataStorage *p_slice_data_storage;
     std::vector<SliceLayer> layers;
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
@@ -240,7 +241,7 @@ public:
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
-    SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count);
+    SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count);
 
     virtual ~SliceMeshStorage();
 
