@@ -586,7 +586,10 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
             double a_area = a_polygon.area();
             Polygon b_polygon = b.prism.triangle.toPolygon();
             double b_area = b_polygon.area();
-            return a_polygon.intersection(b_polygon).area() >= std::min(a_area, b_area) + 100; // TODO magic number
+            Polygons intersection = a_polygon.intersection(b_polygon);
+            double intersection_area = intersection.area();
+            bool triangles_overlap = std::abs(intersection_area - std::min(a_area, b_area)) < 100.0; // TODO magic number
+            return triangles_overlap;
         }
         case Direction::LEFT:
             a_edge = a.prism.triangle.getFromEdge();
@@ -681,12 +684,12 @@ void Cross3D::debugCheckVolumeStats() const
             problems++;
             logError("Cell with depth %i has incorrect volume %f!\n", cell.depth, cell.volume);
         }
-        if (cell.filled_volume_allowance <= 0)
+        if (cell.filled_volume_allowance < 0)
         {
             problems++;
             logError("Cell with depth %i has incorrect filled_volume_allowance  %f!\n", cell.depth, cell.filled_volume_allowance );
         }
-        if (cell.minimally_required_density <= 0)
+        if (cell.minimally_required_density < 0)
         {
             problems++;
             logError("Cell with depth %i has incorrect minimally_required_density %f!\n", cell.depth, cell.minimally_required_density);
