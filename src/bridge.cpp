@@ -65,67 +65,69 @@ int bridgeAngle(const Polygons& skinOutline, const SliceLayer* prevLayer, const 
         }
     }
 
-    // if the proportion of the skin region that is supported is less than supportThreshold, it's considered a bridge and we
-    // determine the best angle for the skin lines - the current heuristic is that the skin lines should be parallel to the
-    // direction of the skin area's longest unsupported edge - if the skin has no unsupported edges, we fall through to the
-    // original code
-
-    if (supportThreshold > 0 && (supportedRegions.area() / (skinOutline.area() + 1)) < supportThreshold)
+    if (supportThreshold > 0)
     {
-        Polygons bbPoly;
-        bbPoly.add(boundaryBox.toPolygon());
+        // if the proportion of the skin region that is supported is less than supportThreshold, it's considered a bridge and we
+        // determine the best angle for the skin lines - the current heuristic is that the skin lines should be parallel to the
+        // direction of the skin area's longest unsupported edge - if the skin has no unsupported edges, we fall through to the
+        // original code
 
-        // airBelow is the region below the skin that is not supported, it extends well past the boundary of the skin.
-        // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
-        // the air boundary do appear to be supported
-
-        const int bbMaxDim = std::max(boundaryBox.max.X - boundaryBox.min.X, boundaryBox.max.Y - boundaryBox.min.Y);
-        const Polygons airBelow(bbPoly.offset(bbMaxDim).difference(prevLayerOutline).offset(-10));
-
-        Polygons skinPerimeterLines;
-        for (ConstPolygonRef poly : skinOutline)
+        if ((supportedRegions.area() / (skinOutline.area() + 1)) < supportThreshold)
         {
-            Point p0 = poly[0];
-            for (unsigned i = 1; i < poly.size(); ++i)
-            {
-                Point p1 = poly[i];
-                skinPerimeterLines.addLine(p0, p1);
-                p0 = p1;
-            }
-            skinPerimeterLines.addLine(p0, poly[0]);
-        }
+            Polygons bbPoly;
+            bbPoly.add(boundaryBox.toPolygon());
 
-        Polygons skinPerimeterLinesOverAir(airBelow.intersectionPolyLines(skinPerimeterLines));
+            // airBelow is the region below the skin that is not supported, it extends well past the boundary of the skin.
+            // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
+            // the air boundary do appear to be supported
 
-        if (skinPerimeterLinesOverAir.size())
-        {
-            // one or more edges of the skin region are unsupported, determine the longest
-            double maxDist2 = 0;
-            double lineAngle = -1;
-            for (PolygonRef airLine : skinPerimeterLinesOverAir)
+            const int bbMaxDim = std::max(boundaryBox.max.X - boundaryBox.min.X, boundaryBox.max.Y - boundaryBox.min.Y);
+            const Polygons airBelow(bbPoly.offset(bbMaxDim).difference(prevLayerOutline).offset(-10));
+
+            Polygons skinPerimeterLines;
+            for (ConstPolygonRef poly : skinOutline)
             {
-                Point p0 = airLine[0];
-                for (unsigned i = 1; i < airLine.size(); ++i)
+                Point p0 = poly[0];
+                for (unsigned i = 1; i < poly.size(); ++i)
                 {
-                    const Point& p1(airLine[i]);
-                    double dist2 = vSize2(p0 - p1);
-                    if (dist2 > maxDist2)
-                    {
-                        maxDist2 = dist2;
-                        lineAngle = angle(p0 - p1);
-                    }
+                    Point p1 = poly[i];
+                    skinPerimeterLines.addLine(p0, p1);
                     p0 = p1;
                 }
+                skinPerimeterLines.addLine(p0, poly[0]);
             }
-            return lineAngle;
+
+            Polygons skinPerimeterLinesOverAir(airBelow.intersectionPolyLines(skinPerimeterLines));
+
+            if (skinPerimeterLinesOverAir.size())
+            {
+                // one or more edges of the skin region are unsupported, determine the longest
+                double maxDist2 = 0;
+                double lineAngle = -1;
+                for (PolygonRef airLine : skinPerimeterLinesOverAir)
+                {
+                    Point p0 = airLine[0];
+                    for (unsigned i = 1; i < airLine.size(); ++i)
+                    {
+                        const Point& p1(airLine[i]);
+                        double dist2 = vSize2(p0 - p1);
+                        if (dist2 > maxDist2)
+                        {
+                            maxDist2 = dist2;
+                            lineAngle = angle(p0 - p1);
+                        }
+                        p0 = p1;
+                    }
+                }
+                return lineAngle;
+            }
         }
-    }
-
-    // if the proportion of the skin region that is supported is >= supportThreshold, it's not considered to be a bridge
-
-    if (supportThreshold > 0 && (supportedRegions.area() / (skinOutline.area() + 1)) >= supportThreshold)
-    {
-        return -1;
+        else
+        {
+            // as the proportion of the skin region that is supported is >= supportThreshold, it's not
+            // considered to be a bridge and the original bridge detection code below is skipped
+            return -1;
+        }
     }
 
     if (islands.size() > 5 || islands.size() < 1)
