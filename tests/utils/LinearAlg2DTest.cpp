@@ -394,4 +394,93 @@ void LinearAlg2DTest::rotateAroundAssert(const Point point, const Point origin, 
     CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - expected_result) < FUZZ_DISTANCE);
 }
 
+void LinearAlg2DTest::areParallel1()
+{
+    LineSegment a(Point(0, 0), Point(100,100));
+    LineSegment b(Point(0, 100), Point(100,200));
+    areParallelAssert(a, b, true);
+}
+void LinearAlg2DTest::areParallel2()
+{
+    LineSegment a(Point(0, 0), Point(100,100));
+    LineSegment b(Point(0, -100), Point(100,0));
+    areParallelAssert(a, b, true);
+}
+void LinearAlg2DTest::areParallel3()
+{
+    LineSegment a(Point(0, 0), Point(0,100));
+    LineSegment b(Point(1000, 1000), Point(1000,-90));
+    areParallelAssert(a, b, true);
+}
+void LinearAlg2DTest::areParallel4()
+{
+    LineSegment a(Point(0, 0), Point(100,100));
+    LineSegment b(Point(0, -100), Point(100,440));
+    areParallelAssert(a, b, false);
+}
+void LinearAlg2DTest::areParallel5()
+{
+    LineSegment a(Point(0, 0), Point(-100,100));
+    LineSegment b(Point(0, -100), Point(100,0));
+    areParallelAssert(a, b, false);
+}
+
+void LinearAlg2DTest::areParallelAssert(LineSegment a, LineSegment b, bool expected_result)
+{
+    bool computed = LinearAlg2D::areParallel(a, b);
+    std::stringstream ss;
+    ss << "failure of LinearAlg2D::areParallel( LineSegment(Point" << a.from << ", Point" << a.to << "), LineSegment(Point" << b.from << ", Point" << b.to << ") resulted in " << computed << " rather than " << expected_result;
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), computed == expected_result);
+}
+
+void LinearAlg2DTest::areCollinear1()
+{
+    LineSegment a(Point(0, 0), Point(1000,1000));
+    LineSegment b(Point(-50, -50), Point(0,0));
+    areCollinearAssert(a, b, true);
+}
+
+void LinearAlg2DTest::areCollinear2()
+{
+    LineSegment a(Point(0, 0), Point(1000,1000));
+    LineSegment b(Point(-50, -50), Point(-1000,-1000));
+    areCollinearAssert(a, b, true);
+}
+
+void LinearAlg2DTest::areCollinear3()
+{
+    LineSegment a(Point(0, 0), Point(1000,1000));
+    LineSegment b(Point(500, 500), Point(1000,1000));
+    areCollinearAssert(a, b, true);
+}
+
+void LinearAlg2DTest::areCollinear4()
+{
+    LineSegment a(Point(1000, 1000), Point(0,0));
+    LineSegment b(Point(500, 500), Point(1000,1000));
+    areCollinearAssert(a, b, true);
+}
+
+void LinearAlg2DTest::areCollinear5()
+{
+    LineSegment a(Point(0, 0), Point(1000,1000));
+    LineSegment b(Point(0, 50), Point(1000,1050));
+    areCollinearAssert(a, b, false);
+}
+
+void LinearAlg2DTest::areCollinear6()
+{
+    LineSegment a(Point(1600, 1600), Point(800,800));
+    LineSegment b(Point(1600, 1600), Point(0,0));
+    areCollinearAssert(a, b, true);
+}
+
+void LinearAlg2DTest::areCollinearAssert(LineSegment a, LineSegment b, bool expected_result)
+{
+    bool computed = LinearAlg2D::areCollinear(a, b);
+    std::stringstream ss;
+    ss << "failure of LinearAlg2D::areCollinear( LineSegment(Point" << a.from << ", Point" << a.to << "), LineSegment(Point" << b.from << ", Point" << b.to << ") resulted in " << computed << " rather than " << expected_result;
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), computed == expected_result);
+}
+
 }

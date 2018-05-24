@@ -7,6 +7,7 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <../src/utils/IntPoint.h>
+#include <../src/utils/linearAlg2D.h>
 
 namespace cura
 {
@@ -67,6 +68,18 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(rotateAroundNegative90);
     CPPUNIT_TEST(rotateAround0);
     CPPUNIT_TEST(rotateAround12);
+
+    CPPUNIT_TEST(areParallel1);
+    CPPUNIT_TEST(areParallel2);
+    CPPUNIT_TEST(areParallel3);
+    CPPUNIT_TEST(areParallel4);
+    CPPUNIT_TEST(areParallel5);
+    CPPUNIT_TEST(areCollinear1);
+    CPPUNIT_TEST(areCollinear2);
+    CPPUNIT_TEST(areCollinear3);
+    CPPUNIT_TEST(areCollinear4);
+    CPPUNIT_TEST(areCollinear5);
+    CPPUNIT_TEST(areCollinear6);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -141,6 +154,18 @@ public:
     void rotateAround0();
     void rotateAround12();
 
+    void areParallel1();
+    void areParallel2();
+    void areParallel3();
+    void areParallel4();
+    void areParallel5();
+
+    void areCollinear1();
+    void areCollinear2();
+    void areCollinear3();
+    void areCollinear4();
+    void areCollinear5();
+    void areCollinear6();
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.
@@ -188,6 +213,10 @@ private:
      * \param expected_result The new location of the point, after rotating.
      */
     void rotateAroundAssert(const Point point, const Point origin, const double angle, const Point expected_result);
+
+    void areParallelAssert(LineSegment a, LineSegment b, bool expected_result);
+
+    void areCollinearAssert(LineSegment a, LineSegment b, bool expected_result);
 };
 
 }

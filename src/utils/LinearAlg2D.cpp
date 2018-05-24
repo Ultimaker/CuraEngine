@@ -174,6 +174,63 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
     }
     return false;
 }
+bool LinearAlg2D::areParallel(LineSegment a, LineSegment b, coord_t allowed_error)
+{
+    Point a_vec = a.getVector();
+    Point b_vec = b.getVector();
+    coord_t a_size = vSize(a_vec);
+    coord_t b_size = vSize(b_vec);
+    if (a_size == 0 || b_size == 0)
+    {
+        return true;
+    }
+    coord_t dot_size = std::abs(dot(a_vec, b_vec));
+    coord_t dot_diff = std::abs(dot_size - a_size * b_size);
+    coord_t allowed_dot_error = allowed_error * std::sqrt(dot_size);
+    return dot_diff < allowed_dot_error;
+}
+
+bool LinearAlg2D::areCollinear(LineSegment a, LineSegment b, coord_t allowed_error)
+{
+    bool lines_are_parallel = areParallel(a, b, allowed_error);
+    bool to_b_from_is_on_line = areParallel(LineSegment(a.from, b.from), b, allowed_error);
+    bool to_b_to_is_on_line = areParallel(LineSegment(a.from, b.to), b, allowed_error);
+    return lines_are_parallel && to_b_from_is_on_line && to_b_to_is_on_line;
+}
+
+coord_t LinearAlg2D::projectedLength(LineSegment to_project, LineSegment onto)
+{
+    const Point& a = onto.from;
+    const Point& b = onto.to;
+    const Point& c = to_project.from;
+    const Point& d = to_project.to;
+    Point cd = d - c;
+    coord_t cd_size = vSize(cd);
+    assert(cd_size > 0);
+    Point ca = a - c;
+    coord_t a_projected = dot(ca, cd) / cd_size;
+    Point cb = b - c;
+    coord_t b_projected = dot(cb, cd) / cd_size;
+    return b_projected - a_projected;
+}
+
+LineSegment LinearAlg2D::project(LineSegment to_project, LineSegment onto)
+{
+    return LineSegment(project(to_project.from, onto), project(to_project.to, onto));
+}
+
+Point LinearAlg2D::project(Point p, LineSegment onto)
+{
+    const Point& a = onto.from;
+    const Point& b = onto.to;
+    Point ab = b - a;
+    coord_t ab_size = vSize(ab);
+    assert(ab_size > 0);
+    Point pa = p - onto.from;
+    coord_t projected_length = dot(ab, pa) / ab_size;
+    return onto.from + normal(ab, projected_length);
+}
+
 coord_t LinearAlg2D::getTriangleArea(Point a, Point b)
 {
     return std::abs(a.X * b.Y - a.Y * b.X) / 2;

@@ -5,6 +5,7 @@
 #define UTILS_LINEAR_ALG_2D_H
 
 #include "IntPoint.h"
+#include "LineSegment.h"
 
 namespace cura
 {
@@ -261,6 +262,33 @@ public:
      * \return Whether the two line segments collide
      */
     static bool lineSegmentsCollide(const Point& a_from_transformed, const Point& a_to_transformed, Point b_from_transformed, Point b_to_transformed);
+
+    /*!
+     * See if two lines are parallel
+     */
+    static bool areParallel(LineSegment a, LineSegment b, coord_t allowed_error = 10);
+
+    /*!
+     * See if two line segments are collinear
+     */
+    static bool areCollinear(LineSegment a, LineSegment b, coord_t allowed_error = 10);
+
+    /*!
+     * Length of a projected line segment, projected onto a line.
+     * \param to_project The line segment to project
+     * \param onto The line on which to project
+     */
+    coord_t projectedLength(LineSegment to_project, LineSegment onto);
+
+    /*!
+     * Project a line segments onto a line
+     */
+    static LineSegment project(LineSegment to_project, LineSegment onto);
+
+    /*!
+     * Project a point onto a line
+     */
+    static Point project(Point to_project, LineSegment onto);
 
     /*!
      * Compute the angle between two consecutive line segments.
