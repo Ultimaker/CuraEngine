@@ -72,7 +72,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
@@ -95,7 +95,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
-        comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance, comb_move_inside_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_supports, travel_avoid_distance, comb_move_inside_distance);
     }
     else
     {
