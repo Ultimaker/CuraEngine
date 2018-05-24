@@ -206,8 +206,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
             {
-                const unsigned num_lengths = (flavor == EGCodeFlavor::REPRAP) ? filament_used.size() : 1;
-                for (unsigned i = 0; i < num_lengths; ++i)
+                for (unsigned i = 0; i < filament_used.size(); ++i)
                 {
                     if (i > 0)
                     {
