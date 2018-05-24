@@ -303,11 +303,12 @@ public:
      * \param start_extruder The extruder with which this layer plan starts
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
+     * \param travel_avoid_supports Whether to avoid other layer supports when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, int64_t travel_avoid_distance);
     ~LayerPlan();
 
     void overrideFanSpeeds(double speed);
