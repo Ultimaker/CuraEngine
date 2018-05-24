@@ -37,7 +37,7 @@ class FffGcodeWriter : public SettingsMessenger, NoCopy
 {
     friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
-    int max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
+    coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
     /*
      * Buffer for all layer plans (of type LayerPlan)

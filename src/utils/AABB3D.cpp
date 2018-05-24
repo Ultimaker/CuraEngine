@@ -62,7 +62,7 @@ void AABB3D::include(const AABB3D& aabb)
     include(aabb.max);
 }
 
-void AABB3D::includeZ(int32_t z)
+void AABB3D::includeZ(coord_t z)
 {
     min.z = std::min(min.z, z);
     max.z = std::max(max.z, z);

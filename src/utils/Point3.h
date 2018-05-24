@@ -8,36 +8,60 @@
 #include <iostream> //Auto-serialization.
 #include <limits> //For numeric_limits::min and max.
 #include <stdint.h> //For int32_t and int64_t.
+#include <type_traits> // for operations on any arithmetic number type
+
+//Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
+#include <clipper.hpp>
 
 #define INT2MM(n) (double(n) / 1000.0)
 
 namespace cura
 {
 
+using coord_t = ClipperLib::cInt;
+
 class Point3
 {
 public:
-    int32_t x,y,z;
+    coord_t x,y,z;
     Point3() {}
-    Point3(const int32_t _x, const int32_t _y, const int32_t _z): x(_x), y(_y), z(_z) {}
+    Point3(const coord_t _x, const coord_t _y, const coord_t _z): x(_x), y(_y), z(_z) {}
 
     Point3 operator +(const Point3& p) const;
     Point3 operator -(const Point3& p) const;
     Point3 operator *(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
-    Point3 operator *(const int32_t i) const;
-    Point3 operator *(const double d) const;
     Point3 operator /(const Point3& p) const;
-    Point3 operator /(const int32_t i) const;
-    Point3 operator /(const double d) const;
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3 operator *(const num_t i) const
+    {
+        return Point3(x * i, y * i, z * i);
+    }
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3 operator /(const num_t i) const
+    {
+        return Point3(x / i, y / i, z / i);
+    }
 
     Point3& operator +=(const Point3& p);
     Point3& operator -=(const Point3& p);
     Point3& operator *=(const Point3& p);
-    Point3& operator *=(const int32_t i);
-    Point3& operator *=(const double d);
     Point3& operator /=(const Point3& p);
-    Point3& operator /=(const int32_t i);
-    Point3& operator /=(const double d);
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3& operator *=(const num_t i)
+    {
+        x *= i;
+        y *= i;
+        z *= i;
+        return *this;
+    }
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3& operator /=(const num_t i)
+    {
+        x /= i;
+        y /= i;
+        z /= i;
+        return *this;
+    }
 
     bool operator==(const Point3& p) const;
     bool operator!=(const Point3& p) const;
@@ -52,14 +76,14 @@ public:
     }
 
 
-    int32_t max() const
+    coord_t max() const
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
 
-    bool testLength(int32_t len) const
+    bool testLength(coord_t len) const
     {
         if (x > len || x < -len)
             return false;
@@ -70,12 +94,12 @@ public:
         return vSize2() <= len*len;
     }
 
-    int64_t vSize2() const
+    coord_t vSize2() const
     {
-        return int64_t(x)*int64_t(x)+int64_t(y)*int64_t(y)+int64_t(z)*int64_t(z);
+        return x * x + y * y + z * z;
     }
 
-    int32_t vSize() const
+    coord_t vSize() const
     {
         return sqrt(vSize2());
     }
@@ -88,7 +112,7 @@ public:
         return sqrt(fx*fx+fy*fy+fz*fz);
     }
 
-    int64_t dot(const Point3& p) const
+    coord_t dot(const Point3& p) const
     {
         return x*p.x + y*p.y + z*p.z;
     }
@@ -100,11 +124,13 @@ public:
  *
  * Its value is something that is rarely used.
  */
-static Point3 no_point3(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
+static Point3 no_point3(std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min());
 
-inline Point3 operator*(const int32_t i, const Point3& rhs);
-
-inline Point3 operator*(const double d, const Point3& rhs);
+template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+inline Point3 operator*(const num_t i, const Point3& rhs)
+{
+    return rhs * i;
+}
 
 }
 

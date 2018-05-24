@@ -25,9 +25,9 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 #define INT2MM(n) (double(n) / 1000.0)
 #define INT2MM2(n) (double(n) / 1000000.0)
-#define MM2INT(n) (int64_t(std::round((n) * 1000)))
-#define MM2_2INT(n) (int64_t(std::round((n) * 1000000)))
-#define MM3_2INT(n) (int64_t(std::round((n) * 1000000000)))
+#define MM2INT(n) (coord_t(std::round((n) * 1000)))
+#define MM2_2INT(n) (coord_t(std::round((n) * 1000000)))
+#define MM3_2INT(n) (coord_t(std::round((n) * 1000000000)))
 
 #define INT2MICRON(n) ((n) / 1)
 #define MICRON2INT(n) ((n) * 1)
@@ -71,7 +71,7 @@ INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
 template<typename T> INLINE Point operator*(const Point& p0, const T i) { return Point(p0.X * i, p0.Y * i); }
 template<typename T> INLINE Point operator*(const T i, const Point& p0) { return p0 * i; }
-INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, p0.Y/i); }
+INLINE Point operator/(const Point& p0, const coord_t i) { return Point(p0.X/i, p0.Y/i); }
 INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.X, p0.Y/p1.Y); }
 
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
@@ -82,7 +82,7 @@ template<typename T> INLINE Point& operator /= (Point& p0, const T i) { p0.X /= 
 //INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
 //INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
 
-INLINE int64_t vSize2(const Point& p0)
+INLINE coord_t vSize2(const Point& p0)
 {
     return p0.X*p0.X+p0.Y*p0.Y;
 }
@@ -112,9 +112,9 @@ INLINE double vSizeMM(const Point& p0)
     return sqrt(fx*fx+fy*fy);
 }
 
-INLINE Point normal(const Point& p0, int64_t len)
+INLINE Point normal(const Point& p0, coord_t len)
 {
-    int64_t _len = vSize(p0);
+    coord_t _len = vSize(p0);
     if (_len < 1)
         return Point(len, 0);
     return p0 * len / _len;
@@ -132,7 +132,7 @@ INLINE Point rotate(const Point& p0, double angle)
     return Point(cos_component * p0.X - sin_component * p0.Y, sin_component * p0.X + cos_component * p0.Y);
 }
 
-INLINE int64_t dot(const Point& p0, const Point& p1)
+INLINE coord_t dot(const Point& p0, const Point& p1)
 {
     return p0.X * p1.X + p0.Y * p1.Y;
 }
