@@ -9,6 +9,9 @@
 
 #include "../utils/IntPoint.h"
 #include "../utils/AABB3D.h"
+#include "../utils/Range.h"
+#include "../utils/LineSegment.h"
+#include "../utils/SVG.h" // debug
 
 #include "DensityProvider.h"
 
@@ -67,8 +70,8 @@ public:
     Cross3D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width);
 
 protected:
-    static constexpr char max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
-    static constexpr char number_of_sides = 4; //!< Prisms connect above, below and before and after
+    static constexpr uint_fast8_t max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
+    static constexpr uint_fast8_t number_of_sides = 4; //!< Prisms connect above, below and before and after
 
     struct Triangle
     {
@@ -88,13 +91,38 @@ protected:
         Direction dir; //!< The (order in which) edges being crossed by the Sierpinski curve.
         bool straight_corner_is_left; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
 
+        Triangle(
+            Point straight_corner,
+            Point a,
+            Point b,
+            Direction dir,
+            bool straight_corner_is_left)
+        : straight_corner(straight_corner)
+        , a(a)
+        , b(b)
+        , dir(dir)
+        , straight_corner_is_left(straight_corner_is_left)
+        {}
+
+        //! initialize with invalid data
+        Triangle()
+        {}
+
         std::array<Triangle, 2> subdivide() const;
+
+        //! Get the first edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
+        LineSegment getFromEdge() const;
+        //! Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
+        LineSegment getToEdge() const;
+        //! Get the middle of the triangle
+        Point getMiddle() const;
+        //! convert into a polyogon with correct winding order
+        Polygon toPolygon() const;
     };
     struct Prism
     {
         Triangle triangle;
-        coord_t z_min; //!< The starting Z
-        coord_t z_max; //!< The ending Z
+        Range<coord_t> z_range;
         bool is_expanding; //!< Whether the surface patch to fill this prism has one vertex pointing downward rather than two.
 
         //! simple constructor
@@ -105,8 +133,7 @@ protected:
             bool is_expanding
         )
         : triangle(triangle)
-        , z_min(z_min)
-        , z_max(z_max)
+        , z_range(z_min, z_max)
         , is_expanding(is_expanding)
         {}
 
@@ -114,9 +141,21 @@ protected:
         Prism()
         {}
 
-        bool isHalfCube();
-        bool isQuarterCube();
+        bool isHalfCube() const;
+        bool isQuarterCube() const;
     };
+
+    enum class Direction : int
+    {
+        LEFT = 0, // ordered on polarity and dimension: first X from less to more, then Y
+        RIGHT = 1,
+        DOWN = 2,
+        UP = 3,
+        COUNT = 4
+    };
+    Direction opposite(Direction in);
+    uint_fast8_t opposite(uint_fast8_t in);
+
     struct Cell; // forward decl
     struct Link;
     using LinkIterator = typename std::list<Link>::iterator;
@@ -149,9 +188,9 @@ protected:
         float filled_volume_allowance; //!< The volume to be filled corresponding to the average density requested by the volumetric density specification.
         float minimally_required_density; //!< The largest required density across this area. For when the density specification is the minimal density at each locatoin.
         bool is_subdivided;
-        std::vector<std::list<Link>> adjacent_cells; //!< the adjacent cells for each edge/face of this cell
+        std::array<std::list<Link>, number_of_sides> adjacent_cells; //!< the adjacent cells for each edge/face of this cell. Ordered: before, after, below, above
 
-        std::array<idx_t, max_subdivision_count> children;
+        std::array<idx_t, max_subdivision_count> children; //!< children. Ordered: down-left, down-right, up-before, up-after
 
         Cell(const Prism& prism, const idx_t index, const int depth)
         : prism(prism)
@@ -161,7 +200,6 @@ protected:
         , filled_volume_allowance(0)
         , minimally_required_density(-1)
         , is_subdivided(false)
-        , adjacent_cells(number_of_sides)
         {
 //             children.fill(-1); --> done in createTree(...)
         }
@@ -184,13 +222,57 @@ protected:
 
     float getDensity(const Cell& cell) const;
 
-    
+    Polygon createSierpinski() const;
+
+    std::list<const Cell*> getBottomSequence() const;
 private:
+    constexpr static uint_fast8_t getNumberOfSides()
+    {
+        return number_of_sides;
+    }
+
+    // Tree creation:
     void createTree();
     void createTree(Cell& sub_tree_root, int max_depth);
     void setVolume(Cell& sub_tree_root);
     void setSpecificationAllowance(Cell& sub_tree_root);
 
+    // Lower bound sequence:
+    
+    /*!
+     * Create a pattern with the required density or more at each location.
+     */
+    void createMinimalDensityPattern();
+
+    float getActualizedVolume(const Cell& cell) const;
+    bool canSubdivide(const Cell& cell) const;
+    bool isConstrained(const Cell& cell) const;
+    bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const;
+    
+    void subdivide(Cell& cell);
+    void initialConnection(Cell& before, Cell& after, Direction dir);
+    
+    /*!
+     * 
+     * \param a_to_b The side of \p a to check for being next to cell b. Sides are ordered: before, after, below, above (See \ref Cross3D::Cell::adjacent_cells and \ref Cross3D::Direction)
+     */
+    bool isNextTo(const Cell& a, const Cell& b, Direction a_to_b) const;
+
+    // output
+
+    void advanceSequence(std::list<const Cell*>& sequence, coord_t new_z) const;
+
+    // debug
+    void debugCheckDepths() const;
+    void debugCheckVolumeStats() const;
+
+    void debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const;
+    void debugOutputTriangle(const Triangle& triangle, SVG& svg, float drawing_line_width) const;
+    void debugOutputLink(const Link& link, SVG& svg) const;
+    void debugOutput(std::list<const Cell*>& sequence, SVG& svg, float drawing_line_width) const;
+    void debugOutputTree(SVG& svg, float drawing_line_width) const;
+    void debugOutputSequence(SVG& svg, float drawing_line_width) const;
+    void debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line_width) const;
 };
 
 } // namespace cura

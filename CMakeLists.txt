@@ -189,6 +189,7 @@ set(engine_TEST
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
+    Cross3DTest
     SierpinskiFillTest
     FractalInfillTest
 )

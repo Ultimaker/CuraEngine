@@ -2,7 +2,7 @@
 #ifndef UTILS_LINE_SEGMENT_H
 #define UTILS_LINE_SEGMENT_H
 
-#include "intpoint.h"
+#include "IntPoint.h"
 
 
 namespace cura
