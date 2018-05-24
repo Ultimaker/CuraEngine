@@ -65,10 +65,34 @@ class Cross3D
 {
     friend class Cross3DTest;
     using idx_t = int_fast32_t;
+protected:
+    struct Cell; // forward decl
 public:
 
     Cross3D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width);
 
+    /*!
+     * Simple wrapper class for the structure which walks through slices of the subdivision structure
+     */
+    struct SliceWalker
+    {
+        std::list<const Cell*> layer_sequence; //!< The sequence of cells on a given slice through the subdivision structure. These are in Sierpinski order.
+    };
+
+    /*!
+     * Initialize the the tree structure from the density specification
+     */ 
+    void initialize();
+
+    /*!
+     * Create a pattern with the required density or more at each location.
+     */
+    void createMinimalDensityPattern();
+
+    SliceWalker getBottomSequence() const;
+    void advanceSequence(SliceWalker& sequence, coord_t new_z) const;
+
+    Polygon generateSierpinski(const SliceWalker& sequence) const;
 protected:
     static constexpr uint_fast8_t max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
     static constexpr uint_fast8_t number_of_sides = 4; //!< Prisms connect above, below and before and after
@@ -156,8 +180,7 @@ protected:
     Direction opposite(Direction in);
     uint_fast8_t opposite(uint_fast8_t in);
 
-    struct Cell; // forward decl
-    struct Link;
+    struct Link; // fwd decl
     using LinkIterator = typename std::list<Link>::iterator;
     struct Link
     {
@@ -215,16 +238,9 @@ protected:
 
     const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
 
-    /*!
-     * Initialize the the tree structure from the density specification
-     */ 
-    void initialize();
 
     float getDensity(const Cell& cell) const;
 
-    Polygon createSierpinski() const;
-
-    std::list<const Cell*> getBottomSequence() const;
 private:
     constexpr static uint_fast8_t getNumberOfSides()
     {
@@ -239,10 +255,6 @@ private:
 
     // Lower bound sequence:
     
-    /*!
-     * Create a pattern with the required density or more at each location.
-     */
-    void createMinimalDensityPattern();
 
     float getActualizedVolume(const Cell& cell) const;
     bool canSubdivide(const Cell& cell) const;
@@ -260,7 +272,6 @@ private:
 
     // output
 
-    void advanceSequence(std::list<const Cell*>& sequence, coord_t new_z) const;
 
     // debug
     void debugCheckDepths() const;
@@ -269,7 +280,7 @@ private:
     void debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const;
     void debugOutputTriangle(const Triangle& triangle, SVG& svg, float drawing_line_width) const;
     void debugOutputLink(const Link& link, SVG& svg) const;
-    void debugOutput(std::list<const Cell*>& sequence, SVG& svg, float drawing_line_width) const;
+    void debugOutput(const SliceWalker& sequence, SVG& svg, float drawing_line_width) const;
     void debugOutputTree(SVG& svg, float drawing_line_width) const;
     void debugOutputSequence(SVG& svg, float drawing_line_width) const;
     void debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line_width) const;

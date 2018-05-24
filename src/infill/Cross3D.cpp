@@ -616,8 +616,9 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
     return a_edge_projected.intersection(b_edge_projected).size() > 10;
 }
 
-std::list<const Cross3D::Cell*> Cross3D::getBottomSequence() const
+Cross3D::SliceWalker Cross3D::getBottomSequence() const
 {
+    SliceWalker ret;
     // get first cell
     const Cell* last_cell = &cell_data[0];
     while (last_cell->is_subdivided)
@@ -625,12 +626,11 @@ std::list<const Cross3D::Cell*> Cross3D::getBottomSequence() const
         last_cell = &cell_data[last_cell->children[0]];
     }
 
-    std::list<const Cross3D::Cell*> ret;
-    ret.push_back(last_cell);
+    ret.layer_sequence.push_back(last_cell);
     while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
     {
         last_cell = &cell_data[last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].front().to_index];
-        ret.push_back(last_cell);
+        ret.layer_sequence.push_back(last_cell);
     }
     
     return ret;
@@ -644,10 +644,80 @@ std::list<const Cross3D::Cell*> Cross3D::getBottomSequence() const
  * Output \/                  .
  */
 
-void Cross3D::advanceSequence(std::list<const Cell*>& sequence, coord_t new_z) const
+void Cross3D::advanceSequence(SliceWalker& walker, coord_t new_z) const
 {
-    logError("Unimplemented\n");
+    std::list<const Cell*>& sequence = walker.layer_sequence;
+    bool new_z_is_beyond_current = true;
+    while (new_z_is_beyond_current)
+    {
+        // replace all cells which have become too low with their upstairs neighbor
+        // untill the new z is met
+        using iter_t = std::list<const Cell*>::iterator;
+        for (iter_t iter = sequence.begin(); iter != sequence.end(); ++iter)
+        {
+            const Cell& cell = **iter;
+            if (cell.prism.z_range.max < new_z)
+            { // we have to replace this cell with the upstairs neighbors
+                idx_t cell_before_idx = -1;
+                if (iter != sequence.begin())
+                {
+                    cell_before_idx = (*std::prev(iter))->index;
+                }
+                idx_t cell_after_idx = -1;
+                if (std::next(iter) != sequence.end())
+                {
+                    cell_after_idx = (*std::next(iter))->index;
+                }
+
+                const std::list<Link>& neighbors_above = cell.adjacent_cells[static_cast<size_t>(Direction::UP)];
+                assert(!neighbors_above.empty());
+                bool inserted_something = false;
+                for (const Link& neighbor_above : neighbors_above)
+                { // add cells that weren't added yet
+                    // cells might have already been added because of the advancement of the previous cell its upstairs neigbors
+                    // two consecutive (left-right) cells might share the same upstairs neighbor
+                    if (neighbor_above.to_index != cell_before_idx && neighbor_above.to_index != cell_after_idx)
+                    {
+                        sequence.insert(iter, &cell_data[neighbor_above.to_index]);
+                        inserted_something = true;
+                    }
+                    else
+                    {
+                        std::cerr << "cells above already in!\n";
+                    }
+                }
+                assert(inserted_something);
+                iter_t iter_after = std::next(iter);
+                sequence.erase(iter);
+                iter = std::prev(iter_after);
+            }
+        }
+
+        new_z_is_beyond_current = false;
+        for (iter_t iter = sequence.begin(); iter != sequence.end(); ++iter)
+        {
+            const Cell& cell = **iter;
+            if (cell.prism.z_range.max < new_z)
+            { // apparently we haven't moved up in the sequence by enough distance.
+                new_z_is_beyond_current = true;
+                logWarning("Layers seem to be higher than prisms in the Cross3D pattern! The fidelity of the Cross3D pattern is too high or something else is wrong.\n");
+                break;
+            }
+        }
+    }
 }
+
+Polygon Cross3D::generateSierpinski(const SliceWalker& walker) const
+{
+    Polygon poly;
+    for (const Cell* cell : walker.layer_sequence)
+    {
+        poly.add(cell->prism.triangle.getMiddle());
+    }
+    return poly;
+}
+
+
 /*
  * Output /\                         .
  * 
@@ -748,9 +818,9 @@ void Cross3D::debugOutputLink(const Link& link, SVG& svg) const
     svg.writePoint(c, false, 5, SVG::Color::BLUE);
 }
 
-void Cross3D::debugOutput(std::list<const Cell*>& sequence, SVG& svg, float drawing_line_width) const
+void Cross3D::debugOutput(const SliceWalker& walker, SVG& svg, float drawing_line_width) const
 {
-    for (const Cell* cell : sequence)
+    for (const Cell* cell : walker.layer_sequence)
     {
 //         debugOutputTriangle(cell->prism.triangle, svg, drawing_line_width);
         debugOutputCell(*cell, svg, drawing_line_width, true);
