@@ -133,9 +133,15 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
 
-    // Use the infill extruder's settings for the infill config
+    double flow = (layer_nr == 0) ? mesh.getSettingInPercentage("material_flow_layer_0") : mesh.getSettingInPercentage("material_flow");
+
+    // Use the infill extruder's settings for the infill config if specified
     const int infill_extruder_nr = mesh.getSettingAsIndex("infill_extruder_nr");
-    const ExtruderTrain* infill_extruder_train = mesh.p_slice_data_storage->meshgroup->getExtruderTrain(infill_extruder_nr);
+    if (infill_extruder_nr != -1)
+    {
+        const ExtruderTrain* infill_extruder_train = mesh.p_slice_data_storage->meshgroup->getExtruderTrain(infill_extruder_nr);
+        flow = (layer_nr == 0) ? infill_extruder_train->getSettingInPercentage("material_flow_layer_0") : infill_extruder_train->getSettingInPercentage("material_flow");
+    }
 
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
@@ -143,7 +149,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
                 PrintFeatureType::Infill
                 , mesh.getSettingInMicrons("infill_line_width") * (combine_idx + 1) * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("infill_extruder_nr")]
                 , layer_thickness
-                , (layer_nr == 0)? infill_extruder_train->getSettingInPercentage("material_flow_layer_0") : infill_extruder_train->getSettingInPercentage("material_flow")
+                , flow
                 , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill")}
             );
     }
