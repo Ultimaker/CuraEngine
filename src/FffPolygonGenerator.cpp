@@ -539,6 +539,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             SliceLayer& layer = mesh.layers[layer_nr];
             coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+            coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
             if (layer_nr == 0)
             {
                 const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
@@ -589,8 +590,8 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
 
                         for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
                         { // add perimeter gaps between consecutive skin walls
-                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * wall_line_width_x / 2 - perimeter_gaps_extra_offset);
-                            const Polygons inner = skin_part.insets[inset_idx].offset(wall_line_width_x / 2);
+                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * skin_line_width / 2 - perimeter_gaps_extra_offset);
+                            const Polygons inner = skin_part.insets[inset_idx].offset(skin_line_width / 2);
                             skin_part.perimeter_gaps.add(outer.difference(inner));
                         }
 
