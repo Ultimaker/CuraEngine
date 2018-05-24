@@ -152,7 +152,7 @@ protected:
         // contract to prevent
         // []
         //   []   from counting as being next to each other
-        return a_range.expand(-10).overlap(b_range); // TODO: move allowed error to central place?
+        return a_range.expanded(-10).overlap(b_range); // TODO: move allowed error to central place?
     }
     
     /*!

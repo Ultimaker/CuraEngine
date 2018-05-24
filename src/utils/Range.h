@@ -25,8 +25,8 @@ public:
     T min, max;
 
     Range()
-    : min(std::numeric_limits<T>::max)
-    , max(std::numeric_limits<T>::min)
+    : min(std::numeric_limits<T>::max())
+    , max(std::numeric_limits<T>::min())
     {}
 
     Range(const T min, const T max)
@@ -40,6 +40,12 @@ public:
         max = std::max(max, val);
     }
 
+    void include(const Range<T> vals)
+    {
+        min = std::min(min, vals.min);
+        max = std::max(max, vals.max);
+    }
+
     bool inside(const T val) const
     {
         return val <= max && val >= min;
@@ -50,17 +56,42 @@ public:
         return !(min > other.max || max < other.min);
     }
 
-    Range expand(const T amount)
+    Range intersection(const Range<T>& other) const
+    {
+        return Range<T>(std::max(min, other.min), std::min(max, other.max));
+    }
+
+    void expand(const T amount)
     {
         min -= amount;
         max += amount;
-        return *this;
+    }
+
+    Range expanded(const T amount) const
+    {
+        Range ret = *this;
+        ret.expand(amount);
+        return ret;
     }
 
     T size() const
     {
+        if (max == std::numeric_limits<T>::min())
+        {
+            return 0;
+        }
+        assert(min != std::numeric_limits<T>::max() && "If range.max is set then range.min should also be set!");
         return max - min;
     }
+
+    template<class CharT, class TraitsT>
+    friend
+    std::basic_ostream<CharT, TraitsT>&
+    operator <<(std::basic_ostream<CharT, TraitsT>& os, const Range& r)
+    {
+        return os << "(" << r.min << " - " << r.max << ")";
+    }
+
 };
 
 }//namespace cura
