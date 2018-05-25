@@ -90,5 +90,10 @@ void AABB3D::expandXY(int outset)
     }
 }
 
+Point3 AABB3D::size() const
+{
+    return max - min;
+}
+
 }//namespace cura
 
