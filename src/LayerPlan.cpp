@@ -821,7 +821,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         // the overlap compensation is not perfect, it can produce short non-flow reduced line segments within a sequence of flow reduced
         // line segments and so to try and avoid printing the spurious fat line segments we require that their lengths are above a threshold
 
-        const int64_t max_spurious_fat_segment_length = 50; // microns
+        const coord_t max_spurious_fat_segment_length = 50; // microns
 
         if (flow >= wall_min_flow && (first_line || !travel_required || vSize(p0 - p1) > max_spurious_fat_segment_length))
         {
