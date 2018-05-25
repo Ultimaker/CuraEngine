@@ -446,7 +446,6 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     else
     {
         part.infill_area = final_infill;
-        part.infill_area = final_infill;
     }
 }
 
