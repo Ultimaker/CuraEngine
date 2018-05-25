@@ -39,7 +39,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, std::string cross_subdisivion_spec_image_file, bool)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance, true))
-, density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.flatten()))
+, density_provider(new CombinedDensityProvider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.flatten()), aabb_3d))
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
