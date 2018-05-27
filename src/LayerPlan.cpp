@@ -716,7 +716,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
     const int64_t small_feature_max_length = extr->getSettingInMicrons("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
-    const double small_feature_speed_factor = extr->getSettingInPercentage((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor") / 100;
+    const double small_feature_speed_factor = extr->getSettingAsRatio((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
