@@ -712,7 +712,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
 
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
     const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double wall_min_flow = extr->getSettingInPercentage("wall_min_flow") / 100;
+    const double wall_min_flow = extr->getSettingAsRatio("wall_min_flow");
     const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
     const int64_t small_feature_max_length = extr->getSettingInMicrons("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
@@ -821,9 +821,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         // the overlap compensation is not perfect, it can produce short non-flow reduced line segments within a sequence of flow reduced
         // line segments and so to try and avoid printing the spurious fat line segments we require that their lengths are above a threshold
 
-        const coord_t max_spurious_fat_segment_length = 50; // microns
+        const coord_t max_spurious_fat_segment_length2 = 2500; // 50 microns
 
-        if (flow >= wall_min_flow && (first_line || !travel_required || vSize(p0 - p1) > max_spurious_fat_segment_length))
+        if (flow >= wall_min_flow && (first_line || !travel_required || vSize2f(p0 - p1) > max_spurious_fat_segment_length2))
         {
             if (first_line || travel_required)
             {
