@@ -652,7 +652,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
 
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
     const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double wall_min_flow = extr->getSettingInPercentage("wall_min_flow") / 100;
+    const double wall_min_flow = extr->getSettingAsRatio("wall_min_flow");
     const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
