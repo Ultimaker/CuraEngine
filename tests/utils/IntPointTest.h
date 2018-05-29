@@ -1,4 +1,5 @@
 //Copyright (c) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INT_POINT_TEST_H
@@ -6,7 +7,7 @@
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <../src/utils/intpoint.h>
+#include <../src/utils/IntPoint.h>
 
 namespace cura
 {

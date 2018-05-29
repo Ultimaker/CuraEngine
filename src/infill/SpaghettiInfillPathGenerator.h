@@ -1,10 +1,12 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_SPAGHETTI_INFILL_PATH_GENERATOR_H
 #define INFILL_SPAGHETTI_INFILL_PATH_GENERATOR_H
 
 #include <list>
 
-#include "../utils/intpoint.h"
+#include "../utils/IntPoint.h"
 #include "../utils/polygon.h"
 #include "../sliceDataStorage.h"
 #include "../LayerPlan.h"

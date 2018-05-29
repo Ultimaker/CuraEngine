@@ -1,11 +1,10 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "utils/intpoint.h"
+#include "utils/IntPoint.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
 #include "utils/NoCopy.h"

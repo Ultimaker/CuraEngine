@@ -1,8 +1,8 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "progress/Progress.h"
-#include "utils/intpoint.h" //To normalize vectors.
+#include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.

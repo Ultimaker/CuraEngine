@@ -1,8 +1,11 @@
-/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_DENSITY_PROVIDER_H
 #define INFILL_DENSITY_PROVIDER_H
 
-#include "../utils/intpoint.h"
+#include "../utils/IntPoint.h"
 #include "../utils/AABB3D.h"
 
 namespace cura
