@@ -437,16 +437,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     infill = infill.difference(skin);
     infill.removeSmallAreas(MIN_AREA_SIZE);
 
-    Polygons final_infill = infill.offset(infill_skin_overlap);
-
-    if (mesh.getSettingBoolean("infill_hollow"))
-    {
-        part.print_outline = part.print_outline.difference(final_infill);
-    }
-    else
-    {
-        part.infill_area = final_infill;
-    }
+    part.infill_area = infill.offset(infill_skin_overlap);
 }
 
 /*
