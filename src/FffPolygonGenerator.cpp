@@ -531,7 +531,6 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
             bool fill_gaps_between_inner_wall_and_skin_or_infill =
                 mesh.getSettingInMicrons("infill_line_distance") > 0
-                && !mesh.getSettingBoolean("infill_hollow")
                 && mesh.getSettingInMicrons("infill_overlap_mm") >= 0
                 && !(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CONCENTRIC
                     && (mesh.getSettingBoolean("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.getSettingInPercentage("initial_layer_line_width_factor") > 100))
@@ -684,6 +683,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
+        if (mesh.getSettingBoolean("infill_support_enabled"))
+        {// create gradual infill areas
+            SkinInfillAreaComputation::generateInfillSupport(mesh);
+        }
+
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
