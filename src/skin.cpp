@@ -526,7 +526,7 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
 
             const Polygons unsupported = infill_area.offset(-max_dist_from_lower_layer);
             const Polygons basic_overhang = unsupported.difference(inside_above);
-            const Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +100 for easier joining with support from layer above
+            const Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +50 for easier joining with support from layer above
             const Polygons full_overhang = overhang_extented.difference(inside_above);
             const Polygons infill_support = infill_above.unionPolygons(full_overhang);
 
