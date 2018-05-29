@@ -1,3 +1,6 @@
+#Copyright (c) 2018 Ultimaker B.V.
+#CuraEngine is released under the terms of the AGPLv3 or higher.
+
 project(CuraEngine)
 
 cmake_minimum_required(VERSION 2.8.12)
@@ -153,6 +156,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
     src/utils/gettime.cpp
+    src/utils/IntPoint.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
