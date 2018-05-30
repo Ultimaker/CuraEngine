@@ -21,16 +21,23 @@ public:
     Point3() {}
     Point3(const int32_t _x, const int32_t _y, const int32_t _z): x(_x), y(_y), z(_z) {}
 
-    Point3 operator+(const Point3& p) const;
-    Point3 operator-(const Point3& p) const;
-    Point3 operator/(const int32_t i) const;
-    Point3 operator*(const int32_t i) const;
-    Point3 operator*(const double d) const;
+    Point3 operator +(const Point3& p) const;
+    Point3 operator -(const Point3& p) const;
+    Point3 operator *(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
+    Point3 operator *(const int32_t i) const;
+    Point3 operator *(const double d) const;
+    Point3 operator /(const Point3& p) const;
+    Point3 operator /(const int32_t i) const;
+    Point3 operator /(const double d) const;
 
     Point3& operator +=(const Point3& p);
     Point3& operator -=(const Point3& p);
     Point3& operator *=(const Point3& p);
+    Point3& operator *=(const int32_t i);
+    Point3& operator *=(const double d);
     Point3& operator /=(const Point3& p);
+    Point3& operator /=(const int32_t i);
+    Point3& operator /=(const double d);
 
     bool operator==(const Point3& p) const;
     bool operator!=(const Point3& p) const;
