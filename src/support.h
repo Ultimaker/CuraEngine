@@ -1,5 +1,4 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SUPPORT_H
@@ -198,7 +197,7 @@ private:
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
-     * 
+     * \param storage The global settings storage to get settings from.
      * \param supportLayer_up The support areas the layer above
      * \param supportLayer_this The overhang areas of the current layer at hand
      * \param supportJoinDistance The distance to be filled between two support areas
@@ -206,11 +205,11 @@ private:
      * \param min_smoothing_area  minimal area for which to perform smoothing
      * \param conical_support Whether the support should be conical instead of cylindrical
      * \param conical_support_offset The offset determining the angle of the conical support
-     * \param conical_smallest_breadth The breadth of the smallest support area which is not to be redoces to a smaller size due to conical support.
+     * \param conical_smallest_breadth The breadth of the smallest support area which is not to be reduced to a smaller size due to conical support.
      * 
      * \return The joined support areas for this layer.
      */
-    static Polygons join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
+    static Polygons join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth);
 
     /*!
      * Move the support up from model (cut away polygons to ensure bottom z distance)

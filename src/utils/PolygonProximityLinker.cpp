@@ -373,6 +373,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
     {
 //         addProximityLink(link.a, link.b, proximity_distance);
         // won't be inserted any way, because there already is such a link!
+        link.setDist(proximity_distance);
     }
 }
 

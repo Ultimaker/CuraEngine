@@ -531,7 +531,6 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
             bool fill_gaps_between_inner_wall_and_skin_or_infill =
                 mesh.getSettingInMicrons("infill_line_distance") > 0
-                && !mesh.getSettingBoolean("infill_hollow")
                 && mesh.getSettingInMicrons("infill_overlap_mm") >= 0
                 && !(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CONCENTRIC
                     && (mesh.getSettingBoolean("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.getSettingInPercentage("initial_layer_line_width_factor") > 100))
@@ -685,6 +684,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
     else
     {
+        if (mesh.getSettingBoolean("infill_support_enabled"))
+        {// create gradual infill areas
+            SkinInfillAreaComputation::generateInfillSupport(mesh);
+        }
+
         // create gradual infill areas
         SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
@@ -759,8 +763,7 @@ void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMe
         }
         bool recompute_outline_based_on_outer_wall = (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_tree_enable")) && !mesh.getSettingBoolean("fill_outline_gaps");
         bool remove_parts_with_no_insets = !mesh.getSettingBoolean("fill_outline_gaps");
-        const bool try_line_thickness = mesh.getSettingBoolean("wall_try_line_thickness");
-        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets, try_line_thickness);
+        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
         walls_computation.generateInsets(layer);
     }
     else

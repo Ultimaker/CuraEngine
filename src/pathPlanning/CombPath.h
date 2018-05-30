@@ -1,8 +1,10 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATH_PLANNING_COMB_PATH_H
 #define PATH_PLANNING_COMB_PATH_H
 
-#include "../utils/intpoint.h"
+#include "../utils/IntPoint.h"
 
 namespace cura 
 {

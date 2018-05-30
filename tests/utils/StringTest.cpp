@@ -1,11 +1,11 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "StringTest.h"
 
 #include <iomanip>
 #include <sstream> // ostringstream
-#include <../src/utils/intpoint.h>
+#include <../src/utils/IntPoint.h>
 #include <../src/utils/string.h>
 
 namespace cura

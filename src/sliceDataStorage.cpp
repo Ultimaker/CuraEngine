@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "sliceDataStorage.h"
@@ -302,6 +302,15 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     max_print_height_second_to_last_extruder(-1),
     primeTower(*this)
 {
+    Point3 machine_max(getSettingInMicrons("machine_width"), getSettingInMicrons("machine_depth"), getSettingInMicrons("machine_height"));
+    Point3 machine_min(0, 0, 0);
+    if (getSettingBoolean("machine_center_is_zero"))
+    {
+        machine_max /= 2;
+        machine_min -= machine_max;
+    }
+    machine_size.include(machine_min);
+    machine_size.include(machine_max);
 }
 
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const

@@ -222,11 +222,7 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
     }
     else
     { // use the middle of the bed
-        if (!storage.getSettingBoolean("machine_center_is_zero"))
-        {
-            ret = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
-        }
-        // otherwise keep (0, 0)
+        ret = storage.machine_size.flatten().getMiddle();
     }
     return ret;
 }

@@ -1,10 +1,10 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_AABB3D_H
 #define UTILS_AABB3D_H
 
-#include "intpoint.h"
+#include "IntPoint.h"
 #include "AABB.h"
 
 namespace cura
@@ -91,11 +91,6 @@ struct AABB3D
      * \param outset the distance (positive or negative) to expand the bounding box outward
      */
     void expandXY(int outset);
-
-    /*!
-     * Get the XY components of this AABB
-     */
-    AABB getAABB() const;
 };
 
 }//namespace cura

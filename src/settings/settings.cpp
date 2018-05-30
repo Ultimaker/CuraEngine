@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
@@ -473,6 +475,23 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
         return FillPerimeterGapMode::EVERYWHERE;
     }
     return FillPerimeterGapMode::NOWHERE;
+}
+
+BuildPlateShape SettingsBaseVirtual::getSettingAsBuildPlateShape(const std::string& key) const
+{
+    const std::string& value = getSettingString(key);
+    if (value == "rectangular")
+    {
+        return BuildPlateShape::RECTANGULAR;
+    }
+    else if(value == "elliptic")
+    {
+        return BuildPlateShape::ELLIPTIC;
+    }
+    else
+    {
+        return BuildPlateShape::RECTANGULAR;
+    }
 }
 
 CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const

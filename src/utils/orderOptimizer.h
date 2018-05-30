@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker B.V. - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_ORDER_OPTIMIZER_H
 #define UTILS_ORDER_OPTIMIZER_H
 
@@ -6,7 +8,7 @@
 #include <vector>
 #include <list>
 #include <utility> // pair
-#include "intpoint.h"
+#include "IntPoint.h"
 
 namespace cura {
  
