@@ -1,5 +1,4 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SUPPORT_H
@@ -206,7 +205,7 @@ private:
      * \param min_smoothing_area  minimal area for which to perform smoothing
      * \param conical_support Whether the support should be conical instead of cylindrical
      * \param conical_support_offset The offset determining the angle of the conical support
-     * \param conical_smallest_breadth The breadth of the smallest support area which is not to be redoces to a smaller size due to conical support.
+     * \param conical_smallest_breadth The breadth of the smallest support area which is not to be reduced to a smaller size due to conical support.
      * 
      * \return The joined support areas for this layer.
      */
