@@ -465,15 +465,20 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
     {
+        //Don't go outside the build volume.
+        Polygons machine_volume_border;
+        machine_volume_border.add(storage.machine_size.flatten().toPolygon());
+
         Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth/2);
         Polygons small_parts = supportLayer_up.difference(insetted.offset(conical_smallest_breadth/2+20));
         joined = supportLayer_this.unionPolygons(supportLayer_up.offset(conical_support_offset))
-                                .unionPolygons(small_parts);
+                                  .unionPolygons(small_parts)
+                                  .intersection(machine_volume_border);
     }
     else 
     {
@@ -883,7 +888,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
             constexpr int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
-            layer_this = AreaSupport::join(*layer_above, layer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         // make towers for small support
