@@ -95,8 +95,26 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
 
     //Don't collide with the side of the build volume.
+    Polygon actual_border;
+    switch (storage.getSettingAsBuildPlateShape("machine_shape"))
+    {
+        case BuildPlateShape::ELLIPTIC:
+        {
+            //Construct an ellipse to approximate the build volume.
+            const coord_t width = storage.machine_size.max.x - storage.machine_size.min.x;
+            const coord_t depth = storage.machine_size.max.y - storage.machine_size.min.y;
+            constexpr unsigned int circle_resolution = 50;
+            for (unsigned int i = 0; i < circle_resolution; i++)
+            {
+                actual_border.emplace_back(storage.machine_size.getMiddle().x + cos(M_PI * 2 * i / circle_resolution) * width / 2, storage.machine_size.getMiddle().y + sin(M_PI * 2 * i / circle_resolution) * depth / 2);
+            }
+            break;
+        }
+        case BuildPlateShape::RECTANGULAR:
+        default:
+            actual_border = storage.machine_size.flatten().toPolygon();
+    }
     Polygons machine_volume_border;
-    Polygon actual_border = storage.machine_size.flatten().toPolygon();
     machine_volume_border.add(actual_border.offset(1000)); //Put a border of 1mm around the print volume so that we don't collide.
     actual_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
     machine_volume_border.add(actual_border);
