@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 
 #ifndef UTILS_SPARSE_LINE_GRID_H
 #define UTILS_SPARSE_LINE_GRID_H
@@ -8,7 +10,7 @@
 #include <vector>
 #include <functional>
 
-#include "intpoint.h"
+#include "IntPoint.h"
 #include "SparseGrid.h"
 #include "SVG.h" // debug
 

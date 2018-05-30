@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
@@ -7,7 +9,7 @@
 #include <sstream> // for stream.str()
 
 #include "settings/settings.h"
-#include "utils/intpoint.h"
+#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "timeEstimate.h"
 #include "MeshGroup.h"

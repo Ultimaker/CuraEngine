@@ -1,8 +1,8 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "progress/Progress.h"
-#include "utils/intpoint.h" //To normalize vectors.
+#include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
@@ -94,6 +94,31 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
 
+    //Don't collide with the side of the build volume.
+    Polygon actual_border;
+    switch (storage.getSettingAsBuildPlateShape("machine_shape"))
+    {
+        case BuildPlateShape::ELLIPTIC:
+        {
+            //Construct an ellipse to approximate the build volume.
+            const coord_t width = storage.machine_size.max.x - storage.machine_size.min.x;
+            const coord_t depth = storage.machine_size.max.y - storage.machine_size.min.y;
+            constexpr unsigned int circle_resolution = 50;
+            for (unsigned int i = 0; i < circle_resolution; i++)
+            {
+                actual_border.emplace_back(storage.machine_size.getMiddle().x + cos(M_PI * 2 * i / circle_resolution) * width / 2, storage.machine_size.getMiddle().y + sin(M_PI * 2 * i / circle_resolution) * depth / 2);
+            }
+            break;
+        }
+        case BuildPlateShape::RECTANGULAR:
+        default:
+            actual_border = storage.machine_size.flatten().toPolygon();
+    }
+    Polygons machine_volume_border;
+    machine_volume_border.add(actual_border.offset(1000)); //Put a border of 1mm around the print volume so that we don't collide.
+    actual_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
+    machine_volume_border.add(actual_border);
+
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     constexpr bool include_helper_parts = false;
     size_t completed = 0; //To track progress in a multi-threaded environment.
@@ -103,7 +128,10 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + radius, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
+            Polygons collision = storage.getLayerOutlines(layer_nr, include_helper_parts);
+            collision = collision.unionPolygons(machine_volume_border);
+            collision = collision.offset(xy_distance + radius, ClipperLib::JoinType::jtRound); //Enough space to avoid the (sampled) width of the branch.
+            model_collision[radius_sample].push_back(collision);
         }
 #pragma omp atomic
         completed++;

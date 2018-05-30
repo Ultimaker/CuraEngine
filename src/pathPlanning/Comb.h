@@ -145,7 +145,7 @@ private:
      */
     bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& start_inside_poly);
 
-    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, LocToLineGrid* inside_loc_to_line, CombPath& comb_path_input, CombPath& comb_path_output);
+    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!

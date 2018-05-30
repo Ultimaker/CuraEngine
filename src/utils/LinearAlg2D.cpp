@@ -1,11 +1,13 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "linearAlg2D.h"
 
 #include <cmath> // atan2
 #include <cassert>
 #include <algorithm> // swap
 
-#include "intpoint.h" // dot
+#include "IntPoint.h" // dot
 
 namespace cura 
 {

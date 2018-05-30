@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef WALL_OVERLAP_H
 #define WALL_OVERLAP_H
 
@@ -9,7 +11,7 @@
 
 #include <functional> // hash function object
 
-#include "utils/intpoint.h"
+#include "utils/IntPoint.h"
 #include "utils/polygon.h"
 #include "utils/linearAlg2D.h"
 #include "utils/SymmetricPair.h"

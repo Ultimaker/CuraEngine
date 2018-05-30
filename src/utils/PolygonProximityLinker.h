@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_POLYGON_PROXIMITY_LINKER_H
 #define UTILS_POLYGON_PROXIMITY_LINKER_H
 
@@ -10,7 +12,7 @@
 
 #include <functional> // hash function object
 
-#include "intpoint.h"
+#include "IntPoint.h"
 #include "polygon.h"
 
 #include "ListPolyIt.h"

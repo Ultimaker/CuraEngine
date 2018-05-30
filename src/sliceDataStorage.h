@@ -1,11 +1,10 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "utils/intpoint.h"
+#include "utils/IntPoint.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
 #include "utils/NoCopy.h"
@@ -279,6 +278,7 @@ public:
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
+    AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<SliceMeshStorage> meshes;
 
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
