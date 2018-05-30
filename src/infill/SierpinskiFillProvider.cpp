@@ -1,4 +1,7 @@
-/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
+//Copyright (C) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SierpinskiFillProvider.h"
 
 #include "../utils/math.h"
@@ -19,7 +22,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
-, density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.getAABB()))
+, density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.flatten()))
 , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
 {
 }
@@ -56,7 +59,7 @@ SierpinskiFillProvider::~SierpinskiFillProvider()
 
 SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance)
 {
-    AABB model_aabb = aabb_3d.getAABB();
+    AABB model_aabb = aabb_3d.flatten();
     Point model_aabb_size = model_aabb.max - model_aabb.min;
     coord_t max_side_length = std::max(model_aabb_size.X, model_aabb_size.Y);
     Point model_middle = model_aabb.getMiddle();

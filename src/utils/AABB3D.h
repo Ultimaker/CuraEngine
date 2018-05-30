@@ -91,11 +91,6 @@ struct AABB3D
      * \param outset the distance (positive or negative) to expand the bounding box outward
      */
     void expandXY(int outset);
-
-    /*!
-     * Get the XY components of this AABB
-     */
-    AABB getAABB() const;
 };
 
 }//namespace cura
