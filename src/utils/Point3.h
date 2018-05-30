@@ -21,19 +21,19 @@ public:
     Point3() {}
     Point3(const int32_t _x, const int32_t _y, const int32_t _z): x(_x), y(_y), z(_z) {}
 
-    Point3 operator+(const Point3& p) const { return Point3(x+p.x, y+p.y, z+p.z); }
-    Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
-    Point3 operator/(const int32_t i) const { return Point3(x/i, y/i, z/i); }
-    Point3 operator*(const int32_t i) const { return Point3(x*i, y*i, z*i); }
-    Point3 operator*(const double d) const { return Point3(d*x, d*y, d*z); }
+    Point3 operator+(const Point3& p) const;
+    Point3 operator-(const Point3& p) const;
+    Point3 operator/(const int32_t i) const;
+    Point3 operator*(const int32_t i) const;
+    Point3 operator*(const double d) const;
 
-    Point3& operator +=(const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
-    Point3& operator -=(const Point3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
+    Point3& operator +=(const Point3& p);
+    Point3& operator -=(const Point3& p);
     Point3& operator *=(const Point3& p);
     Point3& operator /=(const Point3& p);
 
-    bool operator==(const Point3& p) const { return x==p.x&&y==p.y&&z==p.z; }
-    bool operator!=(const Point3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
+    bool operator==(const Point3& p) const;
+    bool operator!=(const Point3& p) const;
 
 
     template<class CharT, class TraitsT>
@@ -95,13 +95,9 @@ public:
  */
 static Point3 no_point3(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
 
-inline Point3 operator*(const int32_t i, const Point3& rhs) {
-    return rhs * i;
-}
+inline Point3 operator*(const int32_t i, const Point3& rhs);
 
-inline Point3 operator*(const double d, const Point3& rhs) {
-    return rhs * d;
-}
+inline Point3 operator*(const double d, const Point3& rhs);
 
 }
 
