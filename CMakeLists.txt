@@ -156,11 +156,11 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
     src/utils/gettime.cpp
-    src/utils/IntPoint.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
     src/utils/MinimumSpanningTree.cpp
+    src/utils/Point3.cpp
     src/utils/PolygonsPointIndex.cpp
     src/utils/PolygonProximityLinker.cpp
     src/utils/polygonUtils.cpp
