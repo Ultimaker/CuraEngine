@@ -42,6 +42,7 @@ public:
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
     std::optional<Cross3D> subdivision_structure_3d; //!< The 3D prism subdivision structure from which to generate the patterns with varying density across Z
     std::optional<Cross3D::SliceWalker> slice_walker_cross3d; //!< An iterator which walks through the slices of the subdivision structure
+    // TODO: make a const mapping of heights to SliceWalkers because this is being accessed in a concurrent fashion!
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width);
 
