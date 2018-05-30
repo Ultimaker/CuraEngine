@@ -94,6 +94,13 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
 
+    //Don't collide with the side of the build volume.
+    Polygons machine_volume_border;
+    Polygon actual_border = storage.machine_size.flatten().toPolygon();
+    machine_volume_border.add(actual_border.offset(1000)); //Put a border of 1mm around the print volume so that we don't collide.
+    actual_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
+    machine_volume_border.add(actual_border);
+
     const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
     constexpr bool include_helper_parts = false;
     size_t completed = 0; //To track progress in a multi-threaded environment.
@@ -103,7 +110,10 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + radius, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
+            Polygons collision = storage.getLayerOutlines(layer_nr, include_helper_parts);
+            collision = collision.unionPolygons(machine_volume_border);
+            collision = collision.offset(xy_distance + radius, ClipperLib::JoinType::jtRound); //Enough space to avoid the (sampled) width of the branch.
+            model_collision[radius_sample].push_back(collision);
         }
 #pragma omp atomic
         completed++;
