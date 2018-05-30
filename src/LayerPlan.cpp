@@ -817,13 +817,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
         }
 
-        // HACK ALERT
-        // the overlap compensation is not perfect, it can produce short non-flow reduced line segments within a sequence of flow reduced
-        // line segments and so to try and avoid printing the spurious fat line segments we require that their lengths are above a threshold
-
-        const coord_t max_spurious_fat_segment_length2 = 2500; // 50 microns
-
-        if (flow >= wall_min_flow && (first_line || !travel_required || vSize2f(p0 - p1) > max_spurious_fat_segment_length2))
+        if (flow >= wall_min_flow)
         {
             if (first_line || travel_required)
             {
