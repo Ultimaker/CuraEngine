@@ -864,67 +864,67 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
 
 void Cross3D::applyZOscillationConstraint(const Cell& before, const Cell& after, coord_t z, const Cell& densest_cell, const LineSegment edge, const coord_t edge_size, const Direction checking_direction, coord_t& pos) const
 {
-        const bool checking_up = checking_direction == Direction::UP;
-        const coord_t flip_for_down = checking_up? 1 : -1;
+    const bool checking_up = checking_direction == Direction::UP;
+    const coord_t flip_for_down = checking_up? 1 : -1;
 
-        // documentation and naming in this function assumes it has been called for checking the edge for constraining from above
-        const Cell* densest_cell_above = nullptr; // there might be no cell above
-        LineSegment edge_above;
-        { // find densest cell above and the corresponding edge
-            const std::list<Link>& before_neighbors_above = before.adjacent_cells[static_cast<size_t>(checking_direction)];
-            if (!before_neighbors_above.empty())
+    // documentation and naming in this function assumes it has been called for checking the edge for constraining from above
+    const Cell* densest_cell_above = nullptr; // there might be no cell above
+    LineSegment edge_above;
+    { // find densest cell above and the corresponding edge
+        const std::list<Link>& before_neighbors_above = before.adjacent_cells[static_cast<size_t>(checking_direction)];
+        if (!before_neighbors_above.empty())
+        {
+            densest_cell_above = &cell_data[before_neighbors_above.back().to_index];
+            edge_above = densest_cell_above->prism.triangle.getToEdge();
+        }
+        const std::list<Link>& after_neighbors_above = after.adjacent_cells[static_cast<size_t>(checking_direction)];
+        if (!after_neighbors_above.empty())
+        {
+            const Cell& after_above = cell_data[after_neighbors_above.front().to_index];
+            if (!densest_cell_above || after_above.depth > densest_cell_above->depth)
             {
-                densest_cell_above = &cell_data[before_neighbors_above.back().to_index];
-                edge_above = densest_cell_above->prism.triangle.getToEdge();
-            }
-            const std::list<Link>& after_neighbors_above = after.adjacent_cells[static_cast<size_t>(checking_direction)];
-            if (!after_neighbors_above.empty())
-            {
-                const Cell& after_above = cell_data[after_neighbors_above.front().to_index];
-                if (!densest_cell_above || after_above.depth > densest_cell_above->depth)
-                {
-                    densest_cell_above = &after_above;
-                    edge_above = after_above.prism.triangle.getFromEdge();
-                }
+                densest_cell_above = &after_above;
+                edge_above = after_above.prism.triangle.getFromEdge();
             }
         }
+    }
 
-        if (densest_cell_above && densest_cell_above->depth > densest_cell.depth)
-        { // this cells oscillation pattern is altered to fit the oscillation pattern above
-            const Point oscillation_end_point = // where the oscillation should end on the edge at this height
-                (densest_cell_above->prism.is_expanding == checking_up) // flip for downward direction
-                ? edge_above.from
-                : edge_above.to;
-            const coord_t oscillation_end_pos = dot(oscillation_end_point - edge.from, edge.to - edge.from) / vSize(edge.getVector()); // end position along the edge at this height
-            assert(std::abs(oscillation_end_pos - vSize(oscillation_end_point - edge.from)) < 10 && "oscillation_end_point should lie on the segment!");
-            assert(oscillation_end_pos >= -10 && oscillation_end_pos <= edge_size + 10);
-            if (oscillation_end_pos > edge_size / 4 && oscillation_end_pos < edge_size * 3 / 4)
-            { // oscillation end pos is in the middle
-                if (z * flip_for_down > flip_for_down * (densest_cell.prism.z_range.middle() + flip_for_down * densest_cell.prism.z_range.size() / 4))
-                // z is more than 3/4 for up or z less than 1/4 for down
-                { // we're in the top quarter z of this prism
-                    if (densest_cell.prism.is_expanding == checking_up) // flip when cheking down
-                    {
-                        pos = edge_size * 3 / 2 - pos;
-                    }
-                    else
-                    {
-                        pos = edge_size / 2 - pos;
-                    }
-                }
-            }
-            else
-            { // oscillation end pos is at one of the ends
-                if ((oscillation_end_pos > edge_size / 2) == (densest_cell.prism.is_expanding == checking_up)) // flip on is_expanding and on checking_up
-                { // constraining cell above is constraining this edge to be the same is it would normally be
-                    // don't alter pos
+    if (densest_cell_above && densest_cell_above->depth > densest_cell.depth)
+    { // this cells oscillation pattern is altered to fit the oscillation pattern above
+        const Point oscillation_end_point = // where the oscillation should end on the edge at this height
+            (densest_cell_above->prism.is_expanding == checking_up) // flip for downward direction
+            ? edge_above.from
+            : edge_above.to;
+        const coord_t oscillation_end_pos = dot(oscillation_end_point - edge.from, edge.to - edge.from) / vSize(edge.getVector()); // end position along the edge at this height
+        assert(std::abs(oscillation_end_pos - vSize(oscillation_end_point - edge.from)) < 10 && "oscillation_end_point should lie on the segment!");
+        assert(oscillation_end_pos >= -10 && oscillation_end_pos <= edge_size + 10);
+        if (oscillation_end_pos > edge_size / 4 && oscillation_end_pos < edge_size * 3 / 4)
+        { // oscillation end pos is in the middle
+            if (z * flip_for_down > flip_for_down * (densest_cell.prism.z_range.middle() + flip_for_down * densest_cell.prism.z_range.size() / 4))
+            // z is more than 3/4 for up or z less than 1/4 for down
+            { // we're in the top quarter z of this prism
+                if (densest_cell.prism.is_expanding == checking_up) // flip when cheking down
+                {
+                    pos = edge_size * 3 / 2 - pos;
                 }
                 else
-                { // constraining cell causes upper half of oscillation pattern to be inverted
-                    pos = edge_size - pos;
+                {
+                    pos = edge_size / 2 - pos;
                 }
             }
         }
+        else
+        { // oscillation end pos is at one of the ends
+            if ((oscillation_end_pos > edge_size / 2) == (densest_cell.prism.is_expanding == checking_up)) // flip on is_expanding and on checking_up
+            { // constraining cell above is constraining this edge to be the same is it would normally be
+                // don't alter pos
+            }
+            else
+            { // constraining cell causes upper half of oscillation pattern to be inverted
+                pos = edge_size - pos;
+            }
+        }
+    }
 }
 
 Point Cross3D::getCellEdgeLocation(const Cell& cell, const LineSegment edge, const coord_t z) const
