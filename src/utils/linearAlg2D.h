@@ -278,7 +278,7 @@ public:
      * \param to_project The line segment to project
      * \param onto The line on which to project
      */
-    coord_t projectedLength(LineSegment to_project, LineSegment onto);
+    static coord_t projectedLength(LineSegment to_project, LineSegment onto);
 
     /*!
      * Project a line segments onto a line

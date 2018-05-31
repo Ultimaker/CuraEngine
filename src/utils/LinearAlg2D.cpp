@@ -200,18 +200,18 @@ bool LinearAlg2D::areCollinear(LineSegment a, LineSegment b, coord_t allowed_err
 
 coord_t LinearAlg2D::projectedLength(LineSegment to_project, LineSegment onto)
 {
-    const Point& a = onto.from;
-    const Point& b = onto.to;
-    const Point& c = to_project.from;
-    const Point& d = to_project.to;
+    const Point& a = to_project.from;
+    const Point& b = to_project.to;
+    const Point& c = onto.from;
+    const Point& d = onto.to;
     Point cd = d - c;
     coord_t cd_size = vSize(cd);
     assert(cd_size > 0);
     Point ca = a - c;
-    coord_t a_projected = dot(ca, cd) / cd_size;
+    coord_t a_projected = dot(ca, cd);
     Point cb = b - c;
-    coord_t b_projected = dot(cb, cd) / cd_size;
-    return b_projected - a_projected;
+    coord_t b_projected = dot(cb, cd);
+    return (b_projected - a_projected) / cd_size;
 }
 
 LineSegment LinearAlg2D::project(LineSegment to_project, LineSegment onto)
