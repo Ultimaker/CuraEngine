@@ -43,7 +43,7 @@ LineSegment Cross3D::Triangle::getFromEdge() const
             ret = LineSegment(straight_corner, a);
             break;
     }
-    if (!straight_corner_is_left)
+    if (straight_corner_is_left)
     {
         ret.reverse();
     }
@@ -65,7 +65,7 @@ LineSegment Cross3D::Triangle::getToEdge() const
             ret = LineSegment(straight_corner, b);
             break;
     }
-    if (!straight_corner_is_left)
+    if (straight_corner_is_left)
     {
         ret.reverse();
     }

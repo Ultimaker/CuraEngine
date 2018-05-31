@@ -224,9 +224,15 @@ protected:
 
         std::array<Triangle, 2> subdivide() const;
 
-        //! Get the first edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
+        /*!
+         * Get the first edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
+         * The from location is always toward the inside of the curve.
+         */
         LineSegment getFromEdge() const;
-        //! Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
+        /*!
+         * Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
+         * The from location is always toward the inside of the curve.
+         */
         LineSegment getToEdge() const;
         //! Get the middle of the triangle
         Point getMiddle() const;
@@ -237,7 +243,7 @@ protected:
     {
         Triangle triangle;
         Range<coord_t> z_range;
-        bool is_expanding; //!< Whether the surface patch to fill this prism has one vertex pointing downward rather than two.
+        bool is_expanding; //!< Whether the surface is moving away from the space filling tree when going from bottom to top. (Though the eventual surface might be changed due to neighboring constraining cells)
 
         //! simple constructor
         Prism(
