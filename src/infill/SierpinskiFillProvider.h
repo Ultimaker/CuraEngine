@@ -6,6 +6,7 @@
 #define INFILL_SIERPINSKI_FILL_PROVIDER_H
 
 #include "../utils/optional.h"
+#include "../utils/math.h"
 
 #include "SierpinskiFill.h"
 #include "Cross3D.h"
@@ -72,12 +73,7 @@ protected:
             delete existing_density_provider;
         };
 
-        virtual float operator()(const AABB3D& aabb) const
-        {
-            float density = (*existing_density_provider)(aabb);
-            float height_proportion = std::min(1.0f, std::max(0.0f, static_cast<float>(aabb.getMiddle().z) / total_aabb.size().z));
-            return density * (1.0 - height_proportion) + height_proportion * 0.9;
-        };
+        virtual float operator()(const AABB3D& aabb) const;
     };
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object

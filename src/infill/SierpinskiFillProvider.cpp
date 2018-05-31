@@ -27,6 +27,17 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
 }
 
+float SierpinskiFillProvider::CombinedDensityProvider::operator()(const AABB3D& aabb) const
+{
+    float density = (*existing_density_provider)(aabb);
+    float height_proportion = std::min(1.0f, std::max(0.0f, static_cast<float>(aabb.getMiddle().z) / total_aabb.size().z));
+    float height_modified = square(density * (1.0 - height_proportion) + height_proportion) * 0.9;
+
+    Point3 middle = Point3(total_aabb.max.x, total_aabb.min.y, total_aabb.max.z);;
+    float distance_density = std::min(1.0, 1.0 / INT2MM((middle - aabb.getMiddle()).vSize() / 10));
+    return (1 - distance_density) * height_modified;
+}
+
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, bool)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance, true))
 , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
