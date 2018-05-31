@@ -84,6 +84,11 @@ public:
         return max - min;
     }
 
+    T middle() const
+    {
+        return (max + min) / static_cast<T>(2);
+    }
+
     template<class CharT, class TraitsT>
     friend
     std::basic_ostream<CharT, TraitsT>&
