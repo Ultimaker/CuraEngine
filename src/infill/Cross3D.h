@@ -28,7 +28,9 @@ class Cross3DTest; // fwd decl
  * This way it touches itself and creates a foam like structure which is similarly flexible in all directions.
  * 
  * An underlying subdivision structure is generated, which subdivides the 3D space into regular parts: prisms.
- * These prisms have a triangular base andrectangular sides.
+ * These prisms have a triangular base and rectangular sides.
+ * The prism heights correspond to half the wave length of the oscillation pattern:
+ * the surface patch across a prism is either expanding or contracting.
  * 
  * For a layer each prism crossing that layer is sliced into a triangle.
  * The triangle grid thus created for a layer is then used to generate a Sierpinski-like fractal, similar to \ref SierpinskiFill
@@ -125,28 +127,28 @@ class Cross3DTest; // fwd decl
  * 
  * |\                           |\                                        .
  * |B \  AS_TO_BS               |B \   AS_TO_AB                           .
- * |  ↑ \                       |  ↑ \             is_expanding remains   .
+ * |  ↑ \                       |  ↑ \                                    .
  * |  ↑  S\  subdivides into    |S_↑__A\                                  .
  * |  ↑   /                     |S ↑  B/                                  .
- * |  ↑ /                       |  ↑ /             is_expanding remains   .
+ * |  ↑ /                       |  ↑ /                                    .
  * |A /                         |A /   AB_TO_BS                           .
  * |/                           |/                                        .
  *                                                                        .
  * |\                           |\                                        .
  * |B \  AS_TO_AB               |B \   AS_TO_BS                           .
- * |    \                       |↖   \             is_expanding remains   .
+ * |    \                       |↖   \                                    .
  * |↖    S\  subdivides into    |S_↖__A\                                  .
  * |  ↖   /                     |S ↑  B/                                  .
- * |    /                       |  ↑ /             is_expanding flips     .
+ * |    /                       |  ↑ /                                    .
  * |A /                         |A /   AB_TO_BS                           .
  * |/                           |/                                        .
  *                                                                        .
  * |\                           |\                                        .
  * |B \  AB_TO_BS               |B \   AS_TO_AB                           .
- * |  ↗ \                       |  ↑ \            is_expanding flips      .
+ * |  ↗ \                       |  ↑ \                                    .
  * |↗    S\  subdivides into    |S_↑__A\                                  .
  * |      /                     |S ↗  B/                                  .
- * |    /                       |↗   /            is_expanding remains    .
+ * |    /                       |↗   /                                    .
  * |A /                         |A /   AS_TO_BS                           .
  * |/                           |/                                        .
  * 
@@ -309,7 +311,7 @@ protected:
         bool is_subdivided;
         std::array<std::list<Link>, number_of_sides> adjacent_cells; //!< the adjacent cells for each edge/face of this cell. Ordered: before, after, below, above
 
-        std::array<idx_t, max_subdivision_count> children; //!< children. Ordered: down-left, down-right, up-before, up-after
+        std::array<idx_t, max_subdivision_count> children; //!< children. Ordered: down-left, down-right, up-left, up-right
 
         Cell(const Prism& prism, const idx_t index, const int depth)
         : prism(prism)
