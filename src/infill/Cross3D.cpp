@@ -553,6 +553,24 @@ void Cross3D::subdivide(Cell& cell)
 //         total_loan_balance_after += getTotalLoanBalance(*child);
 //     }
 //     assert(std::abs(total_loan_balance_after - total_loan_balance_before) < 0.0001);
+
+    if (cell.depth > 0)
+    { // ignore properties of dummy cell of root
+        for (idx_t child_idx : cell.children)
+        {
+            if (child_idx < 0) continue;
+            const Cell& child = cell_data[child_idx];
+            assert(cell.prism.z_range.inside(child.prism.z_range.middle()));
+            for (size_t side = 0; side < 2; side++)
+            { // before and after
+                for (const Link& link : child.adjacent_cells[side])
+                {
+                    const Cell& neighbor = cell_data[link.to_index];
+                    assert(child.prism.z_range.overlap(neighbor.prism.z_range));
+                }
+            }
+        }
+    }
 }
 
 
@@ -645,7 +663,6 @@ Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
             last_cell = &left_top_child;
         }
     }
-    const Cell& root_cell = *last_cell;
 
     ret.layer_sequence.push_back(last_cell);
     while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
@@ -663,7 +680,7 @@ Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
         }
         ret.layer_sequence.push_back(last_cell);
     }
-    debugCheckHeights(ret, root_cell.prism.z_range.middle());
+    debugCheckHeights(ret, z);
     {
         SVG svg("output/bottom_sequence.svg", aabb.flatten());
         debugOutput(ret, svg, 1);
@@ -698,7 +715,6 @@ void Cross3D::advanceSequence(SliceWalker& walker, coord_t new_z) const
 
                 const std::list<Link>& neighbors_above = cell.adjacent_cells[static_cast<size_t>(Direction::UP)];
                 assert(!neighbors_above.empty());
-                bool inserted_something = false;
                 for (const Link& neighbor_above : neighbors_above)
                 { // add cells that weren't added yet
                     // cells might have already been added because of the advancement of the previous cell its upstairs neigbors
@@ -706,14 +722,8 @@ void Cross3D::advanceSequence(SliceWalker& walker, coord_t new_z) const
                     if (neighbor_above.to_index != cell_before_idx && neighbor_above.to_index != cell_after_idx)
                     {
                         sequence.insert(iter, &cell_data[neighbor_above.to_index]);
-                        inserted_something = true;
-                    }
-                    else
-                    {
-                        std::cerr << "cells above already in!\n";
                     }
                 }
-                assert(inserted_something);
                 iter_t iter_after = std::next(iter);
                 sequence.erase(iter);
                 iter = std::prev(iter_after);
