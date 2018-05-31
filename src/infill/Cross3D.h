@@ -349,6 +349,8 @@ private:
 
     // Tree creation:
     void createTree();
+    //! Create the tree for a first child of root
+    void createTree(const Triangle& triangle, size_t root_child_number);
     void createTree(Cell& sub_tree_root, int max_depth);
     void setVolume(Cell& sub_tree_root);
     void setSpecificationAllowance(Cell& sub_tree_root);

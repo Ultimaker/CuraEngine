@@ -203,42 +203,62 @@ void Cross3D::initialize()
     createTree();
     debugCheckDepths();
     debugCheckVolumeStats();
-    logDebug("Created Cross3D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
+    logError("Created Cross3D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
 }
 
 
 void Cross3D::createTree()
 {
     assert(cell_data.empty());
-    cell_data.reserve(2 << (max_depth / 2));
+    size_t to_be_reserved = 1.05 * sqrt2 * (2 << (max_depth * 3 / 2)); // magic formula predicting nr of cells in the tree. Overestimates to prevent reallocation.
+    logError("Cross3D reserved %i nodes\n", to_be_reserved);
+    cell_data.reserve(to_be_reserved);
     Prism root_prism; // initialized with invalid data
     cell_data.emplace_back(root_prism, /*index =*/ 0, /* depth =*/ 0);
-    Point3 aabb_size = aabb.max - aabb.min;
-    cell_data[0].volume = INT2MM(aabb_size.x) * INT2MM(aabb_size.y) * INT2MM(aabb_size.z);
-    cell_data[0].children[2] = -1;
-    cell_data[0].children[3] = -1;
 
-    // TODO: start with 4 quarter cubes so as to form a closed sierpinski curve
+    // old: start with 2 half cubes and make a non-closed polyline
+//     Triangle first_triangle(Point(aabb2d.min.X, aabb2d.max.Y), aabb2d.min, aabb2d.max, Triangle::Direction::AC_TO_AB, /* straight_corner_is_left =*/ false);
+//     Triangle second_triangle(Point(aabb2d.max.X, aabb2d.min.Y), aabb2d.max, aabb2d.min, Triangle::Direction::AB_TO_BC, /* straight_corner_is_left =*/ false);
+//     cell_data[0].children[2] = -1;
+//     cell_data[0].children[3] = -1;
+
+    // new: start with 4 quarter cubes so as to form a closed sierpinski curve
     AABB aabb2d = aabb.flatten();
-    Triangle first_triangle(Point(aabb2d.min.X, aabb2d.max.Y), aabb2d.min, aabb2d.max, Triangle::Direction::AC_TO_AB, /* straight_corner_is_left =*/ true);
-    Prism first_prism(first_triangle, aabb.min.z, aabb.max.z, /* is_expanding =*/ true);
-    idx_t first_child_index = cell_data.size();
-    cell_data[0].children[0] = first_child_index;
-    cell_data.emplace_back(first_prism, first_child_index, /* depth =*/ 1);
-    createTree(cell_data.back(), max_depth);
-    setVolume(cell_data[first_child_index]);
+    Point middle = aabb2d.getMiddle();
+    Triangle triangle_0(middle, aabb2d.min, Point(aabb2d.min.X, aabb2d.max.Y), Triangle::Direction::AC_TO_BC, /* straight_corner_is_left =*/ false);
+    createTree(triangle_0, 2);
 
-    Triangle second_triangle(Point(aabb2d.max.X, aabb2d.min.Y), aabb2d.max, aabb2d.min, Triangle::Direction::AB_TO_BC, /* straight_corner_is_left =*/ true);
-    Prism second_prism(second_triangle, aabb.min.z, aabb.max.z, /* is_expanding =*/ true);
-    idx_t second_child_index = cell_data.size();
-    cell_data[0].children[1] = second_child_index;
-    cell_data.emplace_back(second_prism, second_child_index, /* depth =*/ 1);
-    createTree(cell_data.back(), max_depth);
-    setVolume(cell_data[second_child_index]);
+    Triangle triangle_1(middle, Point(aabb2d.min.X, aabb2d.max.Y), aabb2d.max, Triangle::Direction::AC_TO_BC, /* straight_corner_is_left =*/ false);
+    createTree(triangle_1, 3);
 
+    Triangle triangle_2(middle, aabb2d.max, Point(aabb2d.max.X, aabb2d.min.Y), Triangle::Direction::AC_TO_BC, /* straight_corner_is_left =*/ false);
+    createTree(triangle_2, 0);
+
+    Triangle triangle_3(middle, Point(aabb2d.max.X, aabb2d.min.Y), aabb2d.min, Triangle::Direction::AC_TO_BC, /* straight_corner_is_left =*/ false);
+    createTree(triangle_3, 1);
+
+    Cell& root = cell_data[0];
+    Point3 aabb_size = aabb.max - aabb.min;
+    root.volume = INT2MM(aabb_size.x) * INT2MM(aabb_size.y) * INT2MM(aabb_size.z);
+    root.is_subdivided = true;
+
+    initialConnection(cell_data[root.children[0]], cell_data[root.children[1]], Direction::RIGHT);
+    initialConnection(cell_data[root.children[1]], cell_data[root.children[2]], Direction::RIGHT);
+    initialConnection(cell_data[root.children[2]], cell_data[root.children[3]], Direction::RIGHT);
+    initialConnection(cell_data[root.children[3]], cell_data[root.children[0]], Direction::RIGHT);
+    
     setSpecificationAllowance(cell_data[0]);
 }
 
+void Cross3D::createTree(const Triangle& triangle, size_t root_child_number)
+{
+    Prism prism(triangle, aabb.min.z, aabb.max.z, /* is_expanding =*/ true);
+    idx_t child_index = cell_data.size();
+    cell_data[0].children[root_child_number] = child_index;
+    cell_data.emplace_back(prism, child_index, /* depth =*/ 1);
+    createTree(cell_data.back(), max_depth);
+    setVolume(cell_data[child_index]);
+}
 void Cross3D::createTree(Cell& sub_tree_root, int max_depth)
 {
     int parent_depth = sub_tree_root.depth;
@@ -352,7 +372,15 @@ void Cross3D::createMinimalDensityPattern()
         };
     
     assert(cell_data.size() > 0);
-    all_to_be_subdivided.push_back(0); // always subdivide the root, which is a bogus node!
+    // always subdivide the root, which is a bogus node!
+    Cell& root = cell_data[0];
+    for (idx_t child_idx : root.children)
+    {
+        if (child_idx >= 0 && shouldBeSubdivided(cell_data[child_idx]))
+        {
+            all_to_be_subdivided.push_back(child_idx);
+        }
+    }
     
     while (!all_to_be_subdivided.empty())
     {
@@ -663,6 +691,7 @@ Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
             last_cell = &left_top_child;
         }
     }
+    const Cell& start_cell = *last_cell;
 
     ret.layer_sequence.push_back(last_cell);
     while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
@@ -677,6 +706,10 @@ Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
         {
             assert(top_neighbor.prism.z_range.inside(z) && "we assume a cell has max two neighbors in any given direction and either of them must overlap with the required z!");
             last_cell = &top_neighbor;
+        }
+        if (last_cell == &start_cell)
+        {
+            break;
         }
         ret.layer_sequence.push_back(last_cell);
     }
