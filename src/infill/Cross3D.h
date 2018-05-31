@@ -181,10 +181,12 @@ public:
      */
     void createMinimalDensityPattern();
 
-    SliceWalker getBottomSequence() const;
+    SliceWalker getSequence(coord_t z) const;
     void advanceSequence(SliceWalker& sequence, coord_t new_z) const;
 
     Polygon generateSierpinski(const SliceWalker& sequence) const;
+
+    Polygon generateCross(const SliceWalker& sequence, coord_t z) const;
 protected:
     static constexpr uint_fast8_t max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
     static constexpr uint_fast8_t number_of_sides = 4; //!< Prisms connect above, below and before and after
@@ -371,9 +373,31 @@ private:
     // output
 
 
+    void sliceCell(const Cell& before, const Cell& cell, const Cell& after, const coord_t z, PolygonRef output) const;
+
+    /*!
+     * Change the vertex position of the space filling curve along an edge
+     * in order to make the oscillation pattern fit with more dense cells either above or below.
+     * 
+     * \param before The cell left of the edge at this height
+     * \param after The cell right of the edge at this height
+     * \param z The z height at which we are slicing the cell
+     * \param densest_cell Either \p before or \p after; whichever is deeper recursed
+     * \param edge The edge of the \p densest_cell; i.e. the shortest edge in common to both \p before and \p after.
+     * \param edge_size Precomputed length of \p edge
+     * \param checking_direction Either UP or DOWN, to specify in which direction to check for constraints
+     * \param[in,out] pos The position along the edge to be altered by this function
+     */
+    void applyZOscillationConstraint(const Cell& before, const Cell& after, coord_t z, const Cell& densest_cell, const LineSegment edge, const coord_t edge_size, const Direction checking_direction, coord_t& pos) const;
+    Point getCellEdgeLocation(const Cell& before, const Cell& after, const coord_t z) const;
+    Point getCellEdgeLocation(const Cell& cell, const LineSegment edge, const coord_t z) const;
+    Point getEdgeLocation(const LineSegment edge, const coord_t edge_size, coord_t pos) const;
+    coord_t getCellEdgePosition(const Cell& cell, const coord_t edge_size, coord_t z) const;
+
     // debug
     void debugCheckDepths() const;
     void debugCheckVolumeStats() const;
+    void debugCheckHeights(const SliceWalker& sequence, coord_t z) const;
 
     void debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const;
     void debugOutputTriangle(const Triangle& triangle, SVG& svg, float drawing_line_width) const;

@@ -618,26 +618,6 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
     return a_edge_projected.intersection(b_edge_projected).size() > 10;
 }
 
-Cross3D::SliceWalker Cross3D::getBottomSequence() const
-{
-    SliceWalker ret;
-    // get first cell
-    const Cell* last_cell = &cell_data[0];
-    while (last_cell->is_subdivided)
-    {
-        last_cell = &cell_data[last_cell->children[0]];
-    }
-
-    ret.layer_sequence.push_back(last_cell);
-    while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
-    {
-        last_cell = &cell_data[last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].front().to_index];
-        ret.layer_sequence.push_back(last_cell);
-    }
-    
-    return ret;
-}
-
 /*
  * Tree creation /\                         .
  * 
@@ -645,6 +625,51 @@ Cross3D::SliceWalker Cross3D::getBottomSequence() const
  * 
  * Output \/                  .
  */
+
+Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
+{
+    SliceWalker ret;
+    // get first cell
+    const Cell* last_cell = &cell_data[0];
+    while (last_cell->is_subdivided)
+    {
+        const Cell& left_bottom_child = cell_data[last_cell->children[0]];
+        if (last_cell->getChildCount() == 2 || left_bottom_child.prism.z_range.inside(z))
+        {
+            last_cell = &left_bottom_child;
+        }
+        else
+        {
+            const Cell& left_top_child = cell_data[last_cell->children[2]];
+            assert(left_top_child.prism.z_range.inside(z));
+            last_cell = &left_top_child;
+        }
+    }
+    const Cell& root_cell = *last_cell;
+
+    ret.layer_sequence.push_back(last_cell);
+    while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
+    {
+        const Cell& bottom_neighbor = cell_data[last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].front().to_index];
+        const Cell& top_neighbor = cell_data[last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].back().to_index];
+        if (bottom_neighbor.prism.z_range.inside(z))
+        {
+            last_cell = &bottom_neighbor;
+        }
+        else
+        {
+            assert(top_neighbor.prism.z_range.inside(z) && "we assume a cell has max two neighbors in any given direction and either of them must overlap with the required z!");
+            last_cell = &top_neighbor;
+        }
+        ret.layer_sequence.push_back(last_cell);
+    }
+    debugCheckHeights(ret, root_cell.prism.z_range.middle());
+    {
+        SVG svg("output/bottom_sequence.svg", aabb.flatten());
+        debugOutput(ret, svg, 1);
+    }
+    return ret;
+}
 
 void Cross3D::advanceSequence(SliceWalker& walker, coord_t new_z) const
 {
@@ -707,6 +732,8 @@ void Cross3D::advanceSequence(SliceWalker& walker, coord_t new_z) const
             }
         }
     }
+
+    debugCheckHeights(walker, new_z);
 }
 
 Polygon Cross3D::generateSierpinski(const SliceWalker& walker) const
@@ -719,6 +746,210 @@ Polygon Cross3D::generateSierpinski(const SliceWalker& walker) const
     return poly;
 }
 
+Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
+{
+    Polygon poly;
+// {
+// SVG svg("output/layer_sequence.svg", aabb.getAABB());
+
+    const Cell* before = *std::prev(std::prev(walker.layer_sequence.end()));
+    const Cell* here = walker.layer_sequence.back();
+    for (const Cell* after: walker.layer_sequence)
+    {
+        sliceCell(*before, *here, *after, z, poly);
+// debugOutputCell(*here, svg, 1, true);
+// svg.writePoint(poly[poly.size() - 2]);
+// svg.writePoint(poly[poly.size() - 1]);
+// svg.writeDashedLine(poly[poly.size() - 2], poly[poly.size() - 1]);
+        before = here;
+        here = after;
+    }
+// }
+    return poly;
+}
+
+void Cross3D::sliceCell(const Cell& before, const Cell& cell, const Cell& after, const coord_t z, PolygonRef output) const
+{
+    // TODO: complete this function!
+    
+    Point from = getCellEdgeLocation(before, cell, z);
+    Point to = getCellEdgeLocation(cell, after, z);
+//     Point from = getCellEdgeLocation(cell, cell.prism.triangle.getFromEdge(), z); // simplified TODO: revert to code above
+//     Point to = getCellEdgeLocation(cell, cell.prism.triangle.getToEdge(), z); // simplified TODO: revert to code above
+
+//     assert(output.empty() || vSize(to - output.back()) > 10);
+    output.add(from);
+//     output.add(from + normal(turn90CCW(from_edge.getVector()), line_width / 2));
+
+//     output.add(to + normal(turn90CCW(to_edge.getVector()), -line_width / 2));
+    output.add(to);
+}
+
+Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const coord_t z) const
+{
+    /*
+     * the edge of a triangle is connected to a side of the prism
+     * the oscillation of the space filling curve vertices is determined by the connected prisms
+     * there are two cells connected to such an edge in the XY plane
+     * and the one with the highest recursion depth determines the basic oscillation frequency.
+     * However, the prism sides are also connected to prism sides above and below.
+     * The osciallation pattern must connect to cells above and below.
+     * This is done by altering the oscillation pattern of the lowest density cell to adjust it such that
+     * the lower recursion depth cell attaches to the higher recursion depth cell.
+     * 
+     * Simplified 2D example:            .
+     *  ____              ____           .
+     * [-.  ]            [-.  ]          .
+     * [__'-]___         [__'-]___       .
+     * [      .-]   ==>  [    '.  ]      .
+     * [   .-'  ]        [   .-'  ]      .
+     * [.-'_____]        [.-'_____]      .
+     *                                   .
+     * alternative ascii art:            .
+     *                                   .
+     * ] /[ [          ] /[ [            .
+     * ]/ [ [          ]/ [ [            .
+     * ]\ [ [          ]\ [ [            .
+     * ] \[ [          ] \[ [            .
+     * ]   /[ >change> ]  \ [            .
+     * ]  / [          ]  / [            .
+     * ] /  [          ] /  [            .
+     * ]/   [          ]/   [            .
+     * ]\   [    ==>   ]\   [            .
+     * ] \  [          ] \  [            .
+     * ]  \ [          ]  \ [            .
+     * ]   \[          ]   \[            .
+     * ]   /[          ]   /[            .
+     * ]  / [          ]  / [            .
+     * ] /  [          ] /  [            .
+     * ]/   [          ]/   [            .
+     */
+    
+    const Cell* _densest_cell = &before;
+    LineSegment _edge = before.prism.triangle.getToEdge();
+    if (after.depth > before.depth)
+    {
+        _densest_cell = &after;
+        _edge = after.prism.triangle.getFromEdge();
+    }
+    const Cell& densest_cell = *_densest_cell;
+    const LineSegment edge = _edge;
+    
+    const coord_t edge_size = vSize(edge.getVector());
+    coord_t pos = getCellEdgePosition(densest_cell, edge_size, z); // position along the edge where to put the vertex
+
+    // check for constraining cells above or below
+    if (z > densest_cell.prism.z_range.middle())
+    { // check cell above
+        applyZOscillationConstraint(before, after, z, densest_cell, edge, edge_size, Direction::UP, pos);
+    }
+    else
+    { // check cell below
+        applyZOscillationConstraint(before, after, z, densest_cell, edge, edge_size, Direction::DOWN, pos);
+    }
+    Point ret = getEdgeLocation(edge, edge_size, pos);
+    assert(aabb.flatten().contains(ret));
+    return ret;
+}
+
+void Cross3D::applyZOscillationConstraint(const Cell& before, const Cell& after, coord_t z, const Cell& densest_cell, const LineSegment edge, const coord_t edge_size, const Direction checking_direction, coord_t& pos) const
+{
+        const bool checking_up = checking_direction == Direction::UP;
+        const coord_t flip_for_down = checking_up? 1 : -1;
+
+        // documentation and naming in this function assumes it has been called for checking the edge for constraining from above
+        const Cell* densest_cell_above = nullptr; // there might be no cell above
+        LineSegment edge_above;
+        { // find densest cell above and the corresponding edge
+            const std::list<Link>& before_neighbors_above = before.adjacent_cells[static_cast<size_t>(checking_direction)];
+            if (!before_neighbors_above.empty())
+            {
+                densest_cell_above = &cell_data[before_neighbors_above.back().to_index];
+                edge_above = densest_cell_above->prism.triangle.getToEdge();
+            }
+            const std::list<Link>& after_neighbors_above = after.adjacent_cells[static_cast<size_t>(checking_direction)];
+            if (!after_neighbors_above.empty())
+            {
+                const Cell& after_above = cell_data[after_neighbors_above.front().to_index];
+                if (!densest_cell_above || after_above.depth > densest_cell_above->depth)
+                {
+                    densest_cell_above = &after_above;
+                    edge_above = after_above.prism.triangle.getFromEdge();
+                }
+            }
+        }
+
+        if (densest_cell_above && densest_cell_above->depth > densest_cell.depth)
+        { // this cells oscillation pattern is altered to fit the oscillation pattern above
+            const Point oscillation_end_point = // where the oscillation should end on the edge at this height
+                (densest_cell_above->prism.is_expanding == checking_up) // flip for downward direction
+                ? edge_above.from
+                : edge_above.to;
+            const coord_t oscillation_end_pos = dot(oscillation_end_point - edge.from, edge.to - edge.from) / vSize(edge.getVector()); // end position along the edge at this height
+            assert(std::abs(oscillation_end_pos - vSize(oscillation_end_point - edge.from)) < 10 && "oscillation_end_point should lie on the segment!");
+            assert(oscillation_end_pos >= -10 && oscillation_end_pos <= edge_size + 10);
+            if (oscillation_end_pos > edge_size / 4 && oscillation_end_pos < edge_size * 3 / 4)
+            { // oscillation end pos is in the middle
+                if (z * flip_for_down > flip_for_down * (densest_cell.prism.z_range.middle() + flip_for_down * densest_cell.prism.z_range.size() / 4))
+                // z is more than 3/4 for up or z less than 1/4 for down
+                { // we're in the top quarter z of this prism
+                    if (densest_cell.prism.is_expanding == checking_up) // flip when cheking down
+                    {
+                        pos = edge_size * 3 / 2 - pos;
+                    }
+                    else
+                    {
+                        pos = edge_size / 2 - pos;
+                    }
+                }
+            }
+            else
+            { // oscillation end pos is at one of the ends
+                if ((oscillation_end_pos > edge_size / 2) == (densest_cell.prism.is_expanding == checking_up)) // flip on is_expanding and on checking_up
+                { // constraining cell above is constraining this edge to be the same is it would normally be
+                    // don't alter pos
+                }
+                else
+                { // constraining cell causes upper half of oscillation pattern to be inverted
+                    pos = edge_size - pos;
+                }
+            }
+        }
+}
+
+Point Cross3D::getCellEdgeLocation(const Cell& cell, const LineSegment edge, const coord_t z) const
+{
+    const coord_t edge_size = vSize(edge.getVector());
+    coord_t pos = getCellEdgePosition(cell, edge_size, z);
+    return getEdgeLocation(edge, edge_size, pos);
+}
+Point Cross3D::getEdgeLocation(const LineSegment edge, const coord_t edge_size, coord_t pos) const
+{
+    assert(std::abs(vSize(edge.getVector()) - edge_size) < 10);
+    pos  = std::min(edge_size - line_width / 2, std::max(line_width / 2, pos));
+    if (pos < line_width / 2)
+    { // edge size is smaller than a line width
+        pos = edge_size / 2;
+    }
+    assert(pos >= 0);
+    assert(pos <= edge_size);
+    Point loc = edge.from + normal(edge.getVector(), pos);
+    
+    assert(aabb.flatten().contains(loc));
+    return loc;
+}
+
+coord_t Cross3D::getCellEdgePosition(const Cell& cell, const coord_t edge_size, coord_t z) const
+{
+    coord_t pos = (z - cell.prism.z_range.min) * edge_size / cell.prism.z_range.size();
+    if (!cell.prism.is_expanding)
+    {
+        pos = edge_size - pos;
+    }
+    assert(pos >= 0);
+    assert(pos <= edge_size);
+    return pos;
+}
 
 /*
  * Output /\                         .
@@ -782,6 +1013,15 @@ void Cross3D::debugCheckVolumeStats() const
     assert(problems == 0 && "no depth difference problems");
 }
 
+
+void Cross3D::debugCheckHeights(const SliceWalker& sequence, coord_t z) const
+{
+    for (const Cell* cell : sequence.layer_sequence)
+    {
+        assert(cell->prism.z_range.inside(z));
+    }
+}
+
 void Cross3D::debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const
 {
     debugOutputTriangle(cell.prism.triangle, svg, drawing_line_width);
@@ -801,7 +1041,15 @@ void Cross3D::debugOutputTriangle(const Triangle& triangle, SVG& svg, float draw
     tri.add(triangle.a);
     tri.add(triangle.b);
     tri.add(triangle.straight_corner);
-    svg.writePolygon(tri, SVG::Color::GRAY);
+    svg.writePoint(triangle.a, true, 1);
+    svg.writePoint(triangle.b, true, 1);
+    svg.writePoint(triangle.straight_corner, true, 1);
+//     svg.writePolygon(tri, SVG::Color::GRAY);
+    Polygons polys;
+    polys.add(tri);
+    polys = polys.offset(-80);
+//     svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::BLACK);
+    svg.writePolygons(polys, SVG::Color::GRAY);
 
     svg.writeLine(triangle.getFromEdge().middle(), triangle.getToEdge().middle(), SVG::Color::RED, drawing_line_width);
 }

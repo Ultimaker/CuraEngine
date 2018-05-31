@@ -34,7 +34,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
     subdivision_structure_3d->initialize();
     subdivision_structure_3d->createMinimalDensityPattern();
-    slice_walker_cross3d = subdivision_structure_3d->getBottomSequence();
+    slice_walker_cross3d = subdivision_structure_3d->getSequence(/* z = */ 0);
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, std::string cross_subdisivion_spec_image_file, bool)
@@ -44,7 +44,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
     subdivision_structure_3d->initialize();
     subdivision_structure_3d->createMinimalDensityPattern();
-    slice_walker_cross3d = subdivision_structure_3d->getBottomSequence();
+    slice_walker_cross3d = subdivision_structure_3d->getSequence(/* z = */ 0);
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
@@ -64,7 +64,8 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
     {
         assert(slice_walker_cross3d);
         subdivision_structure_3d->advanceSequence(*slice_walker_cross3d, z);
-        return subdivision_structure_3d->generateSierpinski(*slice_walker_cross3d);
+//         return subdivision_structure_3d->generateSierpinski(*slice_walker_cross3d);
+        return subdivision_structure_3d->generateCross(*slice_walker_cross3d, z);
     }
     else
     {
