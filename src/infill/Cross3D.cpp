@@ -172,7 +172,7 @@ bool Cross3D::Prism::isQuarterCube() const
     return std::abs(vSize(triangle.a - triangle.b) - (z_range.max - z_range.min)) < 10;
 }
 
-uint_fast8_t Cross3D::Cell::getChildCount()
+uint_fast8_t Cross3D::Cell::getChildCount() const
 {
     return (children[2] < 0)? 2 : 4;
 }

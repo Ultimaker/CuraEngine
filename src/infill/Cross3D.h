@@ -317,7 +317,7 @@ protected:
 //             children.fill(-1); --> done in createTree(...)
         }
 
-        uint_fast8_t getChildCount();
+        uint_fast8_t getChildCount() const;
     };
 
     std::vector<Cell> cell_data; //!< Storage for all the cells. The data of a binary/quaternary tree in depth first order.
