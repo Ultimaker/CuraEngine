@@ -370,14 +370,30 @@ private:
      */
     bool isNextTo(const Cell& a, const Cell& b, Direction a_to_b) const;
 
-    // output
+    //----------------------
+    //------ OUTPUT --------
+    //----------------------
 
-
+    /*!
+     * Add line segments for the space filling surface patch in this \p cell.
+     * This depends on neighboring cells and their upstairs and downstrairs neighbors.
+     */
     void sliceCell(const Cell& before, const Cell& cell, const Cell& after, const coord_t z, PolygonRef output) const;
+
+    /*!
+     * Get the location of a vertex of the space filling curve lying on the edge in between two cells.
+     * This function applies XY neighboring pattern constraints (highest recursion dpeth decides oscillation pattern)
+     * and Z oscillation continuity constraints (oscillation pattern is altered to fit higher recursion cells above and below).
+     * 
+     * Also the points are generated not too close to the cell boundary so as not to cause line overlap problems.
+     */
+    Point getCellEdgeLocation(const Cell& before, const Cell& after, const coord_t z) const;
 
     /*!
      * Change the vertex position of the space filling curve along an edge
      * in order to make the oscillation pattern fit with more dense cells either above or below.
+     * 
+     * The input and output vertex position is/should not be corrected to not lie too close to the borders yet.
      * 
      * \param before The cell left of the edge at this height
      * \param after The cell right of the edge at this height
@@ -389,9 +405,11 @@ private:
      * \param[in,out] pos The position along the edge to be altered by this function
      */
     void applyZOscillationConstraint(const Cell& before, const Cell& after, coord_t z, const Cell& densest_cell, const LineSegment edge, const coord_t edge_size, const Direction checking_direction, coord_t& pos) const;
-    Point getCellEdgeLocation(const Cell& before, const Cell& after, const coord_t z) const;
-    Point getCellEdgeLocation(const Cell& cell, const LineSegment edge, const coord_t z) const;
-    Point getEdgeLocation(const LineSegment edge, const coord_t edge_size, coord_t pos) const;
+
+    /*!
+     * Get the position in the oscillation pattern based on the two cells on both sides of the edge,
+     * without taking the edges above and below into account.
+     */
     coord_t getCellEdgePosition(const Cell& cell, const coord_t edge_size, coord_t z) const;
 
     // debug

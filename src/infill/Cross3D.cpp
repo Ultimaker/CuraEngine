@@ -834,7 +834,7 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
      * ] /  [          ] /  [            .
      * ]/   [          ]/   [            .
      */
-    
+
     const Cell* _densest_cell = &before;
     LineSegment _edge = before.prism.triangle.getToEdge();
     if (after.depth > before.depth)
@@ -844,7 +844,7 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
     }
     const Cell& densest_cell = *_densest_cell;
     const LineSegment edge = _edge;
-    
+
     const coord_t edge_size = vSize(edge.getVector());
     coord_t pos = getCellEdgePosition(densest_cell, edge_size, z); // position along the edge where to put the vertex
 
@@ -857,8 +857,20 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
     { // check cell below
         applyZOscillationConstraint(before, after, z, densest_cell, edge, edge_size, Direction::DOWN, pos);
     }
-    Point ret = getEdgeLocation(edge, edge_size, pos);
+
+    { // Keep lines away from cell boundary to prevent line overlap
+        pos  = std::min(edge_size - line_width / 2, std::max(line_width / 2, pos));
+        if (pos < line_width / 2)
+        { // edge size is smaller than a line width
+            pos = edge_size / 2;
+        }
+        assert(pos >= 0);
+        assert(pos <= edge_size);
+    }
+
+    Point ret = edge.from + normal(edge.getVector(), pos);
     assert(aabb.flatten().contains(ret));
+
     return ret;
 }
 
@@ -927,27 +939,6 @@ void Cross3D::applyZOscillationConstraint(const Cell& before, const Cell& after,
     }
 }
 
-Point Cross3D::getCellEdgeLocation(const Cell& cell, const LineSegment edge, const coord_t z) const
-{
-    const coord_t edge_size = vSize(edge.getVector());
-    coord_t pos = getCellEdgePosition(cell, edge_size, z);
-    return getEdgeLocation(edge, edge_size, pos);
-}
-Point Cross3D::getEdgeLocation(const LineSegment edge, const coord_t edge_size, coord_t pos) const
-{
-    assert(std::abs(vSize(edge.getVector()) - edge_size) < 10);
-    pos  = std::min(edge_size - line_width / 2, std::max(line_width / 2, pos));
-    if (pos < line_width / 2)
-    { // edge size is smaller than a line width
-        pos = edge_size / 2;
-    }
-    assert(pos >= 0);
-    assert(pos <= edge_size);
-    Point loc = edge.from + normal(edge.getVector(), pos);
-    
-    assert(aabb.flatten().contains(loc));
-    return loc;
-}
 
 coord_t Cross3D::getCellEdgePosition(const Cell& cell, const coord_t edge_size, coord_t z) const
 {
