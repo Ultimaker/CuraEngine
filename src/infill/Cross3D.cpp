@@ -5,6 +5,7 @@
 
 #include "../utils/math.h"
 #include "../utils/linearAlg2D.h"
+#include "../utils/gettime.h"
 
 
 namespace cura {
@@ -198,10 +199,11 @@ float Cross3D::getDensity(const Cell& cell) const
 
 void Cross3D::initialize()
 {
+    TimeKeeper tk;
     createTree();
     debugCheckDepths();
     debugCheckVolumeStats();
-    logDebug("Created Cross3D tree with %i nodes and max depth %i\n", cell_data.size(), max_depth);
+    logDebug("Created Cross3D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
 }
 
 
@@ -347,6 +349,7 @@ void Cross3D::setSpecificationAllowance(Cell& sub_tree_root)
 
 void Cross3D::createMinimalDensityPattern()
 {
+    TimeKeeper tk;
     std::list<idx_t> all_to_be_subdivided;
     
     std::function<bool(const Cell&)> shouldBeSubdivided =
@@ -396,6 +399,7 @@ void Cross3D::createMinimalDensityPattern()
             }
         }
     }
+    logDebug("Cross3D::createMinimalDensityPattern finished in %5.2fs.\n", tk.restart());
 }
 
 
