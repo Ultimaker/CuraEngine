@@ -607,6 +607,10 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
         default:
             logError("Unknown direction passed to Cross3D::isNextTo!\n");
     }
+    if (!a.prism.z_range.inside(b.prism.z_range.middle()) && !b.prism.z_range.inside(a.prism.z_range.middle()))
+    { // they are not next to each other in z ranges
+        return false;
+    }
     if (!LinearAlg2D::areCollinear(a_edge, b_edge))
     {
         return false;
