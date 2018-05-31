@@ -271,14 +271,7 @@ void Cross3D::createTree(Cell& sub_tree_root, int max_depth)
                 cell_data[parent_idx].children[child_idx] = -1; // change parent 
                 continue;
             }
-            bool is_expanding =
-                (parent_prism.triangle.dir != Triangle::Direction::AC_TO_BC && child_xy_idx == 1)
-                ? !parent_prism.is_expanding // is_expanding flips for these configurations. See class documentation.
-                : parent_prism.is_expanding;
-            if (child_z_idx == 1)
-            { // upper children expand oppositely to lower children
-                is_expanding = !is_expanding;
-            }
+            const bool is_expanding = (child_count == 4)? static_cast<bool>(child_z_idx) : parent_prism.is_expanding;
             idx_t child_data_index = cell_data.size();
             cell_data[parent_idx].children[child_idx] = child_data_index; // change parent 
             cell_data.emplace_back(Prism(subdivided_triangles[child_xy_idx], child_z_min, child_z_max, is_expanding), child_data_index, parent_depth + 1);
