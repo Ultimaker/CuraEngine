@@ -813,18 +813,32 @@ Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
 
 void Cross3D::sliceCell(const Cell& before, const Cell& cell, const Cell& after, const coord_t z, PolygonRef output) const
 {
-    // TODO: complete this function!
-    
     Point from = getCellEdgeLocation(before, cell, z);
     Point to = getCellEdgeLocation(cell, after, z);
-//     Point from = getCellEdgeLocation(cell, cell.prism.triangle.getFromEdge(), z); // simplified TODO: revert to code above
-//     Point to = getCellEdgeLocation(cell, cell.prism.triangle.getToEdge(), z); // simplified TODO: revert to code above
+    assert(output.empty() || vSize(from - output.back()) < 10); // TODO: don't add from
 
-//     assert(output.empty() || vSize(to - output.back()) > 10);
+    if (vSize2(to - from) < line_width * line_width * 3 / 4) // 1.5 * (.5line_width*sqrt(2))^2
+    { // distance is too small to make non-overlapping
+        output.add(from); // TODO: from should already be in the poly from the last call to sliceCell
+        output.add(to);
+        return;
+    }
+    LineSegment from_edge = cell.prism.triangle.getFromEdge();
+    LineSegment to_edge = cell.prism.triangle.getToEdge();
+
+    // from and to should lie ON the segments of the triangle
+    assert(LinearAlg2D::getDist2FromLine(from, from_edge.from, from_edge.to) < 100);
+    assert(LinearAlg2D::getDist2FromLine(to, to_edge.from, to_edge.to) < 100);
+
     output.add(from);
-//     output.add(from + normal(turn90CCW(from_edge.getVector()), line_width / 2));
-
-//     output.add(to + normal(turn90CCW(to_edge.getVector()), -line_width / 2));
+    if (isOverlapping(from_edge, LineSegment(from, to)))
+    {
+        add45degBend(from, to, from_edge.reversed(), output);
+    }
+    if (isOverlapping(to_edge, LineSegment(to, output.back())))
+    {
+        add45degBend(to, output.back(), to_edge, output);
+    }
     output.add(to);
 }
 
@@ -983,6 +997,25 @@ coord_t Cross3D::getCellEdgePosition(const Cell& cell, const coord_t edge_size, 
     assert(pos >= 0);
     assert(pos <= edge_size);
     return pos;
+}
+
+
+bool Cross3D::isOverlapping(const LineSegment edge, const LineSegment segment) const
+{
+    assert(LinearAlg2D::getDist2FromLine(segment.from, edge.from, edge.to) < 100);
+    Point a = edge.getVector();
+    Point b = segment.getVector();
+    coord_t prod = std::abs(dot(a, b));
+    return prod > vSize(a) * vSize(b) * 0.5 * sqrt2;
+}
+
+void Cross3D::add45degBend(const Point end_point, const Point other_end_point, const LineSegment edge, PolygonRef output) const
+{
+    Point insetted = end_point + normal(turn90CCW(edge.getVector()), line_width / 2);
+    Point along_edge = edge.from - end_point;
+    coord_t dir = (dot(other_end_point - end_point, along_edge) > 0)? 1 : -1;
+    Point offsetted = insetted + normal(along_edge, dir * line_width / 2); // make inward piece angled toward the other_end_point with 45*
+    output.add(offsetted);
 }
 
 /*

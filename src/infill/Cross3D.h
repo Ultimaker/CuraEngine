@@ -414,6 +414,16 @@ private:
      */
     coord_t getCellEdgePosition(const Cell& cell, const coord_t edge_size, coord_t z) const;
 
+    /*!
+     * Whether the space filling curve \p segment is overlapping beyond the \p edge
+     * Whether the angle between the \p edge and the \p segment is < 45*
+     * The from point of \p segment is assumed to lie on the \p edge
+     */
+    bool isOverlapping(const LineSegment edge, const LineSegment segment) const;
+
+    //! Add a 45 degree bend in order to avoid line overlap in the curve patch along a triangle
+    void add45degBend(const Point end_point, const Point other_end_point, const LineSegment edge, PolygonRef output) const;
+
     // debug
     void debugCheckDepths() const;
     void debugCheckVolumeStats() const;
