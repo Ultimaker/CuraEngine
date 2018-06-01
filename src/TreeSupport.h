@@ -19,8 +19,10 @@ class TreeSupport
 public:
     /*!
      * \brief Creates an instance of the tree support generator.
+     *
+     * \param storage The data storage to get global settings from.
      */
-    TreeSupport();
+    TreeSupport(const SliceDataStorage& storage);
 
     /*!
      * \brief Create the areas that need support.
@@ -92,6 +94,13 @@ public:
     };
 
 private:
+    /*!
+     * \brief The border of the printer where we may not put tree branches.
+     *
+     * Lest they produce g-code that goes outside the build volume.
+     */
+    Polygons machine_volume_border;
+
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches.
      *
