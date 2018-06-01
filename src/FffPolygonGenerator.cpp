@@ -319,7 +319,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);
-    TreeSupport tree_support_generator;
+    TreeSupport tree_support_generator(storage);
     tree_support_generator.generateSupportAreas(storage);
 
     // we need to remove empty layers after we have processed the insets
