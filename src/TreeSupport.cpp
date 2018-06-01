@@ -115,7 +115,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
             actual_border = storage.machine_size.flatten().toPolygon();
     }
     Polygons machine_volume_border;
-    machine_volume_border.add(actual_border.offset(1000)); //Put a border of 1mm around the print volume so that we don't collide.
+    machine_volume_border.add(actual_border.offset(1000000)); //Put a border of 1m around the print volume so that we don't collide.
     actual_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
     machine_volume_border.add(actual_border);
 
