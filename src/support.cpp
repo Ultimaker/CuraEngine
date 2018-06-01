@@ -720,6 +720,10 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         }
         else
         {
+            if(cross_subdisivion_spec_image_file != "")
+            {
+                logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
+            }
             storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"));
         }
     }
