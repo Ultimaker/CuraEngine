@@ -761,6 +761,7 @@ void Cross3D::advanceSequence(SliceWalker& walker, coord_t new_z) const
                 iter_t iter_after = std::next(iter);
                 sequence.erase(iter);
                 iter = std::prev(iter_after);
+                assert(iter_after == sequence.end() || (*iter_after)->index != (*iter)->index);
             }
         }
 
@@ -800,14 +801,17 @@ Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
     const Cell* here = walker.layer_sequence.back();
     for (const Cell* after: walker.layer_sequence)
     {
+        assert(before->index != here->index);
+        assert(here->index != after->index);
         sliceCell(*before, *here, *after, z, poly);
 // debugOutputCell(*here, svg, 1, true);
-// svg.writePoint(poly[poly.size() - 2]);
-// svg.writePoint(poly[poly.size() - 1]);
+// svg.writePoint(poly[poly.size() - 2], false, 2);
+// svg.writePoint(poly[poly.size() - 1], false, 2);
 // svg.writeDashedLine(poly[poly.size() - 2], poly[poly.size() - 1]);
         before = here;
         here = after;
     }
+// svg.writePolygon(poly, SVG::Color::GREEN);
 // }
     return poly;
 }
@@ -882,16 +886,8 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
      * ] /  [          ] /  [            .
      * ]/   [          ]/   [            .
      */
-
-    const Cell* _densest_cell = &before;
-    LineSegment _edge = before.prism.triangle.getToEdge();
-    if (after.depth > before.depth)
-    {
-        _densest_cell = &after;
-        _edge = after.prism.triangle.getFromEdge();
-    }
-    const Cell& densest_cell = *_densest_cell;
-    const LineSegment edge = _edge;
+    const Cell& densest_cell = (after.depth > before.depth)? after : before;
+    const LineSegment edge = (after.depth > before.depth)? after.prism.triangle.getFromEdge() : before.prism.triangle.getToEdge();
 
     const coord_t edge_size = vSize(edge.getVector());
     coord_t pos = getCellEdgePosition(densest_cell, edge_size, z); // position along the edge where to put the vertex
@@ -923,6 +919,10 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
     Point ret = edge.from + normal(edge.getVector(), pos);
     assert(aabb.flatten().contains(ret));
 
+    LineSegment edge1 = before.prism.triangle.getToEdge();
+    LineSegment edge2 = after.prism.triangle.getFromEdge();
+    assert(LinearAlg2D::getDist2FromLine(ret, edge1.from, edge1.to) < 100);
+    assert(LinearAlg2D::getDist2FromLine(ret, edge2.from, edge2.to) < 100);
     return ret;
 }
 
@@ -1088,9 +1088,12 @@ void Cross3D::debugCheckVolumeStats() const
 
 void Cross3D::debugCheckHeights(const SliceWalker& sequence, coord_t z) const
 {
+    const Cell* prev = sequence.layer_sequence.back();
     for (const Cell* cell : sequence.layer_sequence)
     {
         assert(cell->prism.z_range.inside(z));
+        assert(cell->index != prev->index);
+        prev = cell;
     }
 }
 
@@ -1113,9 +1116,9 @@ void Cross3D::debugOutputTriangle(const Triangle& triangle, SVG& svg, float draw
     tri.add(triangle.a);
     tri.add(triangle.b);
     tri.add(triangle.straight_corner);
-    svg.writePoint(triangle.a, true, 1);
-    svg.writePoint(triangle.b, true, 1);
-    svg.writePoint(triangle.straight_corner, true, 1);
+//     svg.writePoint(triangle.a, true, 1);
+//     svg.writePoint(triangle.b, true, 1);
+//     svg.writePoint(triangle.straight_corner, true, 1);
 //     svg.writePolygon(tri, SVG::Color::GRAY);
     Polygons polys;
     polys.add(tri);
