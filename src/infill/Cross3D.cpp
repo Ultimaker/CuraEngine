@@ -424,7 +424,55 @@ void Cross3D::createMinimalDensityPattern()
     logDebug("Cross3D::createMinimalDensityPattern finished in %5.2fs.\n", tk.restart());
 }
 
+void Cross3D::sanitize()
+{
+    sanitize(cell_data[0]);
+}
 
+void Cross3D::sanitize(Cell& sub_tree_root)
+{
+    if (sub_tree_root.is_subdivided)
+    { // recurse
+        for (idx_t child_idx : sub_tree_root.children)
+        {
+            if (child_idx < 0)
+            {
+                break;
+            }
+            sanitize(cell_data[child_idx]);
+        }
+    }
+    else
+    {
+        if (sub_tree_root.prism.triangle.dir == Triangle::Direction::AC_TO_BC
+            && sub_tree_root.prism.isQuarterCube())
+        {
+            uint_fast8_t child_count = 0;
+            uint_fast8_t deeper_child_count = 0;
+            for (const std::list<Link>& side : sub_tree_root.adjacent_cells)
+            {
+                for (const Link& link : side)
+                {
+                    child_count++;
+                    const char child_depth = cell_data[link.to_index].depth;
+                    if (child_depth > sub_tree_root.depth)
+                    {
+                        deeper_child_count++;
+                    }
+                    else if (child_depth < sub_tree_root.depth)
+                    {
+                        return; // The cell has neighbors with lower recursion depth, so the subdivision of this node is constrained.
+                    }
+                    break; // other child on this side has to have the same depth!
+                }
+            }
+            if (deeper_child_count >= child_count / 2)
+            {
+                subdivide(sub_tree_root);
+            }
+        }
+    }
+}
 
 
 float Cross3D::getActualizedVolume(const Cell& node) const

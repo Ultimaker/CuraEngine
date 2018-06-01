@@ -45,6 +45,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
     subdivision_structure_3d->initialize();
     subdivision_structure_3d->createMinimalDensityPattern();
+    subdivision_structure_3d->sanitize();
     slice_walker_cross3d = subdivision_structure_3d->getSequence(/* z = */ 0);
 }
 
@@ -55,6 +56,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
     subdivision_structure_3d->initialize();
     subdivision_structure_3d->createMinimalDensityPattern();
+    subdivision_structure_3d->sanitize();
     slice_walker_cross3d = subdivision_structure_3d->getSequence(/* z = */ 0);
 }
 
