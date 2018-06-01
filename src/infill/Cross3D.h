@@ -380,8 +380,14 @@ private:
     /*!
      * Add line segments for the space filling surface patch in this \p cell.
      * This depends on neighboring cells and their upstairs and downstrairs neighbors.
+     * 
+     * \param cell The cell to slice
+     * \param after The cell after/right of the cell to slice at the slicing height
+     * \param z The height at which to slice the cell
+     * \param[in,out] from The to-location of the previous cell (input) and the from-location of the next cell (output)
+     * \param[out] output Where to add the points
      */
-    void sliceCell(const Cell& before, const Cell& cell, const Cell& after, const coord_t z, PolygonRef output) const;
+    void sliceCell(const Cell& cell, const Cell& after, const coord_t z, Point& from, PolygonRef output) const;
 
     /*!
      * Get the location of a vertex of the space filling curve lying on the edge in between two cells.

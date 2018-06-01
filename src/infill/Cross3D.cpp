@@ -794,40 +794,27 @@ Polygon Cross3D::generateSierpinski(const SliceWalker& walker) const
 Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
 {
     Polygon poly;
-// {
-// SVG svg("output/layer_sequence.svg", aabb.getAABB());
 
+    assert(walker.layer_sequence.size() >= 4); // the dummy root cell should always be subdivided into its 4 children
     const Cell* before = *std::prev(std::prev(walker.layer_sequence.end()));
     const Cell* here = walker.layer_sequence.back();
+    
+    Point from = getCellEdgeLocation(*before, *here, z);
     for (const Cell* after: walker.layer_sequence)
     {
-        assert(before->index != here->index);
         assert(here->index != after->index);
-        sliceCell(*before, *here, *after, z, poly);
-// debugOutputCell(*here, svg, 1, true);
-// svg.writePoint(poly[poly.size() - 2], false, 2);
-// svg.writePoint(poly[poly.size() - 1], false, 2);
-// svg.writeDashedLine(poly[poly.size() - 2], poly[poly.size() - 1]);
-        before = here;
+        sliceCell(*here, *after, z, from, poly);
         here = after;
     }
-// svg.writePolygon(poly, SVG::Color::GREEN);
-// }
     return poly;
 }
 
-void Cross3D::sliceCell(const Cell& before, const Cell& cell, const Cell& after, const coord_t z, PolygonRef output) const
+void Cross3D::sliceCell(const Cell& cell, const Cell& after, const coord_t z, Point& from_output, PolygonRef output) const
 {
-    Point from = getCellEdgeLocation(before, cell, z);
+    Point from = from_output;
     Point to = getCellEdgeLocation(cell, after, z);
-    assert(output.empty() || vSize(from - output.back()) < 10); // TODO: don't add from
+    from_output = to;
 
-    if (vSize2(to - from) < line_width * line_width * 3 / 4) // 1.5 * (.5line_width*sqrt(2))^2
-    { // distance is too small to make non-overlapping
-        output.add(from); // TODO: from should already be in the poly from the last call to sliceCell
-        output.add(to);
-        return;
-    }
     LineSegment from_edge = cell.prism.triangle.getFromEdge();
     LineSegment to_edge = cell.prism.triangle.getToEdge();
 
@@ -836,15 +823,18 @@ void Cross3D::sliceCell(const Cell& before, const Cell& cell, const Cell& after,
     assert(LinearAlg2D::getDist2FromLine(to, to_edge.from, to_edge.to) < 100);
 
     output.add(from);
-    if (isOverlapping(from_edge, LineSegment(from, to)))
-    {
-        add45degBend(from, to, from_edge.reversed(), output);
+    if (vSize2(to - from) > line_width * line_width * 3 / 4) // 1.5 * (.5line_width*sqrt(2))^2
+    { // distance is too small to make non-overlapping
+        if (isOverlapping(from_edge, LineSegment(from, to)))
+        {
+            add45degBend(from, to, from_edge.reversed(), output);
+        }
+        if (isOverlapping(to_edge, LineSegment(to, output.back())))
+        {
+            add45degBend(to, output.back(), to_edge, output);
+        }
     }
-    if (isOverlapping(to_edge, LineSegment(to, output.back())))
-    {
-        add45degBend(to, output.back(), to_edge, output);
-    }
-    output.add(to);
+    // don't add [to]; it will already be added in the next call to sliceCell(.)
 }
 
 Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const coord_t z) const
