@@ -181,6 +181,7 @@ Cross3D::Cross3D(const DensityProvider& density_provider, const AABB3D aabb, con
 : aabb(aabb)
 , max_depth(max_depth)
 , line_width(line_width)
+, min_dist_to_cell_bound(line_width * 0.5 * sqrt2)
 , density_provider(density_provider)
 {
 }
@@ -906,8 +907,12 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
     }
 
     { // Keep lines away from cell boundary to prevent line overlap
-        pos  = std::min(edge_size - line_width / 2, std::max(line_width / 2, pos));
-        if (pos < line_width / 2)
+        // TODO: make min_dist_to_cell_bound depend on the triangles involved
+        // if it's a 90* corner, it should be sqrt(2)*line_width/2
+        // if it's a 135* corner, it should be sqrt(2)*line_width/2
+        // if it's a 180* thing, it should be line_width/2
+        pos  = std::min(edge_size - min_dist_to_cell_bound, std::max(min_dist_to_cell_bound, pos));
+        if (pos < min_dist_to_cell_bound)
         { // edge size is smaller than a line width
             pos = edge_size / 2;
         }

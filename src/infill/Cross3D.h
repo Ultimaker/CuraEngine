@@ -335,6 +335,7 @@ protected:
     AABB3D aabb;
     int max_depth;
     coord_t line_width; //!< The line width of the fill lines
+    coord_t min_dist_to_cell_bound; //!< The line width of the fill lines
 
     const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
 
