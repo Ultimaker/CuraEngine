@@ -494,6 +494,26 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 machine_volume_border.add(storage.machine_size.flatten().toPolygon());
                 break;
         }
+        coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
+        switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
+        {
+            case EPlatformAdhesion::BRIM:
+                adhesion_size = storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("brim_line_count");
+                break;
+            case EPlatformAdhesion::RAFT:
+                adhesion_size = storage.getSettingInMicrons("raft_margin");
+                break;
+            case EPlatformAdhesion::SKIRT:
+                adhesion_size = storage.getSettingInMicrons("skirt_gap") + storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("skirt_line_count");
+                break;
+            case EPlatformAdhesion::NONE:
+                adhesion_size = 0;
+                break;
+            default: //Also use 0.
+                log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
+                break;
+        }
+        machine_volume_border = machine_volume_border.offset(-adhesion_size);
 
         Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth/2);
         Polygons small_parts = supportLayer_up.difference(insetted.offset(conical_smallest_breadth/2+20));
@@ -700,6 +720,10 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         }
         else
         {
+            if(cross_subdisivion_spec_image_file != "")
+            {
+                logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
+            }
             storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"));
         }
     }

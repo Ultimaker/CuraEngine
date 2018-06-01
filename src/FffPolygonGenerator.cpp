@@ -319,7 +319,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);
-    TreeSupport tree_support_generator;
+    TreeSupport tree_support_generator(storage);
     tree_support_generator.generateSupportAreas(storage);
 
     // we need to remove empty layers after we have processed the insets
@@ -716,7 +716,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
                 {
                     logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
-                    std::exit(-1);
                 }
                 mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"));
             }
