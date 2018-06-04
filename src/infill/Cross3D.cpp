@@ -991,6 +991,22 @@ void Cross3D::applyZOscillationConstraint(const Cell& before, const Cell& after,
         }
     }
 
+    /* TODO:
+     * Don't assume the oscillation position in the cell above is either left middle or center!
+     * This is causing problems for a specific case where a recursion depth change happens across Z ad across XY
+     * the proper oscillation position is somewhere at 2/3rd
+     * This is causing overhang problems.
+     *       /|\               /|\                                                                          .
+     *      / | \             / | \                                                                         .
+     *     /  |  \           /  |  \                                                                        .
+     *    /   |   \  ==>    /   |   \                                                                       .
+     *   /___↗|→→→↘\       /    |    \                                                                      .
+     *   \   ↑|    ↘\      \   ↗|↘    \                                                                     .
+     *    \  ↑|   / ↘\      \  ↑|  ↘   \                                                                    .
+     *     \ ↑|  /   ↘\      \ ↑|    ↘  \                                                                   .
+     *      \↑| /     ↘\      \↑|      ↘ \                                                                  .
+     *       \|/_______↘\      \|________↘\                                                                 .
+     */
     if (densest_cell_above && densest_cell_above->depth > densest_cell.depth)
     { // this cells oscillation pattern is altered to fit the oscillation pattern above
         const Point oscillation_end_point = // where the oscillation should end on the edge at this height
