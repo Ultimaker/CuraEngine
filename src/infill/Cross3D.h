@@ -182,6 +182,18 @@ public:
     void createMinimalDensityPattern();
 
     /*!
+     * TODO
+     */
+    void createDitheredPattern();
+
+    /*!
+     * Create a pattern with no dithering and no balancing.
+     * 
+     * \param middle_decision_boundary Whether to divide when required volume is more than midway between the actualized volume and the children actualized volume. Set to false to create the minimal required subdivision before dithering
+     */
+    void createMinimalErrorPattern(bool middle_decision_boundary = true);
+
+    /*!
      * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.
      * Subdivide AC_TO_BC quarter-cubes if neighboring cells are subdivided more.
      */
@@ -283,6 +295,19 @@ protected:
         UP = 3,
         COUNT = 4
     };
+
+    /*!
+     * The direction from the middle of the parent prism to a child prism
+     */
+    enum class ChildSide : int
+    {
+        LEFT_BOTTOM = 0,
+        RIGHT_BOTTOM = 1,
+        LEFT_TOP = 2,
+        RIGHT_TOP = 3,
+        COUNT = 4,
+        FIRST = LEFT_BOTTOM
+    };
     Direction opposite(Direction in);
     uint_fast8_t opposite(uint_fast8_t in);
 
@@ -364,12 +389,15 @@ private:
 
     // Lower bound sequence:
     
+    void dither(Cell& parent, std::vector<ChildSide>& tree_path);
 
     float getActualizedVolume(const Cell& cell) const;
+    float getChildrenActualizedVolume(const Cell& cell) const;
     bool canSubdivide(const Cell& cell) const;
     bool isConstrained(const Cell& cell) const;
     bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const;
-    
+
+
     void subdivide(Cell& cell);
     void initialConnection(Cell& before, Cell& after, Direction dir);
     
@@ -378,6 +406,38 @@ private:
      * \param a_to_b The side of \p a to check for being next to cell b. Sides are ordered: before, after, below, above (See \ref Cross3D::Cell::adjacent_cells and \ref Cross3D::Direction)
      */
     bool isNextTo(const Cell& a, const Cell& b, Direction a_to_b) const;
+
+    /*!
+     * Get the right up diagonal neighbor
+     * for which the left lower corner coincides with the right uper corner of this cell
+     * if any, otherwise return nullptr
+     *           __ __
+     * :        |__|__|             but dont get this one  or this one
+     * :________|▓▓|__|                           ^             ^
+     * |       ↗|     |             | X X X X X |         |     |  X
+     * | from   |_____|             |___________|         |_____|  X
+     * |        |     |             |from |     |         |from |  X
+     * |________|_____|             |_____|_____|         |_____|____
+     */
+    Link* getDiagonalNeighbor(Cell& cell, Direction left_right) const;
+
+
+    /*!
+     * Check whetehr we can propagate error to the cell diagonally left up of this cell.
+     * This is only possible of we hadn't already processed that cell,
+     * which is the case if this is a ll cell after a lb cell after the last right cell.
+     */
+    bool canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path);
+
+    float getBalance(const Cell& cell) const;
+    float getTotalLoanBalance(const Cell& cell) const;
+
+    /*!
+     * Transfer the loans from an old link to the new links after subdivision
+     */
+    void transferLoans(Link& old, const std::list<Link*>& new_links);
+
+    void distributeLeftOvers(Cell& from, float left_overs);
 
     /*!
      * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.

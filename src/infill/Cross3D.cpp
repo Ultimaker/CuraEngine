@@ -424,6 +424,156 @@ void Cross3D::createMinimalDensityPattern()
     logDebug("Cross3D::createMinimalDensityPattern finished in %5.2fs.\n", tk.restart());
 }
 
+
+void Cross3D::createDitheredPattern()
+{
+    bool midway_decision_boundary = false;
+    createMinimalErrorPattern(midway_decision_boundary);
+
+    std::vector<ChildSide> tree_path(max_depth, ChildSide::COUNT);
+    dither(cell_data[0], tree_path);
+}
+
+
+void Cross3D::createMinimalErrorPattern(bool middle_decision_boundary)
+{
+    std::list<Cell*> to_be_checked;
+    to_be_checked.push_back(&cell_data[0]);
+
+    while (!to_be_checked.empty())
+    {
+        Cell* checking = to_be_checked.front();
+        to_be_checked.pop_front();
+
+        if (checking->children[0] < 0)
+        { // cell has no children
+            continue;
+        }
+
+        float decision_boundary = (middle_decision_boundary)?
+                                    (getActualizedVolume(*checking) + getChildrenActualizedVolume(*checking)) / 2
+                                    : getChildrenActualizedVolume(*checking);
+        if (canSubdivide(*checking) && checking->filled_volume_allowance > decision_boundary)
+        {
+            subdivide(*checking);
+            for (idx_t child_idx : checking->children)
+            {
+                if (child_idx < 0)
+                {
+                    break;
+                }
+                to_be_checked.push_back(&cell_data[child_idx]);
+            }
+        }
+    }
+}
+
+void Cross3D::dither(Cell& parent, std::vector<ChildSide>& tree_path)
+{
+    if (parent.is_subdivided)
+    {
+        for (int path_dir = static_cast<int>(ChildSide::FIRST); path_dir < static_cast<int>(ChildSide::COUNT); path_dir++)
+        {
+            idx_t child_idx = parent.children[path_dir];
+            if (child_idx > 0)
+            {
+                Cell& child = cell_data[child_idx];
+                tree_path[parent.depth] = static_cast<ChildSide>(path_dir);
+                dither(child, tree_path);
+            }
+        }
+    }
+    else
+    {
+        const float balance = getBalance(parent);
+        const float parent_actualized_volume = getActualizedVolume(parent);
+        const float subdivided_actualized_volume = getChildrenActualizedVolume(parent);
+        const float range = subdivided_actualized_volume - parent_actualized_volume;
+//         const float decision_boundary = (rand() % 100) * range / 100;
+//         const float decision_boundary = (.01 * (rand() % 101) * .5 + .25) * range;
+        const float decision_boundary = range / 2;
+        bool do_subdivide = balance > decision_boundary && canSubdivide(parent);
+        float actualized_volume = (do_subdivide)? subdivided_actualized_volume : parent_actualized_volume;
+
+        const float left_over = balance - (actualized_volume - parent_actualized_volume); // might be negative
+
+        // divide left_over equally per cell capacity, which is linearly related to the cell volume
+        float total_weighted_forward_cell_volume = 0;
+        Direction forwards[] = { Direction::RIGHT, Direction::UP };
+
+        /* Floyd Steinberg weights:
+         * 3 5 1
+         *   * 7
+         */
+
+        float direction_weights[] = { 7, 5 }; // TODO: determine reasoned weights!
+        float diag_weight = 0;//1;
+        float backward_diag_weight = 3; //3; // TODO: error is still being propagated to already processed cells
+
+        for (int side_idx = 0; side_idx < 2; side_idx++)
+        {
+            Direction direction = forwards[side_idx];
+            std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
+            for (Link& link : side)
+            {
+                Cell& neighbor = cell_data[link.to_index];
+                assert(neighbor.volume > 0 && "volume must be computed");
+                total_weighted_forward_cell_volume += direction_weights[side_idx] * neighbor.volume;
+            }
+        }
+        Link* diag_neighbor = getDiagonalNeighbor(parent, Direction::RIGHT);
+        if (diag_neighbor)
+        {
+            total_weighted_forward_cell_volume += diag_weight * cell_data[diag_neighbor->to_index].volume;
+        }
+        Link* backward_diag_neighbor = getDiagonalNeighbor(parent, Direction::LEFT);
+        if (!canPropagateLU(parent, tree_path))
+        {
+            backward_diag_neighbor = nullptr;
+        }
+        if (backward_diag_neighbor)
+        {
+            /*!
+             * TODO avoid error being propagated to already processed cells!!:
+             *  ___ ___ ___ ___
+             * | 3 | 4 | 7 | 8 |
+             * |___|__↖|___|___|
+             * | 1 | 2 |↖5 | 6 |
+             * |___|___|___|___|
+             */
+            total_weighted_forward_cell_volume += backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume;
+        }
+
+        assert(total_weighted_forward_cell_volume >= 0.0);
+        assert(total_weighted_forward_cell_volume < 27000000.0); // 30x30x30cm
+        for (int side_idx = 0; side_idx < 2; side_idx++)
+        {
+            Direction direction = forwards[side_idx];
+            std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
+            for (Link& neighbor : side)
+            {
+                Link& loan_link = (left_over > 0)? neighbor : neighbor.getReverse();
+                loan_link.loan += std::abs(left_over) * direction_weights[side_idx] * cell_data[neighbor.to_index].volume / total_weighted_forward_cell_volume;
+            }
+        }
+        if (diag_neighbor)
+        {
+            Link& diag_loan_link = (left_over > 0)? *diag_neighbor : diag_neighbor->getReverse();
+            diag_loan_link.loan += std::abs(left_over) * diag_weight * cell_data[diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+        }
+        if (backward_diag_neighbor)
+        {
+            Link& diag_loan_link = (left_over > 0)? *backward_diag_neighbor : backward_diag_neighbor->getReverse();
+            diag_loan_link.loan += std::abs(left_over) * backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+        }
+
+        if (do_subdivide)
+        {
+            subdivide(parent);
+        }
+    }
+}
+
 void Cross3D::sanitize()
 {
     sanitize(cell_data[0]);
@@ -501,6 +651,22 @@ float Cross3D::getActualizedVolume(const Cell& node) const
 }
 
 
+float Cross3D::getChildrenActualizedVolume(const Cell& cell) const
+{
+    // The actualized volume of squares doesn't depend on surrounding cells,
+    // so we just call getActualizedVolume(.)
+    float actualized_volume = 0;
+    for (idx_t child_idx : cell.children)
+    {
+        if (child_idx < 0)
+        {
+            continue;
+        }
+        actualized_volume += getActualizedVolume(cell_data[child_idx]);
+    }
+    return actualized_volume;
+}
+
 bool Cross3D::canSubdivide(const Cell& cell) const
 {
     if (cell.depth >= max_depth || isConstrained(cell))
@@ -537,8 +703,8 @@ bool Cross3D::isConstrainedBy(const Cell& constrainee, const Cell& constrainer) 
 
 void Cross3D::subdivide(Cell& cell)
 {
-//     const float total_loan_balance_before = getTotalLoanBalance(cell);
-    
+    const float total_loan_balance_before = getTotalLoanBalance(cell);
+
     assert(cell.children[0] >= 0 && cell.children[1] >= 0 && "Children must be initialized for subdivision!");
     Cell& child_lb = cell_data[cell.children[0]];
     Cell& child_rb = cell_data[cell.children[1]];
@@ -552,9 +718,9 @@ void Cross3D::subdivide(Cell& cell)
         initialConnection(child_lb, child_lt, Direction::UP);
         initialConnection(child_rb, child_rt, Direction::UP);
     }
-    
-    
-    
+
+
+
     for (uint_fast8_t side = 0; side < getNumberOfSides(); side++)
     {
         /* two possible cases:
@@ -611,8 +777,8 @@ void Cross3D::subdivide(Cell& cell)
                     new_outgoing_links.push_back(&*outlink);
                 }
             }
-//             transferLoans(neighbor.getReverse(), new_incoming_links);
-//             transferLoans(neighbor, new_outgoing_links);
+            transferLoans(neighbor.getReverse(), new_incoming_links);
+            transferLoans(neighbor, new_outgoing_links);
             neighboring_edge_links.erase(*neighbor.reverse);
         }
         
@@ -623,13 +789,16 @@ void Cross3D::subdivide(Cell& cell)
     cell.is_subdivided = true;
     
     
-//     float total_loan_balance_after = 0.0;
-//     for (const Cell* child : cell.children)
-//     {
-//         assert(child && " we just subdivided!");
-//         total_loan_balance_after += getTotalLoanBalance(*child);
-//     }
-//     assert(std::abs(total_loan_balance_after - total_loan_balance_before) < 0.0001);
+    float total_loan_balance_after = 0.0;
+    for (const idx_t child_idx : cell.children)
+    {
+        if (child_idx < 0)
+        {
+            break;
+        }
+        total_loan_balance_after += getTotalLoanBalance(cell_data[child_idx]);
+    }
+    assert(std::abs(total_loan_balance_after - total_loan_balance_before) < 0.0001);
 
     if (cell.depth > 0)
     { // ignore properties of dummy cell of root
@@ -713,8 +882,140 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
     return a_edge_projected.intersection(b_edge_projected).size() > 10;
 }
 
+
+Cross3D::Link* Cross3D::getDiagonalNeighbor(Cell& cell, Direction left_right) const
+{ // implementation naming assumes left_right is right
+    std::list<Link>& right_side = cell.adjacent_cells[static_cast<size_t>(left_right)];
+    if (!right_side.empty())
+    {
+        const std::list<Link>& right_side_up_side = cell_data[right_side.back().to_index].adjacent_cells[static_cast<size_t>(Direction::UP)];
+        if (!right_side_up_side.empty())
+        {
+            const Link& ru_diag_neighbor = right_side_up_side.front();
+            const std::list<Link>& up_side = cell.adjacent_cells[static_cast<size_t>(Direction::UP)];
+            if (!up_side.empty())
+            {
+                const std::list<Link>& up_side_right_side = cell_data[up_side.back().to_index].adjacent_cells[static_cast<size_t>(left_right)];
+                if (!up_side_right_side.empty())
+                {
+                    const Link& ur_diag_neighbor = up_side_right_side.front();
+                    if (ru_diag_neighbor.to_index == ur_diag_neighbor.to_index)
+                    {
+                        return const_cast<Link*>(&ru_diag_neighbor);
+                    }
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+
+bool Cross3D::canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path)
+{
+    if (cell.depth == 0)
+    {
+        return false;
+    }
+    if (tree_path[cell.depth - 1] == ChildSide::LEFT_BOTTOM)
+    {
+        return false;
+    }
+    if (tree_path[cell.depth - 1] != ChildSide::LEFT_TOP)
+    {
+        return true;
+    }
+    int tree_path_idx;
+    for (tree_path_idx = cell.depth - 1; tree_path_idx >= 0; tree_path_idx--)
+    {
+        if (tree_path[tree_path_idx] == ChildSide::RIGHT_BOTTOM || tree_path[tree_path_idx] == ChildSide::RIGHT_TOP)
+        {
+            break;
+        }
+    }
+    for (; tree_path_idx < cell.depth; tree_path_idx++)
+    {
+        if (tree_path[tree_path_idx] == ChildSide::LEFT_BOTTOM)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
  * Tree creation /\                         .
+ * 
+ * =======================================================
+ * 
+ * Error redistribution \/                  .
+ */
+
+float Cross3D::getBalance(const Cell& cell) const
+{
+    float balance = cell.filled_volume_allowance - getActualizedVolume(cell) + getTotalLoanBalance(cell);
+    return balance;
+}
+
+float Cross3D::getTotalLoanBalance(const Cell& cell) const
+{
+    float loan = 0.0;
+
+    for (const std::list<Link>& neighbors_in_a_given_direction : cell.adjacent_cells)
+    {
+        for (const Link& link : neighbors_in_a_given_direction)
+        {
+            loan -= link.loan;
+            loan += link.getReverse().loan;
+        }
+    }
+    return loan;
+}
+
+void Cross3D::transferLoans(Link& old, const std::list<Link*>& new_links)
+{
+    if (old.loan == 0.0)
+    {
+        return;
+    }
+    // TODO
+    // this implements naive equal transfer
+    int new_link_count = new_links.size();
+    for (Link* link : new_links)
+    {
+        link->loan = old.loan / new_link_count;
+    }
+}
+
+
+
+void Cross3D::distributeLeftOvers(Cell& from, float left_overs)
+{
+//     from.loan_balance -= left_overs;
+    std::vector<Link*> loaners;
+    float total_loan = 0.0;
+    for (std::list<Link>& neighbors_in_a_given_direction : from.adjacent_cells)
+    {
+        for (Link& link : neighbors_in_a_given_direction)
+        {
+            if (link.getReverse().loan > 0.00001)
+            {
+                total_loan += link.getReverse().loan;
+                loaners.push_back(&link.getReverse());
+            }
+        }
+    }
+    assert(left_overs < total_loan * 1.00001 && "There cannot be more left over than what was initially loaned");
+    for (Link* loaner : loaners)
+    {
+        float pay_back = loaner->loan * left_overs / total_loan;
+        loaner->loan -= pay_back;
+//         loaner->from()->loan_balance += pay_back;
+    }
+}
+
+/*
+ * Error redistribution /\                         .
  * 
  * =======================================================
  * 
