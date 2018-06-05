@@ -538,12 +538,15 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             SliceLayer& layer = mesh.layers[layer_nr];
             coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+            coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
             if (layer_nr == 0)
             {
                 const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
                 wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
                 const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
                 wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
+                const ExtruderTrain& train_skin = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("top_bottom_extruder_nr"));
+                skin_line_width *= train_skin.getSettingAsRatio("initial_layer_line_width_factor");
             }
             for (SliceLayerPart& part : layer.parts)
             {
@@ -583,18 +586,18 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                     {
                         // add perimeter gaps between the outer skin inset and the innermost wall
                         const Polygons outer = skin_part.outline;
-                        const Polygons inner = skin_part.insets[0].offset(wall_line_width_x / 2 + perimeter_gaps_extra_offset);
+                        const Polygons inner = skin_part.insets[0].offset(skin_line_width / 2 + perimeter_gaps_extra_offset);
                         skin_part.perimeter_gaps.add(outer.difference(inner));
 
                         for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
                         { // add perimeter gaps between consecutive skin walls
-                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * wall_line_width_x / 2 - perimeter_gaps_extra_offset);
-                            const Polygons inner = skin_part.insets[inset_idx].offset(wall_line_width_x / 2);
+                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * skin_line_width / 2 - perimeter_gaps_extra_offset);
+                            const Polygons inner = skin_part.insets[inset_idx].offset(skin_line_width / 2);
                             skin_part.perimeter_gaps.add(outer.difference(inner));
                         }
 
                         if (filter_out_tiny_gaps) {
-                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(skin_line_width) * INT2MM(skin_line_width)); // remove small outline gaps to reduce blobs on outside of model
                         }
                     }
                 }
