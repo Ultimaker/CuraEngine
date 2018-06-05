@@ -159,7 +159,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         return;
     }
 
-    if (gcode_layer.getLayerNr() > storage.max_print_height_second_to_last_extruder + 1)
+    if (gcode_layer.getLayerNr() > storage.max_print_height_second_to_last_extruder )
     {
         return;
     }
