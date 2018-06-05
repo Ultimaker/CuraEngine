@@ -75,12 +75,12 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (enabled)
     {
-        generatePaths_denseInfill(storage);
+        generatePatternPerExtruder(storage);
         generateWipeLocations(storage);
     }
 }
 
-void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
+void PrimeTower::generatePatternPerExtruder(const SliceDataStorage& storage)
 {
     int n_patterns = 2; // alternating patterns between layers
     int infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
@@ -92,15 +92,24 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     {
         int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
         int wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
-        patterns_per_extruder.emplace_back(n_patterns);
-        std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
-        patterns.resize(n_patterns);
+        // append a new vector of moves for this extruder
+        patterns_per_extruder_dense.emplace_back(n_patterns);
+        patterns_per_extruder_sparse.emplace_back(n_patterns);
+        // get a reference to this extruder's patterns
+        std::vector<ExtrusionMoves>& patterns_sparse = patterns_per_extruder_sparse.back();
+        std::vector<ExtrusionMoves>& patterns_dense = patterns_per_extruder_dense.back();
+
+        // resize the vector we just added
+        // themba: I think this is superfluous, the above already creates vectors of size n_patterns
+        // patterns_sparse.resize(n_patterns);
+        // patterns_dense.resize(n_patterns);
 
         // If the prime tower is circular, instead of creating a concentric infill in the normal layers, the tower is
         // built as walls, in order to keep always the same direction while printing
         if (storage.getSettingBoolean("prime_tower_circular"))
         {
             first_layer_infill_method = EFillMethod::CONCENTRIC;
+            // for the dense layers:
             const int walls = std::ceil(wall_thickness / line_width);
             for (int wall_nr = 0; wall_nr < walls; wall_nr++)
             {
@@ -109,8 +118,22 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
                 Polygons polygons = outer_poly.offset(-wall_nr * line_width - line_width / 2);
                 for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
                 {
-                    patterns[pattern_idx].polygons.add(polygons);
+                    patterns_dense[pattern_idx].polygons.add(polygons);
                 }
+            }
+            // for the sparse layers:
+            for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
+            {
+                patterns_sparse[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
+                Polygons& result_lines_sparse = patterns_sparse[pattern_idx].lines;
+                int outline_offset = -line_width;
+                int line_distance_sparse = (line_width * 100) / 20 * 2; // 2 for grid
+                double fill_angle = 45 + pattern_idx * 90;
+                Polygons& result_polygons_sparse = patterns_sparse[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
+                constexpr bool zig_zaggify_infill = false;
+                Infill infill_comp_sparse(EFillMethod::GRID, zig_zaggify_infill, inner_poly, outline_offset, line_width,
+                      line_distance_sparse, infill_overlap, fill_angle, z, extra_infill_shift);
+                infill_comp_sparse.generate(result_polygons_sparse, result_lines_sparse);
             }
         }
         else
@@ -118,16 +141,23 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             first_layer_infill_method = EFillMethod::LINES;
             for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
             {
-                patterns[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
-                Polygons& result_lines = patterns[pattern_idx].lines;
+                patterns_dense[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
+                patterns_sparse[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
+                Polygons& result_lines_sparse = patterns_sparse[pattern_idx].lines;
+                Polygons& result_lines_dense = patterns_dense[pattern_idx].lines;
                 int outline_offset = -line_width;
-                int line_distance = line_width;
+                int line_distance_dense = line_width;
+                int line_distance_sparse = (line_width * 100) / 20 * 2; // 2 for grid
                 double fill_angle = 45 + pattern_idx * 90;
-                Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
+                Polygons& result_polygons_sparse = patterns_sparse[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
+                Polygons& result_polygons_dense = patterns_dense[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
                 constexpr bool zig_zaggify_infill = false;
-                Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, inner_poly, outline_offset, line_width,
-                                   line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-                infill_comp.generate(result_polygons, result_lines);
+                Infill infill_comp_dense(EFillMethod::LINES, zig_zaggify_infill, inner_poly, outline_offset, line_width,
+                                   line_distance_dense, infill_overlap, fill_angle, z, extra_infill_shift);
+                Infill infill_comp_sparse(EFillMethod::GRID, zig_zaggify_infill, inner_poly, outline_offset, line_width,
+                                  line_distance_sparse, infill_overlap, fill_angle, z, extra_infill_shift);
+                infill_comp_dense.generate(result_polygons_dense, result_lines_dense);
+                infill_comp_sparse.generate(result_polygons_sparse, result_lines_sparse);
             }
         }
         int line_width_layer0 = line_width;
@@ -180,7 +210,10 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         preWipeAndPurge(storage, gcode_layer, new_extruder);
     }
 
-    addToGcode_denseInfill(storage, gcode_layer, new_extruder);
+    // determine whether to print solid or as sparse infill
+    bool as_infill = prev_extruder == new_extruder && layer_nr != 0;
+
+    addPrimeTowerMovesToGcode(storage, gcode_layer, new_extruder, as_infill);
 
     // post-wipe:
     if (post_wipe)
@@ -191,11 +224,13 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     gcode_layer.setPrimeTowerIsPlanned();
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
+void PrimeTower::addPrimeTowerMovesToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr, bool as_infill) const
 {
     const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount(storage))
         ? pattern_per_extruder_layer0[extruder_nr]
-        : patterns_per_extruder[extruder_nr][((gcode_layer.getLayerNr() % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+        : as_infill
+            ? patterns_per_extruder_sparse[extruder_nr][((gcode_layer.getLayerNr() % 2) + 2) % 2] // +2) %2 to handle negative layer numbers NOTE: wouldn't abs(x % 2) be more readable and maintanable?
+            : patterns_per_extruder_dense[extruder_nr][((gcode_layer.getLayerNr() % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers NOTE: wouldn't abs(x % 2) be more readable and maintanable?
 
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
