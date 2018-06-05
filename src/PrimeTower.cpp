@@ -127,7 +127,7 @@ void PrimeTower::generatePatternPerExtruder(const SliceDataStorage& storage)
                 patterns_sparse[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
                 Polygons& result_lines_sparse = patterns_sparse[pattern_idx].lines;
                 int outline_offset = -line_width;
-                int line_distance_sparse = (line_width * 100) / 20 * 2; // 2 for grid
+                int line_distance_sparse = storage.getSettingInMicrons("prime_tower_infill_line_distance");
                 double fill_angle = 45 + pattern_idx * 90;
                 Polygons& result_polygons_sparse = patterns_sparse[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
                 constexpr bool zig_zaggify_infill = false;
@@ -147,7 +147,7 @@ void PrimeTower::generatePatternPerExtruder(const SliceDataStorage& storage)
                 Polygons& result_lines_dense = patterns_dense[pattern_idx].lines;
                 int outline_offset = -line_width;
                 int line_distance_dense = line_width;
-                int line_distance_sparse = (line_width * 100) / 20 * 2; // 2 for grid
+                int line_distance_sparse = storage.getSettingInMicrons("prime_tower_infill_line_distance");
                 double fill_angle = 45 + pattern_idx * 90;
                 Polygons& result_polygons_sparse = patterns_sparse[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
                 Polygons& result_polygons_dense = patterns_dense[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
@@ -211,7 +211,9 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     }
 
     // determine whether to print solid or as sparse infill
-    bool as_infill = prev_extruder == new_extruder && layer_nr != 0;
+    bool as_infill = prev_extruder == new_extruder
+        && layer_nr != 0
+        && storage.getSettingBoolean("prime_tower_sparse_on_nochange");
 
     addPrimeTowerMovesToGcode(storage, gcode_layer, new_extruder, as_infill);
 
