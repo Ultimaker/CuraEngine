@@ -545,6 +545,8 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
                 const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
                 wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
+                const ExtruderTrain& train_skin = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("top_bottom_extruder_nr"));
+                skin_line_width *= train_skin.getSettingAsRatio("initial_layer_line_width_factor");
             }
             for (SliceLayerPart& part : layer.parts)
             {
@@ -584,7 +586,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                     {
                         // add perimeter gaps between the outer skin inset and the innermost wall
                         const Polygons outer = skin_part.outline;
-                        const Polygons inner = skin_part.insets[0].offset(wall_line_width_x / 2 + perimeter_gaps_extra_offset);
+                        const Polygons inner = skin_part.insets[0].offset(skin_line_width / 2 + perimeter_gaps_extra_offset);
                         skin_part.perimeter_gaps.add(outer.difference(inner));
 
                         for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
@@ -595,7 +597,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                         }
 
                         if (filter_out_tiny_gaps) {
-                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
+                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(skin_line_width) * INT2MM(skin_line_width)); // remove small outline gaps to reduce blobs on outside of model
                         }
                     }
                 }
