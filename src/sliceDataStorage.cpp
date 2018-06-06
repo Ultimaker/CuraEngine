@@ -70,13 +70,13 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
+void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const SliceMeshStorage& mesh) const
 {
     for (const SliceLayerPart& part : parts)
     {
         switch (max_inset) {
             case 1:
-                // take the inner wall
+                // take the 1st wall
                 if (part.insets.size() >= 1) {
                     layer_walls.add(part.insets[0]);
                     continue;
@@ -86,7 +86,31 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
             default:
                 // we want the 2nd inner walls
                 if (part.insets.size() >= 2) {
-                    layer_walls.add(part.insets[1]);
+                    // if the 2nd wall is missing in some places because the part is narrow, we use the 2nd wall where it does exist
+                    // and where the 2nd wall is missing, we use the 1st wall instead
+                    // this somewhat complex bit of code constructs the polygons that are the union of the 2nd wall outline and those bits of the 1st wall outline that
+                    // correspond to the places where the 2nd wall is missing
+                    const coord_t half_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0") / 2;
+                    const coord_t half_line_width_x = mesh.getSettingInMicrons("wall_line_width_x") / 2;
+                    const coord_t inset_spacing = half_line_width_0 + half_line_width_x; // distance between the centre lines of the 1st and 2nd walls
+                    // first we calculate the 1st wall outline for those portions of the part where the 2nd wall is missing
+                    // this is done by shrinking the 1st wall outline so that it is very slightly smaller than the 2nd wall outline, then expanding it again so it is very
+                    // slightly larger than its original size and subtracting that from the original 1st wall outline, the result is expanded again by half the outer wall
+                    // line width as that is required by the next step
+                    // NOTE - the additional small shrink/expands are required to ensure that the polygons overlap a little so we do not rely on exact results
+                    Polygons outer_inset_where_there_are_no_inner_insets(part.insets[0].difference(part.insets[0].offset(-(inset_spacing+5)).offset(inset_spacing + 10)).offset(half_line_width_0 + 15));
+                    if (outer_inset_where_there_are_no_inner_insets.size() > 0)
+                    {
+                        // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline with the portions of the 1st wall outline we
+                        // just calculated - the trick here is to expand the outlines sufficiently so that they overlap slightly when unioned and then the result is
+                        // shrunk back to the correct size
+                        layer_walls.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_inset_where_there_are_no_inner_insets).offset(-std::min(half_line_width_0, half_line_width_x)));
+                    }
+                    else
+                    {
+                        // the 2nd wall is complete so use it verbatim
+                        layer_walls.add(part.insets[1]);
+                    }
                     continue;
                 }
                 // but we'll also take the inner wall if the 2nd doesn't exist
@@ -403,7 +427,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             for (const SliceMeshStorage& mesh : meshes)
             {
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                layer.getInnermostWalls(total, 2);
+                layer.getInnermostWalls(total, 2, mesh);
                 if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
