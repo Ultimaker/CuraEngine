@@ -194,6 +194,11 @@ public:
     void createMinimalErrorPattern(bool middle_decision_boundary = true);
 
     /*!
+     * Create the subdivision structure 
+     */
+    void createBalancedPattern();
+
+    /*!
      * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.
      * Subdivide AC_TO_BC quarter-cubes if neighboring cells are subdivided more.
      */
@@ -388,7 +393,30 @@ private:
     void setSpecificationAllowance(Cell& sub_tree_root);
 
     // Lower bound sequence:
-    
+
+    /*!
+     * For each noe: subdivide if possible.
+     * 
+     * Start trying cells with lower recursion level before trying cells with deeper recursion depth, i.e. higher density value.
+     * 
+     * \return Whether the sequence has changed.
+     */
+    bool subdivideAll();
+
+    /*!
+     * Bubble up errors from nodes which like to subdivide more,
+     * but which are constrained by neighboring cells of lower recursion level.
+     * 
+     * \return Whether we have redistributed errors which could cause a new subdivision 
+     */
+    bool bubbleUpConstraintErrors();
+
+    /*!
+     * Order the triangles on depth.
+     */
+    std::vector<std::vector<Cell*>> getDepthOrdered();
+    void getDepthOrdered(Cell& sub_tree_root, std::vector<std::vector<Cell*>>& output);
+
     void dither(Cell& parent, std::vector<ChildSide>& tree_path);
 
     float getActualizedVolume(const Cell& cell) const;
@@ -397,8 +425,14 @@ private:
     bool isConstrained(const Cell& cell) const;
     bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const;
 
-
-    void subdivide(Cell& cell);
+    /*!
+     * Subdivide a node into its children.
+     * Redistribute leftover errors needed for this subdivision and account for errors needed to keep the children balanced.
+     * 
+     * \param cell the cell to subdivide
+     * \param redistribute_errors Whether to redistribute the accumulated errors to neighboring nodes and/or among children
+     */
+    void subdivide(Cell& cell, bool redistribute_errors);
     void initialConnection(Cell& before, Cell& after, Direction dir);
     
     /*!
@@ -429,8 +463,14 @@ private:
      */
     bool canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path);
 
-    float getBalance(const Cell& cell) const;
-    float getTotalLoanBalance(const Cell& cell) const;
+    //! Get the error induced by subdividing this cell.
+    float getSubdivisionError(const Cell& node) const;
+    //! Get the total error currently acting on this traingle.
+    float getValueError(const Cell& cell) const;
+    //! Get the total loan error value modulating the \ref requested_length. Used in \ref Cross3D::getSubdivisionError and in \ref Cross3D::getValueError
+    float getTotalLoanError(const Cell& cell) const;
+    //! Get the total loaned amount which neighbors have loaned to this cell
+    float getTotalLoanObtained(const Cell& cell) const;
 
     /*!
      * Transfer the loans from an old link to the new links after subdivision

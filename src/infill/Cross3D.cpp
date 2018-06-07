@@ -10,6 +10,9 @@
 
 namespace cura {
 
+// static constexpr float allowed_volume_error = .0001; // a 10th of a cubic 0.1mm  // TODO: fix error redistribution and uncomment
+static constexpr float allowed_volume_error = .01; 
+
 Cross3D::Direction Cross3D::opposite(Cross3D::Direction in)
 {
     switch(in)
@@ -397,7 +400,8 @@ void Cross3D::createMinimalDensityPattern()
         if (!isConstrained(to_be_subdivided))
         {
             all_to_be_subdivided.pop_front();
-            subdivide(to_be_subdivided);
+            constexpr bool redistribute_errors = true;
+            subdivide(to_be_subdivided, redistribute_errors);
             for (idx_t child_idx : to_be_subdivided.children)
             {
                 if (child_idx >= 0 && shouldBeSubdivided(cell_data[child_idx]))
@@ -455,7 +459,8 @@ void Cross3D::createMinimalErrorPattern(bool middle_decision_boundary)
                                     : getChildrenActualizedVolume(*checking);
         if (canSubdivide(*checking) && checking->filled_volume_allowance > decision_boundary)
         {
-            subdivide(*checking);
+            constexpr bool redistribute_errors = true;
+            subdivide(*checking, redistribute_errors);
             for (idx_t child_idx : checking->children)
             {
                 if (child_idx < 0)
@@ -467,6 +472,119 @@ void Cross3D::createMinimalErrorPattern(bool middle_decision_boundary)
         }
     }
 }
+
+void Cross3D::createBalancedPattern()
+{
+    for (int iteration = 0; iteration < 999; iteration++)
+    {
+        bool change = false;
+        change |= subdivideAll();
+
+        change |= bubbleUpConstraintErrors();
+
+        if (!change)
+        {
+            logDebug("Finished after %i iterations, with a max depth of %i.\n", iteration + 1, max_depth);
+            break;
+        }
+    }
+}
+
+
+std::vector<std::vector<Cross3D::Cell*>> Cross3D::getDepthOrdered()
+{
+    std::vector<std::vector<Cell*>> depth_ordered(max_depth + 1);
+    depth_ordered.resize(max_depth);
+    getDepthOrdered(cell_data[0], depth_ordered);
+    return depth_ordered;
+}
+
+
+void Cross3D::getDepthOrdered(Cell& sub_tree_root, std::vector<std::vector<Cell*>>& output)
+{
+    if (sub_tree_root.is_subdivided)
+    {
+        for (idx_t child_idx : sub_tree_root.children)
+        {
+            if (child_idx < 0)
+            {
+                break;
+            }
+            getDepthOrdered(cell_data[child_idx], output);
+        }
+    }
+    else
+    {
+        assert(sub_tree_root.depth > 0); // note: root must be subidivided
+        assert(static_cast<size_t>(sub_tree_root.depth) < output.size());
+        output[sub_tree_root.depth].push_back(&sub_tree_root);
+    }
+}
+
+bool Cross3D::subdivideAll()
+{
+    std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
+
+    bool change = false;
+    for (std::vector<Cell*>& depth_nodes : depth_ordered)
+        for (Cell* cell : depth_nodes)
+        {
+            bool is_constrained = isConstrained(*cell);
+
+            if (cell->depth == max_depth) //Never subdivide beyond maximum depth.
+            {
+                continue;
+            }
+            float total_subdiv_error = getSubdivisionError(*cell);
+            if (
+                total_subdiv_error >= 0
+                && !is_constrained
+                )
+            {
+                constexpr bool redistribute_errors = true;
+                subdivide(*cell, redistribute_errors);
+                change = true;
+            }
+        }
+    return change;
+}
+
+bool Cross3D::bubbleUpConstraintErrors()
+{
+    std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
+    
+    bool redistributed_anything = false;
+    
+    for (int depth = max_depth; depth >= 0; depth--)
+    {
+        std::vector<Cell*>& depth_nodes = depth_ordered[depth];
+        for (Cell* cell : depth_nodes)
+        {
+            float unresolvable_error = getValueError(*cell);
+            // pay back loaners proportional to the original loan
+            if (unresolvable_error > allowed_volume_error)
+            {
+                const float total_obtained_loan = getTotalLoanObtained(*cell);
+                const float rate_of_return = unresolvable_error / total_obtained_loan;
+                const float ratio_loan_remaining = 1.0 - rate_of_return;
+
+                for (const std::list<Link>& neighbors_in_a_given_direction : cell->adjacent_cells)
+                {
+                    for (const Link& link : neighbors_in_a_given_direction)
+                    {
+                        float& loan_here = link.getReverse().loan;
+                        loan_here *= ratio_loan_remaining;
+                        assert(std::abs(loan_here) < allowed_volume_error || std::abs(link.loan) < allowed_volume_error);
+                    }
+                }
+
+                redistributed_anything = true;
+            }
+        }
+    }
+    return redistributed_anything;
+}
+
 
 void Cross3D::dither(Cell& parent, std::vector<ChildSide>& tree_path)
 {
@@ -485,7 +603,7 @@ void Cross3D::dither(Cell& parent, std::vector<ChildSide>& tree_path)
     }
     else
     {
-        const float balance = getBalance(parent);
+        const float balance = getValueError(parent);
         const float parent_actualized_volume = getActualizedVolume(parent);
         const float subdivided_actualized_volume = getChildrenActualizedVolume(parent);
         const float range = subdivided_actualized_volume - parent_actualized_volume;
@@ -569,7 +687,8 @@ void Cross3D::dither(Cell& parent, std::vector<ChildSide>& tree_path)
 
         if (do_subdivide)
         {
-            subdivide(parent);
+            constexpr bool redistribute_errors = false;
+            subdivide(parent, redistribute_errors);
         }
     }
 }
@@ -618,12 +737,12 @@ void Cross3D::sanitize(Cell& sub_tree_root)
             }
             if (deeper_child_count >= child_count / 2)
             {
-                subdivide(sub_tree_root);
+                constexpr bool redistribute_errors = true;
+                subdivide(sub_tree_root, redistribute_errors);
             }
         }
     }
 }
-
 
 float Cross3D::getActualizedVolume(const Cell& node) const
 {
@@ -701,14 +820,21 @@ bool Cross3D::isConstrainedBy(const Cell& constrainee, const Cell& constrainer) 
 
 
 
-void Cross3D::subdivide(Cell& cell)
+void Cross3D::subdivide(Cell& cell, bool redistribute_errors)
 {
-    const float total_loan_balance_before = getTotalLoanBalance(cell);
+    const float total_loan_error_balance_before = getTotalLoanError(cell);
 
     assert(cell.children[0] >= 0 && cell.children[1] >= 0 && "Children must be initialized for subdivision!");
     Cell& child_lb = cell_data[cell.children[0]];
     Cell& child_rb = cell_data[cell.children[1]];
     initialConnection(child_lb, child_rb, Direction::RIGHT);
+
+//  TODO: do we even need this here?!
+//     We do bubbling up of constraint erros already in a separate function!
+//     if (redistribute_errors)
+//     { // move left-over errors
+//         logError("Not implemented yet!\n"); // TODO: move leftover errors back to neighboring cells
+//     }
 
     if (cell.getChildCount() == 4)
     {
@@ -777,8 +903,11 @@ void Cross3D::subdivide(Cell& cell)
                     new_outgoing_links.push_back(&*outlink);
                 }
             }
-            transferLoans(neighbor.getReverse(), new_incoming_links);
-            transferLoans(neighbor, new_outgoing_links);
+            if (redistribute_errors)
+            {
+                transferLoans(neighbor.getReverse(), new_incoming_links);
+                transferLoans(neighbor, new_outgoing_links);
+            }
             neighboring_edge_links.erase(*neighbor.reverse);
         }
         
@@ -788,17 +917,19 @@ void Cross3D::subdivide(Cell& cell)
     
     cell.is_subdivided = true;
     
-    
-    float total_loan_balance_after = 0.0;
-    for (const idx_t child_idx : cell.children)
+    if (redistribute_errors)
     {
-        if (child_idx < 0)
+        float total_loan_error_balance_after = 0.0;
+        for (const idx_t child_idx : cell.children)
         {
-            break;
+            if (child_idx < 0)
+            {
+                break;
+            }
+            total_loan_error_balance_after += getTotalLoanError(cell_data[child_idx]);
         }
-        total_loan_balance_after += getTotalLoanBalance(cell_data[child_idx]);
+        assert(std::abs(total_loan_error_balance_after - total_loan_error_balance_before) < allowed_volume_error);
     }
-    assert(std::abs(total_loan_balance_after - total_loan_balance_before) < 0.0001);
 
     if (cell.depth > 0)
     { // ignore properties of dummy cell of root
@@ -951,13 +1082,19 @@ bool Cross3D::canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path
  * Error redistribution \/                  .
  */
 
-float Cross3D::getBalance(const Cell& cell) const
+float Cross3D::getValueError(const Cell& cell) const
 {
-    float balance = cell.filled_volume_allowance - getActualizedVolume(cell) + getTotalLoanBalance(cell);
+    float balance = cell.filled_volume_allowance - getActualizedVolume(cell) + getTotalLoanError(cell);
     return balance;
 }
 
-float Cross3D::getTotalLoanBalance(const Cell& cell) const
+float Cross3D::getSubdivisionError(const Cell& cell) const
+{
+    float balance = cell.filled_volume_allowance - getChildrenActualizedVolume(cell) + getTotalLoanError(cell);
+    return balance;
+}
+
+float Cross3D::getTotalLoanError(const Cell& cell) const
 {
     float loan = 0.0;
 
@@ -967,6 +1104,22 @@ float Cross3D::getTotalLoanBalance(const Cell& cell) const
         {
             loan -= link.loan;
             loan += link.getReverse().loan;
+        }
+    }
+    return loan;
+}
+
+float Cross3D::getTotalLoanObtained(const Cell& cell) const
+{
+    float loan = 0.0;
+
+    for (const std::list<Link>& neighbors_in_a_given_direction : cell.adjacent_cells)
+    {
+        for (const Link& link : neighbors_in_a_given_direction)
+        {
+            const float loan_here = link.getReverse().loan;
+            loan += loan_here;
+            assert(std::abs(loan_here) < allowed_volume_error || std::abs(link.loan) < allowed_volume_error);
         }
     }
     return loan;
@@ -998,7 +1151,7 @@ void Cross3D::distributeLeftOvers(Cell& from, float left_overs)
     {
         for (Link& link : neighbors_in_a_given_direction)
         {
-            if (link.getReverse().loan > 0.00001)
+            if (link.getReverse().loan > allowed_volume_error)
             {
                 total_loan += link.getReverse().loan;
                 loaners.push_back(&link.getReverse());
