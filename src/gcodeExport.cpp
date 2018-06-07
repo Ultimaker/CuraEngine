@@ -756,7 +756,8 @@ void GCodeExport::writeUnretractionAndPrime()
             //Assume default UM2 retraction settings.
             if (prime_volume != 0)
             {
-                *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+                const double output_e = (relative_extrusion)? prime_volume_e : current_e_value;
+                *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, output_e} << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             }
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0, PrintFeatureType::MoveRetraction);
