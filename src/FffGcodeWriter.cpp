@@ -565,7 +565,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, combing_mode, comb_offset, train->getSettingInMicrons("line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, combing_mode, comb_offset, train->getSettingInMicrons("raft_base_line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -625,7 +625,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingInMicrons("line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -679,7 +679,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingInMicrons("line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingInMicrons("raft_surface_line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
@@ -772,7 +772,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     bool avoid_other_parts = false;
     bool avoid_supports = false;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
-    coord_t line_width = 0;
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
@@ -786,7 +785,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
                 avoid_supports |= extr->getSettingBoolean("travel_avoid_supports");
                 avoid_distance = std::max(avoid_distance, extr->getSettingInMicrons("travel_avoid_distance"));
             }
-            line_width = extr->getSettingInMicrons("line_width");
         }
     }
 
@@ -809,7 +807,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         :
         extruder_order_per_layer[layer_nr];
 
-    LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, line_width, avoid_other_parts, avoid_supports, avoid_distance);
+    const coord_t first_outer_wall_line_width = storage.meshgroup->getExtruderTrain(extruder_order.front())->getSettingInMicrons("wall_line_width_0");
+    LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, first_outer_wall_line_width, avoid_other_parts, avoid_supports, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
