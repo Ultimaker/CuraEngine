@@ -42,10 +42,29 @@ namespace cura {
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
+    if (infill_multiplier > 1)
+    {
+        bool zig_zaggify_real = zig_zaggify;
+        if (infill_multiplier % 2 == 0)
+        {
+            zig_zaggify = false; // generate the basic infill pattern without going via the borders
+        }
+        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+        zig_zaggify = zig_zaggify_real;
+        multiplyInfill(result_polygons, result_lines);
+    }
+    else
+    {
+        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+    }
+}
+
+void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+{
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
 
-    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
     {
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
@@ -107,7 +126,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     //TODO: The connected lines algorithm is only available for linear-based infill, for now.
     //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
     //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
     {
         connectLines(result_lines);
     }
@@ -118,6 +137,79 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
         connector.add(result_polygons);
         result_polygons = connector.connect();
+    }
+}
+
+void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
+{
+    if (pattern == EFillMethod::CONCENTRIC || pattern == EFillMethod::CONCENTRIC_3D)
+    {
+        result_polygons = result_polygons.processEvenOdd(); // make into areas
+    }
+
+    bool odd_multiplier = infill_multiplier % 2 == 1;
+    coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
+
+    if (zig_zaggify && !odd_multiplier)
+    {
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+    }
+
+    Polygons outline = in_outline.offset(outline_offset);
+
+    Polygons result;
+    Polygons first_offset = result_lines.offsetPolyLine(offset).unionPolygons(result_polygons.offset(offset).difference(result_polygons.offset(-offset)));
+    if (zig_zaggify)
+    {
+        first_offset = outline.difference(first_offset);
+    }
+    result.add(first_offset);
+    Polygons reference_polygons = first_offset;
+    for (int infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
+    {
+        Polygons extra_offset = reference_polygons.offset(-infill_line_width);
+        result.add(extra_offset);
+        reference_polygons = std::move(extra_offset);
+    }
+
+    if (zig_zaggify)
+    {
+        result = result.intersection(outline);
+    }
+
+    if (!odd_multiplier)
+    {
+        result_polygons.clear();
+        result_lines.clear();
+    }
+    result_polygons.add(result);
+    if (!zig_zaggify)
+    {
+        for (PolygonRef poly : result_polygons)
+        { // make polygons into polylines
+            if (poly.empty())
+            {
+                continue;
+            }
+            poly.add(poly[0]);
+        }
+        Polygons polylines = outline.intersectionPolyLines(result_polygons);
+        for (PolygonRef polyline : polylines)
+        {
+            Point last_point = no_point;
+            for (Point point : polyline)
+            {
+                Polygon line;
+                if (last_point != no_point)
+                {
+                    line.add(last_point);
+                    line.add(point);
+                    result_lines.add(line);
+                }
+                last_point = point;
+            }
+        }
+        result_polygons.clear();
     }
 }
 
