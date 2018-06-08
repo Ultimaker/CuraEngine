@@ -139,10 +139,15 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         result_polygons = result_polygons.processEvenOdd(); // make into areas
     }
 
-    Polygons outline = in_outline.offset(outline_offset);
-
     bool odd_multiplier = infill_multiplier % 2 == 1;
     coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
+
+    if (zig_zaggify && !odd_multiplier)
+    {
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+    }
+
+    Polygons outline = in_outline.offset(outline_offset);
 
     Polygons result;
     Polygons first_offset = result_lines.offsetPolyLine(offset).unionPolygons(result_polygons.offset(offset).difference(result_polygons.offset(-offset)));
