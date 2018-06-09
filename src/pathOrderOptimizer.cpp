@@ -245,6 +245,8 @@ void LineOrderOptimizer::optimize(bool find_chains)
     {
         // locate the chain ends by finding lines that join exactly one other line at one end and join either 0 or 2 or more lines at the other end
 
+        // we also consider lines that meet 2 or more lines at one end and nothing at the other end as chain ends
+
         for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
         {
             int num_joined_lines[2];
@@ -271,6 +273,16 @@ void LineOrderOptimizer::optimize(bool find_chains)
             else if (num_joined_lines[1] != 1 && num_joined_lines[0] == 1)
             {
                 // point 1 of candidate line starts a chain of 2 or more lines
+                chain_ends[poly_idx] = 1;
+            }
+            else if (num_joined_lines[0] == 0 && num_joined_lines[1] > 1)
+            {
+                // point 0 is the free end of a line that meets 2 or more lines at a junction
+                chain_ends[poly_idx] = 0;
+            }
+            else if (num_joined_lines[1] == 0 && num_joined_lines[0] > 1)
+            {
+                // point 1 is the free end of a line that meets 2 or more lines at a junction
                 chain_ends[poly_idx] = 1;
             }
         }
