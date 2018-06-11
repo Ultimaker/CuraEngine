@@ -409,7 +409,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     { // calculate offset_from_inner_wall
         coord_t extra_perimeter_offset = 0; // to align concentric polygons across layers
         EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
-        if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
+        if (fill_pattern == EFillMethod::CONCENTRIC
             && infill_line_distance > mesh.getSettingInMicrons("infill_line_width") * 2)
         {
             if (mesh.getSettingBoolean("alternate_extra_perimeter")
