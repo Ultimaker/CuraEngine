@@ -31,6 +31,11 @@ AABB AABB3D::flatten() const
     return AABB(Point(min.x, min.y), Point(max.x, max.y));
 }
 
+bool AABB3D::isPositive() const
+{
+    Point3 _size = size();
+    return _size.x > 0 &&_size.y > 0 &&_size.z > 0;
+}
 
 bool AABB3D::hit(const AABB3D& other) const
 {
@@ -90,9 +95,35 @@ void AABB3D::expandXY(int outset)
     }
 }
 
+AABB3D AABB3D::intersect(const AABB3D& other) const
+{
+    AABB3D ret;
+    if (max.x < other.min.x
+        || min.x > other.max.x
+        || max.y < other.min.y
+        || min.y > other.max.y
+        || max.z < other.min.z
+        || min.z > other.max.z)
+    {
+        return ret; // the empty AABB
+    }
+    ret.min.x = std::max(min.x, other.min.x);
+    ret.max.x = std::min(max.x, other.max.x);
+    ret.min.y = std::max(min.y, other.min.y);
+    ret.max.y = std::min(max.y, other.max.y);
+    ret.min.z = std::max(min.z, other.min.z);
+    ret.max.z = std::min(max.z, other.max.z);
+}
+
 Point3 AABB3D::size() const
 {
     return max - min;
+}
+
+double AABB3D::volumeMM3() const
+{
+    Point3 _size = size();
+    return std::max(0.0, INT2MM(_size.x) * INT2MM(_size.y) * INT2MM(_size.z));
 }
 
 }//namespace cura

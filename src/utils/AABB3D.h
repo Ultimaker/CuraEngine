@@ -44,6 +44,11 @@ struct AABB3D
     AABB flatten() const;
 
     /*!
+     * Check whether this AABB contains volume, or is not filled.
+     */
+    bool isPositive() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      * 
      * In the boundary case false is returned.
@@ -93,9 +98,19 @@ struct AABB3D
     void expandXY(int outset);
 
     /*!
+     * Get the AABB of the intersection between two cubes
+     */
+    AABB3D intersect(const AABB3D& other) const;
+
+    /*!
      * Get the size as the vecgor from min to max
      */
     Point3 size() const;
+
+    /*!
+     * Calculate the volume of this box in cubic mm
+     */
+    double volumeMM3() const;
 };
 
 }//namespace cura

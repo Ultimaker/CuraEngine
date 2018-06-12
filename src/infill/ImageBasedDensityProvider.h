@@ -24,7 +24,7 @@ public:
 
 protected:
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.
-    Point3 voxel_size; //!< dimensions of the 3D grid of voxels. Same as image_size, but third channel is the number of images
+    Point3 grid_size; //!< dimensions of the 3D grid of voxels. Same as image_size, but third channel is the number of images
     std::vector<unsigned char*> images; //!< voxel data as layers of images on top of each other
 
     AABB3D print_aabb; //!< bounding box of print coordinates in which to apply the image

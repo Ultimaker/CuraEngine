@@ -18,17 +18,19 @@ static constexpr bool straight = false;
 
 ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename, const AABB3D model_aabb)
 {
+    std::string last_file = filename;
     std::string file_now = filename;
     bool is_first_image = true;
     while (std::ifstream(file_now.c_str()).good())
     {
-        logError("Loading image'%s'\n", file_now.c_str());
         loadImage(file_now, is_first_image);
+        last_file = file_now;
         is_first_image = false;
         file_now = advanceFilename(file_now);
     }
-    voxel_size = image_size;
-    voxel_size.z = images.size();
+    grid_size = image_size;
+    grid_size.z = images.size();
+    logDebug("Found %d images. Last one is called '%s'.\n", grid_size.z, last_file.c_str());
     { // compute aabb
         Point3 middle = model_aabb.getMiddle();
         Point3 model_aabb_size = model_aabb.max - model_aabb.min;
@@ -37,11 +39,11 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
         Point3 aabb_size;
         if (image_aspect_ratio < aabb_aspect_ratio)
         {
-            aabb_size = voxel_size * model_aabb_size.x / image_size.x;
+            aabb_size = grid_size * model_aabb_size.x / image_size.x;
         }
         else
         {
-            aabb_size = voxel_size * model_aabb_size.y / image_size.y;
+            aabb_size = grid_size * model_aabb_size.y / image_size.y;
         }
         aabb_size.z = model_aabb.size().z; // z doesn't scale. voxel model is always stretched over the hwole model Z
         print_aabb = AABB3D(middle - aabb_size / 2, middle + aabb_size / 2);
@@ -94,9 +96,17 @@ std::string ImageBasedDensityProvider::advanceFilename(const std::string& filena
     const std::string file_number_str = raw_name.substr(last_non_digit_idx + 1);
     const int file_number = std::stoi(file_number_str);
 
-    std::ostringstream oss;
-    oss << raw_name.substr(0, last_non_digit_idx + 1) << (file_number + 1) << filename.substr(last_dot_idx);
-    return oss.str();
+    for (uint_fast8_t skip_idx = 1; skip_idx < 100; skip_idx++)
+    {
+        std::ostringstream oss;
+        oss << raw_name.substr(0, last_non_digit_idx + 1) << (file_number + skip_idx) << filename.substr(last_dot_idx);
+        std::string next = oss.str();
+        if (std::ifstream(next.c_str()).good())
+        {
+            return next;
+        }
+    }
+    return ""; // no next file was found in the next 100 in the sequence.
 }
 
 ImageBasedDensityProvider::~ImageBasedDensityProvider()
@@ -112,42 +122,67 @@ ImageBasedDensityProvider::~ImageBasedDensityProvider()
 
 float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
 {
-    Point3 img_min = (query_cube.min - print_aabb.min - Point(1,1)) * voxel_size.x / (print_aabb.max.x - print_aabb.min.x);
-    Point3 img_max = (query_cube.max - print_aabb.min + Point(1,1)) * voxel_size.y / (print_aabb.max.y - print_aabb.min.y);
+    Point3 print_aabb_size = print_aabb.size();
+    Point3 img_min = (query_cube.min - print_aabb.min - Point3(1,1,1)) * grid_size.x / print_aabb_size.x;
+    Point3 img_max = (query_cube.max - print_aabb.min) * grid_size.y / print_aabb_size.y + Point3(1,1,1);
+    img_min.z = (query_cube.min.z - print_aabb.min.z - 1) * grid_size.z / print_aabb_size.z;
+    img_max.z = (query_cube.max.z - print_aabb.min.z) * grid_size.z / print_aabb_size.z + 1;
 
-    long total_lightness = 0;
-    int value_count = 0;
-    for (int z = std::max(static_cast<coord_t>(0), img_min.z); z <= std::min(voxel_size.z - 1, img_max.z); z++)
+    auto grid_to_print_coord = [this, print_aabb_size](const Point3 grid_loc)
+        {
+            return Point3(
+                print_aabb.min.x + grid_loc.x * print_aabb_size.x / grid_size.x,
+                print_aabb.min.y + grid_loc.y * print_aabb_size.y / grid_size.y,
+                print_aabb.min.z + grid_loc.z * print_aabb_size.z / grid_size.z
+                   );
+        };
+
+    double total_weighted_lightness = 0.0;
+    double total_volume = 0.0;
+    for (int z = std::max(static_cast<coord_t>(0), img_min.z); z <= std::min(grid_size.z - 1, img_max.z); z++)
     {
         const unsigned char* image = images[z];
         assert(image);
-        for (int x = std::max(static_cast<coord_t>(0), img_min.x); x <= std::min(voxel_size.x - 1, img_max.x); x++)
+        for (int x = std::max(static_cast<coord_t>(0), img_min.x); x <= std::min(grid_size.x - 1, img_max.x); x++)
         {
-            for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(voxel_size.y - 1, img_max.y); y++)
+            for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
             {
+                const AABB3D voxel_cube(grid_to_print_coord(Point3(x, y, z)), grid_to_print_coord(Point3(x + 1, y + 1, z + 1)));
+                const double voxel_volume = voxel_cube.volumeMM3();
+                const double scanned_voxel_volume = voxel_cube.intersect(query_cube).volumeMM3();
                 for (int channel = 0; channel < image_size.z; channel++)
                 {
-                    total_lightness += image[((image_size.y - 1 - y) * image_size.x + x) * image_size.z + channel];
-                    value_count++;
+                    const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
+                    double scanned_voxel_ratio = std::max(0.0, std::min(1.0, scanned_voxel_volume / voxel_volume));
+                    total_weighted_lightness += static_cast<double>(lightness) * scanned_voxel_ratio;
+                    total_volume += scanned_voxel_ratio;
                 }
             }
         }
     }
-    if (value_count == 0)
+    assert(total_weighted_lightness >= 0.0);
+    assert(total_volume >= 0.0);
+    
+    if (total_volume == 0.0)
     { // triangle falls outside of image or in between pixels, so we return the closest pixel
         Point3 closest_pixel = (img_min + img_max) / 2;
-        closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(voxel_size.x - 1, closest_pixel.x));
-        closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(voxel_size.y - 1, closest_pixel.y));
-        closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(voxel_size.z - 1, closest_pixel.z));
+        closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(grid_size.x - 1, closest_pixel.x));
+        closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(grid_size.y - 1, closest_pixel.y));
+        closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(grid_size.z - 1, closest_pixel.z));
         const unsigned char* image = images[closest_pixel.z];
-        assert(total_lightness == 0);
+        assert(total_weighted_lightness == 0.0);
         for (int channel = 0; channel < image_size.z; channel++)
         {
-            total_lightness += image[((voxel_size.y - 1 - closest_pixel.y) * voxel_size.x + closest_pixel.x) * image_size.z + channel];
-            value_count++;
+            total_weighted_lightness += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
+            total_volume += 1.0;
         }
+        assert(total_weighted_lightness > 0);
+        assert(total_volume > 0);
     }
-    return 1.0f - ((float)total_lightness) / value_count / 255.0f;
+    float ret = 1.0f - (total_weighted_lightness / total_volume / 255.0f);
+    assert(ret >= 0.0f);
+    assert(ret <= 1.0f);
+    return ret;
 };
 
 }; // namespace cura
