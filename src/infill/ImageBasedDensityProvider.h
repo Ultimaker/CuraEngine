@@ -6,7 +6,6 @@
 #define INFILL_IMAGE_BASED_DENSITY_PROVIDER_H
 
 #include "../utils/IntPoint.h"
-#include "../utils/AABB.h"
 #include "../utils/AABB3D.h"
 
 #include "DensityProvider.h"
@@ -17,7 +16,7 @@ namespace cura
 class ImageBasedDensityProvider : public DensityProvider
 {
 public:
-    ImageBasedDensityProvider(const std::string filename, const AABB aabb);
+    ImageBasedDensityProvider(const std::string filename, const AABB3D aabb);
 
     virtual ~ImageBasedDensityProvider();
 
@@ -25,9 +24,24 @@ public:
 
 protected:
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.
-    unsigned char* image = nullptr; //!< image data: rows of channel data per pixel.
+    Point3 voxel_size; //!< dimensions of the 3D grid of voxels. Same as image_size, but third channel is the number of images
+    std::vector<unsigned char*> images; //!< voxel data as layers of images on top of each other
 
-    AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
+    AABB3D print_aabb; //!< bounding box of print coordinates in which to apply the image
+
+    /*!
+     * Load an image into the vector of images.
+     * 
+     * \param filename The file name of the image file
+     * \param set_size Whether to set the \ref VoxelDensityProvider::image_size rather than checking the size
+     */
+    void loadImage(const std::string filename, const bool set_size);
+
+    /*!
+     * Advance the file name.
+     * Make the number in which the file name ends one higher.
+     */
+    std::string advanceFilename(const std::string& filename);
 };
 
 } // namespace cura
