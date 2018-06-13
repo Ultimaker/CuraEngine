@@ -155,25 +155,46 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
             }
             if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
             {
+                int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    int line_width = mesh.getSettingInMicrons((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0");
+                    int inner_wall_line_width = (part.insets.size() > 1) ? mesh.getSettingInMicrons( "wall_line_width_x") : line_width_0;
+
+                    // determine the outer boundary - to try and keep the nozzle away from the outer wall edge, first see if the
+                    // outer boundary can be set to the inside edge of the outer wall
+
+                    Polygons outer = part.insets[0].offset(-line_width_0/2);
+
+                    // if outer doesn't have the same number of polygons as the original wall centre line, it must have been
+                    // partioned due to narrowing of the part's outline so try again with an outline that will be a 1/4 line width
+                    // inside the centre line
+
+                    if (outer.size() != part.insets[0].size())
+                    {
+                        outer = part.insets[0].offset(-line_width_0/4);
+
+                        // if that outline is not OK, just use the original centre line
+                        if (outer.size() != part.insets[0].size())
+                        {
+                            outer = part.insets[0];
+                        }
+                    }
 
                     // we need to include the walls in the comb boundary otherwise it's not possible to tell if a travel move crosses a skin region
                     // so we combine the part's infill area with the area that is from just inside (by 10um) the part's inner wall
-                    // to just outside the centre line of the part's outer wall - the slight expansion (+/- 10um) is to ensure that all vertices
-                    // in the wall polygons are within the combing area and that the infill area polygons that extend to the part's walls do get joined
-                    // to the wall polygons so that combing travels can route via the combined infill and wall regions
+                    // to the outer boundary calculated above - the slight expansion of the inner boundary is to ensure that the infill area polygons
+                    // that extend to the part's walls do get joined to the wall polygons so that combing travels can route via the combined infill and wall regions
 
-                    Polygons walls;
-                    for (int innermost = part.insets.size() - 1; innermost >= 0 && walls.size() == 0; --innermost)
+                    Polygons wall_combing_region;
+                    for (int innermost = part.insets.size() - 1; innermost >= 0 && wall_combing_region.size() == 0; --innermost)
                     {
                         if (part.insets[innermost].size() > 0)
                         {
-                            walls = part.insets[0].offset(10).difference(part.insets[innermost].offset(-10-line_width/2));
+                            wall_combing_region = outer.difference(part.insets[innermost].offset(-10-inner_wall_line_width/2));
                         }
                     }
-                    comb_boundary.add(part.infill_area.unionPolygons(walls));
+                    comb_boundary.add(part.infill_area.unionPolygons(wall_combing_region));
                 }
             }
             else
