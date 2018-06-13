@@ -23,19 +23,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 #include "Point3.h" //For applying Point3Matrices.
 
-#define INT2MM(n) (double(n) / 1000.0)
-#define INT2MM2(n) (double(n) / 1000000.0)
-#define MM2INT(n) (coord_t(std::round((n) * 1000)))
-#define MM2_2INT(n) (coord_t(std::round((n) * 1000000)))
-#define MM3_2INT(n) (coord_t(std::round((n) * 1000000000)))
-
-#define INT2MICRON(n) ((n) / 1)
-#define MICRON2INT(n) ((n) * 1)
-
-//c++11 no longer defines M_PI, so add our own constant.
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include "Coord_t.h"
 
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__ ((deprecated))
@@ -49,8 +37,6 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 namespace cura
 {
-
-using coord_t = ClipperLib::cInt;
 
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;

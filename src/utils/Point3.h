@@ -10,10 +10,8 @@
 #include <stdint.h> //For int32_t and int64_t.
 #include <type_traits> // for operations on any arithmetic number type
 
-//Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include <clipper.hpp>
+#include "Coord_t.h"
 
-#define INT2MM(n) (double(n) / 1000.0)
 
 namespace cura
 {
