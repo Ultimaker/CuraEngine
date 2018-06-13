@@ -719,6 +719,19 @@ Polygon SierpinskiFill::generateCross() const
     logDebug("realized_length: %f, requested_length: %f  :: %f% error\n", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
     return ret;
 }
+Polygon SierpinskiFill::generateSierpinski() const
+{
+    Polygon ret;
+
+    for (SierpinskiTriangle* max_level_it : sequence)
+    {
+        SierpinskiTriangle& triangle = *max_level_it; 
+        ret.add((triangle.a + triangle.b + triangle.straight_corner) / 3);
+    }
+    
+    return ret;
+}
+
 
 Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const
 {
