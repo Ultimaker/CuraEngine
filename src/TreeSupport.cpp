@@ -1,8 +1,8 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "progress/Progress.h"
-#include "utils/intpoint.h" //To normalize vectors.
+#include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
@@ -22,8 +22,55 @@
 namespace cura
 {
 
-TreeSupport::TreeSupport()
+TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
+    //Compute the border of the build volume.
+    Polygons actual_border;
+    switch (storage.getSettingAsBuildPlateShape("machine_shape"))
+    {
+        case BuildPlateShape::ELLIPTIC:
+        {
+            actual_border.emplace_back();
+            //Construct an ellipse to approximate the build volume.
+            const coord_t width = storage.machine_size.max.x - storage.machine_size.min.x;
+            const coord_t depth = storage.machine_size.max.y - storage.machine_size.min.y;
+            constexpr unsigned int circle_resolution = 50;
+            for (unsigned int i = 0; i < circle_resolution; i++)
+            {
+                actual_border[0].emplace_back(storage.machine_size.getMiddle().x + cos(M_PI * 2 * i / circle_resolution) * width / 2, storage.machine_size.getMiddle().y + sin(M_PI * 2 * i / circle_resolution) * depth / 2);
+            }
+            break;
+        }
+        case BuildPlateShape::RECTANGULAR:
+        default:
+            actual_border.add(storage.machine_size.flatten().toPolygon());
+            break;
+    }
+
+    coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
+    switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
+    {
+        case EPlatformAdhesion::BRIM:
+            adhesion_size = storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("brim_line_count");
+            break;
+        case EPlatformAdhesion::RAFT:
+            adhesion_size = storage.getSettingInMicrons("raft_margin");
+            break;
+        case EPlatformAdhesion::SKIRT:
+            adhesion_size = storage.getSettingInMicrons("skirt_gap") + storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("skirt_line_count");
+            break;
+        case EPlatformAdhesion::NONE:
+            adhesion_size = 0;
+            break;
+        default: //Also use 0.
+            log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
+            break;
+    }
+    actual_border = actual_border.offset(-adhesion_size);
+
+    machine_volume_border.add(actual_border.offset(1000000)); //Put a border of 1m around the print volume so that we don't collide.
+    actual_border[0].reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
+    machine_volume_border.add(actual_border);
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -41,7 +88,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             }
         }
     }
-    if (!use_tree_support) {
+    if (!use_tree_support)
+    {
         return;
     }
 
@@ -103,7 +151,10 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            model_collision[radius_sample].push_back(storage.getLayerOutlines(layer_nr, include_helper_parts).offset(xy_distance + radius, ClipperLib::JoinType::jtRound)); //Enough space to avoid the (sampled) width of the branch.
+            Polygons collision = storage.getLayerOutlines(layer_nr, include_helper_parts);
+            collision = collision.unionPolygons(machine_volume_border);
+            collision = collision.offset(xy_distance + radius, ClipperLib::JoinType::jtRound); //Enough space to avoid the (sampled) width of the branch.
+            model_collision[radius_sample].push_back(collision);
         }
 #pragma omp atomic
         completed++;

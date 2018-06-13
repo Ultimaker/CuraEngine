@@ -1,9 +1,11 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef WEAVE_DATA_STORAGE_H
 #define WEAVE_DATA_STORAGE_H
 
 #include "utils/NoCopy.h"
-#include "utils/intpoint.h"
+#include "utils/IntPoint.h"
 #include "utils/polygon.h"
 #include "mesh.h"
 #include "LayerPlan.h"

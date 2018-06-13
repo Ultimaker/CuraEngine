@@ -16,6 +16,7 @@ callgrind/*
 build/*
 debug_build/*
 cmake-build-debug/*
+libs/stb
 *.pyc
 *.exe
 *.a

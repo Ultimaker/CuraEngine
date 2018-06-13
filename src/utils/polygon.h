@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_H
@@ -16,7 +16,7 @@
 
 #include <initializer_list>
 
-#include "intpoint.h"
+#include "IntPoint.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -354,11 +354,12 @@ public:
     {
     }
 
+    void reserve(size_t min_size)
+    {
+        path->reserve(min_size);
+    }
+
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
-//     {
-//         *path = *other.path;
-//         return *this;
-//     }
 
     Point& operator[] (unsigned int index)
     {
@@ -546,9 +547,16 @@ public:
     {
     }
 
-    Polygon& operator=(const ConstPolygonRef& other)
+    Polygon& operator=(const ConstPolygonRef& other) = delete; // copying a single polygon is generally not what you want
+//     {
+//         path = other.path;
+//         poly = *other.path;
+//         return *this;
+//     }
+
+    Polygon& operator=(Polygon&& other) //!< move assignment
     {
-        path = other.path;
+        poly = std::move(other.poly);
         return *this;
     }
 };

@@ -5,14 +5,13 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets, const bool try_line_thickness)
+WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
 : wall_0_inset(wall_0_inset)
 , line_width_0(line_width_0)
 , line_width_x(line_width_x)
 , insetCount(insetCount)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
 , remove_parts_with_no_insets(remove_parts_with_no_insets)
-, try_line_thickness(try_line_thickness)
 {
 }
 
@@ -50,7 +49,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         const size_t inset_part_count = part->insets[i].size();
         constexpr size_t minimum_part_saving = 3; //Only try if the part has more pieces than the previous inset and saves at least this many parts.
         constexpr coord_t try_smaller = 10; //How many micrometres to inset with the try with a smaller inset.
-        if (try_line_thickness && inset_part_count > minimum_part_saving + 1 && (i == 0 || (i > 0 && inset_part_count > part->insets[i - 1].size() + minimum_part_saving)))
+        if (inset_part_count > minimum_part_saving + 1 && (i == 0 || (i > 0 && inset_part_count > part->insets[i - 1].size() + minimum_part_saving)))
         {
             //Try a different line thickness and see if this fits better, based on these criteria:
             // - There are fewer parts to the polygon (fits better in slim areas).

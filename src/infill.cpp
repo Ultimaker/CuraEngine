@@ -9,6 +9,9 @@
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 #include "utils/UnionFind.h"
+#include "infill/SierpinskiFill.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -36,10 +39,15 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
+
+    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    {
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+    }
 
     switch(pattern)
     {
@@ -83,12 +91,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         break;
     case EFillMethod::CROSS:
     case EFillMethod::CROSS_3D:
-        if (!cross_fill_pattern)
+        if (!cross_fill_provider)
         {
-            logError("Cannot generate Cross infill without a pregenerated cross fill pattern!\n");
+            logError("Cannot generate Cross infill without a cross fill provider!\n");
             break;
         }
-        generateCrossInfill(*cross_fill_pattern, result_polygons, result_lines);
+        generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -107,7 +115,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
     if (perimeter_gaps)
     {
@@ -148,9 +156,9 @@ void Infill::generateConcentric3DInfill(Polygons& result)
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
     Polygons first_wall;
     // in contrast to concentric infill we dont do "- infill_line_width / 2" cause this is already handled by the max two lines above
-    first_wall = in_outline.offset(outline_offset - shift);
+    first_wall = in_outline.offset(outline_offset + infill_overlap - shift);
     generateConcentricInfill(first_wall, result, period);
-    first_wall = in_outline.offset(outline_offset - period + shift);
+    first_wall = in_outline.offset(outline_offset + infill_overlap - period + shift);
     generateConcentricInfill(first_wall, result, period);
 }
 
@@ -212,28 +220,44 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     addLineSegmentsInfill(result, uncropped);
 }
 
-void Infill::generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines)
+void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
     if (zig_zaggify)
     {
         outline_offset += -infill_line_width / 2;
     }
-    coord_t shift = line_distance / 2;
-    bool use_odd_in_junctions = false;
-    bool use_odd_out_junctions = false;
-    if (pattern == EFillMethod::CROSS_3D)
-    {
-        coord_t period = line_distance * 2;
-        shift = z % period;
-        shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
-        shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
-        shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
-
-        use_odd_in_junctions = ((z + period / 2) / period) % 2 == 1; // change junction halfway in between each period when the in-junctions occur
-        use_odd_out_junctions = (z / period) % 2 == 1; // out junctions occur halfway at each periods
-    }
     Polygons outline = in_outline.offset(outline_offset);
-    cross_fill_pattern.generate(outline, shift, zig_zaggify, fill_angle, apply_pockets_alternatingly, use_odd_in_junctions, use_odd_out_junctions, pocket_size, result_polygons, result_lines);
+
+    Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
+
+    if (cross_pattern_polygon.empty())
+    {
+        return;
+    }
+
+    if (zig_zaggify)
+    {
+        Polygons cross_pattern_polygons;
+        cross_pattern_polygons.add(cross_pattern_polygon);
+        result_polygons.add(outline.intersection(cross_pattern_polygons));
+    }
+    else
+    {
+        // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
+        cross_pattern_polygon.add(cross_pattern_polygon[0]);
+
+        Polygons cross_pattern_polygons;
+        cross_pattern_polygons.add(cross_pattern_polygon);
+        Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
+        
+        for (PolygonRef poly_line : poly_lines)
+        {
+            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            {
+                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+            }
+        }
+    }
 }
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
@@ -351,23 +375,15 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         return;
     }
 
-    int shift = extra_shift + this->shift;
+    coord_t shift = extra_shift + this->shift;
 
-    Polygons outline;
-    if (outline_offset != 0)
+    if (outline_offset != 0 && perimeter_gaps)
     {
-        outline = in_outline.offset(outline_offset);
-        if (perimeter_gaps)
-        {
-            perimeter_gaps->add(in_outline.difference(outline.offset(infill_line_width / 2 + perimeter_gaps_extra_offset)));
-        }
-    }
-    else
-    {
-        outline = in_outline;
+        const Polygons gaps_outline = in_outline.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
+        perimeter_gaps->add(in_outline.difference(gaps_outline));
     }
 
-    outline = outline.offset(infill_overlap);
+    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
     if (outline.size() == 0)
     {

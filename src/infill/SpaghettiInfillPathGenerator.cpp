@@ -1,5 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
 #include "SpaghettiInfillPathGenerator.h"
 #include "../infill.h"
 #include "../FffGcodeWriter.h"
@@ -14,7 +13,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         return false;
     }
     bool added_something = false;
-    const GCodePathConfig& config = mesh_config.infill_config[0]; //Don't use gradual infill, so always take the 0th element.
+    const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
     const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
     const unsigned int infill_line_width = config.getLineWidth();
@@ -41,7 +40,7 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         const bool use_endpieces = false;
         Infill infill_comp(pattern, zig_zaggify_infill, area, outline_offset
             , infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, infill_origin, perimeter_gaps_output, connected_zigzags, use_endpieces
-            , mesh.getSettingBoolean("cross_infill_apply_pockets_alternatingly"), mesh.getSettingInMicrons("cross_infill_pocket_size"));
+            , mesh.getSettingInMicrons("cross_infill_pocket_size"));
         // cross_fill_patterns is only generated when spaghetti infill is not used,
         // so we pass nullptr here.
         infill_comp.generate(infill_polygons, infill_lines, nullptr, &mesh);
@@ -67,35 +66,10 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
                     gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
                     gcode_layer.addPolygonsByOptimizer(infill_polygons, config, nullptr, ZSeamConfig(), 0, false, flow_ratio);
                 }
-                switch(pattern)
-                {
-                    case EFillMethod::GRID:
-                    case EFillMethod::LINES:
-                    case EFillMethod::TRIANGLES:
-                    case EFillMethod::CUBIC:
-                    case EFillMethod::TETRAHEDRAL:
-                    case EFillMethod::QUARTER_CUBIC:
-                    case EFillMethod::CUBICSUBDIV:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-                        break;
-                    case EFillMethod::CROSS:
-                    case EFillMethod::CROSS_3D:
-                        if (mesh.getSettingBoolean("zig_zaggify_infill"))
-                        {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
-                        }
-                        else
-                        {
-                            gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, mesh.getSettingInMicrons("infill_wipe_dist"), flow_ratio);
-                        }
-                        break;
-                    case EFillMethod::ZIG_ZAG:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::PolyLines, false, 0, flow_ratio);
-                        break;
-                    default:
-                        gcode_layer.addLinesByOptimizer(infill_lines, config, SpaceFillType::Lines, false, 0, flow_ratio);
-                        break;
-                }
+                const bool is_zigzag = mesh.getSettingBoolean("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
+                const coord_t wipe_dist = is_zigzag ? 0 : -mesh.getSettingInMicrons("infill_wipe_dist");
+                const SpaceFillType line_type = is_zigzag ? SpaceFillType::Lines : SpaceFillType::PolyLines;
+                gcode_layer.addLinesByOptimizer(infill_lines, config, line_type, false, wipe_dist, flow_ratio);
             }
         }
         else

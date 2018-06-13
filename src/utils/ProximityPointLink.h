@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PROXIMITY_POINT_LINK_H
 #define PROXIMITY_POINT_LINK_H
 
@@ -10,7 +12,7 @@
 
 #include <functional> // hash function object
 
-#include "intpoint.h"
+#include "IntPoint.h"
 #include "polygon.h"
 #include "linearAlg2D.h"
 #include "optional.h"
@@ -39,8 +41,9 @@ struct ProximityPointLink
 {
     const ListPolyIt a; //!< the one point (invalidated after list_polygons have been cleared!)
     const ListPolyIt b; //!< the other point (invalidated after list_polygons have been cleared!)
-    const int dist; //!< The distance between the two points
+    coord_t dist; //!< The distance between the two points
     const ProximityPointLinkType type; //!< The type of link; why/how it was created
+    void setDist(coord_t dist) const; //!< Set the distance. This disregards cosntness, which is only relevant for the equality check and hash operation.
     ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist, const ProximityPointLinkType type);
     bool operator==(const ProximityPointLink& other) const;
 };

@@ -2,9 +2,13 @@
 #ifndef UTILS_MATH_H
 #define UTILS_MATH_H
 
+#include <cmath>
+
 namespace cura
 {
 
+
+static const float sqrt2 = std::sqrt(2.0f);
 
 template<typename T> inline T square(const T& a) { return a * a; }
 
