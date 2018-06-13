@@ -1,8 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef POINT3_H
-#define POINT3_H
+#ifndef UTILS_POINT3_H
+#define UTILS_POINT3_H
 
 #include <cmath> //For sqrt.
 #include <iostream> //Auto-serialization.
@@ -134,4 +134,4 @@ inline Point3 operator*(const num_t i, const Point3& rhs)
 
 }
 
-#endif //POINT3_H
+#endif //UTILS_POINT3_H

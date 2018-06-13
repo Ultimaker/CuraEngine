@@ -1,8 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INT_POINT_H
-#define INT_POINT_H
+#ifndef UTILS_INT_POINT_H
+#define UTILS_INT_POINT_H
 
 /**
 The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
@@ -313,5 +313,5 @@ inline Point operator-(const Point& p2, const Point3& p3) {
 }
 
 }//namespace cura
-#endif//INT_POINT_H
+#endif//UTILS_INT_POINT_H
 
