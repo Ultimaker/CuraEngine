@@ -187,6 +187,7 @@ set(engine_TEST
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
+    SierpinskiFillTest
 )
 set(engine_TEST_SETTINGS
     SettingsTest
