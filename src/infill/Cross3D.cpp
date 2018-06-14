@@ -2,6 +2,7 @@
 #include "Cross3D.h"
 
 #include <cassert>
+#include <sstream>  // debug TODO
 
 #include "../utils/math.h"
 #include "../utils/linearAlg2D.h"
@@ -9,6 +10,7 @@
 
 
 namespace cura {
+
 
 // static constexpr float allowed_volume_error = .0001; // a 10th of a cubic 0.1mm  // TODO: fix error redistribution and uncomment
 static constexpr float allowed_volume_error = .01; 
@@ -184,7 +186,8 @@ Cross3D::Cross3D(const DensityProvider& density_provider, const AABB3D aabb, con
 : aabb(aabb)
 , max_depth(max_depth)
 , line_width(line_width)
-, min_dist_to_cell_bound(line_width * 0.5 * sqrt2)
+, min_dist_to_cell_bound(line_width / 2)
+, min_dist_to_cell_bound_diag(line_width * 0.5 * sqrt2)
 , density_provider(density_provider)
 {
 }
@@ -1308,6 +1311,15 @@ Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
         sliceCell(*here, *after, z, from, poly);
         here = after;
     }
+    
+    if (z == 26370 || z == 26470)
+    {
+        std::ostringstream ss;
+        ss << "output/pattern" << z << ".svg";
+        SVG svg(ss.str().c_str(), aabb.getAABB());
+        debugOutput(walker, svg, 1);
+        svg.writePolygon(poly, SVG::Color::RED);
+    }
     return poly;
 }
 
@@ -1395,12 +1407,10 @@ Point Cross3D::getCellEdgeLocation(const Cell& before, const Cell& after, const 
     }
 
     { // Keep lines away from cell boundary to prevent line overlap
-        // TODO: make min_dist_to_cell_bound depend on the triangles involved
-        // if it's a 90* corner, it should be sqrt(2)*line_width/2
-        // if it's a 135* corner, it should be sqrt(2)*line_width/2
-        // if it's a 180* thing, it should be line_width/2
-        pos  = std::min(edge_size - min_dist_to_cell_bound, std::max(min_dist_to_cell_bound, pos));
-        if (pos < min_dist_to_cell_bound)
+        coord_t from_min_dist = (edge.from == densest_cell.prism.triangle.straight_corner)? min_dist_to_cell_bound : min_dist_to_cell_bound_diag;
+        coord_t to_min_dist = (edge.to == densest_cell.prism.triangle.straight_corner)? min_dist_to_cell_bound : min_dist_to_cell_bound_diag;
+        pos  = std::min(edge_size - to_min_dist, std::max(from_min_dist, pos));
+        if (pos < from_min_dist)
         { // edge size is smaller than a line width
             pos = edge_size / 2;
         }
@@ -1634,7 +1644,7 @@ void Cross3D::debugOutputTriangle(const Triangle& triangle, SVG& svg, float draw
 //     svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::BLACK);
     svg.writePolygons(polys, SVG::Color::GRAY);
 
-    svg.writeLine(triangle.getFromEdge().middle(), triangle.getToEdge().middle(), SVG::Color::RED, drawing_line_width);
+//     svg.writeLine(triangle.getFromEdge().middle(), triangle.getToEdge().middle(), SVG::Color::RED, drawing_line_width);
 }
 
 void Cross3D::debugOutputLink(const Link& link, SVG& svg) const
@@ -1648,7 +1658,7 @@ void Cross3D::debugOutputLink(const Link& link, SVG& svg) const
     Point c = a + shift + normal(ab, shortening);
     Point d = a + shift + normal(ab, vSize(ab) - shortening);
     svg.writeLine(c, d, SVG::Color::BLUE);
-    svg.writePoint(c, false, 5, SVG::Color::BLUE);
+    svg.writePoint(c, false, 3, SVG::Color::BLUE);
 }
 
 void Cross3D::debugOutput(const SliceWalker& walker, SVG& svg, float drawing_line_width) const

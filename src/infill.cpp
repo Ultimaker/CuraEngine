@@ -356,6 +356,10 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
 
+    // TODO: remove this:
+//     result_polygons.add(cross_pattern_polygon);
+//     if (true) return;
+    
     if (cross_pattern_polygon.empty())
     {
         return;
