@@ -128,7 +128,7 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
     result.add(first_concentric_wall);
     Polygons* prev_inset = &first_concentric_wall;
     Polygons next_inset;
-    Polygons new_inset;  // This intermediate inset variable is needed because prev_inset is referencing; prev_inset changes whenever next_inset changes.
+    Polygons new_inset;  // This intermediate inset variable is needed because prev_inset is referencing
     while (prev_inset->size() > 0)
     {
         new_inset = prev_inset->offset(-inset_value);
@@ -140,6 +140,7 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
             const Polygons gaps_here = outer.difference(inner);
             perimeter_gaps->add(gaps_here);
         }
+        // This operation helps to prevent the variable "prev_inset" changes whenever next_inset changes
         next_inset = new_inset;
         prev_inset = &next_inset;
     }
