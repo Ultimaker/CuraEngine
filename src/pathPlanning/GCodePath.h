@@ -28,6 +28,7 @@ public:
     GCodePath();
 
     const GCodePathConfig* config; //!< The configuration settings of the path.
+    const size_t mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     double speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
@@ -35,7 +36,7 @@ public:
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)
     std::vector<Point> points; //!< The points constituting this path.
-    bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
+    bool done; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
     bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
 
@@ -45,6 +46,7 @@ public:
      * \brief Creates a new g-code path.
      *
      * \param config The line configuration to use when printing this path.
+     * \param mesh_id The mesh that this path is part of.
      * \param space_fill_type The type of space filling of which this path is a
      * part.
      * \param flow The flow rate to print this path with.
@@ -52,7 +54,7 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
+    GCodePath(const GCodePathConfig& config, size_t mesh_id, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.

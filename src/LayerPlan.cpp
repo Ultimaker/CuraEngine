@@ -58,9 +58,9 @@ double ExtruderPlan::getFanSpeed()
 GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == &config && paths.back().mesh_id == current_mesh && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
         return &paths.back();
-    paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
+    paths.emplace_back(config, current_mesh, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     return ret;
 }
@@ -81,6 +81,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount(storage))
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned(false)
+, current_mesh(0)
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
@@ -225,6 +226,11 @@ bool LayerPlan::setExtruder(int extruder)
         last_planned_position = start_pos;
     }
     return true;
+}
+
+void LayerPlan::setMesh(const size_t mesh_id)
+{
+    current_mesh = mesh_id;
 }
 
 void LayerPlan::moveInsideCombBoundary(int distance)
@@ -1184,6 +1190,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     int extruder = gcode.getExtruderNr();
     bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
     bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
+    size_t current_mesh = 0;
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -1250,6 +1257,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
+            if (path.mesh_id != current_mesh)
+            {
+                current_mesh = path.mesh_id;
+                std::stringstream ss;
+                ss << "MESH:" << current_mesh;
+                gcode.writeComment(ss.str());
+            }
 
             if (path.perform_prime)
             {
