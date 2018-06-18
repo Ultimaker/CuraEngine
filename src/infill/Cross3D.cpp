@@ -1311,15 +1311,7 @@ Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
         sliceCell(*here, *after, z, from, poly);
         here = after;
     }
-    
-    if (z == 26370 || z == 26470)
-    {
-        std::ostringstream ss;
-        ss << "output/pattern" << z << ".svg";
-        SVG svg(ss.str().c_str(), aabb.getAABB());
-        debugOutput(walker, svg, 1);
-        svg.writePolygon(poly, SVG::Color::RED);
-    }
+
     return poly;
 }
 
