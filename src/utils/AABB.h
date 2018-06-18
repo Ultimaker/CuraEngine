@@ -47,6 +47,16 @@ public:
     Point getVector() const;
 
     /*!
+     * Get the size of the aabb: max - min
+     */
+    Point size() const;
+
+    /*!
+     * Check whether this AABB contains volume, or is not filled.
+     */
+    bool isPositive() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      * 
      * In the boundary case false is returned.
@@ -82,6 +92,11 @@ public:
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);
+
+    /*!
+     * Get the AABB of the intersection between two cubes
+     */
+    AABB intersect(const AABB& other) const;
 
     /*!
      * Expand the bounding box to a round increment.

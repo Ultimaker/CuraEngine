@@ -37,7 +37,13 @@ Point AABB::getMiddle() const
 
 Point AABB::getVector() const
 {
-    return max - min;
+    return size();
+}
+
+bool AABB::isPositive() const
+{
+    Point _size = size();
+    return _size.X > 0 &&_size.Y > 0;
 }
 
 void AABB::calculate(const Polygons& polys)
@@ -103,6 +109,24 @@ void AABB::expand(int dist)
     max.Y += dist;
 }
 
+AABB AABB::intersect(const AABB& other) const
+{
+    AABB ret;
+    if (max.X < other.min.X
+        || min.X > other.max.X
+        || max.Y < other.min.Y
+        || min.Y > other.max.Y
+        || !isPositive()
+        || !other.isPositive())
+    {
+        return ret; // the empty AABB
+    }
+    ret.min.X = std::max(min.X, other.min.X);
+    ret.max.X = std::min(max.X, other.max.X);
+    ret.min.Y = std::max(min.Y, other.min.Y);
+    ret.max.Y = std::min(max.Y, other.max.Y);
+}
+
 void AABB::round(const coord_t increment)
 {
     if (increment <= 1) //If rounding to single microns we don't have to do anything. Anything lower than that doesn't make sense so ignore that.
@@ -113,6 +137,11 @@ void AABB::round(const coord_t increment)
     min.Y = (min.Y - (min.Y >= 0) * (increment - 1)) / increment * increment;
     max.X = (max.X + (max.X >= 0) * (increment - 1)) / increment * increment; //Round the max vector towards positive.
     max.Y = (max.Y + (max.Y >= 0) * (increment - 1)) / increment * increment;
+}
+
+Point AABB::size() const
+{
+    return max - min;
 }
 
 Polygon AABB::toPolygon() const

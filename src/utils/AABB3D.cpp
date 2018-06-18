@@ -103,7 +103,9 @@ AABB3D AABB3D::intersect(const AABB3D& other) const
         || max.y < other.min.y
         || min.y > other.max.y
         || max.z < other.min.z
-        || min.z > other.max.z)
+        || min.z > other.max.z
+        || !isPositive()
+        || !other.isPositive())
     {
         return ret; // the empty AABB
     }
