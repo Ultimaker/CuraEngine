@@ -140,17 +140,8 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
     img_min.z = (query_cube.min.z - print_aabb.min.z - 1) * grid_size.z / print_aabb_size.z;
     img_max.z = (query_cube.max.z - print_aabb.min.z) * grid_size.z / print_aabb_size.z + 1;
 
-    auto grid_to_print_coord = [this, print_aabb_size](const Point3 grid_loc)
-        {
-            return Point3(
-                print_aabb.min.x + grid_loc.x * print_aabb_size.x / grid_size.x,
-                print_aabb.min.y + grid_loc.y * print_aabb_size.y / grid_size.y,
-                print_aabb.min.z + grid_loc.z * print_aabb_size.z / grid_size.z
-                   );
-        };
-
-    double total_weighted_lightness = 0.0;
-    double total_volume = 0.0;
+    uint_fast64_t total_lightness = 0;
+    uint_fast32_t cell_count = 0;
     for (int z = std::max(static_cast<coord_t>(0), img_min.z); z <= std::min(grid_size.z - 1, img_max.z); z++)
     {
         const unsigned char* image = images[z];
@@ -159,39 +150,31 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
         {
             for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
             {
-                const AABB3D voxel_cube(grid_to_print_coord(Point3(x, y, z)), grid_to_print_coord(Point3(x + 1, y + 1, z + 1)));
-                const double voxel_volume = voxel_cube.volumeMM3();
-                const double scanned_voxel_volume = voxel_cube.intersect(query_cube).volumeMM3();
                 for (int channel = 0; channel < image_size.z; channel++)
                 {
                     const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
-                    double scanned_voxel_ratio = std::max(0.0, std::min(1.0, scanned_voxel_volume / voxel_volume));
-                    total_weighted_lightness += static_cast<double>(lightness) * scanned_voxel_ratio;
-                    total_volume += scanned_voxel_ratio;
+                    total_lightness += lightness;
+                    cell_count++;
                 }
             }
         }
     }
-    assert(total_weighted_lightness >= 0.0);
-    assert(total_volume >= 0.0);
     
-    if (total_volume == 0.0)
+    if (cell_count == 0)
     { // triangle falls outside of image or in between pixels, so we return the closest pixel
         Point3 closest_pixel = (img_min + img_max) / 2;
         closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(grid_size.x - 1, closest_pixel.x));
         closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(grid_size.y - 1, closest_pixel.y));
         closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(grid_size.z - 1, closest_pixel.z));
         const unsigned char* image = images[closest_pixel.z];
-        assert(total_weighted_lightness == 0.0);
+        assert(total_lightness == 0.0);
         for (int channel = 0; channel < image_size.z; channel++)
         {
-            total_weighted_lightness += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
-            total_volume += 1.0;
+            total_lightness += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
+            cell_count++;
         }
-        assert(total_weighted_lightness > 0);
-        assert(total_volume > 0);
     }
-    float ret = 1.0f - (total_weighted_lightness / total_volume / 255.0f);
+    float ret = 1.0f - (static_cast<float>(total_lightness) / static_cast<float>(cell_count) / 255.0f);
     assert(ret >= 0.0f);
     assert(ret <= 1.0f);
     return ret;
