@@ -1,19 +1,19 @@
 //Copyright (c) 2018 Ultimaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FRACTAL_INFILL_TEST_H
-#define FRACTAL_INFILL_TEST_H
+#ifndef SQUARE_SUBDIV_TEST_H
+#define SQUARE_SUBDIV_TEST_H
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <../src/infill/InfillFractal.h>
+#include <../src/infill/SquareSubdiv.h>
 
 namespace cura
 {
 
-class FractalInfillTest : public CppUnit::TestFixture
+class SquareSubdivTest : public CppUnit::TestFixture
 {
-    CPPUNIT_TEST_SUITE(FractalInfillTest);
+    CPPUNIT_TEST_SUITE(SquareSubdivTest);
     CPPUNIT_TEST(debugCheck);
     CPPUNIT_TEST_SUITE_END();
 
@@ -43,5 +43,5 @@ private:
 
 }
 
-#endif //FRACTAL_INFILL_TEST_H
+#endif //SQUARE_SUBDIV_TEST_H
 
