@@ -30,6 +30,18 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
     }
     grid_size = image_size;
     grid_size.z = images.size();
+    if (grid_size.z == 0)
+    {
+        logError("Couldn't find density image '%s'.\n", filename);
+        std::exit(-1);
+        // would otherwise in a division by zero below, because image_size.x = 0
+    }
+    if (grid_size.x == 0 || grid_size.y == 0)
+    {
+        logError("Density image is empty: '%s'.\n", filename);
+        std::exit(-1);
+        // would otherwise in a division by zero below
+    }
     logDebug("Found %d images. Last one is called '%s'.\n", grid_size.z, last_file.c_str());
     { // compute aabb
         Point3 middle = model_aabb.getMiddle();
@@ -54,7 +66,7 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
 void ImageBasedDensityProvider::loadImage(const std::string filename, const bool set_size)
 {
     int desired_channel_count = 0; // keep original amount of channels
-    int img_x, img_y, img_z; // stbi requires pointer to int rather than to coord_t
+    int img_x = 0, img_y = 0, img_z = 0; // stbi requires pointer to int rather than to coord_t
     unsigned char* image = stbi_load(filename.c_str(), &img_x, &img_y, &img_z, desired_channel_count);
     Point3 image_size_here = Point3(img_x, img_y, img_z);
     if (!image)
