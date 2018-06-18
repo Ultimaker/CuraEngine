@@ -59,7 +59,7 @@ void InfillFractal2D<CellGeometry>::initialize()
     createTree();
     debugCheckDepths();
     debugCheckVolumeStats();
-    logError("Created InfillFractal2D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
+    logDebug("Created InfillFractal2D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
 }
 
 

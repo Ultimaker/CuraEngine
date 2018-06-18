@@ -35,7 +35,7 @@ void Cross3D::createTree()
 {
     assert(cell_data.empty());
     size_t to_be_reserved = 1.05 * sqrt2 * (2 << (max_depth * 3 / 2)); // magic formula predicting nr of cells in the tree. Overestimates to prevent reallocation.
-    logError("Cross3D reserved %i nodes\n", to_be_reserved);
+    logDebug("Cross3D reserved %i nodes\n", to_be_reserved);
     cell_data.reserve(to_be_reserved);
     Prism root_prism; // initialized with invalid data
     cell_data.emplace_back(root_prism, /*index =*/ 0, /* depth =*/ 0);
