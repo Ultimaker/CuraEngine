@@ -216,22 +216,6 @@ private:
      */
     bool isNextTo(const Cell& a, const Cell& b, Direction a_to_b) const;
 
-    //! Get the error induced by subdividing this cell.
-    float getSubdivisionError(const Cell& node) const;
-    //! Get the total error currently acting on this traingle.
-    float getValueError(const Cell& cell) const;
-    //! Get the total loan error value modulating the \ref requested_length. Used in \ref Cross3D::getSubdivisionError and in \ref Cross3D::getValueError
-    float getTotalLoanError(const Cell& cell) const;
-    //! Get the total loaned amount which neighbors have loaned to this cell
-    float getTotalLoanObtained(const Cell& cell) const;
-
-    /*!
-     * Transfer the loans from an old link to the new links after subdivision
-     */
-    void transferLoans(Link& old, const std::list<Link*>& new_links);
-
-    void distributeLeftOvers(Cell& from, float left_overs);
-
     /*!
      * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.
      * Subdivide AC_TO_BC quarter-cubes if neighboring cells are subdivided more.
