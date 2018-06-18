@@ -23,7 +23,8 @@ void FractalInfillTest::debugCheck()
 {
     coord_t line_width = 400;
     int max_depth = 8;
-    AABB aabb(Point(0,0), Point(line_width, line_width) * (2 << max_depth));
+    AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * 512);
+    AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
     
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb);
@@ -43,7 +44,7 @@ void FractalInfillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot_dark.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cura-logo.jpg", aabb);
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/deer.png", aabb);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/T-shirt-printing/input/deer.png", aabb_3d);
     
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/nessy.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/smize.png", aabb);

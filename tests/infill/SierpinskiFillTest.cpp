@@ -21,7 +21,8 @@ void SierpinskiFillTest::tearDown()
 void SierpinskiFillTest::debugCheck()
 {
     coord_t line_width = 400;
-    AABB aabb(Point(0,0), Point(line_width, line_width)*512);
+    AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * 512);
+    AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
     //aabb.expand(512);
     Point canvas_size = Point(1024, 1024);
@@ -41,7 +42,7 @@ void SierpinskiFillTest::debugCheck()
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cheshire_cat.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/vader.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/einstein.jpg", aabb);
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/kop.jpg", aabb);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/kop.jpg", aabb_3d);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/sinterklaas.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/diamond.jpg", aabb);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/trex.jpeg", aabb);
