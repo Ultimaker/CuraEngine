@@ -15,6 +15,9 @@
 
 #include "DensityProvider.h"
 
+#include "InfillFractal2D.h"
+#include "Cross3DPrism.h"
+
 namespace cura
 {
 
@@ -153,13 +156,14 @@ class Cross3DTest; // fwd decl
  * |/                           |/                                        .
  * 
  */
-class Cross3D
+class Cross3D : public InfillFractal2D<Cross3DPrism>
 {
     friend class Cross3DTest;
     using idx_t = int_fast32_t;
-protected:
-    struct Cell; // forward decl
 public:
+    using Cell = InfillFractal2D<Cross3DPrism>::Cell;
+    using Triangle = Cross3DPrism::Triangle;
+    using Prism = Cross3DPrism;
 
     Cross3D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width);
 
@@ -170,33 +174,6 @@ public:
     {
         std::list<const Cell*> layer_sequence; //!< The sequence of cells on a given slice through the subdivision structure. These are in Sierpinski order.
     };
-
-    /*!
-     * Initialize the the tree structure from the density specification
-     */ 
-    void initialize();
-
-    /*!
-     * Create a pattern with the required density or more at each location.
-     */
-    void createMinimalDensityPattern();
-
-    /*!
-     * TODO
-     */
-    void createDitheredPattern();
-
-    /*!
-     * Create a pattern with no dithering and no balancing.
-     * 
-     * \param middle_decision_boundary Whether to divide when required volume is more than midway between the actualized volume and the children actualized volume. Set to false to create the minimal required subdivision before dithering
-     */
-    void createMinimalErrorPattern(bool middle_decision_boundary = true);
-
-    /*!
-     * Create the subdivision structure 
-     */
-    void createBalancedPattern();
 
     /*!
      * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.
@@ -211,171 +188,8 @@ public:
 
     Polygon generateCross(const SliceWalker& sequence, coord_t z) const;
 protected:
-    static constexpr uint_fast8_t max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
-    static constexpr uint_fast8_t number_of_sides = 4; //!< Prisms connect above, below and before and after
-
-    struct Triangle
-    {
-        /*!
-         * The order in
-         * Which the edges of the triangle are crossed by the Sierpinski curve.
-         */
-        enum class Direction
-        {
-            AC_TO_AB,
-            AC_TO_BC,
-            AB_TO_BC
-        };
-        Point straight_corner; //!< C, the 90* corner of the triangle
-        Point a; //!< The corner closer to the start of the space filling curve
-        Point b; //!< The corner closer to the end of the space filling curve
-        Direction dir; //!< The (order in which) edges being crossed by the Sierpinski curve.
-        bool straight_corner_is_left; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
-
-        Triangle(
-            Point straight_corner,
-            Point a,
-            Point b,
-            Direction dir,
-            bool straight_corner_is_left)
-        : straight_corner(straight_corner)
-        , a(a)
-        , b(b)
-        , dir(dir)
-        , straight_corner_is_left(straight_corner_is_left)
-        {}
-
-        //! initialize with invalid data
-        Triangle()
-        {}
-
-        std::array<Triangle, 2> subdivide() const;
-
-        /*!
-         * Get the first edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
-         * The from location is always toward the inside of the curve.
-         */
-        LineSegment getFromEdge() const;
-        /*!
-         * Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
-         * The from location is always toward the inside of the curve.
-         */
-        LineSegment getToEdge() const;
-        //! Get the middle of the triangle
-        Point getMiddle() const;
-        //! convert into a polyogon with correct winding order
-        Polygon toPolygon() const;
-    };
-    struct Prism
-    {
-        Triangle triangle;
-        Range<coord_t> z_range;
-        bool is_expanding; //!< Whether the surface is moving away from the space filling tree when going from bottom to top. (Though the eventual surface might be changed due to neighboring constraining cells)
-
-        //! simple constructor
-        Prism(
-            Triangle triangle,
-            coord_t z_min,
-            coord_t z_max,
-            bool is_expanding
-        )
-        : triangle(triangle)
-        , z_range(z_min, z_max)
-        , is_expanding(is_expanding)
-        {}
-
-        //! initialize with invalid data
-        Prism()
-        {}
-
-        bool isHalfCube() const;
-        bool isQuarterCube() const;
-    };
-
-    enum class Direction : int
-    {
-        LEFT = 0, // ordered on polarity and dimension: first X from less to more, then Y
-        RIGHT = 1,
-        DOWN = 2,
-        UP = 3,
-        COUNT = 4
-    };
-
-    /*!
-     * The direction from the middle of the parent prism to a child prism
-     */
-    enum class ChildSide : int
-    {
-        LEFT_BOTTOM = 0,
-        RIGHT_BOTTOM = 1,
-        LEFT_TOP = 2,
-        RIGHT_TOP = 3,
-        COUNT = 4,
-        FIRST = LEFT_BOTTOM
-    };
-    Direction opposite(Direction in);
-    uint_fast8_t opposite(uint_fast8_t in);
-
-    struct Link; // fwd decl
-    using LinkIterator = typename std::list<Link>::iterator;
-    struct Link
-    {
-        idx_t to_index;
-        std::optional<LinkIterator> reverse; //!< The link in the inverse direction
-        float loan; //!< amount of requested_filled_area loaned from one cell to another, when subdivision of the former is prevented by the latter. This value should always be positive.
-        idx_t from_index()
-        {
-            assert(reverse);
-            return (*reverse)->to_index;
-        }
-        Link& getReverse() const
-        {
-            assert(reverse);
-            return **reverse;
-        }
-        Link(idx_t to_index)
-        : to_index(to_index)
-        , loan(0.0)
-        {}
-    };
-    struct Cell
-    {
-        Prism prism;
-        idx_t index; //!< index into \ref Cross3D::cell_data
-        char depth; //!< recursion depth
-        float volume; //!< The volume of the prism in mm^3
-        float filled_volume_allowance; //!< The volume to be filled corresponding to the average density requested by the volumetric density specification.
-        float minimally_required_density; //!< The largest required density across this area. For when the density specification is the minimal density at each locatoin.
-        bool is_subdivided;
-        std::array<std::list<Link>, number_of_sides> adjacent_cells; //!< the adjacent cells for each edge/face of this cell. Ordered: before, after, below, above
-
-        std::array<idx_t, max_subdivision_count> children; //!< children. Ordered: down-left, down-right, up-left, up-right
-
-        Cell(const Prism& prism, const idx_t index, const int depth)
-        : prism(prism)
-        , index(index)
-        , depth(depth)
-        , volume(-1)
-        , filled_volume_allowance(0)
-        , minimally_required_density(-1)
-        , is_subdivided(false)
-        {
-//             children.fill(-1); --> done in createTree(...)
-        }
-
-        uint_fast8_t getChildCount() const;
-    };
-
-    std::vector<Cell> cell_data; //!< Storage for all the cells. The data of a binary/quaternary tree in depth first order.
-
-    AABB3D aabb;
-    int max_depth;
-    coord_t line_width; //!< The line width of the fill lines
     coord_t min_dist_to_cell_bound; //!< The minimal distance between a triangle vertex and the space filling surface oscillating vertex for a straight corner or straight edge
     coord_t min_dist_to_cell_bound_diag; //!< The minimal diagonal distance between a triangle vertex and the space filling surface oscillating vertex
-
-    const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
-
 
     float getDensity(const Cell& cell) const;
 
@@ -391,78 +205,16 @@ private:
     void createTree(const Triangle& triangle, size_t root_child_number);
     void createTree(Cell& sub_tree_root, int max_depth);
     void setVolume(Cell& sub_tree_root);
-    void setSpecificationAllowance(Cell& sub_tree_root);
 
     // Lower bound sequence:
 
-    /*!
-     * For each noe: subdivide if possible.
-     * 
-     * Start trying cells with lower recursion level before trying cells with deeper recursion depth, i.e. higher density value.
-     * 
-     * \return Whether the sequence has changed.
-     */
-    bool subdivideAll();
-
-    /*!
-     * Bubble up errors from nodes which like to subdivide more,
-     * but which are constrained by neighboring cells of lower recursion level.
-     * 
-     * \return Whether we have redistributed errors which could cause a new subdivision 
-     */
-    bool bubbleUpConstraintErrors();
-
-    /*!
-     * Order the triangles on depth.
-     */
-    std::vector<std::vector<Cell*>> getDepthOrdered();
-    void getDepthOrdered(Cell& sub_tree_root, std::vector<std::vector<Cell*>>& output);
-
-    void dither(Cell& parent, std::vector<ChildSide>& tree_path);
-
     float getActualizedVolume(const Cell& cell) const;
-    float getChildrenActualizedVolume(const Cell& cell) const;
-    bool canSubdivide(const Cell& cell) const;
-    bool isConstrained(const Cell& cell) const;
-    bool isConstrainedBy(const Cell& constrainee, const Cell& constrainer) const;
 
-    /*!
-     * Subdivide a node into its children.
-     * Redistribute leftover errors needed for this subdivision and account for errors needed to keep the children balanced.
-     * 
-     * \param cell the cell to subdivide
-     * \param redistribute_errors Whether to redistribute the accumulated errors to neighboring nodes and/or among children
-     */
-    void subdivide(Cell& cell, bool redistribute_errors);
-    void initialConnection(Cell& before, Cell& after, Direction dir);
-    
     /*!
      * 
      * \param a_to_b The side of \p a to check for being next to cell b. Sides are ordered: before, after, below, above (See \ref Cross3D::Cell::adjacent_cells and \ref Cross3D::Direction)
      */
     bool isNextTo(const Cell& a, const Cell& b, Direction a_to_b) const;
-
-    /*!
-     * Get the right up diagonal neighbor
-     * for which the left lower corner coincides with the right uper corner of this cell
-     * if any, otherwise return nullptr
-     *           __ __
-     * :        |__|__|             but dont get this one  or this one
-     * :________|▓▓|__|                           ^             ^
-     * |       ↗|     |             | X X X X X |         |     |  X
-     * | from   |_____|             |___________|         |_____|  X
-     * |        |     |             |from |     |         |from |  X
-     * |________|_____|             |_____|_____|         |_____|____
-     */
-    Link* getDiagonalNeighbor(Cell& cell, Direction left_right) const;
-
-
-    /*!
-     * Check whetehr we can propagate error to the cell diagonally left up of this cell.
-     * This is only possible of we hadn't already processed that cell,
-     * which is the case if this is a ll cell after a lb cell after the last right cell.
-     */
-    bool canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path);
 
     //! Get the error induced by subdividing this cell.
     float getSubdivisionError(const Cell& node) const;
@@ -544,10 +296,12 @@ private:
     //! Add a 45 degree bend in order to avoid line overlap in the curve patch along a triangle
     void add45degBend(const Point end_point, const Point other_end_point, const LineSegment edge, PolygonRef output) const;
 
-    // debug
-    void debugCheckDepths() const;
-    void debugCheckVolumeStats() const;
+    //----------------------
+    //------ DEBUG ---------
+    //----------------------
+
     void debugCheckHeights(const SliceWalker& sequence, coord_t z) const;
+    void debugCheckChildrenOverlap(const Cell& cell) const;
 
     void debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const;
     void debugOutputTriangle(const Triangle& triangle, SVG& svg, float drawing_line_width) const;
