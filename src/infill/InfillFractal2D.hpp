@@ -47,6 +47,10 @@ InfillFractal2D<CellGeometry>::InfillFractal2D(const DensityProvider& density_pr
 {
 }
 
+template<typename CellGeometry>
+InfillFractal2D<CellGeometry>::~InfillFractal2D()
+{
+}
 
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::initialize()

@@ -121,6 +121,8 @@ public:
 
     InfillFractal2D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width);
 
+    virtual ~InfillFractal2D();
+    
     /*!
      * Initialize the the tree structure from the density specification
      */ 
