@@ -201,7 +201,7 @@ protected:
 //     template<typename CellGeometry>
     struct Cell
     {
-        CellGeometry prism;
+        CellGeometry elem;
         idx_t index; //!< index into \ref Cross3D::cell_data
         char depth; //!< recursion depth
         float volume; //!< The volume of the prism in mm^3
@@ -212,8 +212,8 @@ protected:
 
         std::array<idx_t, max_subdivision_count> children; //!< children. Ordered: down-left, down-right, up-left, up-right
 
-        Cell(const CellGeometry& prism, const idx_t index, const int depth)
-        : prism(prism)
+        Cell(const CellGeometry& elem, const idx_t index, const int depth)
+        : elem(elem)
         , index(index)
         , depth(depth)
         , volume(-1)
