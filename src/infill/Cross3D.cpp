@@ -12,7 +12,7 @@
 namespace cura {
 
 Cross3D::Cross3D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width)
-: InfillFractal2D<Cross3DPrism>(density_provider, aabb, max_depth, line_width)
+: InfillFractal2D<Cross3DPrism>(density_provider, aabb, max_depth, line_width, /* root_is_bogus = */ true)
 , min_dist_to_cell_bound(line_width / 2)
 , min_dist_to_cell_bound_diag(line_width * 0.5 * sqrt2)
 {

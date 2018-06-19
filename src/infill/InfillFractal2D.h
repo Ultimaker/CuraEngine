@@ -119,7 +119,6 @@ protected:
     struct Cell; // forward decl
 public:
 
-    InfillFractal2D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width);
 
     virtual ~InfillFractal2D();
     
@@ -153,6 +152,14 @@ public:
 protected:
     static constexpr uint_fast8_t max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
     static constexpr uint_fast8_t number_of_sides = 4; //!< Prisms connect above, below and before and after
+
+    /*!
+     * Whether the root node is just used to hold the several real first nodes, rather than that the root node corresponds to a geometric cell
+     * Differs between square subdivision and cross3D
+     */
+    bool root_is_bogus;
+
+    InfillFractal2D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width, bool root_is_bogus);
 
     enum class Direction : int
     {

@@ -37,8 +37,9 @@ uint_fast8_t InfillFractal2D<CellGeometry>::Cell::getChildCount() const
 }
 
 template<typename CellGeometry>
-InfillFractal2D<CellGeometry>::InfillFractal2D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width)
-: aabb(aabb)
+InfillFractal2D<CellGeometry>::InfillFractal2D(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width, bool root_is_bogus)
+: root_is_bogus(root_is_bogus)
+, aabb(aabb)
 , max_depth(max_depth)
 , line_width(line_width)
 , min_dist_to_cell_bound(line_width / 2)
@@ -111,14 +112,21 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern()
         };
     
     assert(cell_data.size() > 0);
-    // always subdivide the root, which is a bogus node!
-    Cell& root = cell_data[0];
-    for (idx_t child_idx : root.children)
-    {
-        if (child_idx >= 0 && shouldBeSubdivided(cell_data[child_idx]))
+
+    if (root_is_bogus)
+    { // always subdivide the root, which is a bogus node!
+        Cell& root = cell_data[0];
+        for (idx_t child_idx : root.children)
         {
-            all_to_be_subdivided.push_back(child_idx);
+            if (child_idx >= 0 && shouldBeSubdivided(cell_data[child_idx]))
+            {
+                all_to_be_subdivided.push_back(child_idx);
+            }
         }
+    }
+    else
+    {
+        all_to_be_subdivided.push_back(0); // check whether we need to subdivide root
     }
     
     while (!all_to_be_subdivided.empty())

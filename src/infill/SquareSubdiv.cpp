@@ -13,7 +13,7 @@
 namespace cura {
 
 SquareSubdiv::SquareSubdiv(const DensityProvider& density_provider, const AABB3D aabb, const int max_depth, coord_t line_width, bool space_filling_curve)
-: InfillFractal2D<AABB>(density_provider, aabb, max_depth, line_width)
+: InfillFractal2D<AABB>(density_provider, aabb, max_depth, line_width, /* root_is_bogus = */ false)
 , space_filling_curve(space_filling_curve)
 {
 }
