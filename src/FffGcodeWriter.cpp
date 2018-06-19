@@ -1567,6 +1567,10 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             }
             else
             {
+                // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
+                // the supported region is made up of those areas that really are supported by either model or support on the layer below
+                // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
+                // considered to be
                 double overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
                 Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10+overhang_width-half_outer_wall_width)).offset(10);
                 gcode_layer.setOverhangMask(overhang_region);
