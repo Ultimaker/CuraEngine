@@ -267,6 +267,7 @@ private:
     Comb* comb;
     coord_t comb_move_inside_distance;  //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
+    Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
 
@@ -427,7 +428,16 @@ public:
         bridge_wall_mask = polys;
     }
 
-    
+    /*!
+     * Set overhang_mask.
+     *
+     * \param polys The overhung areas of the part currently being processed that will require modified print settings
+     */
+    void setOverhangMask(const Polygons& polys)
+    {
+        overhang_mask = polys;
+    }
+
     /*!
      * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
      * avoiding obstacles and comb along the boundary of parts.

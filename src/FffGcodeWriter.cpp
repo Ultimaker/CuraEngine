@@ -1472,8 +1472,8 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
             }
         }
-        // for non-spiralized layers, if bridging is enabled, determine the shape of the unsupported areas below this part
-        if (!spiralize && gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+        // for non-spiralized layers, determine the shape of the unsupported areas below this part
+        if (!spiralize && gcode_layer.getLayerNr() > 0)
         {
             // accumulate the outlines of all of the parts that are on the layer below
 
@@ -1493,11 +1493,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
 
+            const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+
             // if support is enabled, add the support outlines also so we don't generate bridges over support
 
             if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
             {
-                const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
                 const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
                 const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
                 const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
@@ -1534,27 +1535,40 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
             outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-            // max_air_gap is the max allowed width of the unsupported region below the wall line
-            // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
-            // it can be from 0 to 1/2 the outer wall line width
+            if (mesh.getSettingBoolean("bridge_settings_enabled"))
+            {
+                // max_air_gap is the max allowed width of the unsupported region below the wall line
+                // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-            const int max_air_gap = half_outer_wall_width * mesh.getSettingInPercentage("bridge_wall_max_overhang") / 100;
+                const int max_air_gap = half_outer_wall_width;
 
-            // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
-            // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
+                // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
+                // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
 
-            Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
+                Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
-            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
-            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
-            // but, instead, are 1/2 a line width inset from the outline
+                // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
+                // which is required because when the walls are being generated, the vertices do not fall on the part's outline
+                // but, instead, are 1/2 a line width inset from the outline
 
-            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+                gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+            }
+            else
+            {
+                // clear to disable use of bridging settings
+                gcode_layer.setBridgeWallMask(Polygons());
+            }
+
+            double overhang_width = layer_height * std::tan(mesh.getSettingInAngleRadians("wall_overhang_angle"));
+            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10+overhang_width-half_outer_wall_width)).offset(10);
+            gcode_layer.setOverhangMask(overhang_region);
         }
         else
         {
             // clear to disable use of bridging settings
             gcode_layer.setBridgeWallMask(Polygons());
+            // clear to disable overhang detection
+            gcode_layer.setOverhangMask(Polygons());
         }
 
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.

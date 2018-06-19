@@ -510,6 +510,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
     const double min_bridge_line_len = mesh.getSettingInMicrons("bridge_wall_min_length");
     const double bridge_wall_coast = mesh.getSettingInPercentage("bridge_wall_coast");
+    const double overhang_speed_factor = mesh.getSettingAsRatio("wall_overhang_speed_factor");
 
     Point cur_point = p0;
 
@@ -563,7 +564,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize,
+                        (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
                 }
 
                 distance_to_bridge_start -= len;
@@ -571,7 +573,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
+                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize,
+                    (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
             }
             non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
@@ -583,7 +586,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
     if (bridge_wall_mask.empty())
     {
         // no bridges required
-        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow);
+        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize,
+            (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? 1.0 : overhang_speed_factor);
     }
     else
     {
@@ -680,10 +684,17 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     // make sure wall start point is not above air!
-    if (!bridge_wall_mask.empty()) {
+    if (!bridge_wall_mask.empty() || !overhang_mask.empty()) {
         int count = wall.size(); // avoid infinite loop if none of the points are above a solid region
-        while (count-- > 0 && bridge_wall_mask.inside(wall[start_idx], true))
+        while (count-- > 0)
         {
+            const Point& start_pt = wall[start_idx];
+            if ((bridge_wall_mask.empty() || !bridge_wall_mask.inside(start_pt, true)) && (overhang_mask.empty() || !overhang_mask.inside(start_pt, true)))
+            {
+                // start_pt isn't above air so it's OK to use
+                break;
+            }
+
             if (++start_idx >= (int)wall.size())
             {
                 start_idx = 0;
