@@ -1559,9 +1559,18 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.setBridgeWallMask(Polygons());
             }
 
-            double overhang_width = layer_height * std::tan(mesh.getSettingInAngleRadians("wall_overhang_angle"));
-            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10+overhang_width-half_outer_wall_width)).offset(10);
-            gcode_layer.setOverhangMask(overhang_region);
+            double overhang_angle = mesh.getSettingInAngleDegrees("wall_overhang_angle");
+            if (overhang_angle >= 90)
+            {
+                // clear to disable overhang detection
+                gcode_layer.setOverhangMask(Polygons());
+            }
+            else
+            {
+                double overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+                Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10+overhang_width-half_outer_wall_width)).offset(10);
+                gcode_layer.setOverhangMask(overhang_region);
+            }
         }
         else
         {
