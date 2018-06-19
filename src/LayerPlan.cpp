@@ -536,16 +536,15 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
 static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
+void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
 {
     const double min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = 1000; // accelerate using segments of this length
     const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-    const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double bridge_wall_coast = extr->getSettingInPercentage("bridge_wall_coast");
+    const double min_bridge_line_len = mesh.getSettingInMicrons("bridge_wall_min_length");
+    const double bridge_wall_coast = mesh.getSettingInPercentage("bridge_wall_coast");
 
     Point cur_point = p0;
 
@@ -713,7 +712,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
     }
 }
 
-void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     // make sure wall start point is not above air!
     if (!bridge_wall_mask.empty()) {
@@ -731,13 +730,12 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-    const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double wall_min_flow = extr->getSettingAsRatio("wall_min_flow");
-    const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
-    const int64_t small_feature_max_length = extr->getSettingInMicrons("small_feature_max_length");
+    const double min_bridge_line_len = mesh.getSettingInMicrons("bridge_wall_min_length");
+    const double wall_min_flow = mesh.getSettingAsRatio("wall_min_flow");
+    const bool wall_min_flow_retract = mesh.getSettingBoolean("wall_min_flow_retract");
+    const int64_t small_feature_max_length = mesh.getSettingInMicrons("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
-    const double small_feature_speed_factor = extr->getSettingAsRatio((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    const double small_feature_speed_factor = mesh.getSettingAsRatio((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -859,7 +857,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             }
             else
             {
-                addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
         }
         else
@@ -893,7 +891,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             }
             else
             {
-                addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
 
             if (wall_0_wipe_dist > 0)
@@ -928,7 +926,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     }
 }
 
-void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
@@ -938,7 +936,7 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 

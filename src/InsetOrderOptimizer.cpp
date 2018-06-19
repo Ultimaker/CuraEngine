@@ -108,7 +108,7 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                gcode_layer.addWalls(insets_that_do_not_surround_holes, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+                gcode_layer.addWalls(insets_that_do_not_surround_holes, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
                 added_something = true;
             }
         }
@@ -273,9 +273,9 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addWalls(hole_outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+                    gcode_layer.addWalls(hole_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
                 }
-                gcode_layer.addWalls(hole_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+                gcode_layer.addWalls(hole_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
             }
             else
             {
@@ -297,10 +297,10 @@ void InsetOrderOptimizer::processHoleInsets()
                 const Point dest = hole_inner_walls.back()[PolygonUtils::findNearestVert(z_seam_location, hole_inner_walls.back())];
                 gcode_layer.addTravel(dest);
                 std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
-                gcode_layer.addWalls(hole_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+                gcode_layer.addWalls(hole_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
                 {
-                    gcode_layer.addWall(hole_outer_wall[0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
+                    gcode_layer.addWall(hole_outer_wall[0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
                     moveInside();
                 }
@@ -319,11 +319,11 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 // align z-seam of hole with z-seam of outer wall - makes a nicer job when printing tubes
                 const unsigned point_idx = PolygonUtils::findNearestVert(start_point, hole_outer_wall.back());
-                gcode_layer.addWall(hole_outer_wall.back(), point_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
+                gcode_layer.addWall(hole_outer_wall.back(), point_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
             else
             {
-                gcode_layer.addWalls(hole_outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+                gcode_layer.addWalls(hole_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
             // move inside so an immediately following retract doesn't occur on the outer wall
             moveInside();
@@ -406,7 +406,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         {
             if (include_outer && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
             {
-                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
+                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
             else
             {
@@ -414,7 +414,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
                 gcode_layer.addTravel(dest);
             }
-            gcode_layer.addWalls(part_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            gcode_layer.addWalls(part_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
         }
         else
         {
@@ -430,10 +430,10 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
                 gcode_layer.addTravel(dest);
             }
-            gcode_layer.addWalls(part_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            gcode_layer.addWalls(part_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
             if (include_outer && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
             {
-                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
+                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
                 // move inside so an immediately following retract doesn't occur on the outer wall
                 moveInside();
             }
@@ -448,7 +448,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         Polygons part_outer_wall;
         part_outer_wall.add(*inset_polys[0][0]);
-        gcode_layer.addWalls(part_outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+        gcode_layer.addWalls(part_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
         // move inside so an immediately following retract doesn't occur on the outer wall
         moveInside();
         added_something = true;
@@ -561,7 +561,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
         {
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addWalls(remaining, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            gcode_layer.addWalls(remaining, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
             added_something = true;
         }
     }
