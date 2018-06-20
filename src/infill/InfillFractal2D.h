@@ -169,6 +169,9 @@ protected:
         UP = 3,
         COUNT = 4
     };
+    Direction opposite(Direction in);
+    uint_fast8_t opposite(uint_fast8_t in);
+    uint_fast8_t toInt(Direction in) { return static_cast<uint_fast8_t>(in); }
 
     /*!
      * The direction from the middle of the parent prism to a child prism
@@ -182,8 +185,14 @@ protected:
         COUNT = 4,
         FIRST = LEFT_BOTTOM
     };
-    Direction opposite(Direction in);
-    uint_fast8_t opposite(uint_fast8_t in);
+    /*!
+     * get the opposite child side in the X or Z dimension
+     * \param dimension 0 for left/right, 1 for up/down
+     */
+    ChildSide toChildSide(uint_fast8_t in);
+    uint_fast8_t toInt(ChildSide in);
+    ChildSide opposite(ChildSide in, uint_fast8_t dimension);
+    Direction getChildToNeighborChildDirection(ChildSide in, uint_fast8_t dimension);
 
     struct Link; // fwd decl
     using LinkIterator = typename std::list<Link>::iterator;

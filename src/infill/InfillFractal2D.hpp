@@ -30,6 +30,46 @@ uint_fast8_t InfillFractal2D<CellGeometry>::opposite(uint_fast8_t in)
     return static_cast<uint_fast8_t>(opposite(static_cast<Direction>(in)));
 }
 
+
+
+template<typename CellGeometry>
+typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>::toChildSide(uint_fast8_t in)
+{
+    return static_cast<ChildSide>(in);
+}
+
+template<typename CellGeometry>
+uint_fast8_t InfillFractal2D<CellGeometry>::toInt(ChildSide in)
+{
+    return static_cast<uint_fast8_t>(in);
+}
+
+template<typename CellGeometry>
+typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>::opposite(ChildSide in, uint_fast8_t dimension)
+{
+    switch(in)
+    { //                                                  flip over Z                 flip over X
+        case ChildSide::LEFT_BOTTOM:    return dimension? ChildSide::LEFT_TOP       : ChildSide::RIGHT_BOTTOM;
+        case ChildSide::RIGHT_BOTTOM:   return dimension? ChildSide::RIGHT_TOP      : ChildSide::LEFT_BOTTOM;
+        case ChildSide::LEFT_TOP:       return dimension? ChildSide::LEFT_BOTTOM    : ChildSide::RIGHT_TOP;
+        case ChildSide::RIGHT_TOP:      return dimension? ChildSide::RIGHT_BOTTOM   : ChildSide::LEFT_TOP;
+        default: return ChildSide::COUNT;
+    }
+}
+
+template<typename CellGeometry>
+typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>::getChildToNeighborChildDirection(ChildSide in, uint_fast8_t dimension)
+{
+    switch(in)
+    { //                                                  flip over Z          flip over X
+        case ChildSide::LEFT_BOTTOM:    return dimension? Direction::UP     : Direction::RIGHT;
+        case ChildSide::RIGHT_BOTTOM:   return dimension? Direction::UP     : Direction::LEFT;
+        case ChildSide::LEFT_TOP:       return dimension? Direction::DOWN   : Direction::RIGHT;
+        case ChildSide::RIGHT_TOP:      return dimension? Direction::DOWN   : Direction::LEFT;
+        default: return Direction::COUNT;
+    }
+}
+
 template<typename CellGeometry>
 uint_fast8_t InfillFractal2D<CellGeometry>::Cell::getChildCount() const
 {
