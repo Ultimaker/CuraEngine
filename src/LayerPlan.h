@@ -582,6 +582,17 @@ public:
 
 
     /*!
+     * Given a wall polygon and a start vertex index, return the index of the first vertex that is supported (is not above air)
+     *
+     * Uses bridge_wall_mask and overhang_mask to determine where there is air below
+     *
+     * \param wall The wall polygon
+     * \param start_idx The index of the starting vertex of \p wall
+     * \return The index of the first supported vertex - if no vertices are supported, start_idx is returned
+     */
+    unsigned locateFirstSupportedVertex(ConstPolygonRef wall, const unsigned start_idx) const;
+
+    /*!
      * Write the planned paths to gcode
      * 
      * \param gcode The gcode to write the planned paths to
