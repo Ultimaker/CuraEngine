@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <sstream>  // debug TODO
+#include <unordered_set>
 
 #include "../utils/math.h"
 #include "../utils/linearAlg2D.h"
@@ -215,11 +216,17 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern()
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::createDitheredPattern()
 {
-    bool midway_decision_boundary = false;
-    createMinimalErrorPattern(midway_decision_boundary);
+    createBalancedPattern();
+
+//     settleErrors(); TODO: implement error settling just like in SierpinskiFill
 
     std::vector<ChildSide> tree_path(max_depth, ChildSide::COUNT);
     dither(cell_data[0], tree_path);
+
+    // debug check for total actualized volume
+    float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);
+    float total_requested_volume = cell_data[0].filled_volume_allowance;
+    logAlways("Realized %f of %f requested volume (%d\%).\n", total_actualized_volume, total_requested_volume, static_cast<int>(total_actualized_volume * 100.0 / total_requested_volume));
 }
 
 
@@ -342,34 +349,60 @@ template<typename CellGeometry>
 bool InfillFractal2D<CellGeometry>::bubbleUpConstraintErrors()
 {
     std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
-    
+
     bool redistributed_anything = false;
-    
+
     for (int depth = max_depth; depth >= 0; depth--)
     {
         std::vector<Cell*>& depth_nodes = depth_ordered[depth];
         for (Cell* cell : depth_nodes)
         {
-            float unresolvable_error = getValueError(*cell);
-            // pay back loaners proportional to the original loan
-            if (unresolvable_error > allowed_volume_error)
+            debugCheckLoans(*cell);
+            if (!isConstrained(*cell))
             {
-                const float total_obtained_loan = getTotalLoanObtained(*cell);
-                const float rate_of_return = unresolvable_error / total_obtained_loan;
-                const float ratio_loan_remaining = 1.0 - rate_of_return;
+                continue;
+            }
+            float unresolvable_error = getValueError(*cell); // the value allowance this cell cannot use because it is constrianed, while it would like to subdivide
+            if (unresolvable_error < allowed_volume_error)
+            {
+                continue;
+            }
+            // hand out loans proportional to the volume
+            float weighted_constrainer_count = 0.0;
 
-                for (const std::list<Link>& neighbors_in_a_given_direction : cell->adjacent_cells)
+            for (const std::list<Link>& neighbors_in_a_given_direction : cell->adjacent_cells)
+            {
+                const float weight = 1.0; // TODO: add weights based on direction : UP/DOWN vs L/R might get differnt weights in cross3D
+                for (const Link& link : neighbors_in_a_given_direction)
                 {
-                    for (const Link& link : neighbors_in_a_given_direction)
+                    if (isConstrainedBy(*cell, cell_data[link.to_index]))
                     {
-                        float& loan_here = link.getReverse().loan;
-                        loan_here *= ratio_loan_remaining;
-                        assert(std::abs(loan_here) < allowed_volume_error || std::abs(link.loan) < allowed_volume_error);
+                        weighted_constrainer_count += weight;
                     }
                 }
-
-                redistributed_anything = true;
             }
+
+            assert(weighted_constrainer_count > allowed_volume_error && "a constrained cell must have a positive weighted constrainer count!");
+
+            for (std::list<Link>& neighbors_in_a_given_direction : cell->adjacent_cells)
+            {
+                const float weight = 1.0; // TODO: add weights based on direction : UP/DOWN vs L/R might get differnt weights in cross3D
+                for (Link& link : neighbors_in_a_given_direction)
+                {
+                    if (isConstrainedBy(*cell, cell_data[link.to_index]))
+                    {
+                        float value_transfer = unresolvable_error * weight / weighted_constrainer_count;
+                        // first reduce the loan that cell has passed to this cell (occurs very rarely in cases where a cell gets subdivided because of another neighbor (?))
+                        float value_transfer_reduction = std::min(value_transfer, link.getReverse().loan);
+                        link.getReverse().loan -= value_transfer_reduction;
+                        value_transfer -= value_transfer_reduction;
+                        link.loan += value_transfer;
+                    }
+                }
+            }
+
+            debugCheckLoans(*cell);
+            redistributed_anything = true;
         }
     }
     return redistributed_anything;
@@ -416,7 +449,7 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>&
          */
 
         float direction_weights[] = { 7, 5 }; // TODO: determine reasoned weights!
-        float diag_weight = 0;//1;
+        float diag_weight = 0;//1; // 0 seems to produce visually better results somehow
         float backward_diag_weight = 3; //3; // TODO: error is still being propagated to already processed cells
 
         for (int side_idx = 0; side_idx < 2; side_idx++)
@@ -541,19 +574,22 @@ bool InfillFractal2D<CellGeometry>::isConstrainedBy(const Cell& constrainee, con
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_errors)
 {
-    const float total_loan_error_balance_before = getTotalLoanError(cell);
+    if (redistribute_errors)
+    {
+        debugCheckLoans(cell);
+    }
 
     assert(cell.children[0] >= 0 && cell.children[1] >= 0 && "Children must be initialized for subdivision!");
     Cell& child_lb = cell_data[cell.children[0]];
     Cell& child_rb = cell_data[cell.children[1]];
     initialConnection(child_lb, child_rb, Direction::RIGHT);
 
-//  TODO: do we even need this here?!
-//     We do bubbling up of constraint erros already in a separate function!
-//     if (redistribute_errors)
-//     { // move left-over errors
-//         logError("Not implemented yet!\n"); // TODO: move leftover errors back to neighboring cells
-//     }
+    if (redistribute_errors)
+    { // move left-over errors
+        distributeLeftOvers(cell, getSubdivisionError(cell));
+    }
+
+    const float total_loan_error_balance_before = getTotalLoanError(cell);
 
     if (cell.getChildCount() == 4)
     {
@@ -564,8 +600,7 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
         initialConnection(child_rb, child_rt, Direction::UP);
     }
 
-
-
+    // reconnect neighbors of the parent to the children
     for (uint_fast8_t side = 0; side < getNumberOfSides(); side++)
     {
         /* two possible cases:
@@ -636,6 +671,15 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
     
     cell.is_subdivided = true;
     
+    
+    if (redistribute_errors)
+    { // make positive errors in children well balanced
+        // Pass along error from parent
+        balanceChildErrors(cell);
+    }
+    
+    
+    // debug check:
     if (redistribute_errors)
     {
         float total_loan_error_balance_after = 0.0;
@@ -648,6 +692,20 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
             total_loan_error_balance_after += getTotalLoanError(cell_data[child_idx]);
         }
         assert(std::abs(total_loan_error_balance_after - total_loan_error_balance_before) < allowed_volume_error);
+    }
+
+    // debug check:
+    
+    if (redistribute_errors)
+    {
+        for (const idx_t child_idx : cell.children)
+        {
+            if (child_idx < 0)
+            {
+                break;
+            }
+            debugCheckLoans(cell_data[child_idx]);
+        }
     }
 
     debugCheckChildrenOverlap(cell);
@@ -758,6 +816,8 @@ float InfillFractal2D<CellGeometry>::getTotalLoanError(const Cell& cell) const
     {
         for (const Link& link : neighbors_in_a_given_direction)
         {
+            assert(std::isfinite(link.loan));
+            assert(std::isfinite(link.getReverse().loan));
             loan -= link.loan;
             loan += link.getReverse().loan;
         }
@@ -783,6 +843,89 @@ float InfillFractal2D<CellGeometry>::getTotalLoanObtained(const Cell& cell) cons
 }
 
 template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::balanceChildErrors(const Cell& parent)
+{
+    std::unordered_set<uint_fast8_t> children_to_check_balance;
+    for (uint_fast8_t child_side = 0; child_side < toInt(ChildSide::COUNT); child_side++)
+    {
+        children_to_check_balance.emplace(child_side);
+    }
+
+    int iter = 0;
+    while (!children_to_check_balance.empty())
+    {
+        iter++;
+        assert(iter < 99);
+        ChildSide child_side_to_check = toChildSide(*children_to_check_balance.begin());
+        children_to_check_balance.erase(children_to_check_balance.begin());
+        idx_t child_idx = parent.children[toInt(child_side_to_check)];
+        if (child_idx < 0)
+        {
+            continue;
+        }
+        Cell& child = cell_data[child_idx];
+        float value_error = getValueError(child);
+        if (value_error < -allowed_volume_error)
+        { // the cell is in debt, so it should get value error from its neighbors
+            // check from which neighbors we can get value
+            float weighted_providing_neighbor_count = 0.0; // number of cells neighboring this cell (either 0, 1 or 2) which can provide error value weighted by their allowance
+            for (uint_fast8_t dimension = 0; dimension < 2; dimension++)
+            {
+                ChildSide neighbor_child_side = opposite(child_side_to_check, dimension);
+                idx_t neighbor_child_idx = parent.children[toInt(neighbor_child_side)];
+                if (neighbor_child_idx < 0)
+                {
+                    continue;
+                }
+                float neighbor_power = getValueError(cell_data[neighbor_child_idx]);
+                if (neighbor_power > allowed_volume_error)
+                {
+                    weighted_providing_neighbor_count += neighbor_power;
+                }
+            }
+
+            // get value from neigbors
+            for (uint_fast8_t dimension = 0; dimension < 2; dimension++)
+            {
+                ChildSide neighbor_child_side = opposite(child_side_to_check, dimension);
+                idx_t neighbor_child_idx = parent.children[toInt(neighbor_child_side)];
+                if (neighbor_child_idx < 0)
+                {
+                    continue;
+                }
+                float neighbor_power = getValueError(cell_data[neighbor_child_idx]);
+                if (neighbor_power > allowed_volume_error || weighted_providing_neighbor_count == 0.0)
+                {
+                    float value_transfer = (weighted_providing_neighbor_count == 0.0)? -value_error * 0.5 : -value_error * neighbor_power / weighted_providing_neighbor_count;
+                    Direction child_to_neighbor_direction = getChildToNeighborChildDirection(child_side_to_check, dimension);
+                    assert(child.adjacent_cells[toInt(child_to_neighbor_direction)].size() == 1 && "Child should only be connected to the one neighboring child on this side");
+                    Link& link_to_neighbor = child.adjacent_cells[toInt(child_to_neighbor_direction)].front();
+                    assert(link_to_neighbor.loan > -allowed_volume_error);
+                    Link& loan_link = link_to_neighbor.getReverse();
+                    loan_link.loan += value_transfer;
+
+                    // the error transfer might have caused the neighbor to become in debt
+                    // so we check the neighbor agian
+                    children_to_check_balance.emplace(toInt(neighbor_child_side));
+                }
+            }
+        }
+    }
+
+    // debug check:
+    for (idx_t child_idx : parent.children)
+    {
+        if (child_idx < 0)
+        {
+            break;
+        }
+        const Cell& child = cell_data[child_idx];
+        debugCheckLoans(child);
+        assert(getValueError(child) > -allowed_volume_error);
+    }
+}
+
+template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::transferLoans(Link& old, const std::list<Link*>& new_links)
 {
     if (old.loan == 0.0)
@@ -792,6 +935,7 @@ void InfillFractal2D<CellGeometry>::transferLoans(Link& old, const std::list<Lin
     // TODO
     // this implements naive equal transfer
     int new_link_count = new_links.size();
+    assert(new_link_count > 0);
     for (Link* link : new_links)
     {
         link->loan = old.loan / new_link_count;
@@ -817,12 +961,40 @@ void InfillFractal2D<CellGeometry>::distributeLeftOvers(Cell& from, float left_o
             }
         }
     }
-    assert(left_overs < total_loan * 1.00001 && "There cannot be more left over than what was initially loaned");
+    assert(total_loan > -allowed_volume_error && "a cell cannot be loaned a negative amount!");
+    if (total_loan < allowed_volume_error)
+    { // avoid division by zero
+        // This cell had no error loaned
+        return;
+    }
     for (Link* loaner : loaners)
     {
         float pay_back = loaner->loan * left_overs / total_loan;
         loaner->loan -= pay_back;
 //         loaner->from()->loan_balance += pay_back;
+    }
+}
+
+
+template<typename CellGeometry>
+float InfillFractal2D<CellGeometry>::getTotalActualizedVolume(const Cell& sub_tree_root)
+{
+    if (sub_tree_root.is_subdivided)
+    {
+        float ret = 0.0;
+        for (idx_t child_idx : sub_tree_root.children)
+        {
+            if (child_idx < 0)
+            {
+                break;
+            }
+            ret += getTotalActualizedVolume(cell_data[child_idx]);
+        }
+        return ret;
+    }
+    else
+    {
+        return getActualizedVolume(sub_tree_root);
     }
 }
 
@@ -896,6 +1068,21 @@ void InfillFractal2D<CellGeometry>::debugCheckVolumeStats() const
         }
     }
     assert(problems == 0 && "no depth difference problems");
+}
+
+
+template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::debugCheckLoans(const Cell& cell) const
+{
+    for (const std::list<Link>& side_links : cell.adjacent_cells)
+    {
+        for (const Link& link : side_links)
+        {
+            assert(std::isfinite(link.loan));
+            assert(std::isfinite(link.getReverse().loan));
+            assert(link.loan < allowed_volume_error || link.getReverse().loan < allowed_volume_error); //  "two cells can't be loaning to each other!"
+        }
+    }
 }
 
 }; // namespace cura

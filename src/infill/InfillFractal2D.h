@@ -285,6 +285,9 @@ protected:
      * Bubble up errors from nodes which like to subdivide more,
      * but which are constrained by neighboring cells of lower recursion level.
      * 
+     * Hand out loans: constrianed cells hand out loans of their unusable error value to the constraining cells,
+     * so that the constraining cells can get subdivided, so that the constrained cell is not constrained any more and it can happily subdivide.
+     * 
      * \return Whether we have redistributed errors which could cause a new subdivision 
      */
     bool bubbleUpConstraintErrors();
@@ -351,11 +354,36 @@ protected:
     float getTotalLoanObtained(const Cell& cell) const;
 
     /*!
+     * Balance child values such that they account for the minimum value of their recursion level.
+     * 
+     * Account for errors caused by unbalanced children.
+     * Plain subdivision can lead to one child having a smaller value than the density_value associated with the recursion depth
+     * if another child has a high enough value such that the parent value will cause subdivision.
+     * 
+     * In order to compensate for the error incurred, we move error value from the high child to the low child
+     * such that the low child has an erroredValue of at least the density_value associated with the recusion depth.
+     * 
+     * \param parent The parent node of the children to balance
+     */
+    void balanceChildErrors(const Cell& parent);
+
+    /*!
      * Transfer the loans from an old link to the new links after subdivision
      */
     void transferLoans(Link& old, const std::list<Link*>& new_links);
 
+    /*!
+     * Redistribute positive errors in as much as they aren't needed to subdivide this node.
+     * If this node has received too much positive error then it will subdivide
+     * and pass along the error from whence it came.
+     * 
+     * Pay back loans.
+     * 
+     * This is called just before performing a subdivision.
+     */
     void distributeLeftOvers(Cell& from, float left_overs);
+
+    float getTotalActualizedVolume(const Cell& sub_tree_root);
 
     /*!
      * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.
@@ -371,6 +399,7 @@ protected:
     virtual void debugCheckChildrenOverlap(const Cell& cell) const = 0;
     void debugCheckDepths() const;
     void debugCheckVolumeStats() const;
+    void debugCheckLoans(const Cell& cell) const;
 
     virtual void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const = 0;
 };
