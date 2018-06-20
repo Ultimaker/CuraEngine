@@ -235,7 +235,7 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
     // debug check for total actualized volume
     float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);
     float total_requested_volume = cell_data[0].filled_volume_allowance;
-    logAlways("Realized %f of %f requested volume (%d\%).\n", total_actualized_volume, total_requested_volume, static_cast<int>(total_actualized_volume * 100.0 / total_requested_volume));
+    logAlways("Realized %f of %f requested volume (%f\%error).\n", total_actualized_volume, total_requested_volume, (total_actualized_volume * 100.0 / total_requested_volume) - 100.0);
 }
 
 
