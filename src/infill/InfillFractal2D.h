@@ -350,8 +350,6 @@ protected:
     float getValueError(const Cell& cell) const;
     //! Get the total loan error value modulating the \ref requested_length. Used in \ref Cross3D::getSubdivisionError and in \ref Cross3D::getValueError
     float getTotalLoanError(const Cell& cell) const;
-    //! Get the total loaned amount which neighbors have loaned to this cell
-    float getTotalLoanObtained(const Cell& cell) const;
 
     /*!
      * Balance child values such that they account for the minimum value of their recursion level.

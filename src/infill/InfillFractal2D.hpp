@@ -826,23 +826,6 @@ float InfillFractal2D<CellGeometry>::getTotalLoanError(const Cell& cell) const
 }
 
 template<typename CellGeometry>
-float InfillFractal2D<CellGeometry>::getTotalLoanObtained(const Cell& cell) const
-{
-    float loan = 0.0;
-
-    for (const std::list<Link>& neighbors_in_a_given_direction : cell.adjacent_cells)
-    {
-        for (const Link& link : neighbors_in_a_given_direction)
-        {
-            const float loan_here = link.getReverse().loan;
-            loan += loan_here;
-            assert(std::abs(loan_here) < allowed_volume_error || std::abs(link.loan) < allowed_volume_error);
-        }
-    }
-    return loan;
-}
-
-template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::balanceChildErrors(const Cell& parent)
 {
     // Algorithm overview:
