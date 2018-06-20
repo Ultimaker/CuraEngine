@@ -845,19 +845,24 @@ float InfillFractal2D<CellGeometry>::getTotalLoanObtained(const Cell& cell) cons
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::balanceChildErrors(const Cell& parent)
 {
-    std::unordered_set<uint_fast8_t> children_to_check_balance;
-    for (uint_fast8_t child_side = 0; child_side < toInt(ChildSide::COUNT); child_side++)
+    // Algorithm overview:
+    // for each child which has a negative balance (is in debt):
+    //   get required amount from its positive balance neighbors
+    //   or if no such neighbors present:
+    //     get the required amount from both negative balance neighbors
+    //
+    // Repeat this 2 because the transfered value might make preveously handled children in debt again.
+    // We don't need to repeat more, because this function presupposes that the children _can_ be balanced;
+    // the total amount of value must be enough to satisfy all children.
+    // Therefore, some children must have eough value left over.
+    // Supposing the left upper child is the one with the surplus which must be redistributed to
+    // its farthest cell: the bottom right cell.
+    // This requires at most 2 steps, so we only need two iterations below
+    for (uint_fast8_t iter = 0; iter < 2; iter++)
     {
-        children_to_check_balance.emplace(child_side);
-    }
-
-    int iter = 0;
-    while (!children_to_check_balance.empty())
-    {
-        iter++;
-        assert(iter < 99);
-        ChildSide child_side_to_check = toChildSide(*children_to_check_balance.begin());
-        children_to_check_balance.erase(children_to_check_balance.begin());
+        for (uint_fast8_t child_side = 0; child_side < toInt(ChildSide::COUNT); child_side++)
+        {
+        ChildSide child_side_to_check = toChildSide(child_side);
         idx_t child_idx = parent.children[toInt(child_side_to_check)];
         if (child_idx < 0)
         {
@@ -903,12 +908,9 @@ void InfillFractal2D<CellGeometry>::balanceChildErrors(const Cell& parent)
                     assert(link_to_neighbor.loan > -allowed_volume_error);
                     Link& loan_link = link_to_neighbor.getReverse();
                     loan_link.loan += value_transfer;
-
-                    // the error transfer might have caused the neighbor to become in debt
-                    // so we check the neighbor agian
-                    children_to_check_balance.emplace(toInt(neighbor_child_side));
                 }
             }
+        }
         }
     }
 
