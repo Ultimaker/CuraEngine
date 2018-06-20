@@ -862,55 +862,55 @@ void InfillFractal2D<CellGeometry>::balanceChildErrors(const Cell& parent)
     {
         for (uint_fast8_t child_side = 0; child_side < toInt(ChildSide::COUNT); child_side++)
         {
-        ChildSide child_side_to_check = toChildSide(child_side);
-        idx_t child_idx = parent.children[toInt(child_side_to_check)];
-        if (child_idx < 0)
-        {
-            continue;
-        }
-        Cell& child = cell_data[child_idx];
-        float value_error = getValueError(child);
-        if (value_error < -allowed_volume_error)
-        { // the cell is in debt, so it should get value error from its neighbors
-            // check from which neighbors we can get value
-            float weighted_providing_neighbor_count = 0.0; // number of cells neighboring this cell (either 0, 1 or 2) which can provide error value weighted by their allowance
-            for (uint_fast8_t dimension = 0; dimension < 2; dimension++)
+            ChildSide child_side_to_check = toChildSide(child_side);
+            idx_t child_idx = parent.children[toInt(child_side_to_check)];
+            if (child_idx < 0)
             {
-                ChildSide neighbor_child_side = opposite(child_side_to_check, dimension);
-                idx_t neighbor_child_idx = parent.children[toInt(neighbor_child_side)];
-                if (neighbor_child_idx < 0)
-                {
-                    continue;
-                }
-                float neighbor_power = getValueError(cell_data[neighbor_child_idx]);
-                if (neighbor_power > allowed_volume_error)
-                {
-                    weighted_providing_neighbor_count += neighbor_power;
-                }
+                continue;
             }
+            Cell& child = cell_data[child_idx];
+            float value_error = getValueError(child);
+            if (value_error < -allowed_volume_error)
+            { // the cell is in debt, so it should get value error from its neighbors
+                // check from which neighbors we can get value
+                float weighted_providing_neighbor_count = 0.0; // number of cells neighboring this cell (either 0, 1 or 2) which can provide error value weighted by their allowance
+                for (uint_fast8_t dimension = 0; dimension < 2; dimension++)
+                {
+                    ChildSide neighbor_child_side = opposite(child_side_to_check, dimension);
+                    idx_t neighbor_child_idx = parent.children[toInt(neighbor_child_side)];
+                    if (neighbor_child_idx < 0)
+                    {
+                        continue;
+                    }
+                    float neighbor_power = getValueError(cell_data[neighbor_child_idx]);
+                    if (neighbor_power > allowed_volume_error)
+                    {
+                        weighted_providing_neighbor_count += neighbor_power;
+                    }
+                }
 
-            // get value from neigbors
-            for (uint_fast8_t dimension = 0; dimension < 2; dimension++)
-            {
-                ChildSide neighbor_child_side = opposite(child_side_to_check, dimension);
-                idx_t neighbor_child_idx = parent.children[toInt(neighbor_child_side)];
-                if (neighbor_child_idx < 0)
+                // get value from neigbors
+                for (uint_fast8_t dimension = 0; dimension < 2; dimension++)
                 {
-                    continue;
-                }
-                float neighbor_power = getValueError(cell_data[neighbor_child_idx]);
-                if (neighbor_power > allowed_volume_error || weighted_providing_neighbor_count == 0.0)
-                {
-                    float value_transfer = (weighted_providing_neighbor_count == 0.0)? -value_error * 0.5 : -value_error * neighbor_power / weighted_providing_neighbor_count;
-                    Direction child_to_neighbor_direction = getChildToNeighborChildDirection(child_side_to_check, dimension);
-                    assert(child.adjacent_cells[toInt(child_to_neighbor_direction)].size() == 1 && "Child should only be connected to the one neighboring child on this side");
-                    Link& link_to_neighbor = child.adjacent_cells[toInt(child_to_neighbor_direction)].front();
-                    assert(link_to_neighbor.loan > -allowed_volume_error);
-                    Link& loan_link = link_to_neighbor.getReverse();
-                    loan_link.loan += value_transfer;
+                    ChildSide neighbor_child_side = opposite(child_side_to_check, dimension);
+                    idx_t neighbor_child_idx = parent.children[toInt(neighbor_child_side)];
+                    if (neighbor_child_idx < 0)
+                    {
+                        continue;
+                    }
+                    float neighbor_power = getValueError(cell_data[neighbor_child_idx]);
+                    if (neighbor_power > allowed_volume_error || weighted_providing_neighbor_count == 0.0)
+                    {
+                        float value_transfer = (weighted_providing_neighbor_count == 0.0)? -value_error * 0.5 : -value_error * neighbor_power / weighted_providing_neighbor_count;
+                        Direction child_to_neighbor_direction = getChildToNeighborChildDirection(child_side_to_check, dimension);
+                        assert(child.adjacent_cells[toInt(child_to_neighbor_direction)].size() == 1 && "Child should only be connected to the one neighboring child on this side");
+                        Link& link_to_neighbor = child.adjacent_cells[toInt(child_to_neighbor_direction)].front();
+                        assert(link_to_neighbor.loan > -allowed_volume_error);
+                        Link& loan_link = link_to_neighbor.getReverse();
+                        loan_link.loan += value_transfer;
+                    }
                 }
             }
-        }
         }
     }
 
