@@ -74,7 +74,18 @@ typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>:
 template<typename CellGeometry>
 uint_fast8_t InfillFractal2D<CellGeometry>::Cell::getChildCount() const
 {
-    return (children[2] < 0)? 2 : 4;
+    if (children[0] < 0)
+    {
+        return 0;
+    }
+    else if (children[2] < 0)
+    {
+        return 2;
+    }
+    else
+    {
+        return 4;
+    }
 }
 
 template<typename CellGeometry>
