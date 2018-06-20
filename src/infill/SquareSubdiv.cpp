@@ -321,11 +321,26 @@ void SquareSubdiv::debugOutput(SVG& svg, const Cell& sub_tree_root, float drawin
                     svg.writeLine(arrow_to, arrow_head_back_l, SVG::Color::BLUE);
                     svg.writeLine(arrow_to, arrow_head_back_r, SVG::Color::BLUE);
                     svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::Color::BLUE);
-                    
-                    std::ostringstream os;
-                    os << PrecisionedDouble{ 2, link.loan};
-                    svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 10) + link_vector / 10, os.str(), SVG::Color::BLACK, 4);
+
+                    assert(std::isfinite(link.loan));
+                    if (link.loan > allowed_volume_error)
+                    {
+                        std::ostringstream os;
+                        os << PrecisionedDouble{ 2, link.loan};
+//                         svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 10) + link_vector / 10, os.str(), SVG::Color::BLACK, 5);
+                        svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 200) + link_vector / 200, os.str(), SVG::Color::BLACK, 6);
+                    }
                 }
+            }
+
+            { // draw allowance
+                float actualized_volume = getActualizedVolume(sub_tree_root);
+                float requested_volume = sub_tree_root.filled_volume_allowance;
+                std::ostringstream os;
+                os << PrecisionedDouble{2, actualized_volume}
+                << " / "
+                << PrecisionedDouble{2, requested_volume};
+                svg.writeText(sub_tree_root.elem.getMiddle(), os.str(), (actualized_volume > requested_volume)? SVG::Color::RED : SVG::Color::GREEN, 6);
             }
         }
     }
@@ -347,14 +362,9 @@ void SquareSubdiv::debugOutputCell(const Cell& cell, SVG& svg, float drawing_lin
 void SquareSubdiv::debugOutputSquare(const AABB& square, SVG& svg, float drawing_line_width) const
 {
     Polygon tri = square.toPolygon();
-//     svg.writePoint(triangle.a, true, 1);
-//     svg.writePoint(triangle.b, true, 1);
-//     svg.writePoint(triangle.straight_corner, true, 1);
-//     svg.writePolygon(tri, SVG::Color::GRAY);
     Polygons polys;
     polys.add(tri);
     polys = polys.offset(-80);
-//     svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::BLACK);
     svg.writePolygons(polys, SVG::Color::GRAY);
 
 //     svg.writeLine(triangle.getFromEdge().middle(), triangle.getToEdge().middle(), SVG::Color::RED, drawing_line_width);

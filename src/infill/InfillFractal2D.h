@@ -362,6 +362,8 @@ protected:
     virtual void debugCheckChildrenOverlap(const Cell& cell) const = 0;
     void debugCheckDepths() const;
     void debugCheckVolumeStats() const;
+
+    virtual void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const = 0;
 };
 
 } // namespace cura

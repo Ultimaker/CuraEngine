@@ -287,13 +287,13 @@ private:
     void debugCheckHeights(const SliceWalker& sequence, coord_t z) const;
     void debugCheckChildrenOverlap(const Cell& cell) const;
 
-    void debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const;
+    void debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool draw_arrows, bool horizontal_connections_only) const;
     void debugOutputTriangle(const Triangle& triangle, SVG& svg, float drawing_line_width) const;
     void debugOutputLink(const Link& link, SVG& svg) const;
     void debugOutput(const SliceWalker& sequence, SVG& svg, float drawing_line_width) const;
     void debugOutputTree(SVG& svg, float drawing_line_width) const;
-    void debugOutputSequence(SVG& svg, float drawing_line_width) const;
-    void debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line_width) const;
+    void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const;
+    void debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line_width, bool draw_arrows) const;
 };
 
 } // namespace cura

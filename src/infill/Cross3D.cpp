@@ -690,9 +690,14 @@ void Cross3D::debugCheckChildrenOverlap(const Cell& cell) const
     }
 }
 
-void Cross3D::debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool horizontal_connections_only) const
+
+void Cross3D::debugOutputCell(const Cell& cell, SVG& svg, float drawing_line_width, bool draw_arrows, bool horizontal_connections_only) const
 {
     debugOutputTriangle(cell.elem.triangle, svg, drawing_line_width);
+    if (!draw_arrows)
+    {
+        return;
+    }
     for (int_fast8_t dir = 0; dir < getNumberOfSides(); dir++)
     {
         if (horizontal_connections_only && dir >= static_cast<int_fast8_t>(Direction::DOWN)) break;
@@ -741,7 +746,7 @@ void Cross3D::debugOutput(const SliceWalker& walker, SVG& svg, float drawing_lin
     for (const Cell* cell : walker.layer_sequence)
     {
 //         debugOutputTriangle(cell->prism.triangle, svg, drawing_line_width);
-        debugOutputCell(*cell, svg, drawing_line_width, true);
+        debugOutputCell(*cell, svg, drawing_line_width, /* draw_arrows = */ true, /* horizontal_arrows_only = */ true);
     }
 }
 void Cross3D::debugOutputTree(SVG& svg, float drawing_line_width) const
@@ -752,12 +757,12 @@ void Cross3D::debugOutputTree(SVG& svg, float drawing_line_width) const
     }
 }
 
-void Cross3D::debugOutputSequence(SVG& svg, float drawing_line_width) const
+void Cross3D::debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const
 {
-    debugOutputSequence(cell_data[0], svg, drawing_line_width);
+    debugOutputSequence(cell_data[0], svg, drawing_line_width, draw_arrows);
 }
 
-void Cross3D::debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line_width) const
+void Cross3D::debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line_width, bool draw_arrows) const
 {
     if (cell.is_subdivided)
     {
@@ -765,13 +770,13 @@ void Cross3D::debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line
         {
             if (child_idx > 0)
             {
-                debugOutputSequence(cell_data[child_idx], svg, drawing_line_width);
+                debugOutputSequence(cell_data[child_idx], svg, drawing_line_width, draw_arrows);
             }
         }
     }
     else
     {
-        debugOutputCell(cell, svg, drawing_line_width, false);
+        debugOutputCell(cell, svg, drawing_line_width, draw_arrows, false);
     }
 }
 
