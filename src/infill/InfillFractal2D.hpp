@@ -269,9 +269,9 @@ void InfillFractal2D<CellGeometry>::createBalancedPattern()
     for (int iteration = 0; iteration < 999; iteration++)
     {
         bool change = false;
-        change |= subdivideAll();
+        change |= subdivisionPhase();
 
-        change |= bubbleUpConstraintErrors();
+        change |= handOutLoansPhase();
 
         if (!change)
         {
@@ -315,7 +315,7 @@ void InfillFractal2D<CellGeometry>::getDepthOrdered(Cell& sub_tree_root, std::ve
 }
 
 template<typename CellGeometry>
-bool InfillFractal2D<CellGeometry>::subdivideAll()
+bool InfillFractal2D<CellGeometry>::subdivisionPhase()
 {
     std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
 
@@ -344,7 +344,7 @@ bool InfillFractal2D<CellGeometry>::subdivideAll()
 }
 
 template<typename CellGeometry>
-bool InfillFractal2D<CellGeometry>::bubbleUpConstraintErrors()
+bool InfillFractal2D<CellGeometry>::handOutLoansPhase()
 {
     std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
 
@@ -584,7 +584,7 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
 
     if (redistribute_errors)
     { // move left-over errors
-        distributeLeftOvers(cell, getSubdivisionError(cell));
+        settleLoans(cell, getSubdivisionError(cell));
     }
 
     const float total_loan_error_balance_before = getTotalLoanError(cell);
@@ -673,7 +673,7 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
     if (redistribute_errors)
     { // make positive errors in children well balanced
         // Pass along error from parent
-        balanceChildErrors(cell);
+        solveChildDebts(cell);
     }
     
     
@@ -824,7 +824,7 @@ float InfillFractal2D<CellGeometry>::getTotalLoanError(const Cell& cell) const
 }
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::balanceChildErrors(const Cell& parent)
+void InfillFractal2D<CellGeometry>::solveChildDebts(const Cell& parent)
 {
     // Algorithm overview:
     // for each child which has a negative balance (is in debt):
@@ -928,7 +928,7 @@ void InfillFractal2D<CellGeometry>::transferLoans(Link& old, const std::list<Lin
 
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::distributeLeftOvers(Cell& from, float left_overs)
+void InfillFractal2D<CellGeometry>::settleLoans(Cell& from, float left_overs)
 {
     if (left_overs < allowed_volume_error)
     { // nothing to distribute
@@ -971,7 +971,7 @@ void InfillFractal2D<CellGeometry>::settleLoans()
         for (Cell* cell : depth_nodes)
         {
             float left_overs = getValueError(*cell);
-            distributeLeftOvers(*cell, left_overs);
+            settleLoans(*cell, left_overs);
         }
     }
 }

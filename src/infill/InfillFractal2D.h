@@ -271,27 +271,32 @@ protected:
     void createBalancedPattern();
 
     /*!
-     * For each noe: subdivide if possible.
+     * For each node: subdivide if possible and settle loans in as much as they weren't needed to subdivide this node.
      * 
      * Start trying cells with lower recursion level before trying cells with deeper recursion depth, i.e. higher density value.
+     * Cascade unused loans downward: from low recursion depth toward the leaves of the subdivision tree.
      * 
      * \return Whether the sequence has changed.
      */
-    bool subdivideAll();
+    bool subdivisionPhase();
 
     /*!
+     * Let all constrained nodes hand out loans to their constrainers.
+     * 
      * Bubble up errors from nodes which like to subdivide more,
      * but which are constrained by neighboring cells of lower recursion level.
      * 
      * Hand out loans: constrianed cells hand out loans of their unusable error value to the constraining cells,
      * so that the constraining cells can get subdivided, so that the constrained cell is not constrained any more and it can happily subdivide.
      * 
+     * Cascade handing out loans upward; from most constrained to constrainers: from leaves toward root.
+     * 
      * \return Whether we have redistributed errors which could cause a new subdivision 
      */
-    bool bubbleUpConstraintErrors();
+    bool handOutLoansPhase();
 
     /*!
-     * Order the triangles on depth.
+     * Order the cells on depth.
      */
     std::vector<std::vector<Cell*>> getDepthOrdered();
     void getDepthOrdered(Cell& sub_tree_root, std::vector<std::vector<Cell*>>& output);
@@ -342,14 +347,33 @@ protected:
      */
     bool canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path);
 
-    //! Get the error induced by subdividing this cell.
-    float getSubdivisionError(const Cell& node) const;
-    //! Get the total error currently acting on this traingle.
+    /*!
+     * Get the total error currently acting on this cell.
+     * Roughly: allowance - realized.
+     * 
+     * Positive value error means the cell would like to be more dense than it currently is.
+     */
     float getValueError(const Cell& cell) const;
-    //! Get the total loan error value modulating the \ref requested_length. Used in \ref Cross3D::getSubdivisionError and in \ref Cross3D::getValueError
+
+    /*!
+     * Get the error induced by subdividing this cell.
+     * The value error there would be after subdividing this cell.
+     * See \ref InfillFractal2D::getValueError.
+     */
+    float getSubdivisionError(const Cell& node) const;
+
+    /*!
+     * Get the total loan error value modulating the \ref requested_length. Used in \ref Cross3D::getSubdivisionError and in \ref Cross3D::getValueError
+     * 
+     * Positive loan error means other cells loaned this cell more than this cell loaned other cells.
+     * 
+     * Negative loan errors occur when this cell is loaning its allowance to neighboring cells.
+     */
     float getTotalLoanError(const Cell& cell) const;
 
     /*!
+     * Solve debts (negative value error) which were induced by subdivision.
+     * 
      * Balance child values such that they account for the minimum value of their recursion level.
      * 
      * Account for errors caused by unbalanced children.
@@ -361,7 +385,7 @@ protected:
      * 
      * \param parent The parent node of the children to balance
      */
-    void balanceChildErrors(const Cell& parent);
+    void solveChildDebts(const Cell& parent);
 
     /*!
      * Transfer the loans from an old link to the new links after subdivision
@@ -369,15 +393,16 @@ protected:
     void transferLoans(Link& old, const std::list<Link*>& new_links);
 
     /*!
-     * Redistribute positive errors in as much as they aren't needed to subdivide this node.
-     * If this node has received too much positive error then it will subdivide
-     * and pass along the error from whence it came.
-     * 
      * Pay back loans.
      * 
+     * Redistribute positive errors in as much as they aren't needed to subdivide this node.
+     * If this node has received too much positive error value then it will subdivide
+     * and pass along the error from whence it came.
+     * 
      * This is called just before performing a subdivision.
+     * It is also called after createBalancedPattern on all nodes, see \ref InfillFractal2D::settleLoans.
      */
-    void distributeLeftOvers(Cell& from, float left_overs);
+    void settleLoans(Cell& from, float left_overs);
 
     /*!
      * Settle loans handed out during createBalancedPattern.
