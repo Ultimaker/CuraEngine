@@ -144,11 +144,6 @@ public:
      */
     void createMinimalErrorPattern(bool middle_decision_boundary = true);
 
-    /*!
-     * Create the subdivision structure 
-     */
-    void createBalancedPattern();
-
 protected:
     static constexpr uint_fast8_t max_subdivision_count = 4; //!< Prisms are subdivided into 2 or 4 prisms
     static constexpr uint_fast8_t number_of_sides = 4; //!< Prisms connect above, below and before and after
@@ -273,6 +268,11 @@ protected:
     // Lower bound sequence:
 
     /*!
+     * Create the subdivision structure 
+     */
+    void createBalancedPattern();
+
+    /*!
      * For each noe: subdivide if possible.
      * 
      * Start trying cells with lower recursion level before trying cells with deeper recursion depth, i.e. higher density value.
@@ -383,6 +383,20 @@ protected:
      */
     void distributeLeftOvers(Cell& from, float left_overs);
 
+    /*!
+     * Settle loans handed out during createBalancedPattern.
+     * 
+     * Redistribute leftover unused error value:
+     * cascade downward to constrained cells.
+     * 
+     * Similar to \ref SierpinskiFill::settleErrors
+     */
+    void settleLoans();
+
+    /*!
+     * Get the total actualized volume of the current subdivision structure.
+     * Add all actualized volume of each non-subdivvided node together.
+     */
     float getTotalActualizedVolume(const Cell& sub_tree_root);
 
     /*!

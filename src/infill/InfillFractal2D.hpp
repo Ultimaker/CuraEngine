@@ -218,7 +218,7 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
 {
     createBalancedPattern();
 
-//     settleErrors(); TODO: implement error settling just like in SierpinskiFill
+    settleLoans();
 
     std::vector<ChildSide> tree_path(max_depth, ChildSide::COUNT);
     dither(cell_data[0], tree_path);
@@ -947,7 +947,10 @@ void InfillFractal2D<CellGeometry>::transferLoans(Link& old, const std::list<Lin
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::distributeLeftOvers(Cell& from, float left_overs)
 {
-//     from.loan_balance -= left_overs;
+    if (left_overs < allowed_volume_error)
+    { // nothing to distribute
+        return;
+    }
     std::vector<Link*> loaners;
     float total_loan = 0.0;
     for (std::list<Link>& neighbors_in_a_given_direction : from.adjacent_cells)
@@ -967,14 +970,28 @@ void InfillFractal2D<CellGeometry>::distributeLeftOvers(Cell& from, float left_o
         // This cell had no error loaned
         return;
     }
+    left_overs = std::min(left_overs, total_loan); // only settle loans in this function, don't introduce new loans to neighbor cells
     for (Link* loaner : loaners)
     {
         float pay_back = loaner->loan * left_overs / total_loan;
         loaner->loan -= pay_back;
-//         loaner->from()->loan_balance += pay_back;
     }
 }
 
+template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::settleLoans()
+{
+    std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
+
+    for (std::vector<Cell*>& depth_nodes : depth_ordered)
+    {
+        for (Cell* cell : depth_nodes)
+        {
+            float left_overs = getValueError(*cell);
+            distributeLeftOvers(*cell, left_overs);
+        }
+    }
+}
 
 template<typename CellGeometry>
 float InfillFractal2D<CellGeometry>::getTotalActualizedVolume(const Cell& sub_tree_root)
