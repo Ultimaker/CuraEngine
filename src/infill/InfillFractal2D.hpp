@@ -83,8 +83,6 @@ InfillFractal2D<CellGeometry>::InfillFractal2D(const DensityProvider& density_pr
 , aabb(aabb)
 , max_depth(max_depth)
 , line_width(line_width)
-, min_dist_to_cell_bound(line_width / 2)
-, min_dist_to_cell_bound_diag(line_width * 0.5 * sqrt2)
 , density_provider(density_provider)
 {
 }
