@@ -184,7 +184,7 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern()
         if (!isConstrained(to_be_subdivided))
         {
             all_to_be_subdivided.pop_front();
-            constexpr bool redistribute_errors = true;
+            constexpr bool redistribute_errors = false;
             subdivide(to_be_subdivided, redistribute_errors);
             for (idx_t child_idx : to_be_subdivided.children)
             {
