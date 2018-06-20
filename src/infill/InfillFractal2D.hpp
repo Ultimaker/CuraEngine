@@ -288,7 +288,7 @@ template<typename CellGeometry>
 std::vector<std::vector<typename InfillFractal2D<CellGeometry>::Cell*>> InfillFractal2D<CellGeometry>::getDepthOrdered()
 {
     std::vector<std::vector<Cell*>> depth_ordered(max_depth + 1);
-    depth_ordered.resize(max_depth);
+    depth_ordered.resize(max_depth + 1);
     getDepthOrdered(cell_data[0], depth_ordered);
     return depth_ordered;
 }
@@ -310,7 +310,7 @@ void InfillFractal2D<CellGeometry>::getDepthOrdered(Cell& sub_tree_root, std::ve
     }
     else
     {
-        assert(sub_tree_root.depth > 0); // note: root must be subidivided
+        assert(sub_tree_root.depth >= 0);
         assert(static_cast<size_t>(sub_tree_root.depth) < output.size());
         output[sub_tree_root.depth].push_back(&sub_tree_root);
     }
