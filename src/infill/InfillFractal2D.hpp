@@ -436,10 +436,12 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>&
     }
     else
     {
+        
         const float balance = getValueError(parent);
         const float parent_actualized_volume = getActualizedVolume(parent);
         const float subdivided_actualized_volume = getChildrenActualizedVolume(parent);
         const float range = subdivided_actualized_volume - parent_actualized_volume;
+        assert(range > -allowed_volume_error || parent.getChildCount() == 0);
 //         const float decision_boundary = (rand() % 100) * range / 100;
 //         const float decision_boundary = (.01 * (rand() % 101) * .5 + .25) * range;
         const float decision_boundary = range / 2;
@@ -654,33 +656,29 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
                 {
                     child.adjacent_cells[side].emplace_front(neighbor.to_index);
                     LinkIterator outlink = child.adjacent_cells[side].begin();
-                    
+
                     neighboring_edge_links.emplace(*neighbor.reverse, child_idx);
                     LinkIterator inlink = *neighbor.reverse;
                     inlink--;
-                    
+
                     outlink->reverse = inlink;
                     inlink->reverse = outlink;
-                    
+
                     new_incoming_links.push_back(&*inlink);
                     new_outgoing_links.push_back(&*outlink);
                 }
             }
-            if (redistribute_errors)
-            {
-                transferLoans(neighbor.getReverse(), new_incoming_links);
-                transferLoans(neighbor, new_outgoing_links);
-            }
+            // loans should always be transfered from parent links to the new child links, so that we never loose value
+            transferLoans(neighbor.getReverse(), new_incoming_links);
+            transferLoans(neighbor, new_outgoing_links);
+
             neighboring_edge_links.erase(*neighbor.reverse);
         }
-        
         cell.adjacent_cells[side].clear();
-        
     }
-    
+
     cell.is_subdivided = true;
-    
-    
+
     if (redistribute_errors)
     { // make positive errors in children well balanced
         // Pass along error from parent
