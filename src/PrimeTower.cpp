@@ -83,8 +83,8 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     EFillMethod first_layer_infill_method;
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
-        coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
-        coord_t wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
+        const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
+        const coord_t wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
         patterns_per_extruder.emplace_back(n_patterns);
         std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
         patterns.resize(n_patterns);
@@ -154,8 +154,8 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     {
         return;
     }
-    if (gcode_layer.getPrimeTowerIsPlanned())
-    { // don't print the prime tower if it has been printed already
+    if (gcode_layer.getPrimeTowerIsPlanned(new_extruder))
+    { // don't print the prime tower if it has been printed already with this extruder.
         return;
     }
 
@@ -188,7 +188,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         gcode_layer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }
 
-    gcode_layer.setPrimeTowerIsPlanned();
+    gcode_layer.setPrimeTowerIsPlanned(new_extruder);
 }
 
 void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const

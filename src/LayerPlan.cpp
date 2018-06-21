@@ -14,6 +14,7 @@ ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bo
 : extruder(extruder)
 , heated_pre_travel_time(0)
 , required_start_temperature(-1)
+, has_prime_tower_planned(false)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
 , is_raft_layer(is_raft_layer)
@@ -80,7 +81,6 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount(storage))
 , layer_thickness(layer_thickness)
-, has_prime_tower_planned(false)
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
@@ -243,6 +243,16 @@ void LayerPlan::moveInsideCombBoundary(int distance)
             forceNewPathStart();
         }
     }
+}
+
+bool LayerPlan::getPrimeTowerIsPlanned(unsigned int extruder_nr) const
+{
+    return extruder_plans[extruder_nr].has_prime_tower_planned;
+}
+
+void LayerPlan::setPrimeTowerIsPlanned(unsigned int extruder_nr)
+{
+    extruder_plans[extruder_nr].has_prime_tower_planned = true;
 }
 
 std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const

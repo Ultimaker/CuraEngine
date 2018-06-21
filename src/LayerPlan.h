@@ -64,6 +64,8 @@ protected:
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
 public:
+    bool has_prime_tower_planned; //!< Whether a prime tower is planned for this extruder yet.
+
     /*!
      * Simple contructor.
      * 
@@ -246,8 +248,6 @@ private:
 
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
-    bool has_prime_tower_planned;
-
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
      * for each extruder train.
@@ -355,15 +355,18 @@ public:
         return was_inside;
     }
 
-    bool getPrimeTowerIsPlanned() const
-    {
-        return has_prime_tower_planned;
-    }
+    /*!
+     * Whether the prime tower is already planned for the specified extruder.
+     * \param extruder_nr The extruder to check.
+     */
+    bool getPrimeTowerIsPlanned(unsigned int extruder_nr) const;
 
-    void setPrimeTowerIsPlanned()
-    {
-        has_prime_tower_planned = true;
-    }
+    /*!
+     * Mark the prime tower as planned for the specified extruder.
+     * \param extruder_nr The extruder to mark as having its prime tower
+     * planned.
+     */
+    void setPrimeTowerIsPlanned(unsigned int extruder_nr);
 
     bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const
     {
