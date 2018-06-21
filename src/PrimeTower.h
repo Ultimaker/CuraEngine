@@ -35,8 +35,6 @@ private:
     };
     int extruder_count; //!< Number of extruders
 
-    bool is_hollow; //!< Whether the prime tower is hollow
-
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
 
@@ -52,8 +50,7 @@ private:
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
-    Polygons inner_poly; //!< The inline of the prime tower to be used for each layer if it is hollow
-    Polygons outer_poly; //!< The outline of the prime tower to be used for each layer for the first layer
+    Polygons outer_poly; //!< The outline of the outermost prime tower.
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
