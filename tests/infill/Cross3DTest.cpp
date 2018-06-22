@@ -53,7 +53,9 @@ void Cross3DTest::debugCheck()
     f.createMinimalDensityPattern();
     constexpr bool draw_arrows = true;
     f.debugOutput(net_svg, drawing_line_width, draw_arrows);
-    Cross3D::SliceWalker seq = f.getSequence(0);
+    
+    std::map<coord_t, const Cross3D::Cell*> sequence_starts = f.getSequenceStarts();
+    Cross3D::SliceWalker seq = f.getSequence(*sequence_starts.begin()->second, 0);
     std::cerr << "seq size = " << seq.layer_sequence.size() << '\n';
     f.debugOutput(seq, bottom_svg, drawing_line_width);
 

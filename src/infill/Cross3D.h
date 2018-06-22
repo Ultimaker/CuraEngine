@@ -182,9 +182,6 @@ public:
      */
     void sanitize();
 
-    SliceWalker getSequence(coord_t z) const;
-    void advanceSequence(SliceWalker& sequence, coord_t new_z) const;
-
     /*!
      * Get a list of sequence start cells for each layer.
      * 
