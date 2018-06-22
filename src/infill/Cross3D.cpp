@@ -201,7 +201,7 @@ void Cross3D::sanitize(Cell& sub_tree_root)
             }
             if (deeper_child_count >= child_count / 2)
             {
-                constexpr bool redistribute_errors = true;
+                constexpr bool redistribute_errors = false;
                 subdivide(sub_tree_root, redistribute_errors);
             }
         }
