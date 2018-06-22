@@ -348,10 +348,6 @@ Cross3D::SliceWalker Cross3D::getSequence(const Cell& start_cell, coord_t z) con
         ret.layer_sequence.push_back(last_cell);
     }
     debugCheckHeights(ret, z);
-    {
-        SVG svg("output/bottom_sequence.svg", aabb.flatten());
-        debugOutput(ret, svg, 1);
-    }
     return ret;
 }
 
