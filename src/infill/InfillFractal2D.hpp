@@ -13,7 +13,7 @@ namespace cura {
 
 
 template<typename CellGeometry>
-typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>::opposite(InfillFractal2D<CellGeometry>::Direction in)
+typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>::opposite(InfillFractal2D<CellGeometry>::Direction in) const
 {
     switch(in)
     {
@@ -26,7 +26,7 @@ typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>:
 }
 
 template<typename CellGeometry>
-uint_fast8_t InfillFractal2D<CellGeometry>::opposite(uint_fast8_t in)
+uint_fast8_t InfillFractal2D<CellGeometry>::opposite(uint_fast8_t in) const
 {
     return static_cast<uint_fast8_t>(opposite(static_cast<Direction>(in)));
 }
@@ -34,19 +34,19 @@ uint_fast8_t InfillFractal2D<CellGeometry>::opposite(uint_fast8_t in)
 
 
 template<typename CellGeometry>
-typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>::toChildSide(uint_fast8_t in)
+typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>::toChildSide(uint_fast8_t in) const
 {
     return static_cast<ChildSide>(in);
 }
 
 template<typename CellGeometry>
-uint_fast8_t InfillFractal2D<CellGeometry>::toInt(ChildSide in)
+uint_fast8_t InfillFractal2D<CellGeometry>::toInt(ChildSide in) const
 {
     return static_cast<uint_fast8_t>(in);
 }
 
 template<typename CellGeometry>
-typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>::opposite(ChildSide in, uint_fast8_t dimension)
+typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>::opposite(ChildSide in, uint_fast8_t dimension) const
 {
     switch(in)
     { //                                                  flip over Z                 flip over X
@@ -59,7 +59,7 @@ typename InfillFractal2D<CellGeometry>::ChildSide InfillFractal2D<CellGeometry>:
 }
 
 template<typename CellGeometry>
-typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>::getChildToNeighborChildDirection(ChildSide in, uint_fast8_t dimension)
+typename InfillFractal2D<CellGeometry>::Direction InfillFractal2D<CellGeometry>::getChildToNeighborChildDirection(ChildSide in, uint_fast8_t dimension) const
 {
     switch(in)
     { //                                                  flip over Z          flip over X
