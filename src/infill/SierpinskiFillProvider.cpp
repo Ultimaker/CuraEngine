@@ -62,7 +62,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 //     subdivision_structure_3d->createMinimalDensityPattern();
     subdivision_structure_3d->createDitheredPattern();
 //     subdivision_structure_3d->sanitize();
-    slice_walker_cross3d = subdivision_structure_3d->getSequence(/* z = */ 0);
+    z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, std::string cross_subdisivion_spec_image_file, bool)
@@ -74,7 +74,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
     subdivision_structure_3d->createMinimalDensityPattern();
 //     subdivision_structure_3d->createDitheredPattern();
     subdivision_structure_3d->sanitize();
-    slice_walker_cross3d = subdivision_structure_3d->getSequence(/* z = */ 0);
+    z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
@@ -92,10 +92,13 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
     }
     else if (subdivision_structure_3d)
     {
-        assert(slice_walker_cross3d);
-        subdivision_structure_3d->advanceSequence(*slice_walker_cross3d, z);
-//         return subdivision_structure_3d->generateSierpinski(*slice_walker_cross3d);
-        return subdivision_structure_3d->generateCross(*slice_walker_cross3d, z);
+        std::map<coord_t, const Cross3D::Cell*>::const_iterator start_cell_iter = z_to_start_cell_cross3d.upper_bound(z);
+        if (start_cell_iter != z_to_start_cell_cross3d.begin())
+        { // don't get a start cell below the bottom one
+            start_cell_iter--; // map.upper_bound always rounds up, while the map contains the min of the z_range of the cells
+        }
+        Cross3D::SliceWalker slicer_walker = subdivision_structure_3d->getSequence(*start_cell_iter->second, z);
+        return subdivision_structure_3d->generateCross(slicer_walker, z);
     }
     else
     {

@@ -4,6 +4,7 @@
 
 #include <array>
 #include <list>
+#include <map>
 
 #include "../utils/optional.h"
 
@@ -184,6 +185,19 @@ public:
     SliceWalker getSequence(coord_t z) const;
     void advanceSequence(SliceWalker& sequence, coord_t new_z) const;
 
+    /*!
+     * Get a list of sequence start cells for each layer.
+     * 
+     * Create a mapping from the bottom z coord of each cell to the cell for each left-most cell along the Z axis.
+     * 
+     * This is a std::map so that we can lookup the cell from from the z height of a layer (rather than the exact z height of the cell).
+     * 
+     * \note Note that map.lower_bound and map.upper_bound both always return an iterator pointing to the the element with a _higher_ key (or equal).
+     */
+    std::map<coord_t, const Cell*> getSequenceStarts() const;
+
+    SliceWalker getSequence(const Cell& start_cell, coord_t z) const;
+
     Polygon generateSierpinski(const SliceWalker& sequence) const;
 
     Polygon generateCross(const SliceWalker& sequence, coord_t z) const;
@@ -225,6 +239,20 @@ private:
     //----------------------
     //------ OUTPUT --------
     //----------------------
+
+    /*!
+     * Get a list of sequence start cells for each layer for everyhting falling under \p sub_tree_root.
+     * 
+     * Create a mapping from the bottom z coord of each cell to the cell for each left-most cell along the Z axis.
+     * 
+     * This is a std::map so that we can lookup the cell from from the z height of a layer (rather than the exact z height of the cell).
+     * 
+     * \note Note that map.lower_bound and map.upper_bound both always return an iterator pointing to the the element with a _higher_ key (or equal).
+     * 
+     * \param sub_tree_root The node in the tree under which to get the leftmost leaves
+     * \param[out] output Where to store the leftmost leaves
+     */
+    void getSequenceStarts(const Cell& sub_tree_root, std::map<coord_t, const Cell*>& output) const;
 
     /*!
      * Add line segments for the space filling surface patch in this \p cell.

@@ -296,7 +296,6 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
 
 Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
 {
-    SliceWalker ret;
     // get first cell
     const Cell* last_cell = &cell_data[0];
     while (last_cell->is_subdivided)
@@ -315,6 +314,42 @@ Cross3D::SliceWalker Cross3D::getSequence(coord_t z) const
     }
     const Cell& start_cell = *last_cell;
 
+    return getSequence(start_cell, z);
+}
+
+std::map<coord_t, const Cross3D::Cell*> Cross3D::getSequenceStarts() const
+{
+    std::map<coord_t, const Cell*> ret;
+    getSequenceStarts(cell_data[0], ret);
+    return ret;
+}
+
+void Cross3D::getSequenceStarts(const Cell& sub_tree_root, std::map<coord_t, const Cell*>& output) const
+{
+    if (sub_tree_root.is_subdivided)
+    {
+        idx_t left_bottom_child_idx = sub_tree_root.children[toInt(InfillFractal2D::ChildSide::LEFT_BOTTOM)];
+        if (left_bottom_child_idx >= 0)
+        {
+            getSequenceStarts(cell_data[left_bottom_child_idx], output);
+        }
+        idx_t left_top_child_idx = sub_tree_root.children[toInt(InfillFractal2D::ChildSide::LEFT_TOP)];
+        if (left_top_child_idx >= 0)
+        {
+            getSequenceStarts(cell_data[left_top_child_idx], output);
+        }
+    }
+    else
+    {
+        output.emplace(sub_tree_root.elem.z_range.min, &sub_tree_root);
+    }
+}
+
+Cross3D::SliceWalker Cross3D::getSequence(const Cell& start_cell, coord_t z) const
+{
+    SliceWalker ret;
+
+    const Cell* last_cell = &start_cell;
     ret.layer_sequence.push_back(last_cell);
     while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
     {
