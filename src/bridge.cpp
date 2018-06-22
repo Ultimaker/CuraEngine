@@ -3,7 +3,7 @@
 
 namespace cura {
 
-int bridgeAngle(const Polygons& skin_outline, const SliceLayer* prev_layer, const SupportLayer* support_layer, Polygons& supported_regions, const double support_threshold)
+int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions, const double support_threshold)
 {
     AABB boundary_box(skin_outline);
 
@@ -13,14 +13,18 @@ int bridgeAngle(const Polygons& skin_outline, const SliceLayer* prev_layer, cons
 
     Polygons prev_layer_outline; // we also want the complete outline of the previous layer
 
-    for(auto prev_layer_part : prev_layer->parts)
+    // include parts from all meshes
+    for (auto mesh : storage.meshes)
     {
-        prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
+        for (auto prev_layer_part : mesh.layers[layer_nr].parts)
+        {
+            prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
 
-        if (!boundary_box.hit(prev_layer_part.boundaryBox))
-            continue;
-        
-        islands.add(skin_outline.intersection(prev_layer_part.outline));
+            if (!boundary_box.hit(prev_layer_part.boundaryBox))
+                continue;
+
+            islands.add(skin_outline.intersection(prev_layer_part.outline));
+        }
     }
     supported_regions = islands;
 

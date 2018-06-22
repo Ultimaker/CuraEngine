@@ -1485,11 +1485,14 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
             Polygons outlines_below;
             AABB boundaryBox(part.outline);
-            for(auto prevLayerPart : mesh.layers[gcode_layer.getLayerNr() - 1].parts)
+            for (auto m : storage.meshes)
             {
-                if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                for (auto prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
                 {
-                    outlines_below.add(prevLayerPart.outline);
+                    if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                    {
+                        outlines_below.add(prevLayerPart.outline);
+                    }
                 }
             }
 
@@ -1942,7 +1945,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
         Polygons supported_skin_part_regions;
 
-        int angle = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - bridge_layer], support_layer, supported_skin_part_regions, support_threshold);
+        int angle = bridgeAngle(skin_part.outline, storage, layer_nr - bridge_layer, support_layer, supported_skin_part_regions, support_threshold);
 
         if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
         {
