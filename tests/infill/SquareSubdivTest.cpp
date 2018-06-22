@@ -22,7 +22,7 @@ void SquareSubdivTest::tearDown()
 void SquareSubdivTest::debugCheck()
 {
     coord_t line_width = 400;
-    int max_depth = 8;
+    int max_depth = 9;
     AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * 512);
     AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
@@ -53,16 +53,15 @@ void SquareSubdivTest::debugCheck()
     bool space_filling_curve = false;
     SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);
     ss.initialize();
-//     ss.subdivideUpto(2);
 //     ss.createMinimalDensityPattern();
-    ss.createMinimalErrorPattern(false);
-//     ss.createDitheredPattern();
+//     ss.createMinimalErrorPattern(false);
+    ss.createDitheredPattern();
 //     ss.createMinimalDensityPattern();
 //     ss.debugCheck();
     
     {
-        Point canvas_size = Point(1024, 1024);
-        SVG svg("output/subdiv_dither2.svg", aabb, canvas_size);
+//         Point canvas_size = Point(1024, 1024) / 2; // default canvas size
+        SVG svg("output/subdiv_dither2.svg", aabb);
         
         bool draw_arrows = false;
         float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
@@ -73,6 +72,23 @@ void SquareSubdivTest::debugCheck()
 //         ss.outputHilbert(svg, drawing_line_width * 2);
 //         ss.outputMoore(svg, drawing_line_width * 2);
     }
+    {
+        SVG svg("output/subdiv_dither_clean.svg", aabb);
+        bool draw_arrows = false;
+        float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+        if (draw_arrows) drawing_line_width *= .2;
+        ss.debugOutput(svg, drawing_line_width, draw_arrows);
+    }
+    {
+        SVG svg("output/subdiv_dither_hilbert.svg", aabb);
+        bool draw_arrows = false;
+        float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+        if (draw_arrows) drawing_line_width *= .2;
+        Polygon moore_poly = ss.createMooreLine();
+//         ss.debugOutput(svg, drawing_line_width, draw_arrows);
+        svg.writePolygon(moore_poly, SVG::Color::BLACK, drawing_line_width);
+    }
 }
+    
 
 }

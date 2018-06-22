@@ -56,24 +56,6 @@ public:
 
     ~SierpinskiFillProvider();
 protected:
-    class CombinedDensityProvider : public DensityProvider
-    {
-    public:
-        const DensityProvider* existing_density_provider;
-        AABB3D total_aabb;
-        CombinedDensityProvider(const DensityProvider* rerouted, AABB3D total_aabb)
-        : existing_density_provider(rerouted)
-        , total_aabb(total_aabb)
-        {
-        };
-
-        virtual ~CombinedDensityProvider()
-        {
-            delete existing_density_provider;
-        };
-
-        virtual float operator()(const AABB3D& aabb) const;
-    };
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object
      * \param make_3d Whether to include z in the calculations for the 3D pattern

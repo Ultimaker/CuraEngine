@@ -27,32 +27,6 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 {
 }
 
-float SierpinskiFillProvider::CombinedDensityProvider::operator()(const AABB3D& aabb) const
-{
-    float density = (*existing_density_provider)(aabb);
-    return density * .45 + .05;
-    
-//     float density = (*existing_density_provider)(aabb);
-//     float height_proportion = std::min(1.0f, std::max(0.0f, static_cast<float>(aabb.getMiddle().z) / total_aabb.size().z));
-//     float height_modified = square(density * (1.0 - height_proportion) + height_proportion) * 0.9;
-// 
-//     Point3 middle = Point3(total_aabb.max.x, total_aabb.min.y, total_aabb.max.z);;
-//     float distance_density = std::min(1.0, 1.0 / INT2MM((middle - aabb.getMiddle()).vSize() * 3000 / total_aabb.size().vSize()) );
-//     return (1 - distance_density) * height_modified * .6 + .1;
-    
-    // dense inside
-//     Point3 middle = total_aabb.getMiddle();
-//     return std::min(1.0, 1.0 / INT2MM((middle - aabb.getMiddle()).vSize() * 10000 / total_aabb.size().vSize()) ) * .4;
-    
-    // dense moutside
-//     auto manhattan = [](Point3 in) { return std::abs(in.x) + std::abs(in.y) + std::abs(in.z); };
-//     auto l2 = [](Point3 in, double p) { return std::pow(std::pow(INT2MM(in.x) * 1.4, p) + std::pow(INT2MM(in.y) * 1.4, p) + std::pow(INT2MM(in.z) * 1.4, p), 1.0 / p); };
-//     Point3 middle = total_aabb.getMiddle();
-//     return .3 - std::sqrt(std::min(1.0, 1.0 / (l2(middle - aabb.getMiddle(), 10.0) * 12000 / total_aabb.size().vSize()) )) * .3;
-
-//     return .3 - std::sqrt(std::min(1.0, 1.0 / INT2MM((manhattan(middle - aabb.getMiddle())) * 10000 / total_aabb.size().vSize()) )) * .3;
-}
-
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, bool)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance, true))
 , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
@@ -61,18 +35,18 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
     subdivision_structure_3d->initialize();
 //     subdivision_structure_3d->createMinimalDensityPattern();
     subdivision_structure_3d->createDitheredPattern();
-//     subdivision_structure_3d->sanitize();
+    subdivision_structure_3d->sanitize();
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, std::string cross_subdisivion_spec_image_file, bool)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance, true))
-, density_provider(new CombinedDensityProvider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d), aabb_3d))
+, density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d))
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
-    subdivision_structure_3d->createMinimalDensityPattern();
-//     subdivision_structure_3d->createDitheredPattern();
+//     subdivision_structure_3d->createMinimalDensityPattern();
+    subdivision_structure_3d->createDitheredPattern();
     subdivision_structure_3d->sanitize();
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
