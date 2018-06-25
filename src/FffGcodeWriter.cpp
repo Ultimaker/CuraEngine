@@ -2358,11 +2358,14 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 {
     if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
         return;
-    
+
     int previous_extruder = gcode_layer.getExtruder();
-    if (previous_extruder == extruder_nr) { return; }
+    if (previous_extruder == extruder_nr && !(extruder_nr == 0 && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage))) //No unnecessary switches, unless switching to extruder 0 for the outer shell of the prime tower.
+    {
+        return;
+    }
     bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
-    
+
     if (extruder_changed)
     {
         if (extruder_prime_layer_nr[extruder_nr] == gcode_layer.getLayerNr())
@@ -2386,10 +2389,10 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
-        if (gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage))
-        {
-            addPrimeTower(storage, gcode_layer, previous_extruder);
-        }
+    }
+    if ((extruder_changed || extruder_nr == 0) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage)) //Always print a prime tower with extruder 0.
+    {
+        addPrimeTower(storage, gcode_layer, previous_extruder);
     }
 }
 
