@@ -520,48 +520,70 @@ void Cross3D::applyZOscillationConstraint(const Cell& before, const Cell& after,
      *       /|\               /|\                                                                          .
      *      / | \             / | \                                                                         .
      *     /  |  \           /  |  \                                                                        .
-     *    /   |   \  ==>    /   |   \                                                                       .
-     *   /___↗|→→→↘\       /    |    \                                                                      .
-     *   \   ↑|    ↘\      \   ↗|↘    \                                                                     .
-     *    \  ↑|   / ↘\      \  ↑|  ↘   \                                                                    .
-     *     \ ↑|  /   ↘\      \ ↑|    ↘  \                                                                   .
-     *      \↑| /     ↘\      \↑|      ↘ \                                                                  .
+     *    /   |   \  ==>    /   |   \     Problem 1                                                         .
+     *   /___↗|↘   \       /    |    \    >> sudden jump from just above the middle to on it                .
+     *   \   ↑|↓   /\      \   ↗|↘    \                                                                     .
+     *    \  ↑|↓  /  \      \  ↑|  ↘   \    Problem 2                                                       .
+     *     \ ↑|↓ /    \      \ ↑|    ↘  \   >> sudden jump from a corner to a straight shortcutting line    .
+     *      \↑|↘/_____ \      \↑|      ↘ \                                                                  .
      *       \|/_______↘\      \|________↘\                                                                 .
      */
+    Point oscillation_end_point; // where the oscillation should end up at the top of this cell
     if (densest_cell_above && densest_cell_above->depth > densest_cell.depth)
     { // this cells oscillation pattern is altered to fit the oscillation pattern above
-        const Point oscillation_end_point = // where the oscillation should end on the edge at this height
-            (densest_cell_above->elem.is_expanding == checking_up) // flip for downward direction
-            ? edge_above.from
-            : edge_above.to;
-        const coord_t oscillation_end_pos = dot(oscillation_end_point - edge.from, edge.to - edge.from) / vSize(edge.getVector()); // end position along the edge at this height
-        assert(std::abs(oscillation_end_pos - vSize(oscillation_end_point - edge.from)) < 10 && "oscillation_end_point should lie on the segment!");
-        assert(oscillation_end_pos >= -10 && oscillation_end_pos <= edge_size + 10);
-        if (oscillation_end_pos > edge_size / 4 && oscillation_end_pos < edge_size * 3 / 4)
-        { // oscillation end pos is in the middle
-            if (z * flip_for_down > flip_for_down * (densest_cell.elem.z_range.middle() + flip_for_down * densest_cell.elem.z_range.size() / 4))
-            // z is more than 3/4 for up or z less than 1/4 for down
-            { // we're in the top quarter z of this prism
-                if (densest_cell.elem.is_expanding == checking_up) // flip when cheking down
-                {
-                    pos = edge_size * 3 / 2 - pos;
-                }
-                else
-                {
-                    pos = edge_size / 2 - pos;
-                }
-            }
+        // solve problem 1 described above
+        Point near_vertex = edge_above.from;
+        Point far_vertex = edge_above.to;
+        if (densest_cell_above->elem.is_expanding != checking_up)
+        {
+            std::swap(near_vertex, far_vertex);
         }
-        else
-        { // oscillation end pos is at one of the ends
-            if ((oscillation_end_pos > edge_size / 2) == (densest_cell.elem.is_expanding == checking_up)) // flip on is_expanding and on checking_up
-            { // constraining cell above is constraining this edge to be the same is it would normally be
-                // don't alter pos
+        oscillation_end_point = near_vertex + normal(far_vertex - near_vertex, min_dist_to_cell_bound_diag); // TODO: use the diag one or tha other one?
+    }
+    else if (densest_cell_above && densest_cell_above->depth < densest_cell.depth // above cell is larger
+        && densest_cell_above->index == before.adjacent_cells[static_cast<size_t>(checking_direction)].back().to_index // the cell above is
+        && densest_cell_above->index == after.adjacent_cells[static_cast<size_t>(checking_direction)].front().to_index)//  above both cells
+    { // solve problem 2 described above in the more dense cells
+        coord_t z_above = densest_cell_above->elem.z_range.min + 10; // +10 for stability
+        const Cell& cell_above_before = cell_data[densest_cell_above->adjacent_cells[toInt(Direction::LEFT)].front().to_index];
+        const Cell& cell_above_after = cell_data[densest_cell_above->adjacent_cells[toInt(Direction::RIGHT)].front().to_index];
+        Point cell_above_from = getCellEdgeLocation(cell_above_before, *densest_cell_above, z_above);
+        Point cell_above_to = getCellEdgeLocation(*densest_cell_above, cell_above_after, z_above);
+        oscillation_end_point = LinearAlg2D::intersection(edge, LineSegment(cell_above_from, cell_above_to));
+        return; // TODO: fix this function and then don't just return here!
+    }
+    else
+    { // no Z constraints have effect here, use the normal [pos]
+        return;
+    }
+    // TODO: don't assume the end point will be either the start, middle or end, but use its accurate position instead!
+    const coord_t oscillation_end_pos = dot(oscillation_end_point - edge.from, edge.to - edge.from) / vSize(edge.getVector()); // end position along the edge at this height
+//     assert(std::abs(oscillation_end_pos - vSize(oscillation_end_point - edge.from)) < 10 && "oscillation_end_point should lie on the segment!");
+//     assert(oscillation_end_pos >= -min_dist_to_cell_bound_diag && oscillation_end_pos <= edge_size + min_dist_to_cell_bound_diag);
+    if (oscillation_end_pos > edge_size / 4 && oscillation_end_pos < edge_size * 3 / 4)
+    { // oscillation end pos is in the middle
+        if (z * flip_for_down > flip_for_down * (densest_cell.elem.z_range.middle() + flip_for_down * densest_cell.elem.z_range.size() / 4))
+        // z is more than 3/4 for up or z less than 1/4 for down
+        { // we're in the top quarter z of this prism
+            if (densest_cell.elem.is_expanding == checking_up) // flip when cheking down
+            {
+                pos = edge_size * 3 / 2 - pos;
             }
             else
-            { // constraining cell causes upper half of oscillation pattern to be inverted
-                pos = edge_size - pos;
+            {
+                pos = edge_size / 2 - pos;
             }
+        }
+    }
+    else
+    { // oscillation end pos is at one of the ends
+        if ((oscillation_end_pos > edge_size / 2) == (densest_cell.elem.is_expanding == checking_up)) // flip on is_expanding and on checking_up
+        { // constraining cell above is constraining this edge to be the same is it would normally be
+            // don't alter pos
+        }
+        else
+        { // constraining cell causes upper half of oscillation pattern to be inverted
+            pos = edge_size - pos;
         }
     }
 }
