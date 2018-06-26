@@ -106,12 +106,25 @@ std::string ImageBasedDensityProvider::advanceFilename(const std::string& filena
     }
     if (last_non_digit_idx == raw_name.length() - 1) return "";
     const std::string file_number_str = raw_name.substr(last_non_digit_idx + 1);
+    assert(file_number_str.length() > 0);
     const int file_number = std::stoi(file_number_str);
+
+    bool filename_has_padding = file_number_str.c_str()[0] == '0';
 
     for (uint_fast8_t skip_idx = 1; skip_idx < 100; skip_idx++)
     {
         std::ostringstream oss;
-        oss << raw_name.substr(0, last_non_digit_idx + 1) << (file_number + skip_idx) << filename.substr(last_dot_idx);
+        oss << raw_name.substr(0, last_non_digit_idx + 1);
+        char next_file_number_str[100];
+        int n_chars_written = sprintf(next_file_number_str, "%d", file_number + skip_idx);
+        if (filename_has_padding)
+        {
+            for (int zero_number = 0; zero_number < file_number_str.length() - n_chars_written; zero_number++)
+            { // pad filename with zeroes
+                oss << '0';
+            }
+        }
+        oss << next_file_number_str << filename.substr(last_dot_idx);
         std::string next = oss.str();
         if (std::ifstream(next.c_str()).good())
         {
