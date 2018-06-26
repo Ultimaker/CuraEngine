@@ -264,6 +264,13 @@ public:
     static bool lineSegmentsCollide(const Point& a_from_transformed, const Point& a_to_transformed, Point b_from_transformed, Point b_to_transformed);
 
     /*!
+     * Get the intersection location between two lines.
+     * 
+     * \warning assumes the two lines are not parallel
+     */
+    static Point intersection(LineSegment a, LineSegment b);
+
+    /*!
      * See if two lines are parallel
      */
     static bool areParallel(LineSegment a, LineSegment b, coord_t allowed_error = 10);

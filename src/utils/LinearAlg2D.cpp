@@ -174,6 +174,23 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
     }
     return false;
 }
+Point LinearAlg2D::intersection(LineSegment a, LineSegment b)
+{
+    auto det = [](Point a, Point b) // determinant
+        {
+            return a.X * b.Y - a.Y * b.X;
+        };
+    Point a_vec = a.getVector();
+    Point b_vec = b.getVector();
+    coord_t qwe = det(b.from - a.from, a_vec); // TODO: understand formula and use understandable variable names
+    coord_t asd = det(a_vec, b_vec);
+    if (asd == 0)
+    { // lineas are parallel or collinear
+        return (a.from + a.to + b.from + b.to) / 4; // TODO: this is inaccurate
+    }
+    return b.from + b_vec * qwe / asd;
+}
+
 bool LinearAlg2D::areParallel(LineSegment a, LineSegment b, coord_t allowed_error)
 {
     Point a_vec = a.getVector();
