@@ -100,12 +100,6 @@ private:
      */
     bool isNextTo(const Cell& a, const Cell& b, Direction a_to_b) const;
 
-    /*!
-     * Subdivide cells once more if it doesn't matter for the density but it does matter for the oscillation pattern.
-     * Subdivide AC_TO_BC quarter-cubes if neighboring cells are subdivided more.
-     */
-    void sanitize(Cell& sub_tree_root);
-
     //----------------------
     //------ OUTPUT --------
     //----------------------
