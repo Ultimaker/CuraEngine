@@ -773,6 +773,7 @@ bool InfillFractal2D<CellGeometry>::canPropagateLU(Cell& cell, const std::vector
     {
         return true;
     }
+    // See whethertree_path has the form ...R...LB...LT so it has already been processed.
     int tree_path_idx;
     for (tree_path_idx = cell.depth - 1; tree_path_idx >= 0; tree_path_idx--)
     {

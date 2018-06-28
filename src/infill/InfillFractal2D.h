@@ -19,46 +19,124 @@ namespace cura
 {
 
 /*!
- * InfillFractal2D is a class for generating the Cross 3D infill pattern with varying density accross X, Y and Z.
- * Each layer is a space filling curve and across the layers the pattern forms a space filling surface,
- * which satisfied overhang angle and has no bridges.
+ * InfillFractal2D is an abstract class for generating subdivisiong structures with varying levels of subdivision,
+ * according to some requested density distribution given by a \ref DensityProvider
  * 
- * The 3D surface is oscillating / pulsating in and out across the layers.
- * This way it touches itself and creates a foam like structure which is similarly flexible in all directions.
+ * This class performs balancing and dithering on a '2D' subdivision fractal,
+ * in abstraction of the actual geometric details of the subdivision fractal cells.
  * 
- * An underlying subdivision structure is generated, which subdivides the 3D space into regular parts: prisms.
- * These prisms have a triangular base and rectangular sides.
- * The prism heights correspond to half the wave length of the oscillation pattern:
- * the surface patch across a prism is either expanding or contracting.
+ * The way in which this class is 2D is that the error is dispersed along two directions.
+ * For a simple square subdivision grid these are the X and Y axis,
+ * but for the Cross3D fractal these are the Z axis and the XY axes.
  * 
- * For a layer each prism crossing that layer is sliced into a triangle.
- * The triangle grid thus created for a layer is then used to generate a Sierpinski-like fractal, similar to \ref SierpinskiFill
+ * Cells next to each other are constrained to be at most 1 subdivision level off from each other.
  * 
- * This class effectively combines the algorithms from \ref SierpinskiFill and \ref SquareSubdivision.
- * Because the space filling curve can be seen as a way to linearize 2D space,
- * the 3D space filling surface is similar to a 2D square subdivision grid.
- * Quantization error is the error between actual density of a prism cell and required density of the user specified distribution.
- * Quantizatoin error should be distributed in two dimensions:
- * 'left' and 'right' that is: along the curve itself in the XY plane
- * up and down in the Z dimension.
+ * Because the XY plane for the Cross3D fractal is linearized by the Sierpinski-like fractal,
+ * the fractal curve can be thought of as a single dimension.
+ * A space filling fractal is said to linearize 2D space into a single dimension.
+ * 
+ * For the sake of simplicity of the explanation, further documentation will assume the terminology square subdivision fractal.
+ * 'left' and 'right' would correspond to backward and forward along the space filling curve of a single layer.
+ * 
+ * For more information on how the 3D space filling surface is generated, see \ref Cross3D
+ * 
+ * This class deals with cells in abstraction of their geometric shape.
+ * The cells are connected to their neighbors above and below, and to the cells left and right.
+ * 
+ * This class also deals with the tree of possible subdivisions,
+ * and actually performs the subdivisions.
+ * The connections with neighbors are only recorded for the current actual nodes;
+ * i.e. the nodes for which the parents have been chosen to be subdivided.
+ * 
+ * Several algorithms are implemented to decide the subdivision level at each location.
+ * They differ in how constraints between neighbors are resolved and
+ * at which side of the requested density a node is - more or less dense than requested.
  * 
  * 
- * We start with a cubic aabb and splice that vertically into 2 prisms of type I: half-cubic.
- * A half-cubic prism is subdivided vertically into 2 quarter-cubic prisms.
- * A quarter cubic prism is subdivided vertically and horizontally into 4 half-cubic prisms.
+ * 
+ * Because a subdivision structure has discrete steps of possible infill density,
+ * there is likely a discrepancy between the requested density of a cell and the actualized density.
+ * This difference is known as 'quantiziation error'.
+ * However, the term 'error' is ambiguous as to the directionality:
+ * a negative error could mean there is more requested density than actualized density, but it might as well mean the opposite.
+ * 
+ * Therefore we adopt the terminology of money: 'value'.
+ * The requested amount of material for a cell is called its 'allowance'.
+ * If a cell is subdivided more than its allowance then it is said to be 'in debt'.
+ * Such a debt can be resolved by taking on a 'loan' from neighboring cells.
+ * The value balance of a cell is the allowance plus the total borrowed value minus the value loaned to other cells.
+ * 
+ * 
+ * 
+ * The main complexity of this class is in deciding the subdivision level at each location.
+ * 
+ * 
+ * DATA STRUCTURE OVERVIEW
+ * =======================
+ * All possible cells of the subdivision structure form a tree,
+ * with the root node(s) equal to the starting shapes of the subdivision structure.
+ * 
+ * In order to efficiently store the whole tree, all node are stored in a vector,
+ * and instead of having pointers to children on the heap, cells have vector indices as references to their children.
+ * Because Cross3D cells sometimes have 2 children and sometimes have 4, the parent child indices cannot be related using a simple mathematical formula.
+ * 
+ * Next the data structures need to support choosing at which subdivision level the structure will be actualized at each location.
+ * Each cell therefore has a field \ref InfillFractal2D::Cell::is_subdivided
+ * 
+ * Furthermore, neighboring actualized cells are linked to each other in order to efficiently transfer loans between the two.
+ * Note that only actualized cells are linked, i.e. cells for which the parent has is_subdivided == true.
+ * 
+ * For each cardinal direction (left, right, down, up) we link the cells neighboring this cell.
+ * Each link has a field to record how much value loan the departure location cell borrows to the destination cell.
+ *
+ * Each link also has a reference to the iterator to the reverse link.
+ * That way we can efficiently insert new links, when changing the link graph due to a subdivision.
+ * 
+ * The data structure has these two parts at the same time:
+ * The tree and the neighborhood graph.
+ * 
+ * Visualization of double data structure:
+ * 
+ *                                 root
+ *                                  0                          } >> recursion level 0
+ * 
+ * 
+ * 
+ *                             2                 3             }
+ *                                             ,'|             } >> recursion level 1
+ *                    0                   1_,-','|             }
+ *                                    ,.-''_,.'/ |                     13, 15, 10 and 11 are linked across different recursion levels to 3; the rest of the links in this figure are within level 2
+ *                           ,14----15_,.''   /  |   18    19  }
+ *                       _,12----13'-'      /    |16    17     }
+ *                   ,.-'   ,.-'           /     |             } >> recursion level 2
+ *                ,.6------7-----------,.10------11            }
+ *               4------5-'-----------8-------9''              }
+ * 
+ * Corresponding graph of actualized subdivision structure:
+ *
+ *            +---+---+-------+
+ *            | 14| 15|       |
+ *            +---+---+   3   |
+ *            | 12| 13|       |
+ *            +---+---+---+---+
+ *            | 6 | 7 | 10| 11|
+ *            +---+---+---+---+
+ *            | 4 | 5 | 8 | 9 |
+ *            +---+---+---+---+
+ * 
  * 
  * 
  * 
  * ALGORITHM OVERVIEW
  * ==================
- * 1) Generate the tree of all prisms and their subdivisions
+ * 1) Generate the tree of all possible cells and their subdivisions
  * 2) Decide at which 'height' in the tree the eventual pattern will be: decide on the recursion depth at each location
- * 3) Walk from the bottom to the top and create layers
+ * 3) Generating toolpaths
  * 
  * 1) Tree generation
- * - Make dummy root node
+ * - Make (dummy) root node
  * - add first prisms by hand
- * - recursively set the sierpinski connectivity of each cell, the required volume, the actual volume etc.
+ * - recursively set the required volume, the actual volume etc.
  * 
  * 2) Create subdivision pattern
  * We start from the root and only decide for each node whether we subdivide it or not;
@@ -68,9 +146,9 @@ namespace cura
  * 
  * The current subdivision structure is a net of linked cells.
  * The cells have the following info:
- * - the geometric prism
+ * - the geometric prism/square
  * - links to neighboring cells in the current subdivision structure
- * - error values of built up and redistributed quatization error
+ * - requested density: allowance
  * 
  * There are several ways in which to decide on the recurison depth at each location.
  * 
@@ -78,35 +156,170 @@ namespace cura
  * - made easily by recursively subdiviging each cell (and neighbording restructing cells) which is lower than the required density
  * 
  * 2.2) Average density
- * First we decide on the minimal density at each location, while keeping density change cancades balanced around input density requirement changes.
+ * First we decide on the minimal density at each location, while keeping density change cascades balanced around input density requirement changes.
  * Then we apply dithering to get the eventual subdivision pattern
  * 
  * 2.2.1) Average density lower boundary
  * This is 50% of the complexity of this class.
  * This is the most difficult algorithm.
- * Induced quantization errors are redistributed to nearest cells, so as to make the subdivision structure balanced.
- * If no errors would have been distributed the final pattern would either be too dense or too sparse
- * near regions where the input density requirement distribution has sharp edges.
- * Such errors cause problems for the next dithering phase, which would then oscillate between several subdivision levels too dense and several subdivision levels too sparse
- * in the regions just after the sharp density edges.
+ * Cells with enough allowance to subdivide, but which are constrained by neighbors hand out loans to the contraining neighbor.
+ * Near regions where the input density requirement distribution has sharp edges,
+ * this causes the change in output density to lie on both sides of the input edge.
+ * That way no global error is accumulated because the allowance is invested locally.
+ * More on this algorithm below.
  * 
  * 2.2.2) Dithering
- * Walk over the subdivision struction from the left bottom to the top right
+ * Walk over the subdivision structure from the left bottom to the top right
  * decide for each cell whether to subdivide once more or not,
  * without reconsidering the thus introduced children for subdivision again.
+ * Propagate induced error forward to yet unprocessed cells.
  * 
  * 
- * 3) Walking across layers
+ * 3) Generating toolpaths
+ * Toolpath generation for square subdivision is quite straight forward. See \ref SquareSubdiv.
+ * The following explanation is for \ref Cross3D:
  * For each layer there is a single linear sequence of prisms to cross.
  * In order to efficiently compute the sequence,
- * we compute the bottom sequence once
- * and update it for each layer when it crosses the top of any prism in the sequence.
+ * we compute once a mapping from z coordinates to sequence starting cells
+ * and from a starting cell we compute the whole sequence of cells for a given layer.
  * 
  * For such a sequence we look at all triangles of all prisms in the sequence.
  * From this sequence of triangles, we can generate a Sierpinski curve,
  * or the CrossFill curve.
  * When generating the curve, we make sure not to overlap with other line segments in the crossfill pattern.
  * 
+ * 
+ * 
+ * ===========================
+ * == Detailed explanations ==
+ * ===========================
+ * 
+ * 
+ * 
+ * 2.2.1) Average density lower boundary. a.k.a. createBalancedPattern(.)
+ * The algorithm for creating the lower bound sequence is as such:
+ * do
+ *   1. subdivisionPhase(): subdivide each cell which can
+ *   2. handOutLoansPhase(): let each cell which wants to subdivide, but which is constrained hand out loans to their constrainers
+ * until converged.
+ * 
+ * It is conjectured that convergence happens at most at step max_depth + 2,
+ * meaning that it could suffice to do only max_dpeth + 1 steps, without the extra step to check for convergence.
+ * However, I don't have proof.
+ * 
+ * Both phases handle cells in an order based on cell recursion depth,
+ * so that loans or paybacks/settlements cascade.
+ * 
+ * In the subdivision phase unused loan amounts are paid back just before performing a subdivision.
+ * That means we first have to consider the most constraining cell, i.e. the lowest recursion depth cell, closest to the root,
+ * so we move from lower recursion depth to higher recursion depth.
+ * Then the cells with higher recursion depth (denser cells) get subdivided with the aid of th settlement of previously handled cells.
+ * 
+ * In the handOutLoansPhase new loans are made;
+ * cells which are constrained by neighbors hand out loans to their constrainers.
+ * They hand out as much loan as possible given that they would still be able to subdivide;
+ * that's how much value they have left over.
+ * That means the most constrained cells need to be processed first, i.e. the most dense cells with highest recursion depth.
+ * They hand out loans to the constrainers of lower recursion depth, so that they in turn can hand out more loans to their constrainers.
+ * 
+ * 
+ * If there are multiple constrainers or mutiple loans for one given cell in either phase described above,
+ * then we need a way to determine which loan will be settled by how much and which constrainer will get which portion of the left-overs.
+ * In case of new loans the left over value is divided equally.
+ * In case of settlements the loans are paid back proportional to the amount of loan.
+ * It is conjectured that these rules lead to allowance being used as locally and efficiently as possible.
+ * 
+ * 
+ * 
+ * At the end of the phase (2.2.1) Average density lower boundary / after this phase:
+ * all loans handed out are settled back in as much as possible.
+ * The loaning should only have effect in phase 2.2.1 and not have any effect on the next phase: dithering.
+ * 
+ * 
+ * -------------------------------------------
+ * Subdivision
+ * ----
+ * When subdividing, we first settle loans with leftover value borrowed - if applicable.  >> settleLoans(.)
+ * Then we need to transfer some value in order to have all realized volume accounted for by the allowance.
+ * 
+ * Performing a subdivision itself induces some value to be transfered, because of two reasons:
+ * 1. loans handed out to the parent should be transfered to children
+ *      >> transferLoans(.)
+ * 2. the children cells are unbalanced, i.e. the allowance of the children differs wildly
+ *      >> solveChildDebts(.)
+ * 
+ * 1. If a cell to be subdivided still had loans from neighboring cells,
+ * then these loans need to be transfered to the children.
+ * If the children have a deeper recursion depth than the loaner cells,
+ * then the loan needs to be split among the children.
+ * We divide the loans equally amongst the children - by lack of a principled alternative.
+ * 
+ * 2. Example: (using two children only, for simplicity)
+ * parent has 100 allowance, but realizes 70
+ * child_1: has 100 allowance, realizes 50
+ * child_2: has 0 allowance, realizes 50
+ * (verify that the children together have the same allowance ofs the parent)
+ * 
+ * child_2 should not be able to exist as such because it doesn't have enough value for its current subdivision level.
+ * We therefore need to introduce loans to make each hcild have a non-negative value balance.
+ * Because the subdivision is possible we knwo that there is enough vlaue to go around,
+ * so we introduce loans between neighboring children until each child has a non-negative balance.
+ * 
+ * We first apply 1, so that step 2 can take care of any imbalance incurred by either step 1 or by unbalanced children.
+ * 
+ * 
+ * 
+ * 
+ * -------------------------------------------
+ * 2.2.2) Dithering. a.k.a. dither(.)
+ * ----
+ * 
+ * For each cell we determine whether to subdivide it one step further or not,
+ * by seeing whether its value balance is more or less than midway between the parent realized density and the children realized density.
+ * 
+ * The error thus induced is propagated forward to cells yet unprocessed.
+ * This error is recorded as a loan - as ususal.
+ * 
+ * Because the subdivision structure is 2D, the error should be propagated in multiple directions.
+ * A simple Floyd-Steinberg dither would work on a grid of same recursion depth cells.
+ * The error in FS dithering is propagated to neighboring cells using a partition of unity using the following weights:
+ * [ 3 5 1 ]  > cells above
+ * [ _ * 7 ]  > forward cell
+ *   : :
+ *   : ^ current cell
+ *   ^ already processed cells
+ * 
+ * However, because we are dealing with a subdivision structure we cannot process the cells in a row-based manner.
+ * We do keep the general row-based order, though:
+ *                       +-------+---+---+
+ * Recursion rule        |       | 9 | 10| Complex case
+ * +---+---+             |   6   +---+---+
+ * | 3 | 4 |             |       | 7 | 8 |
+ * +---+---+             +---+---+---+---+
+ * | 1 | 2 |             | 3 | 4 |       |
+ * +---+---+             +---+---+   5   |
+ *                       | 1 | 2 |       |
+ *                       +---+---+-------+
+ * 
+ * Note that when processing cells in this order, we cannot propagate error in the usual manner.
+ * 1. First we establish that a cell might have multiple neighbors above,
+ * as is the case for 5 in the example above: it has 7 and 8 as neighbor above.
+ * 
+ * 2. Second, some cells cannot propagate error to left-up, because that cell has been processed already,
+ * as is the case for 7: above it is 9 and left of it is 6, which is processed before 7.
+ * 
+ * 3. For some cells, the left up neighbor, or the right up neighbor are equivalent to the upper neighbor,
+ * as is the case for 4 and 3 resp.
+ * 
+ * 
+ * In order to solve for a variable amount of neighboring cells,
+ * we propagate error based on a partition of unity with weights determined by the direction similar to FS dithering
+ * and also influenced by cell size (?)
+ * 
+ * The cells which cannot propagate error to their left up neighbor can be identified
+ * by looking at the sequence of ChildSide from root to the current node. (See implementation)
+ * However, it is far more easy and efficient to simply add a boolean flag to a cell to see whether it has been processed.
+ * TODO: perform te above suggested rework!
  * 
  * 
  */

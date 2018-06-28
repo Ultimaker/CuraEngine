@@ -39,13 +39,16 @@ class Cross3DTest; // fwd decl
  * For a layer each prism crossing that layer is sliced into a triangle.
  * The triangle grid thus created for a layer is then used to generate a Sierpinski-like fractal, similar to \ref SierpinskiFill
  * 
- * This class effectively combines the algorithms from \ref SierpinskiFill and \ref SquareSubdivision.
+ * TODO: remove the code duplication of the SierpinskiTriangle.
+ * 
  * Because the space filling curve can be seen as a way to linearize 2D space,
  * the 3D space filling surface is similar to a 2D square subdivision grid.
  * Quantization error is the error between actual density of a prism cell and required density of the user specified distribution.
  * Quantizatoin error should be distributed in two dimensions:
  * 'left' and 'right' that is: along the curve itself in the XY plane
  * up and down in the Z dimension.
+ * 
+ * This class inherits from InfillFractal2D so that it can apply the 2D dithering principles to distribute
  * 
  * 
  * We start with a cubic aabb and splice that vertically into 2 prisms of type I: half-cubic.
@@ -54,64 +57,18 @@ class Cross3DTest; // fwd decl
  * 
  * 
  * 
- * ALGORITHM OVERVIEW
- * ==================
- * 1) Generate the tree of all prisms and their subdivisions
- * 2) Decide at which 'height' in the tree the eventual pattern will be: decide on the recursion depth at each location
- * 3) Walk from the bottom to the top and create layers
+ * This class is to be used as follows:
+ * 1- Create an instance
+ * 2- call some functions to initialize and to decide the subdivision level at each location
+ * 3- on each layer: call function to generate a path from the subdivision structure
  * 
- * 1) Tree generation
- * - Make dummy root node
- * - add first prisms by hand
- * - recursively set the sierpinski connectivity of each cell, the required volume, the actual volume etc.
+ * The most difficult algorithms cover deciding the subdivision level at each location;
+ * they are handled with in \ref InfillFractal2D.
+ * See the class documentation of that class to get a better picture of how Cross3D infill works.
  * 
- * 2) Create subdivision pattern
- * We start from the root and only decide for each node whether we subdivide it or not;
- * we never 'unsubdivide' a node.
- * All nodes which have been chosen to be subdivided are marked as such in \ref Cross3D::Cell::is_subdivided
- * As such the creation of the subdivision structure is a boundary on the subdivision tree which is only pushed downward toward the leaves of the tree.
- * 
- * The current subdivision structure is a net of linked cells.
- * The cells have the following info:
- * - the geometric prism
- * - links to neighboring cells in the current subdivision structure
- * - error values of built up and redistributed quatization error
- * 
- * There are several ways in which to decide on the recurison depth at each location.
- * 
- * 2.1) Minimal required density
- * - made easily by recursively subdiviging each cell (and neighbording restructing cells) which is lower than the required density
- * 
- * 2.2) Average density
- * First we decide on the minimal density at each location, while keeping density change cancades balanced around input density requirement changes.
- * Then we apply dithering to get the eventual subdivision pattern
- * 
- * 2.2.1) Average density lower boundary
- * This is 50% of the complexity of this class.
- * This is the most difficult algorithm.
- * Induced quantization errors are redistributed to nearest cells, so as to make the subdivision structure balanced.
- * If no errors would have been distributed the final pattern would either be too dense or too sparse
- * near regions where the input density requirement distribution has sharp edges.
- * Such errors cause problems for the next dithering phase, which would then oscillate between several subdivision levels too dense and several subdivision levels too sparse
- * in the regions just after the sharp density edges.
- * 
- * 2.2.2) Dithering
- * Walk over the subdivision struction from the left bottom to the top right
- * decide for each cell whether to subdivide once more or not,
- * without reconsidering the thus introduced children for subdivision again.
- * 
- * 
- * 3) Walking across layers
- * For each layer there is a single linear sequence of prisms to cross.
- * In order to efficiently compute the sequence,
- * we compute the bottom sequence once
- * and update it for each layer when it crosses the top of any prism in the sequence.
- * 
- * For such a sequence we look at all triangles of all prisms in the sequence.
- * From this sequence of triangles, we can generate a Sierpinski curve,
- * or the CrossFill curve.
- * When generating the curve, we make sure not to overlap with other line segments in the crossfill pattern.
- * 
+ * The most difficulty in this class is in converting a cell to the segment of the space filling curve.
+ * There is quite some functionality in place to circumvent places in the cell which could lead to overlapping toolpaths.
+ * Also realizing pockets in the pattern is rather difficult if neighboring cells differ in subdivision level.
  * 
  * 
  * 

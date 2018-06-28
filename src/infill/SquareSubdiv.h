@@ -22,6 +22,44 @@ namespace cura
 {
 
 /*!
+ * A square subdivision structure to generate a grid infill pattern with varying infill density,
+ * while maintaining connectivity of infill lines
+ * and for creating a Hilbert curve with varying density.
+ * 
+ * This class inherits from InfillFractal2D, so it can use an arbitrary \ref DensityProvider,
+ * and it implements several ways in which to adhere to such a density-provider.
+ * 
+ * The subdivision fractal starts with a single axis aligned bounding box,
+ * and each subdivision step divides a square into 4 smaller ones.
+ * 
+ * A Moore curve is the same as a Hilbert curve, except for the initial subdivision step.
+ * That step makes it so that in any following step the fractal is a single closed polygon.
+ * 
+ * 
+ * 
+ * Hilbert (+underlying square subdivision structure)                (without underlying subdiv)
+ * +---------------+     +-------+-------+      +---+---+---+---+      _   _   _   _
+ * |               |     |       |       |      | o---o | o---o |     | |_| | | |_| |
+ * |               |     |   o-------o   |      +-|-+-|-+-|-+-|-+     |_   _| |_   _|
+ * |               |     |   |   |   |   |      | o | o---o | o |      _| |_____| |_ 
+ * |       o........     +---|---+---|---+      +-|-+---+---+-|-+     |  ___   ___  |
+ * |       :       |     |   |   |   |   |      | o---o | o---o |     |_|  _| |_  |_|
+ * |       :       |     |   o   |   o....      +---+-|-+-|-+---+      _  |_   _|  _
+ * |       :       |     |   :   |       |      | o---o | o---o..     | |___| |___| |
+ * +-------:-------+     +---:---+-------+      +-:-+---+---+---+
+ * 
+ * Moore (+underlying square subdivision structure)                  (without underlying subdiv)
+ * +---------------+     +-------+-------+      +---+---+---+---+      _   _   _   _
+ * |               |     |       |       |      | o---o | o---o |     | |_| | | |_| |
+ * |               |     |   o-------o   |      +-|-+-|-+-|-+-|-+     |_   _| |_   _|
+ * |               |     |   |   |   |   |      | o | o---o | o |      _| |_____| |_
+ * |       o       |     +---|---+---|---+      +-|-+---+---+-|-+     |_   _____   _|
+ * |               |     |   |   |   |   |      | o | o---o | o |      _| |_   _| |_
+ * |               |     |   o-------o   |      +-|-+-|-+-|-+-|-+     |  _  | |  _  |
+ * |               |     |       |       |      | o---o | o---o |     |_| |_| |_| |_|
+ * +---------------+     +-------+-------+      +---+---+---+---+
+ * 
+ * 
  */
 class SquareSubdiv : public InfillFractal2D<AABB>
 {
