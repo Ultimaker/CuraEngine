@@ -260,7 +260,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
 {
-    for (int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    for (unsigned int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
     {
         fan_speed_layer_time_settings_per_extruder.emplace_back();
         FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder.back();
@@ -283,7 +283,7 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
 {
-    for (int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    for (unsigned int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
     {
         storage.coasting_config.emplace_back();
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
@@ -772,7 +772,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     bool avoid_supports = false;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-    for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
+    for (unsigned int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
         if (extruder_is_used[extr_nr])
         {
@@ -869,7 +869,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     return gcode_layer;
 }
 
-bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const
+bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, unsigned int extruder_nr) const
 {
     bool need_prime_blob = false;
     switch (gcode.getFlavor())

@@ -11,7 +11,7 @@ namespace cura
 std::vector<double> PathConfigStorage::getLineWidthFactorPerExtruder(const SliceDataStorage& storage, int layer_nr)
 {
     std::vector<double> ret;
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         if (layer_nr <= 0)
         {
@@ -277,7 +277,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
 {
     std::vector<GCodePathConfig::SpeedDerivatives> global_first_layer_config_per_extruder;
     global_first_layer_config_per_extruder.reserve(storage.meshgroup->getExtruderCount());
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         const ExtruderTrain* extruder = storage.meshgroup->getExtruderTrain(extruder_nr);
         global_first_layer_config_per_extruder.emplace_back(
@@ -308,7 +308,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
     }
 
     { // extruder configs: travel, skirt/brim (= shield)
-        for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
+        for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
             GCodePathConfig::SpeedDerivatives initial_layer_travel_speed_config{
