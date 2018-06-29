@@ -20,7 +20,7 @@ class MeshGroup : public SettingsBase, NoCopy
     ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
     mutable int extruder_count; //!< The number of extruders. (mutable because of lazy evaluation)
 public:
-    int getExtruderCount() const;
+    unsigned int getExtruderCount() const;
 
     MeshGroup(SettingsBaseVirtual* settings_base);
     

@@ -353,10 +353,10 @@ void CommandSocket::connect(const std::string& ip, int port)
             //For every object, set the extruder fallbacks from the limit_to_extruder.
             for (const cura::proto::SettingExtruder setting_extruder : slice->limit_to_extruder())
             {
-                const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal int32.
+                const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal uint32.
                 for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
                 {
-                    if (extruder_nr < 0 || extruder_nr >= meshgroup->getExtruderCount()) //We obtained an invalid value from the front-end. Ignore.
+                    if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(meshgroup->getExtruderCount())) //We obtained an invalid value from the front-end. Ignore.
                     { // if extruder_nr == -1 then that means the setting should be handled as if it has no limit_to_extruder, so we can skip it
                         continue;
                     }
