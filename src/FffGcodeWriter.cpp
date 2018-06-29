@@ -2423,7 +2423,7 @@ void FffGcodeWriter::finalize()
     else
     {
         log("Gcode header after slicing:\n");
-        log(prefix.c_str());
+        log("%s", prefix.c_str());
         log("End of gcode header.\n");
     }
     if (getSettingBoolean("acceleration_enabled"))
