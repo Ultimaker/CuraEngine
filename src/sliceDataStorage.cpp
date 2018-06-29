@@ -466,7 +466,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            for (unsigned int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
             {
                 if (skirt_brim[extr_nr].size() > 0)
                 {
@@ -540,7 +540,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            for (unsigned int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
             {
                 if (skirt_brim[extr_nr].size() > 0)
                 {
@@ -597,7 +597,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     return ret;
 }
 
-bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
+bool SliceDataStorage::getExtruderPrimeBlobEnabled(const unsigned int extruder_nr) const
 {
     if (extruder_nr >= meshgroup->getExtruderCount())
     {

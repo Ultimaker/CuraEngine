@@ -48,16 +48,29 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     }
 
     coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
+    unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+    const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
+    coord_t extra_skirt_line_width = 0;
+    const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
+    for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    {
+        if (extruder == adhesion_extruder_nr || !is_extruder_used[extruder]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+        {
+            continue;
+        }
+        const ExtruderTrain* other_extruder = storage.meshgroup->getExtruderTrain(extruder);
+        extra_skirt_line_width += other_extruder->getSettingInMicrons("skirt_brim_line_width") * other_extruder->getSettingAsRatio("initial_layer_line_width_factor");
+    }
     switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
     {
         case EPlatformAdhesion::BRIM:
-            adhesion_size = storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("brim_line_count");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("brim_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::RAFT:
-            adhesion_size = storage.getSettingInMicrons("raft_margin");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("raft_margin");
             break;
         case EPlatformAdhesion::SKIRT:
-            adhesion_size = storage.getSettingInMicrons("skirt_gap") + storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("skirt_line_count");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("skirt_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::NONE:
             adhesion_size = 0;

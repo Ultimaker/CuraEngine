@@ -8,7 +8,7 @@ namespace cura
 
 void Preheat::setConfig(const MeshGroup& meshgroup)
 {
-    for (int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
     {
         assert(meshgroup.getExtruderTrain(extruder_nr) != nullptr);
         const ExtruderTrain& extruder_train = *meshgroup.getExtruderTrain(extruder_nr);
