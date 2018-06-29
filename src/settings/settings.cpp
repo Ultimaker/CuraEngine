@@ -125,7 +125,9 @@ std::string SettingsBase::getAllLocalSettingsString() const
     {
         if (!pair.second.empty())
         {
-            sstream << " -s " << pair.first << "=\"" << Escaped{pair.second.c_str()} << '\"';
+            char buffer[4096];
+            snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
+            sstream << buffer;
         }
     }
     return sstream.str();
