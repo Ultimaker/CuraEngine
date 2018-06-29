@@ -52,13 +52,13 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
     {
         case EPlatformAdhesion::BRIM:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsCount("brim_line_count");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("brim_line_count");
             break;
         case EPlatformAdhesion::RAFT:
             adhesion_size = adhesion_extruder->getSettingInMicrons("raft_margin");
             break;
         case EPlatformAdhesion::SKIRT:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsCount("skirt_line_count");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("skirt_line_count");
             break;
         case EPlatformAdhesion::NONE:
             adhesion_size = 0;
