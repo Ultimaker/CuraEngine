@@ -118,6 +118,19 @@ const std::string& SettingsBase::getSettingString(const std::string& key) const
     return empty_string;
 }
 
+std::string SettingsBase::getAllLocalSettingsString() const
+{
+    std::stringstream sstream;
+    for (auto pair : setting_values)
+    {
+        if (!pair.second.empty())
+        {
+            sstream << " -s " << pair.first << "=\"" << Escaped{pair.second.c_str()} << '\"';
+        }
+    }
+    return sstream.str();
+}
+
 void SettingsMessenger::setSetting(std::string key, std::string value)
 {
     parent->setSetting(key, value);
