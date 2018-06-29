@@ -48,16 +48,17 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     }
 
     coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
+    const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
     switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
     {
         case EPlatformAdhesion::BRIM:
-            adhesion_size = storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("brim_line_count");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsCount("brim_line_count");
             break;
         case EPlatformAdhesion::RAFT:
-            adhesion_size = storage.getSettingInMicrons("raft_margin");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("raft_margin");
             break;
         case EPlatformAdhesion::SKIRT:
-            adhesion_size = storage.getSettingInMicrons("skirt_gap") + storage.getSettingInMicrons("skirt_brim_line_width") * storage.getSettingAsCount("skirt_line_count");
+            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsCount("skirt_line_count");
             break;
         case EPlatformAdhesion::NONE:
             adhesion_size = 0;
