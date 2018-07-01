@@ -61,6 +61,7 @@ std::list<unsigned int> OrderOptimizer<T>::optimize(const Point layer_start_posi
 
     unsigned int starting_item_index = 0;
     int64_t closest_distance = vSize(start_point - items[0].first);
+    
     // Find closes item index to starting point
     for (unsigned int item_idx = 0; item_idx < items.size(); item_idx++)
     {
