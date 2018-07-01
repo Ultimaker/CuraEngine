@@ -33,9 +33,10 @@ public:
 
     /*!
      * Optimize the order of \ref OrderOptimizer::items
+     * layer_start_position A start layer position
      * \return A vector of the ordered indices into \ref OrderOptimizer::items
      */
-    std::list<unsigned int> optimize();
+    std::list<unsigned int> optimize(const Point layer_start_position = Point(0,0));
 
 
 };
@@ -47,7 +48,7 @@ void OrderOptimizer<T>::addItem(const Point location, const T item)
 }
 
 template <typename T>
-std::list<unsigned int> OrderOptimizer<T>::optimize()
+std::list<unsigned int> OrderOptimizer<T>::optimize(const Point layer_start_position)
 {
     // least detour insertion algorithm
     std::list<unsigned int> order;
@@ -55,20 +56,34 @@ std::list<unsigned int> OrderOptimizer<T>::optimize()
     {
         return order;
     }
-    order.push_back(0u);
-    if (items.size() == 1)
-    {
-        return order;
-    }
-    order.push_back(1u);
-    if (items.size() == 2)
-    {
-        return order;
-    }
-    order.push_back(2u);
 
-    for (unsigned int item_idx = 3; item_idx < items.size(); item_idx++)
+    const Point start_point = layer_start_position;
+
+    unsigned int starting_item_index = 0;
+    int64_t closest_distance = vSize(start_point - items[0].first);
+    // Find closes item index to starting point
+    for (unsigned int item_idx = 0; item_idx < items.size(); item_idx++)
     {
+        Point first_point = items[item_idx].first;
+        Point temp = start_point - first_point;
+        const int64_t diff = vSize(temp);
+
+        if(diff < closest_distance)
+        {
+            closest_distance = diff;
+            starting_item_index = item_idx;
+        }
+    }
+
+    order.push_front(starting_item_index);
+    for (unsigned int item_idx = 0; item_idx < items.size(); item_idx++)
+    {
+        // skip the index because it was already added
+        if(item_idx == starting_item_index)
+        {
+            continue;
+        }
+
         Point to_insert_item_location = items[item_idx].first;
 
         // find best_item_to_insert_before
@@ -92,6 +107,8 @@ std::list<unsigned int> OrderOptimizer<T>::optimize()
 
         order.insert(best_item_to_insert_before, item_idx);
     }
+    order.pop_back();
+    order.push_front(starting_item_index);
     return order;
 }
 

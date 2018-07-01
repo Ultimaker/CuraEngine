@@ -1070,38 +1070,17 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }
-    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
-    std::list<unsigned int>::iterator starting_mesh_idx_it = mesh_indices_order.end();
-    { // calculate starting_mesh_it
-        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-        const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
-        coord_t best_dist2 = std::numeric_limits<coord_t>::max();
-        for (std::list<unsigned int>::iterator mesh_it = mesh_indices_order.begin(); mesh_it != mesh_indices_order.end(); ++mesh_it)
-        {
-            const unsigned int mesh_idx = *mesh_it;
-            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-            const Point3 middle3 = mesh.getAABB().getMiddle();
-            const Point middle(middle3.x, middle3.y);
-            const coord_t dist2 = vSize2(middle - layer_start_position);
-            if (dist2 < best_dist2)
-            {
-                best_dist2 = dist2;
-                starting_mesh_idx_it = mesh_it;
-            }
-        }
-    }
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
+    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
+
     std::vector<unsigned int> ret;
     ret.reserve(mesh_indices_order.size());
-    for (unsigned int mesh_order_nr = 0; mesh_order_nr < mesh_indices_order.size(); mesh_order_nr++)
+
+    for(unsigned i: mesh_indices_order)
     {
-        if (starting_mesh_idx_it == mesh_indices_order.end())
-        {
-            starting_mesh_idx_it = mesh_indices_order.begin();
-        }
-        unsigned int mesh_order_idx = *starting_mesh_idx_it;
-        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
+        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[i].second;
         ret.push_back(mesh_idx);
-        ++starting_mesh_idx_it;
     }
     return ret;
 }
