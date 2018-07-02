@@ -94,15 +94,16 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     coord_t extra_infill_shift = 0;
     coord_t tower_size = storage.getSettingInMicrons("prime_tower_size");
 
+    patterns_per_extruder.resize(extruder_order.size());
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
     EFillMethod first_layer_infill_method;
-    for (unsigned int extruder = 0; extruder < extruder_count; extruder++)
+    for (unsigned int extruder : extruder_order)
     {
         const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
         const coord_t wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
-        patterns_per_extruder.emplace_back(n_patterns);
-        std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
+        patterns_per_extruder[extruder] = std::vector<ExtrusionMoves>(n_patterns);
+        std::vector<ExtrusionMoves>& patterns = patterns_per_extruder[extruder];
         patterns.resize(n_patterns);
 
         // If the prime tower is circular, instead of creating a concentric infill in the normal layers, the tower is
