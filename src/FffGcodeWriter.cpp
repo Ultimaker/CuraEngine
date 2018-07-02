@@ -2084,7 +2084,14 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const int extruder_nr = (gcode_layer.getLayerNr() <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(extruder_nr);
 
-    const coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
+    coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
+    
+    // To improve adhesion for the "support initial layer" the first layer might have different properties
+    if(gcode_layer.getLayerNr() == 0)
+    {
+        default_support_line_distance = infill_extruder.getSettingInMicrons("support_initial_layer_line_distance"); 
+    }
+
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
     coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
