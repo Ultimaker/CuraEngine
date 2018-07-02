@@ -1,5 +1,9 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "PrimeTower.h"
 
+#include <algorithm>
 #include <limits>
 
 #include "ExtruderTrain.h"
@@ -21,6 +25,21 @@ PrimeTower::PrimeTower(const SliceDataStorage& storage)
     enabled = storage.getSettingBoolean("prime_tower_enable")
            && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
            && storage.getSettingInMicrons("prime_tower_size") > 10;
+
+    extruder_count = storage.meshgroup->getExtruderCount();
+    extruder_order.resize(extruder_count);
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        extruder_order[extruder_nr] = extruder_nr; //Start with default order, then sort.
+    }
+    //Sort from high adhesion to low adhesion.
+    const SliceDataStorage* storage_ptr = &storage; //Communicate to lambda via pointer to prevent copy.
+    std::sort(extruder_order.begin(), extruder_order.end(), [storage_ptr](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
+    {
+        const double adhesion_a = storage_ptr->meshgroup->getExtruderTrain(extruder_nr_a)->getSettingAsRatio("material_adhesion_tendency");
+        const double adhesion_b = storage_ptr->meshgroup->getExtruderTrain(extruder_nr_b)->getSettingAsRatio("material_adhesion_tendency");
+        return adhesion_a < adhesion_b;
+    });
 }
 
 void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
@@ -29,8 +48,6 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     {
         return;
     }
-
-    extruder_count = storage.meshgroup->getExtruderCount();
 
     coord_t tower_size = storage.getSettingInMicrons("prime_tower_size");
     bool circular_prime_tower = storage.getSettingBoolean("prime_tower_circular");
@@ -80,7 +97,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
     EFillMethod first_layer_infill_method;
-    for (int extruder = 0; extruder < extruder_count; extruder++)
+    for (unsigned int extruder = 0; extruder < extruder_count; extruder++)
     {
         const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
         const coord_t wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");

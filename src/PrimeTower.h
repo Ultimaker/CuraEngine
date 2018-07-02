@@ -33,7 +33,8 @@ private:
         Polygons polygons;
         Polygons lines;
     };
-    int extruder_count; //!< Number of extruders
+    unsigned int extruder_count; //!< Number of extruders
+    std::vector<unsigned int> extruder_order; //!< In which order, from outside to inside, will we be printing the prime towers for maximum strength?
 
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
