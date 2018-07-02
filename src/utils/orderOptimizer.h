@@ -61,8 +61,8 @@ std::list<unsigned int> OrderOptimizer<T>::optimize(const Point layer_start_posi
 
     unsigned int starting_item_index = 0;
     int64_t closest_distance = vSize(start_point - items[0].first);
-    
-    // Find closes item index to starting point
+
+    // Find the closest item's index to the starting point
     for (unsigned int item_idx = 0; item_idx < items.size(); item_idx++)
     {
         Point first_point = items[item_idx].first;
@@ -76,7 +76,9 @@ std::list<unsigned int> OrderOptimizer<T>::optimize(const Point layer_start_posi
         }
     }
 
+    // Add first item to the order list
     order.push_front(starting_item_index);
+
     for (unsigned int item_idx = 0; item_idx < items.size(); item_idx++)
     {
         // skip the index because it was already added
@@ -108,8 +110,11 @@ std::list<unsigned int> OrderOptimizer<T>::optimize(const Point layer_start_posi
 
         order.insert(best_item_to_insert_before, item_idx);
     }
-    order.pop_back();
+
+    // Move the last item to the first position
+    order.pop_back(); // Remove item from the end, the start position at the end, but should be at the beginning
     order.push_front(starting_item_index);
+
     return order;
 }
 
