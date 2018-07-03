@@ -238,7 +238,7 @@ public:
     int z;
 
 private:
-    int layer_nr; //!< The layer number of this layer plan
+    const int layer_nr; //!< The layer number of this layer plan
     const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
     int layer_thickness;
