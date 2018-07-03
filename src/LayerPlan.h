@@ -63,9 +63,8 @@ protected:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
-public:
-    bool has_prime_tower_planned; //!< Whether a prime tower is planned for this extruder yet.
 
+public:
     /*!
      * Simple contructor.
      * 
@@ -245,7 +244,7 @@ private:
     int layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
-
+    std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
     /*!
