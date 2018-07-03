@@ -1024,7 +1024,13 @@ std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStarti
     std::vector<unsigned int> ret;
     ret.push_back(start_extruder);
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    
+
+    //The outermost prime tower extruder is always used if there is a prime tower.
+    if (getSettingBoolean("prime_tower_enable"))
+    {
+        extruder_is_used_on_this_layer[storage.primeTower.extruder_order[0]] = true;
+    }
+
     // check if we are on the first layer
     if ((getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
         || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
