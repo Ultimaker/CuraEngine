@@ -861,7 +861,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
 
     if (include_helper_parts)
     { // add prime tower if it hasn't already been added
-        // print the prime tower if it hasn't been printed yet
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
         addPrimeTower(storage, gcode_layer, prev_extruder);
     }
