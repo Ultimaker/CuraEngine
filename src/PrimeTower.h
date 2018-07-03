@@ -35,15 +35,6 @@ private:
     };
     unsigned int extruder_count; //!< Number of extruders
 
-    /*
-     * In which order, from outside to inside, will we be printing the prime
-     * towers for maximum strength?
-     *
-     * This is the spatial order from outside to inside. This is NOT the actual
-     * order in time in which they are printed.
-     */
-    std::vector<unsigned int> extruder_order;
-
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
 
@@ -55,6 +46,15 @@ private:
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     Polygons outer_poly; //!< The outline of the outermost prime tower.
+
+    /*
+     * In which order, from outside to inside, will we be printing the prime
+     * towers for maximum strength?
+     *
+     * This is the spatial order from outside to inside. This is NOT the actual
+     * order in time in which they are printed.
+     */
+    std::vector<unsigned int> extruder_order;
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how

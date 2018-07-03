@@ -2354,13 +2354,16 @@ double FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage
     return 90; //Perpendicular to support lines.
 }
 
-void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int extruder_nr) const
+void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
+    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    if (extruder_nr == -1 && static_cast<unsigned int>(extruder_nr) != outermost_prime_tower_extruder) // an object with extruder_nr==-1 means it will be printed with any current nozzle
+    {
         return;
+    }
 
-    int previous_extruder = gcode_layer.getExtruder();
-    if (previous_extruder == extruder_nr && !(extruder_nr == 0 && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage))) //No unnecessary switches, unless switching to extruder 0 for the outer shell of the prime tower.
+    const unsigned int previous_extruder = gcode_layer.getExtruder();
+    if (previous_extruder == static_cast<unsigned int>(extruder_nr) && !(static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage))) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
     {
         return;
     }
@@ -2390,7 +2393,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
-    if ((extruder_changed || extruder_nr == 0) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage)) //Always print a prime tower with extruder 0.
+    if ((extruder_changed || static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage)) //Always print a prime tower with outermost extruder.
     {
         addPrimeTower(storage, gcode_layer, previous_extruder);
     }
