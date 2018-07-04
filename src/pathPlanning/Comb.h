@@ -145,7 +145,7 @@ private:
      */
     bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& start_inside_poly);
 
-    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, LocToLineGrid* inside_loc_to_line, CombPath& comb_path_input, CombPath& comb_path_output);
+    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!
@@ -159,10 +159,11 @@ public:
      * \param comb_boundary_inside_minimum The minimum comb boundary within which to comb within layer parts.
      * \param offset_from_outlines The offset from the outline polygon, to create the combing boundary in case there is no second wall.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
+     * \param travel_avoid_supports Whether to avoid other layer supports when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param move_inside_distance When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_other_parts, coord_t travel_avoid_distance, coord_t move_inside_distance);
+    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance);
 
     ~Comb();
 

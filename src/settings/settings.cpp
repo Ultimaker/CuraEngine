@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
@@ -114,6 +116,21 @@ const std::string& SettingsBase::getSettingString(const std::string& key) const
     std::exit(-1);
     static std::string empty_string; // use static object rather than "" to avoid compilation warning
     return empty_string;
+}
+
+std::string SettingsBase::getAllLocalSettingsString() const
+{
+    std::stringstream sstream;
+    for (auto pair : setting_values)
+    {
+        if (!pair.second.empty())
+        {
+            char buffer[4096];
+            snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
+            sstream << buffer;
+        }
+    }
+    return sstream.str();
 }
 
 void SettingsMessenger::setSetting(std::string key, std::string value)
@@ -388,8 +405,6 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::TRIHEXAGON;
     if (value == "concentric")
         return EFillMethod::CONCENTRIC;
-    if (value == "concentric_3d")
-        return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
     if (value == "cross")
@@ -473,6 +488,23 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
         return FillPerimeterGapMode::EVERYWHERE;
     }
     return FillPerimeterGapMode::NOWHERE;
+}
+
+BuildPlateShape SettingsBaseVirtual::getSettingAsBuildPlateShape(const std::string& key) const
+{
+    const std::string& value = getSettingString(key);
+    if (value == "rectangular")
+    {
+        return BuildPlateShape::RECTANGULAR;
+    }
+    else if(value == "elliptic")
+    {
+        return BuildPlateShape::ELLIPTIC;
+    }
+    else
+    {
+        return BuildPlateShape::RECTANGULAR;
+    }
 }
 
 CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const

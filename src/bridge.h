@@ -2,11 +2,13 @@
 #ifndef BRIDGE_H
 #define BRIDGE_H
 
+#include "sliceDataStorage.h"
+
 namespace cura {
     class Polygons;
     class SliceLayer;
 
-int bridgeAngle(Polygons outline, const SliceLayer* prevLayer, Polygons& supportedRegions);
+int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions, const double support_threshold);
 
 }//namespace cura
 

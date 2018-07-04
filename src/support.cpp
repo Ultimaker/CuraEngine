@@ -1,10 +1,11 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
 #include <cmath> // round
+#include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -14,7 +15,10 @@
 
 #include "utils/math.h"
 #include "progress/Progress.h"
-#include "infill/SpaceFillingTreeFill.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
+
+#define TAU 6.283185307179586477
 
 namespace cura 
 {
@@ -63,15 +67,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     const coord_t support_line_width = infill_extr.getSettingInMicrons("support_line_width");
 
     // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    unsigned int wall_line_count = 0;  // no wall for zig zag.
-    if (support_pattern == EFillMethod::GRID
-        || support_pattern == EFillMethod::TRIANGLES
-        || support_pattern == EFillMethod::CONCENTRIC)
-    {
-        // for other patterns which require a wall, we will generate 2 insets.
-        // the first inset is the wall line, and the second inset is the infill area
-        wall_line_count = 1;
-    }
+    unsigned int wall_line_count = infill_extr.getSettingAsCount("support_wall_count");
 
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
@@ -79,7 +75,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         unsigned int wall_line_count_this_layer = wall_line_count;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
         { // the first layer will be printed wit ha grid pattern
-            wall_line_count_this_layer = 1;
+            wall_line_count_this_layer++;
         }
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
@@ -470,15 +466,73 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Polygons AreaSupport::join(const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
     {
+        //Don't go outside the build volume.
+        Polygons machine_volume_border;
+        switch (storage.getSettingAsBuildPlateShape("machine_shape"))
+        {
+            case BuildPlateShape::ELLIPTIC:
+            {
+                //Construct an ellipse to approximate the build volume.
+                const coord_t width = storage.machine_size.max.x - storage.machine_size.min.x;
+                const coord_t depth = storage.machine_size.max.y - storage.machine_size.min.y;
+                Polygon border_circle;
+                constexpr unsigned int circle_resolution = 50;
+                for (unsigned int i = 0; i < circle_resolution; i++)
+                {
+                    border_circle.emplace_back(storage.machine_size.getMiddle().x + cos(TAU * i / circle_resolution) * width / 2, storage.machine_size.getMiddle().y + sin(TAU * i / circle_resolution) * depth / 2);
+                }
+                machine_volume_border.add(border_circle);
+                break;
+            }
+            case BuildPlateShape::RECTANGULAR:
+            default:
+                machine_volume_border.add(storage.machine_size.flatten().toPolygon());
+                break;
+        }
+        coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
+        unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+        const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
+        coord_t extra_skirt_line_width = 0;
+        const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
+        for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+        {
+            if (extruder == adhesion_extruder_nr || !is_extruder_used[extruder]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            {
+                continue;
+            }
+            const ExtruderTrain* other_extruder = storage.meshgroup->getExtruderTrain(extruder);
+            extra_skirt_line_width += other_extruder->getSettingInMicrons("skirt_brim_line_width") * other_extruder->getSettingAsRatio("initial_layer_line_width_factor");
+        }
+        switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
+        {
+            case EPlatformAdhesion::BRIM:
+                adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("brim_line_count") + extra_skirt_line_width;
+                break;
+            case EPlatformAdhesion::RAFT:
+                adhesion_size = adhesion_extruder->getSettingInMicrons("raft_margin");
+                break;
+            case EPlatformAdhesion::SKIRT:
+                adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("skirt_line_count") + extra_skirt_line_width;
+                break;
+            case EPlatformAdhesion::NONE:
+                adhesion_size = 0;
+                break;
+            default: //Also use 0.
+                log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
+                break;
+        }
+        machine_volume_border = machine_volume_border.offset(-adhesion_size);
+
         Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth/2);
         Polygons small_parts = supportLayer_up.difference(insetted.offset(conical_smallest_breadth/2+20));
         joined = supportLayer_this.unionPolygons(supportLayer_up.offset(conical_support_offset))
-                                .unionPolygons(small_parts);
+                                  .unionPolygons(small_parts)
+                                  .intersection(machine_volume_border);
     }
     else 
     {
@@ -670,10 +724,20 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
-        for (unsigned int density_idx = 0; density_idx <= (unsigned int)infill_extr.getSettingAsCount("gradual_support_infill_steps"); ++density_idx)
+        
+        std::string cross_subdisivion_spec_image_file = infill_extr.getSettingString("cross_support_density_image");
+        std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+        if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            coord_t line_distance = infill_extr.getSettingInMicrons("support_line_distance") << density_idx;
-            storage.support.cross_fill_patterns.push_back(new SpaceFillingTreeFill(line_distance, aabb));
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"), cross_subdisivion_spec_image_file);
+        }
+        else
+        {
+            if(cross_subdisivion_spec_image_file != "")
+            {
+                logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
+            }
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"));
         }
     }
 }
@@ -882,7 +946,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
             constexpr int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
-            layer_this = AreaSupport::join(*layer_above, layer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         // make towers for small support

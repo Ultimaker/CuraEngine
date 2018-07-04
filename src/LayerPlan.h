@@ -303,11 +303,12 @@ public:
      * \param start_extruder The extruder with which this layer plan starts
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
+     * \param travel_avoid_supports Whether to avoid other layer supports when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, int64_t travel_avoid_distance);
     ~LayerPlan();
 
     void overrideFanSpeeds(double speed);
@@ -494,28 +495,9 @@ public:
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param reverse_order Adds polygons in reverse order
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
-
-    /*!
-     * Add polygons to the gcode with optimized order in reverse order.
-     * 
-     * When \p spiralize is true, each polygon will gradually increase from a z corresponding to this layer to the z corresponding to the next layer.
-     * Doing this for each polygon means there is a chance for the print head to crash into already printed parts,
-     * but doing it for the last polygon only would mean you are printing half of the layer in non-spiralize mode,
-     * while each layer starts with a different part.
-     * Two towers would result in alternating spiralize and non-spiralize layers.
-     * 
-     * \param polygons The polygons
-     * \param config The config with which to print the polygon lines
-     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
-     * \param z_seam_config Optional configuration for z-seam
-     * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
-     * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
-     * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
-     */
-    void addPolygonsByOptimizerReverse(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false, bool reverse_order = false);
 
     /*!
      * Add a single line that is part of a wall to the gcode.

@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MINIMUMSPANNINGTREE_H
@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "intpoint.h"
+#include "IntPoint.h"
 
 namespace cura
 {
