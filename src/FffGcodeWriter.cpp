@@ -1464,13 +1464,16 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
             Polygons outlines_below;
             AABB boundaryBox(part.outline);
-            for (auto m : storage.meshes)
+            for (const SliceMeshStorage& m : storage.meshes)
             {
-                for (auto prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
+                if (m.isPrinted())
                 {
-                    if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                    for (auto prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
                     {
-                        outlines_below.add(prevLayerPart.outline);
+                        if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                        {
+                            outlines_below.add(prevLayerPart.outline);
+                        }
                     }
                 }
             }
