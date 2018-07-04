@@ -682,7 +682,6 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     addTravel(p0, always_retract);
 
     float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
-    float non_bridge_line_volume = 0; // zero before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
