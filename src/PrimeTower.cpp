@@ -99,7 +99,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     {
         const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
         const coord_t required_volume = storage.meshgroup->getExtruderTrain(extruder)->getSettingInCubicMillimeters("prime_tower_min_volume") * 1000000000; //To cubic microns.
-        const double flow = storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("material_flow");
+        const double flow = storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("prime_tower_flow");
         coord_t current_volume = 0;
         patterns_per_extruder[extruder] = std::vector<ExtrusionMoves>(n_patterns);
         std::vector<ExtrusionMoves>& patterns = patterns_per_extruder[extruder];
