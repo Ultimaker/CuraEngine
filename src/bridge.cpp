@@ -18,7 +18,7 @@ int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, c
     {
         if (mesh.isPrinted())
         {
-            for (auto prev_layer_part : mesh.layers[layer_nr].parts)
+            for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr].parts)
             {
                 prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
 
@@ -55,7 +55,7 @@ int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, c
         }
         else
         {
-            for (auto support_part : support_layer->support_infill_parts)
+            for (const SupportInfillPart& support_part : support_layer->support_infill_parts)
             {
                 AABB support_part_bb(support_part.getInfillArea());
                 if (boundary_box.hit(support_part_bb))

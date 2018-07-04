@@ -1467,7 +1467,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             {
                 if (m.isPrinted())
                 {
-                    for (auto prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
+                    for (const SliceLayerPart& prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
                     {
                         if (boundaryBox.hit(prevLayerPart.boundaryBox))
                         {
@@ -1500,7 +1500,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     }
                     else
                     {
-                        for (auto support_part : support_layer.support_infill_parts)
+                        for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
                         {
                             AABB support_part_bb(support_part.getInfillArea());
                             if (boundaryBox.hit(support_part_bb))
@@ -1885,9 +1885,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
         if (bridge_layer > 1)
         {
-            for (auto layer_part : mesh.layers[layer_nr - (bridge_layer - 1)].parts)
+            for (const SliceLayerPart& layer_part : mesh.layers[layer_nr - (bridge_layer - 1)].parts)
             {
-                for (auto other_skin_part : layer_part.skin_parts)
+                for (const SkinPart& other_skin_part : layer_part.skin_parts)
                 {
                     if (PolygonUtils::polygonsIntersect(skin_part.outline.outerPolygon(), other_skin_part.outline.outerPolygon()))
                     {
