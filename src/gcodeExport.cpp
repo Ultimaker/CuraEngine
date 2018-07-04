@@ -203,7 +203,23 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         }
         else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN)
         {
-            prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
+            prefix << ";Filament used: ";
+            if (filament_used.size() > 0)
+            {
+                for (unsigned i = 0; i < filament_used.size(); ++i)
+                {
+                    if (i > 0)
+                    {
+                        prefix << ", ";
+                    }
+                    prefix << filament_used[i] / (1000 * extruder_attr[i].filament_area) << "m";
+                }
+            }
+            else
+            {
+                prefix << "0m";
+            }
+            prefix << new_line;
             prefix << ";Layer height: " << layer_height << new_line;
         }
     }
@@ -740,7 +756,8 @@ void GCodeExport::writeUnretractionAndPrime()
             //Assume default UM2 retraction settings.
             if (prime_volume != 0)
             {
-                *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+                const double output_e = (relative_extrusion)? prime_volume_e : current_e_value;
+                *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attr[current_extruder].last_retraction_prime_speed * 60} << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, output_e} << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             }
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0, PrintFeatureType::MoveRetraction);

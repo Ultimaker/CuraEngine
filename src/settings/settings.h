@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
 
@@ -117,7 +119,6 @@ enum class EFillMethod
     TRIANGLES,
     TRIHEXAGON,
     CONCENTRIC,
-    CONCENTRIC_3D,
     ZIG_ZAG,
     CROSS,
     CROSS_3D,
@@ -172,6 +173,12 @@ enum class FillPerimeterGapMode
 {
     NOWHERE,
     EVERYWHERE
+};
+
+enum class BuildPlateShape
+{
+    RECTANGULAR,
+    ELLIPTIC
 };
 
 enum class CombingMode
@@ -284,6 +291,7 @@ public:
     EZSeamCornerPrefType getSettingAsZSeamCornerPrefType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
+    BuildPlateShape getSettingAsBuildPlateShape(const std::string& key) const;
     CombingMode getSettingAsCombingMode(std::string key) const;
     SupportDistPriority getSettingAsSupportDistPriority(std::string key) const;
     SlicingTolerance getSettingAsSlicingTolerance(std::string key) const;
@@ -320,20 +328,15 @@ public:
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     const std::string& getSettingString(const std::string& key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
-    
-    std::string getAllLocalSettingsString() const
-    {
-        std::stringstream sstream;
-        for (auto pair : setting_values)
-        {
-            if (!pair.second.empty())
-            {
-                sstream << " -s " << pair.first << "=\"" << Escaped{pair.second.c_str()} << '\"';
-            }
-        }
-        return sstream.str();
-    }
-    
+
+    /*!
+     * Format a string that contains all settings and their values similar to a
+     * command to call CuraEngine with via CLI.
+     *
+     * \return A string containing all local settings and their values.
+     */
+    std::string getAllLocalSettingsString() const;
+
     void debugOutputAllLocalSettings()  const
     {
         for (auto pair : setting_values)

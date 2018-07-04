@@ -207,7 +207,7 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
 {
     Point ret(0, 0);
     int absolute_starting_points = 0;
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
         if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
@@ -222,11 +222,7 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
     }
     else
     { // use the middle of the bed
-        if (!storage.getSettingBoolean("machine_center_is_zero"))
-        {
-            ret = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
-        }
-        // otherwise keep (0, 0)
+        ret = storage.machine_size.flatten().getMiddle();
     }
     return ret;
 }
@@ -235,7 +231,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
 {
     wipe_from_middle = is_hollow;
     // only wipe from the middle of the prime tower if we have a z hop already on the first move after the layer switch
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
         wipe_from_middle &= train.getSettingBoolean("retraction_hop_enabled") 

@@ -1,11 +1,11 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "sliceDataStorage.h"
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
 #include "infill/SubDivCube.h" // For the destructor
-#include "infill/SpaceFillingTreeFill.h" // for destructor
+#include "infill/DensityProvider.h" // for destructor
 
 
 namespace cura
@@ -14,18 +14,17 @@ namespace cura
 SupportStorage::SupportStorage()
 : generated(false)
 , layer_nr_max_filled_layer(-1)
-, cross_fill_patterns()
+, cross_fill_provider(nullptr)
 {
 }
 
 SupportStorage::~SupportStorage()
 {
-    supportLayers.clear();
-    for(SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
+    supportLayers.clear(); 
+    if (cross_fill_provider)
     {
-        delete cross_fill_pattern;
+        delete cross_fill_provider;
     }
-    cross_fill_patterns.clear();
 }
 
 Polygons& SliceLayerPart::getOwnInfillArea()
@@ -103,12 +102,13 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
     }
 }
 
-SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count)
 : SettingsMessenger(mesh)
+, p_slice_data_storage(p_slice_data_storage)
 , layer_nr_max_filled_layer(0)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
-, cross_fill_patterns()
+, cross_fill_provider(nullptr)
 {
     layers.resize(slice_layer_count);
 }
@@ -119,11 +119,10 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
-    for (SpaceFillingTreeFill* cross_fill_pattern : cross_fill_patterns)
+    if (cross_fill_provider)
     {
-        delete cross_fill_pattern;
+        delete cross_fill_provider;
     }
-    cross_fill_patterns.clear();
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
@@ -303,6 +302,15 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     max_print_height_second_to_last_extruder(-1),
     primeTower(*this)
 {
+    Point3 machine_max(getSettingInMicrons("machine_width"), getSettingInMicrons("machine_depth"), getSettingInMicrons("machine_height"));
+    Point3 machine_min(0, 0, 0);
+    if (getSettingBoolean("machine_center_is_zero"))
+    {
+        machine_max /= 2;
+        machine_min -= machine_max;
+    }
+    machine_size.include(machine_min);
+    machine_size.include(machine_max);
 }
 
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
@@ -434,7 +442,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            for (unsigned int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
             {
                 if (skirt_brim[extr_nr].size() > 0)
                 {
@@ -508,7 +516,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            for (unsigned int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
             {
                 if (skirt_brim[extr_nr].size() > 0)
                 {
@@ -565,7 +573,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     return ret;
 }
 
-bool SliceDataStorage::getExtruderPrimeBlobEnabled(int extruder_nr) const
+bool SliceDataStorage::getExtruderPrimeBlobEnabled(const unsigned int extruder_nr) const
 {
     if (extruder_nr >= meshgroup->getExtruderCount())
     {

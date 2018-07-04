@@ -54,6 +54,15 @@ public:
      */
     static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
 
+    /*!
+     * Limit the infill areas to places where they support internal overhangs.
+     * 
+     * This function uses the part.infill_area and part.infill_area_own
+     * and computes a new part.infill_area_own
+     * 
+     * \param mesh The mesh for which to recalculate the infill areas
+     */
+    static void generateInfillSupport(SliceMeshStorage& mesh);
 protected:
     /*!
      * Generate the skin areas (outlines) and the infill areas

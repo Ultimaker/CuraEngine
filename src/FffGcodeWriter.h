@@ -233,7 +233,7 @@ private:
      * 
      * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const;
+    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, unsigned int extruder_nr) const;
 
     /*!
      * Plan priming of all used extruders which haven't been primed yet

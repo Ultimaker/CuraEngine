@@ -1,10 +1,12 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SETTINGS_PATH_CONFIGS_H
 #define SETTINGS_PATH_CONFIGS_H
 
 #include <vector>
 
-#include "../utils/intpoint.h" // coord_t
+#include "../utils/IntPoint.h" // coord_t
 #include "../GCodePathConfig.h"
 
 namespace cura

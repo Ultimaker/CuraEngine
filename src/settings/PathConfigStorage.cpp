@@ -11,7 +11,7 @@ namespace cura
 std::vector<double> PathConfigStorage::getLineWidthFactorPerExtruder(const SliceDataStorage& storage, int layer_nr)
 {
     std::vector<double> ret;
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         if (layer_nr <= 0)
         {
@@ -132,13 +132,24 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 , perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness, layer_nr))
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
+
+    double flow = (layer_nr == 0) ? mesh.getSettingInPercentage("material_flow_layer_0") : mesh.getSettingInPercentage("material_flow");
+
+    // Use the infill extruder's settings for the infill config if specified
+    const int infill_extruder_nr = mesh.getSettingAsIndex("infill_extruder_nr");
+    if (infill_extruder_nr != -1)
+    {
+        const ExtruderTrain* infill_extruder_train = mesh.p_slice_data_storage->meshgroup->getExtruderTrain(infill_extruder_nr);
+        flow = (layer_nr == 0) ? infill_extruder_train->getSettingInPercentage("material_flow_layer_0") : infill_extruder_train->getSettingInPercentage("material_flow");
+    }
+
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         infill_config.emplace_back(
                 PrintFeatureType::Infill
                 , mesh.getSettingInMicrons("infill_line_width") * (combine_idx + 1) * line_width_factor_per_extruder[mesh.getSettingAsExtruderNr("infill_extruder_nr")]
                 , layer_thickness
-                , (layer_nr == 0)? mesh.getSettingInPercentage("material_flow_layer_0") : mesh.getSettingInPercentage("material_flow")
+                , flow
                 , GCodePathConfig::SpeedDerivatives{mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill")}
             );
     }
@@ -266,7 +277,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
 {
     std::vector<GCodePathConfig::SpeedDerivatives> global_first_layer_config_per_extruder;
     global_first_layer_config_per_extruder.reserve(storage.meshgroup->getExtruderCount());
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         const ExtruderTrain* extruder = storage.meshgroup->getExtruderTrain(extruder_nr);
         global_first_layer_config_per_extruder.emplace_back(
@@ -297,7 +308,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
     }
 
     { // extruder configs: travel, skirt/brim (= shield)
-        for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
+        for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
             const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
             GCodePathConfig::SpeedDerivatives initial_layer_travel_speed_config{

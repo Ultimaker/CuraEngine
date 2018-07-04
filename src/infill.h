@@ -1,5 +1,4 @@
-//Copyright (c) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INFILL_H
@@ -10,8 +9,8 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"
-#include "infill/SpaceFillingTreeFill.h"
-#include "utils/intpoint.h"
+#include "infill/DensityProvider.h"
+#include "utils/IntPoint.h"
 #include "utils/AABB.h"
 
 namespace cura
@@ -37,7 +36,6 @@ class Infill
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
     int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
-    bool apply_pockets_alternatingly; //!< Whether to add pockets to the cross 3d pattern only at half the intersections of the fractal
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     coord_t minimum_zag_line_length; //!< Throw away perimeters that are too small
 
@@ -54,20 +52,19 @@ public:
     Infill(EFillMethod pattern
         , bool zig_zaggify
         , const Polygons& in_outline
-        , int outline_offset
-        , int infill_line_width
-        , int line_distance
-        , int infill_overlap
+        , coord_t outline_offset
+        , coord_t infill_line_width
+        , coord_t line_distance
+        , coord_t infill_overlap
         , double fill_angle
-        , int64_t z
-        , int64_t shift
+        , coord_t z
+        , coord_t shift
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
         , int zag_skip_count = 0
-        , bool apply_pockets_alternatingly = false
         , coord_t pocket_size = 0
         , coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD
     )
@@ -87,7 +84,6 @@ public:
     , use_endpieces(use_endpieces)
     , skip_some_zags(skip_some_zags)
     , zag_skip_count(zag_skip_count)
-    , apply_pockets_alternatingly(apply_pockets_alternatingly)
     , pocket_size(pocket_size)
     , minimum_zag_line_length(minimum_zag_line_length)
     {
@@ -99,9 +95,9 @@ public:
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
-     * \param[in] cross_fill_pattern Where the cross fractal precomputation is stored
+     * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, const SpaceFillingTreeFill* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     struct InfillLineSegment
@@ -216,12 +212,6 @@ private:
     void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
 
     /*!
-     * Generate sparse concentric infill 
-     * \param[out] result (output) The resulting lines
-     */
-    void generateConcentric3DInfill(Polygons& result);
-
-    /*!
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
@@ -276,11 +266,11 @@ private:
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
-     * \param[in] cross_fill_pattern Where the cross fractal precomputation is stored
+     * \param[in] cross_fill_provider Where the cross fractal precomputation is stored
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const SpaceFillingTreeFill& cross_fill_pattern, Polygons& result_polygons, Polygons& result_lines);
+    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

@@ -8,7 +8,7 @@ namespace cura {
     class Polygons;
     class SliceLayer;
 
-int bridgeAngle(const Polygons& skinOutline, const SliceLayer* prevLayer, const SupportLayer* supportLayer, Polygons& supportedRegions, const double supportThreshold);
+int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions, const double support_threshold);
 
 }//namespace cura
 

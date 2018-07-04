@@ -10,7 +10,8 @@ namespace cura
 
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, const bool outside_only, Polygons& first_layer_outline)
 {
-    bool external_only = is_skirt; // whether to include holes or not
+    bool external_only = is_skirt || outside_only; // whether to include holes or not
+                                                   // when it's brim and outside only, also do not include any holes
     const int layer_nr = 0;
     if (is_skirt)
     {
@@ -24,7 +25,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
-        if (outside_only)
+        if (external_only)
         {
             first_layer_empty_holes = first_layer_outline.getEmptyHoles();
             first_layer_outline = first_layer_outline.removeEmptyHoles();
@@ -39,7 +40,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             //  |+-+|     |+--+|
             //  +---+     +----+ 
             Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
-            if (outside_only)
+            if (external_only)
             { // don't remove support within empty holes where no brim is generated.
                 model_brim_covered_area.add(first_layer_empty_holes);
             }
@@ -104,7 +105,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 {
     const bool is_skirt = start_distance > 0;
 
-    const int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+    const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
     const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
     const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor");
     const int64_t primary_extruder_minimal_length = adhesion_extruder->getSettingInMicrons("skirt_brim_minimal_length");
@@ -181,7 +182,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-        for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+        for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
             if (extruder == adhesion_extruder_nr || !extruder_is_used[extruder])
             {

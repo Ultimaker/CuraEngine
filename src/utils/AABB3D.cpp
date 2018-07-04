@@ -4,6 +4,8 @@
 
 #include <limits>
 
+#include "AABB.h"
+
 namespace cura
 {
 
@@ -87,7 +89,6 @@ void AABB3D::expandXY(int outset)
         *this = AABB3D();
     }
 }
-
 
 }//namespace cura
 

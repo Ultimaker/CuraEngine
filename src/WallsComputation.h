@@ -42,12 +42,6 @@ public:
     bool remove_parts_with_no_insets;
 
     /*!
-     * Whether or not to try multiple line widths to get a better fit of the
-     * line in the allotted space.
-     */
-    bool try_line_thickness;
-
-    /*!
      * Basic constructor initializing the parameters with which to perform the
      * walls computation.
      * 
@@ -60,10 +54,8 @@ public:
      * wall.
      * \param remove_parts_with_no_insets Whether to remove parts if they get no
      * single inset.
-     * \param try_line_thickness Whether to try reducing line thickness if that
-     * would make a line fit better in the space.
      */
-    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets, bool try_line_thickness);
+    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
