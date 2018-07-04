@@ -105,7 +105,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 {
     const bool is_skirt = start_distance > 0;
 
-    const int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+    const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
     const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
     const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor");
     const int64_t primary_extruder_minimal_length = adhesion_extruder->getSettingInMicrons("skirt_brim_minimal_length");
@@ -182,7 +182,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-        for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+        for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
             if (extruder == adhesion_extruder_nr || !extruder_is_used[extruder])
             {

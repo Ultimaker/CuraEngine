@@ -260,7 +260,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
 {
-    for (int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    for (unsigned int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
     {
         fan_speed_layer_time_settings_per_extruder.emplace_back();
         FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder.back();
@@ -283,7 +283,7 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
 {
-    for (int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    for (unsigned int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
     {
         storage.coasting_config.emplace_back();
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
@@ -772,7 +772,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     bool avoid_supports = false;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-    for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
+    for (unsigned int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
         if (extruder_is_used[extr_nr])
         {
@@ -868,7 +868,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     return gcode_layer;
 }
 
-bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const
+bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, unsigned int extruder_nr) const
 {
     bool need_prime_blob = false;
     switch (gcode.getFlavor())
@@ -1075,38 +1075,17 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }
-    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
-    std::list<unsigned int>::iterator starting_mesh_idx_it = mesh_indices_order.end();
-    { // calculate starting_mesh_it
-        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-        const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
-        coord_t best_dist2 = std::numeric_limits<coord_t>::max();
-        for (std::list<unsigned int>::iterator mesh_it = mesh_indices_order.begin(); mesh_it != mesh_indices_order.end(); ++mesh_it)
-        {
-            const unsigned int mesh_idx = *mesh_it;
-            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-            const Point3 middle3 = mesh.getAABB().getMiddle();
-            const Point middle(middle3.x, middle3.y);
-            const coord_t dist2 = vSize2(middle - layer_start_position);
-            if (dist2 < best_dist2)
-            {
-                best_dist2 = dist2;
-                starting_mesh_idx_it = mesh_it;
-            }
-        }
-    }
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
+    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
+
     std::vector<unsigned int> ret;
     ret.reserve(mesh_indices_order.size());
-    for (unsigned int mesh_order_nr = 0; mesh_order_nr < mesh_indices_order.size(); mesh_order_nr++)
+
+    for(unsigned i: mesh_indices_order)
     {
-        if (starting_mesh_idx_it == mesh_indices_order.end())
-        {
-            starting_mesh_idx_it = mesh_indices_order.begin();
-        }
-        unsigned int mesh_order_idx = *starting_mesh_idx_it;
-        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
+        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[i].second;
         ret.push_back(mesh_idx);
-        ++starting_mesh_idx_it;
     }
     return ret;
 }
@@ -1489,11 +1468,14 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
             Polygons outlines_below;
             AABB boundaryBox(part.outline);
-            for(auto prevLayerPart : mesh.layers[gcode_layer.getLayerNr() - 1].parts)
+            for (auto m : storage.meshes)
             {
-                if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                for (auto prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
                 {
-                    outlines_below.add(prevLayerPart.outline);
+                    if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                    {
+                        outlines_below.add(prevLayerPart.outline);
+                    }
                 }
             }
 
@@ -1804,7 +1786,7 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                gcode_layer.addPolygonsByOptimizer(skin_perimeter, mesh_config.skin_config); // add polygons to gcode in inward order
+                gcode_layer.addWalls(skin_perimeter, mesh_config.skin_config, mesh_config.bridge_skin_config, nullptr); // add polygons to gcode in inward order
             }
         }
     }
@@ -1866,74 +1848,123 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     }
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
-    int bridge = -1;
-    bool use_bridge_config = false;
-    bool use_bridge_config2 = false;
-    bool use_bridge_config3 = false;
+    const GCodePathConfig* skin_config = &mesh_config.skin_config;
     double skin_density = 1.0;
     coord_t skin_overlap = mesh.getSettingInMicrons("skin_overlap_mm");
-    Polygons supportedSkinPartRegions;
+    const coord_t more_skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)); // force a minimum amount of skin_overlap
+    const bool bridge_settings_enabled = mesh.getSettingBoolean("bridge_settings_enabled");
+    const double support_threshold = bridge_settings_enabled ? mesh.getSettingAsRatio("bridge_skin_support_threshold") : 0;
+    const int bottom_layers = mesh.getSettingAsCount("bottom_layers");
 
-    // calculate bridging angle
+    // if support is enabled, consider the support outlines so we don't generate bridges over support
+
+    int support_layer_nr = -1;
+    const SupportLayer* support_layer = nullptr;
+
+    if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
+    {
+        const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+        const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+        const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+        support_layer_nr = layer_nr - z_distance_top_layers;
+    }
+
+    // helper function that detects skin regions that have no support and modifies their print settings (config, line angle, density, etc.)
+
+    auto handle_bridge_skin = [&](const int bridge_layer, const GCodePathConfig* config, const float density) // bridge_layer = 1, 2 or 3
+    {
+        if (support_layer_nr >= (bridge_layer - 1))
+        {
+            support_layer = &storage.support.supportLayers[support_layer_nr - (bridge_layer - 1)];
+        }
+
+        // for upper bridge skins, outline used is union of current skin part and those skin parts from the 1st bridge layer that overlap the curent skin part
+
+        // this is done because if we only use skin_part.outline for this layer and that outline is different (i.e. smaller) than
+        // the skin outline used to compute the bridge angle for the first skin, the angle computed for this (second) skin could
+        // be different and we would prefer it to be the same as computed for the first bridge layer
+        Polygons skin_outline(skin_part.outline);
+
+        if (bridge_layer > 1)
+        {
+            for (auto layer_part : mesh.layers[layer_nr - (bridge_layer - 1)].parts)
+            {
+                for (auto other_skin_part : layer_part.skin_parts)
+                {
+                    if (PolygonUtils::polygonsIntersect(skin_part.outline.outerPolygon(), other_skin_part.outline.outerPolygon()))
+                    {
+                        skin_outline = skin_outline.unionPolygons(other_skin_part.outline);
+                    }
+                }
+            }
+        }
+
+        Polygons supported_skin_part_regions;
+
+        int angle = bridgeAngle(skin_part.outline, storage, layer_nr - bridge_layer, support_layer, supported_skin_part_regions, support_threshold);
+
+        if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
+        {
+            if (angle > -1)
+            {
+                switch (bridge_layer)
+                {
+                    default:
+                    case 1:
+                        skin_angle = angle;
+                        break;
+
+                    case 2:
+                        if (bottom_layers > 2)
+                        {
+                            // orientate second bridge skin at +45 deg to first
+                            skin_angle = (angle + 45) % 360;
+                        }
+                        else
+                        {
+                            // orientate second bridge skin at 90 deg to first
+                            skin_angle = (angle + 90) % 360;
+                        }
+                        break;
+
+                    case 3:
+                        // orientate third bridge skin at 135 (same result as -45) deg to first
+                        skin_angle = (angle + 135) % 360;
+                        break;
+                }
+            }
+            pattern = EFillMethod::LINES; // force lines pattern when bridging
+            if (bridge_settings_enabled)
+            {
+                skin_config = config;
+                skin_overlap = more_skin_overlap;
+                skin_density = density;
+            }
+            return true;
+        }
+
+        return false;
+    };
+
+    bool is_bridge_skin = false;
     if (layer_nr > 0)
     {
-        bridge = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 1], supportedSkinPartRegions);
+        is_bridge_skin = handle_bridge_skin(1, &mesh_config.bridge_skin_config, mesh.getSettingAsRatio("bridge_skin_density"));
     }
-    if (bridge > -1)
+    if (bridge_settings_enabled && !is_bridge_skin && layer_nr > 1 && bottom_layers > 1)
     {
-        pattern = EFillMethod::LINES; // force lines pattern when bridging
-        skin_angle = bridge;
-        use_bridge_config = mesh.getSettingBoolean("bridge_settings_enabled");
-        if (use_bridge_config)
+        is_bridge_skin = handle_bridge_skin(2, &mesh_config.bridge_skin_config2, mesh.getSettingAsRatio("bridge_skin_density_2"));
+
+        if (!is_bridge_skin && layer_nr > 2 && bottom_layers > 2)
         {
-            skin_density = mesh.getSettingInPercentage("bridge_skin_density")  / 100;
-        }
-    }
-    else if (layer_nr > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
-    {
-        // if the fraction of the skin that is supported is less than the required threshold, print using bridge skin settings
-        if ((supportedSkinPartRegions.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
-        {
-            pattern = EFillMethod::LINES; // force lines pattern when bridging
-            use_bridge_config = true;
-        }
-        else if (layer_nr > 1 && mesh.getSettingBoolean("bridge_enable_more_layers"))
-        {
-            // if this is the second bridge layer use bridge_skin_config2
-            Polygons supportedSkinPartRegions2;
-            int bridge2 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 2], supportedSkinPartRegions2);
-            if (bridge2 > -1 || (supportedSkinPartRegions2.area() / (skin_part.outline.area() + 1) < mesh.getSettingInPercentage("bridge_skin_support_threshold") / 100))
-            {
-                if (bridge2 > -1)
-                {
-                    // orientate second bridge skin at 90 deg to first
-                    skin_angle = (bridge2 + 90) % 360;
-                }
-                use_bridge_config2 = true;
-                pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
-                skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)); // force a minimum amount of skin_overlap
-                skin_density = mesh.getSettingInPercentage("bridge_skin_density_2") / 100;
-            }
-            else if (layer_nr > 2)
-            {
-                // if this is the third bridge layer, use the same skin_angle as the first
-                Polygons supportedSkinPartRegions3;
-                int bridge3 = bridgeAngle(skin_part.outline, &mesh.layers[layer_nr - 3], supportedSkinPartRegions3);
-                if (bridge3 > -1)
-                {
-                    skin_angle = bridge3;
-                    pattern = EFillMethod::LINES; // force lines pattern on upper bridge skins
-                    skin_density = mesh.getSettingInPercentage("bridge_skin_density_3") / 100;
-                    use_bridge_config3 = true;
-                }
-            }
+            is_bridge_skin = handle_bridge_skin(3, &mesh_config.bridge_skin_config3, mesh.getSettingAsRatio("bridge_skin_density_3"));
         }
     }
 
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, (use_bridge_config3) ? mesh_config.bridge_skin_config3 : (use_bridge_config2) ? mesh_config.bridge_skin_config2 : (use_bridge_config) ? mesh_config.bridge_skin_config : mesh_config.skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something) const
@@ -2089,7 +2120,14 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const int extruder_nr = (gcode_layer.getLayerNr() <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(extruder_nr);
 
-    const coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
+    coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
+    
+    // To improve adhesion for the "support initial layer" the first layer might have different properties
+    if(gcode_layer.getLayerNr() == 0)
+    {
+        default_support_line_distance = infill_extruder.getSettingInMicrons("support_initial_layer_line_distance"); 
+    }
+
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
     const double support_infill_angle = 0;
     coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
@@ -2434,7 +2472,7 @@ void FffGcodeWriter::finalize()
     else
     {
         log("Gcode header after slicing:\n");
-        log(prefix.c_str());
+        log("%s", prefix.c_str());
         log("End of gcode header.\n");
     }
     if (getSettingBoolean("acceleration_enabled"))

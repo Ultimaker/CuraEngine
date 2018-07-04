@@ -192,7 +192,7 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
 {
     Point ret(0, 0);
     int absolute_starting_points = 0;
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
         if (train.getSettingBoolean("machine_extruder_start_pos_abs"))

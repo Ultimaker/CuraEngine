@@ -34,7 +34,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
         sstream << " --next";
     }
     sstream << meshgroup.getAllLocalSettingsString();
-    for (int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
     {
         ExtruderTrain* train = meshgroup.getExtruderTrain(extruder_nr);
         sstream << " -e" << extruder_nr << train->getAllLocalSettingsString();
@@ -50,7 +50,10 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
 
 bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
 {
-    if (SHOW_ALL_SETTINGS) { logWarning(getAllSettingsString(*meshgroup, meshgroup_number == 0).c_str()); }
+    if (SHOW_ALL_SETTINGS)
+    {
+        logWarning("%s", getAllSettingsString(*meshgroup, meshgroup_number == 0).c_str());
+    }
     time_keeper.restart();
     if (!meshgroup)
         return false;
