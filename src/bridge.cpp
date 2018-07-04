@@ -16,14 +16,17 @@ int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, c
     // include parts from all meshes
     for (auto mesh : storage.meshes)
     {
-        for (auto prev_layer_part : mesh.layers[layer_nr].parts)
+        if (mesh.isPrinted())
         {
-            prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
+            for (auto prev_layer_part : mesh.layers[layer_nr].parts)
+            {
+                prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
 
-            if (!boundary_box.hit(prev_layer_part.boundaryBox))
-                continue;
+                if (!boundary_box.hit(prev_layer_part.boundaryBox))
+                    continue;
 
-            islands.add(skin_outline.intersection(prev_layer_part.outline));
+                islands.add(skin_outline.intersection(prev_layer_part.outline));
+            }
         }
     }
     supported_regions = islands;
