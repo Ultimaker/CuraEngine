@@ -14,7 +14,7 @@ int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, c
     Polygons prev_layer_outline; // we also want the complete outline of the previous layer
 
     // include parts from all meshes
-    for (auto mesh : storage.meshes)
+    for (const SliceMeshStorage& mesh : storage.meshes)
     {
         if (mesh.isPrinted())
         {
