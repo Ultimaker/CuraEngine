@@ -89,21 +89,17 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 {
-    constexpr int n_patterns = 2; // alternating patterns between layers
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    pattern_per_extruder.resize(extruder_count);
 
-    patterns_per_extruder.resize(extruder_order.size());
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
-    coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
     for (unsigned int extruder : extruder_order)
     {
         const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
         const coord_t required_volume = storage.meshgroup->getExtruderTrain(extruder)->getSettingInCubicMillimeters("prime_tower_min_volume") * 1000000000; //To cubic microns.
         const double flow = storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("prime_tower_flow");
         coord_t current_volume = 0;
-        patterns_per_extruder[extruder] = std::vector<ExtrusionMoves>(n_patterns);
-        std::vector<ExtrusionMoves>& patterns = patterns_per_extruder[extruder];
-        patterns.resize(n_patterns);
+        ExtrusionMoves& pattern = pattern_per_extruder[extruder];
 
         //Create the walls of the prime tower.
         unsigned int wall_nr = 0;
@@ -113,10 +109,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             //The polygon is copied in the n_patterns, since printing walls
             //will be the same in each layer.
             Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
-            for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
-            {
-                patterns[pattern_idx].polygons.add(polygons);
-            }
+            pattern.polygons.add(polygons);
             current_volume += polygons.polygonLength() * line_width * layer_height * flow;
             if (polygons.empty()) //Don't continue. We won't ever reach the required volume because it doesn't fit.
             {
@@ -124,22 +117,25 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             }
         }
         cumulative_inset += wall_nr * line_width;
+
+        //Generate the pattern for the first layer.
         coord_t line_width_layer0 = line_width;
         if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
         {
             line_width_layer0 *= storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("initial_layer_line_width_factor");
         }
         pattern_per_extruder_layer0.emplace_back();
-        ExtrusionMoves& pattern = pattern_per_extruder_layer0.back();
-        pattern.polygons = outer_poly.offset(-line_width_layer0 / 2);
+        ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
+        pattern_layer0.polygons = outer_poly.offset(-line_width_layer0 / 2);
         const coord_t outline_offset = -line_width_layer0;
         const coord_t line_distance = line_width_layer0;
         constexpr double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
         constexpr coord_t extra_infill_shift = 0;
         constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
+        constexpr coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
         Infill infill_comp(EFillMethod::CONCENTRIC, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-        infill_comp.generate(pattern.polygons, pattern.lines);
+        infill_comp.generate(pattern_layer0.polygons, pattern_layer0.lines);
     }
 }
 
@@ -184,7 +180,7 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPl
 {
     const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount(storage))
         ? pattern_per_extruder_layer0[extruder_nr]
-        : patterns_per_extruder[extruder_nr][((gcode_layer.getLayerNr() % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+        : pattern_per_extruder[extruder_nr];
 
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 

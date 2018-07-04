@@ -40,7 +40,7 @@ private:
 
     Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
 
-    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< For each extruder a vector of patterns to alternate between, over the layers
+    std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
 
 public:
