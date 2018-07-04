@@ -90,15 +90,11 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 {
     constexpr int n_patterns = 2; // alternating patterns between layers
-    constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
-    constexpr coord_t extra_infill_shift = 0;
-    const coord_t tower_size = storage.getSettingInMicrons("prime_tower_size");
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
 
     patterns_per_extruder.resize(extruder_order.size());
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
-    EFillMethod first_layer_infill_method;
     for (unsigned int extruder : extruder_order)
     {
         const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
@@ -109,54 +105,25 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         std::vector<ExtrusionMoves>& patterns = patterns_per_extruder[extruder];
         patterns.resize(n_patterns);
 
-        // If the prime tower is circular, instead of creating a concentric infill in the normal layers, the tower is
-        // built as walls, in order to keep always the same direction while printing
-        if (storage.getSettingBoolean("prime_tower_circular"))
+        //Create the walls of the prime tower.
+        unsigned int wall_nr = 0;
+        for (; current_volume < required_volume; wall_nr++)
         {
-            first_layer_infill_method = EFillMethod::CONCENTRIC;
-            unsigned int wall_nr = 0;
-            for (; current_volume < required_volume; wall_nr++)
-            {
-                //Create a new polygon with an offset from the outer polygon.
-                //The polygon is copied in the n_patterns, since printing walls
-                //will be the same in each layer.
-                Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
-                for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
-                {
-                    patterns[pattern_idx].polygons.add(polygons);
-                }
-                current_volume += polygons.polygonLength() * line_width * layer_height * flow;
-                if (polygons.empty()) //Don't continue. We won't ever reach the required volume because it doesn't fit.
-                {
-                    break;
-                }
-            }
-            cumulative_inset += wall_nr * line_width;
-        }
-        else
-        {
-            const coord_t wall_thickness = 2 * line_width; //TODO: This is hard-coded. Make it dynamic for this pattern too.
-            first_layer_infill_method = EFillMethod::LINES;
+            //Create a new polygon with an offset from the outer polygon.
+            //The polygon is copied in the n_patterns, since printing walls
+            //will be the same in each layer.
+            Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
             for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
             {
-                Polygons polygons = outer_poly.offset(-cumulative_inset - line_width / 2);
-                if ((wall_thickness + cumulative_inset) * 2 < tower_size)
-                {
-                    polygons = polygons.difference(polygons.offset(-wall_thickness));
-                }
-                patterns[pattern_idx].polygons = polygons;
-                Polygons& result_lines = patterns[pattern_idx].lines;
-                const coord_t outline_offset = -line_width / 2;
-                const coord_t line_distance = line_width;
-                const double fill_angle = 45 + pattern_idx * 90;
-                Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
-                constexpr bool zig_zaggify_infill = false;
-                Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, polygons, outline_offset, line_width,
-                                   line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-                infill_comp.generate(result_polygons, result_lines);
+                patterns[pattern_idx].polygons.add(polygons);
             }
-            cumulative_inset += wall_thickness;
+            current_volume += polygons.polygonLength() * line_width * layer_height * flow;
+            if (polygons.empty()) //Don't continue. We won't ever reach the required volume because it doesn't fit.
+            {
+                break;
+            }
         }
+        cumulative_inset += wall_nr * line_width;
         coord_t line_width_layer0 = line_width;
         if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
         {
@@ -169,7 +136,9 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         const coord_t line_distance = line_width_layer0;
         constexpr double fill_angle = 45;
         constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+        constexpr coord_t extra_infill_shift = 0;
+        constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
+        Infill infill_comp(EFillMethod::CONCENTRIC, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern.polygons, pattern.lines);
     }
 }
