@@ -23,7 +23,7 @@ PrimeTower::PrimeTower(const SliceDataStorage& storage)
 : wipe_from_middle(false)
 {
     enabled = storage.getSettingBoolean("prime_tower_enable")
-           && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
+           && storage.getSettingInMicrons("prime_tower_min_volume") > 10
            && storage.getSettingInMicrons("prime_tower_size") > 10;
 
     extruder_count = storage.meshgroup->getExtruderCount();
@@ -89,10 +89,11 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 {
-    int n_patterns = 2; // alternating patterns between layers
-    coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
-    coord_t extra_infill_shift = 0;
-    coord_t tower_size = storage.getSettingInMicrons("prime_tower_size");
+    constexpr int n_patterns = 2; // alternating patterns between layers
+    constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
+    constexpr coord_t extra_infill_shift = 0;
+    const coord_t tower_size = storage.getSettingInMicrons("prime_tower_size");
+    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
 
     patterns_per_extruder.resize(extruder_order.size());
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
@@ -101,7 +102,9 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     for (unsigned int extruder : extruder_order)
     {
         const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
-        const coord_t wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
+        const coord_t required_volume = storage.meshgroup->getExtruderTrain(extruder)->getSettingInCubicMillimeters("prime_tower_min_volume") * 1000000000; //To cubic microns.
+        const double flow = storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("material_flow");
+        coord_t current_volume = 0;
         patterns_per_extruder[extruder] = std::vector<ExtrusionMoves>(n_patterns);
         std::vector<ExtrusionMoves>& patterns = patterns_per_extruder[extruder];
         patterns.resize(n_patterns);
@@ -111,21 +114,28 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         if (storage.getSettingBoolean("prime_tower_circular"))
         {
             first_layer_infill_method = EFillMethod::CONCENTRIC;
-            const int walls = std::ceil(wall_thickness / line_width);
-            for (int wall_nr = 0; wall_nr < walls; wall_nr++)
+            unsigned int wall_nr = 0;
+            for (; current_volume < required_volume; wall_nr++)
             {
-                // Create a new polygon with an offset from the outer polygon. The polygon is copied in the n_patterns,
-                // since printing walls will be the same in each layer.
+                //Create a new polygon with an offset from the outer polygon.
+                //The polygon is copied in the n_patterns, since printing walls
+                //will be the same in each layer.
                 Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
                 for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
                 {
                     patterns[pattern_idx].polygons.add(polygons);
                 }
+                current_volume += polygons.polygonLength() * line_width * layer_height * flow;
+                if (polygons.empty()) //Don't continue. We won't ever reach the required volume because it doesn't fit.
+                {
+                    break;
+                }
             }
-            cumulative_inset += walls * line_width;
+            cumulative_inset += wall_nr * line_width;
         }
         else
         {
+            const coord_t wall_thickness = 2 * line_width; //TODO: This is hard-coded. Make it dynamic for this pattern too.
             first_layer_infill_method = EFillMethod::LINES;
             for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
             {
