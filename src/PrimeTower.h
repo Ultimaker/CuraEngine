@@ -47,7 +47,8 @@ private:
     const unsigned int number_of_pre_wipe_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
     // note that the above are two consecutive numbers in the Fibonacci sequence
 
-    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< For each extruder a vector of patterns to alternate between, over the layers
+    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder_dense; //!< For each extruder a vector of patterns to alternate between, over the layers
+    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder_sparse; //!< For each extruder a vector of patterns to alternate between, over the layers for printing sparse layers
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
 
 public:
@@ -117,13 +118,13 @@ private:
 
     /*!
      * \see WipeTower::generatePaths
-     * 
+     *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
-     * 
+     *
      * \param storage where to get settings from
      */
-    void generatePaths_denseInfill(const SliceDataStorage& storage);
+    void generatePatternPerExtruder(const SliceDataStorage& storage);
 
     /*!
      * \see PrimeTower::addToGcode
@@ -134,7 +135,7 @@ private:
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
+    void addPrimeTowerMovesToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder, bool as_infill) const;
 
     /*!
      * Plan the moves for wiping and purging (if enabled) the current nozzles oozed material before starting
