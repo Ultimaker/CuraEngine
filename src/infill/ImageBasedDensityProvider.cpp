@@ -15,7 +15,9 @@ static constexpr bool straight = false;
 ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename, const AABB model_aabb)
 {
     int desired_channel_count = 0; // keep original amount of channels
-    image = stbi_load(filename.c_str(), &image_size.x, &image_size.y, &image_size.z, desired_channel_count);
+    int img_x, img_y, img_z; // stbi requires pointer to int rather than to coord_t
+    image = stbi_load(filename.c_str(), &img_x, &img_y, &img_z, desired_channel_count);
+    image_size = Point3(img_x, img_y, img_z);
     if (!image)
     {
         const char* reason = "[unknown reason]";
