@@ -1964,13 +1964,56 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         }
     }
 
+    double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+
+    if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && mesh.getSettingBoolean("support_fan_enable"))
+    {
+        // skin isn't a bridge but is it above support and we need to modify the fan speed?
+
+        AABB skin_bb(skin_part.outline);
+
+        support_layer = &storage.support.supportLayers[support_layer_nr];
+
+        bool supported = false;
+
+        if (!support_layer->support_roof.empty())
+        {
+            AABB support_roof_bb(support_layer->support_roof);
+            if (skin_bb.hit(support_roof_bb))
+            {
+                supported = !skin_part.outline.intersection(support_layer->support_roof).empty();
+            }
+        }
+        else
+        {
+            for (auto support_part : support_layer->support_infill_parts)
+            {
+                AABB support_part_bb(support_part.getInfillArea());
+                if (skin_bb.hit(support_part_bb))
+                {
+                    supported = !skin_part.outline.intersection(support_part.getInfillArea()).empty();
+
+                    if (supported)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (supported)
+        {
+            fan_speed = mesh.getSettingInPercentage("support_supported_skin_fan_speed");
+        }
+    }
+
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something, float fan_speed) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -2018,13 +2061,13 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         constexpr float flow = 1.0;
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.getSettingInMicrons("infill_wipe_dist"), flow, near_start_location);
+            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.getSettingInMicrons("infill_wipe_dist"), flow, near_start_location, fan_speed);
         }
         else
         {
             SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines;
             constexpr coord_t wipe_dist = 0;
-            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location);
+            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
         }
     }
 }
