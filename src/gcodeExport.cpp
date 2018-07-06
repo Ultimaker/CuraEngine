@@ -1043,16 +1043,27 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
         return;
     }
 
-    if (wait)
+    if (wait && flavor != EGCodeFlavor::MAKERBOT)
+    {
         *output_stream << "M109";
+    }
     else
+    {
         *output_stream << "M104";
+    }
     if (extruder != current_extruder)
+    {
         *output_stream << " T" << extruder;
+    }
 #ifdef ASSERT_INSANE_OUTPUT
     assert(temperature >= 0);
 #endif // ASSERT_INSANE_OUTPUT
     *output_stream << " S" << PrecisionedDouble{1, temperature} << new_line;
+    if (wait && flavor == EGCodeFlavor::MAKERBOT)
+    {
+        //Makerbot doesn't use M109 for heat-and-wait. Instead, use M104 and then wait using M116.
+        *output_stream << "M116" << new_line;
+    }
     extruder_attr[extruder].currentTemperature = temperature;
 }
 
