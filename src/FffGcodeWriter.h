@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
@@ -667,7 +670,7 @@ public:
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param extruder_nr The extruder to which to switch
      */
-    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int extruder_nr) const;
+    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const;
 
 private:
     /*!

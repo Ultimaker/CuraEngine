@@ -63,6 +63,7 @@ protected:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+
 public:
     /*!
      * Simple contructor.
@@ -237,16 +238,14 @@ public:
     int z;
 
 private:
-    int layer_nr; //!< The layer number of this layer plan
+    const int layer_nr; //!< The layer number of this layer plan
     const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
     int layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
-
+    std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
-
-    bool has_prime_tower_planned;
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -355,15 +354,18 @@ public:
         return was_inside;
     }
 
-    bool getPrimeTowerIsPlanned() const
-    {
-        return has_prime_tower_planned;
-    }
+    /*!
+     * Whether the prime tower is already planned for the specified extruder.
+     * \param extruder_nr The extruder to check.
+     */
+    bool getPrimeTowerIsPlanned(unsigned int extruder_nr) const;
 
-    void setPrimeTowerIsPlanned()
-    {
-        has_prime_tower_planned = true;
-    }
+    /*!
+     * Mark the prime tower as planned for the specified extruder.
+     * \param extruder_nr The extruder to mark as having its prime tower
+     * planned.
+     */
+    void setPrimeTowerIsPlanned(unsigned int extruder_nr);
 
     bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const
     {
