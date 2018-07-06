@@ -37,7 +37,7 @@ int GCodePath::getLineWidthForLayerView()
     return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
 }
 
-void GCodePath::setFanSpeed(float fan_speed)
+void GCodePath::setFanSpeed(double fan_speed)
 {
     this->fan_speed = fan_speed;
 }
