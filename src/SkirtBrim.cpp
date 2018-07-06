@@ -21,8 +21,9 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        const bool include_helper_parts = false; // include manually below
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        constexpr bool include_helper_parts = false; // include manually below
+        constexpr bool external_outlines_only = false; //Remove manually below.
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_outlines_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)
