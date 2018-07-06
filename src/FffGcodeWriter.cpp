@@ -1992,7 +1992,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         }
     }
 
-    float fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
     if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && mesh.getSettingBoolean("support_fan_enable"))
     {

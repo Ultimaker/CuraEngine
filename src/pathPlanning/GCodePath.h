@@ -39,7 +39,7 @@ public:
 
     bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
 
-    float fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
 
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
 
@@ -83,13 +83,13 @@ public:
      *
      * \param fan_speed the fan speed to use for this path
      */
-     void setFanSpeed(float fan_speed);
+     void setFanSpeed(double fan_speed);
 
     /*!
      * Get the fan speed for this path
      * \return the value of fan_speed if it is in the range 0-100, otherwise the value from the config
      */
-    float getFanSpeed() const;
+    double getFanSpeed() const;
 };
 
 }//namespace cura
