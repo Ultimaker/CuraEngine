@@ -398,7 +398,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             }
             if (primeTower.enabled)
             {
-                total.add(primeTower.inner_poly);
+                total.add(primeTower.outer_poly);
             }
         }
         total.simplify(maximum_resolution, maximum_resolution);
@@ -448,7 +448,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             }
             if (primeTower.enabled)
             {
-                total.add(primeTower.inner_poly);
+                total.add(primeTower.outer_poly);
             }
         }
         return total;
