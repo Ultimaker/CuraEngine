@@ -106,8 +106,6 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         for (; current_volume < required_volume; wall_nr++)
         {
             //Create a new polygon with an offset from the outer polygon.
-            //The polygon is copied in the n_patterns, since printing walls
-            //will be the same in each layer.
             Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
             pattern.polygons.add(polygons);
             current_volume += polygons.polygonLength() * line_width * layer_height * flow;
