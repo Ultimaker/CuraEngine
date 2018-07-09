@@ -389,8 +389,11 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 skip(poly_idx);
                 continue;
             }
-            int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
-            if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
+            const coord_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
+            //Skip the line, if:
+            // - the line is too short and removing the line produces small enough error, or...
+            // - removing the line produces NO error, meaning that two line segments are exactly parallel.
+            if ((here_is_beyond_line == 0 && error2 < allowed_error_distance_squared) || error2 == 0)
             {
                 // don't add [here] to the result
                 // skip checking whether the next point has to be removed for now
