@@ -42,7 +42,7 @@ void GCodePath::setFanSpeed(double fan_speed)
     this->fan_speed = fan_speed;
 }
 
-float GCodePath::getFanSpeed() const
+double GCodePath::getFanSpeed() const
 {
     return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config->getFanSpeed();
 }
