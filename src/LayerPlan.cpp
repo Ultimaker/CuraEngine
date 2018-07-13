@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cstring>
 #include "LayerPlan.h"
 #include "pathOrderOptimizer.h"
@@ -907,8 +909,8 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     for (int poly_idx : orderOptimizer.polyOrder)
     {
         ConstPolygonRef polygon = polygons[poly_idx];
-        int start = orderOptimizer.polyStart[poly_idx];
-        int end = 1 - start;
+        const size_t start = orderOptimizer.polyStart[poly_idx];
+        const size_t end = 1 - start;
         const Point& p0 = polygon[start];
         addTravel(p0);
         const Point& p1 = polygon[end];
