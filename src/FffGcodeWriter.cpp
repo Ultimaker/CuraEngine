@@ -2482,7 +2482,10 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
-    if ((extruder_changed || static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage)) //Always print a prime tower with outermost extruder.
+
+    // The first layer of the prime tower is printed with one material only, so do not prime another material on the
+    // first layer again.
+    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage)) //Always print a prime tower with outermost extruder.
     {
         addPrimeTower(storage, gcode_layer, previous_extruder);
     }
@@ -2491,6 +2494,12 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, int prev_extruder) const
 {
     if (!getSettingBoolean("prime_tower_enable"))
+    {
+        return;
+    }
+
+    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    if (gcode_layer.getLayerNr() == 0 && outermost_prime_tower_extruder != gcode_layer.getExtruder())
     {
         return;
     }
