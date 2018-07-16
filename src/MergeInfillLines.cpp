@@ -11,7 +11,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan) : extruder_plan(plan)
     //Just copy the parameters to their fields.
 }
 
-bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
+bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Point starting_position) const
 {
     /* Algorithm overview:
         1. Loop over all lines to see if they can be merged.
@@ -26,17 +26,19 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
 
     //For each two adjacent lines, see if they can be merged.
     size_t first_path_index = 0;
+    Point first_path_start = starting_position;
     size_t second_path_index = 1;
     for (; second_path_index < paths.size(); second_path_index++)
     {
         GCodePath& first_path = paths[first_path_index];
         GCodePath& second_path = paths[second_path_index];
+        Point second_path_start = paths[second_path_index - 1].points.back();
         if (second_path.config->isTravelPath())
         {
             continue; //Skip travel paths.
         }
 
-        if (isConvertible(first_path, second_path))
+        if (isConvertible(first_path, first_path_start, second_path, second_path_start))
         {
             /* If we combine two lines, the second path is inside the first
             line, so the iteration after that we need to merge the first line
@@ -53,6 +55,7 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
             /* If we do not combine, the next iteration we must simply merge the
             second path with the line after it. */
             first_path_index = second_path_index;
+            first_path_start = second_path_start;
         }
     }
 
@@ -80,7 +83,7 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
     }
 }
 
-bool MergeInfillLines::isConvertible(GCodePath& first_path, GCodePath& second_path) const
+bool MergeInfillLines::isConvertible(const GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start) const
 {
     return false; //TODO.
 }

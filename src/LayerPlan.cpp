@@ -1259,7 +1259,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         //Merge paths whose endpoints are very close together into one line.
         MergeInfillLines merger(extruder_plan);
-        merger.mergeInfillLines(paths);
+        merger.mergeInfillLines(paths, gcode.getPositionXY());
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {

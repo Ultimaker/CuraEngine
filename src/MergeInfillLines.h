@@ -23,9 +23,10 @@ public:
      * Check for lots of small moves and combine them into one large line.
      * \param paths The actual paths that must be merged. These paths may be
      * modified in-place if anything is to be merged.
+     * \param starting_position Where the first line starts.
      * \return Whether anything was changed in the paths of the plan.
      */
-    bool mergeInfillLines(std::vector<GCodePath>& paths) const;
+    bool mergeInfillLines(std::vector<GCodePath>& paths, const Point starting_position) const;
 
 private:
     /*
@@ -37,11 +38,13 @@ private:
     /*
      * Checks if two paths can be merged.
      * \param first_path The first of the two paths to merge.
+     * \param first_path_start The starting point of the first path.
      * \param second_path The other of the two paths to merge.
+     * \param second_path_start The starting point of the second path.
      * \return ``True`` if the two lines can be merged into one, or ``False`` if
      * they can't.
      */
-    bool isConvertible(GCodePath& first_path, GCodePath& second_path) const;
+    bool isConvertible(const GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start) const;
 
     /*
      * Merges two lines together.
