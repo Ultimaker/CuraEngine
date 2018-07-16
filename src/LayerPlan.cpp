@@ -1253,11 +1253,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
         }
-        bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
-        double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
-        int64_t nozzle_size = gcode.getNozzleSize(extruder);
+        const coord_t nozzle_size = gcode.getNozzleSize(extruder);
 
         bool update_extrusion_offset = true;
+
+        //Merge paths whose endpoints are very close together into one line.
+        MergeInfillLines merger(extruder_plan);
+        merger.mergeInfillLines(paths);
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
@@ -1328,12 +1330,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-
-            if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
-            { // !! has effect on path_idx !!
-                // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
-                continue;
-            }
 
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
