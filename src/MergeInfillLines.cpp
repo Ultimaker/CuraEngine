@@ -71,7 +71,7 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
         {
             paths[path_index] = paths[path_index + remove_path_indices.size()];
         }
-        paths.resize(path_index);
+        paths.erase(paths.begin() + path_index, paths.end());
         return true;
     }
     else
