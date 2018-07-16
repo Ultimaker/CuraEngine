@@ -20,7 +20,8 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
         1c. If they are merged, check next that the first line can be merged with
             the line after the second line.
         2. Do a second iteration over all paths to remove the tombstones. */
-    bool something_changed = false;
+
+    std::vector<size_t> remove_path_indices;
 
     //For each two adjacent lines, see if they can be merged.
     size_t first_path_index = 0;
@@ -37,7 +38,7 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
             with the line after the second line, so we do NOT update
             first_path_index. */
             mergeLines(first_path, second_path);
-            something_changed = true;
+            remove_path_indices.push_back(second_path_index);
         }
         else
         {
@@ -46,7 +47,29 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
             first_path_index = second_path_index;
         }
     }
-    return something_changed;
+
+    //Delete all removed lines in one pass so that we need to move lines less often.
+    if (!remove_path_indices.empty())
+    {
+        size_t path_index = remove_path_indices[0];
+        for (size_t removed_position = 1; removed_position < remove_path_indices.size(); removed_position++)
+        {
+            for (; path_index < remove_path_indices[removed_position] - removed_position; path_index++)
+            {
+                paths[path_index] = paths[path_index + removed_position]; //Shift all paths.
+            }
+        }
+        for (; path_index < paths.size() - remove_path_indices.size(); path_index++) //Remaining shifts at the end.
+        {
+            paths[path_index] = paths[path_index + remove_path_indices.size()];
+        }
+        paths.resize(path_index);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool MergeInfillLines::isConvertible(GCodePath& first_path, GCodePath& second_path) const
