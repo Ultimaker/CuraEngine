@@ -15,10 +15,11 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
 {
     /* Algorithm overview:
         1. Loop over all lines to see if they can be merged.
-        1a. Check if two adjacent lines can be merged.
+        1a. Check if two adjacent lines can be merged (skipping travel moves in
+            between).
         1b. If they can, merge both lines into the first line.
-        1c. If they are merged, check next that the first line can be merged with
-            the line after the second line.
+        1c. If they are merged, check next that the first line can be merged
+            with the line after the second line.
         2. Do a second iteration over all paths to remove the tombstones. */
 
     std::vector<size_t> remove_path_indices;
@@ -30,6 +31,10 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
     {
         GCodePath& first_path = paths[first_path_index];
         GCodePath& second_path = paths[second_path_index];
+        if (second_path.config->isTravelPath())
+        {
+            continue; //Skip travel paths.
+        }
 
         if (isConvertible(first_path, second_path))
         {
@@ -38,7 +43,10 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths) const
             with the line after the second line, so we do NOT update
             first_path_index. */
             mergeLines(first_path, second_path);
-            remove_path_indices.push_back(second_path_index);
+            for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
+            {
+                remove_path_indices.push_back(to_delete_index);
+            }
         }
         else
         {
