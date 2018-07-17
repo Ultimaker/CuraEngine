@@ -53,9 +53,11 @@ private:
      * the two lines together.
      * The second path is untouched. We must skip that path later.
      * \param first_path The line to merge the second path into.
+     * \param first_path_start Where the first path starts off.
      * \param second_path The line to merge into the first path.
+     * \param second_path_start Where the second path starts off.
      */
-    void mergeLines(GCodePath& first_path, const GCodePath& second_path) const;
+    void mergeLines(GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start) const;
 };
 
 } //namespace cura

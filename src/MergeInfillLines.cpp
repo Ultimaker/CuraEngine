@@ -45,7 +45,7 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Poi
             line, so the iteration after that we need to merge the first line
             with the line after the second line, so we do NOT update
             first_path_index. */
-            mergeLines(first_path, second_path);
+            mergeLines(first_path, first_path_start, second_path, second_path_start);
             for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
             {
                 remove_path_indices.push_back(to_delete_index);
@@ -148,9 +148,47 @@ bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_pa
     return true;
 }
 
-void MergeInfillLines::mergeLines(GCodePath& first_path, const GCodePath& second_path) const
+void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start) const
 {
-    //TODO.
+    //We may apply one of two merging techniques: Append the second path to the first, or draw a line through the middle of both of them.
+    const coord_t line_width = first_path.config->getLineWidth();
+    if (vSize2(first_path.points.back() - second_path_start) < line_width * line_width || vSize2(first_path_start - second_path.points.back()) < line_width * line_width)
+    {
+        for (const Point second_path_point : second_path.points)
+        {
+            first_path.points.push_back(second_path_point); //Move the coordinates over to the first path.
+        }
+        return;
+    }
+
+    //Alternative: Merge adjacent lines by drawing a line through them.
+    coord_t first_path_length = 0;
+    Point previous_point = first_path_start;
+    Point average_first_path;
+    for (const Point point : first_path.points)
+    {
+        first_path_length += vSize(point - previous_point);
+        average_first_path += point;
+    }
+    first_path_length *= first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
+    average_first_path /= first_path.points.size();
+
+    coord_t second_path_length = 0;
+    previous_point = second_path_start;
+    Point average_second_path;
+    for (const Point point : second_path.points)
+    {
+        second_path_length += vSize(point - previous_point);
+        average_second_path += point;
+    }
+    second_path_length *= second_path.flow;
+    average_second_path /= second_path.points.size();
+
+    //TODO: First path doesn't start yet at the correct position. We need to travel first?
+    first_path.points.clear();
+    first_path.points.push_back(average_second_path);
+    const coord_t new_path_length = vSize(average_first_path - average_second_path);
+    first_path.flow *= static_cast<double>(first_path_length + second_path_length) / new_path_length;
 }
 
 }//namespace cura
