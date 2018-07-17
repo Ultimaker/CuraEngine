@@ -44,7 +44,7 @@ private:
      * \return ``True`` if the two lines can be merged into one, or ``False`` if
      * they can't.
      */
-    bool isConvertible(const GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start) const;
+    bool isConvertible(const GCodePath& first_path, Point first_path_start, const GCodePath& second_path, const Point second_path_start) const;
 
     /*
      * Merges two lines together.
