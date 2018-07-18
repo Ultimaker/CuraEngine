@@ -145,12 +145,13 @@ set(engine_SRCS # Except main.cpp.
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
 
+    src/settings/AdaptiveLayerHeights.cpp
     src/settings/PathConfigStorage.cpp
     src/settings/SettingConfig.cpp
     src/settings/SettingContainer.cpp
     src/settings/SettingRegistry.cpp
     src/settings/settings.cpp
-    src/settings/AdaptiveLayerHeights.cpp
+    src/settings/SettingsBaseVirtual.cpp
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
