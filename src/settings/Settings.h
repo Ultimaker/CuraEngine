@@ -15,8 +15,10 @@
 namespace cura
 {
 
+class ExtruderTrain; //Forward declaration to save compilation time.
+
 /*!
- * Container for a set of settings.
+ * \brief Container for a set of settings.
  *
  * You can ask this container for the value of a certain setting that should be
  * used in the context where this settings container is located.
@@ -28,7 +30,7 @@ class Settings
 {
 public:
     /*!
-     * Adds a new setting.
+     * \brief Adds a new setting.
      * \param key The name by which the setting is identified.
      * \param value The value of the setting. This value can never change over
      * the course of the lifetime of this ``Settings`` container (which is
@@ -37,11 +39,11 @@ public:
      * of a setting. If this is not set, the setting should not be limited to an
      * extruder.
      */
-    void add(const std::string& key, const int value, Settings* limit_to_extruder = nullptr);
-    void add(const std::string& key, const double value, Settings* limit_to_extruder = nullptr);
+    void add(const std::string& key, const int value, ExtruderTrain* limit_to_extruder = nullptr);
+    void add(const std::string& key, const double value, ExtruderTrain* limit_to_extruder = nullptr);
 
     /*!
-     * Get the value of a setting.
+     * \brief Get the value of a setting.
      *
      * This value is then evaluated using the following technique:
      *  1a. If this container contains a value for the setting, it uses that
