@@ -15,6 +15,19 @@
 namespace cura
 {
 
+class Settings
+{
+public:
+    void add(const std::string& key, const int value, const int limit_to_extruder = -1);
+    void add(const std::string& key, const double value, const int limit_to_extruder = -1);
+
+    template<typename A> A get(const std::string& key) const;
+};
+
+
+
+////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
+
 #ifndef VERSION
 #define VERSION "DEV"
 #endif

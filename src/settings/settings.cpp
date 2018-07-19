@@ -14,6 +14,29 @@
 
 namespace cura
 {
+
+void Settings::add(const std::string& key, const int value, const int limit_to_extruder)
+{
+    //TODO.
+}
+
+void Settings::add(const std::string& key, const double value, const int limit_to_extruder)
+{
+    //TODO.
+}
+
+template<> int Settings::get<int>(const std::string& key) const
+{
+    return 0;
+}
+
+template<> double Settings::get<double>(const std::string& key) const
+{
+    return 0.0;
+}
+
+////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
+
 //c++11 no longer defines M_PI, so add our own constant.
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
