@@ -15,14 +15,9 @@
 namespace cura
 {
 
-void Settings::add(const std::string& key, const int value, ExtruderTrain* limit_to_extruder)
+void Settings::add(const std::string& key, const std::string value, ExtruderTrain* limit_to_extruder)
 {
-    //TODO.
-}
-
-void Settings::add(const std::string& key, const double value, ExtruderTrain* limit_to_extruder)
-{
-    //TODO.
+    settings.insert(std::pair<std::string, Setting>(key, Setting(value, limit_to_extruder)));
 }
 
 template<> std::string Settings::get<std::string>(const std::string& key) const

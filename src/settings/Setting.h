@@ -14,6 +14,8 @@ class ExtruderTrain; //Forward declaration to prevent having to include Extruder
  */
 struct Setting
 {
+    Setting(const std::string value, ExtruderTrain* limit_to_extruder = nullptr) : value(value), limit_to_extruder(limit_to_extruder) {};
+
     /*!
      * The value of the setting in it serialised form.
      * \todo Store this as a void pointer in its pre-parsed form so that getting
@@ -25,7 +27,7 @@ struct Setting
      * Unless overridden by a more specific setting container, limit the setting
      * to be used by a certain extruder.
      */
-    ExtruderTrain* limit_to_extruder = nullptr;
+    ExtruderTrain* limit_to_extruder;
 };
 
 } //namespace cura

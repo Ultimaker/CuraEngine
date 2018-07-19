@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <sstream>
 
+#include "Setting.h" //The individual setting.
 #include "SettingsBaseVirtual.h"
 #include "../utils/string.h"
 
@@ -34,13 +35,13 @@ public:
      * \param key The name by which the setting is identified.
      * \param value The value of the setting. This value can never change over
      * the course of the lifetime of this ``Settings`` container (which is
-     * normally over the course of a slice.
+     * normally over the course of a slice. The value is always added and stored
+     * in serialised form as a string.
      * \param limit_to_extruder Ask the extruder in question first for the value
      * of a setting. If this is not set, the setting should not be limited to an
      * extruder.
      */
-    void add(const std::string& key, const int value, ExtruderTrain* limit_to_extruder = nullptr);
-    void add(const std::string& key, const double value, ExtruderTrain* limit_to_extruder = nullptr);
+    void add(const std::string& key, const std::string value, ExtruderTrain* limit_to_extruder = nullptr);
 
     /*!
      * \brief Get the value of a setting.
@@ -61,6 +62,12 @@ public:
      *      application is closed with an error value of 2.
      */
     template<typename A> A get(const std::string& key) const;
+
+private:
+    /*!
+     * \brief A dictionary to map the setting keys to the actual setting values.
+     */
+    std::unordered_map<std::string, Setting> settings;
 };
 
 
