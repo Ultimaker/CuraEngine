@@ -23,15 +23,16 @@ std::string SVG::toString(Color color)
 
 
 
-SVG::SVG(const char* filename, AABB aabb, Point canvas_size, Color background)
-: filename(filename)
-, aabb(aabb)
+SVG::SVG(const std::string filename_str, AABB aabb, Point canvas_size, Color background)
+: aabb(aabb)
 , aabb_size(aabb.max - aabb.min)
 , border(canvas_size.X / 5, canvas_size.Y / 10)
 , canvas_size(canvas_size)
 , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
 , background(background)
 {
+    strcpy(filename, filename_str.c_str());
+    
     output_is_html = strcmp(filename + strlen(filename) - 4, "html") == 0;
     out = fopen(filename, "w");
     if(!out)
