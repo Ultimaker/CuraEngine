@@ -996,13 +996,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
-        {
-            constexpr bool outside_polygons_only = true;
-            SkirtBrim::generate(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), outside_polygons_only);
-        }
+        SkirtBrim::generate(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"));
         break;
     case EPlatformAdhesion::BRIM:
-        SkirtBrim::generate(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingBoolean("brim_outside_only"));
+        SkirtBrim::generate(storage, 0, train->getSettingAsCount("brim_line_count"));
         break;
     case EPlatformAdhesion::RAFT:
         Raft::generate(storage, train->getSettingInMicrons("raft_margin"));

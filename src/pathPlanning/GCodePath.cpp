@@ -11,7 +11,8 @@ config(&config),
 space_fill_type(space_fill_type),
 flow(flow),
 speed_factor(speed_factor),
-spiralize(spiralize)
+spiralize(spiralize),
+fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT)
 {
     retract = false;
     perform_z_hop = false;
@@ -34,6 +35,16 @@ double GCodePath::getExtrusionMM3perMM()
 int GCodePath::getLineWidthForLayerView()
 {
     return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
+}
+
+void GCodePath::setFanSpeed(double fan_speed)
+{
+    this->fan_speed = fan_speed;
+}
+
+double GCodePath::getFanSpeed() const
+{
+    return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config->getFanSpeed();
 }
 
 }

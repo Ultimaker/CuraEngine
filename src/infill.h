@@ -233,12 +233,6 @@ private:
     void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
 
     /*!
-     * Generate sparse concentric infill 
-     * \param[out] result (output) The resulting lines
-     */
-    void generateConcentric3DInfill(Polygons& result);
-
-    /*!
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */

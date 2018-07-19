@@ -4,7 +4,7 @@
 #ifndef UTILS_ORDER_OPTIMIZER_H
 #define UTILS_ORDER_OPTIMIZER_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <list>
 #include <utility> // pair
@@ -35,7 +35,7 @@ public:
      * Optimize the order of \ref OrderOptimizer::items
      * \return A vector of the ordered indices into \ref OrderOptimizer::items
      */
-    std::list<unsigned int> optimize();
+    std::list<unsigned int> optimize(const Point& start_position);
 
 
 };
@@ -47,50 +47,45 @@ void OrderOptimizer<T>::addItem(const Point location, const T item)
 }
 
 template <typename T>
-std::list<unsigned int> OrderOptimizer<T>::optimize()
+std::list<unsigned int> OrderOptimizer<T>::optimize(const Point& start_position)
 {
-    // least detour insertion algorithm
+    // Use the nearest mesh ordering
     std::list<unsigned int> order;
+    std::vector<unsigned int> item_idx_list;
+
     if (items.size() == 0)
     {
         return order;
     }
-    order.push_back(0u);
-    if (items.size() == 1)
-    {
-        return order;
-    }
-    order.push_back(1u);
-    if (items.size() == 2)
-    {
-        return order;
-    }
-    order.push_back(2u);
 
-    for (unsigned int item_idx = 3; item_idx < items.size(); item_idx++)
+    for (unsigned int i = 0; i < items.size(); i++)
     {
-        Point to_insert_item_location = items[item_idx].first;
+        item_idx_list.emplace_back(i);
+    }
+    const Point* last_item_position = &start_position;
 
-        // find best_item_to_insert_before
-        std::list<unsigned int>::iterator best_item_to_insert_before = order.begin();
-        coord_t best_detour_dist = vSize(items[*best_item_to_insert_before].first - to_insert_item_location)
-                                + vSize(to_insert_item_location - items[order.back()].first)
-                                - vSize(items[*best_item_to_insert_before].first - items[order.back()].first);
-        std::list<unsigned int>::iterator prev = order.begin();
-        for (std::list<unsigned int>::iterator nearby = ++order.begin(); nearby != order.end(); ++nearby)
+    while (!item_idx_list.empty())
+    {
+        coord_t shortest_distance = POINT_MAX;
+        unsigned int shortest_distance_item_idx = -1;
+        unsigned int idx_in_list = -1;
+
+        for (unsigned int idx = 0; idx < item_idx_list.size(); idx++)
         {
-            coord_t detour_dist = vSize(items[*nearby].first - to_insert_item_location)
-                                + vSize(to_insert_item_location - items[*prev].first)
-                                - vSize(items[*nearby].first - items[*prev].first);
-            if (detour_dist < best_detour_dist)
+            const unsigned int item_idx = item_idx_list[idx];
+            const Point& position = items[item_idx].first;
+            const coord_t distance = vSize(position - *last_item_position);
+            if (distance < shortest_distance)
             {
-                best_detour_dist = detour_dist;
-                best_item_to_insert_before = nearby;
+                shortest_distance = distance;
+                shortest_distance_item_idx = item_idx;
+                idx_in_list = idx;
             }
-            prev = nearby;
         }
 
-        order.insert(best_item_to_insert_before, item_idx);
+        order.push_back(shortest_distance_item_idx);
+        last_item_position = &(items[shortest_distance_item_idx].first);
+        item_idx_list.erase(item_idx_list.begin() + idx_in_list);
     }
     return order;
 }

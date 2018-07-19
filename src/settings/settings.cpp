@@ -118,6 +118,21 @@ const std::string& SettingsBase::getSettingString(const std::string& key) const
     return empty_string;
 }
 
+std::string SettingsBase::getAllLocalSettingsString() const
+{
+    std::stringstream sstream;
+    for (auto pair : setting_values)
+    {
+        if (!pair.second.empty())
+        {
+            char buffer[4096];
+            snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
+            sstream << buffer;
+        }
+    }
+    return sstream.str();
+}
+
 void SettingsMessenger::setSetting(std::string key, std::string value)
 {
     parent->setSetting(key, value);
@@ -390,8 +405,6 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::TRIHEXAGON;
     if (value == "concentric")
         return EFillMethod::CONCENTRIC;
-    if (value == "concentric_3d")
-        return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
     if (value == "cross")

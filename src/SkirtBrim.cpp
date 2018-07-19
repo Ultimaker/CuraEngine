@@ -8,10 +8,10 @@
 namespace cura 
 {
 
-void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, const bool outside_only, Polygons& first_layer_outline)
+void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline)
 {
-    bool external_only = is_skirt || outside_only; // whether to include holes or not
-                                                   // when it's brim and outside only, also do not include any holes
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(storage.meshgroup->getSettingAsExtruderNr("adhesion_extruder_nr"));
+    const bool external_only = is_skirt || train->getSettingBoolean("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const int layer_nr = 0;
     if (is_skirt)
     {
@@ -21,8 +21,9 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        const bool include_helper_parts = false; // include manually below
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        constexpr bool include_helper_parts = false; // include manually below
+        constexpr bool external_outlines_only = false; //Remove manually below.
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_outlines_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)
@@ -101,11 +102,11 @@ int SkirtBrim::generatePrimarySkirtBrimLines(int start_distance, unsigned int pr
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, bool outside_only)
+void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count)
 {
     const bool is_skirt = start_distance > 0;
 
-    const int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+    const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
     const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
     const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor");
     const int64_t primary_extruder_minimal_length = adhesion_extruder->getSettingInMicrons("skirt_brim_minimal_length");
@@ -113,7 +114,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
 
     Polygons first_layer_outline;
-    getFirstLayerOutline(storage, primary_line_count, primary_extruder_skirt_brim_line_width, is_skirt, outside_only, first_layer_outline);
+    getFirstLayerOutline(storage, primary_line_count, primary_extruder_skirt_brim_line_width, is_skirt, first_layer_outline);
 
     const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
@@ -182,7 +183,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-        for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+        for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
             if (extruder == adhesion_extruder_nr || !extruder_is_used[extruder])
             {

@@ -82,6 +82,7 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
         SierpinskiTriangle::SierpinskiDirection first_dir, second_dir;
         switch(t.dir)
         {
+            default:
             case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
                 first_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
                 second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;

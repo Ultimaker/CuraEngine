@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cstring>
 #include "LayerPlan.h"
 #include "pathOrderOptimizer.h"
@@ -80,7 +82,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount(storage))
 , layer_thickness(layer_thickness)
-, has_prime_tower_planned(false)
+, has_prime_tower_planned_per_extruder(storage.meshgroup->getExtruderCount(), false)
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
@@ -109,7 +111,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
 
-    for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { //Skirt and brim.
         skirt_brim_is_processed[extruder] = false;
     }
@@ -245,6 +247,16 @@ void LayerPlan::moveInsideCombBoundary(int distance)
     }
 }
 
+bool LayerPlan::getPrimeTowerIsPlanned(unsigned int extruder_nr) const
+{
+    return has_prime_tower_planned_per_extruder[extruder_nr];
+}
+
+void LayerPlan::setPrimeTowerIsPlanned(unsigned int extruder_nr)
+{
+    has_prime_tower_planned_per_extruder[extruder_nr] = true;
+}
+
 std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const
 {
     std::optional<std::pair<Point, bool>> ret;
@@ -269,7 +281,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
     const coord_t maximum_travel_resolution = extr->getSettingInMicrons("meshfix_maximum_travel_resolution");
 
-    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
+    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
     const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
@@ -400,9 +412,11 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor, double fan_speed)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor)->points.push_back(p);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor);
+    path->points.push_back(p);
+    path->setFanSpeed(fan_speed);
     last_planned_position = p;
 }
 
@@ -862,7 +876,7 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
     }
 }
 
-void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location)
+void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
     if (enable_travel_optimization && comb_boundary_inside2.size() > 0)
@@ -895,18 +909,18 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     for (int poly_idx : orderOptimizer.polyOrder)
     {
         ConstPolygonRef polygon = polygons[poly_idx];
-        int start = orderOptimizer.polyStart[poly_idx];
-        int end = 1 - start;
+        const size_t start = orderOptimizer.polyStart[poly_idx];
+        const size_t end = 1 - start;
         const Point& p0 = polygon[start];
         addTravel(p0);
         const Point& p1 = polygon[end];
-        addExtrusionMove(p1, config, space_fill_type, flow_ratio);
+        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
         if (wipe_dist != 0)
         {
             int line_width = config.getLineWidth();
             if (vSize2(p1-p0) > line_width * line_width * 4)
             { // otherwise line will get optimized by combining multiple into a single extrusion move
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0);
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
     }
@@ -1334,8 +1348,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (!spiralize) // normal (extrusion) move (with coasting
             {
                 // if path provides a valid (in range 0-100) fan speed, use it
-                const double path_fan_speed = path.config->getFanSpeed();
-                gcode.writeFanCommand(path_fan_speed >= 0 ? path_fan_speed : extruder_plan.getFanSpeed());
+                const double path_fan_speed = path.getFanSpeed();
+                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
                 const CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 

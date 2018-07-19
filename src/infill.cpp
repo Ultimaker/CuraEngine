@@ -102,9 +102,6 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     case EFillMethod::CONCENTRIC:
         generateConcentricInfill(result_polygons, line_distance);
         break;
-    case EFillMethod::CONCENTRIC_3D:
-        generateConcentric3DInfill(result_polygons);
-        break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle);
         break;
@@ -142,7 +139,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 {
-    if (pattern == EFillMethod::CONCENTRIC || pattern == EFillMethod::CONCENTRIC_3D)
+    if (pattern == EFillMethod::CONCENTRIC)
     {
         result_polygons = result_polygons.processEvenOdd(); // make into areas
     }
@@ -231,35 +228,23 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
     result.add(first_concentric_wall);
     Polygons* prev_inset = &first_concentric_wall;
     Polygons next_inset;
+    Polygons new_inset;  // This intermediate inset variable is needed because prev_inset is referencing
     while (prev_inset->size() > 0)
     {
-        next_inset = prev_inset->offset(-inset_value);
-        result.add(next_inset);
+        new_inset = prev_inset->offset(-inset_value);
+        result.add(new_inset);
         if (perimeter_gaps)
         {
             const Polygons outer = prev_inset->offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
-            const Polygons inner = next_inset.offset(infill_line_width / 2);
+            const Polygons inner = new_inset.offset(infill_line_width / 2);
             const Polygons gaps_here = outer.difference(inner);
             perimeter_gaps->add(gaps_here);
         }
+        // This operation helps to prevent the variable "prev_inset" changes whenever next_inset changes
+        next_inset = new_inset;
         prev_inset = &next_inset;
     }
     std::reverse(std::begin(result), std::end(result));
-}
-
-void Infill::generateConcentric3DInfill(Polygons& result)
-{
-    coord_t period = line_distance * 2;
-    coord_t shift = int64_t(one_over_sqrt_2 * z) % period;
-    shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
-    shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
-    shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
-    Polygons first_wall;
-    // in contrast to concentric infill we dont do "- infill_line_width / 2" cause this is already handled by the max two lines above
-    first_wall = in_outline.offset(outline_offset + infill_overlap - shift);
-    generateConcentricInfill(first_wall, result, period);
-    first_wall = in_outline.offset(outline_offset + infill_overlap - period + shift);
-    generateConcentricInfill(first_wall, result, period);
 }
 
 void Infill::generateGridInfill(Polygons& result)

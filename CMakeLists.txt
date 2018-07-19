@@ -191,7 +191,7 @@ if (ENABLE_ARCUS)
 endif ()
 
 # Compiling CuraEngine itself.
-add_library(_CuraEngine ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
 
 add_dependencies(_CuraEngine Stb)
 if(USE_SYSTEM_LIBS)
@@ -252,11 +252,6 @@ if (BUILD_TESTS)
         add_test(${test} ${test})
     endforeach()
 endif()
-
-
-add_custom_command(TARGET CuraEngine POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:CuraEngine>)
 
 # Installing CuraEngine.
 include(GNUInstallDirs)

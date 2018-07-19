@@ -119,7 +119,6 @@ enum class EFillMethod
     TRIANGLES,
     TRIHEXAGON,
     CONCENTRIC,
-    CONCENTRIC_3D,
     ZIG_ZAG,
     CROSS,
     CROSS_3D,
@@ -329,20 +328,15 @@ public:
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     const std::string& getSettingString(const std::string& key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
-    
-    std::string getAllLocalSettingsString() const
-    {
-        std::stringstream sstream;
-        for (auto pair : setting_values)
-        {
-            if (!pair.second.empty())
-            {
-                sstream << " -s " << pair.first << "=\"" << Escaped{pair.second.c_str()} << '\"';
-            }
-        }
-        return sstream.str();
-    }
-    
+
+    /*!
+     * Format a string that contains all settings and their values similar to a
+     * command to call CuraEngine with via CLI.
+     *
+     * \return A string containing all local settings and their values.
+     */
+    std::string getAllLocalSettingsString() const;
+
     void debugOutputAllLocalSettings()  const
     {
         for (auto pair : setting_values)

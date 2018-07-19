@@ -241,9 +241,15 @@ void LineOrderOptimizer::optimize(bool find_chains)
     //   values indicate which of the line's points are at the end of the chain
     std::map<unsigned, unsigned> chain_ends;
 
+    std::vector<unsigned> singletons; // indices of the line segments that don't join any other
+
     if (find_chains)
     {
         // locate the chain ends by finding lines that join exactly one other line at one end and join either 0 or 2 or more lines at the other end
+
+        // we also consider lines that meet 2 or more lines at one end and nothing at the other end as chain ends
+
+        // finally, those lines that do not join any other are added to the collection of singletons
 
         for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
         {
@@ -272,6 +278,23 @@ void LineOrderOptimizer::optimize(bool find_chains)
             {
                 // point 1 of candidate line starts a chain of 2 or more lines
                 chain_ends[poly_idx] = 1;
+            }
+            else if (num_joined_lines[0] == 0 && num_joined_lines[1] > 1)
+            {
+                // point 0 is the free end of a line that meets 2 or more lines at a junction
+                chain_ends[poly_idx] = 0;
+            }
+            else if (num_joined_lines[1] == 0 && num_joined_lines[0] > 1)
+            {
+                // point 1 is the free end of a line that meets 2 or more lines at a junction
+                chain_ends[poly_idx] = 1;
+            }
+            else if (num_joined_lines[0] == 0 && num_joined_lines[1] == 0)
+            {
+                // line is not connected to anything but if there are chains we may want to print it
+                // before moving away to a different area so make it possible for it to be selected
+                // before all the chains have been printed
+                singletons.push_back(poly_idx);
             }
         }
     }
@@ -343,6 +366,15 @@ void LineOrderOptimizer::optimize(bool find_chains)
             for (auto zombie : zombies)
             {
                 chain_ends.erase(zombie);
+            }
+
+            // if any singletons are not yet printed, consider them as well
+            for (auto poly_idx : singletons)
+            {
+                if (!picked[poly_idx])
+                {
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+                }
             }
         }
 

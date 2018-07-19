@@ -171,5 +171,17 @@ void PolygonTest::differenceClockwiseTest()
     CPPUNIT_ASSERT_MESSAGE("Inner polygon is not clockwise!", area > 0);
 }
 
+void PolygonTest::getEmptyHolesTest()
+{
+    Polygons holes = clockwise_donut.getEmptyHoles();
+
+    CPPUNIT_ASSERT_MESSAGE("Not the correct number of holes!", holes.size() == 1);
+    CPPUNIT_ASSERT_MESSAGE("Empty hole doesn't have the correct amount of vertices!", holes[0].size() == clockwise_small.size());
+    for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
+    {
+        CPPUNIT_ASSERT_MESSAGE("Coordinates of empty hole are wrong!", holes[0][point_index] == clockwise_small[point_index]);
+    }
+}
+
 
 }

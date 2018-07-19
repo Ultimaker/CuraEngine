@@ -63,6 +63,7 @@ protected:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+
 public:
     /*!
      * Simple contructor.
@@ -237,16 +238,14 @@ public:
     int z;
 
 private:
-    int layer_nr; //!< The layer number of this layer plan
+    const int layer_nr; //!< The layer number of this layer plan
     const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
     int layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
-
+    std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
-
-    bool has_prime_tower_planned;
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -355,15 +354,18 @@ public:
         return was_inside;
     }
 
-    bool getPrimeTowerIsPlanned() const
-    {
-        return has_prime_tower_planned;
-    }
+    /*!
+     * Whether the prime tower is already planned for the specified extruder.
+     * \param extruder_nr The extruder to check.
+     */
+    bool getPrimeTowerIsPlanned(unsigned int extruder_nr) const;
 
-    void setPrimeTowerIsPlanned()
-    {
-        has_prime_tower_planned = true;
-    }
+    /*!
+     * Mark the prime tower as planned for the specified extruder.
+     * \param extruder_nr The extruder to mark as having its prime tower
+     * planned.
+     */
+    void setPrimeTowerIsPlanned(unsigned int extruder_nr);
 
     bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const
     {
@@ -462,8 +464,9 @@ public:
      * \param flow A modifier of the extrusion width which would follow from the \p config
      * \param speed_factor (optional) A factor the travel speed will be multipled by.
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
+     * \param fan_speed fan speed override for this path
      */
-    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
+    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -547,8 +550,9 @@ public:
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
+     * \param fan_speed optional fan speed override for this path
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>());
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>(), double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

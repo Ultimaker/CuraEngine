@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "MergeInfillLines.h"
 
 #include <algorithm> // min
@@ -101,7 +104,7 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
 bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point& c, const Point& d, int64_t line_width, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first)
 {
     use_second_middle_as_first = false;
-    int64_t max_line_width = nozzle_size * 3 / 2;
+    const coord_t max_line_width = nozzle_size * 3 / 2;
 
     Point ab = b - a;
     Point cd = d - c;
@@ -111,8 +114,8 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
         return false; // the line segments are connected!
     }
 
-    int64_t ab_size = vSize(ab);
-    int64_t cd_size = vSize(cd);
+    const coord_t ab_size = vSize(ab);
+    const coord_t cd_size = vSize(cd);
 
     if (ab_size > nozzle_size * 5 || cd_size > nozzle_size * 5)
     {
@@ -120,12 +123,12 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
     }
 
     // if the lines are in the same direction then abs( dot(ab,cd) / |ab| / |cd| ) == 1
-    int64_t prod = dot(ab,cd);
+    const coord_t prod = dot(ab, cd);
     if (std::abs(prod) + 400 < ab_size * cd_size) // 400 = 20*20, where 20 micron is the allowed inaccuracy in the dot product, introduced by the inaccurate point locations of a,b,c,d
     {
-        return false; // extrusion moves not in the same or opposite diraction
+        return false; // extrusion moves not in the same or opposite direction
     }
-    
+
     // make lines in the same direction by flipping one
     if (prod < 0)
     {
@@ -145,8 +148,8 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
                     (a + b) / 2;
     second_middle = (c + d) / 2;
     
-    Point dir_vector_perp = turn90CCW(second_middle - first_middle);
-    int64_t dir_vector_perp_length = vSize(dir_vector_perp); // == dir_vector_length
+    const Point dir_vector_perp = turn90CCW(second_middle - first_middle);
+    const coord_t dir_vector_perp_length = vSize(dir_vector_perp); // == dir_vector_length
     if (dir_vector_perp_length == 0)
     {
         return false;

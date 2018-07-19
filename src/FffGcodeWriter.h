@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
@@ -37,7 +40,7 @@ class FffGcodeWriter : public SettingsMessenger, NoCopy
 {
     friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
-    int max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
+    coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
     /*
      * Buffer for all layer plans (of type LayerPlan)
@@ -233,7 +236,7 @@ private:
      * 
      * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, uint32_t extruder_nr) const;
+    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, unsigned int extruder_nr) const;
 
     /*!
      * Plan priming of all used extruders which haven't been primed yet
@@ -548,8 +551,9 @@ private:
      * \param skin density Sets the density of the the skin lines by adjusting the distance between them (normal skin is 1.0)
      * \param[out] perimeter_gaps_output Optional output to store the gaps which occur if the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
+     * \param fan_speed fan speed override for this skin area
      */
-    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something) const;
+    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
 
     /*!
      * Add perimeter gaps of a mesh with the given extruder.
@@ -667,7 +671,7 @@ public:
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param extruder_nr The extruder to which to switch
      */
-    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, int extruder_nr) const;
+    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const;
 
 private:
     /*!

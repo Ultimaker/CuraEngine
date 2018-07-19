@@ -33,27 +33,28 @@ private:
         Polygons polygons;
         Polygons lines;
     };
-    int extruder_count; //!< Number of extruders
-
-    bool is_hollow; //!< Whether the prime tower is hollow
+    unsigned int extruder_count; //!< Number of extruders
 
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
 
     Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
 
-    std::vector<ClosestPolygonPoint> pre_wipe_locations; //!< The differernt locations where to pre-wipe the active nozzle
-    const unsigned int pre_wipe_location_skip = 13; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
-    const unsigned int number_of_pre_wipe_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
-    // note that the above are two consecutive numbers in the Fibonacci sequence
-
-    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< For each extruder a vector of patterns to alternate between, over the layers
+    std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
-    Polygons inner_poly; //!< The inline of the prime tower to be used for each layer if it is hollow
-    Polygons outer_poly; //!< The outline of the prime tower to be used for each layer for the first layer
+    Polygons outer_poly; //!< The outline of the outermost prime tower.
+
+    /*
+     * In which order, from outside to inside, will we be printing the prime
+     * towers for maximum strength?
+     *
+     * This is the spatial order from outside to inside. This is NOT the actual
+     * order in time in which they are printed.
+     */
+    std::vector<unsigned int> extruder_order;
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
@@ -110,12 +111,6 @@ private:
     Point getLocationBeforePrimeTower(const SliceDataStorage& storage) const;
 
     /*!
-     * \param storage where to get settings from
-     * Depends on inner_poly being generated
-     */
-    void generateWipeLocations(const SliceDataStorage& storage);
-
-    /*!
      * \see WipeTower::generatePaths
      * 
      * Generate the extrude paths for each extruder on even and odd layers
@@ -135,34 +130,6 @@ private:
      * tower paths should be drawn.
      */
     void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
-
-    /*!
-     * Plan the moves for wiping and purging (if enabled) the current nozzles oozed material before starting
-     * to print the prime tower.
-     * This generates wipe moves from inside the tower towards the outside if the tower is hollow. Otherwise
-     * it wipes from outside to inside.
-     * 
-     * \param storage where to get settings from
-     * \param[out] gcode_layer where to add the planned paths for wiping
-     * \param extruder_nr The current extruder
-     */
-    void preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const;
-
-    /*!
-     * Plan a purge move using the prime tower.
-     *
-     * The purge move starts from the center of the prime tower and moves outwards towards the prime tower.
-     * This is an extrusion move so the nozzle will extrude a certain amount of material during the move,
-     * and this is called "purge". This feature can be enabled when prime tower wipe is enabled.
-     *
-     * \param gcode_layer the layer plan to used
-     * \param extruder_nr the extruder number that will be purged
-     * \param train the extruder train of the extruder what will be purged
-     * \param start_pos the start position of the purge move
-     * \param end_pos the end position of the purge move
-     * \param purge_volume the purge volume in mm^3
-     */
-    void addPurgeMove(LayerPlan& gcode_layer, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const;
 };
 
 

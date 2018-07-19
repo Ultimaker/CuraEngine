@@ -20,9 +20,8 @@ public:
      * \param distance The distance of the first outset from the parts at the first
      * layer.
      * \param primary_line_count Number of outsets / brim lines of the primary extruder.
-     * \param outside_only Whether to only generate a brim on the outside, rather than also in holes
      */
-    static void generate(SliceDataStorage& storage, int distance, unsigned int primary_line_count, bool outside_only);
+    static void generate(SliceDataStorage& storage, int distance, unsigned int primary_line_count);
 
 private:
     /*!
@@ -35,10 +34,9 @@ private:
      * \param primary_line_count Number of outsets / brim lines of the primary extruder.
      * \param primary_extruder_skirt_brim_line_width Line widths of the initial skirt/brim lines
      * \param is_skirt Whether a skirt is being generated vs a brim
-     * \param outside_only Whether to only generate a brim on the outside, rather than also in holes
      * \param[out] first_layer_outline The resulting reference polygons
      */
-    static void getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, const bool outside_only, Polygons& first_layer_outline);
+    static void getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline);
 
     /*!
      * Generate the skirt/brim lines around the model
