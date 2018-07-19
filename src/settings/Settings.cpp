@@ -25,6 +25,11 @@ void Settings::add(const std::string& key, const double value, Settings* limit_t
     //TODO.
 }
 
+template<> std::string Settings::get<std::string>(const std::string& key) const
+{
+    return "";
+}
+
 template<> int Settings::get<int>(const std::string& key) const
 {
     return 0;
