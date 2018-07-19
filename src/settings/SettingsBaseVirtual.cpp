@@ -1,8 +1,11 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <regex> //For parsing setting values.
 #include "SettingsBaseVirtual.h"
 
+namespace cura
+{
 
 SettingsBaseVirtual::SettingsBaseVirtual()
 : parent(nullptr)
@@ -112,8 +115,6 @@ double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
     const std::string& value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
-
-
 
 double SettingsBaseVirtual::getSettingAsRatio(std::string key) const
 {
@@ -452,3 +453,5 @@ std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) c
     }
     return result;
 }
+
+} //Cura namespace.

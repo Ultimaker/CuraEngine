@@ -2,6 +2,7 @@
 #define FLOW_TEMP_GRAPH
 
 #include <cassert>
+#include <vector>
 
 #include "utils/logoutput.h"
 
