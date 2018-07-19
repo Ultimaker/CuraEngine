@@ -459,7 +459,7 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>&
          */
 
         float direction_weights[] = { 7, 5 }; // TODO: determine reasoned weights!
-        float diag_weight = 0;//1; // 0 seems to produce visually better results somehow
+        float diag_weight = 1;
         float backward_diag_weight = 3; //3; // TODO: error is still being propagated to already processed cells
 
         for (int side_idx = 0; side_idx < 2; side_idx++)
