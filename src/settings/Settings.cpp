@@ -43,12 +43,12 @@ template<> std::string Settings::get<std::string>(const std::string& key) const
 
 template<> int Settings::get<int>(const std::string& key) const
 {
-    return 0;
+    return atoi(get<std::string>(key).c_str());
 }
 
 template<> double Settings::get<double>(const std::string& key) const
 {
-    return 0.0;
+    return atof(get<std::string>(key).c_str());
 }
 
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
