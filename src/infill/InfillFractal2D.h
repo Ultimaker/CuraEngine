@@ -316,12 +316,8 @@ namespace cura
  * we propagate error based on a partition of unity with weights determined by the direction similar to FS dithering
  * and also influenced by cell size (?)
  * 
- * The cells which cannot propagate error to their left up neighbor can be identified
- * by looking at the sequence of ChildSide from root to the current node. (See implementation)
- * However, it is far more easy and efficient to simply add a boolean flag to a cell to see whether it has been processed.
- * TODO: perform te above suggested rework!
- * 
- * 
+ * We don't propagate error to cells already processed by the dithering algorith.
+ * Those cells have the flag is_dithered set to true.
  */
 template <class CellGeometry>
 class InfillFractal2D
@@ -434,6 +430,7 @@ protected:
         float filled_volume_allowance; //!< The volume to be filled corresponding to the average density requested by the volumetric density specification.
         float minimally_required_density; //!< The largest required density across this area. For when the density specification is the minimal density at each locatoin.
         bool is_subdivided;
+        bool is_dithered;
         std::array<std::list<Link>, number_of_sides> adjacent_cells; //!< the adjacent cells for each edge/face of this cell. Ordered: before, after, below, above
 
         std::array<idx_t, max_subdivision_count> children; //!< children. Ordered: down-left, down-right, up-left, up-right
@@ -446,6 +443,7 @@ protected:
         , filled_volume_allowance(0)
         , minimally_required_density(-1)
         , is_subdivided(false)
+        , is_dithered(false)
         {
 //             children.fill(-1); --> done in createTree(...)
         }
@@ -514,7 +512,7 @@ protected:
     std::vector<std::vector<Cell*>> getDepthOrdered();
     void getDepthOrdered(Cell& sub_tree_root, std::vector<std::vector<Cell*>>& output);
 
-    void dither(Cell& parent, std::vector<ChildSide>& tree_path);
+    void dither(Cell& parent);
 
     virtual float getActualizedVolume(const Cell& cell) const = 0;
     virtual float getChildrenActualizedVolume(const Cell& cell) const;
@@ -549,16 +547,11 @@ protected:
      * | from   |_____|             |___________|         |_____|  X
      * |        |     |             |from |     |         |from |  X
      * |________|_____|             |_____|_____|         |_____|____
+     * 
+     * \return the link from the \p left_right most upstairs neighbor to the diagonal neighbor
      */
     Link* getDiagonalNeighbor(Cell& cell, Direction left_right) const;
 
-
-    /*!
-     * Check whetehr we can propagate error to the cell diagonally left up of this cell.
-     * This is only possible of we hadn't already processed that cell,
-     * which is the case if this is a ll cell after a lb cell after the last right cell.
-     */
-    bool canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path);
 
     /*!
      * Get the total error currently acting on this cell.

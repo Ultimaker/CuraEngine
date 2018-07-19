@@ -229,8 +229,7 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
 
     settleLoans();
 
-    std::vector<ChildSide> tree_path(max_depth, ChildSide::COUNT);
-    dither(cell_data[0], tree_path);
+    dither(cell_data[0]);
 
     // debug check for total actualized volume
     float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);
@@ -419,7 +418,7 @@ bool InfillFractal2D<CellGeometry>::handOutLoansPhase()
 
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>& tree_path)
+void InfillFractal2D<CellGeometry>::dither(Cell& parent)
 {
     if (parent.is_subdivided)
     {
@@ -429,8 +428,7 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>&
             if (child_idx > 0)
             {
                 Cell& child = cell_data[child_idx];
-                tree_path[parent.depth] = static_cast<ChildSide>(path_dir);
-                dither(child, tree_path);
+                dither(child);
             }
         }
     }
@@ -479,20 +477,20 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>&
             total_weighted_forward_cell_volume += diag_weight * cell_data[diag_neighbor->to_index].volume;
         }
         Link* backward_diag_neighbor = getDiagonalNeighbor(parent, Direction::LEFT);
-        if (!canPropagateLU(parent, tree_path))
-        {
-            backward_diag_neighbor = nullptr;
-        }
-        if (backward_diag_neighbor)
+        if (backward_diag_neighbor && cell_data[backward_diag_neighbor->to_index].is_dithered)
         {
             /*!
-             * TODO avoid error being propagated to already processed cells!!:
+             * avoid error being propagated to already processed cells!!:
              *  ___ ___ ___ ___
              * | 3 | 4 | 7 | 8 |
              * |___|__↖|___|___|
              * | 1 | 2 |↖5 | 6 |
              * |___|___|___|___|
              */
+            backward_diag_neighbor = nullptr;
+        }
+        if (backward_diag_neighbor)
+        {
             total_weighted_forward_cell_volume += backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume;
         }
 
@@ -523,6 +521,16 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent, std::vector<ChildSide>&
         {
             constexpr bool redistribute_errors = false;
             subdivide(parent, redistribute_errors);
+        }
+
+        parent.is_dithered = true;
+        if (do_subdivide)
+        {
+            for (idx_t child_idx : parent.children)
+            {
+                if (child_idx < 0) break;
+                cell_data[child_idx].is_dithered = true;
+            }
         }
     }
 }
@@ -757,40 +765,6 @@ typename InfillFractal2D<CellGeometry>::Link* InfillFractal2D<CellGeometry>::get
     return nullptr;
 }
 
-
-template<typename CellGeometry>
-bool InfillFractal2D<CellGeometry>::canPropagateLU(Cell& cell, const std::vector<ChildSide>& tree_path)
-{
-    if (cell.depth == 0)
-    {
-        return false;
-    }
-    if (tree_path[cell.depth - 1] == ChildSide::LEFT_BOTTOM)
-    {
-        return false;
-    }
-    if (tree_path[cell.depth - 1] != ChildSide::LEFT_TOP)
-    {
-        return true;
-    }
-    // See whethertree_path has the form ...R...LB...LT so it has already been processed.
-    int tree_path_idx;
-    for (tree_path_idx = cell.depth - 1; tree_path_idx >= 0; tree_path_idx--)
-    {
-        if (tree_path[tree_path_idx] == ChildSide::RIGHT_BOTTOM || tree_path[tree_path_idx] == ChildSide::RIGHT_TOP)
-        {
-            break;
-        }
-    }
-    for (; tree_path_idx < cell.depth; tree_path_idx++)
-    {
-        if (tree_path[tree_path_idx] == ChildSide::LEFT_BOTTOM)
-        {
-            return false;
-        }
-    }
-    return true;
-}
 
 /*
  * Tree creation /\                         .
