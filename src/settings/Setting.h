@@ -14,6 +14,9 @@ class ExtruderTrain; //Forward declaration to prevent having to include Extruder
  */
 struct Setting
 {
+    /*!
+     * Create a new Setting instance and directly set its fields.
+     */
     Setting(const std::string value, ExtruderTrain* limit_to_extruder = nullptr) : value(value), limit_to_extruder(limit_to_extruder) {};
 
     /*!

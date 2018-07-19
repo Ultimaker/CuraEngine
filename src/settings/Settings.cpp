@@ -22,7 +22,23 @@ void Settings::add(const std::string& key, const std::string value, ExtruderTrai
 
 template<> std::string Settings::get<std::string>(const std::string& key) const
 {
-    return "";
+    if (settings.find(key) != settings.end())
+    {
+        Setting setting = settings.at(key);
+        //TODO: If the setting has limit_to_extruder set, ask that extruder for the value instead.
+        return setting.value;
+    }
+    else if(parent)
+    {
+        Setting setting = parent->get<std::string>(key);
+        //TODO: If the setting has limit_to_extruder set, ask that extruder for the value instead.
+        return setting.value;
+    }
+    else
+    {
+        logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
+        std::exit(2);
+    }
 }
 
 template<> int Settings::get<int>(const std::string& key) const
