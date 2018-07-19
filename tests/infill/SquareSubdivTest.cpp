@@ -23,70 +23,62 @@ void SquareSubdivTest::debugCheck()
 {
     coord_t line_width = 400;
     int max_depth = 9;
-    AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * 512);
+    AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * (1 << max_depth));
     AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
     
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gradient.png", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/slight_gradient.png", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/simple.png", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gray.png", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/triangle.png", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/contrast.png", aabb_3d);
+    std::string img_names[] = 
+        { "lena.png"             // 0
+        , "gradient.png"         // 1
+        , "slight_gradient.png"  // 2
+        , "simple.png"           // 3
+        , "gray.png"             // 4
+        , "triangle.png"         // 5
+        , "contrast.png"         // 6
+        , "hitler.jpg"           // 7
+        , "cheshire_cat.jpg"     // 8
+        , "vader.jpg"            // 9
+        , "sinterklaas.jpg"      // 10
+        , "diamond.jpg"          // 11
+        , "trex.jpeg"            // 12
+        , "bagelorb.jpg"         // 13
+        , "soulpilot.jpg"        // 14
+        , "soulpilot_dark.jpg"   // 15
+        , "cura-logo.jpg"        // 16
+        , "nessy.jpg"            // 17
+        , "smize.png"};          // 18
 
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/hitler.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cheshire_cat.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/vader.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/sinterklaas.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/diamond.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/trex.jpeg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/bagelorb.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/soulpilot_dark.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/cura-logo.jpg", aabb_3d);
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/T-shirt-printing/input/deer.png", aabb_3d);
-    
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/nessy.jpg", aabb_3d);
-//     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/smize.png", aabb_3d);
+//     std::string img_name = img_names[0];
+    for (std::string img_name : img_names)
+    {
+        DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d);
 
-    bool space_filling_curve = false;
-    SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);
-    ss.initialize();
-//     ss.createMinimalDensityPattern();
-//     ss.createMinimalErrorPattern(false);
-    ss.createDitheredPattern();
-//     ss.createMinimalDensityPattern();
-//     ss.debugCheck();
-    
-    {
-//         Point canvas_size = Point(1024, 1024) / 2; // default canvas size
-        SVG svg("output/subdiv_dither2.svg", aabb);
-        
-        bool draw_arrows = false;
-        float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
-        if (draw_arrows) drawing_line_width *= .2;
-        
-        
-        ss.debugOutput(svg, drawing_line_width, draw_arrows);
-//         ss.outputHilbert(svg, drawing_line_width * 2);
-//         ss.outputMoore(svg, drawing_line_width * 2);
-    }
-    {
-        SVG svg("output/subdiv_dither_clean.svg", aabb);
-        bool draw_arrows = false;
-        float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
-        if (draw_arrows) drawing_line_width *= .2;
-        ss.debugOutput(svg, drawing_line_width, draw_arrows);
-    }
-    {
-        SVG svg("output/subdiv_dither_hilbert.svg", aabb);
-        bool draw_arrows = false;
-        float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
-        if (draw_arrows) drawing_line_width *= .2;
-        Polygon moore_poly = ss.createMooreLine();
-//         ss.debugOutput(svg, drawing_line_width, draw_arrows);
-        svg.writePolygon(moore_poly, SVG::Color::BLACK, drawing_line_width);
+        bool space_filling_curve = false;
+        SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);
+        ss.initialize();
+    //     ss.createMinimalDensityPattern();
+    //     ss.createMinimalErrorPattern(false);
+        ss.createDitheredPattern();
+    //     ss.createMinimalDensityPattern();
+    //     ss.debugCheck();
+
+        {
+            SVG svg(std::string("output/square_dither_") + img_name + ".svg", aabb);
+            bool draw_arrows = false;
+            float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+            if (draw_arrows) drawing_line_width *= .2;
+            ss.debugOutput(svg, drawing_line_width, draw_arrows);
+        }
+        if (false)
+        {
+            SVG svg(std::string("output/square_hilbert_") + img_name + ".svg", aabb);
+            bool draw_arrows = false;
+            float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+            if (draw_arrows) drawing_line_width *= .2;
+            Polygon moore_poly = ss.createMooreLine();
+    //         ss.debugOutput(svg, drawing_line_width, draw_arrows);
+            svg.writePolygon(moore_poly, SVG::Color::BLACK, drawing_line_width);
+        }
     }
 }
     
