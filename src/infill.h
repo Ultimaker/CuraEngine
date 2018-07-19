@@ -5,7 +5,7 @@
 #define INFILL_H
 
 #include "utils/polygon.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"

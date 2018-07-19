@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SETTINGS_SETTING_REGISTRY_H
 #define SETTINGS_SETTING_REGISTRY_H
 
@@ -14,7 +16,7 @@
 
 #include "../utils/NoCopy.h"
 #include "rapidjson/document.h"
-#include "settings.h"
+#include "Settings.h"
 
 namespace cura
 {

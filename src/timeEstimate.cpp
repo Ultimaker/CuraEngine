@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -5,7 +8,7 @@
 
 #include "utils/math.h"
 #include "timeEstimate.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 
 namespace cura
 {

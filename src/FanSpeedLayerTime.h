@@ -1,7 +1,10 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef FAN_SPEED_LAYER_TIME_H
 #define FAN_SPEED_LAYER_TIME_H
 
-#include "settings/settings.h"
+#include "settings/Settings.h"
 
 namespace cura 
 {

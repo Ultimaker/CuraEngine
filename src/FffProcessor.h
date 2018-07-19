@@ -1,7 +1,10 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
 #include "commandSocket.h"

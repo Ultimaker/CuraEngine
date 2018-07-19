@@ -1,11 +1,13 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATHOPTIMIZER_H
 #define PATHOPTIMIZER_H
 
 #include <stdint.h>
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 
 namespace cura {
 

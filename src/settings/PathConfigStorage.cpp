@@ -1,7 +1,9 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "PathConfigStorage.h"
 
-#include "settings.h" // MAX_INFILL_COMBINE
+#include "Settings.h" // MAX_INFILL_COMBINE
 #include "../sliceDataStorage.h" // SliceDataStorage
 #include "../raft.h"
 

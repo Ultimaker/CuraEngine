@@ -1,9 +1,12 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef COMMAND_SOCKET_H
 #define COMMAND_SOCKET_H
 
 #include "utils/socket.h"
 #include "utils/polygon.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "progress/Progress.h"
 #include "PrintFeature.h"
 

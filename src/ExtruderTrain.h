@@ -1,8 +1,10 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef EXTRUDER_TRAIN_H
 #define EXTRUDER_TRAIN_H
 
-#include "settings/settings.h"
+#include "settings/Settings.h"
 
 namespace cura 
 {

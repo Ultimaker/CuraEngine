@@ -8,7 +8,7 @@
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #include <sstream> // for stream.str()
 
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "timeEstimate.h"

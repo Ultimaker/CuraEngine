@@ -9,7 +9,7 @@
 #include <string> // stod (string to double)
 #include "../utils/logoutput.h"
 
-#include "settings.h"
+#include "Settings.h"
 #include "SettingRegistry.h"
 
 namespace cura
