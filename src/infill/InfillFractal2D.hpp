@@ -509,12 +509,24 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
         if (diag_neighbor)
         {
             Link& diag_loan_link = (left_over > 0)? *diag_neighbor : diag_neighbor->getReverse();
-            diag_loan_link.loan += std::abs(left_over) * diag_weight * cell_data[diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+            float transfer = std::abs(left_over) * diag_weight * cell_data[diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+            // transfer the amount via the correct upstairs neighbor
+            assert(!parent.adjacent_cells[toInt(Direction::UP)].empty());
+            Link& up_neighbor = parent.adjacent_cells[toInt(Direction::UP)].back();
+            Link& up_loan_link = (left_over > 0)? up_neighbor : up_neighbor.getReverse();
+            up_loan_link.loan += transfer;
+            diag_loan_link.loan += transfer;
         }
         if (backward_diag_neighbor)
         {
             Link& diag_loan_link = (left_over > 0)? *backward_diag_neighbor : backward_diag_neighbor->getReverse();
-            diag_loan_link.loan += std::abs(left_over) * backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+            float transfer = std::abs(left_over) * backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+            // transfer the amount via the correct upstairs neighbor
+            assert(!parent.adjacent_cells[toInt(Direction::UP)].empty());
+            Link& up_neighbor = parent.adjacent_cells[toInt(Direction::UP)].front();
+            Link& up_loan_link = (left_over > 0)? up_neighbor : up_neighbor.getReverse();
+            up_loan_link.loan += transfer;
+            diag_loan_link.loan += transfer;
         }
 
         if (do_subdivide)
@@ -747,16 +759,29 @@ typename InfillFractal2D<CellGeometry>::Link* InfillFractal2D<CellGeometry>::get
         if (!right_side_up_side.empty())
         {
             const Link& ru_diag_neighbor = right_side_up_side.front();
+            /*  ___ ___
+             * | 3 | 4 |
+             * |___|_↑_|  ru_diag_neighbor is link from 2 to 4
+             * | 1...2 |
+             * |___|___|
+             */
             const std::list<Link>& up_side = cell.adjacent_cells[static_cast<size_t>(Direction::UP)];
             if (!up_side.empty())
             {
-                const std::list<Link>& up_side_right_side = cell_data[up_side.back().to_index].adjacent_cells[static_cast<size_t>(left_right)];
+                const Link& up_neighbor = (left_right == Direction::RIGHT)? up_side.back() : up_side.front();
+                const std::list<Link>& up_side_right_side = cell_data[up_neighbor.to_index].adjacent_cells[static_cast<size_t>(left_right)];
                 if (!up_side_right_side.empty())
                 {
                     const Link& ur_diag_neighbor = up_side_right_side.front();
+                    /*  ___ ___
+                     * | 3 → 4 |  ur_diag_neighbor is link from 3 to 4
+                     * |_:_|___|
+                     * | 1 | 2 |
+                     * |___|___|
+                     */
                     if (ru_diag_neighbor.to_index == ur_diag_neighbor.to_index)
                     {
-                        return const_cast<Link*>(&ru_diag_neighbor);
+                        return const_cast<Link*>(&ur_diag_neighbor);
                     }
                 }
             }
