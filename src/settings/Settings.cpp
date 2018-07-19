@@ -15,12 +15,12 @@
 namespace cura
 {
 
-void Settings::add(const std::string& key, const int value, const int limit_to_extruder)
+void Settings::add(const std::string& key, const int value, Settings* limit_to_extruder)
 {
     //TODO.
 }
 
-void Settings::add(const std::string& key, const double value, const int limit_to_extruder)
+void Settings::add(const std::string& key, const double value, Settings* limit_to_extruder)
 {
     //TODO.
 }
