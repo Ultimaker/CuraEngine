@@ -185,6 +185,45 @@ template<> FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) co
     return result;
 }
 
+template<> FMatrix3x3 Settings::get<FMatrix3x3>(const std::string& key) const
+{
+    const std::string value_string = get<std::string>(key);
+
+    FMatrix3x3 result;
+    if (value_string.empty())
+    {
+        return result; //Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
+    }
+
+    std::string num("([^,\\] ]*)"); //Match with anything but the next ',' ']' or space and capture the match.
+    std::ostringstream row; //Match with "[num,num,num]" and ignore whitespace.
+    row << "\\s*\\[\\s*" << num << "\\s*,\\s*" << num << "\\s*,\\s*" << num << "\\s*\\]\\s*";
+    std::ostringstream matrix; //Match with "[row,row,row]" and ignore whitespace.
+    matrix << "\\s*\\[\\s*" << row.str() << "\\s*,\\s*" << row.str() << "\\s*,\\s*" << row.str() << "\\]\\s*";
+
+    std::regex point_matrix_regex(matrix.str());
+    std::cmatch sub_matches; //Same as std::match_results<const char*> cm;
+    std::regex_match(value_string.c_str(), sub_matches, point_matrix_regex);
+    if (sub_matches.size() != 10) //One match for the whole string, nine for the cells.
+    {
+        logWarning("Mesh transformation matrix could not be parsed!\n\tFormat should be [[f,f,f], [f,f,f], [f,f,f]] allowing whitespace anywhere in between.\n\tWhile what was given was \"%s\".\n", value_string.c_str());
+        return result; //Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
+    }
+
+    size_t sub_match_index = 1; //Skip the first because the first submatch is the whole string.
+    for (size_t x = 0; x < 3; x++)
+    {
+        for (size_t y = 0; y < 3; y++)
+        {
+            std::sub_match<const char*> sub_match = sub_matches[sub_match_index];
+            result.m[y][x] = strtod(std::string(sub_match.str()).c_str(), nullptr);
+            sub_match_index++;
+        }
+    }
+
+    return result;
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
