@@ -15,24 +15,40 @@
 namespace cura
 {
 
-void Settings::add(const std::string& key, const int value, const int limit_to_extruder)
+void Settings::add(const std::string& key, const std::string value, ExtruderTrain* limit_to_extruder)
 {
-    //TODO.
+    settings.insert(std::pair<std::string, Setting>(key, Setting(value, limit_to_extruder)));
 }
 
-void Settings::add(const std::string& key, const double value, const int limit_to_extruder)
+template<> std::string Settings::get<std::string>(const std::string& key) const
 {
-    //TODO.
+    if (settings.find(key) != settings.end())
+    {
+        Setting setting = settings.at(key);
+        //TODO: If the setting has limit_to_extruder set, ask that extruder for the value instead.
+        return setting.value;
+    }
+    else if(parent)
+    {
+        Setting setting = parent->get<std::string>(key);
+        //TODO: If the setting has limit_to_extruder set, ask that extruder for the value instead.
+        return setting.value;
+    }
+    else
+    {
+        logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
+        std::exit(2);
+    }
 }
 
 template<> int Settings::get<int>(const std::string& key) const
 {
-    return 0;
+    return atoi(get<std::string>(key).c_str());
 }
 
 template<> double Settings::get<double>(const std::string& key) const
 {
-    return 0.0;
+    return atof(get<std::string>(key).c_str());
 }
 
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
