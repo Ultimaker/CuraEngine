@@ -73,6 +73,12 @@ template<> bool Settings::get<bool>(const std::string& key) const
     return num != 0;
 }
 
+template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
+{
+    int extruder_nr = get<int>(key);
+    //TODO: Get the extruder with the correct extruder number.
+}
+
 template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
