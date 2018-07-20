@@ -11,10 +11,10 @@
 
 #include "Settings.h"
 #include "SettingRegistry.h"
-#include "types/LayerIndex.h" //For layer index settings.
 #include "types/AngleDegrees.h" //For angle settings.
 #include "types/AngleRadians.h" //For angle settings.
-
+#include "types/LayerIndex.h" //For layer index settings.
+#include "types/Temperature.h" //For temperature settings.
 
 namespace cura
 {
@@ -98,6 +98,11 @@ template<> AngleRadians Settings::get<AngleRadians>(const std::string& key) cons
 }
 
 template<> AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
+{
+    return get<double>(key);
+}
+
+template<> Temperature Settings::get<Temperature>(const std::string& key) const
 {
     return get<double>(key);
 }
