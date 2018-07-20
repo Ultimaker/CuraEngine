@@ -175,6 +175,9 @@ set(engine_SRCS # Except main.cpp.
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST_INFILL
 )
+set(engine_TEST_SETTINGS
+    SettingsTest
+)
 set(engine_TEST_UTILS
     SparseGridTest
     IntPointTest
@@ -243,6 +246,11 @@ if (BUILD_TESTS)
     endforeach()
     foreach (test ${engine_TEST_INFILL})
         add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine cppunit)
+        add_test(${test} ${test})
+    endforeach()
+    foreach (test ${engine_TEST_SETTINGS})
+        add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
