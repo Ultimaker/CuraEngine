@@ -4,6 +4,9 @@
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
 
+namespace cura
+{
+
 /*
  * Struct behaving like a layer number.
  *
@@ -32,5 +35,7 @@ struct LayerIndex
      */
     int value = 0;
 };
+
+}
 
 #endif //LAYERINDEX_H

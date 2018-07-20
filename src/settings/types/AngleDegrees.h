@@ -4,6 +4,9 @@
 #ifndef ANGLEDEGREES_H
 #define ANGLEDEGREES_H
 
+namespace cura
+{
+
 /*
  * Represents an angle in degrees.
  *
@@ -52,5 +55,7 @@ struct AngleDegrees
      */
     double value = 0;
 };
+
+}
 
 #endif //ANGLEDEGREES_H
