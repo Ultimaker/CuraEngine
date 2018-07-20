@@ -6,9 +6,10 @@
 #include <stdio.h>
 #include <sstream> // ostringstream
 #include <regex> // regex parsing for temp flow graph
-#include <string> // stod (string to double)
+#include <string> //Parsing strings (stod, stoul).
 #include "../utils/logoutput.h"
 
+#include "SettingTypes.h" //To overload and return the correct types from settings.
 #include "Settings.h"
 #include "SettingRegistry.h"
 
@@ -49,6 +50,87 @@ template<> int Settings::get<int>(const std::string& key) const
 template<> double Settings::get<double>(const std::string& key) const
 {
     return atof(get<std::string>(key).c_str());
+}
+
+template<> size_t Settings::get<size_t>(const std::string& key) const
+{
+    return std::stoul(get<std::string>(key).c_str());
+}
+
+template<> unsigned int Settings::get<unsigned int>(const std::string& key) const
+{
+    return get<size_t>(key);
+}
+
+template<> bool Settings::get<bool>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "on" || value == "yes" || value == "true" || value == "True")
+    {
+        return true;
+    }
+    const int num = atoi(value.c_str());
+    return num != 0;
+}
+
+template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "limited")
+    {
+        return DraftShieldHeightLimitation::LIMITED;
+    }
+    else //if (value == "full") or default.
+    {
+        return DraftShieldHeightLimitation::FULL;
+    }
+}
+
+template<> FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
+{
+    std::string value_string = get<std::string>(key);
+
+    FlowTempGraph result;
+    if (value_string.empty())
+    {
+        return result; //Empty at this point.
+    }
+    /* Match with:
+     * - the last opening bracket '['
+     * - then a bunch of characters until the first comma
+     * - a comma
+     * - a bunch of characters until the first closing bracket ']'.
+     * This matches with any substring which looks like "[ 124.512 , 124.1 ]".
+     */
+    std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
+
+    //Default constructor = end-of-sequence:
+    std::regex_token_iterator<std::string::iterator> rend;
+
+    const int submatches[] = {1, 2, 3}; //Match whole pair, first number and second number of a pair.
+    std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
+    while (match_iter != rend)
+    {
+        match_iter++; //Match the whole pair.
+        if (match_iter == rend)
+        {
+            break;
+        }
+        std::string first_substring = *match_iter++;
+        std::string second_substring = *match_iter++;
+        try
+        {
+            double first = std::stod(first_substring);
+            double second = std::stod(second_substring);
+            result.data.emplace_back(first, second);
+        }
+        catch (const std::invalid_argument& e)
+        {
+            logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
+        }
+    }
+
+    return result;
 }
 
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
