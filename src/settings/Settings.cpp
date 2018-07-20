@@ -488,6 +488,46 @@ template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& k
     }
 }
 
+template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
+{
+    const std::string& value_string = get<std::string>(key);
+
+    std::vector<int> result;
+    if (value_string.empty())
+    {
+        return result;
+    }
+
+    /* We're looking to match one or more integer values separated by commas and
+     * surrounded by square brackets. Note that because the QML RexExpValidator
+     * only stops unrecognised characters being input and doesn't actually barf
+     * if the trailing ']' is missing, we are lenient here and make that bracket
+     * optional. */
+    std::regex list_contents_regex("\\[([^\\]]*)\\]?");
+    std::smatch list_contents_match;
+    if (std::regex_search(value_string, list_contents_match, list_contents_regex) && list_contents_match.size() > 1)
+    {
+        std::string elements = list_contents_match.str(1);
+        std::regex element_regex("\\s*(-?[0-9]+)\\s*,?");
+        std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
+
+        std::regex_token_iterator<std::string::iterator> match_iter(elements.begin(), elements.end(), element_regex, 0);
+        while (match_iter != rend)
+        {
+            std::string value = *match_iter++;
+            try
+            {
+                result.push_back(std::stoi(value));
+            }
+            catch (const std::invalid_argument& e)
+            {
+                logError("Couldn't read integer value (%s) in setting '%s'. Ignored.\n", value.c_str(), key.c_str());
+            }
+        }
+    }
+    return result;
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
