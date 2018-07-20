@@ -15,6 +15,7 @@
 #include "types/AngleRadians.h" //For angle settings.
 #include "types/LayerIndex.h" //For layer index settings.
 #include "types/Temperature.h" //For temperature settings.
+#include "types/Velocity.h" //For velocity settings.
 
 namespace cura
 {
@@ -105,6 +106,11 @@ template<> AngleDegrees Settings::get<AngleDegrees>(const std::string& key) cons
 template<> Temperature Settings::get<Temperature>(const std::string& key) const
 {
     return get<double>(key);
+}
+
+template<> Velocity Settings::get<Velocity>(const std::string& key) const
+{
+    return std::max(0.0, get<double>(key));
 }
 
 template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
