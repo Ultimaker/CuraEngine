@@ -224,6 +224,46 @@ template<> FMatrix3x3 Settings::get<FMatrix3x3>(const std::string& key) const
     return result;
 }
 
+template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    //I wish that switch statements worked for std::string...
+    if (value == "Griffin")
+    {
+        return EGCodeFlavor::GRIFFIN;
+    }
+    else if(value == "UltiGCode")
+    {
+        return EGCodeFlavor::ULTIGCODE;
+    }
+    else if(value == "Makerbot")
+    {
+        return EGCodeFlavor::MAKERBOT;
+    }
+    else if(value == "BFB")
+    {
+        return EGCodeFlavor::BFB;
+    }
+    else if(value == "Mach3")
+    {
+        return EGCodeFlavor::MACH3;
+    }
+    else if(value == "RepRap (Volumetric)")
+    {
+        return EGCodeFlavor::MARLIN_VOLUMATRIC;
+    }
+    else if(value == "Repetier")
+    {
+        return EGCodeFlavor::REPETIER;
+    }
+    else if(value == "RepRap (RepRap)")
+    {
+        return EGCodeFlavor::REPRAP;
+    }
+    //Default:
+    return EGCodeFlavor::MARLIN;
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
