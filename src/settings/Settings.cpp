@@ -84,6 +84,16 @@ template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const
     return get<int>(key);
 }
 
+template<> coord_t Settings::get<coord_t>(const std::string& key) const
+{
+    return get<double>(key) * 1000.0;
+}
+
+template<> AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
+{
+    return get<double>(key);
+}
+
 template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
