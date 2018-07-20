@@ -4,6 +4,8 @@
 #ifndef ANGLEDEGREES_H
 #define ANGLEDEGREES_H
 
+#include <cmath> //For fmod.
+
 namespace cura
 {
 
@@ -18,7 +20,7 @@ struct AngleDegrees
     /*
      * Casts a double to an AngleDegrees instance.
      */
-    LayerIndex(double value) : value(((value % 360) + 360) % 360) {};
+    AngleDegrees(double value) : value(std::fmod(std::fmod(value, 360) + 360, 360)) {};
 
     /*
      * Casts the AngleDegrees instance to a double.
@@ -31,21 +33,23 @@ struct AngleDegrees
     /*
      * Some operators implementing the clock arithmetic.
      */
-    operator +(const AngleDegrees& other) const
+    AngleDegrees operator +(const AngleDegrees& other) const
     {
-        return (((value + other.value) % 360) + 360) % 360;
+        return std::fmod(std::fmod(value + other.value, 360) + 360, 360);
     }
-    operator +=(const AngleDegrees& other)
+    AngleDegrees& operator +=(const AngleDegrees& other)
     {
-        value = (((value + other.value) % 360) + 360) % 360;
+        value = std::fmod(std::fmod(value + other.value, 360) + 360, 360);
+        return *this;
     }
-    operator -(const AngleDegrees& other) const
+    AngleDegrees operator -(const AngleDegrees& other) const
     {
-        return (((value - other.value) % 360) + 360) % 360;
+        return std::fmod(std::fmod(value - other.value, 360) + 360, 360);
     }
-    operator -=(const AngleDegrees& other)
+    AngleDegrees& operator -=(const AngleDegrees& other)
     {
-        value = (((value - other.value) % 360) + 360) % 360;
+        value = std::fmod(std::fmod(value - other.value, 360) + 360, 360);
+        return *this;
     }
 
     /*
