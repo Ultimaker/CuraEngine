@@ -359,6 +359,48 @@ template<> ESupportType Settings::get<ESupportType>(const std::string& key) cons
     }
 }
 
+template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
+{
+    const std::string& value == get<std::string>(key);
+    if (value == "random")
+    {
+        return EZSeamType::RANDOM;
+    }
+    else if (value == "back") //It's called 'back' internally because originally this was intended to allow the user to put the seam in the back of the object where it's less visible.
+    {
+        return EZSeamType::USER_SPECIFIED;
+    }
+    else if (value == "sharpest_corner")
+    {
+        return EZSeamType::SHARPEST_CORNER;
+    }
+    else //Default.
+    {
+        return EZSeamType::SHORTEST;
+    }
+}
+
+template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
+{
+    const std::string& value == get<std::string>(key);
+    if (value == "z_seam_corner_inner")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
+    }
+    else if (value == "z_seam_corner_outer")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
+    }
+    else if (value == "z_seam_corner_any")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY;
+    }
+    else //Default.
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+    }
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
