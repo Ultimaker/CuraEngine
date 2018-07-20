@@ -315,9 +315,30 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::CROSS_3D;
     }
-    else
+    else //Default.
     {
         return EFillMethod::NONE;
+    }
+}
+
+template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "brim")
+    {
+        return EPlatformAdhesion::BRIM;
+    }
+    if (value == "raft")
+    {
+        return EPlatformAdhesion::RAFT;
+    }
+    if (value == "none")
+    {
+        return EPlatformAdhesion::NONE;
+    }
+    else //Default.
+    {
+        return EPlatformAdhesion::SKIRT;
     }
 }
 
