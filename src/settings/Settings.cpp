@@ -264,6 +264,270 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     return EGCodeFlavor::MARLIN;
 }
 
+template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "lines")
+    {
+        return EFillMethod::LINES;
+    }
+    else if (value == "grid")
+    {
+        return EFillMethod::GRID;
+    }
+    else if (value == "cubic")
+    {
+        return EFillMethod::CUBIC;
+    }
+    else if (value == "cubicsubdiv")
+    {
+        return EFillMethod::CUBICSUBDIV;
+    }
+    else if (value == "tetrahedral")
+    {
+        return EFillMethod::TETRAHEDRAL;
+    }
+    else if (value == "quarter_cubic")
+    {
+        return EFillMethod::QUARTER_CUBIC;
+    }
+    else if (value == "triangles")
+    {
+        return EFillMethod::TRIANGLES;
+    }
+    else if (value == "trihexagon")
+    {
+        return EFillMethod::TRIHEXAGON;
+    }
+    else if (value == "concentric")
+    {
+        return EFillMethod::CONCENTRIC;
+    }
+    else if (value == "zigzag")
+    {
+        return EFillMethod::ZIG_ZAG;
+    }
+    else if (value == "cross")
+    {
+        return EFillMethod::CROSS;
+    }
+    else if (value == "cross_3d")
+    {
+        return EFillMethod::CROSS_3D;
+    }
+    else //Default.
+    {
+        return EFillMethod::NONE;
+    }
+}
+
+template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "brim")
+    {
+        return EPlatformAdhesion::BRIM;
+    }
+    else if (value == "raft")
+    {
+        return EPlatformAdhesion::RAFT;
+    }
+    else if (value == "none")
+    {
+        return EPlatformAdhesion::NONE;
+    }
+    else //Default.
+    {
+        return EPlatformAdhesion::SKIRT;
+    }
+}
+
+template<> ESupportType Settings::get<ESupportType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "everywhere")
+    {
+        return ESupportType::EVERYWHERE;
+    }
+    else if (value == "buildplate")
+    {
+        return ESupportType::PLATFORM_ONLY;
+    }
+    else //Default.
+    {
+        return ESupportType::NONE;
+    }
+}
+
+template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "random")
+    {
+        return EZSeamType::RANDOM;
+    }
+    else if (value == "back") //It's called 'back' internally because originally this was intended to allow the user to put the seam in the back of the object where it's less visible.
+    {
+        return EZSeamType::USER_SPECIFIED;
+    }
+    else if (value == "sharpest_corner")
+    {
+        return EZSeamType::SHARPEST_CORNER;
+    }
+    else //Default.
+    {
+        return EZSeamType::SHORTEST;
+    }
+}
+
+template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "z_seam_corner_inner")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
+    }
+    else if (value == "z_seam_corner_outer")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
+    }
+    else if (value == "z_seam_corner_any")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY;
+    }
+    else //Default.
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+    }
+}
+
+template<> ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "surface")
+    {
+        return ESurfaceMode::SURFACE;
+    }
+    else if (value == "both")
+    {
+        return ESurfaceMode::BOTH;
+    }
+    else //Default.
+    {
+        return ESurfaceMode::NORMAL;
+    }
+}
+
+template<> FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key) const
+{
+    if (get<std::string>(key) == "everywhere")
+    {
+        return FillPerimeterGapMode::EVERYWHERE;
+    }
+    else //Default.
+    {
+        return FillPerimeterGapMode::NOWHERE;
+    }
+}
+
+template<> BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
+{
+    if (get<std::string>(key) == "elliptic")
+    {
+        return BuildPlateShape::ELLIPTIC;
+    }
+    else //Default.
+    {
+        return BuildPlateShape::RECTANGULAR;
+    }
+}
+
+template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "off")
+    {
+        return CombingMode::OFF;
+    }
+    else if (value == "noskin")
+    {
+        return CombingMode::NO_SKIN;
+    }
+    else //Default.
+    {
+        return CombingMode::ALL;
+    }
+}
+
+template<> SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) const
+{
+    if (get<std::string>(key) == "z_overrides_xy")
+    {
+        return SupportDistPriority::Z_OVERRIDES_XY;
+    }
+    else //Default.
+    {
+        return SupportDistPriority::XY_OVERRIDES_Z;
+    }
+}
+
+template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "inclusive")
+    {
+        return SlicingTolerance::INCLUSIVE;
+    }
+    else if (value == "exclusive")
+    {
+        return SlicingTolerance::EXCLUSIVE;
+    }
+    else //Default.
+    {
+        return SlicingTolerance::MIDDLE;
+    }
+}
+
+template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
+{
+    const std::string& value_string = get<std::string>(key);
+
+    std::vector<int> result;
+    if (value_string.empty())
+    {
+        return result;
+    }
+
+    /* We're looking to match one or more integer values separated by commas and
+     * surrounded by square brackets. Note that because the QML RexExpValidator
+     * only stops unrecognised characters being input and doesn't actually barf
+     * if the trailing ']' is missing, we are lenient here and make that bracket
+     * optional. */
+    std::regex list_contents_regex("\\[([^\\]]*)\\]?");
+    std::smatch list_contents_match;
+    if (std::regex_search(value_string, list_contents_match, list_contents_regex) && list_contents_match.size() > 1)
+    {
+        std::string elements = list_contents_match.str(1);
+        std::regex element_regex("\\s*(-?[0-9]+)\\s*,?");
+        std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
+
+        std::regex_token_iterator<std::string::iterator> match_iter(elements.begin(), elements.end(), element_regex, 0);
+        while (match_iter != rend)
+        {
+            std::string value = *match_iter++;
+            try
+            {
+                result.push_back(std::stoi(value));
+            }
+            catch (const std::invalid_argument& e)
+            {
+                logError("Couldn't read integer value (%s) in setting '%s'. Ignored.\n", value.c_str(), key.c_str());
+            }
+        }
+    }
+    return result;
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
