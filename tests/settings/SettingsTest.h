@@ -23,6 +23,7 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingDoubleTest);
     CPPUNIT_TEST(addSettingSizeTTest);
     CPPUNIT_TEST(addSettingUnsignedIntTest);
+    CPPUNIT_TEST(addSettingBoolTest);
     CPPUNIT_TEST(overwriteSettingTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -69,6 +70,11 @@ public:
     void addSettingUnsignedIntTest();
 
     /*!
+     * \brief Test a setting with an bool value is correctly inserted
+     */
+    void addSettingBoolTest();
+
+    /*!
      * \brief Test to overwrite the value of the same setting
      */
     void overwriteSettingTest();
@@ -94,6 +100,21 @@ private:
     std::string setting_key_unsigned_int;
     unsigned int setting_value_unsigned_int;
     std::string setting_value_unsigned_int_string;
+    std::string setting_key_bool;
+    bool setting_value_bool;
+    std::string setting_value_bool_string;
+    std::string setting_key_bool2;
+    bool setting_value_bool2;
+    std::string setting_value_bool_string2;
+    std::string setting_key_bool3;
+    bool setting_value_bool3;
+    std::string setting_value_bool_string3;
+    std::string setting_key_bool4;
+    bool setting_value_bool4;
+    std::string setting_value_bool_string4;
+    std::string setting_key_bool5;
+    bool setting_value_bool5;
+    std::string setting_value_bool_string5;
 };
 
 }
