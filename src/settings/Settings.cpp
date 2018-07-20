@@ -13,10 +13,11 @@
 #include "SettingRegistry.h"
 #include "types/AngleDegrees.h" //For angle settings.
 #include "types/AngleRadians.h" //For angle settings.
+#include "types/Duration.h" //For duration and time settings.
 #include "types/LayerIndex.h" //For layer index settings.
+#include "types/Ratio.h" //For ratio settings and percentages.
 #include "types/Temperature.h" //For temperature settings.
 #include "types/Velocity.h" //For velocity settings.
-#include "types/Ratio.h" //For ratio settings and percentages.
 
 namespace cura
 {
@@ -117,6 +118,11 @@ template<> Velocity Settings::get<Velocity>(const std::string& key) const
 template<> Ratio Settings::get<Ratio>(const std::string& key) const
 {
     return get<double>(key) / 100.0;
+}
+
+template<> Duration Settings::get<Duration>(const std::string& key) const
+{
+    return get<double>(key);
 }
 
 template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
