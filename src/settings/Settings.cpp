@@ -361,7 +361,7 @@ template<> ESupportType Settings::get<ESupportType>(const std::string& key) cons
 
 template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 {
-    const std::string& value == get<std::string>(key);
+    const std::string& value = get<std::string>(key);
     if (value == "random")
     {
         return EZSeamType::RANDOM;
@@ -382,7 +382,7 @@ template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 
 template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
 {
-    const std::string& value == get<std::string>(key);
+    const std::string& value = get<std::string>(key);
     if (value == "z_seam_corner_inner")
     {
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
@@ -398,6 +398,35 @@ template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::s
     else //Default.
     {
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+    }
+}
+
+template<> ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "surface")
+    {
+        return ESurfaceMode::SURFACE;
+    }
+    else if (value == "both")
+    {
+        return ESurfaceMode::BOTH;
+    }
+    else //Default.
+    {
+        return ESurfaceMode::NORMAL;
+    }
+}
+
+template<> FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key) const
+{
+    if (get<std::string>(key) == "everywhere")
+    {
+        return FillPerimeterGapMode::EVERYWHERE;
+    }
+    else //Default.
+    {
+        return FillPerimeterGapMode::NOWHERE;
     }
 }
 
