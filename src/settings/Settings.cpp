@@ -264,6 +264,63 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     return EGCodeFlavor::MARLIN;
 }
 
+template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "lines")
+    {
+        return EFillMethod::LINES;
+    }
+    else if (value == "grid")
+    {
+        return EFillMethod::GRID;
+    }
+    else if (value == "cubic")
+    {
+        return EFillMethod::CUBIC;
+    }
+    else if (value == "cubicsubdiv")
+    {
+        return EFillMethod::CUBICSUBDIV;
+    }
+    else if (value == "tetrahedral")
+    {
+        return EFillMethod::TETRAHEDRAL;
+    }
+    else if (value == "quarter_cubic")
+    {
+        return EFillMethod::QUARTER_CUBIC;
+    }
+    else if (value == "triangles")
+    {
+        return EFillMethod::TRIANGLES;
+    }
+    else if (value == "trihexagon")
+    {
+        return EFillMethod::TRIHEXAGON;
+    }
+    else if (value == "concentric")
+    {
+        return EFillMethod::CONCENTRIC;
+    }
+    else if (value == "zigzag")
+    {
+        return EFillMethod::ZIG_ZAG;
+    }
+    else if (value == "cross")
+    {
+        return EFillMethod::CROSS;
+    }
+    else if (value == "cross_3d")
+    {
+        return EFillMethod::CROSS_3D;
+    }
+    else
+    {
+        return EFillMethod::NONE;
+    }
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
