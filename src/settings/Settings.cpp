@@ -430,6 +430,64 @@ template<> FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::s
     }
 }
 
+template<> BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
+{
+    if (get<std::string>(key) == "elliptic")
+    {
+        return BuildPlateShape::ELLIPTIC;
+    }
+    else //Default.
+    {
+        return BuildPlateShape::RECTANGULAR;
+    }
+}
+
+template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "off")
+    {
+        return CombingMode::OFF;
+    }
+    else if (value == "noskin")
+    {
+        return CombingMode::NO_SKIN;
+    }
+    else //Default.
+    {
+        return CombingMode::ALL;
+    }
+}
+
+template<> SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) const
+{
+    if (get<std::string>(key) == "z_overrides_xy")
+    {
+        return SupportDistPriority::Z_OVERRIDES_XY;
+    }
+    else //Default.
+    {
+        return SupportDistPriority::XY_OVERRIDES_Z;
+    }
+}
+
+template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "inclusive")
+    {
+        return SlicingTolerance::INCLUSIVE;
+    }
+    else if (value == "exclusive")
+    {
+        return SlicingTolerance::EXCLUSIVE;
+    }
+    else //Default.
+    {
+        return SlicingTolerance::MIDDLE;
+    }
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
