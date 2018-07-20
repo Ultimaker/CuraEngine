@@ -16,6 +16,7 @@
 #include "types/LayerIndex.h" //For layer index settings.
 #include "types/Temperature.h" //For temperature settings.
 #include "types/Velocity.h" //For velocity settings.
+#include "types/Ratio.h" //For ratio settings and percentages.
 
 namespace cura
 {
@@ -111,6 +112,11 @@ template<> Temperature Settings::get<Temperature>(const std::string& key) const
 template<> Velocity Settings::get<Velocity>(const std::string& key) const
 {
     return std::max(0.0, get<double>(key));
+}
+
+template<> Ratio Settings::get<Ratio>(const std::string& key) const
+{
+    return get<double>(key) / 100.0;
 }
 
 template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
