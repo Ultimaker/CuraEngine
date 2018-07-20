@@ -328,17 +328,34 @@ template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string&
     {
         return EPlatformAdhesion::BRIM;
     }
-    if (value == "raft")
+    else if (value == "raft")
     {
         return EPlatformAdhesion::RAFT;
     }
-    if (value == "none")
+    else if (value == "none")
     {
         return EPlatformAdhesion::NONE;
     }
     else //Default.
     {
         return EPlatformAdhesion::SKIRT;
+    }
+}
+
+template<> ESupportType Settings::get<ESupportType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "everywhere")
+    {
+        return ESupportType::EVERYWHERE;
+    }
+    else if (value == "buildplate")
+    {
+        return ESupportType::PLATFORM_ONLY;
+    }
+    else //Default.
+    {
+        return ESupportType::NONE;
     }
 }
 
