@@ -18,8 +18,8 @@ void SettingsTest::setUp()
     setting_value_int2 = -1;
     setting_value_int_string2 = "-1";
     setting_key_double = "setting_key_double";
-    setting_value_double = 1234567.89;
-    setting_value_double_string = "1234567.89";
+    setting_value_double = 1234567.890;
+    setting_value_double_string = "1234567.890";
     setting_key_size_t = "setting_key_size_t";
     setting_value_size_t = 1;
     setting_value_size_t_string = "1";
@@ -41,6 +41,12 @@ void SettingsTest::setUp()
     setting_key_bool5 = "setting_key_bool5";
     setting_value_bool5 = false;
     setting_value_bool_string5 = "0";
+    setting_key_layerindex = "setting_key_layerindex";
+    setting_value_layerindex = 1;
+    setting_value_layerindex_string = "1";
+    setting_key_coord_t = "setting_key_size_t";
+    setting_value_coord_t = 1234567890.0;
+    setting_value_coord_t_string = "1234567.890";
 }
 
 void SettingsTest::tearDown()
@@ -110,6 +116,19 @@ void SettingsTest::addSettingBoolTest()
                            settings.get<bool>(setting_key_bool5) == setting_value_bool5);
 }
 
+void SettingsTest::addSettingLayerIndexTest()
+{
+    settings.add(setting_key_layerindex, setting_value_layerindex_string);
+    CPPUNIT_ASSERT_MESSAGE("The value of the 'LayerIndex' setting is not the same as the expected value!",
+                           settings.get<LayerIndex>(setting_key_layerindex) == setting_value_layerindex);
+}
+
+void SettingsTest::addSettingCoordTTest()
+{
+    settings.add(setting_key_coord_t, setting_value_coord_t_string);
+    CPPUNIT_ASSERT_MESSAGE("The value of the 'coord_t' setting is not the same as the expected value!",
+                           settings.get<coord_t>(setting_key_coord_t) == setting_value_coord_t);
+}
 void SettingsTest::overwriteSettingTest()
 {
     settings.add(setting_key_int, setting_value_int_string);

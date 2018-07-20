@@ -11,6 +11,7 @@
 
 #include "../src/settings/Setting.h"
 #include "../src/settings/Settings.h"
+#include "../src/settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -24,6 +25,8 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingSizeTTest);
     CPPUNIT_TEST(addSettingUnsignedIntTest);
     CPPUNIT_TEST(addSettingBoolTest);
+    CPPUNIT_TEST(addSettingLayerIndexTest);
+    CPPUNIT_TEST(addSettingCoordTTest);
     CPPUNIT_TEST(overwriteSettingTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -75,6 +78,16 @@ public:
     void addSettingBoolTest();
 
     /*!
+     * \brief Test a setting with a LayerIndex value is correctly inserted
+     */
+    void addSettingLayerIndexTest();
+
+    /*!
+     * \brief Test a setting with a coord_t value is correctly inserted
+     */
+    void addSettingCoordTTest();
+
+    /*!
      * \brief Test to overwrite the value of the same setting
      */
     void overwriteSettingTest();
@@ -115,6 +128,12 @@ private:
     std::string setting_key_bool5;
     bool setting_value_bool5;
     std::string setting_value_bool_string5;
+    std::string setting_key_layerindex;
+    LayerIndex setting_value_layerindex = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_layerindex_string;
+    std::string setting_key_coord_t;
+    coord_t setting_value_coord_t;
+    std::string setting_value_coord_t_string;
 };
 
 }
