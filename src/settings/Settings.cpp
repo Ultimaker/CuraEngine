@@ -9,9 +9,9 @@
 #include <string> //Parsing strings (stod, stoul).
 #include "../utils/logoutput.h"
 
-#include "SettingTypes.h" //To overload and return the correct types from settings.
 #include "Settings.h"
 #include "SettingRegistry.h"
+#include "types/LayerIndex.h"
 
 namespace cura
 {
@@ -77,6 +77,11 @@ template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) 
 {
     int extruder_nr = get<int>(key);
     //TODO: Get the extruder with the correct extruder number.
+}
+
+template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const
+{
+    return get<int>(key);
 }
 
 template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
