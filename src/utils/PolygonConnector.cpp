@@ -80,8 +80,9 @@ void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const
             (dir > 0)?
             (start.point_idx + 1 + vert_nr) % poly.size()
             : (static_cast<size_t>(start.point_idx) - vert_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
-        if (!first_iter && vert_idx == (end.point_idx + ((dir > 0)? 1 : 0)) % poly.size())
-        {
+        if (!first_iter // don't return without adding points when the starting point and ending point are on the same polygon segment
+            && vert_idx == (end.point_idx + ((dir > 0)? 1 : 0)) % poly.size())
+        { // we've added all verts of the original polygon segment between start and end
             break;
         }
         first_iter = false;

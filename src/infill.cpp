@@ -213,7 +213,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
                 last_point = point;
             }
         }
-        result_polygons.clear();
+        result_polygons.clear(); // the output should only contain polylines
     }
 }
 

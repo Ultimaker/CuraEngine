@@ -152,7 +152,7 @@ protected:
      * if no second connection is found:
      * - find the second connection at half a line width away and 
      * - the first connection at a whole line distance away
-     * So as to try and find a bridge which is cenetered around the initiall found first connection
+     * So as to try and find a bridge which is centered around the initiall found first connection
      */
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
 

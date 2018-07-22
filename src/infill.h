@@ -118,6 +118,9 @@ private:
      * except the middle original one if the multiplier is odd.
      * 
      * This introduces a lot of line segments.
+     * 
+     * \param[in,out] result_polygons The polygons to be multiplied (input and output)
+     * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
     void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
 
