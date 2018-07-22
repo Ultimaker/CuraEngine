@@ -152,13 +152,20 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
 
-    Polygons outline = in_outline.offset(outline_offset);
+    const Polygons outline = in_outline.offset(outline_offset);
 
     Polygons result;
-    Polygons first_offset = result_lines.offsetPolyLine(offset).unionPolygons(result_polygons.offset(offset).difference(result_polygons.offset(-offset)));
-    if (zig_zaggify)
-    {
-        first_offset = outline.difference(first_offset);
+    Polygons first_offset;
+    { // calculate [first_offset]
+        const Polygons first_offset_lines = result_lines.offsetPolyLine(offset); // make lines on both sides of the input lines
+        const Polygons first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
+        const Polygons first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
+        const Polygons first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
+        first_offset = first_offset_lines.unionPolygons(first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
+        if (zig_zaggify)
+        {
+            first_offset = outline.difference(first_offset);
+        }
     }
     result.add(first_offset);
     Polygons reference_polygons = first_offset;
