@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "communication/Listener.h" //To listen for incoming messages from the front-end.
+#include "communication/SliceDataStruct.h" //To store slice data before they are sent.
 #include "utils/logoutput.h"
 #include "utils/macros.h"
 #include "commandSocket.h"
@@ -36,31 +37,6 @@ namespace cura {
 CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
 
 #ifdef ARCUS
-
-/*!
- * A template structure used to store data to be sent to the front end.
- */
-template <typename T>
-class SliceDataStruct
-{
-    SliceDataStruct(const SliceDataStruct&) = delete;
-    SliceDataStruct& operator=(const SliceDataStruct&) = delete;
-public:
-
-    SliceDataStruct()
-        : sliced_objects(0)
-        , current_layer_count(0)
-        , current_layer_offset(0)
-    { }
-
-    //! The number of sliced objects for this sliced object list
-    int sliced_objects;
-
-    int current_layer_count;//!< Number of layers for which data has been buffered in slice_data so far.
-    int current_layer_offset;//!< Offset to add to layer number for the current slice object when slicing one at a time.
-
-    std::unordered_map<int, std::shared_ptr<T>> slice_data;
-};
 
 class CommandSocket::Private
 {
