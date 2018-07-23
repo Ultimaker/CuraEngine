@@ -14,6 +14,10 @@
 #include "../src/settings/types/LayerIndex.h"
 #include "../src/settings/types/AngleRadians.h"
 #include "../src/settings/types/AngleDegrees.h"
+#include "../src/settings/types/Temperature.h"
+#include "../src/settings/types/Velocity.h"
+#include "../src/settings/types/Ratio.h"
+#include "../src/settings/types/Duration.h"
 
 #define DELTA 0.000000001
 
@@ -34,6 +38,10 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingCoordTTest);
     CPPUNIT_TEST(addSettingAngleRadiansTest);
     CPPUNIT_TEST(addSettingAngleDegreesTest);
+    CPPUNIT_TEST(addSettingTemperatureTest);
+    CPPUNIT_TEST(addSettingVelocityTest);
+    CPPUNIT_TEST(addSettingRatioTest);
+    CPPUNIT_TEST(addSettingDurationTest);
     CPPUNIT_TEST(overwriteSettingTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -110,6 +118,26 @@ public:
     void addSettingAngleDegreesTest();
 
     /*!
+     * \brief Test if a setting with a Temperature value is correctly inserted
+     */
+    void addSettingTemperatureTest();
+
+    /*!
+     * \brief Test if a setting with a Velocity value is correctly inserted
+     */
+    void addSettingVelocityTest();
+
+    /*!
+     * \brief Test if a setting with a Ratio value is correctly inserted
+     */
+    void addSettingRatioTest();
+
+    /*!
+     * \brief Test if a setting with a Duration value is correctly inserted
+     */
+    void addSettingDurationTest();
+
+    /*!
      * \brief Test to overwrite the value of the same setting
      */
     void overwriteSettingTest();
@@ -162,6 +190,24 @@ private:
     std::string setting_key_angledegrees;
     AngleDegrees setting_value_angledegrees = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_angledegrees_string;
+    std::string setting_key_temperature;
+    Temperature setting_value_temperature = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_temperature_string;
+    std::string setting_key_velocity;
+    Velocity setting_value_velocity = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_velocity_string;
+    std::string setting_key_velocity2;
+    Velocity setting_value_velocity2 = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_velocity_string2;
+    std::string setting_key_ratio;
+    Ratio setting_value_ratio = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_ratio_string;
+    std::string setting_key_duration;
+    Duration setting_value_duration = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_duration_string;
+    std::string setting_key_duration2;
+    Duration setting_value_duration2 = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_duration_string2;
 };
 
 }

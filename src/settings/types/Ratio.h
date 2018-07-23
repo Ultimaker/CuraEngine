@@ -17,7 +17,7 @@ struct Ratio
     /*
      * Casts a double to a Ratio instance.
      */
-    Ratio(double value) : value(value) {};
+    Ratio(double value) : value(value / 100) {};
 
     /*
      * Casts the Ratio instance to a double.

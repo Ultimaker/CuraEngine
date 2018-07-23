@@ -117,7 +117,7 @@ template<> Velocity Settings::get<Velocity>(const std::string& key) const
 
 template<> Ratio Settings::get<Ratio>(const std::string& key) const
 {
-    return get<double>(key) / 100.0;
+    return get<double>(key);
 }
 
 template<> Duration Settings::get<Duration>(const std::string& key) const

@@ -53,6 +53,24 @@ void SettingsTest::setUp()
     setting_key_angledegrees = "setting_key_angledegrees";
     setting_value_angledegrees = 122.4; // =0.34*360
     setting_value_angledegrees_string = "4442.4"; // =12.34*360
+    setting_key_temperature = "setting_key_temperature";
+    setting_value_temperature = 245.5;
+    setting_value_temperature_string = "245.5";
+    setting_key_velocity = "setting_key_velocity";
+    setting_value_velocity = 12.345;
+    setting_value_velocity_string = "12.345";
+    setting_key_velocity2 = "setting_key_velocity2";
+    setting_value_velocity2 = 0;
+    setting_value_velocity_string2 = "-12.345";
+    setting_key_ratio = "setting_key_ratio";
+    setting_value_ratio = 123.4;
+    setting_value_ratio_string = "123.4";
+    setting_key_duration = "setting_key_duration";
+    setting_value_duration = 1234.5678;
+    setting_value_duration_string = "1234.5678";
+    setting_key_duration2 = "setting_key_duration2";
+    setting_value_duration2 = 0;
+    setting_value_duration_string2 = "-1234.5678";
 }
 
 void SettingsTest::tearDown()
@@ -155,6 +173,43 @@ void SettingsTest::addSettingAngleDegreesTest()
     settings.add(setting_key_angledegrees, setting_value_angledegrees_string);
     CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'AngleDegrees' setting is not the same as the expected value!",
                                          setting_value_angledegrees, settings.get<AngleDegrees>(setting_key_angledegrees), DELTA);
+}
+
+void SettingsTest::addSettingTemperatureTest()
+{
+    settings.add(setting_key_temperature, setting_value_temperature_string);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'Temperature' setting is not the same as the expected value!",
+                                         setting_value_temperature, settings.get<Temperature>(setting_key_temperature), DELTA);
+}
+
+void SettingsTest::addSettingVelocityTest()
+{
+    settings.add(setting_key_velocity, setting_value_velocity_string);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'Velocity' setting is not the same as the expected value!",
+                                         setting_value_velocity, settings.get<Velocity>(setting_key_velocity), DELTA);
+
+    settings.add(setting_key_velocity2, setting_value_velocity_string2);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'Velocity' setting #2 is not the same as the expected value!",
+                                         setting_value_velocity2, settings.get<Velocity>(setting_key_velocity2), DELTA);
+}
+
+void SettingsTest::addSettingRatioTest()
+{
+    settings.add(setting_key_ratio, setting_value_ratio_string);
+    std::cout << "value Ratio = " << setting_value_ratio << " - " << settings.get<Ratio>(setting_key_ratio) << std::endl;
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'Ratio' setting is not the same as the expected value!",
+                                         setting_value_ratio, settings.get<Ratio>(setting_key_ratio), DELTA);
+}
+
+void SettingsTest::addSettingDurationTest()
+{
+    settings.add(setting_key_duration, setting_value_duration_string);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'Duration' setting is not the same as the expected value!",
+                                         setting_value_duration, settings.get<Duration>(setting_key_duration), DELTA);
+
+    settings.add(setting_key_duration2, setting_value_duration_string2);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'Duration' setting #2 is not the same as the expected value!",
+                                         setting_value_duration2, settings.get<Duration>(setting_key_duration2), DELTA);
 }
 
 void SettingsTest::overwriteSettingTest()
