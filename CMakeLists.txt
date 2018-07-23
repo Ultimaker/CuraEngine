@@ -131,6 +131,7 @@ set(engine_SRCS # Except main.cpp.
 
     src/communication/ArcusCommunication.cpp
     src/communication/Communication.cpp
+    src/communication/Listener.cpp
 
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp

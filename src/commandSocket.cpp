@@ -1,6 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "communication/Listener.h" //To listen for incoming messages from the front-end.
 #include "utils/logoutput.h"
 #include "utils/macros.h"
 #include "commandSocket.h"
@@ -35,29 +36,6 @@ namespace cura {
 CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
 
 #ifdef ARCUS
-class Listener : public Arcus::SocketListener
-{
-public:
-    void stateChanged(Arcus::SocketState::SocketState) override
-    {
-    }
-
-    void messageReceived() override
-    {
-    }
-
-    void error(const Arcus::Error & error) override
-    {
-        if (error.getErrorCode() == Arcus::ErrorCode::Debug)
-        {
-            log("%s\n", error.toString().c_str());
-        }
-        else
-        {
-            logError("%s\n", error.toString().c_str());
-        }
-    }
-};
 
 /*!
  * A template structure used to store data to be sent to the front end.
