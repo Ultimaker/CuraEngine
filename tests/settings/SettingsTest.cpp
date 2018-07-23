@@ -48,8 +48,8 @@ void SettingsTest::setUp()
     setting_value_coord_t = 123456789;
     setting_value_coord_t_string = "123456.789";
     setting_key_angleradians = "setting_key_angleradians";
-    setting_value_angleradians = 3.9269908169872415480783042290994; // = (5/4)*pi
-    setting_value_angleradians_string = "2385"; // =6*360+225
+    setting_value_angleradians = 225; // = 225 in degrees = (5/4)*pi in radians
+    setting_value_angleradians_string = "2385"; // = 6*360+225 in degrees = (5/4)*pi in radians
     setting_key_angledegrees = "setting_key_angledegrees";
     setting_value_angledegrees = 122.4; // =0.34*360
     setting_value_angledegrees_string = "4442.4"; // =12.34*360
@@ -63,63 +63,63 @@ void SettingsTest::tearDown()
 void SettingsTest::addSettingStringTest()
 {
     settings.add(setting_key_string, setting_value_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'string' setting is not the same as the expected value!",
-                           settings.get<std::string>(setting_key_string) == setting_value_string);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'string' setting is not the same as the expected value!",
+                                 setting_value_string, settings.get<std::string>(setting_key_string));
 }
 
 void SettingsTest::addSettingIntTest()
 {
     settings.add(setting_key_int, setting_value_int_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'int' setting is not the same as the expected value!",
-                           settings.get<int>(setting_key_int) == setting_value_int);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'int' setting is not the same as the expected value!",
+                                 setting_value_int, settings.get<int>(setting_key_int));
 
     settings.add(setting_key_int2, setting_value_int_string2);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'int' setting #2 is not the same as the expected value!",
-                           settings.get<int>(setting_key_int2) == setting_value_int2);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'int' setting #2 is not the same as the expected value!",
+                                 setting_value_int2, settings.get<int>(setting_key_int2));
 }
 
 void SettingsTest::addSettingDoubleTest()
 {
     settings.add(setting_key_double, setting_value_double_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'double' setting is not the same as the expected value!",
-                           settings.get<double>(setting_key_double) == setting_value_double);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'double' setting is not the same as the expected value!",
+                                 setting_value_double, settings.get<double>(setting_key_double));
 }
 
 void SettingsTest::addSettingSizeTTest()
 {
     settings.add(setting_key_size_t, setting_value_size_t_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'size_t' setting is not the same as the expected value!",
-                           settings.get<size_t >(setting_key_size_t) == setting_value_size_t);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'size_t' setting is not the same as the expected value!",
+                                 setting_value_size_t, settings.get<size_t >(setting_key_size_t));
 }
 
 void SettingsTest::addSettingUnsignedIntTest()
 {
     settings.add(setting_key_unsigned_int, setting_value_unsigned_int_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'unsigned int' setting is not the same as the expected value!",
-                           settings.get<unsigned int>(setting_key_unsigned_int) == setting_value_unsigned_int);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'unsigned int' setting is not the same as the expected value!",
+                                 setting_value_unsigned_int, settings.get<unsigned int>(setting_key_unsigned_int));
 }
 
 void SettingsTest::addSettingBoolTest()
 {
     settings.add(setting_key_bool, setting_value_bool_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'bool' setting is not the same as the expected value!",
-                           settings.get<bool>(setting_key_bool) == setting_value_bool);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'bool' setting is not the same as the expected value!",
+                                 setting_value_bool, settings.get<bool>(setting_key_bool));
 
     settings.add(setting_key_bool2, setting_value_bool_string2);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'bool' setting #2 is not the same as the expected value!",
-                           settings.get<bool>(setting_key_bool2) == setting_value_bool2);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'bool' setting #2 is not the same as the expected value!",
+                                 setting_value_bool2, settings.get<bool>(setting_key_bool2));
 
     settings.add(setting_key_bool3, setting_value_bool_string3);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'bool' setting #3 is not the same as the expected value!",
-                           settings.get<bool>(setting_key_bool3) == setting_value_bool3);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'bool' setting #3 is not the same as the expected value!",
+                                 setting_value_bool3, settings.get<bool>(setting_key_bool3));
 
     settings.add(setting_key_bool4, setting_value_bool_string4);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'bool' setting #4 is not the same as the expected value!",
-                           settings.get<bool>(setting_key_bool4) == setting_value_bool4);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'bool' setting #4 is not the same as the expected value!",
+                                 setting_value_bool4, settings.get<bool>(setting_key_bool4));
 
     settings.add(setting_key_bool5, setting_value_bool_string5);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'bool' setting #5 is not the same as the expected value!",
-                           settings.get<bool>(setting_key_bool5) == setting_value_bool5);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'bool' setting #5 is not the same as the expected value!",
+                                 setting_value_bool5, settings.get<bool>(setting_key_bool5));
 }
 
 void SettingsTest::addSettingExtruderTrainTest()
@@ -132,29 +132,29 @@ void SettingsTest::addSettingExtruderTrainTest()
 void SettingsTest::addSettingLayerIndexTest()
 {
     settings.add(setting_key_layerindex, setting_value_layerindex_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'LayerIndex' setting is not the same as the expected value!",
-                           settings.get<LayerIndex>(setting_key_layerindex) == setting_value_layerindex);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'LayerIndex' setting is not the same as the expected value!",
+                                 setting_value_layerindex, settings.get<LayerIndex>(setting_key_layerindex));
 }
 
 void SettingsTest::addSettingCoordTTest()
 {
     settings.add(setting_key_coord_t, setting_value_coord_t_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'coord_t' setting is not the same as the expected value!",
-                           settings.get<coord_t>(setting_key_coord_t) == setting_value_coord_t);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'coord_t' setting is not the same as the expected value!",
+                                 setting_value_coord_t, settings.get<coord_t>(setting_key_coord_t));
 }
 
 void SettingsTest::addSettingAngleRadiansTest()
 {
     settings.add(setting_key_angleradians, setting_value_angleradians_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'AngleRadians' setting is not the same as the expected value!",
-                           settings.get<AngleRadians>(setting_key_angleradians) == setting_value_angleradians);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'AngleRadians' setting is not the same as the expected value!",
+                                         setting_value_angleradians, settings.get<AngleRadians>(setting_key_angleradians), DELTA);
 }
 
 void SettingsTest::addSettingAngleDegreesTest()
 {
     settings.add(setting_key_angledegrees, setting_value_angledegrees_string);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'AngleDegrees' setting is not the same as the expected value!",
-                           settings.get<AngleDegrees>(setting_key_angledegrees) == setting_value_angledegrees);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("The value of the 'AngleDegrees' setting is not the same as the expected value!",
+                                         setting_value_angledegrees, settings.get<AngleDegrees>(setting_key_angledegrees), DELTA);
 }
 
 void SettingsTest::overwriteSettingTest()
@@ -165,8 +165,8 @@ void SettingsTest::overwriteSettingTest()
                            setting_value_int_string != setting_value_int_string2);
     CPPUNIT_ASSERT_MESSAGE("The value of the 'int' setting must not be equals to the second value inserted!",
                            settings.get<int>(setting_key_int) != setting_value_int2);
-    CPPUNIT_ASSERT_MESSAGE("The value of the 'int' setting must be equals to the first value inserted!",
-                           settings.get<int>(setting_key_int) == setting_value_int);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The value of the 'int' setting must be equals to the first value inserted!",
+                                 setting_value_int, settings.get<int>(setting_key_int));
 }
 
 }

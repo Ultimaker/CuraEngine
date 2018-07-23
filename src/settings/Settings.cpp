@@ -97,22 +97,22 @@ template<> coord_t Settings::get<coord_t>(const std::string& key) const
 
 template<> AngleRadians Settings::get<AngleRadians>(const std::string& key) const
 {
-    return AngleRadians(get<double>(key));
+    return get<double>(key);
 }
 
 template<> AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
 {
-    return AngleDegrees(get<double>(key));
+    return get<double>(key);
 }
 
 template<> Temperature Settings::get<Temperature>(const std::string& key) const
 {
-    return Temperature(get<double>(key));
+    return get<double>(key);
 }
 
 template<> Velocity Settings::get<Velocity>(const std::string& key) const
 {
-    return Velocity(get<double>(key));
+    return get<double>(key);
 }
 
 template<> Ratio Settings::get<Ratio>(const std::string& key) const

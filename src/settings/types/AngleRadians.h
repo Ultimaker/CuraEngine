@@ -4,7 +4,7 @@
 #ifndef ANGLERADIANS_H
 #define ANGLERADIANS_H
 
-#define TAU 6.283185307179586477 //2 * pi
+#define TAU (2.0*M_PI)
 
 namespace cura
 {
@@ -18,12 +18,12 @@ namespace cura
 struct AngleRadians
 {
     /*
-     * Casts a double to an AngleDegrees instance.
+     * Translate the double value in degrees to an AngleRadians instance.
      */
-    AngleRadians(double value) : value(std::fmod(std::fmod(value, TAU) + TAU, TAU)) {};
+    AngleRadians(double value) : value(std::fmod(std::fmod(value * M_PI / 180, TAU) + TAU, TAU)) {};
 
     /*
-     * Casts the AngleDegrees instance to a double.
+     * Casts the AngleRadians instance to a double.
      */
     operator double() const
     {

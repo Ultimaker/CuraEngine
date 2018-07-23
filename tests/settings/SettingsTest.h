@@ -15,6 +15,8 @@
 #include "../src/settings/types/AngleRadians.h"
 #include "../src/settings/types/AngleDegrees.h"
 
+#define DELTA 0.000000001
+
 namespace cura
 {
 
