@@ -45,8 +45,14 @@ void SettingsTest::setUp()
     setting_value_layerindex = 1;
     setting_value_layerindex_string = "1";
     setting_key_coord_t = "setting_key_size_t";
-    setting_value_coord_t = 1234567890.0;
-    setting_value_coord_t_string = "1234567.890";
+    setting_value_coord_t = 123456789;
+    setting_value_coord_t_string = "123456.789";
+    setting_key_angleradians = "setting_key_angleradians";
+    setting_value_angleradians = 3.9269908169872415480783042290994; // = (5/4)*pi
+    setting_value_angleradians_string = "2385"; // =6*360+225
+    setting_key_angledegrees = "setting_key_angledegrees";
+    setting_value_angledegrees = 122.4; // =0.34*360
+    setting_value_angledegrees_string = "4442.4"; // =12.34*360
 }
 
 void SettingsTest::tearDown()
@@ -116,6 +122,13 @@ void SettingsTest::addSettingBoolTest()
                            settings.get<bool>(setting_key_bool5) == setting_value_bool5);
 }
 
+void SettingsTest::addSettingExtruderTrainTest()
+{
+    // TODO: Do it when the implementation is done.
+    CPPUNIT_ASSERT_MESSAGE("TODO: The value of the 'ExtruderTrain' setting is not the same as the expected value!",
+                           false);
+}
+
 void SettingsTest::addSettingLayerIndexTest()
 {
     settings.add(setting_key_layerindex, setting_value_layerindex_string);
@@ -129,6 +142,21 @@ void SettingsTest::addSettingCoordTTest()
     CPPUNIT_ASSERT_MESSAGE("The value of the 'coord_t' setting is not the same as the expected value!",
                            settings.get<coord_t>(setting_key_coord_t) == setting_value_coord_t);
 }
+
+void SettingsTest::addSettingAngleRadiansTest()
+{
+    settings.add(setting_key_angleradians, setting_value_angleradians_string);
+    CPPUNIT_ASSERT_MESSAGE("The value of the 'AngleRadians' setting is not the same as the expected value!",
+                           settings.get<AngleRadians>(setting_key_angleradians) == setting_value_angleradians);
+}
+
+void SettingsTest::addSettingAngleDegreesTest()
+{
+    settings.add(setting_key_angledegrees, setting_value_angledegrees_string);
+    CPPUNIT_ASSERT_MESSAGE("The value of the 'AngleDegrees' setting is not the same as the expected value!",
+                           settings.get<AngleDegrees>(setting_key_angledegrees) == setting_value_angledegrees);
+}
+
 void SettingsTest::overwriteSettingTest()
 {
     settings.add(setting_key_int, setting_value_int_string);

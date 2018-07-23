@@ -12,6 +12,8 @@
 #include "../src/settings/Setting.h"
 #include "../src/settings/Settings.h"
 #include "../src/settings/types/LayerIndex.h"
+#include "../src/settings/types/AngleRadians.h"
+#include "../src/settings/types/AngleDegrees.h"
 
 namespace cura
 {
@@ -25,8 +27,11 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingSizeTTest);
     CPPUNIT_TEST(addSettingUnsignedIntTest);
     CPPUNIT_TEST(addSettingBoolTest);
+    CPPUNIT_TEST(addSettingExtruderTrainTest);
     CPPUNIT_TEST(addSettingLayerIndexTest);
     CPPUNIT_TEST(addSettingCoordTTest);
+    CPPUNIT_TEST(addSettingAngleRadiansTest);
+    CPPUNIT_TEST(addSettingAngleDegreesTest);
     CPPUNIT_TEST(overwriteSettingTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -48,44 +53,59 @@ public:
     void tearDown();
 
     /*!
-     * \brief Test a setting with a string value is correctly inserted
+     * \brief Test if a setting with a string value is correctly inserted
      */
     void addSettingStringTest();
 
     /*!
-     * \brief Test a setting with an int value is correctly inserted
+     * \brief Test if a setting with an int value is correctly inserted
      */
     void addSettingIntTest();
 
     /*!
-     * \brief Test a setting with a double value is correctly inserted
+     * \brief Test if a setting with a double value is correctly inserted
      */
     void addSettingDoubleTest();
 
     /*!
-     * \brief Test a setting with a size_t value is correctly inserted
+     * \brief Test if a setting with a size_t value is correctly inserted
      */
     void addSettingSizeTTest();
 
     /*!
-     * \brief Test a setting with an unsigned int value is correctly inserted
+     * \brief Test if a setting with an unsigned int value is correctly inserted
      */
     void addSettingUnsignedIntTest();
 
     /*!
-     * \brief Test a setting with an bool value is correctly inserted
+     * \brief Test if a setting with an bool value is correctly inserted
      */
     void addSettingBoolTest();
 
     /*!
-     * \brief Test a setting with a LayerIndex value is correctly inserted
+     * \brief Test if a setting with an ExtruderTrain value is correctly inserted
+     */
+    void addSettingExtruderTrainTest();
+
+    /*!
+     * \brief Test if a setting with a LayerIndex value is correctly inserted
      */
     void addSettingLayerIndexTest();
 
     /*!
-     * \brief Test a setting with a coord_t value is correctly inserted
+     * \brief Test if a setting with a coord_t value is correctly inserted
      */
     void addSettingCoordTTest();
+
+    /*!
+     * \brief Test if a setting with a AngleRadians value is correctly inserted
+     */
+    void addSettingAngleRadiansTest();
+
+    /*!
+     * \brief Test if a setting with a AngleDegrees value is correctly inserted
+     */
+    void addSettingAngleDegreesTest();
 
     /*!
      * \brief Test to overwrite the value of the same setting
@@ -134,6 +154,12 @@ private:
     std::string setting_key_coord_t;
     coord_t setting_value_coord_t;
     std::string setting_value_coord_t_string;
+    std::string setting_key_angleradians;
+    AngleRadians setting_value_angleradians = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_angleradians_string;
+    std::string setting_key_angledegrees;
+    AngleDegrees setting_value_angledegrees = 0;    // Set initial value here since there is not default constructor
+    std::string setting_value_angledegrees_string;
 };
 
 }
