@@ -117,6 +117,7 @@ set(engine_SRCS # Except main.cpp.
     src/skin.cpp
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
+    src/Slice.cpp
     src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp
