@@ -11,7 +11,7 @@ namespace cura
 //Some forward declarations to increase compilation speed.
 struct LayerIndex;
 struct Velocity;
-enum class PrintFeatureType;
+enum class PrintFeatureType : unsigned char;
 class Polygons;
 class ConstPolygonRef;
 class ExtruderTrain;
@@ -36,7 +36,7 @@ public:
     /*
      * \brief Test if there are more slices to be queued.
      */
-    virtual const bool hasSlice() = 0;
+    virtual const bool hasSlice() const = 0;
 
     /*
      * \brief Indicate to the communication channel what the current progress of
@@ -168,6 +168,12 @@ public:
     virtual void sliceNext() = 0;
 
 protected:
+    /*
+     * \brief Puts this instance in the static field that is returned by
+     * ``getInstance``.
+     */
+    Communication();
+
     /*
      * \brief The instance of the currently active communication.
      *

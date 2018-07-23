@@ -33,12 +33,14 @@ public:
     void run(const int argc, char** argv);
 
 protected:
+#ifdef ARCUS
     /*!
      * Connect using libArcus to a socket.
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */
     void connect(const int argc, char** argv);
+#endif //ARCUS
 
     /*!
      * Print to the stderr channel what the original call to the executable was.

@@ -117,6 +117,7 @@ set(engine_SRCS # Except main.cpp.
     src/skin.cpp
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
+    src/Slice.cpp
     src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp
@@ -128,7 +129,9 @@ set(engine_SRCS # Except main.cpp.
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
 
+    src/communication/ArcusCommunication.cpp
     src/communication/Communication.cpp
+    src/communication/Listener.cpp
 
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp
