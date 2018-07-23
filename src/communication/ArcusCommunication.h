@@ -6,7 +6,6 @@
 #ifdef ARCUS
 
 #include <memory> //For unique_ptr and shared_ptr.
-#include <queue> //To queue up slice commands.
 
 #include "Communication.h" //The class we're implementing.
 
@@ -60,11 +59,6 @@ private:
      * Pointer that contains the private implementation of the path compiler.
      */
     const std::unique_ptr<PathCompiler> path_compiler;
-
-    /*
-     * \brief A queue of slices that are still left to do.
-     */
-    std::queue<Slice> to_slice;
 };
 
 } //namespace cura
