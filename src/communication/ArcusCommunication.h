@@ -23,9 +23,16 @@ class ArcusCommunication : public Communication
 public:
     /*
      * \brief Construct a new communicator that listens to libArcus messages via
-     * a local socket.
+     * a network socket.
+     * \param ip The IP address to connect the socket to.
+     * \param port The port number to connect the socket to.
      */
-    ArcusCommunication();
+    ArcusCommunication(const std::string& ip, const uint16_t port);
+
+    /*
+     * Closes the connection.
+     */
+    ~ArcusCommunication();
 
     /*
      * \brief Test if there are any more slices in the queue.

@@ -3,15 +3,17 @@
 
 #ifdef ARCUS
 
+#include <Arcus/Socket.h> //The socket to communicate to.
 #include <sstream> //For ostringstream.
+#include <thread> //To sleep while waiting for the connection.
 
 #include "ArcusCommunication.h"
+#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
+#include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
-
-#include <Arcus/Socket.h> //The socket to communicate to.
-#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
+#include "../utils/logoutput.h"
 
 namespace cura
 {
@@ -189,11 +191,37 @@ private:
     }
 };
 
-ArcusCommunication::ArcusCommunication()
+ArcusCommunication::ArcusCommunication(const std::string& ip, const uint16_t port)
     : private_data(new Private)
     , path_compiler(new PathCompiler(*private_data))
 {
-    //TODO.
+    private_data->socket = new Arcus::Socket();
+    private_data->socket->addListener(new Listener);
+
+    private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Layer::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::LayerOptimized::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::PrintTimeMaterialEstimates::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SettingExtruder::default_instance());
+
+    log("Connecting to %s:%i\n", ip.c_str(), port);
+    private_data->socket->connect(ip, port);
+    while(private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); //Wait until we're connected. Check every 100ms.
+    }
+    log("Connected to %s:%i\n", ip.c_str(), port);
+}
+
+ArcusCommunication::~ArcusCommunication()
+{
+    log("Closing connection.\n");
+    private_data->socket->close();
 }
 
 const bool ArcusCommunication::hasSlice() const
