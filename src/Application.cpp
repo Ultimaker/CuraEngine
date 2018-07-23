@@ -20,6 +20,7 @@ Application& Application::getInstance()
     return instance;
 }
 
+#ifdef ARCUS
 void Application::connect(const int argc, char** argv)
 {
     std::string ip;
@@ -79,6 +80,7 @@ void Application::connect(const int argc, char** argv)
     CommandSocket::instantiate();
     CommandSocket::getInstance()->connect(ip, port);
 }
+#endif //ARCUS
 
 void Application::printCall(const int argc, char** argv) const
 {
@@ -97,6 +99,7 @@ void Application::printHelp() const
     logAlways("CuraEngine help\n");
     logAlways("\tShow this help message\n");
     logAlways("\n");
+#ifdef ARCUS
     logAlways("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     logAlways("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
     logAlways("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
@@ -105,6 +108,7 @@ void Application::printHelp() const
     logAlways("  -m<thread_count>\n\tSet the desired number of threads. Supports only a single digit.\n");
 #endif // _OPENMP
     logAlways("\n");
+#endif //ARCUS
     logAlways("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     logAlways("  -v\n\tIncrease the verbose level (show log messages).\n");
 #ifdef _OPENMP
@@ -360,11 +364,14 @@ void Application::run(const int argc, char** argv)
         }
     }
 
+#ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
     {
         connect(argc, argv);
-    } 
-    else if (stringcasecompare(argv[1], "slice") == 0)
+    }
+    else
+#endif //ARCUS
+    if (stringcasecompare(argv[1], "slice") == 0)
     {
         slice(argc, argv);
     }
