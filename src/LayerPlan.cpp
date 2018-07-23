@@ -2,12 +2,15 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
+
 #include "LayerPlan.h"
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
 #include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
 #include "raft.h" // getTotalExtraLayers
+
+#include "utils/Line.h"
 
 namespace cura {
 
@@ -923,6 +926,169 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
                 addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
+    }
+}
+
+
+static void addLineToPolylines(std::vector<Polyline>& all_separate_lines, const Line& line) {
+    bool line_added = false;
+    for (Polyline& polyline : all_separate_lines) {
+        const Point& first_point = polyline.lines[0].p0;
+        const Point& last_point = polyline.lines[polyline.lines.size() - 1].p1;
+
+        // Add to the beginning
+        if (line.p0 == first_point || line.p1 == first_point) {
+            polyline.lines.insert(polyline.lines.begin(), line);
+            line_added = true;
+        }
+        // Add to the end
+        if (line.p0 == last_point || line.p1 == last_point) {
+            polyline.lines.push_back(line);
+            line_added = true;
+        }
+
+        if (line_added)
+            break;
+    }
+
+    if (!line_added) {
+        Polyline polyline;
+        polyline.lines.push_back(line);
+
+        all_separate_lines.push_back(polyline);
+    }
+}
+
+
+void LayerPlan::addPolylines(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
+{
+    Polygons all_separate_lines = polygons;
+    std::vector<Polyline> all_separate_lines;
+
+    // Split into separate lines
+    for (size_t i = 0; i < polygons.size(); i++)
+    {
+        ConstPolygonRef line_polygon = polygons[i];
+        const Point& p0 = line_polygon[0];
+        const Point& p1 = line_polygon[1];
+        Line l(p0, p1);
+
+        addLineToPolylines(all_separate_lines, l);
+    }
+
+    for (Polyline& polyline : all_separate_lines) {
+        const Point& first_point = polyline.lines[0].p0;
+        const Point& last_point = polyline.lines[polyline.lines.size() - 1].p1;
+        polyline.is_closed = first_point == last_point;
+    }
+
+    while (!all_separate_lines.empty()) {
+        Point current_position = last_planned_position.value_or(Point(0, 0));
+
+        // find the polyline with the closest location
+        int64_t shortest_distance = -1;
+        std::vector<Polyline>::iterator closest_polyline_itr;
+        Point closest_point;
+        size_t closest_line_idx;
+        for (auto itr = all_separate_lines.begin(); itr != all_separate_lines.end(); itr++) {
+            const Polyline& polyline = *itr;
+
+            int64_t this_shortest_distance = -1;
+            Point this_closest_point;
+            size_t this_closest_line_idx;
+
+            if (polyline.is_closed) {
+                // For a closed polyline, check its distance to the current position using the first point to save
+                // computation time.
+                const size_t idx = 0;
+                const Line& line = polyline.lines[idx];
+                const Point& p0 = line.p0;
+                const int64_t distance1 = vSize2(current_position - p0);
+                if (this_shortest_distance == -1 || distance1 < this_shortest_distance) {
+                    this_shortest_distance = distance1;
+                    this_closest_point = p0;
+                    this_closest_line_idx = 0;
+                }
+            }
+            else {
+                // For a non-closed polyline, check its distance to the current position with the two points at the
+                // two ends to save computation time.
+                const Point& first_point = polyline.lines[0].p0;
+                const Point& last_point = polyline.lines[polyline.lines.size() - 1].p1;
+                const int64_t distance1 = vSize2(current_position - first_point);
+                const int64_t distance2 = vSize2(current_position - last_point);
+                this_shortest_distance = distance1 < distance2 ? distance1 : distance2;
+                this_closest_point = distance1 < distance2 ? first_point : last_point;
+                this_closest_line_idx = distance1 < distance2 ? 0 : polyline.lines.size() - 1;
+            }
+
+            // update shortest distance information if this polyline is the closest to the current position so far.
+            if (shortest_distance == -1 || this_shortest_distance < shortest_distance) {
+                shortest_distance = this_shortest_distance;
+                closest_point = this_closest_point;
+                closest_polyline_itr = itr;
+                closest_line_idx = this_closest_line_idx;
+            }
+        }
+
+        // add this line to gcode.
+        const Polyline& polyline = *closest_polyline_itr;
+        Line last_line;
+        if (polyline.is_closed) {
+            // Travel to the starting point
+            addTravel(polyline.lines[0].p0);
+
+            // Add extrusion for this line
+            for (const Line& line : polyline.lines) {
+                const Point& to_point = line.p1;
+                addExtrusionMove(to_point, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+            }
+
+            // Save the last line in case a wipe extrusion is needed in the end.
+            last_line = polyline.lines[polyline.lines.size() - 1];
+        }
+        else {
+            const size_t start_idx = closest_line_idx;
+            const size_t end_idx = closest_line_idx == 0 ? polyline.lines.size() - 1 : 0;
+            const int increase_step = start_idx <= end_idx ? 1 : -1;
+            const bool is_reverse_direction = closest_point == polyline.lines[start_idx].p1;
+
+            // Travel to the start point
+            Point to_point = is_reverse_direction ? polyline.lines[start_idx].p1 : polyline.lines[start_idx].p0;
+            addTravel(to_point);
+
+            // Add extrusion for this line
+            for (size_t idx = start_idx; ; idx += increase_step) {
+                const Line& line = polyline.lines[idx];
+                to_point = is_reverse_direction ? polyline.lines[idx].p0 : polyline.lines[idx].p1;
+
+                addExtrusionMove(to_point, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+                if (idx == end_idx) {
+                    // Save the last line in case a wipe extrusion is needed in the end.
+                    const Point& last_line_p0 = is_reverse_direction ? line.p1 : line.p0;
+                    const Point& last_line_p1 = is_reverse_direction ? line.p0 : line.p1;
+                    last_line = Line(last_line_p0, last_line_p1);
+                    break;
+                }
+            }
+        }
+
+        // Add wipe extrusion for the last line if needed
+        if (wipe_dist != 0)
+        {
+            int line_width = config.getLineWidth();
+
+            const Point& p0 = last_line.p0;
+            const Point& p1 = last_line.p1;
+
+            if (vSize2(p1 - p0) > line_width * line_width * 4)
+            {
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+            }
+        }
+
+        // remove this line because it will be added to the gcode.
+        all_separate_lines.erase(closest_polyline_itr);
     }
 }
 
