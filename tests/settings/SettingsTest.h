@@ -18,6 +18,8 @@
 #include "../src/settings/types/Velocity.h"
 #include "../src/settings/types/Ratio.h"
 #include "../src/settings/types/Duration.h"
+#include "../src/FlowTempGraph.h"
+#include "../src/utils/floatpoint.h"
 
 #define DELTA 0.000000001
 
@@ -42,6 +44,9 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingVelocityTest);
     CPPUNIT_TEST(addSettingRatioTest);
     CPPUNIT_TEST(addSettingDurationTest);
+    CPPUNIT_TEST(addSettingFlowTempGraphTest);
+    CPPUNIT_TEST(addSettingFMatrix3x3Test);
+    CPPUNIT_TEST(addSettingVectorTest);
     CPPUNIT_TEST(overwriteSettingTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -138,6 +143,21 @@ public:
     void addSettingDurationTest();
 
     /*!
+     * \brief Test if a setting with a FlowTempGraph value is correctly inserted
+     */
+    void addSettingFlowTempGraphTest();
+
+    /*!
+     * \brief Test if a setting with a FMatrix3x3 value is correctly inserted
+     */
+    void addSettingFMatrix3x3Test();
+
+    /*!
+     * \brief Test if a setting with a vector value is correctly inserted
+     */
+    void addSettingVectorTest();
+
+    /*!
      * \brief Test to overwrite the value of the same setting
      */
     void overwriteSettingTest();
@@ -208,6 +228,20 @@ private:
     std::string setting_key_duration2;
     Duration setting_value_duration2 = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_duration_string2;
+    std::string setting_key_flowtempgraph;
+    double setting_value_flowtempgraph_flow;
+    double setting_value_flowtempgraph_temp;
+    double setting_value_flowtempgraph_flow2;
+    double setting_value_flowtempgraph_temp2;
+    double setting_value_flowtempgraph_flow3;
+    double setting_value_flowtempgraph_temp3;
+    std::string setting_value_flowtempgraph_string;
+    std::string setting_key_fmatrix3x3;
+    double setting_value_fmatrix3x3[3][3];
+    std::string setting_value_fmatrix3x3_string;
+    std::string setting_key_vector;
+    std::vector<int> setting_value_vector;
+    std::string setting_value_vector_string;
 };
 
 }
