@@ -499,6 +499,8 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     }
 }
 
+static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
+
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
 {
     const double min_line_len = 5; // we ignore lines less than 5um long
@@ -527,6 +529,10 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             // if we are accelerating after a bridge line, the segment length is less than the whole line length
             Point segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len) ? line_end : cur_point + (line_end - cur_point) * acceleration_segment_len / distance_to_line_end;
 
+            // flow required for the next line segment - when accelerating after a bridge segment, the flow is increased in inverse proportion to the speed_factor
+            // so the slower the feedrate, the greater the flow - the idea is to get the extruder back to normal pressure as quickly as possible
+            const float segment_flow = (speed_factor < 1) ? flow * (1 / speed_factor) : flow;
+
             // if a bridge is present in this wall, this particular segment may need to be partially or wholely coasted
             if (distance_to_bridge_start > 0)
             {
@@ -536,7 +542,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
-                const double coast_dist = std::min(non_bridge_line_volume, 100000.0f) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
+                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
@@ -550,7 +556,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                     if ((len - coast_dist) > min_line_len)
                     {
                         // segment is longer than coast distance so extrude using non-bridge config to start of coast
-                        addExtrusionMove(segment_end + coast_dist * (cur_point - segment_end) / len, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, speed_factor);
+                        addExtrusionMove(segment_end + coast_dist * (cur_point - segment_end) / len, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
                     }
                     // then coast to start of bridge segment
                     addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, 0, spiralize, speed_factor);
@@ -558,7 +564,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, speed_factor);
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
                 }
 
                 distance_to_bridge_start -= len;
@@ -566,9 +572,9 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, speed_factor);
+                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
             }
-            non_bridge_line_volume += vSize(cur_point - segment_end) * flow * speed_factor * non_bridge_config.getSpeed();
+            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             distance_to_line_end = vSize(cur_point - line_end);
@@ -686,7 +692,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         }
     }
 
-    float non_bridge_line_volume = 0; // zero before first non-bridge line is output
+    float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
