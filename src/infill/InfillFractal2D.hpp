@@ -451,14 +451,17 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
         float total_weighted_forward_cell_volume = 0;
         Direction forwards[] = { Direction::RIGHT, Direction::UP };
 
-        /* Floyd Steinberg weights:
-         * 3 5 1
-         *   * 7
+        /* Stucki weights:
+         * 1 2 1
+         *   * 2
+         * 
+         * Note: these weights work better than Floyd-Steinberg-like weights.
+         * Also minor variations to either of these two basic weight matrices seem to perform worse.
          */
 
-        float direction_weights[] = { 7, 5 }; // TODO: determine reasoned weights!
+        float direction_weights[] = { 2, 2 };
         float diag_weight = 1;
-        float backward_diag_weight = 3; //3; // TODO: error is still being propagated to already processed cells
+        float backward_diag_weight = 1;
 
         for (int side_idx = 0; side_idx < 2; side_idx++)
         {
