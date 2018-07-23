@@ -38,6 +38,11 @@ public:
      */
     const bool hasSlice() const override;
 
+    /*
+     * Slice the next scene that the front-end wants us to slice.
+     */
+    void sliceNext() override;
+
 private:
     /*
      * PIMPL pattern subclass that contains the private implementation.

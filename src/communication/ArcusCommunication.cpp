@@ -11,6 +11,7 @@
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 #include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
+#include "../FffProcessor.h" //To start a slice.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
 #include "../utils/logoutput.h"
@@ -244,6 +245,74 @@ const bool ArcusCommunication::hasSlice() const
     return private_data->socket->getState() != Arcus::SocketState::Closed
         && private_data->socket->getState() != Arcus::SocketState::Error
         && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
+}
+
+void ArcusCommunication::sliceNext()
+{
+    const Arcus::MessagePtr message = private_data->socket->takeNextMessage();
+
+    //Handle the main Slice message.
+    const cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
+    if(slice)
+    {
+        logDebug("Received a Slice message.\n");
+        const cura::proto::SettingList& global_settings = slice->global_settings();
+        for (const cura::proto::Setting& setting : global_settings.settings())
+        {
+            FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
+        }
+        private_data->object_count = 0; //Reset object counts.
+        for (cura::proto::ObjectList object_list : slice->object_lists())
+        {
+            //handleObjectList(&object_list, slice->extruders());
+            //TODO: Set up a scene here.
+        }
+
+        //For every object, set the extruder fall-backs from the limit_to_extruder.
+        for (const cura::proto::SettingExtruder setting_extruder : slice->limit_to_extruder())
+        {
+            const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal uint32.
+            for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
+            {
+                if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(meshgroup->getExtruderCount()))
+                {
+                    //If extruder_nr == -1 then the setting should be handled as if it has no limit_to_extruder, so we can skip it.
+                    //If extruder_nr is less than -1 or more than the extruder count, we received an invalid extruder number from the front-end. Ignore that too.
+                    continue;
+                }
+                const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.
+                for (Mesh& mesh : meshgroup->meshes)
+                {
+                    mesh.setSettingInheritBase(setting_extruder.name(), *settings_base);
+                }
+            }
+        }
+        logDebug("Done reading Slice message.\n");
+    }
+
+    if (!private_data->objects_to_slice.empty())
+    {
+        const size_t object_count = private_data->objects_to_slice.size();
+        logDebug("Slicing %i objects.\n", object_count);
+        FffProcessor::getInstance()->resetMeshGroupNumber();
+        for (size_t i = 0; i < object_count; i++)
+        {
+            logDebug("Slicing object %i of %i.\n", i + 1, object_count);
+            if (!FffProcessor::getInstance()->processMeshGroup(private_data->objects_to_slice[i].get()))
+            {
+                logError("Slicing mesh group failed!\n");
+            }
+        }
+        logDebug("Done slicing objects.\n");
+        private_data->objects_to_slice.clear();
+        FffProcessor::getInstance()->finalize();
+        flushGCode();
+        sendPrintTimeMaterialEstimates();
+        sendFinishedSlicing();
+        private_data->slice_count++;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(250)); //Pause before checking again for a slice message.
 }
 
 } //namespace cura
