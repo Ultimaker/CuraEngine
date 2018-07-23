@@ -4,6 +4,8 @@
 #ifndef VELOCITY_H
 #define VELOCITY_H
 
+#include <algorithm> //For std::max.
+
 namespace cura
 {
 
