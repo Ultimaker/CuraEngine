@@ -108,7 +108,7 @@ protected:
     /*!
      * Connect the two polygons between which the bridge is computed.
      */
-    Polygon connect(const PolygonBridge& bridge);
+    Polygon connectPolygonsAlongBridge(const PolygonBridge& bridge);
 
     /*!
      * Add the segment from a polygon which is not removed by the bridge.

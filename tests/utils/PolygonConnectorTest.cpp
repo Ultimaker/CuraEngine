@@ -107,7 +107,7 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
         {
             svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::Color::BLUE, 4);
             svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::Color::GREEN, 4);
-            Polygon connected = pc->connect(*computed);
+            Polygon connected = pc->connectPolygonsAlongBridge(*computed);
             svg.writePolygon(connected, SVG::Color::RED, 1);
 //             svg.writePoints(connected, true, 5, SVG::Color::YELLOW);
 //             int c = 0;
