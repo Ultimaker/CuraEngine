@@ -169,6 +169,12 @@ public:
 
 protected:
     /*
+     * \brief Puts this instance in the static field that is returned by
+     * ``getInstance``.
+     */
+    Communication();
+
+    /*
      * \brief The instance of the currently active communication.
      *
      * Only one type of communication can be active at a time (for now).

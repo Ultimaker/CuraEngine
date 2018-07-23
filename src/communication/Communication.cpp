@@ -9,6 +9,11 @@ namespace cura
 
 Communication* Communication::instance = nullptr;
 
+Communication::Communication()
+{
+    instance = this;
+}
+
 Communication& Communication::getInstance()
 {
     if (!instance)
