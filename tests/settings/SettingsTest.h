@@ -21,7 +21,7 @@
 #include "../src/FlowTempGraph.h"
 #include "../src/utils/floatpoint.h"
 
-#define DELTA 0.000000001
+#define DELTA 0.000000001   // Used to skip rounding errors when comparing doubles
 
 namespace cura
 {
