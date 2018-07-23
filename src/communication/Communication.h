@@ -11,7 +11,7 @@ namespace cura
 //Some forward declarations to increase compilation speed.
 struct LayerIndex;
 struct Velocity;
-enum class PrintFeatureType;
+enum class PrintFeatureType : unsigned char;
 class Polygons;
 class ConstPolygonRef;
 class ExtruderTrain;
