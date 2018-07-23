@@ -1,6 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#ifdef ARCUS
+
 #include <sstream> //For ostringstream.
 
 #include "ArcusCommunication.h"
@@ -8,10 +10,8 @@
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
 
-#ifdef ARCUS
 #include <Arcus/Socket.h> //The socket to communicate to.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
-#endif //ARCUS
 
 namespace cura
 {
@@ -19,7 +19,6 @@ namespace cura
 //Forward declarations for compilation speed.
 class MeshGroup;
 
-#ifdef ARCUS
 class ArcusCommunication::Private
 {
 public:
@@ -189,13 +188,10 @@ private:
         line_feedrates.push_back(line_feedrate);
     }
 };
-#endif //ARCUS
 
 ArcusCommunication::ArcusCommunication()
-#ifdef ARCUS
     : private_data(new Private)
     , path_compiler(new PathCompiler(*private_data))
-#endif //ARCUS
 {
     //TODO.
 }
@@ -206,3 +202,5 @@ const bool ArcusCommunication::hasSlice() const
 }
 
 } //namespace cura
+
+#endif //ARCUS

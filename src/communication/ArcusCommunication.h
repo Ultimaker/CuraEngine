@@ -3,6 +3,7 @@
 
 #ifndef ARCUSCOMMUNICATION_H
 #define ARCUSCOMMUNICATION_H
+#ifdef ARCUS
 
 #include <memory> //For unique_ptr and shared_ptr.
 #include <queue> //To queue up slice commands.
@@ -32,7 +33,6 @@ public:
     const bool hasSlice() const override;
 
 private:
-#ifdef ARCUS
     /*
      * PIMPL pattern subclass that contains the private implementation.
      */
@@ -53,7 +53,6 @@ private:
      * Pointer that contains the private implementation of the path compiler.
      */
     const std::unique_ptr<PathCompiler> path_compiler;
-#endif //ARCUS
 
     /*
      * \brief A queue of slices that are still left to do.
@@ -63,4 +62,5 @@ private:
 
 } //namespace cura
 
+#endif //ARCUS
 #endif //ARCUSCOMMUNICATION_H
