@@ -962,7 +962,6 @@ static void addLineToPolylines(std::vector<Polyline>& all_separate_lines, const 
 
 void LayerPlan::addPolylines(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
 {
-    Polygons all_separate_lines = polygons;
     std::vector<Polyline> all_separate_lines;
 
     // Split into separate lines
