@@ -912,8 +912,10 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
     orderOptimizer.optimize();
-    for (int poly_idx : orderOptimizer.polyOrder)
+
+    for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
+        const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
         ConstPolygonRef polygon = polygons[poly_idx];
         const size_t start = orderOptimizer.polyStart[poly_idx];
         const size_t end = 1 - start;
@@ -921,11 +923,34 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         addTravel(p0);
         const Point& p1 = polygon[end];
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+
+        // Wipe
         if (wipe_dist != 0)
         {
+            bool wipe = true;
             int line_width = config.getLineWidth();
-            if (vSize2(p1-p0) > line_width * line_width * 4)
-            { // otherwise line will get optimized by combining multiple into a single extrusion move
+
+            // Don't wipe is current extrusion is too small
+            if (vSize2(p1 - p0) <= line_width * line_width * 4)
+            {
+                wipe = false;
+            }
+
+            // Don't wipe if next starting point is very near
+            if (wipe && (order_idx < orderOptimizer.polyOrder.size() - 1))
+            {
+                const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
+                ConstPolygonRef next_polygon = polygons[next_poly_idx];
+                const size_t next_start = orderOptimizer.polyStart[next_poly_idx];
+                const Point& next_p0 = next_polygon[next_start];
+                if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
+                {
+                    wipe = false;
+                }
+            }
+
+            if (wipe)
+            {
                 addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
