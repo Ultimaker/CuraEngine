@@ -481,6 +481,8 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
         case PrintFeatureType::SupportInfill:
             *output_stream << ";TYPE:SUPPORT" << new_line;
             break;
+        case PrintFeatureType::SupportInterface:
+            *output_stream << ";TYPE:SUPPORT-INTERFACE" << new_line;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
         default:
