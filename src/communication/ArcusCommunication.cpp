@@ -252,24 +252,24 @@ void ArcusCommunication::sliceNext()
     const Arcus::MessagePtr message = private_data->socket->takeNextMessage();
 
     //Handle the main Slice message.
-    const cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
-    if(slice)
+    const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
+    if(slice_message)
     {
         logDebug("Received a Slice message.\n");
-        const cura::proto::SettingList& global_settings = slice->global_settings();
+        const cura::proto::SettingList& global_settings = slice_message->global_settings();
         for (const cura::proto::Setting& setting : global_settings.settings())
         {
             FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
         }
         private_data->object_count = 0; //Reset object counts.
-        for (cura::proto::ObjectList object_list : slice->object_lists())
+        for (cura::proto::ObjectList object_list : slice_message->object_lists())
         {
             //handleObjectList(&object_list, slice->extruders());
             //TODO: Set up a scene here.
         }
 
         //For every object, set the extruder fall-backs from the limit_to_extruder.
-        for (const cura::proto::SettingExtruder setting_extruder : slice->limit_to_extruder())
+        for (const cura::proto::SettingExtruder setting_extruder : slice_message->limit_to_extruder())
         {
             const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal uint32.
             for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
