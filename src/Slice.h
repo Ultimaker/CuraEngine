@@ -4,6 +4,8 @@
 #ifndef SLICE_H
 #define SLICE_H
 
+#include "Scene.h" //To store the scene to slice.
+
 namespace cura
 {
 
@@ -14,7 +16,17 @@ namespace cura
  */
 class Slice
 {
-    //TODO.
+public:
+    /*
+     * The scene that must be sliced.
+     */
+    Scene scene;
+
+    /*
+     * Slice the scene, producing g-code output.
+     * \param[out] output_gcode The resulting g-code.
+     */
+    void compute(std::string& output_gcode);
 };
 
 } //namespace cura
