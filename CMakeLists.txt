@@ -114,6 +114,7 @@ set(engine_SRCS # Except main.cpp.
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
+    src/Scene.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
