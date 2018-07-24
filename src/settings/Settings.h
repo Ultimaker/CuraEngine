@@ -63,6 +63,11 @@ public:
      */
     template<typename A> A get(const std::string& key) const;
 
+    /*
+     * Change the extruder that this setting needs to be obtained from.
+     */
+    void setLimitToExtruder(const std::string& key, ExtruderTrain* limit_to_extruder);
+
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting
