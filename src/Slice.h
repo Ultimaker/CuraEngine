@@ -27,6 +27,19 @@ public:
      * \param[out] output_gcode The resulting g-code.
      */
     void compute(std::string& output_gcode);
+
+private:
+    /*
+     * \brief Disallow copying slice objects since they are heavyweight.
+     *
+     * The slice is dark and full of data.
+     */
+    Slice(const Slice& other) = delete;
+
+    /*
+     * \brief Disallow copying slice objects.
+     */
+    Slice& operator =(const Slice& other) = delete;
 };
 
 } //namespace cura
