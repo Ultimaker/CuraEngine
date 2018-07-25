@@ -8,6 +8,7 @@
 #include <memory> //For unique_ptr and shared_ptr.
 
 #include "Communication.h" //The class we're implementing.
+#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 
 namespace cura
 {

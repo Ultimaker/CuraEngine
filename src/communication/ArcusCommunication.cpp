@@ -6,11 +6,12 @@
 #include <Arcus/Socket.h> //The socket to communicate to.
 #include <sstream> //For ostringstream.
 #include <thread> //To sleep while waiting for the connection.
+#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 #include "ArcusCommunication.h"
-#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 #include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
+#include "../Application.h" //To get and set the current slice command.
 #include "../FffProcessor.h" //To start a slice.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
@@ -44,6 +45,16 @@ public:
      * \return The optimised layer data for that layer.
      */
     std::shared_ptr<cura::proto::LayerOptimized> getOptimizedLayerById(LayerIndex layer_nr);
+
+    /*
+     * \brief Reads a Protobuf message describing a mesh group.
+     *
+     * This gets the vertex data from the message as well as the settings.
+     */
+    void readMeshGroupMessage(const cura::proto::ObjectList& mesh_group)
+    {
+        //TODO.
+    }
 
     Arcus::Socket* socket; //!< Socket to send data to.
     size_t object_count; //!< Number of objects that need to be sliced.
@@ -256,36 +267,56 @@ void ArcusCommunication::sliceNext()
     if(slice_message)
     {
         logDebug("Received a Slice message.\n");
-        const cura::proto::SettingList& global_settings = slice_message->global_settings();
-        for (const cura::proto::Setting& setting : global_settings.settings())
+
+        Application::getInstance().current_slice.reset(); //Create a new Slice.
+        Slice& slice = Application::getInstance().current_slice;
+
+        //Store global settings.
+        const cura::proto::SettingList& global_settings_message = slice_message->global_settings();
+        for (const cura::proto::Setting& setting_message : global_settings_message.settings())
         {
-            FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
-        }
-        private_data->object_count = 0; //Reset object counts.
-        for (cura::proto::ObjectList object_list : slice_message->object_lists())
-        {
-            //handleObjectList(&object_list, slice->extruders());
-            //TODO: Set up a scene here.
+            slice.scene.settings.add(setting_message.name(), setting_message.value());
         }
 
-        //For every object, set the extruder fall-backs from the limit_to_extruder.
-        for (const cura::proto::SettingExtruder setting_extruder : slice_message->limit_to_extruder())
+        //Store per-extruder settings.
+        const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
-            const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal uint32.
-            for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
+            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+        }
+        for (const cura::proto::Extruder& extruder_message : slice_message->extruders())
+        {
+            const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
+            if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
             {
-                if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(meshgroup->getExtruderCount()))
-                {
-                    //If extruder_nr == -1 then the setting should be handled as if it has no limit_to_extruder, so we can skip it.
-                    //If extruder_nr is less than -1 or more than the extruder count, we received an invalid extruder number from the front-end. Ignore that too.
-                    continue;
-                }
-                const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.
-                for (Mesh& mesh : meshgroup->meshes)
-                {
-                    mesh.setSettingInheritBase(setting_extruder.name(), *settings_base);
-                }
+                logWarning("Received extruder index that is out of range: %i", extruder_nr);
+                continue;
             }
+            ExtruderTrain& extruder = slice.scene.extruders[extruder_nr];
+            for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
+            {
+                extruder.setSetting(setting_message.name(), setting_message.value());
+            }
+        }
+
+        //For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
+        for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
+        {
+            const int32_t extruder_nr = setting_extruder.extruder(); //Cast from proto::int to int32_t!
+            if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
+            {
+                //If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
+                continue;
+            }
+            ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
+            slice.scene.settings.setLimitToExtruder(setting_extruder.name(), &extruder);
+        }
+
+        //Load all mesh groups, meshes and their settings.
+        private_data->object_count = 0;
+        for (const cura::proto::ObjectList& mesh_group_message : slice_message->object_lists())
+        {
+            private_data->readMeshGroupMessage(mesh_group_message);
         }
         logDebug("Done reading Slice message.\n");
     }
