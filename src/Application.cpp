@@ -25,7 +25,7 @@ Application& Application::getInstance()
 #ifdef ARCUS
 void Application::connect(const int argc, char** argv)
 {
-    std::string ip;
+    std::string ip = "127.0.0.1";
     int port = 49674;
 
     // parse ip port
@@ -61,14 +61,6 @@ void Application::connect(const int argc, char** argv)
                     omp_set_num_threads(n_threads);
                     break;
 #endif // _OPENMP
-                case 'j':
-                    argn++;
-                    if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], FffProcessor::getInstance()))
-                    {
-                        logError("Failed to load json file: %s\n", argv[argn]);
-                        std::exit(1);
-                    }
-                    break;
                 default:
                     logError("Unknown option: %c\n", *str);
                     printCall(argc, argv);
@@ -104,7 +96,6 @@ void Application::printHelp() const
 #ifdef ARCUS
     logAlways("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     logAlways("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
-    logAlways("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
     logAlways("  -v\n\tIncrease the verbose level (show log messages).\n");
 #ifdef _OPENMP
     logAlways("  -m<thread_count>\n\tSet the desired number of threads. Supports only a single digit.\n");
