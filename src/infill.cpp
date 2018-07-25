@@ -49,9 +49,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         {
             zig_zaggify = false; // generate the basic infill pattern without going via the borders
         }
-        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+        Polygons generated_result_polygons;
+        Polygons generated_result_lines;
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
         zig_zaggify = zig_zaggify_real;
-        multiplyInfill(result_polygons, result_lines);
+        multiplyInfill(generated_result_polygons, generated_result_lines);
+        result_polygons.add(generated_result_polygons);
+        result_lines.add(generated_result_lines);
     }
     else
     {
