@@ -32,6 +32,14 @@ public:
      */
     void run(const int argc, char** argv);
 
+    /*
+     * The slice that is currently ongoing.
+     *
+     * If no slice has started yet, this will be an empty Slice object or the
+     * latest successful slice.
+     */
+    Slice current_slice;
+
 protected:
 #ifdef ARCUS
     /*!
