@@ -897,7 +897,7 @@ void InfillFractal2D<CellGeometry>::solveChildDebts(const Cell& parent)
                         Direction child_to_neighbor_direction = getChildToNeighborChildDirection(child_side_to_check, dimension);
                         assert(child.adjacent_cells[toInt(child_to_neighbor_direction)].size() == 1 && "Child should only be connected to the one neighboring child on this side");
                         Link& link_to_neighbor = child.adjacent_cells[toInt(child_to_neighbor_direction)].front();
-                        assert(link_to_neighbor.loan == 0.0); // the loan has not been set yet
+                        assert(link_to_neighbor.loan == 0.0 || iter > 0); // the loan has not been set yet
                         Link& loan_link = link_to_neighbor.getReverse();
                         loan_link.loan += value_transfer;
                     }
