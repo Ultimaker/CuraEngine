@@ -4,6 +4,8 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include "Slice.h" //To store the current slice.
+
 namespace cura
 {
 
