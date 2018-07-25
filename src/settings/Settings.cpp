@@ -530,7 +530,7 @@ template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& k
 
 void Settings::setLimitToExtruder(const std::string& key, ExtruderTrain* limit_to_extruder)
 {
-    settings[key].limit_to_extruder = limit_to_extruder;
+    settings.at(key).limit_to_extruder = limit_to_extruder;
 }
 
 void Settings::setParent(Settings* new_parent)
