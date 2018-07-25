@@ -175,7 +175,7 @@ public:
      * Add those polygons to @p result.
      * \param result The result: the collection of all polygons thus obtained
      */
-    void getInnermostWalls(Polygons& result, int max_inset) const;
+    void getInnermostWalls(Polygons& result, int max_inset, const SliceMeshStorage& mesh) const;
 
     ~SliceLayer();
 };

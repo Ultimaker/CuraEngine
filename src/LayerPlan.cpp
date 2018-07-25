@@ -164,7 +164,7 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
             }
             else
             {
-                layer.getInnermostWalls(comb_boundary, max_inset);
+                layer.getInnermostWalls(comb_boundary, max_inset, mesh);
             }
         }
         return comb_boundary;
