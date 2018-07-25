@@ -510,7 +510,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
 
 float LineOrderOptimizer::getAngleScore(Point incoming_perpundicular_normal, Point p0, Point p1)
 {
-    return dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.0001f;
+    return dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.00001f;
 }
 
 
