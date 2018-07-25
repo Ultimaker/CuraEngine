@@ -15,6 +15,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_or
         if (volume_1.mesh->getSettingBoolean("infill_mesh") 
             || volume_1.mesh->getSettingBoolean("anti_overhang_mesh")
             || volume_1.mesh->getSettingBoolean("support_mesh")
+            || volume_1.mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
             )
         {
             continue;
@@ -25,6 +26,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_or
             if (volume_2.mesh->getSettingBoolean("infill_mesh")
                 || volume_2.mesh->getSettingBoolean("anti_overhang_mesh")
                 || volume_2.mesh->getSettingBoolean("support_mesh")
+                || volume_2.mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                 )
             {
                 continue;
