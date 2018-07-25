@@ -299,7 +299,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
         }
     }
 
-    Point incoming_perpundicular_normal(0, 0);
+    Point incoming_perpendicular_normal(0, 0);
     Point prev_point = startPoint;
 
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
@@ -318,7 +318,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 {
                     continue;
                 }
-                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpendicular_normal);
             }
         }
 
@@ -359,7 +359,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 }
                 else
                 {
-                    updateBestLine(it->first, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, it->second);
+                    updateBestLine(it->first, best_line_idx, best_score, prev_point, incoming_perpendicular_normal, it->second);
                 }
             }
 
@@ -373,7 +373,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
             {
                 if (!picked[poly_idx])
                 {
-                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpendicular_normal);
                 }
             }
         }
@@ -389,7 +389,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 }
                 assert(polygons[poly_idx]->size() == 2);
 
-                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpendicular_normal);
 
             }
         }
@@ -404,7 +404,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
             const Point& line_start = best_line[line_start_point_idx];
             const Point& line_end = best_line[line_end_point_idx];
             prev_point = line_end;
-            incoming_perpundicular_normal = turn90CCW(normal(line_end - line_start, 1000));
+            incoming_perpendicular_normal = turn90CCW(normal(line_end - line_start, 1000));
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
@@ -446,18 +446,32 @@ float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
     return vSize2f(p1 - p0) * 10000;
 }
 
-inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
+/*
+in:
+ poly_idx: candidate for best polygon index
+ prev_point
+ incoming_perpundicular_normal: incoming angle, turned 90 degrees CCW
+ just_point: default -1, 0, or 1
+out:
+ best, best_score
+*/
+inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpendicular_normal, int just_point)
 {
     // when looking at a chain end, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
     // if just_point is -1, it means that we are not looking at a chain end and we will test both vertices to see if either is best
 
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
-    float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
+    float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpendicular_normal, p0, p1);
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
-        float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
+        float score = vSize2f(p0 - prev_point);
+        if (!pointsAreCoincident(p0, prev_point)) {
+            // if multiple points are very near, in some (most?) cases it's actually chained together. So take the nearest one
+            // only if they're not (quite) coincident, then prefer straighter paths
+            score += dot_score;  // prefer 90 degree corners
+        }
         if (score < best_score
             && combing_boundary != nullptr
             && !pointsAreCoincident(p0, prev_point)
@@ -474,7 +488,10 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     }
     if (just_point != 0)
     { /// check distance to second point on line (1)
-        float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
+        float score = vSize2f(p1 - prev_point);
+        if (!pointsAreCoincident(p0, prev_point)) {
+            score += dot_score;  // prefer 90 degree corners
+        }
         if (score < best_score
             && combing_boundary != nullptr
             && !pointsAreCoincident(p1, prev_point)
