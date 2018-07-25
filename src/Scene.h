@@ -37,7 +37,7 @@ public:
     /*
      * The extruders in the scene.
      */
-    std::vector<ExtruderTrain> extruder_trains;
+    std::vector<ExtruderTrain> extruders;
 
 private:
     /*

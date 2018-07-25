@@ -18,15 +18,29 @@ class Slice
 {
 public:
     /*
-     * The scene that must be sliced.
+     * \brief Creates a new Slice instance.
+     */
+    Slice();
+
+    /*
+     * \brief The scene that must be sliced.
      */
     Scene scene;
 
     /*
-     * Slice the scene, producing g-code output.
+     * \brief Slice the scene, producing g-code output.
      * \param[out] output_gcode The resulting g-code.
      */
     void compute(std::string& output_gcode);
+
+    /*
+     * \brief Empty out the slice instance, restoring it as if it were a new
+     * instance.
+     *
+     * Since you are not allowed to copy, move or assign slice objects, this is
+     * the only way in which you can prepare for the next slice.
+     */
+    void reset();
 
 private:
     /*

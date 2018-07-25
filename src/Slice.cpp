@@ -6,9 +6,18 @@
 namespace cura
 {
 
+Slice::Slice() {}
+
 void Slice::compute(std::string& output_gcode)
 {
     output_gcode = ";TODO";
+}
+
+void Slice::reset()
+{
+    scene.extruders.clear();
+    scene.mesh_groups.clear();
+    scene.settings = Settings();
 }
 
 }

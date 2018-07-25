@@ -14,6 +14,8 @@
 namespace cura
 {
 
+Application::Application() {}
+
 Application& Application::getInstance()
 {
     static Application instance; //Constructs using the default constructor.
