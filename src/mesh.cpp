@@ -24,6 +24,12 @@ Mesh::Mesh(SettingsBaseVirtual* parent)
 {
 }
 
+Mesh::Mesh() : SettingsBase(nullptr)
+, has_disconnected_faces(false)
+, has_overlapping_faces(false)
+{
+}
+
 void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
 {
     int vi0 = findIndexOfVertex(v0);

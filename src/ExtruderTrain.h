@@ -22,6 +22,11 @@ public:
      */
     ExtruderTrain(const size_t extruder_nr, Settings* parent_settings);
 
+    /*
+     * \brief The settings that this extruder overwrites.
+     */
+    Settings settings;
+
 private:
     /*
      * \brief The position of this extruder.
@@ -30,11 +35,6 @@ private:
      * tool we must switch.
      */
     const size_t extruder_nr;
-
-    /*
-     * \brief The settings that this extruder overwrites.
-     */
-    Settings settings;
 };
 
 }//namespace cura

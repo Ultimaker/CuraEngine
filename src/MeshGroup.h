@@ -23,7 +23,7 @@ public:
     unsigned int getExtruderCount() const;
 
     MeshGroup(SettingsBaseVirtual* settings_base);
-    
+
     ~MeshGroup();
     
     /*!
@@ -36,6 +36,7 @@ public:
     const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
 
     std::vector<Mesh> meshes;
+    Settings settings;
 
     Point3 min() const; //! minimal corner of bounding box
     Point3 max() const; //! maximal corner of bounding box

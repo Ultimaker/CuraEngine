@@ -65,8 +65,10 @@ class Mesh : public SettingsBase // inherits settings
 public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
+    Settings settings;
 
     Mesh(SettingsBaseVirtual* parent); //!< initializes the settings
+    Mesh();
 
     void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
