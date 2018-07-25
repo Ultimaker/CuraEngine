@@ -621,6 +621,13 @@ protected:
     void settleLoans();
 
     /*!
+     * Transfer value from one cell to the other.
+     * 
+     * If the other cell already transfered value to the sender, reduce that loan first.
+     */
+    void transferValue(Link& transfer_direction, float loan_value);
+
+    /*!
      * Get the total actualized volume of the current subdivision structure.
      * Add all actualized volume of each non-subdivvided node together.
      */

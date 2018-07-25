@@ -399,12 +399,7 @@ bool InfillFractal2D<CellGeometry>::handOutLoansPhase()
                 {
                     if (isConstrainedBy(*cell, cell_data[link.to_index]))
                     {
-                        float value_transfer = unresolvable_error * weight / weighted_constrainer_count;
-                        // first reduce the loan that cell has passed to this cell (occurs very rarely in cases where a cell gets subdivided because of another neighbor (?))
-                        float value_transfer_reduction = std::min(value_transfer, link.getReverse().loan);
-                        link.getReverse().loan -= value_transfer_reduction;
-                        value_transfer -= value_transfer_reduction;
-                        link.loan += value_transfer;
+                        transferValue(link, unresolvable_error * weight / weighted_constrainer_count);
                     }
                 }
             }
@@ -505,31 +500,26 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
             std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
             for (Link& neighbor : side)
             {
-                Link& loan_link = (left_over > 0)? neighbor : neighbor.getReverse();
-                loan_link.loan += std::abs(left_over) * direction_weights[side_idx] * cell_data[neighbor.to_index].volume / total_weighted_forward_cell_volume;
+                transferValue(neighbor, left_over * direction_weights[side_idx] * cell_data[neighbor.to_index].volume / total_weighted_forward_cell_volume);
             }
         }
         if (diag_neighbor)
         {
-            Link& diag_loan_link = (left_over > 0)? *diag_neighbor : diag_neighbor->getReverse();
-            float transfer = std::abs(left_over) * diag_weight * cell_data[diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+            float transfer = left_over * diag_weight * cell_data[diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
             // transfer the amount via the correct upstairs neighbor
             assert(!parent.adjacent_cells[toInt(Direction::UP)].empty());
             Link& up_neighbor = parent.adjacent_cells[toInt(Direction::UP)].back();
-            Link& up_loan_link = (left_over > 0)? up_neighbor : up_neighbor.getReverse();
-            up_loan_link.loan += transfer;
-            diag_loan_link.loan += transfer;
+            transferValue(up_neighbor, transfer);
+            transferValue(*diag_neighbor, transfer);
         }
         if (backward_diag_neighbor)
         {
-            Link& diag_loan_link = (left_over > 0)? *backward_diag_neighbor : backward_diag_neighbor->getReverse();
-            float transfer = std::abs(left_over) * backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
+            float transfer = left_over * backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
             // transfer the amount via the correct upstairs neighbor
             assert(!parent.adjacent_cells[toInt(Direction::UP)].empty());
             Link& up_neighbor = parent.adjacent_cells[toInt(Direction::UP)].front();
-            Link& up_loan_link = (left_over > 0)? up_neighbor : up_neighbor.getReverse();
-            up_loan_link.loan += transfer;
-            diag_loan_link.loan += transfer;
+            transferValue(up_neighbor, transfer);
+            transferValue(*backward_diag_neighbor, transfer);
         }
 
         if (do_subdivide)
@@ -898,8 +888,7 @@ void InfillFractal2D<CellGeometry>::solveChildDebts(const Cell& parent)
                         assert(child.adjacent_cells[toInt(child_to_neighbor_direction)].size() == 1 && "Child should only be connected to the one neighboring child on this side");
                         Link& link_to_neighbor = child.adjacent_cells[toInt(child_to_neighbor_direction)].front();
                         assert(link_to_neighbor.loan == 0.0 || iter > 0); // the loan has not been set yet
-                        Link& loan_link = link_to_neighbor.getReverse();
-                        loan_link.loan += value_transfer;
+                        transferValue(link_to_neighbor.getReverse(), value_transfer);
                     }
                 }
             }
@@ -932,7 +921,7 @@ void InfillFractal2D<CellGeometry>::transferLoans(Link& old, const std::list<Lin
     assert(new_link_count > 0);
     for (Link* link : new_links)
     {
-        link->loan = old.loan / new_link_count;
+        transferValue(*link, old.loan / new_link_count);
     }
 }
 
@@ -970,6 +959,22 @@ void InfillFractal2D<CellGeometry>::settleLoans(Cell& from, float left_overs)
         float pay_back = loaner->loan * left_overs / total_loan;
         loaner->loan -= pay_back;
     }
+}
+
+
+template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::transferValue(Link& transfer_direction, float loan_value)
+{
+    if (loan_value < 0)
+    {
+        transferValue(transfer_direction.getReverse(), -loan_value);
+        return;
+    }
+    Link& reverse_direction = transfer_direction.getReverse();
+    const float loan_reduction = std::min(reverse_direction.loan, loan_value);
+    reverse_direction.loan -= loan_reduction;
+    loan_value -= loan_reduction;
+    transfer_direction.loan += loan_value;
 }
 
 template<typename CellGeometry>
