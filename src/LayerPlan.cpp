@@ -494,7 +494,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index)
         {
             int poly_idx = orderOptimizer.polyOrder[index];
-            addPolygon(polygons[poly_idx], orderOptimizer.polyOrder[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
