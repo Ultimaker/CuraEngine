@@ -255,8 +255,8 @@ public:
     void updateTotalPrintTime();
     void resetTotalPrintTimeAndFilament();
     
-    void writeComment(std::string comment);
-    void writeTypeComment(PrintFeatureType type);
+    void writeComment(const std::string& comment);
+    void writeTypeComment(const PrintFeatureType& type);
 
     /*!
      * Write an M82 (absolute) or M83 (relative)

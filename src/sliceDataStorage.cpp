@@ -70,35 +70,76 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset) const
+void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const SliceMeshStorage& mesh) const
 {
+    const coord_t half_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0") / 2;
+    const coord_t half_line_width_x = mesh.getSettingInMicrons("wall_line_width_x") / 2;
+
     for (const SliceLayerPart& part : parts)
     {
-        switch (max_inset) {
-            case 1:
-                // take the inner wall
-                if (part.insets.size() >= 1) {
-                    layer_walls.add(part.insets[0]);
-                    continue;
-                }
-                break;
-            case 2:
-            default:
-                // we want the 2nd inner walls
-                if (part.insets.size() >= 2) {
-                    layer_walls.add(part.insets[1]);
-                    continue;
-                }
-                // but we'll also take the inner wall if the 2nd doesn't exist
-                if (part.insets.size() == 1) {
-                    layer_walls.add(part.insets[0]);
-                    continue;
-                }
+        Polygons outer; // outer boundary limit (centre of 1st wall where present, otherwise part's outline)
+
+        if (part.insets.size() > 0)
+        {
+            // part has at least one wall, test if it is complete
+
+            if (part.insets[0].size() == part.outline.size())
+            {
+                // 1st wall is complete, use it for the outer boundary
+                outer = part.insets[0];
+            }
+            else
+            {
+                // 1st wall is incomplete, merge the 1st wall with the part's outline (where the 1st wall is missing)
+
+                // first we calculate the part outline for those portions of the part where the 1st wall is missing
+                // this is done by shrinking the part outline so that it is very slightly smaller than the 1st wall outline, then expanding it again so it is very
+                // slightly larger than its original size and subtracting that from the original part outline
+                // NOTE - the additional small shrink/expands are required to ensure that the polygons overlap a little so we do not rely on exact results
+
+                Polygons outline_where_there_are_no_inner_insets(part.outline.difference(part.outline.offset(-(half_line_width_0+5)).offset(half_line_width_0+10)));
+
+                // merge the 1st wall outline with the portions of the part outline we just calculated
+                // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
+
+                outer = part.insets[0].offset(half_line_width_0).unionPolygons(outline_where_there_are_no_inner_insets.offset(half_line_width_0)).offset(-half_line_width_0);
+            }
         }
-        // offset_from_outlines was so large that it completely destroyed our isle,
-        // so we'll just use the regular outline
-        layer_walls.add(part.outline);
-        continue;
+        else
+        {
+            // part has no walls, just use its outline
+            outer = part.outline;
+        }
+
+        if (max_inset >= 2 && part.insets.size() >= 2)
+        {
+            // use the 2nd wall - if the 2nd wall is incomplete because the part is narrow, we use the 2nd wall where it does exist
+            // and where it is missing, we use outer instead
+
+            const coord_t inset_spacing = half_line_width_0 + half_line_width_x; // distance between the centre lines of the 1st and 2nd walls
+
+            // first we calculate the regions of outer that correspond to where the 2nd wall is missing using a similar technique to what we used to calculate outer
+
+            Polygons outer_where_there_are_no_inner_insets(outer.difference(outer.offset(-(inset_spacing+5)).offset(inset_spacing+10)));
+
+            if (outer_where_there_are_no_inner_insets.size() > 0)
+            {
+                // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
+                // with the portions of outer we just calculated
+
+                layer_walls.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+            }
+            else
+            {
+                // the 2nd wall is complete so use it verbatim
+                layer_walls.add(part.insets[1]);
+            }
+        }
+        else
+        {
+            // fall back to using outer computed above
+            layer_walls.add(outer);
+        }
     }
 }
 
@@ -403,7 +444,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             for (const SliceMeshStorage& mesh : meshes)
             {
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                layer.getInnermostWalls(total, 2);
+                layer.getInnermostWalls(total, 2, mesh);
                 if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
