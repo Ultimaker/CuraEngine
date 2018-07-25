@@ -68,6 +68,13 @@ public:
      */
     void setLimitToExtruder(const std::string& key, ExtruderTrain* limit_to_extruder);
 
+    /*
+     * Change the parent settings object.
+     *
+     * If this set of settings has no value for a setting, the parent is asked.
+     */
+    void setParent(Settings* new_parent);
+
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting

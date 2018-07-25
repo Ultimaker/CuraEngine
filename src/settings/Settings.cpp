@@ -533,6 +533,11 @@ void Settings::setLimitToExtruder(const std::string& key, ExtruderTrain* limit_t
     settings[key].limit_to_extruder = limit_to_extruder;
 }
 
+void Settings::setParent(Settings* new_parent)
+{
+    parent = new_parent;
+}
+
 ////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
 
 //c++11 no longer defines M_PI, so add our own constant.
