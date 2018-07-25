@@ -51,9 +51,62 @@ public:
      *
      * This gets the vertex data from the message as well as the settings.
      */
-    void readMeshGroupMessage(const cura::proto::ObjectList& mesh_group)
+    void readMeshGroupMessage(const cura::proto::ObjectList& mesh_group_message)
     {
-        //TODO.
+        if (mesh_group_message.objects_size() <= 0)
+        {
+            return; //Don't slice empty mesh groups.
+        }
+
+        objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
+        MeshGroup* mesh_group = objects_to_slice.back().get();
+        mesh_group->settings.setParent(&Application::getInstance().current_slice.scene.settings);
+
+        //Load the settings in the mesh group.
+        for (const cura::proto::Setting& setting : mesh_group_message.settings())
+        {
+            mesh_group->settings.add(setting.name(), setting.value());
+        }
+
+        FMatrix3x3 matrix;
+        for (const cura::proto::Object& object : mesh_group_message.objects())
+        {
+            unsigned int bytes_per_face = sizeof(FPoint3) * 3; //3 vectors per face.
+            size_t face_count = object.vertices().size() / bytes_per_face;
+
+            if (face_count <= 0)
+            {
+                logWarning("Got an empty mesh. Ignoring it!");
+                continue;
+            }
+
+            mesh_group->meshes.emplace_back();
+            Mesh& mesh = mesh_group->meshes.back();
+
+            //Load the settings for the mesh.
+            for (const cura::proto::Setting& setting : object.settings())
+            {
+                mesh.settings.add(setting.name(), setting.value());
+            }
+            ExtruderTrain& extruder = mesh.settings.get<ExtruderTrain&>("extruder_nr"); //Set the parent setting to the correct extruder.
+            mesh.settings.setParent(&extruder.settings);
+
+            for (size_t face = 0; face < face_count; face++)
+            {
+                const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
+                const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(data.data());
+
+                Point3 verts[3];
+                verts[0] = matrix.apply(float_vertices[0]);
+                verts[1] = matrix.apply(float_vertices[1]);
+                verts[2] = matrix.apply(float_vertices[2]);
+                mesh.addFace(verts[0], verts[1], verts[2]);
+            }
+
+            mesh.finish();
+        }
+        object_count++;
+        mesh_group->finalize();
     }
 
     Arcus::Socket* socket; //!< Socket to send data to.
