@@ -16,7 +16,9 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
     const GCodePathConfig& config = mesh_config.infill_config[0];
     const EFillMethod pattern = mesh.getSettingAsFillMethod("infill_pattern");
     const bool zig_zaggify_infill = mesh.getSettingBoolean("zig_zaggify_infill");
+    const bool connect_polygons = true; // spaghetti infill should have as least as possible travel moves
     const unsigned int infill_line_width = config.getLineWidth();
+    constexpr int infill_multiplier = 1;
     const int64_t infill_shift = 0;
     const int64_t outline_offset = 0;
     const double layer_height_mm = (gcode_layer.getLayerNr() == 0) ? mesh.getSettingInMillimeters("layer_height_0") : mesh.getSettingInMillimeters("layer_height");
@@ -38,8 +40,9 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
         Polygons* perimeter_gaps_output = nullptr;
         const bool connected_zigzags = true;
         const bool use_endpieces = false;
-        Infill infill_comp(pattern, zig_zaggify_infill, area, outline_offset
-            , infill_line_width, infill_line_distance, infill_overlap, infill_angle, gcode_layer.z, infill_shift, infill_origin, perimeter_gaps_output, connected_zigzags, use_endpieces
+        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, area, outline_offset
+            , infill_line_width, infill_line_distance, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
+            infill_shift, infill_origin, perimeter_gaps_output, connected_zigzags, use_endpieces
             , mesh.getSettingInMicrons("cross_infill_pocket_size"));
         // cross_fill_patterns is only generated when spaghetti infill is not used,
         // so we pass nullptr here.

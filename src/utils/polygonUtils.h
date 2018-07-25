@@ -35,6 +35,12 @@ struct ClosestPolygonPoint
     {
         return point_idx != NO_INDEX;
     }
+    bool operator==(const ClosestPolygonPoint& rhs)
+    {
+        // no need to compare on poy_idx
+        // it's sometimes unused while poly is always initialized
+        return poly == rhs.poly && point_idx == rhs.point_idx && location == rhs.location;
+    }
 };
 
 /*!
@@ -290,16 +296,31 @@ public:
     /*!
     * Find the two points in two polygons with the smallest distance.
     * 
-    * Note: The amount of preliminary distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
+    * Note: The amount of preliminary vertex-to-vertex distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
     * Further convergence time depends on polygon size and shape.
+    * 
+    * From these distance checks the closest pair is chosen and from there we walk to the nearest smallest connection.
     * 
     * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
     * 
     * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
     * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
-    * \param sample_size The number of points on each polygon to start the hill climbing search from. 
+    * \param sample_size The number of points on each polygon to start the hill climbing search from. Use negative values for checking all combinations of points.
     */
     static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
+
+    /*!
+    * Find the two points in two polygons with the smallest distance.
+    * 
+    * The final connection will be close to the center of mass of the first polygon.
+    * 
+    * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
+    * 
+    * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
+    * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
+    * \param sample_size The number of points on each polygon to start the hill climbing search from. Use negative values for checking all combinations of points.
+    */
+    static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result);
 
     /*!
     * 
@@ -429,6 +450,19 @@ public:
     static bool getNextPointWithDistance(Point from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
 
+    /*!
+     * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.
+     * 
+     * Note that the looking direction \p forward doesn't neccesarily determine on which side of the line we cross a parallel line.
+     * Depending on the geometry of the polygon the next intersection may be left or right of the input line.
+     * 
+     * \param start The starting point of the search and the starting point of the line
+     * \param line_to The end point of the line
+     * \param dist The distance from the parallel line to the line defined by the previous two parameters
+     * \param forward Whether to look forward from \p start in the direction of the polygon, or go in the other direction.
+     * \return The earliest point on the polygon in the given direction which crosses a line parallel to the given one at the distance \p dist - if any
+     */
+    static std::optional<ClosestPolygonPoint> getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
