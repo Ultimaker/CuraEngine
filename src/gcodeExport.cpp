@@ -440,7 +440,7 @@ void GCodeExport::updateTotalPrintTime()
     writeTimeComment(getSumTotalPrintTimes());
 }
 
-void GCodeExport::writeComment(std::string comment)
+void GCodeExport::writeComment(const std::string& comment)
 {
     *output_stream << ";";
     for (unsigned int i = 0; i < comment.length(); i++)
@@ -460,7 +460,7 @@ void GCodeExport::writeTimeComment(const double time)
     *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
 
-void GCodeExport::writeTypeComment(PrintFeatureType type)
+void GCodeExport::writeTypeComment(const PrintFeatureType& type)
 {
     switch (type)
     {
@@ -485,6 +485,8 @@ void GCodeExport::writeTypeComment(PrintFeatureType type)
         case PrintFeatureType::SupportInfill:
             *output_stream << ";TYPE:SUPPORT" << new_line;
             break;
+        case PrintFeatureType::SupportInterface:
+            *output_stream << ";TYPE:SUPPORT-INTERFACE" << new_line;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
         default:
