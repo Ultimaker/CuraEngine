@@ -47,6 +47,21 @@ public:
     std::shared_ptr<cura::proto::LayerOptimized> getOptimizedLayerById(LayerIndex layer_nr);
 
     /*
+     * Reads the global settings from a Protobuf message.
+     *
+     * The global settings are stored in the current scene.
+     * \param global_settings_message The global settings message.
+     */
+    void readGlobalSettingsMessage(const cura::proto::SettingList& global_settings_message)
+    {
+        Slice& slice = Application::getInstance().current_slice;
+        for (const cura::proto::Setting& setting_message : global_settings_message.settings())
+        {
+            slice.scene.settings.add(setting_message.name(), setting_message.value());
+        }
+    }
+
+    /*
      * \brief Reads a Protobuf message describing a mesh group.
      *
      * This gets the vertex data from the message as well as the settings.
@@ -324,12 +339,7 @@ void ArcusCommunication::sliceNext()
         Application::getInstance().current_slice.reset(); //Create a new Slice.
         Slice& slice = Application::getInstance().current_slice;
 
-        //Store global settings.
-        const cura::proto::SettingList& global_settings_message = slice_message->global_settings();
-        for (const cura::proto::Setting& setting_message : global_settings_message.settings())
-        {
-            slice.scene.settings.add(setting_message.name(), setting_message.value());
-        }
+        private_data->readGlobalSettingsMessage(slice_message->global_settings());
 
         //Store per-extruder settings.
         const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
