@@ -80,21 +80,19 @@ protected:
      * Calculate the basic areas which have air above
      * 
      * \param part The part for which to compute the top skin areas
-     * \param min_infill_area The minimum area to fill with skin
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] upskin The areas of top skin to be pdated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, Polygons& upskin);
 
     /*!
      * Calculate the basic areas which have air below
      * 
      * \param part The part for which to compute the bottom skin areas
-     * \param min_infill_area The minimum area to fill with skin
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] downskin The areas of bottom skin to be updated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, Polygons& downskin);
 
     /*!
      * Apply skin expansion:
