@@ -60,6 +60,30 @@ public:
             slice.scene.settings.add(setting_message.name(), setting_message.value());
         }
     }
+    
+    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<cura::proto::Extruder>& extruder_message)
+    {
+        Slice& slice = Application::getInstance().current_slice;
+        const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+        }
+        for (const cura::proto::Extruder& extruder_message : extruder_message)
+        {
+            const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
+            if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
+            {
+                logWarning("Received extruder index that is out of range: %i", extruder_nr);
+                continue;
+            }
+            ExtruderTrain& extruder = slice.scene.extruders[extruder_nr];
+            for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
+            {
+                extruder.setSetting(setting_message.name(), setting_message.value());
+            }
+        }
+    }
 
     /*
      * \brief Reads a Protobuf message describing a mesh group.
@@ -340,27 +364,8 @@ void ArcusCommunication::sliceNext()
         Slice& slice = Application::getInstance().current_slice;
 
         private_data->readGlobalSettingsMessage(slice_message->global_settings());
-
-        //Store per-extruder settings.
+        private_data->readExtruderSettingsMessage(slice_message->extruders());
         const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
-        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-        {
-            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
-        }
-        for (const cura::proto::Extruder& extruder_message : slice_message->extruders())
-        {
-            const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
-            if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
-            {
-                logWarning("Received extruder index that is out of range: %i", extruder_nr);
-                continue;
-            }
-            ExtruderTrain& extruder = slice.scene.extruders[extruder_nr];
-            for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
-            {
-                extruder.setSetting(setting_message.name(), setting_message.value());
-            }
-        }
 
         //For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
         for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
