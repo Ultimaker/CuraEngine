@@ -469,7 +469,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             && !pointsAreCoincident(p0, prev_point)
             && PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p0, prev_point))
         {
-            score = combingDistance2(p0, prev_point) * 1000;
+            score = combingDistance2(p0, prev_point);
         }
         if (score < best_score)
         {
@@ -486,7 +486,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
             && !pointsAreCoincident(p1, prev_point)
             && PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p1, prev_point))
         {
-            score = combingDistance2(p1, prev_point) * 1000;
+            score = combingDistance2(p1, prev_point);
         }
         if (score < best_score)
         {
