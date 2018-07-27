@@ -185,7 +185,8 @@ enum class CombingMode
 {
     OFF,
     ALL,
-    NO_SKIN
+    NO_SKIN,
+    INFILL
 };
 
 /*!

@@ -155,7 +155,8 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
             if (mesh.getSettingBoolean("infill_mesh")) {
                 continue;
             }
-            if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
+            const CombingMode combing_mode = mesh.getSettingAsCombingMode("retraction_combing");
+            if (combing_mode == CombingMode::NO_SKIN)
             {
                 // we need to include the walls in the comb boundary otherwise it's not possible to tell if a travel move crosses a skin region
 
@@ -222,6 +223,15 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
 
                     // combine the wall combing region (outer - inner) with the infill (if any)
                     comb_boundary.add(part.infill_area.unionPolygons(outer.difference(inner)));
+                }
+            }
+            else if (combing_mode == CombingMode::INFILL)
+            {
+                // this is the old "no skin" code which was completely misnamed as it totally ignores the existence of walls
+                // and skin and so will route straight across them when the travel doesn't cross any infill
+                for (const SliceLayerPart& part : layer.parts)
+                {
+                    comb_boundary.add(part.infill_area);
                 }
             }
             else
