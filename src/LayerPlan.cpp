@@ -196,7 +196,10 @@ bool LayerPlan::setExtruder(int extruder)
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
-        addTravel(end_pos); //  + extruder_offset cause it 
+        if (end_pos_absolute || last_planned_position)
+        {
+            addTravel(end_pos); //  + extruder_offset cause it
+        }
     }
     if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
@@ -224,7 +227,10 @@ bool LayerPlan::setExtruder(int extruder)
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
-        last_planned_position = start_pos;
+        if (start_pos_absolute || last_planned_position)
+        {
+            last_planned_position = start_pos;
+        }
     }
     return true;
 }
