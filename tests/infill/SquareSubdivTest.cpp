@@ -22,7 +22,7 @@ void SquareSubdivTest::tearDown()
 void SquareSubdivTest::debugCheck()
 {
     coord_t line_width = 400;
-    int max_depth = 9;
+    int max_depth = 8;
     AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * (1 << max_depth));
     AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
@@ -46,38 +46,54 @@ void SquareSubdivTest::debugCheck()
         , "soulpilot_dark.jpg"   // 15
         , "cura-logo.jpg"        // 16
         , "nessy.jpg"            // 17
-        , "smize.png"};          // 18
+        , "smize.png"            // 18
+        , "ct.jpg"               // 19
+        , "LDLTP.jpg"            // 20
+        , "ct_pelvis.jpg"        // 21
+        , "Empty-nose-after-80per-cent-partial-bilateral-turbinectomy.jpeg"};      // 22
 
-//     std::string img_name = img_names[0];
-    for (std::string img_name : img_names)
+    std::string img_name = img_names[1];
+//     for (std::string img_name : img_names)
     {
-        DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d);
-
-        bool space_filling_curve = false;
-        SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);
-        ss.initialize();
-    //     ss.createMinimalDensityPattern();
-    //     ss.createMinimalErrorPattern(false);
-        ss.createDitheredPattern();
-    //     ss.createMinimalDensityPattern();
-    //     ss.debugCheck();
-
         {
-            SVG svg(std::string("output/square_dither_") + img_name + ".svg", aabb);
-            bool draw_arrows = false;
-            float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
-            if (draw_arrows) drawing_line_width *= .2;
-            ss.debugOutput(svg, drawing_line_width, draw_arrows);
+            DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d);
+
+            bool space_filling_curve = false;
+            SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);
+            ss.initialize();
+        //     ss.createMinimalDensityPattern();
+    //         ss.createMinimalErrorPattern(true);
+            ss.createDitheredPattern();
+        //     ss.createMinimalDensityPattern();
+        //     ss.debugCheck();
+
+            {
+                SVG svg(std::string("output/square_dither_") + img_name + ".svg", aabb);
+                bool draw_arrows = false;
+                float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+                if (draw_arrows) drawing_line_width *= .2;
+                ss.debugOutput(svg, drawing_line_width, draw_arrows);
+            }
         }
-        if (false)
         {
-            SVG svg(std::string("output/square_hilbert_") + img_name + ".svg", aabb);
-            bool draw_arrows = false;
-            float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
-            if (draw_arrows) drawing_line_width *= .2;
-            Polygon moore_poly = ss.createMooreLine();
-    //         ss.debugOutput(svg, drawing_line_width, draw_arrows);
-            svg.writePolygon(moore_poly, SVG::Color::BLACK, drawing_line_width);
+            DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d);
+
+            bool space_filling_curve = true;
+            SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);
+            ss.initialize();
+        //     ss.createMinimalDensityPattern();
+            ss.createMinimalErrorPattern(false);
+    //         ss.createDitheredPattern();
+        //     ss.createMinimalDensityPattern();
+        //     ss.debugCheck();
+
+            {
+                SVG svg(std::string("output/square_nodither_") + img_name + ".svg", aabb);
+                bool draw_arrows = false;
+                float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+                if (draw_arrows) drawing_line_width *= .2;
+                ss.debugOutput(svg, drawing_line_width, draw_arrows);
+            }
         }
     }
 }
