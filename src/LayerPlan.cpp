@@ -201,7 +201,7 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
                         // merge outer with the portions of the part outline we just calculated
                         // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
 
-                        outer = outer.offset(outer_to_outline_dist/2+10).unionPolygons(outline_where_outer_is_missing.offset(outer_to_outline_dist/2+10)).offset(-(outer_to_outline_dist/2+10));
+                        outer = outer.offset(outer_to_outline_dist/2+10).unionPolygons(outline_where_outer_is_missing.offset(outer_to_outline_dist/2+10)).offset(-(outer_to_outline_dist/2+10)).intersection(part.outline);
                     }
 
                     Polygons inner; // inner boundary of wall combing region

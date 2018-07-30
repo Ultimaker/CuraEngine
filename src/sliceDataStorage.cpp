@@ -86,7 +86,9 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
             if (part.insets[0].size() == part.outline.size())
             {
                 // 1st wall is complete, use it for the outer boundary
-                outer = part.insets[0];
+                // if possible, use a line that is 1/4 of the line width inside the wall centre line, otherwise use the centre line
+                Polygons inner_quarter_line = part.insets[0].offset(-half_line_width_0/2);
+                outer = (inner_quarter_line.size() == part.outline.size()) ? inner_quarter_line : part.insets[0];
             }
             else
             {
@@ -102,7 +104,7 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
                 // merge the 1st wall outline with the portions of the part outline we just calculated
                 // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
 
-                outer = part.insets[0].offset(half_line_width_0).unionPolygons(outline_where_there_are_no_inner_insets.offset(half_line_width_0)).offset(-half_line_width_0);
+                outer = part.insets[0].offset(half_line_width_0).unionPolygons(outline_where_there_are_no_inner_insets.offset(half_line_width_0)).offset(-half_line_width_0).intersection(part.outline);
             }
         }
         else
@@ -126,12 +128,14 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
             {
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
-
-                layer_walls.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                // NOTE - expanding the 2nd wall by an extra factor of 2 is needed to successfully merge tiny 2nd wall outlines with sharp corners into the outer wall
+                // the effect of the extra expansion is that the boundary will hug the outline of the 2nd wall regions rather than its centre line
+                layer_walls.add(part.insets[1].offset(2*half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0))
+                    .offset(-std::min(half_line_width_0, half_line_width_x)).intersection(outer));
             }
             else
             {
-                // the 2nd wall is complete so use it verbatim
+                // the 2nd wall is complete so use its centre line
                 layer_walls.add(part.insets[1]);
             }
         }

@@ -403,6 +403,26 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.polyStart[0]);
         const Point z_seam_location = (*inset_polys[0][0])[outer_poly_start_idx];
 
+        auto addInnerWalls = [this, part_inner_walls]()
+        {
+            Polygons boundary(*gcode_layer.getCombBoundaryInside());
+            boundary.simplify(100, 100);
+            ZSeamConfig inner_walls_z_seam_config;
+            PathOrderOptimizer orderOptimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), inner_walls_z_seam_config, &boundary);
+            orderOptimizer.addPolygons(part_inner_walls);
+            orderOptimizer.optimize();
+            for (unsigned int wall_idx : orderOptimizer.polyOrder)
+            {
+                const coord_t wall_0_wipe_dist = 0;
+                const float flow_ratio = 1.0;
+                const bool always_retract = false;
+                gcode_layer.addWall(part_inner_walls[wall_idx], orderOptimizer.polyStart[wall_idx], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
+            }
+
+            // useful diagnostic aid, please don't delete
+            //gcode_layer.addWalls(boundary, mesh, mesh_config.infill_config[0], mesh_config.bridge_insetX_config, nullptr);
+        };
+
         if (outer_inset_first)
         {
             if (include_outer && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
@@ -415,7 +435,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
                 gcode_layer.addTravel(dest);
             }
-            gcode_layer.addWalls(part_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            addInnerWalls();
         }
         else
         {
@@ -431,7 +451,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
                 gcode_layer.addTravel(dest);
             }
-            gcode_layer.addWalls(part_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            addInnerWalls();
             if (include_outer && extruder_nr == mesh.getSettingAsExtruderNr("wall_0_extruder_nr"))
             {
                 gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
