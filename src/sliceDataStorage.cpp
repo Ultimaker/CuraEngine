@@ -104,7 +104,7 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
                 // merge the 1st wall outline with the portions of the part outline we just calculated
                 // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
 
-                outer = part.insets[0].offset(half_line_width_0).unionPolygons(outline_where_there_are_no_inner_insets.offset(half_line_width_0)).offset(-half_line_width_0);
+                outer = part.insets[0].offset(half_line_width_0).unionPolygons(outline_where_there_are_no_inner_insets.offset(half_line_width_0)).offset(-half_line_width_0).intersection(part.outline);
             }
         }
         else
