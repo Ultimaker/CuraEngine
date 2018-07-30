@@ -83,10 +83,10 @@ void PathOrderOptimizer::optimize()
                         loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
                     }
                     CombPath comb_path;
-                    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p, prev_point, comb_path, -40, 0, false))
+                    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, prev_point, p, comb_path, -40, 0, false))
                     {
                         float dist = 0;
-                        Point last_point = p;
+                        Point last_point = prev_point; // comb_path includes prev_point (and p) so first dist will be zero
                         for (const Point& comb_point : comb_path)
                         {
                             dist += vSize(comb_point - last_point);
