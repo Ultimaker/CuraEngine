@@ -20,7 +20,7 @@ public:
 
     virtual ~ImageBasedDensityProvider();
 
-    virtual float operator()(const AABB3D& aabb) const;
+    virtual float operator()(const AABB3D& aabb, const int_fast8_t averaging_statistic) const;
 
 protected:
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.

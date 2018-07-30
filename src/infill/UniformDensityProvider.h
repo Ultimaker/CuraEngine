@@ -25,7 +25,7 @@ public:
     {
     };
 
-    virtual float operator()(const AABB3D&) const
+    virtual float operator()(const AABB3D&, const int_fast8_t) const
     {
         return density;
     };

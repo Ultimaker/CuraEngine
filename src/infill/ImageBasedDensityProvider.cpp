@@ -119,7 +119,7 @@ std::string ImageBasedDensityProvider::advanceFilename(const std::string& filena
         int n_chars_written = sprintf(next_file_number_str, "%d", file_number + skip_idx);
         if (filename_has_padding)
         {
-            for (int zero_number = 0; zero_number < file_number_str.length() - n_chars_written; zero_number++)
+            for (uint_fast8_t zero_number = 0; zero_number < file_number_str.length() - n_chars_written; zero_number++)
             { // pad filename with zeroes
                 oss << '0';
             }
@@ -145,7 +145,7 @@ ImageBasedDensityProvider::~ImageBasedDensityProvider()
     }
 }
 
-float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
+float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_fast8_t averaging_statistic) const
 {
     Point3 print_aabb_size = print_aabb.size();
     Point3 img_min = (query_cube.min - print_aabb.min - Point3(1,1,1)) * grid_size.x / print_aabb_size.x;
@@ -154,6 +154,10 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
     img_max.z = (query_cube.max.z - print_aabb.min.z) * grid_size.z / print_aabb_size.z + 1;
 
     uint_fast64_t total_lightness = 0;
+    if (averaging_statistic < 0)
+    {
+        total_lightness = std::numeric_limits<uint_fast64_t>::max();
+    }
     uint_fast32_t cell_count = 0;
     for (int z = std::max(static_cast<coord_t>(0), img_min.z); z <= std::min(grid_size.z - 1, img_max.z); z++)
     {
@@ -163,31 +167,46 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
         {
             for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
             {
+                uint_fast64_t combined_lightness_here = 0;
                 for (int channel = 0; channel < image_size.z; channel++)
                 {
                     const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
-                    total_lightness += lightness;
+                    combined_lightness_here += lightness;
                     cell_count++;
+                }
+                if (averaging_statistic == 0)
+                {
+                    total_lightness += combined_lightness_here;
+                }
+                else if (averaging_statistic < 0)
+                {
+                    total_lightness = std::min(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(image_size.z));
+                }
+                else
+                {
+                    total_lightness = std::max(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(image_size.z));
                 }
             }
         }
     }
     
     if (cell_count == 0)
-    { // triangle falls outside of image or in between pixels, so we return the closest pixel
+    { // cube falls outside of image or in between pixels, so we return the closest pixel
+        assert(total_lightness == 0.0);
         Point3 closest_pixel = (img_min + img_max) / 2;
         closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(grid_size.x - 1, closest_pixel.x));
         closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(grid_size.y - 1, closest_pixel.y));
         closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(grid_size.z - 1, closest_pixel.z));
         const unsigned char* image = images[closest_pixel.z];
-        assert(total_lightness == 0.0);
+        uint_fast64_t combined_lightness_here = 0;
         for (int channel = 0; channel < image_size.z; channel++)
         {
-            total_lightness += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
+            combined_lightness_here += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
             cell_count++;
         }
+        total_lightness += (averaging_statistic == 0)? combined_lightness_here : combined_lightness_here / image_size.z;
     }
-    float ret = 1.0f - (static_cast<float>(total_lightness) / static_cast<float>(cell_count) / 255.0f);
+    float ret = 1.0f - (static_cast<float>(total_lightness) / ((averaging_statistic == 0)? static_cast<float>(cell_count) : 1.0) / 255.0f);
     assert(ret >= 0.0f);
     assert(ret <= 1.0f);
     return ret;

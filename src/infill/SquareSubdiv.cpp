@@ -19,11 +19,11 @@ SquareSubdiv::SquareSubdiv(const DensityProvider& density_provider, const AABB3D
 }
 
 
-float SquareSubdiv::getDensity(const Cell& cell) const
+float SquareSubdiv::getDensity(const Cell& cell, const int_fast8_t averaging_statistic) const
 {
     AABB cell_aabb = cell.elem;
     AABB3D cell_aabb3d(Point3(cell_aabb.min.X, cell_aabb.min.Y, Base::aabb.min.z), Point3(cell_aabb.max.X, cell_aabb.max.Y, Base::aabb.max.z));
-    return density_provider(cell_aabb3d);
+    return density_provider(cell_aabb3d, averaging_statistic);
 }
 
 

@@ -466,8 +466,12 @@ protected:
 
     const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
 
-
-    virtual float getDensity(const Cell& cell) const = 0;
+    /*!
+     * Get the density of a cell according to the \ref InfillFractal2D::density_provider.
+     * 
+     * Use the \p averaging_statistic to determine whether to calculate the minimum pixel value (-1), the average (0) or the maximum (1)
+     */
+    virtual float getDensity(const Cell& cell, const int_fast8_t averaging_statistic) const = 0;
 
 protected:
     static constexpr float allowed_volume_error = .0001; // a 10th of a cubic 0.1mm 

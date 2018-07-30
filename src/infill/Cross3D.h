@@ -159,7 +159,7 @@ protected:
     coord_t min_dist_to_cell_bound; //!< The minimal distance between a triangle vertex and the space filling surface oscillating vertex for a straight corner or straight edge
     coord_t min_dist_to_cell_bound_diag; //!< The minimal diagonal distance between a triangle vertex and the space filling surface oscillating vertex
 
-    float getDensity(const Cell& cell) const;
+    float getDensity(const Cell& cell, const int_fast8_t averaging_statistic) const;
 
 private:
     constexpr static uint_fast8_t getNumberOfSides()

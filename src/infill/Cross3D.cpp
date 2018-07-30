@@ -19,14 +19,14 @@ Cross3D::Cross3D(const DensityProvider& density_provider, const AABB3D aabb, con
 }
 
 
-float Cross3D::getDensity(const Cell& cell) const
+float Cross3D::getDensity(const Cell& cell, const int_fast8_t averaging_statistic) const
 {
     AABB aabb;
     aabb.include(cell.elem.triangle.straight_corner);
     aabb.include(cell.elem.triangle.a);
     aabb.include(cell.elem.triangle.b);
     AABB3D aabb3d(Point3(aabb.min.X, aabb.min.Y, cell.elem.z_range.min), Point3(aabb.max.X, aabb.max.Y, cell.elem.z_range.max));
-    return density_provider(aabb3d);
+    return density_provider(aabb3d, averaging_statistic);
 }
 
 

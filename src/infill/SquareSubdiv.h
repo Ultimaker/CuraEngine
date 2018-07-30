@@ -75,7 +75,7 @@ public:
     void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const;
 protected:
 
-    float getDensity(const Cell& cell) const;
+    float getDensity(const Cell& cell, const int_fast8_t averaging_statistic) const;
 
 private:
     bool space_filling_curve; // Whether this instance is used to compute the space filling curve rather than the squares. 

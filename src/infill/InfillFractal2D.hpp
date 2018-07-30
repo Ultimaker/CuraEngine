@@ -135,10 +135,9 @@ void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_roo
     }
     else
     {
-        float requested_density = getDensity(sub_tree_root);
-        sub_tree_root.minimally_required_density = requested_density;
-        sub_tree_root.maximally_allowed_density = requested_density;
-        sub_tree_root.filled_volume_allowance = sub_tree_root.volume * requested_density;
+        sub_tree_root.minimally_required_density = getDensity(sub_tree_root, /* averaging_statistic = */ -1);
+        sub_tree_root.maximally_allowed_density = getDensity(sub_tree_root, /* averaging_statistic = */ 1);
+        sub_tree_root.filled_volume_allowance = sub_tree_root.volume * getDensity(sub_tree_root, /* averaging_statistic = */ 0);
     }
 }
 

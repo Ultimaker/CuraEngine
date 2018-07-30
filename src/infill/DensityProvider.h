@@ -20,11 +20,13 @@ class DensityProvider
 {
 public:
     /*!
-     * Defaults to a naive density estimate based on the minimal bounding box of the quadrilateral.
-     * \return the approximate required density of a cube
+     * Get the density over a cubic region
      * 
+     * \param aabb the cube over which to ge tthe density
+     * \param averaging_statistic The statistic to use: -1 to get the minimum pixel value, 0 to get the average pixel value, 1 to get the maximum pixel value
+     * \return the approximate min/average.max density over a cube
      */
-    virtual float operator()(const AABB3D& aabb) const = 0;
+    virtual float operator()(const AABB3D& aabb, const int_fast8_t averaging_statistic) const = 0;
     virtual ~DensityProvider()
     {
     };
