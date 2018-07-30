@@ -342,6 +342,11 @@ public:
     void createMinimalDensityPattern();
 
     /*!
+     * Create a pattern with the required density or less at each location.
+     */
+    void createMaximalDensityPattern(idx_t starting_idx = 0);
+
+    /*!
      * TODO
      */
     void createDitheredPattern();
@@ -429,6 +434,7 @@ protected:
         float volume; //!< The volume of the prism in mm^3
         float filled_volume_allowance; //!< The volume to be filled corresponding to the average density requested by the volumetric density specification.
         float minimally_required_density; //!< The largest required density across this area. For when the density specification is the minimal density at each locatoin.
+        float maximally_allowed_density; //!< The smallest required density across this area. For when the density specification is the maximal density at each locatoin.
         bool is_subdivided;
         bool is_dithered;
         std::array<std::list<Link>, number_of_sides> adjacent_cells; //!< the adjacent cells for each edge/face of this cell. Ordered: before, after, below, above
@@ -441,7 +447,8 @@ protected:
         , depth(depth)
         , volume(-1)
         , filled_volume_allowance(0)
-        , minimally_required_density(-1)
+        , minimally_required_density(-1.0)
+        , maximally_allowed_density(1.0)
         , is_subdivided(false)
         , is_dithered(false)
         {

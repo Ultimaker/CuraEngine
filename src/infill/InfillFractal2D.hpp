@@ -130,12 +130,14 @@ void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_roo
             setSpecificationAllowance(child);
             sub_tree_root.filled_volume_allowance += child.filled_volume_allowance;
             sub_tree_root.minimally_required_density = std::max(sub_tree_root.minimally_required_density, child.minimally_required_density);
+            sub_tree_root.maximally_allowed_density = std::min(sub_tree_root.maximally_allowed_density, child.maximally_allowed_density);
         }
     }
     else
     {
         float requested_density = getDensity(sub_tree_root);
         sub_tree_root.minimally_required_density = requested_density;
+        sub_tree_root.maximally_allowed_density = requested_density;
         sub_tree_root.filled_volume_allowance = sub_tree_root.volume * requested_density;
     }
 }
@@ -219,6 +221,41 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern()
         }
     }
     logDebug("InfillFractal2D::createMinimalDensityPattern finished in %5.2fs.\n", tk.restart());
+}
+
+
+
+template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::createMaximalDensityPattern(idx_t starting_idx)
+{
+    Cell& parent = cell_data[starting_idx];
+    if (parent.depth >= max_depth)
+    {
+        return;
+    }
+
+    for (idx_t child_idx : parent.children)
+    {
+        if (child_idx < 0)
+        {
+            break;
+        }
+        Cell& child = cell_data[child_idx];
+        if (getActualizedVolume(child) / child.volume > child.maximally_allowed_density)
+        {
+            return; // we cannot subdivide the parent cell
+        }
+    }
+
+    subdivide(parent, false);
+    for (idx_t child_idx : parent.children)
+    {
+        if (child_idx < 0)
+        {
+            break;
+        }
+        createMaximalDensityPattern(child_idx);
+    }
 }
 
 
