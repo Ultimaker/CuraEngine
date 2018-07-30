@@ -1,12 +1,7 @@
 /** Copyright (C) 2018 Ultimaker - Released under terms of the AGPLv3 License */
 #include "Cross3DPrism.h"
-
-// #include <cassert>
-// #include <sstream>  // debug TODO
-
 #include "../utils/math.h"
 #include "../utils/linearAlg2D.h"
-// #include "../utils/gettime.h"
 
 
 namespace cura {

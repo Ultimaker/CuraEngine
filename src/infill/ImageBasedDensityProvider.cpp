@@ -32,13 +32,13 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
     grid_size.z = images.size();
     if (grid_size.z == 0)
     {
-        logError("Couldn't find density image '%s'.\n", filename);
+        logError("Couldn't find density image '%s'.\n", filename.c_str());
         std::exit(-1);
         // would otherwise in a division by zero below, because image_size.x = 0
     }
     if (grid_size.x == 0 || grid_size.y == 0)
     {
-        logError("Density image is empty: '%s'.\n", filename);
+        logError("Density image is empty: '%s'.\n", filename.c_str());
         std::exit(-1);
         // would otherwise in a division by zero below
     }
