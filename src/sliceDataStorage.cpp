@@ -86,7 +86,9 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
             if (part.insets[0].size() == part.outline.size())
             {
                 // 1st wall is complete, use it for the outer boundary
-                outer = part.insets[0];
+                // if possible, use a line that is 1/4 of the line width inside the wall centre line, otherwise use the centre line
+                Polygons inner_quarter_line = part.insets[0].offset(-half_line_width_0/2);
+                outer = (inner_quarter_line.size() == part.outline.size()) ? inner_quarter_line : part.insets[0];
             }
             else
             {
