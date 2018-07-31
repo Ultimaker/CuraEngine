@@ -1052,6 +1052,10 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 
     if (wait && flavor != EGCodeFlavor::MAKERBOT)
     {
+        if(flavor == EGCodeFlavor::MARLIN)
+        {
+            *output_stream << "M105" << new_line; // get temperatures from the last update, the M109 will not let get the target temperature
+        }
         *output_stream << "M109";
     }
     else
@@ -1082,7 +1086,16 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     }
 
     if (wait)
+    {
+        if(flavor == EGCodeFlavor::MARLIN)
+        {
+            *output_stream << "M140 S"; // set the temperature, it will be used as target temperature from M105
+            *output_stream << PrecisionedDouble{1, temperature} << new_line;
+            *output_stream << "M105" << new_line;
+        }
+
         *output_stream << "M190 S";
+    }
     else
         *output_stream << "M140 S";
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
