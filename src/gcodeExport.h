@@ -128,7 +128,6 @@ private:
 
     int current_extruder;
     double currentFanSpeed;
-    unsigned fan_number;
     EGCodeFlavor flavor;
 
     std::vector<double> total_print_times; //!< The total estimated print time in seconds for each feature
