@@ -568,19 +568,18 @@ protected:
 
     /*!
      * Get the right up diagonal neighbor
-     * for which the left lower corner coincides with the right uper corner of this cell
      * if any, otherwise return nullptr
      *           __ __
-     * :        |__|__|             but dont get this one  or this one
-     * :________|▓▓|__|                           ^             ^
+     * :        |__|__|                       ..or return this one..
+     * :________|▓▓|__|                       ^                    ^
      * |       ↗|     |             | X X X X X |         |     |  X
      * | from   |_____|             |___________|         |_____|  X
      * |        |     |             |from |     |         |from |  X
      * |________|_____|             |_____|_____|         |_____|____
      * 
-     * \return the link from the \p left_right most upstairs neighbor to the diagonal neighbor
+     * \return the link to the diagonal neighbor and the cell via which to transfer value (if any)
      */
-    Link* getDiagonalNeighbor(Cell& cell, Direction left_right) const;
+    std::pair<Link*, Link*> getDiagonalNeighbor(Cell& cell, Direction left_right) const;
 
 
     /*!

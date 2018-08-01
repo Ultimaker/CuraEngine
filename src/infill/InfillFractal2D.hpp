@@ -485,13 +485,14 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
 //         const float decision_boundary = (rand() % 100) * range / 100;
 //         const float decision_boundary = (.01 * (rand() % 101) * .5 + .25) * range;
         const float decision_boundary = range / 2;
-        bool do_subdivide = balance > decision_boundary && canSubdivide(parent);
+        const bool can_subdivide = canSubdivide(parent);
+        bool do_subdivide = balance > decision_boundary && can_subdivide;
         float actualized_volume = (do_subdivide)? subdivided_actualized_volume : parent_actualized_volume;
 
-        const float left_over = balance - (actualized_volume - parent_actualized_volume); // might be negative
+        const float left_over = balance - (actualized_volume - parent_actualized_volume); // might be negative!
 
         // divide left_over equally per cell capacity, which is linearly related to the cell volume
-        float total_weighted_forward_cell_volume = 0;
+        float total_weights = 0.0; // total of all weights used for neighbors here (not all neighbors are always used)
         Direction forwards[] = { Direction::RIGHT, Direction::UP };
 
         /* Stucki weights:
@@ -506,69 +507,80 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
         float diag_weight = 1;
         float backward_diag_weight = 1;
 
-        for (int side_idx = 0; side_idx < 2; side_idx++)
+        struct WeightedTransfer
         {
-            Direction direction = forwards[side_idx];
-            std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
-            for (Link& link : side)
+            float weight;
+            Link* transfer_link;
+            WeightedTransfer(float weight, Link* transfer_link)
+            : weight(weight)
+            , transfer_link(transfer_link)
+            {}
+        };
+
+        std::vector<WeightedTransfer> weighted_transfers;
+        weighted_transfers.reserve(8); // direct neighbors might be double if subdivided more, diagonal neighbors require two transfers (via a direct neighbor)
+
+        // first calculate the transfers we need to do, then do the transfers divided by the total weight used
+        {
+            for (int side_idx = 0; side_idx < 2; side_idx++)
             {
-                Cell& neighbor = cell_data[link.to_index];
-                assert(neighbor.volume > 0 && "volume must be computed");
-                total_weighted_forward_cell_volume += direction_weights[side_idx] * neighbor.volume;
+                Direction direction = forwards[side_idx];
+                std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
+                for (Link& link : side)
+                {
+                    float weight = direction_weights[side_idx] / side.size();
+                    total_weights += weight;
+                    weighted_transfers.emplace_back(weight, &link);
+                }
             }
-        }
-        Link* diag_neighbor = getDiagonalNeighbor(parent, Direction::RIGHT);
-        if (diag_neighbor)
-        {
-            total_weighted_forward_cell_volume += diag_weight * cell_data[diag_neighbor->to_index].volume;
-        }
-        Link* backward_diag_neighbor = getDiagonalNeighbor(parent, Direction::LEFT);
-        if (backward_diag_neighbor && cell_data[backward_diag_neighbor->to_index].is_dithered)
-        {
-            /*!
-             * avoid error being propagated to already processed cells!!:
-             *  ___ ___ ___ ___
-             * | 3 | 4 | 7 | 8 |
-             * |___|__↖|___|___|
-             * | 1 | 2 |↖5 | 6 |
-             * |___|___|___|___|
-             */
-            backward_diag_neighbor = nullptr;
-        }
-        if (backward_diag_neighbor)
-        {
-            total_weighted_forward_cell_volume += backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume;
+            std::pair<Link*, Link*> diag_neighbor_trajectory = getDiagonalNeighbor(parent, Direction::RIGHT);
+            if (diag_neighbor_trajectory.first)
+            {
+                total_weights += diag_weight;
+                weighted_transfers.emplace_back(diag_weight, diag_neighbor_trajectory.first);
+                if (diag_neighbor_trajectory.second)
+                {
+                    weighted_transfers.emplace_back(diag_weight, diag_neighbor_trajectory.second);
+                }
+            }
+            std::pair<Link*, Link*> backward_diag_neighbor_trajectory = getDiagonalNeighbor(parent, Direction::LEFT);
+            Link* backward_diag_neighbor = backward_diag_neighbor_trajectory.first;
+            if (backward_diag_neighbor && cell_data[backward_diag_neighbor->to_index].is_dithered)
+            {
+                /*!
+                * avoid error being propagated to already processed cells!!:
+                *  ___ ___ ___ ___
+                * | 3 | 4 | 7 | 8 |
+                * |___|__↖|___|___|
+                * | 1 | 2 |↖5 | 6 |
+                * |___|___|___|___|
+                */
+                backward_diag_neighbor = nullptr;
+            }
+            if (backward_diag_neighbor)
+            {
+                total_weights += backward_diag_weight;
+                weighted_transfers.emplace_back(backward_diag_weight, backward_diag_neighbor);
+                if (backward_diag_neighbor_trajectory.second)
+                {
+                    weighted_transfers.emplace_back(backward_diag_weight, backward_diag_neighbor_trajectory.second);
+                }
+            }
         }
 
-        assert(total_weighted_forward_cell_volume >= 0.0);
-        assert(total_weighted_forward_cell_volume < 27000000.0); // 30x30x30cm
-        for (int side_idx = 0; side_idx < 2; side_idx++)
+        assert(total_weights >= 0.0);
+        assert(total_weights <= 6.0001); // total of all stucki weights
+
+        for (const WeightedTransfer& weighted_transfer : weighted_transfers)
         {
-            Direction direction = forwards[side_idx];
-            std::list<Link>& side = parent.adjacent_cells[static_cast<size_t>(direction)];
-            for (Link& neighbor : side)
-            {
-                transferValue(neighbor, left_over * direction_weights[side_idx] * cell_data[neighbor.to_index].volume / total_weighted_forward_cell_volume);
-            }
+            const float transfer_value = left_over * weighted_transfer.weight / total_weights;
+            transferValue(*weighted_transfer.transfer_link, transfer_value);
         }
-        if (diag_neighbor)
-        {
-            float transfer = left_over * diag_weight * cell_data[diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
-            // transfer the amount via the correct upstairs neighbor
-            assert(!parent.adjacent_cells[toInt(Direction::UP)].empty());
-            Link& up_neighbor = parent.adjacent_cells[toInt(Direction::UP)].back();
-            transferValue(up_neighbor, transfer);
-            transferValue(*diag_neighbor, transfer);
-        }
-        if (backward_diag_neighbor)
-        {
-            float transfer = left_over * backward_diag_weight * cell_data[backward_diag_neighbor->to_index].volume / total_weighted_forward_cell_volume;
-            // transfer the amount via the correct upstairs neighbor
-            assert(!parent.adjacent_cells[toInt(Direction::UP)].empty());
-            Link& up_neighbor = parent.adjacent_cells[toInt(Direction::UP)].front();
-            transferValue(up_neighbor, transfer);
-            transferValue(*backward_diag_neighbor, transfer);
-        }
+
+        // verify that all left_over has been dispersed (if dispersing is possible
+        float new_value_error = getValueError(parent);
+        assert(weighted_transfers.empty() || !do_subdivide || std::abs(getValueError(parent) - range) < 0.0001); // do_subdivide implies valueError == range : we should hav precisely enough to do exactly one subdivision
+        assert(weighted_transfers.empty() || do_subdivide || std::abs(getValueError(parent)) < 0.0001); // !do_subdivide implies valueError == 0 : we should have no value left over
 
         if (do_subdivide)
         {
@@ -791,12 +803,13 @@ void InfillFractal2D<CellGeometry>::initialConnection(Cell& before, Cell& after,
 }
 
 template<typename CellGeometry>
-typename InfillFractal2D<CellGeometry>::Link* InfillFractal2D<CellGeometry>::getDiagonalNeighbor(Cell& cell, Direction left_right) const
+std::pair<typename InfillFractal2D<CellGeometry>::Link*, typename InfillFractal2D<CellGeometry>::Link*> InfillFractal2D<CellGeometry>::getDiagonalNeighbor(Cell& cell, Direction left_right) const
 { // implementation naming assumes left_right is right
     std::list<Link>& right_side = cell.adjacent_cells[static_cast<size_t>(left_right)];
     if (!right_side.empty())
     {
-        const std::list<Link>& right_side_up_side = cell_data[right_side.back().to_index].adjacent_cells[static_cast<size_t>(Direction::UP)];
+        const Link& right_neighbor = right_side.back();
+        const std::list<Link>& right_side_up_side = cell_data[right_neighbor.to_index].adjacent_cells[static_cast<size_t>(Direction::UP)];
         if (!right_side_up_side.empty())
         {
             const Link& ru_diag_neighbor = right_side_up_side.front();
@@ -822,13 +835,33 @@ typename InfillFractal2D<CellGeometry>::Link* InfillFractal2D<CellGeometry>::get
                      */
                     if (ru_diag_neighbor.to_index == ur_diag_neighbor.to_index)
                     {
-                        return const_cast<Link*>(&ur_diag_neighbor);
+                        return std::make_pair(const_cast<Link*>(&ur_diag_neighbor), const_cast<Link*>(&up_neighbor));
+                    }
+                    else if (ru_diag_neighbor.to_index == up_neighbor.to_index)
+                    {
+                        /*  ___ ___
+                         * |   4,  |  right up is up
+                         * |_____↑_|
+                         * | 1...2 |
+                         * |___|___|
+                         */
+                        return std::make_pair(const_cast<Link*>(&up_neighbor), static_cast<Link*>(nullptr));
+                    }
+                    else if (ur_diag_neighbor.to_index == right_neighbor.to_index)
+                    {
+                        /*  ___ ___
+                         * | 3 → , |  up right is right
+                         * |_:_| 4 |
+                         * | 1 |   |
+                         * |___|___|
+                         */
+                        return std::make_pair(const_cast<Link*>(&right_neighbor), static_cast<Link*>(nullptr));
                     }
                 }
             }
         }
     }
-    return nullptr;
+    return std::pair<Link*, Link*>(static_cast<Link*>(nullptr), static_cast<Link*>(nullptr));
 }
 
 
