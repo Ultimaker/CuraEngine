@@ -193,8 +193,6 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
-    int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
-
     Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
 
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
@@ -209,9 +207,9 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         downskin = Polygons(original_outline);
     }
 
-    calculateBottomSkin(part, min_infill_area, downskin);
+    calculateBottomSkin(part, downskin);
 
-    calculateTopSkin(part, min_infill_area, upskin);
+    calculateTopSkin(part, upskin);
 
     applySkinExpansion(original_outline, upskin, downskin);
 
@@ -239,7 +237,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin)
+void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Polygons& downskin)
 {
     if (static_cast<int>(layer_nr - bottom_layer_count) >= 0 && bottom_layer_count > 0)
     {
@@ -251,15 +249,11 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
                 not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
             }
         }
-        if (min_infill_area > 0)
-        {
-            not_air.removeSmallAreas(min_infill_area);
-        }
         downskin = downskin.difference(not_air); // skin overlaps with the walls
     }
 }
 
-void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin)
+void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Polygons& upskin)
 {
     if (static_cast<int>(layer_nr + top_layer_count) < static_cast<int>(mesh.layers.size()) && top_layer_count > 0)
     {
@@ -270,10 +264,6 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, int
             {
                 not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
             }
-        }
-        if (min_infill_area > 0)
-        {
-            not_air.removeSmallAreas(min_infill_area);
         }
         upskin = upskin.difference(not_air); // skin overlaps with the walls
     }
