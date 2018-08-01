@@ -151,16 +151,28 @@ void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_roo
 
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::createMinimalDensityPattern()
+void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_step_less_dense)
 {
     TimeKeeper tk;
     std::list<idx_t> all_to_be_subdivided;
     
-    std::function<bool(const Cell&)> shouldBeSubdivided =
-        [this](const Cell& cell)
-        {
-            return getActualizedVolume(cell) / cell.volume < cell.minimally_required_density;
-        };
+    std::function<bool(const Cell&)> shouldBeSubdivided;
+    if (one_step_less_dense)
+    {
+        shouldBeSubdivided =
+            [this](const Cell& cell)
+            {
+                return getChildrenActualizedVolume(cell) / cell.volume < cell.minimally_required_density;
+            };
+    }
+    else
+    {
+        shouldBeSubdivided =
+            [this](const Cell& cell)
+            {
+                return getActualizedVolume(cell) / cell.volume < cell.minimally_required_density;
+            };
+    }
     
     assert(cell_data.size() > 0);
 

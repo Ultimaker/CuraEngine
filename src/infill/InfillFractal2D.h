@@ -338,8 +338,10 @@ public:
 
     /*!
      * Create a pattern with the required density or more at each location.
+     * 
+     * \param one_step_less_dense Whether we want to to subdivide to one recursion step less than the minimally required density. This might be used in combination with dithering.
      */
-    void createMinimalDensityPattern();
+    void createMinimalDensityPattern(const bool one_step_less_dense = false);
 
     /*!
      * Create a pattern with the required density or less at each location.
@@ -347,9 +349,26 @@ public:
     void createMaximalDensityPattern(idx_t starting_idx = 0);
 
     /*!
-     * TODO
+     * Create a dithered pattern matching the input distribution from scratch.
+     * 
+     * Perform balancing first to create a well behaved dithered pattern.
      */
     void createDitheredPattern();
+
+    /*!
+     * Perform the pure dithering step.
+     * This can subdivide each node at most once.
+     * 
+     * Can be used in combination with createMaximalDensityPattern for interesting, but suboptimal results.
+     * 
+     * Used to show the need of balancing for academic purposes.
+     */
+    void dither()
+    {
+        settleLoans();
+
+        dither(cell_data[0]);
+    }
 
     /*!
      * Create a pattern with no dithering and no balancing.

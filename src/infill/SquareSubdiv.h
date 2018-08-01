@@ -21,6 +21,8 @@
 namespace cura
 {
 
+class SquareSubdivTest; // to be friends with
+
 /*!
  * A square subdivision structure to generate a grid infill pattern with varying infill density,
  * while maintaining connectivity of infill lines
@@ -63,6 +65,7 @@ namespace cura
  */
 class SquareSubdiv : public InfillFractal2D<AABB>
 {
+    friend class SquareSubdivTest;
     using idx_t = int_fast32_t;
     using Base = InfillFractal2D<AABB>;
 public:
