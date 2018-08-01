@@ -204,7 +204,7 @@ namespace cura
  * until converged.
  * 
  * It is conjectured that convergence happens at most at step max_depth + 2,
- * meaning that it could suffice to do only max_dpeth + 1 steps, without the extra step to check for convergence.
+ * meaning that it could suffice to do only max_depth + 1 steps, without the extra step to check for convergence.
  * However, I don't have proof.
  * 
  * Both phases handle cells in an order based on cell recursion depth,

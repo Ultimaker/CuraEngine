@@ -719,7 +719,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
             if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
             {
-                bool use_new_cross_3d_generator = true; // TODO: only use cross3D when a sequence of images is specified
+                bool use_new_cross_3d_generator = true; // TODO: only use cross3D when a *sequence* of images is specified
                 mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdisivion_spec_image_file, use_new_cross_3d_generator);
             }
             else
@@ -728,7 +728,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 {
                     logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
                 }
-                bool use_new_cross_3d_generator = true;
                 mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
             }
         }
