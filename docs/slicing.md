@@ -46,4 +46,4 @@ If a chain of line segments can't be connected to form a closed loop, this chain
 
 ![Open Polygons](assets/stitching_open.svg)
 
-In this example, there is also a chain of line segments that ends on one side into itself, and has a loose ending on the other side too. This will also be considered an open polygon. Note also that the T-crossing will connect the two lines that are most adjacent to each other. The third endpoint will be open-ended.
+In this example, there is also a chain of line segments that ends on one side into itself, and has a loose ending on the other side too. This will also be considered an open polygon. Note also that the T-crossing will connect the two lines that are most parallel to each other. The third endpoint will be open-ended.
