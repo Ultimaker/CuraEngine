@@ -12,4 +12,4 @@ Each layer is considered to have a certain span across the Z axis. For example, 
 
 Normally, the first layer has a separate layer height, the Initial Layer Height. The rest of the layers use the normal Layer Height setting.
 
-![Layer Heights](assets/LayerHeights.svg)
+![Layer Heights](assets/layer_heights.svg)

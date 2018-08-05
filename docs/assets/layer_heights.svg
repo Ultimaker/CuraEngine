@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 100 100" width="100px" height="100px">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 100 100" width="100mm" height="100mm">
 	<defs>
 		<clipPath id="meshClip">
 			<path d="M23.812501,96.03125 H92.604167 L74.083333,43.114584 95.25,7.3958329 H31.750001 L46.302084,70.895833 Z" />
