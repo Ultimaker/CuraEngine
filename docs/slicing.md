@@ -13,3 +13,15 @@ Each layer is considered to have a certain span across the Z axis. For example, 
 Normally, the first layer has a separate layer height, the Initial Layer Height. The rest of the layers use the normal Layer Height setting.
 
 ![Layer Heights](assets/layer_heights.svg)
+
+Alternatively, with Adaptive Layer Heights, the Z coordinates of the cross sections is determined based on the shape of the model. If Slicing Tolerance is set to Inclusive or Exclusive it will slice on the borders of layers instead of the middle.
+
+Triangles to Lines
+----
+When the height of the cross section is determined, all triangles are intersected with the planes at every layer height, producing lines where they intersect.
+
+![Triangle Line Intersection](assets/slice_triangle.svg)
+
+For performance reasons, we iterate first over all triangles in the mesh. For each of these triangles, we then iterate over the layers that this triangle intersects with and for each of these layers we produce a line segment at the intersection. This ordering of loops is unintuitive, but more efficient. It is easy to determine for a triangle which layers it intersects with by just looking at the Z coordinates of its 3 vertices, so we don't need to check every layer for every triangle but just the ones that would produce intersections.
+
+To find the intersection of a plane and a triangle, we simply interpolate all three line segments of the triangle. At least two of these interpolations should span the plane. We take the two coordinates where the interpolations have the same Z coordinate as the plane and those will become the two endpoints of the line segment.
