@@ -151,6 +151,30 @@ void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_roo
 
 
 template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::createMaxDepthPattern()
+{
+    std::queue<Cell*> to_be_processed; // this queue enforces a breadth first order processing of all cells, so that we don't subdivide one quadrant fully before we start the next
+    to_be_processed.emplace(&cell_data[0]);
+
+    while (!to_be_processed.empty())
+    {
+        Cell* cell = to_be_processed.front();
+        to_be_processed.pop();
+
+        if (cell->depth < max_depth)
+        {
+            subdivide(*cell, /* redistribute_errors = */ false);
+            for (idx_t child_idx : cell->children)
+            {
+                if (child_idx < 0) break;
+                to_be_processed.emplace(&cell_data[child_idx]);
+            }
+        }
+    }
+}
+
+
+template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_step_less_dense)
 {
     TimeKeeper tk;

@@ -337,6 +337,11 @@ public:
     void initialize();
 
     /*!
+     * Create the subdivision structure with the max recursoin depth everywhere.
+     */
+    void createMaxDepthPattern();
+
+    /*!
      * Create a pattern with the required density or more at each location.
      * 
      * \param one_step_less_dense Whether we want to to subdivide to one recursion step less than the minimally required density. This might be used in combination with dithering.

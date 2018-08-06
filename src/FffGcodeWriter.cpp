@@ -105,9 +105,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
 
     const std::function<LayerPlan* (int)>& produce_item =
-        [&storage, total_layers, this](int layer_nr)
+        [&storage, this](int layer_nr)
         {
-            LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
+            LayerPlan& gcode_layer = processLayer(storage, layer_nr);
             return &gcode_layer;
         };
     const std::function<void (LayerPlan*)>& consume_item =
@@ -718,10 +718,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     }
 }
 
-LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
+LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr) const
 {
-    logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
-
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t z;
