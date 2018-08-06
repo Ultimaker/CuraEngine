@@ -444,6 +444,11 @@ ArcusCommunication::~ArcusCommunication()
     private_data->socket->close();
 }
 
+void ArcusCommunication::beginGCode()
+{
+    FffProcessor::getInstance()->setTargetStream(&private_data->gcode_output_stream);
+}
+
 const bool ArcusCommunication::hasSlice() const
 {
     return private_data->socket->getState() != Arcus::SocketState::Closed

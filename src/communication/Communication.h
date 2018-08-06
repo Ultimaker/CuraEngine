@@ -137,7 +137,7 @@ public:
     virtual void sendPrintTimeMaterialEstimates() const = 0;
 
     /*
-     * \brief Send a message to indicate that we're beginning to send g-code.
+     * \brief Indicate that we're beginning to send g-code.
      */
     virtual void beginGCode() = 0;
 

@@ -35,6 +35,11 @@ public:
     ~ArcusCommunication();
 
     /*
+     * \brief Indicate that we're beginning to send g-code.
+     */
+    void beginGCode();
+
+    /*
      * \brief Test if there are any more slices in the queue.
      */
     const bool hasSlice() const override;
