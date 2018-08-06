@@ -354,7 +354,7 @@ void ArcusCommunication::sendOptimizedLayerData()
 {
     path_compiler->flushPathSegments(); //Make sure the last path segment has been flushed from the compiler.
 
-    const SliceDataStruct<cura::proto::LayerOptimized>& data = private_data->optimized_layers;
+    SliceDataStruct<cura::proto::LayerOptimized>& data = private_data->optimized_layers;
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
     if (data.sliced_objects < private_data->object_count) //Nothing to send.
