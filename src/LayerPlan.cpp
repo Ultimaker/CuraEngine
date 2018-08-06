@@ -1244,7 +1244,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
 
-        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
+        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool {
                 return  a.path_idx < b.path_idx; 
             } );
 
@@ -1256,10 +1256,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         const coord_t nozzle_size = gcode.getNozzleSize(extruder);
 
         bool update_extrusion_offset = true;
-
-        //Merge paths whose endpoints are very close together into one line.
-        MergeInfillLines merger(extruder_plan);
-        merger.mergeInfillLines(paths, gcode.getPositionXY());
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {

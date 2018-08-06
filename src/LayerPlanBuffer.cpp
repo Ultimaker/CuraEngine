@@ -5,6 +5,7 @@
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
 #include "FffProcessor.h"
+#include "MergeInfillLines.h"
 
 namespace cura {
 
@@ -45,6 +46,7 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     }
     if (buffer.size() > 0)
     {
+        optimizeAllInfillLines();
         insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
     }
     if (buffer.size() > buffer_size)
@@ -64,6 +66,7 @@ void LayerPlanBuffer::flush()
 {
     if (buffer.size() > 0)
     {
+        optimizeAllInfillLines();
         insertTempCommands(); // insert preheat commands of the very last layer
     }
     while (!buffer.empty())
@@ -454,6 +457,19 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 }
 
 
+void LayerPlanBuffer::optimizeAllInfillLines()
+{
+    for (LayerPlan* layer_plan : buffer)
+    {
+        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
+        {
+            //Merge paths whose endpoints are very close together into one line.
+            MergeInfillLines merger(extr_plan);
+            merger.mergeInfillLines(extr_plan.paths, gcode.getPositionXY());
+        }
+    }
+}
+
 void LayerPlanBuffer::insertTempCommands()
 {
     if (buffer.back()->extruder_plans.size() == 0 || (buffer.back()->extruder_plans.size() == 1 && buffer.back()->extruder_plans[0].paths.size() == 0))
@@ -471,7 +487,6 @@ void LayerPlanBuffer::insertTempCommands()
             extruder_plans.push_back(&extr_plan);
         }
     }
-
 
     // insert commands for all extruder plans on this layer
     LayerPlan& layer_plan = *buffer.back();

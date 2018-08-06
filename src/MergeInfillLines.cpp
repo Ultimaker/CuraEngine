@@ -24,11 +24,13 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Poi
         2. Do a second iteration over all paths to remove the tombstones. */
 
     std::vector<size_t> remove_path_indices;
+    std::set<size_t> removed;  // keep track of what we already removed, so don't remove it again
 
     //For each two adjacent lines, see if they can be merged.
     size_t first_path_index = 0;
     Point first_path_start = starting_position;
     size_t second_path_index = 1;
+
     for (; second_path_index < paths.size(); second_path_index++)
     {
         GCodePath& first_path = paths[first_path_index];
@@ -48,7 +50,11 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Poi
             mergeLines(first_path, first_path_start, second_path, second_path_start);
             for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
             {
-                remove_path_indices.push_back(to_delete_index);
+                if (removed.find(to_delete_index) == removed.end())  // if there are line(s) between first and second, then those lines are already marked as to be deleted, only add the new line(s)
+                {
+                    remove_path_indices.push_back(to_delete_index);
+                    removed.insert(to_delete_index);
+                }
             }
         }
         else
@@ -184,11 +190,10 @@ void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_
     second_path_length *= second_path.flow;
     average_second_path /= second_path.points.size();
 
-    //TODO: First path doesn't start yet at the correct position. We need to travel first?
     first_path.points.clear();
     first_path.points.push_back(average_second_path);
-    const coord_t new_path_length = vSize(average_first_path - average_second_path);
-    first_path.flow *= static_cast<double>(first_path_length + second_path_length) / new_path_length;
+    const coord_t new_path_length = vSize(average_second_path - first_path_start);
+    first_path.flow = static_cast<double>(first_path_length + second_path_length) / new_path_length;
 }
 
 }//namespace cura
