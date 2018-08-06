@@ -46,7 +46,24 @@ public:
      * \param layer_nr The layer number to get the optimised layer data for.
      * \return The optimised layer data for that layer.
      */
-    std::shared_ptr<cura::proto::LayerOptimized> getOptimizedLayerById(LayerIndex layer_nr);
+    std::shared_ptr<cura::proto::LayerOptimized> getOptimizedLayerById(LayerIndex layer_nr)
+    {
+        layer_nr += optimized_layers.current_layer_offset;
+        std::unordered_map<int, std::shared_ptr<proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
+
+        if (find_result != optimized_layers.slice_data.end()) //Load layer from the cache.
+        {
+            return find_result->second;
+        }
+        else //Not in the cache yet. Create an empty layer.
+        {
+            std::shared_ptr<proto::LayerOptimized> layer = std::make_shared<proto::LayerOptimized>();
+            layer->set_id(layer_nr);
+            optimized_layers.current_layer_count++;
+            optimized_layers.slice_data[layer_nr] = layer;
+            return layer;
+        }
+    }
 
     /*
      * Reads the global settings from a Protobuf message.
@@ -314,7 +331,32 @@ public:
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity);
+    void sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    {
+        if (polygon.size() < 2) //Don't send single points or empty polygons.
+        {
+            return;
+        }
+
+        ClipperLib::Path::const_iterator point = polygon.begin();
+        handleInitialPoint(*point);
+
+        //Send all coordinates one by one.
+        while(++point != polygon.end())
+        {
+            if (*point == last_point)
+            {
+                continue; //Ignore zero-length segments.
+            }
+            addLineSegment(print_feature_type, *point, width, thickness, velocity);
+        }
+
+        //Make sure the polygon is closed.
+        if (*polygon.begin() != polygon.back())
+        {
+            addLineSegment(print_feature_type, *polygon.begin(), width, thickness, velocity);
+        }
+    }
 
 private:
     /*!
@@ -507,52 +549,6 @@ void ArcusCommunication::sliceNext()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250)); //Pause before checking again for a slice message.
-}
-
-void ArcusCommunication::PathCompiler::sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
-{
-    if (polygon.size() < 2) //Don't send single points or empty polygons.
-    {
-        return;
-    }
-
-    ClipperLib::Path::const_iterator point = polygon.begin();
-    handleInitialPoint(*point);
-
-    //Send all coordinates one by one.
-    while(++point != polygon.end())
-    {
-        if (*point == last_point)
-        {
-            continue; //Ignore zero-length segments.
-        }
-        addLineSegment(print_feature_type, *point, width, thickness, velocity);
-    }
-
-    //Make sure the polygon is closed.
-    if (*polygon.begin() != polygon.back())
-    {
-        addLineSegment(print_feature_type, *polygon.begin(), width, thickness, velocity);
-    }
-}
-
-std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex layer_nr)
-{
-    layer_nr += optimized_layers.current_layer_offset;
-    std::unordered_map<int, std::shared_ptr<proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
-
-    if (find_result != optimized_layers.slice_data.end()) //Load layer from the cache.
-    {
-        return find_result->second;
-    }
-    else //Not in the cache yet. Create an empty layer.
-    {
-        std::shared_ptr<proto::LayerOptimized> layer = std::make_shared<proto::LayerOptimized>();
-        layer->set_id(layer_nr);
-        optimized_layers.current_layer_count++;
-        optimized_layers.slice_data[layer_nr] = layer;
-        return layer;
-    }
 }
 
 } //namespace cura
