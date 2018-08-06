@@ -50,7 +50,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    void sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t thickness) override;
+    void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) override;
 
     /*
      * \brief Send the sliced layer data to the front-end after the optimisation
@@ -91,7 +91,7 @@ public:
     /*
      * \brief Communicate to Arcus what our progress is.
      */
-    void sendProgress(float progress) const override;
+    void sendProgress(const float& progress) const override;
 
     /*
      * \brief Slice the next scene that the front-end wants us to slice.

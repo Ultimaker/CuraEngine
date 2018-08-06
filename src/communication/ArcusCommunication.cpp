@@ -434,7 +434,7 @@ const bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
-void ArcusCommunication::sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t thickness)
+void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
@@ -478,7 +478,7 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
     }
 }
 
-void ArcusCommunication::sendProgress(float progress) const
+void ArcusCommunication::sendProgress(const float& progress) const
 {
     const int rounded_amount = 1000 * progress;
     if (private_data->last_sent_progress == rounded_amount) //No need to send another tiny update step.
@@ -487,9 +487,9 @@ void ArcusCommunication::sendProgress(float progress) const
     }
 
     std::shared_ptr<proto::Progress> message = std::make_shared<cura::proto::Progress>();
-    progress /= private_data->object_count;
-    progress += private_data->optimized_layers.sliced_objects * (1. / private_data->object_count);
-    message->set_amount(progress);
+    float progress_all_objects = progress / private_data->object_count;
+    progress_all_objects += private_data->optimized_layers.sliced_objects * (1.0 / private_data->object_count);
+    message->set_amount(progress_all_objects);
     private_data->socket->sendMessage(message);
 
     private_data->last_sent_progress = rounded_amount;

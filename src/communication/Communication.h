@@ -42,7 +42,7 @@ public:
      * \brief Indicate to the communication channel what the current progress of
      * slicing the current slice is.
      */
-    virtual void sendProgress(float progress) const = 0;
+    virtual void sendProgress(const float& progress) const = 0;
 
     /*
      * \brief Indicate to the communication channel that a layer is complete and
@@ -55,7 +55,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    virtual void sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t thickness) = 0;
+    virtual void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) = 0;
 
     /*
      * \brief Send polygons to the user to visualise.
@@ -97,7 +97,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    virtual void sendLineTo(const PrintFeatureType type, const Point& to, const coord_t line_width, const coord_t line_thickness, const Velocity velocity) = 0;
+    virtual void sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
 
     /*
      * \brief Send the current position to visualise.
@@ -113,7 +113,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    virtual void setLayerForSend(const LayerIndex layer_nr) = 0;
+    virtual void setLayerForSend(const LayerIndex& layer_nr) = 0;
 
     /*
      * \brief Set which extruder is being used for the following calls to
