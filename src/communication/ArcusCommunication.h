@@ -61,6 +61,20 @@ public:
     void sendOptimizedLayerData() override;
 
     /*
+     * \brief Send a polygon to the front-end to visualise.
+     *
+     * The polygons are not actually flushed until ``sendLayerComplete`` is
+     * called.
+     * \param type The type of print feature the polygon represents (infill,
+     * wall, support, etc).
+     * \param polygon The shape to visualise.
+     * \param line_width The width of the lines in this polygon.
+     * \param line_thickness The thickness (in the Z direction) of the polygon.
+     * \param velocity The velocity of printing this polygon.
+     */
+    void sendPolygon(const PrintFeatureType type, ConstPolygonRef polygon, const coord_t line_width, const coord_t line_thickness, const Velocity velocity) override;
+
+    /*
      * \brief Communicate to Arcus what our progress is.
      */
     void sendProgress(float progress) const override;

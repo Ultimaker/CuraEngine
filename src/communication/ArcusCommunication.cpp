@@ -16,6 +16,7 @@
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
 #include "../settings/types/LayerIndex.h" //To point to layers.
+#include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "../utils/logoutput.h"
 
 namespace cura
@@ -269,16 +270,17 @@ public:
      *
      * If the new sequence of lines does not start at the current end point
      * of the path this jump is marked as `PrintFeatureType::NoneType`.
+     * \param from The initial point of a polygon.
      */
-    void handleInitialPoint(Point from)
+    void handleInitialPoint(const Point& initial_point)
     {
         if (points.size() == 0)
         {
-            addPoint2D(from);
+            addPoint2D(initial_point);
         }
-        else if (from != last_point)
+        else if (initial_point != last_point)
         {
-            addLineSegment(PrintFeatureType::NoneType, from, 1.0, 0.0, 0.0);
+            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0);
         }
     }
 
@@ -305,14 +307,23 @@ public:
 
     /*!
      * \brief Adds closed polygon to the current path.
+     * \param print_feature_type The type of feature that the polygon is part of
+     * (infill, wall, etc).
+     * \param polygon The shape of the polygon.
+     * \param width The width of the lines of the polygon.
+     * \param thickness The layer thickness of the polygon.
+     * \param velocity How fast the polygon is printed.
      */
-    void sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef poly, int width, int thickness, int feedrate);
+    void sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity);
 
 private:
     /*!
-     * Convert and add a point to the points buffer, each point being represented as two consecutive floats. All members adding a 2D point to the data should use this function.
+     * \brief Convert and add a point to the points buffer.
+     *
+     * Each point is represented as two consecutive floats. All members adding a
+     * 2D point to the data should use this function.
      */
-    void addPoint2D(Point point)
+    void addPoint2D(const Point& point)
     {
         points.push_back(INT2MM(point.X));
         points.push_back(INT2MM(point.Y));
@@ -320,9 +331,18 @@ private:
     }
 
     /*!
-     * Implements the functionality of adding a single 2D line segment to the path data. All member functions adding a 2D line segment should use this functions.
+     * \brief Implements the functionality of adding a single 2D line segment to
+     * the path data.
+     *
+     * All member functions adding a 2D line segment should use this functions.
+     * \param print_feature_type The type of feature that the polygon is part of
+     * (infill, wall, etc).
+     * \param polygon The shape of the polygon.
+     * \param width The width of the lines of the polygon.
+     * \param thickness The layer thickness of the polygon.
+     * \param velocity How fast the polygon is printed.
      */
-    void addLineSegment(PrintFeatureType print_feature_type, Point point, int line_width, int line_thickness, int line_feedrate)
+    void addLineSegment(const PrintFeatureType& print_feature_type, const Point& point, const coord_t& line_width, const coord_t& line_thickness, const Velocity& line_feedrate)
     {
         addPoint2D(point);
         line_types.push_back(print_feature_type);
@@ -401,6 +421,11 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.current_layer_count = 0;
     data.current_layer_offset = 0;
     data.slice_data.clear();
+}
+
+void ArcusCommunication::sendPolygon(const PrintFeatureType type, ConstPolygonRef polygon, const coord_t line_width, const coord_t line_thickness, const Velocity velocity)
+{
+    path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
 }
 
 void ArcusCommunication::sendProgress(float progress) const
@@ -482,6 +507,33 @@ void ArcusCommunication::sliceNext()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250)); //Pause before checking again for a slice message.
+}
+
+void ArcusCommunication::PathCompiler::sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+{
+    if (polygon.size() < 2) //Don't send single points or empty polygons.
+    {
+        return;
+    }
+
+    ClipperLib::Path::const_iterator point = polygon.begin();
+    handleInitialPoint(*point);
+
+    //Send all coordinates one by one.
+    while(++point != polygon.end())
+    {
+        if (*point == last_point)
+        {
+            continue; //Ignore zero-length segments.
+        }
+        addLineSegment(print_feature_type, *point, width, thickness, velocity);
+    }
+
+    //Make sure the polygon is closed.
+    if (*polygon.begin() != polygon.back())
+    {
+        addLineSegment(print_feature_type, *polygon.begin(), width, thickness, velocity);
+    }
 }
 
 std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex layer_nr)
