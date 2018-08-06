@@ -310,7 +310,7 @@ public:
     /*!
      * \brief Move the current point of this path to \p position.
      */
-    void setCurrentPosition(Point position)
+    void setCurrentPosition(const Point& position)
     {
         handleInitialPoint(position);
     }
@@ -446,6 +446,11 @@ const bool ArcusCommunication::hasSlice() const
     return private_data->socket->getState() != Arcus::SocketState::Closed
         && private_data->socket->getState() != Arcus::SocketState::Error
         && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
+}
+
+void ArcusCommunication::sendCurrentPosition(const Point& position)
+{
+    path_compiler->setCurrentPosition(position);
 }
 
 void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)

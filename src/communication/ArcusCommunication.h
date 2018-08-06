@@ -40,6 +40,14 @@ public:
     const bool hasSlice() const override;
 
     /*
+     * \brief Send the current position to the front-end.
+     *
+     * This may indicate the starting position (or any other jump in the path).
+     * \param position The current position to start the next line at.
+     */
+    void sendCurrentPosition(const Point& position) override;
+
+    /*
      * \brief Indicate to the front-end that a layer is complete and send a
      * visualisation of the layer.
      *
