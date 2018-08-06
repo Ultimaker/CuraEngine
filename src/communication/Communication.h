@@ -53,9 +53,9 @@ public:
      * protocol, this may flush all visualised data for one layer in one go.
      * \param layer_nr The layer that was completed.
      * \param z The z-coordinate of the top side of the layer.
-     * \param height The thickness of the layer.
+     * \param thickness The thickness of the layer.
      */
-    virtual void sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t height) = 0;
+    virtual void sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t thickness) = 0;
 
     /*
      * \brief Send polygons to the user to visualise.

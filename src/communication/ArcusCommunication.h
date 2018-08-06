@@ -40,6 +40,19 @@ public:
     const bool hasSlice() const override;
 
     /*
+     * \brief Indicate to the front-end that a layer is complete and send a
+     * visualisation of the layer.
+     *
+     * This will be called after all the polygons and lines of this layer are
+     * sent via sendPolygons, sendPolygon and sendLineTo. This will flush all
+     * visualised data for one layer in one go.
+     * \param layer_nr The layer that was completed.
+     * \param z The z-coordinate of the top side of the layer.
+     * \param thickness The thickness of the layer.
+     */
+    void sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t thickness) override;
+
+    /*
      * \brief Send the sliced layer data to the front-end after the optimisation
      * is done and the actual order in which to print has been set.
      *

@@ -351,6 +351,13 @@ const bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
+void ArcusCommunication::sendLayerComplete(const LayerIndex layer_nr, const coord_t z, const coord_t thickness)
+{
+    std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
+    layer->set_height(z);
+    layer->set_thickness(thickness);
+}
+
 void ArcusCommunication::sendOptimizedLayerData()
 {
     path_compiler->flushPathSegments(); //Make sure the last path segment has been flushed from the compiler.
