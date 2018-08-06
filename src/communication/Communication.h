@@ -158,7 +158,7 @@ public:
      * This should indicate that no more data (g-code, prefix/postfix, metadata
      * or otherwise) should be sent any more regarding the last slice job.
      */
-    virtual void sendFinishedSlicing() = 0;
+    virtual void sendFinishedSlicing() const = 0;
 
     /*
      * \brief Get the next slice command from the communication and cause it to

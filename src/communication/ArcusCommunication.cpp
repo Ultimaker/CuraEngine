@@ -479,6 +479,13 @@ void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
     private_data->socket->sendMessage(message);
 }
 
+void ArcusCommunication::sendFinishedSlicing() const
+{
+    std::shared_ptr<proto::SlicingFinished> done_message = std::make_shared<proto::SlicingFinished>();
+    private_data->socket->sendMessage(done_message);
+    logDebug("Sent slicing finished message.\n");
+}
+
 void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);

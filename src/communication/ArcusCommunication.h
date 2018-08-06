@@ -59,6 +59,14 @@ public:
     void sendCurrentPosition(const Point& position) override;
 
     /*
+     * \brief Sends a message to indicate that all the slicing is done.
+     *
+     * This should indicate that no more data (g-code, prefix/postfix, metadata
+     * or otherwise) should be sent any more regarding the last slice job.
+     */
+    void sendFinishedSlicing() const override;
+
+    /*
      * \brief Send the starting g-code separately so that it may be processed by
      * the front-end for its replacement variables.
      */
