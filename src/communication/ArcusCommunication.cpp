@@ -449,6 +449,17 @@ void ArcusCommunication::beginGCode()
     FffProcessor::getInstance()->setTargetStream(&private_data->gcode_output_stream);
 }
 
+void ArcusCommunication::flushGCode()
+{
+    std::shared_ptr<proto::GCodeLayer> message = std::make_shared<proto::GCodeLayer>();
+    message->set_data(private_data->gcode_output_stream.str());
+
+    //Send the g-code to the front-end! Yay!
+    private_data->socket->sendMessage(message);
+
+    private_data->gcode_output_stream.str("");
+}
+
 const bool ArcusCommunication::hasSlice() const
 {
     return private_data->socket->getState() != Arcus::SocketState::Closed

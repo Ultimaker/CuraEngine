@@ -40,6 +40,12 @@ public:
     void beginGCode();
 
     /*
+     * \brief Flush all g-code still in the stream into a message queued in the
+     * socket.
+     */
+    void flushGCode();
+
+    /*
      * \brief Test if there are any more slices in the queue.
      */
     const bool hasSlice() const override;

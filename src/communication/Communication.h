@@ -142,8 +142,7 @@ public:
     virtual void beginGCode() = 0;
 
     /*
-     * \brief Flush all g-code still in the stream into a message queued in the
-     * socket.
+     * \brief Flush all remaining g-code to the user.
      */
     virtual void flushGCode() = 0;
 
