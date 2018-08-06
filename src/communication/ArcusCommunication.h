@@ -110,6 +110,12 @@ public:
     void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
+     * \brief Send an estimate of how long the print would take and how much
+     * material it would use.
+     */
+    void sendPrintTimeMaterialEstimates() const override;
+
+    /*
      * \brief Communicate to Arcus what our progress is.
      */
     void sendProgress(const float& progress) const override;

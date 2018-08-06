@@ -505,6 +505,35 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
     }
 }
 
+void ArcusCommunication::sendPrintTimeMaterialEstimates() const
+{
+    logDebug("Sending print time and material estimates.\n");
+    std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
+
+    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
+    message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
+    message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
+    message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
+    message->set_time_none(time_estimates[static_cast<unsigned char>(PrintFeatureType::NoneType)]);
+    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetraction)]);
+    message->set_time_skin(time_estimates[static_cast<unsigned char>(PrintFeatureType::Skin)]);
+    message->set_time_skirt(time_estimates[static_cast<unsigned char>(PrintFeatureType::SkirtBrim)]);
+    message->set_time_support(time_estimates[static_cast<unsigned char>(PrintFeatureType::Support)]);
+    message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
+    message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
+    message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
+
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
+    {
+        proto::MaterialEstimates* material_message = message->add_materialestimates();
+        material_message->set_id(extruder_nr);
+        material_message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr));
+    }
+
+    private_data->socket->sendMessage(message);
+    logDebug("Done sending print time and material estimates.\n");
+}
+
 void ArcusCommunication::sendProgress(const float& progress) const
 {
     const int rounded_amount = 1000 * progress;

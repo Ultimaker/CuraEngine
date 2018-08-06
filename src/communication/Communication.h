@@ -134,7 +134,7 @@ public:
      * \brief Send an estimate of how long the print would take and how much
      * material it would use.
      */
-    virtual void sendPrintTimeMaterialEstimates() = 0;
+    virtual void sendPrintTimeMaterialEstimates() const = 0;
 
     /*
      * \brief Send a message to indicate that we're beginning to send g-code.
