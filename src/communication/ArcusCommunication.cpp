@@ -350,6 +350,30 @@ const bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
+void ArcusCommunication::sendOptimizedLayerData()
+{
+    path_compiler->flushPathSegments(); //Make sure the last path segment has been flushed from the compiler.
+
+    const SliceDataStruct<cura::proto::LayerOptimized>& data = private_data->optimized_layers;
+    data.sliced_objects++;
+    data.current_layer_offset = data.current_layer_count;
+    if (data.sliced_objects < private_data->object_count) //Nothing to send.
+    {
+        return;
+    }
+    log("Sending %d layers.", data.current_layer_count);
+
+    for (std::pair<const int, std::shared_ptr<proto::LayerOptimized>> entry : data.slice_data) //Note: This is in no particular order!
+    {
+        logDebug("Sending layer data for layer %i of %i.\n", entry.first, data.slice_data.size());
+        private_data->socket->sendMessage(entry.second); //Send the actual layers.
+    }
+    data.sliced_objects = 0;
+    data.current_layer_count = 0;
+    data.current_layer_offset = 0;
+    data.slice_data.clear();
+}
+
 void ArcusCommunication::sendProgress(float progress) const
 {
     const int rounded_amount = 1000 * progress;

@@ -30,7 +30,7 @@ public:
     ArcusCommunication(const std::string& ip, const uint16_t port);
 
     /*
-     * Closes the connection.
+     * \brief Closes the connection.
      */
     ~ArcusCommunication();
 
@@ -40,34 +40,42 @@ public:
     const bool hasSlice() const override;
 
     /*
-     * Communicate to Arcus what our progress is.
+     * \brief Send the sliced layer data to the front-end after the optimisation
+     * is done and the actual order in which to print has been set.
+     *
+     * This layer data will be shown in the layer view of the front end.
+     */
+    void sendOptimizedLayerData() override;
+
+    /*
+     * \brief Communicate to Arcus what our progress is.
      */
     void sendProgress(float progress) const override;
 
     /*
-     * Slice the next scene that the front-end wants us to slice.
+     * \brief Slice the next scene that the front-end wants us to slice.
      */
     void sliceNext() override;
 
 private:
     /*
-     * PIMPL pattern subclass that contains the private implementation.
+     * \brief PIMPL pattern subclass that contains the private implementation.
      */
     class Private;
 
     /*
-     * Pointer that contains the private implementation.
+     * \brief Pointer that contains the private implementation.
      */
     const std::unique_ptr<Private> private_data;
 
     /*
-     * Another PIMPL pattern subclass for private implementation regarding the
+     * \brief Another PIMPL pattern subclass for private implementation regarding the
      * compilation of paths to Protobuf messages.
      */
     class PathCompiler;
 
     /*
-     * Pointer that contains the private implementation of the path compiler.
+     * \brief Pointer that contains the private implementation of the path compiler.
      */
     const std::unique_ptr<PathCompiler> path_compiler;
 };
