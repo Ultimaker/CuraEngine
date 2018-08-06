@@ -29,10 +29,10 @@ public:
         , current_layer_offset(0)
     { }
 
-    int sliced_objects; //!< The number of sliced objects for this sliced object list.
+    size_t sliced_objects; //!< The number of sliced objects for this sliced object list.
 
-    int current_layer_count; //!< Number of layers for which data has been buffered in slice_data so far.
-    int current_layer_offset; //!< Offset to add to layer number for the current slice object when slicing one at a time.
+    size_t current_layer_count; //!< Number of layers for which data has been buffered in slice_data so far.
+    size_t current_layer_offset; //!< Offset to add to layer number for the current slice object when slicing one at a time.
 
     /*
      * The slice data itself, which can be of any type.

@@ -54,7 +54,7 @@ public:
     Arcus::Socket* socket;
     
     // Number of objects that need to be sliced
-    int object_count;
+    size_t object_count;
 
     std::string temp_gcode_file;
     std::ostringstream gcode_output_stream;
