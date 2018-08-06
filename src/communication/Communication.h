@@ -150,7 +150,7 @@ public:
      * \brief Send the starting g-code separately so that it may be processed by
      * the front-end for its replacement variables.
      */
-    virtual void sendGCodePrefix(const std::string prefix) = 0;
+    virtual void sendGCodePrefix(const std::string& prefix) const = 0;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.

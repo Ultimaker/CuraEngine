@@ -472,6 +472,13 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
     path_compiler->setCurrentPosition(position);
 }
 
+void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
+{
+    std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
+    message->set_data(prefix);
+    private_data->socket->sendMessage(message);
+}
+
 void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);

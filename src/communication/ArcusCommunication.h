@@ -59,6 +59,12 @@ public:
     void sendCurrentPosition(const Point& position) override;
 
     /*
+     * \brief Send the starting g-code separately so that it may be processed by
+     * the front-end for its replacement variables.
+     */
+    void sendGCodePrefix(const std::string& prefix) const override;
+
+    /*
      * \brief Indicate to the front-end that a layer is complete and send a
      * visualisation of the layer.
      *
