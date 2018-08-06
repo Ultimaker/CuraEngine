@@ -15,6 +15,7 @@
 #include "../FffProcessor.h" //To start a slice.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
+#include "../settings/types/LayerIndex.h" //To point to layers.
 #include "../utils/logoutput.h"
 
 namespace cura
@@ -453,6 +454,25 @@ void ArcusCommunication::sliceNext()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250)); //Pause before checking again for a slice message.
+}
+
+std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex layer_nr)
+{
+    layer_nr += optimized_layers.current_layer_offset;
+    std::unordered_map<int, std::shared_ptr<proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
+
+    if (find_result != optimized_layers.slice_data.end()) //Load layer from the cache.
+    {
+        return find_result->second;
+    }
+    else //Not in the cache yet. Create an empty layer.
+    {
+        std::shared_ptr<proto::LayerOptimized> layer = std::make_shared<proto::LayerOptimized>();
+        layer->set_id(layer_nr);
+        optimized_layers.current_layer_count++;
+        optimized_layers.slice_data[layer_nr] = layer;
+        return layer;
+    }
 }
 
 } //namespace cura
