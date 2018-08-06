@@ -176,6 +176,13 @@ public:
     size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
 };
 
+/*
+ * \brief A computation class that formats layer view data in a way that the
+ * front-end can understand it.
+ *
+ * This converts data from CuraEngine's internal data structures to Protobuf
+ * messages that can be sent to the front-end.
+ */
 class ArcusCommunication::PathCompiler
 {
     typedef cura::proto::PathSegment::PointType PointType;
@@ -198,6 +205,9 @@ class ArcusCommunication::PathCompiler
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
 public:
+    /*
+     * Create a new path compiler.
+     */
     PathCompiler(ArcusCommunication::Private& cs_private_data):
         _cs_private_data(cs_private_data),
         _layer_nr(0),
@@ -210,6 +220,10 @@ public:
         points(),
         last_point{0,0}
     {}
+
+    /*
+     * Flush the remaining unflushed paths when destroying this compiler.
+     */
     ~PathCompiler()
     {
         if (line_types.size())
@@ -219,7 +233,8 @@ public:
     }
 
     /*!
-     * Used to select which layer the following layer data is intended for.
+     * \brief Used to select which layer the following layer data is intended
+     * for.
      */
     void setLayer(int new_layer_nr)
     {
@@ -230,14 +245,15 @@ public:
         }
     }
     /*!
-     * Returns the current layer which data is written to.
+     * \brief Returns the current layer which data is written to.
      */
     int getLayer() const
     {
         return _layer_nr;
     }
     /*!
-     * Used to set which extruder will be used for printing the following layer data is intended for.
+     * \brief Used to set which extruder will be used for printing the following
+     * layer data.
      */
     void setExtruder(int new_extruder)
     {
@@ -249,9 +265,10 @@ public:
     }
 
     /*!
-     * Special handling of the first point in an added line sequence.
+     * \brief Special handling of the first point in an added line sequence.
+     *
      * If the new sequence of lines does not start at the current end point
-     * of the path this jump is marked as PrintFeatureType::NoneType
+     * of the path this jump is marked as `PrintFeatureType::NoneType`.
      */
     void handleInitialPoint(Point from)
     {
@@ -266,24 +283,28 @@ public:
     }
 
     /*!
-     * Transfers the currently buffered line segments to the
-     * CommandSocket layer message storage.
+     * \brief Transfers the currently buffered line segments to the layer
+     * message storage.
      */
     void flushPathSegments();
 
     /*!
-     * Move the current point of this path to \position.
+     * \brief Move the current point of this path to \p position.
      */
     void setCurrentPosition(Point position)
     {
         handleInitialPoint(position);
     }
+
     /*!
-     * Adds a single line segment to the current path. The line segment added is from the current last point to point \p to
+     * \brief Adds a single line segment to the current path.
+     *
+     * The line segment added is from the current last point to point \p to.
      */
     void sendLineTo(PrintFeatureType print_feature_type, Point to, int width, int thickness, int feedrate);
+
     /*!
-     * Adds closed polygon to the current path
+     * \brief Adds closed polygon to the current path.
      */
     void sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef poly, int width, int thickness, int feedrate);
 
