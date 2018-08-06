@@ -25,7 +25,10 @@ if(USE_SYSTEM_LIBS)
     find_package(Polyclipping REQUIRED)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
+# convert build type to upper case letters
+string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
+
+if(CMAKE_BUILD_TYPE MATCHES "DEBUG")
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_DEBUG_INIT})
 else()
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE_INIT})
@@ -51,7 +54,7 @@ set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 option(BUILD_TESTS OFF)
 
 # Add a compiler flag to check the output for insane values if we are in debug mode.
-if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+if(CMAKE_BUILD_TYPE MATCHES "DEBUG" OR CMAKE_BUILD_TYPE MATCHES "RELWITHDEBINFO")
     message(STATUS "Building debug release of CuraEngine.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
     add_definitions(-DASSERT_INSANE_OUTPUT)
