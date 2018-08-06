@@ -72,7 +72,21 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygon.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendPolygon(const PrintFeatureType type, ConstPolygonRef polygon, const coord_t line_width, const coord_t line_thickness, const Velocity velocity) override;
+    void sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+
+    /*
+     * \brief Send polygons to the user to visualise.
+     *
+     * The polygons may not actually be flushed until ``sendLayerComplete`` is
+     * called.
+     * \param type The type of print feature the polygons represent (infill,
+     * wall, support, etc).
+     * \param polygons The shapes to visualise.
+     * \param line_width The width of the lines in these polygons.
+     * \param line_thickness The thickness (in the Z direction) of the polygons.
+     * \param velocity The velocity of printing these polygons.
+     */
+    void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Communicate to Arcus what our progress is.
