@@ -28,6 +28,28 @@ struct LayerIndex
         return value;
     }
 
+    LayerIndex operator +(const LayerIndex& other) const
+    {
+        return LayerIndex(value + other.value);
+    }
+
+    LayerIndex operator -(const LayerIndex& other) const
+    {
+        return LayerIndex(value - other.value);
+    }
+
+    LayerIndex& operator +=(const LayerIndex& other)
+    {
+        value += other.value;
+        return *this;
+    }
+
+    LayerIndex& operator -=(const LayerIndex& other)
+    {
+        value -= other.value;
+        return *this;
+    }
+
     /*
      * The actual layer index.
      *
