@@ -208,7 +208,7 @@ class ArcusCommunication::PathCompiler
     //! Reference to the private data of the CommandSocket used to send the data to the front end.
     ArcusCommunication::Private& _cs_private_data;
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
-    int _layer_nr;
+    LayerIndex _layer_nr;
     int extruder;
     PointType data_point_type;
 
@@ -253,8 +253,9 @@ public:
     /*!
      * \brief Used to select which layer the following layer data is intended
      * for.
+     * \param new_layer_nr The new layer to switch to.
      */
-    void setLayer(int new_layer_nr)
+    void setLayer(const LayerIndex& new_layer_nr)
     {
         if (_layer_nr != new_layer_nr)
         {
@@ -262,6 +263,7 @@ public:
             _layer_nr = new_layer_nr;
         }
     }
+
     /*!
      * \brief Returns the current layer which data is written to.
      */
@@ -517,6 +519,11 @@ void ArcusCommunication::sendProgress(const float& progress) const
     private_data->socket->sendMessage(message);
 
     private_data->last_sent_progress = rounded_amount;
+}
+
+void ArcusCommunication::setLayerForSend(const LayerIndex& layer_nr);
+{
+    path_compiler->setLayer(layer_nr);
 }
 
 void ArcusCommunication::sliceNext()
