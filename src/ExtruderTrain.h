@@ -12,8 +12,6 @@ namespace cura
 class ExtruderTrain : public SettingsBase
 {
 public:
-    size_t getExtruderNr();
-
     ExtruderTrain(SettingsBaseVirtual* settings, const size_t extruder_nr);
 
     /*
@@ -27,7 +25,6 @@ public:
      */
     Settings settings;
 
-private:
     /*
      * \brief The position of this extruder.
      *

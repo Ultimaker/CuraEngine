@@ -3,10 +3,7 @@
 
 namespace cura 
 {
-size_t ExtruderTrain::getExtruderNr()
-{
-    return extruder_nr;
-}
+
 ExtruderTrain::ExtruderTrain(SettingsBaseVirtual* settings, const size_t extruder_nr)
 : SettingsBase(settings)
 , extruder_nr(extruder_nr)
