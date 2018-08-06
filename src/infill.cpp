@@ -42,6 +42,9 @@ namespace cura {
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
+    coord_t outline_offset_raw = outline_offset;
+    outline_offset -= wall_line_count * infill_line_width; // account for extra walls
+
     if (infill_multiplier > 1)
     {
         bool zig_zaggify_real = zig_zaggify;
@@ -60,6 +63,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     else
     {
         _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+    }
+
+    // generate walls around infill pattern
+    for (unsigned int wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
+    {
+        const coord_t distance_from_outline_to_wall = outline_offset_raw - infill_line_width / 2 - wall_idx * infill_line_width;
+        result_polygons.add(in_outline.offset(distance_from_outline_to_wall));
     }
 
     if (connect_polygons)
