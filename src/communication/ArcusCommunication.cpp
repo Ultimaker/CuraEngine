@@ -215,7 +215,7 @@ class ArcusCommunication::PathCompiler
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
     std::vector<float> line_thicknesses; //!< Line thicknesses for the line segments stored, the size of this vector is N.
-    std::vector<float> line_feedrates; //!< Line feedrates for the line segments stored, the size of this vector is N.
+    std::vector<float> line_velocities; //!< Line feedrates for the line segments stored, the size of this vector is N.
     std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is the dimensionality of the point.
 
     Point last_point;
@@ -234,7 +234,7 @@ public:
         line_types(),
         line_widths(),
         line_thicknesses(),
-        line_feedrates(),
+        line_velocities(),
         points(),
         last_point{0,0}
     {}
@@ -308,7 +308,33 @@ public:
      * \brief Transfers the currently buffered line segments to the layer
      * message storage.
      */
-    void flushPathSegments();
+    void flushPathSegments()
+    {
+        if (line_types.empty())
+        {
+            return; //Nothing to do.
+        }
+
+        std::shared_ptr<proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
+
+        proto::PathSegment* path_segment = proto_layer->add_path_segment();
+        path_segment->set_extruder(extruder);
+        path_segment->set_point_type(data_point_type);
+        std::string line_type_data;
+        line_type_data.append(reinterpret_cast<const char*>(line_types.data()), line_types.size() * sizeof(PrintFeatureType));
+        path_segment->set_line_type(line_type_data);
+        std::string polygon_data;
+        polygon_data.append(reinterpret_cast<const char*>(points.data()), points.size() * sizeof(float));
+        path_segment->set_points(polygon_data);
+        std::string line_width_data;
+        line_width_data.append(reinterpret_cast<const char*>(line_widths.data()), line_widths.size() * sizeof(float));
+        path_segment->set_line_width(line_width_data);
+        std::string line_thickness_data;
+        line_thickness_data.append(reinterpret_cast<const char*>(line_thicknesses.data()), line_thicknesses.size() * sizeof(float));
+        path_segment->set_line_thickness(line_thickness_data);
+        std::string line_velocity_data;
+        line_velocity_data.append(reinterpret_cast<const char*>(line_velocities.data()), line_velocities.size() * sizeof(float));
+    }
 
     /*!
      * \brief Move the current point of this path to \p position.
@@ -396,18 +422,18 @@ private:
      * All member functions adding a 2D line segment should use this functions.
      * \param print_feature_type The type of feature that the polygon is part of
      * (infill, wall, etc).
-     * \param polygon The shape of the polygon.
+     * \param point The destination point of the line segment.
      * \param width The width of the lines of the polygon.
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void addLineSegment(const PrintFeatureType& print_feature_type, const Point& point, const coord_t& line_width, const coord_t& line_thickness, const Velocity& line_feedrate)
+    void addLineSegment(const PrintFeatureType& print_feature_type, const Point& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
         addPoint2D(point);
         line_types.push_back(print_feature_type);
-        line_widths.push_back(INT2MM(line_width));
-        line_thicknesses.push_back(INT2MM(line_thickness));
-        line_feedrates.push_back(line_feedrate);
+        line_widths.push_back(INT2MM(width));
+        line_thicknesses.push_back(INT2MM(thickness));
+        line_velocities.push_back(velocity);
     }
 };
 
