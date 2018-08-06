@@ -53,6 +53,19 @@ public:
     void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) override;
 
     /*
+     * \brief Send a line to the front-end to display in layer view.
+     *
+     * The line is not actually flushed until ``sendLayerComplete`` is called.
+     * \param type The type of print feature the line represents (infill, wall,
+     * support, etc).
+     * \param to The destination coordinate of the line.
+     * \param line_width The width of the line.
+     * \param line_thickness The thickness (in the Z direction) of the line.
+     * \param velocity The velocity of printing this polygon.
+     */
+    void sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+
+    /*
      * \brief Send the sliced layer data to the front-end after the optimisation
      * is done and the actual order in which to print has been set.
      *
@@ -61,7 +74,7 @@ public:
     void sendOptimizedLayerData() override;
 
     /*
-     * \brief Send a polygon to the front-end to visualise.
+     * \brief Send a polygon to the front-end to display in layer view.
      *
      * The polygons are not actually flushed until ``sendLayerComplete`` is
      * called.
@@ -75,7 +88,7 @@ public:
     void sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
-     * \brief Send polygons to the user to visualise.
+     * \brief Send polygons to the front-end to display in layer view.
      *
      * The polygons may not actually be flushed until ``sendLayerComplete`` is
      * called.

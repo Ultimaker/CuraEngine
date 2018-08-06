@@ -319,8 +319,22 @@ public:
      * \brief Adds a single line segment to the current path.
      *
      * The line segment added is from the current last point to point \p to.
+     * \param type The type of print feature the line represents (infill, wall,
+     * support, etc).
+     * \param to The destination coordinate of the line.
+     * \param line_width The width of the line.
+     * \param line_thickness The thickness (in the Z direction) of the line.
+     * \param velocity The velocity of printing this polygon.
      */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int width, int thickness, int feedrate);
+    void sendLineTo(const PrintFeatureType& print_feature_type, const Point& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
+    {
+        assert(!points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
+
+        if (to != last_point)
+        {
+            addLineSegment(print_feature_type, to, width, thickness, feedrate);
+        }
+    }
 
     /*!
      * \brief Adds closed polygon to the current path.
@@ -439,6 +453,11 @@ void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coo
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(thickness);
+}
+
+void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+{
+    path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity);
 }
 
 void ArcusCommunication::sendOptimizedLayerData()
