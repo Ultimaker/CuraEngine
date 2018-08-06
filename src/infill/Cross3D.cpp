@@ -361,7 +361,25 @@ Polygon Cross3D::generateSierpinski(const SliceWalker& walker) const
     return poly;
 }
 
-Polygon Cross3D::generateCross(const SliceWalker& walker, coord_t z) const
+Polygon Cross3D::generateCross(const SliceWalker& walker) const
+{
+    Polygon poly;
+
+    assert(walker.layer_sequence.size() >= 4); // the dummy root cell should always be subdivided into its 4 children
+    const Cell* here = walker.layer_sequence.back();
+
+    for (const Cell* after : walker.layer_sequence)
+    {
+        assert(here->index != after->index);
+        LineSegment edge = (here->depth > after->depth)? here->elem.triangle.getToEdge() : after->elem.triangle.getFromEdge();
+        poly.add(edge.middle());
+        here = after;
+    }
+
+    return poly;
+}
+
+Polygon Cross3D::generateCross3D(const SliceWalker& walker, coord_t z) const
 {
     Polygon poly;
 

@@ -60,7 +60,14 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
             start_cell_iter--; // map.upper_bound always rounds up, while the map contains the min of the z_range of the cells
         }
         Cross3D::SliceWalker slicer_walker = subdivision_structure_3d->getSequence(*start_cell_iter->second, z);
-        return subdivision_structure_3d->generateCross(slicer_walker, z);
+        if (pattern == EFillMethod::CROSS_3D)
+        {
+            return subdivision_structure_3d->generateCross3D(slicer_walker, z);
+        }
+        else
+        {
+            return subdivision_structure_3d->generateCross(slicer_walker);
+        }
     }
     else
     {

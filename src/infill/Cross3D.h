@@ -154,7 +154,9 @@ public:
 
     Polygon generateSierpinski(const SliceWalker& sequence) const;
 
-    Polygon generateCross(const SliceWalker& sequence, coord_t z) const;
+    Polygon generateCross(const SliceWalker& sequence) const;
+
+    Polygon generateCross3D(const SliceWalker& sequence, coord_t z) const;
 protected:
     coord_t min_dist_to_cell_bound; //!< The minimal distance between a triangle vertex and the space filling surface oscillating vertex for a straight corner or straight edge
     coord_t min_dist_to_cell_bound_diag; //!< The minimal diagonal distance between a triangle vertex and the space filling surface oscillating vertex
