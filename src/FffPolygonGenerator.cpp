@@ -711,6 +711,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 
         // Pre-compute Cross Fractal
         if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+            && mesh.settings.get<size_t>("bottom_layers") < mesh.bounding_box.size().z / mesh.settings.get<coord_t>("layer_height")
             && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
                 || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
         )
