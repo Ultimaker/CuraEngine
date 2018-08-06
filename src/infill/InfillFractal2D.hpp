@@ -279,10 +279,31 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
 
     dither(cell_data[0]);
 
+#ifdef DEBUG
     // debug check for total actualized volume
     float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);
     float total_requested_volume = cell_data[0].filled_volume_allowance;
-    logAlways("Realized %f of %f requested volume (%f%% error).\n", total_actualized_volume, total_requested_volume, (total_actualized_volume * 100.0 / total_requested_volume) - 100.0);
+    logDebug("Realized %f of %f requested volume (%f%% error).\n", total_actualized_volume, total_requested_volume, (total_actualized_volume * 100.0 / total_requested_volume) - 100.0);
+
+    std::vector<int> recursion_dept_occurances(max_depth);
+    for (const Cell& cell : cell_data)
+    {
+        if (cell.is_subdivided)
+        {
+            for (idx_t child_idx : cell.children)
+            {
+                if (child_idx > 0 && !cell_data[child_idx].is_subdivided)
+                {
+                    recursion_dept_occurances[cell_data[child_idx].depth]++;
+                }
+            }
+        }
+    }
+    for (int d = 0; d <= max_depth; d++)
+    {
+        logDebug("Depth %i has %i nodes.\n", d, recursion_dept_occurances[d]);
+    }
+#endif
 }
 
 
@@ -577,10 +598,12 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
             transferValue(*weighted_transfer.transfer_link, transfer_value);
         }
 
+#ifdef DEBUG
         // verify that all left_over has been dispersed (if dispersing is possible
-        float new_value_error = getValueError(parent);
-        assert(weighted_transfers.empty() || !do_subdivide || std::abs(getValueError(parent) - range) < 0.0001); // do_subdivide implies valueError == range : we should hav precisely enough to do exactly one subdivision
-        assert(weighted_transfers.empty() || do_subdivide || std::abs(getValueError(parent)) < 0.0001); // !do_subdivide implies valueError == 0 : we should have no value left over
+        float value_error = getValueError(parent);
+        assert(weighted_transfers.empty() || !do_subdivide || std::abs((value_error - range) / left_over) < 0.00001); // do_subdivide implies valueError == range : we should hav precisely enough to do exactly one subdivision
+        assert(weighted_transfers.empty() || do_subdivide || std::abs(value_error / left_over) < 0.00001); // !do_subdivide implies valueError == 0 : we should have no value left over
+#endif
 
         if (do_subdivide)
         {
