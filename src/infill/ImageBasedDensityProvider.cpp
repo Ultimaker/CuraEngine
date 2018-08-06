@@ -192,7 +192,7 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
     
     if (cell_count == 0)
     { // cube falls outside of image or in between pixels, so we return the closest pixel
-        assert(total_lightness == 0.0);
+        assert(total_lightness == 0.0 || (averaging_statistic < 0 && total_lightness == std::numeric_limits<uint_fast64_t>::max()));
         Point3 closest_pixel = (img_min + img_max) / 2;
         closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(grid_size.x - 1, closest_pixel.x));
         closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(grid_size.y - 1, closest_pixel.y));
