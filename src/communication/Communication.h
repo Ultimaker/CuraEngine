@@ -108,18 +108,18 @@ public:
     virtual void sendCurrentPosition(const Point& position) = 0;
 
     /*
+     * \brief Set which extruder is being used for the following calls to
+     * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
+     */
+    virtual void setExtruderForSend(const ExtruderTrain& extruder) = 0;
+
+    /*
      * \brief Set which layer is being used for the following calls to
      * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
     virtual void setLayerForSend(const LayerIndex& layer_nr) = 0;
-
-    /*
-     * \brief Set which extruder is being used for the following calls to
-     * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
-     */
-    virtual void setExtruderForSend(const ExtruderTrain& extruder) = 0;
 
     /*
      * \brief Send the sliced layer data through this communication after the

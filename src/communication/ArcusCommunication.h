@@ -115,12 +115,19 @@ public:
     void sendProgress(const float& progress) const override;
 
     /*
+     * \brief Set which extruder is being used for the following calls to
+     * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
+     * \param extruder The new extruder to send data for.
+     */
+    void setExtruderForSend(const ExtruderTrain& extruder) override;
+
+    /*
      * \brief Set which layer is being used for the following calls to
      * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    virtual void setLayerForSend(const LayerIndex& layer_nr) override;
+    void setLayerForSend(const LayerIndex& layer_nr) override;
 
     /*
      * \brief Slice the next scene that the front-end wants us to slice.

@@ -209,7 +209,7 @@ class ArcusCommunication::PathCompiler
     ArcusCommunication::Private& _cs_private_data;
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
     LayerIndex _layer_nr;
-    int extruder;
+    size_t extruder;
     PointType data_point_type;
 
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
@@ -274,13 +274,14 @@ public:
     /*!
      * \brief Used to set which extruder will be used for printing the following
      * layer data.
+     * \param new_extruder The new extruder to switch to.
      */
-    void setExtruder(int new_extruder)
+    void setExtruder(const ExtruderTrain& new_extruder)
     {
-        if (extruder != new_extruder)
+        if (extruder != new_extruder.extruder_nr)
         {
             flushPathSegments();
-            extruder = new_extruder;
+            extruder = new_extruder.extruder_nr;
         }
     }
 
@@ -521,9 +522,14 @@ void ArcusCommunication::sendProgress(const float& progress) const
     private_data->last_sent_progress = rounded_amount;
 }
 
-void ArcusCommunication::setLayerForSend(const LayerIndex& layer_nr);
+void ArcusCommunication::setLayerForSend(const LayerIndex& layer_nr)
 {
     path_compiler->setLayer(layer_nr);
+}
+
+void ArcusCommunication::setExtruderForSend(const ExtruderTrain& extruder)
+{
+    path_compiler->setExtruder(extruder);
 }
 
 void ArcusCommunication::sliceNext()
