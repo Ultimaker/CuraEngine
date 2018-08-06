@@ -350,6 +350,23 @@ const bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
+void ArcusCommunication::sendProgress(float progress) const
+{
+    const int rounded_amount = 1000 * progress;
+    if (private_data->last_sent_progress == rounded_amount) //No need to send another tiny update step.
+    {
+        return;
+    }
+
+    std::shared_ptr<proto::Progress> message = std::make_shared<cura::proto::Progress>();
+    progress /= private_data->object_count;
+    progress += private_data->optimized_layers.sliced_objects * (1. / private_data->object_count);
+    message->set_amount(progress);
+    private_data->socket->sendMessage(message);
+
+    private_data->last_sent_progress = rounded_amount;
+}
+
 void ArcusCommunication::sliceNext()
 {
     const Arcus::MessagePtr message = private_data->socket->takeNextMessage();

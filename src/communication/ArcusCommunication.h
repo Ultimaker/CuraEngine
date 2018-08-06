@@ -40,6 +40,11 @@ public:
     const bool hasSlice() const override;
 
     /*
+     * Communicate to Arcus what our progress is.
+     */
+    void sendProgress(float progress) const override;
+
+    /*
      * Slice the next scene that the front-end wants us to slice.
      */
     void sliceNext() override;

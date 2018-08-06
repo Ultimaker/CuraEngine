@@ -42,7 +42,7 @@ public:
      * \brief Indicate to the communication channel what the current progress of
      * slicing the current slice is.
      */
-    virtual void sendProgress(const float progress) = 0;
+    virtual void sendProgress(float progress) const = 0;
 
     /*
      * \brief Indicate to the communication channel that a layer is complete and
