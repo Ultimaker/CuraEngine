@@ -127,26 +127,28 @@ void Cross3D::createTree(Cell& sub_tree_root, int max_depth)
     }
 }
 
-void Cross3D::setVolume(Cell& sub_tree_root)
+void Cross3D::setVolume(Cell& root_child)
 {
-    Triangle& parent_triangle = sub_tree_root.elem.triangle;
+    Triangle& parent_triangle = root_child.elem.triangle;
     Point ac = parent_triangle.straight_corner - parent_triangle.a;
     float area = 0.5 * INT2MM2(vSize2(ac));
-    sub_tree_root.volume = area * INT2MM(sub_tree_root.elem.z_range.max - sub_tree_root.elem.z_range.min);
+    float volume = area * INT2MM(root_child.elem.z_range.max - root_child.elem.z_range.min);
+    setVolume(root_child, volume);
+}
 
-    bool has_children = sub_tree_root.children[0] >= 0;
-    if (has_children)
+void Cross3D::setVolume(Cell& sub_tree_root, float volume)
+{
+    sub_tree_root.volume = volume;
+
+    for (idx_t child_idx : sub_tree_root.children)
     {
-        for (idx_t child_idx : sub_tree_root.children)
+        if (child_idx == -1)
         {
-            if (child_idx == -1)
-            {
-                break;
-            }
-            assert(child_idx > 0);
-            assert(child_idx < static_cast<idx_t>(cell_data.size()));
-            setVolume(cell_data[child_idx]);
+            break;
         }
+        assert(child_idx > 0);
+        assert(child_idx < static_cast<idx_t>(cell_data.size()));
+        setVolume(cell_data[child_idx], volume / sub_tree_root.getChildCount());
     }
 }
 /*

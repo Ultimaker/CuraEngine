@@ -174,7 +174,21 @@ private:
     //! Create the tree for a first child of root
     void createTree(const Triangle& triangle, size_t root_child_number);
     void createTree(Cell& sub_tree_root, int max_depth);
+
+    /*!
+     * Set the volume of the cell \p sub_tree_root and the volume of all children.
+     * 
+     * \p sub_tree_root is supposed to be a direct child of root (which is a bogus node).
+     */
     void setVolume(Cell& sub_tree_root);
+
+    /*!
+     * Set the volume of the cell \p sub_tree_root to be \p volume and recursively divide up the volume to the children
+     * 
+     * The volume is computed for the root and divided to its children, rather than computing it for each node separately.
+     * This is to ensure that the volumes add up and we have no problem from rounding errors.
+     */
+    void setVolume(Cell& sub_tree_root, float volume);
 
     // Lower bound sequence:
 
