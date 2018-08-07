@@ -119,7 +119,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         depth += 2;
     }
     const float half_sqrt2 = .5 * sqrt2;
-    if (!make_3d && aabb_size * half_sqrt2 >= max_side_length)
+    if (aabb_size * half_sqrt2 >= max_side_length)
     {
         aabb_size *= half_sqrt2;
         depth--;
