@@ -17,3 +17,17 @@ The second inset (in green) is generated for the first inner wall. It is an inse
 The third inset and any further insets are generated for the second inner wall and beyond. This is an inset of one inner wall line width away from the previous inset. The shape is then again the centre line of the next inner wall.
 
 Lastly, one additional inset is produced from the innermost wall, by half of the inner wall line width (drawn in black). This inset marks the inside edge of the walls. That shape then has to be filled with either skin or infill.
+
+Separating Skin from Infill
+----
+CuraEngine then needs to fill this middle inset with skin and infill. It needs to determine where to place skin and where to place infill.
+
+The basic technique to find areas that need to be filled with bottom skin (for instance) is to look several layers below you, depending on the thickness of the skin. Wherever there's air in the lower layer, there must be skin in the current layer.
+
+![Where to cut](assets/skin_cross_sections.svg) ![Two slices overlaid](assets/skin_overlaid.svg)
+
+In the images above, the layer that it's subdividing into skin and infill is shown in red. It's looking at the blue layer to determine what part of this area is going to become skin and what is going to become infill. The parts that are inside the red area but not the blue area will become skin. The parts that are in both the red and the blue areas will become infill.
+
+Reality is slightly more complex though: CuraEngine must look not only at the layer that is one skin thickness below the current layer, but also all layers in between. Otherwise a gap in the layers that is smaller than the skin thickness will not be picked up.
+
+For the top skin, CuraEngine must look to the layers above the current layer, instead of at layers below it.
