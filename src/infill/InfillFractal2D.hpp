@@ -307,9 +307,9 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
     // debug check for total actualized volume
     float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);
     float total_requested_volume = cell_data[0].filled_volume_allowance;
-    logDebug("Realized %f of %f requested volume (%f%% error).\n", total_actualized_volume, total_requested_volume, (total_actualized_volume * 100.0 / total_requested_volume) - 100.0);
+    logDebug("Realized %f of %f requested volume (%f%% error) with a total average density of %f%%.\n", total_actualized_volume, total_requested_volume, (total_actualized_volume * 100.0 / total_requested_volume) - 100.0, total_actualized_volume / cell_data[0].volume * 100);
 
-    std::vector<int> recursion_dept_occurances(max_depth);
+    std::vector<int> recursion_dept_occurances(max_depth + 1);
     for (const Cell& cell : cell_data)
     {
         if (cell.is_subdivided)
@@ -325,7 +325,10 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
     }
     for (int d = 0; d <= max_depth; d++)
     {
-        logDebug("Depth %i has %i nodes.\n", d, recursion_dept_occurances[d]);
+        if (recursion_dept_occurances[d] > 0)
+        {
+            logDebug("Depth %i has %i nodes.\n", d, recursion_dept_occurances[d]);
+        }
     }
 #endif
 }
