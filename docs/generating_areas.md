@@ -31,3 +31,13 @@ In the images above, the layer that it's subdividing into skin and infill is sho
 Reality is slightly more complex though: CuraEngine must look not only at the layer that is one skin thickness below the current layer, but also all layers in between. Otherwise a gap in the layers that is smaller than the skin thickness will not be picked up.
 
 For the top skin, CuraEngine must look to the layers above the current layer, instead of at layers below it.
+
+Support
+----
+Generating support is a fairly complex algorithm, but the gist of the idea is outlaid here.
+
+The first step in generating support is determining where there is overhang in your print. The surfaces of the 3D mesh are not retained in memory at this point any more, so we can't just look at the triangles that have a certain angle w.r.t. the Z axis; we must look only at 2D layers.
+
+A normal, filled layer is assumed to support the layer that's above it. It will also support the layer above it fine even if the layer above it extends slightly beyond the layer below. The limit to how far the layer above can extend to still be supported by the layer below is what we'll call the "support distance". If we assume that the layer below supports the layer above if the slope between the edges of these layers is less than a certain angle (the Overhang Angle setting), then we can compute the support distance with a simple formula: `tan(a) * layer_height`
+
+![Formula for support distance](assets/support_distance_formula.svg)
