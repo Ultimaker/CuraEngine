@@ -38,6 +38,7 @@ protected:
         AABB3D aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
     };
 public:
+    const AABB3D aabb_3d;
     FractalConfig fractal_config;
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers

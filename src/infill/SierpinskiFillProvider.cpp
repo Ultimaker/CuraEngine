@@ -14,33 +14,48 @@ constexpr bool SierpinskiFillProvider::get_constructor;
 constexpr bool SierpinskiFillProvider::use_dithering;
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
-: fractal_config(getFractalConfig(aabb_3d, min_line_distance, false))
+: aabb_3d(aabb_3d)
+, fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
 , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
-, fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
+// , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
+, subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
+    subdivision_structure_3d->initialize();
+    subdivision_structure_3d->createMaxDepthPattern();
+//     subdivision_structure_3d->sanitize();
+    z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
-: fractal_config(getFractalConfig(aabb_3d, min_line_distance, false))
+: aabb_3d(aabb_3d)
+, fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
 , density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d))
-, fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
+// , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
+, subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
+    subdivision_structure_3d->initialize();
+//     subdivision_structure_3d->createMinimalDensityPattern();
+    subdivision_structure_3d->createDitheredPattern();
+//     subdivision_structure_3d->sanitize();
+    z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, std::string cross_subdisivion_spec_image_file, bool)
-: fractal_config(getFractalConfig(aabb_3d, min_line_distance, true))
+: aabb_3d(aabb_3d)
+, fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
 , density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d))
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
 //     subdivision_structure_3d->createMinimalDensityPattern();
     subdivision_structure_3d->createDitheredPattern();
-    subdivision_structure_3d->sanitize();
+//     subdivision_structure_3d->sanitize();
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
 {
+    z = std::min(z, aabb_3d.max.z); // limit the z to where the pattern is generated; layer heights can go higher than the model...
     if (fill_pattern_for_all_layers)
     {
         if (pattern == EFillMethod::CROSS_3D)
