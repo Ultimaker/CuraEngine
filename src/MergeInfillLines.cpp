@@ -146,7 +146,7 @@ bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_pa
     if (alter_start) {
         first_path_middle = (first_path_start + first_path_end) / 2;
     } else {
-        first_path_middle = first_path.points.front();  // previous "first_path_middle" // this is the endpoint of a previously merged line
+        first_path_middle = first_path.points.back();  // previous "first_path_middle" // this is the endpoint of a previously merged line
     }
     const Point second_path_middle = (second_path_start + second_path_end) / 2;
     const Point merged_direction = second_path_middle - first_path_middle;
@@ -185,14 +185,14 @@ void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_
     if (alter_start)
     {
         Point previous_point = first_path_start;
-        //average_first_path += first_path_start;
+        average_first_path += first_path_start;
         for (const Point point : first_path.points)
         {
             first_path_length += vSize(point - previous_point);
             average_first_path += point;
         }
         first_path_length *= first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
-        average_first_path /= first_path.points.size();
+        average_first_path /= (first_path.points.size() + 1);
     }
     else
     {
@@ -202,17 +202,16 @@ void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_
 
     coord_t second_path_length = 0;
     Point previous_point_second = second_path_start;
-    //Point average_second_path;
-    Point average_second_path = second_path_start;
+    //Point average_second_path = second_path_start;
+    Point average_second_path = 0;
     for (const Point point : second_path.points)
     {
         second_path_length += vSize(point - previous_point_second);
         average_second_path += point;
-        //average_second_path2 += point;
     }
     second_path_length *= second_path.flow;
-    //average_second_path /= second_path.points.size();
-    average_second_path /= (second_path.points.size() + 1);
+    //average_second_path /= (second_path.points.size() + 1);
+    average_second_path /= second_path.points.size();
 
     first_path.points.clear();
     coord_t new_path_length;
