@@ -5,11 +5,11 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
+WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, size_t inset_count, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
 : wall_0_inset(wall_0_inset)
 , line_width_0(line_width_0)
 , line_width_x(line_width_x)
-, insetCount(insetCount)
+, inset_count(inset_count)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
 , remove_parts_with_no_insets(remove_parts_with_no_insets)
 {
@@ -23,14 +23,14 @@ WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_
  */
 void WallsComputation::generateInsets(SliceLayerPart* part)
 {
-    if (insetCount == 0)
+    if (inset_count == 0)
     {
         part->insets.push_back(part->outline);
         part->print_outline = part->outline;
         return;
     }
 
-    for(int i=0; i<insetCount; i++)
+    for(size_t i = 0; i < inset_count; i++)
     {
         part->insets.push_back(Polygons());
         if (i == 0)
