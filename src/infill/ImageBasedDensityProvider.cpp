@@ -30,6 +30,7 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
     }
     grid_size = image_size;
     grid_size.z = images.size();
+    channels_used = (image_size.z - 1) / 2 * 2 + 1; // disregard alpha channel. 2 channels becomes 1 and 4 channels becomes 3 channels
     if (grid_size.z == 0)
     {
         logError("Couldn't find density image '%s'.\n", filename.c_str());
@@ -168,7 +169,7 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
             for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
             {
                 uint_fast64_t combined_lightness_here = 0;
-                for (int channel = 0; channel < image_size.z; channel++)
+                for (int channel = 0; channel < channels_used; channel++)
                 {
                     const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
                     combined_lightness_here += lightness;
@@ -180,11 +181,11 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
                 }
                 else if (averaging_statistic < 0)
                 {
-                    total_lightness = std::min(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(image_size.z));
+                    total_lightness = std::min(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(channels_used));
                 }
                 else
                 {
-                    total_lightness = std::max(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(image_size.z));
+                    total_lightness = std::max(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(channels_used));
                 }
             }
         }
@@ -199,12 +200,12 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
         closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(grid_size.z - 1, closest_pixel.z));
         const unsigned char* image = images[closest_pixel.z];
         uint_fast64_t combined_lightness_here = 0;
-        for (int channel = 0; channel < image_size.z; channel++)
+        for (int channel = 0; channel < channels_used; channel++)
         {
             combined_lightness_here += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
             cell_count++;
         }
-        total_lightness += (averaging_statistic == 0)? combined_lightness_here : combined_lightness_here / image_size.z;
+        total_lightness += (averaging_statistic == 0)? combined_lightness_here : combined_lightness_here / channels_used;
     }
     float ret = 1.0f - (static_cast<float>(total_lightness) / ((averaging_statistic == 0)? static_cast<float>(cell_count) : 1.0) / 255.0f);
     assert(ret >= 0.0f);
