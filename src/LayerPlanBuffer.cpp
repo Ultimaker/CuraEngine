@@ -25,6 +25,7 @@ void LayerPlanBuffer::push(LayerPlan& layer_plan)
 void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 {
     push(layer_plan);
+
     LayerPlan* to_be_written = processBuffer();
     if (to_be_written)
     {
@@ -46,7 +47,6 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     }
     if (buffer.size() > 0)
     {
-        optimizeAllInfillLines();
         insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
     }
     if (buffer.size() > buffer_size)
@@ -66,7 +66,6 @@ void LayerPlanBuffer::flush()
 {
     if (buffer.size() > 0)
     {
-        optimizeAllInfillLines();
         insertTempCommands(); // insert preheat commands of the very last layer
     }
     while (!buffer.empty())
@@ -453,20 +452,6 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         bool wait = false;
         double time_after_path_start = extrusion_time_seen - cool_down_time;
         precool_extruder_plan->insertCommand(path_idx, extruder, final_print_temp, wait, time_after_path_start);
-    }
-}
-
-
-void LayerPlanBuffer::optimizeAllInfillLines()
-{
-    for (LayerPlan* layer_plan : buffer)
-    {
-        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
-        {
-            //Merge paths whose endpoints are very close together into one line.
-            MergeInfillLines merger(extr_plan);
-            merger.mergeInfillLines(extr_plan.paths, gcode.getPositionXY());
-        }
     }
 }
 

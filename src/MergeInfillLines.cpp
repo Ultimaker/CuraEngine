@@ -31,6 +31,8 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Poi
     Point first_path_start = starting_position;
     size_t second_path_index = 1;
 
+    size_t last_merge_start_index = 9999999;  // some random number other than first_path_index
+
     for (; second_path_index < paths.size(); second_path_index++)
     {
         GCodePath& first_path = paths[first_path_index];
@@ -41,13 +43,18 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Poi
             continue; //Skip travel paths.
         }
 
-        if (isConvertible(first_path, first_path_start, second_path, second_path_start))
+        // alter_start: determines if the start needs to be altered to use the "center point", do that when merging new parts
+        // we only want to do it once per starting index
+        //const bool alter_start = last_merge_start_index != first_path_index;
+        const bool alter_start = true;
+        if (isConvertible(first_path, first_path_start, second_path, second_path_start, alter_start))
         {
             /* If we combine two lines, the second path is inside the first
             line, so the iteration after that we need to merge the first line
             with the line after the second line, so we do NOT update
             first_path_index. */
-            mergeLines(first_path, first_path_start, second_path, second_path_start);
+            mergeLines(first_path, first_path_start, second_path, second_path_start, alter_start);
+            last_merge_start_index = first_path_index;
             for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
             {
                 if (removed.find(to_delete_index) == removed.end())  // if there are line(s) between first and second, then those lines are already marked as to be deleted, only add the new line(s)
@@ -90,7 +97,7 @@ bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Poi
     }
 }
 
-bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_path_start, const GCodePath& second_path, const Point second_path_start) const
+bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_path_start, const GCodePath& second_path, const Point second_path_start, const bool alter_start) const
 {
     if (first_path.config->isTravelPath()) //Don't merge travel moves.
     {
@@ -104,12 +111,12 @@ bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_pa
     {
         return false;
     }
-    if (first_path.points.size() > 1 || second_path.points.size() > 1)
+/*    if (first_path.points.size() > 1 || second_path.points.size() > 1)
     {
         //TODO: For now we only merge simple lines, not polylines, to keep it simple.
         return false;
     }
-
+*/
     Point first_path_end = first_path.points.back();
     const Point second_path_end = second_path.points.back();
     Point first_direction = first_path_end - first_path_start;
@@ -135,7 +142,12 @@ bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_pa
     }
 
     //Lines may be adjacent side-by-side then.
-    const Point first_path_middle = (first_path_start + first_path_end) / 2;
+    Point first_path_middle;
+    if (alter_start) {
+        first_path_middle = (first_path_start + first_path_end) / 2;
+    } else {
+        first_path_middle = first_path.points.front();  // previous "first_path_middle" // this is the endpoint of a previously merged line
+    }
     const Point second_path_middle = (second_path_start + second_path_end) / 2;
     const Point merged_direction = second_path_middle - first_path_middle;
     const coord_t merged_size2 = vSize2(merged_direction);
@@ -154,7 +166,7 @@ bool MergeInfillLines::isConvertible(const GCodePath& first_path, Point first_pa
     return true;
 }
 
-void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start) const
+void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start, const bool alter_start) const
 {
     //We may apply one of two merging techniques: Append the second path to the first, or draw a line through the middle of both of them.
     const coord_t line_width = first_path.config->getLineWidth();
@@ -169,30 +181,45 @@ void MergeInfillLines::mergeLines(GCodePath& first_path, const Point first_path_
 
     //Alternative: Merge adjacent lines by drawing a line through them.
     coord_t first_path_length = 0;
-    Point previous_point = first_path_start;
     Point average_first_path;
-    for (const Point point : first_path.points)
+    if (alter_start)
     {
-        first_path_length += vSize(point - previous_point);
-        average_first_path += point;
+        Point previous_point = first_path_start;
+        //average_first_path += first_path_start;
+        for (const Point point : first_path.points)
+        {
+            first_path_length += vSize(point - previous_point);
+            average_first_path += point;
+        }
+        first_path_length *= first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
+        average_first_path /= first_path.points.size();
     }
-    first_path_length *= first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
-    average_first_path /= first_path.points.size();
+    else
+    {
+        first_path_length = first_path.flow * vSize(first_path.points.front() - first_path_start);
+        average_first_path = first_path.points.front();
+    }
 
     coord_t second_path_length = 0;
-    previous_point = second_path_start;
-    Point average_second_path;
+    Point previous_point_second = second_path_start;
+    //Point average_second_path;
+    Point average_second_path = second_path_start;
     for (const Point point : second_path.points)
     {
-        second_path_length += vSize(point - previous_point);
+        second_path_length += vSize(point - previous_point_second);
         average_second_path += point;
+        //average_second_path2 += point;
     }
     second_path_length *= second_path.flow;
-    average_second_path /= second_path.points.size();
+    //average_second_path /= second_path.points.size();
+    average_second_path /= (second_path.points.size() + 1);
 
     first_path.points.clear();
+    coord_t new_path_length;
+    //first_path.points.push_back(average_first_path);
     first_path.points.push_back(average_second_path);
-    const coord_t new_path_length = vSize(average_second_path - first_path_start);
+    //new_path_length = vSize(average_first_path - first_path_start) + vSize(average_second_path - average_first_path);
+    new_path_length = vSize(average_second_path - first_path_start);
     first_path.flow = static_cast<double>(first_path_length + second_path_length) / new_path_length;
 }
 

@@ -1595,4 +1595,14 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
     return true;
 }
 
+void LayerPlan::optimizePaths(const Point& starting_position)
+{
+    for (ExtruderPlan& extr_plan : extruder_plans)
+    {
+        //Merge paths whose endpoints are very close together into one line.
+        MergeInfillLines merger(extr_plan);
+        merger.mergeInfillLines(extr_plan.paths, starting_position);
+    }
+}
+
 }//namespace cura
