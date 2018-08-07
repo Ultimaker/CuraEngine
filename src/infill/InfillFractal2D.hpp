@@ -466,7 +466,7 @@ bool InfillFractal2D<CellGeometry>::handOutLoansPhase()
             {
                 continue;
             }
-            float unresolvable_error = getValueError(*cell); // the value allowance this cell cannot use because it is constrianed, while it would like to subdivide
+            float unresolvable_error = getSubdivisionError(*cell); // the value allowance this cell cannot use because it is constrianed, while it would like to subdivide
             if (unresolvable_error < allowed_volume_error)
             {
                 continue;
