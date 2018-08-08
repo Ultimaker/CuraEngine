@@ -15,7 +15,10 @@
 namespace cura
 {
 
-Application::Application() {}
+Application::Application()
+{
+    communication = nullptr;
+}
 
 Application::~Application()
 {
@@ -78,7 +81,6 @@ void Application::connect(const int argc, char** argv)
     }
 
     communication = new ArcusCommunication(ip, port);
-    communication->sliceNext();
 }
 #endif //ARCUS
 
@@ -377,7 +379,6 @@ void Application::run(const int argc, char** argv)
     else if (stringcasecompare(argv[1], "help") == 0)
     {
         printHelp();
-        exit(0);
     }
     else if (stringcasecompare(argv[1], "analyse") == 0)
     { // CuraEngine analyse [json] [output.gv] [engine_settings] -[p|i|e|w]
@@ -449,7 +450,6 @@ void Application::run(const int argc, char** argv)
         {
             logError("Failed to analyse json file: %s\n", argv[2]);
         }
-        exit(0);
     }
     else
     {
@@ -457,6 +457,19 @@ void Application::run(const int argc, char** argv)
         printCall(argc, argv);
         printHelp();
         exit(1);
+    }
+
+    if (!communication)
+    {
+        //No communication channel is open any more, so either:
+        //- communication failed to connect, or
+        //- the engine was called with an unknown command or a command that doesn't connect (like "help").
+        //In either case, we don't want to slice.
+        exit(0);
+    }
+    while (communication->hasSlice())
+    {
+        communication->sliceNext();
     }
 }
 
