@@ -303,7 +303,6 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
 
     dither(cell_data[0]);
 
-#ifdef DEBUG
     // debug check for total actualized volume
     float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);
     float total_requested_volume = cell_data[0].filled_volume_allowance;
@@ -330,7 +329,6 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern()
             logDebug("Depth %i has %i nodes.\n", d, recursion_dept_occurances[d]);
         }
     }
-#endif
 }
 
 
