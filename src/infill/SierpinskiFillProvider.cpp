@@ -13,16 +13,22 @@ namespace cura
 constexpr bool SierpinskiFillProvider::get_constructor;
 constexpr bool SierpinskiFillProvider::use_dithering;
 
-SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
+SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density)
 : aabb_3d(aabb_3d)
 , fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
-, density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
+, density_provider(new UniformDensityProvider(density))
 // , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
-    subdivision_structure_3d->createMaxDepthPattern();
-//     subdivision_structure_3d->sanitize();
+    if (density >= 1.0 || density >= line_width / min_line_distance)
+    {
+        subdivision_structure_3d->createMaxDepthPattern();
+    }
+    else
+    {
+        subdivision_structure_3d->createDitheredPattern();
+    }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
