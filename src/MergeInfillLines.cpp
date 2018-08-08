@@ -133,10 +133,9 @@ namespace cura
             //Only merge if lines are more or less in the same direction.
             const bool is_straight = dot_product + 400 > first_size * second_size; //400 = 20*20, where 20 micron is the allowed inaccuracy in the dot product, allowing a slight curve.
             if (is_straight) {
-                // TODO: merge lines in same direction
                 mergeLinesSharedEndStartPoint(first_path, first_path_start, second_path, second_path_start);
+                return true;
             }
-            return is_straight;
         }
 
         //Lines may be adjacent side-by-side then.
@@ -184,7 +183,6 @@ namespace cura
             1c. If they are merged, check next that the first line can be merged
                 with the line after the second line.
             2. Do a second iteration over all paths to remove the tombstones. */
-
         std::vector<size_t> remove_path_indices;
         std::set<size_t> is_merged;
         std::set<size_t> removed;  // keep track of what we already removed, so don't remove it again
