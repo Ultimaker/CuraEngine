@@ -44,7 +44,23 @@ private:
      * \return ``True`` if the two lines can be merged into one, or ``False`` if
      * they can't.
      */
-    bool isConvertible(const GCodePath& first_path, Point first_path_start, const GCodePath& second_path, const Point second_path_start, const bool alter_start) const;
+    //bool isConvertible(const GCodePath& first_path, Point first_path_start, const GCodePath& second_path, const Point second_path_start) const;
+
+    /*
+     * Strategy to merge lines
+     */
+    void mergeLinesSharedEndStartPoint(GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const;
+
+    /*
+     * Merge adjacent lines by drawing a line through them. Apply alternative strategy if first line is already merged.
+     * Merging is only permitted if both lines have 2 points each, or if the first line is already a merged line and the second is a 2 point line.
+     */
+    void mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const;
+
+    /*
+     * \return true: merged into first_path, second_path can be discarded
+     */
+    bool tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, Point second_path_start) const;
 
     /*
      * Merges two lines together.
@@ -57,7 +73,7 @@ private:
      * \param second_path The line to merge into the first path.
      * \param second_path_start Where the second path starts off.
      */
-    void mergeLines(GCodePath& first_path, const Point first_path_start, const GCodePath& second_path, const Point second_path_start, const bool alter_start) const;
+    //void mergeLines(GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, const bool mod_start) const;
 };
 
 } //namespace cura
