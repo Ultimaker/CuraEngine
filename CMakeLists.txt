@@ -131,7 +131,6 @@ set(engine_SRCS # Except main.cpp.
     src/Wireframe2gcode.cpp
 
     src/communication/ArcusCommunication.cpp
-    src/communication/Communication.cpp
     src/communication/Listener.cpp
 
     src/infill/ImageBasedDensityProvider.cpp

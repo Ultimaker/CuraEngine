@@ -18,20 +18,15 @@ class ExtruderTrain;
 
 /*
  * An abstract class to provide a common interface for all methods of
- * communicating instructions to CuraEngine.
- *
- * The communication class is also a singleton. You can get the communicator
- * statically. This way you can communicate the results of the slicing algorithm
- * back to the user from anywhere without needing to store it in another
- * singleton or passing it around.
+ * communicating instructions from and to CuraEngine.
  */
 class Communication
 {
 public:
     /*
-     * \brief Gets the singleton instance of the currently active communication.
+     * \brief Close the communication channel.
      */
-    static Communication& getInstance();
+    virtual ~Communication() {}
 
     /*
      * \brief Test if there are more slices to be queued.
@@ -165,24 +160,6 @@ public:
      * slice.
      */
     virtual void sliceNext() = 0;
-
-protected:
-    /*
-     * \brief Puts this instance in the static field that is returned by
-     * ``getInstance``.
-     */
-    Communication();
-
-    /*
-     * \brief The instance of the currently active communication.
-     *
-     * Only one type of communication can be active at a time (for now).
-     *
-     * During initialisation of the application, this may still be set to
-     * ``nullptr``. Attempting to get the communication during that time will
-     * result in a crash.
-     */
-    static Communication* instance;
 };
 
 } //namespace cura

@@ -7,6 +7,7 @@
 #include <string>
 #include "Application.h"
 #include "FffProcessor.h"
+#include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "settings/SettingRegistry.h"
 #include "settings/SettingsToGV.h"
 #include "utils/logoutput.h"
@@ -15,6 +16,11 @@ namespace cura
 {
 
 Application::Application() {}
+
+Application::~Application()
+{
+    delete communication;
+}
 
 Application& Application::getInstance()
 {
@@ -28,7 +34,7 @@ void Application::connect(const int argc, char** argv)
     std::string ip = "127.0.0.1";
     int port = 49674;
 
-    // parse ip port
+    //Parse port number from IP address.
     std::string ip_port(argv[2]);
     if (ip_port.find(':') != std::string::npos)
     {
@@ -71,8 +77,8 @@ void Application::connect(const int argc, char** argv)
         }
     }
 
-    CommandSocket::instantiate();
-    CommandSocket::getInstance()->connect(ip, port);
+    communication = new ArcusCommunication(ip, port);
+    communication->sliceNext();
 }
 #endif //ARCUS
 

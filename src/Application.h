@@ -8,6 +8,7 @@
 
 namespace cura
 {
+class Communication;
 
 /*!
  * A singleton class that serves as the starting point for all slicing.
@@ -26,6 +27,17 @@ public:
      * latest successful slice.
      */
     Slice current_slice;
+
+    /*
+     * \brief The communication currently in use.
+     *
+     * This may be set to ``nullptr`` during the initialisation of the program,
+     * while the correct communication class has not yet been chosen because the
+     * command line arguments have not yet been parsed. In general though you
+     * can assume that it is safe to access this without checking whether it is
+     * initialised.
+     */
+    Communication* communication;
 
     /*!
      * Gets the instance of this application class.
@@ -83,6 +95,13 @@ private:
      * You cannot call this because this goes via the getInstance() function.
      */
     Application();
+
+    /*!
+     * \brief Destroys the Application instance.
+     *
+     * This destroys the Communication instance along with it.
+     */
+    ~Application();
 };
 
 } //Cura namespace.
