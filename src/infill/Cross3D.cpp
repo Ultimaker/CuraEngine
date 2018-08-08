@@ -336,14 +336,14 @@ Cross3D::SliceWalker Cross3D::getSequence(const Cell& start_cell, coord_t z) con
         assert(last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].size() > 0 && "a cell always has neighbors to its right");
         const Cell& bottom_neighbor = cell_data[last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].front().to_index];
         const Cell& top_neighbor = cell_data[last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].back().to_index];
-        if (bottom_neighbor.elem.z_range.inside(z))
-        {
-            last_cell = &bottom_neighbor;
+        if (top_neighbor.elem.z_range.inside(z))
+        { // if z is *at* the height exactly on the middle between the two cells then prefer the top cell
+            last_cell = &top_neighbor;
         }
         else
         {
-            assert(top_neighbor.elem.z_range.inside(z) && "either of the max two neighbors must overlap with the required z!");
-            last_cell = &top_neighbor;
+            assert(bottom_neighbor.elem.z_range.inside(z) && "either of the max two neighbors must overlap with the required z!");
+            last_cell = &bottom_neighbor;
         }
         if (last_cell == &start_cell)
         {
