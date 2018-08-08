@@ -8,7 +8,7 @@ There are 5 main stages involved in slicing an object. Not all of them are execu
 ----
 The first step in the pipeline is the slicing stage. This converts a 3D mesh into 2D layers. First it determines the heights at which to produce cross sections. Then it creates cross sections of every triangle at those heights, which will normally be a line. Then it stitches these lines together to form polygons wherever possible.
 
-Generating Areas
+[Generating Areas](generating_areas.md)
 ----
 When given a set of layers, this stage divides each layer up into the areas that will be filled with the types of things we're going to print. What part is going to become wall? What part will be infill? Where will we place support?
 
