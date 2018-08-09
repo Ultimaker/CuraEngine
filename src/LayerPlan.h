@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
@@ -388,10 +390,7 @@ public:
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate) const
-    {
-        CommandSocket::sendLineTo(print_feature_type, to, line_width, line_thickness, line_feedrate);
-    }
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate) const;
 
     /*!
     * Set whether the next destination is inside a layer part or not.

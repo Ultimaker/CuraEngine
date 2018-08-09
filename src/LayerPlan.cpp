@@ -33,15 +33,18 @@ void ExtruderPlan::setExtrudeSpeedFactor(double speedFactor)
 {
     this->extrudeSpeedFactor = speedFactor;
 }
+
 double ExtruderPlan::getExtrudeSpeedFactor()
 {
     return this->extrudeSpeedFactor;
 }
+
 void ExtruderPlan::setTravelSpeedFactor(double speedFactor)
 {
     if (speedFactor < 1) speedFactor = 1.0;
     this->travelSpeedFactor = speedFactor;
 }
+
 double ExtruderPlan::getTravelSpeedFactor()
 {
     return this->travelSpeedFactor;
@@ -233,6 +236,11 @@ bool LayerPlan::setExtruder(int extruder)
         }
     }
     return true;
+}
+
+void LayerPlan::sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate) const
+{
+    Application->getInstance().communication->sendLineTo(print_feature_type, to, line_width, line_thickness, line_feedrate);
 }
 
 void LayerPlan::moveInsideCombBoundary(int distance)
