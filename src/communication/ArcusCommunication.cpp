@@ -36,13 +36,6 @@ public:
     { }
 
     /*
-     * Get the unoptimised layer data for a specific layer.
-     * \param layer_nr The layer number to get the layer data for.
-     * \return The layer data for that layer.
-     */
-    std::shared_ptr<cura::proto::Layer> getLayerById(LayerIndex layer_nr);
-
-    /*
      * Get the optimised layer data for a specific layer.
      * \param layer_nr The layer number to get the optimised layer data for.
      * \return The optimised layer data for that layer.
