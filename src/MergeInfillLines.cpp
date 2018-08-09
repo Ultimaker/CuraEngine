@@ -64,15 +64,18 @@ namespace cura
 
         coord_t new_path_length = 0;
 
-        if (first_is_already_merged) {
+        if (first_is_already_merged)
+        {
             // check if the new point is a good extension of last part of existing polyline
-            if (LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size()-2], first_path.points[first_path.points.size()-1]) == 0) {
-                // replace last point with new point if it's an extension
+            // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
+            if (first_path.points.size() > 1 && LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size()-2], first_path.points[first_path.points.size()-1]) == 0) {
                 first_path.points[first_path.points.size()-1] = average_second_path;
             } else {
                 first_path.points.push_back(average_second_path);
             }
-        } else {
+        }
+        else
+        {
             first_path.points.clear();
             first_path.points.push_back(average_first_path);
             first_path.points.push_back(average_second_path);
@@ -110,23 +113,24 @@ namespace cura
         }
 
         const Point first_path_end = first_path.points.back();
-        Point second_path_end = second_path.points.back();
+        const Point second_path_end = second_path.points.back();
         const Point first_direction = first_path_end - first_path_start;
-        Point second_direction = second_path_end - second_path_start;
-        coord_t dot_product = dot(first_direction, second_direction);
-        const coord_t first_size = vSize(first_direction);
+        const Point second_direction = second_path_end - second_path_start;
+        const coord_t dot_product = dot(first_direction, second_direction);
+        const coord_t first_size = vSize(first_direction);  // it's an estimate if first_is_already_merged as it may contain more points, but we're mostly going one direction
         const coord_t second_size = vSize(second_direction);
-    //    if (dot_product < 0) //Make lines in the same direction by flipping one.
-    //    {
-    //        second_direction *= -1;
-    //        dot_product *= -1;
-    //        Point swap = second_path_end;
-    //        second_path_end = second_path_start;
-    //        second_path_start = swap;
-    //    }
+        const coord_t line_width = first_path.config->getLineWidth();
+        // restrict length
+        if (!first_is_already_merged && first_size > 3 * line_width)
+        {
+            return false;
+        }
+        if (second_size > 3 * line_width)
+        {
+            return false;
+        }
 
         //Check if lines are connected end-to-end and can be merged that way.
-        const coord_t line_width = first_path.config->getLineWidth();
         if (vSize2(first_path_end - second_path_start) < line_width * line_width || vSize2(first_path_start - second_path_end) < line_width * line_width) //Paths are already (practically) connected, end-to-end.
         {
             //Only merge if lines are more or less in the same direction.
@@ -138,18 +142,18 @@ namespace cura
         }
 
         //Lines may be adjacent side-by-side then.
-        Point first_path_middle;
+        Point first_path_leave_point;
         coord_t merged_size2;
         if (first_is_already_merged) {
-            first_path_middle = first_path.points[0];  // the second point here was once the "middle"
+            first_path_leave_point = first_path.points.back();  // this is the point that's going to merge
         } else {
-            first_path_middle = (first_path_start + first_path_end) / 2;
+            first_path_leave_point = (first_path_start + first_path_end) / 2;
         }
-        const Point second_path_middle = (second_path_start + second_path_end) / 2;
-        const Point merged_direction = second_path_middle - first_path_middle;
+        const Point second_path_destination_point = (second_path_start + second_path_end) / 2;
+        const Point merged_direction = second_path_destination_point - first_path_leave_point;
         if (first_is_already_merged)
         {
-            merged_size2 = vSize2(second_path_middle - first_path.points.back());  // check distance with last point in merged line that is to be replaced
+            merged_size2 = vSize2(second_path_destination_point - first_path.points.back());  // check distance with last point in merged line that is to be replaced
         }
         else
         {
@@ -159,12 +163,16 @@ namespace cura
         {
             return false; //Lines are too far away from each other.
         }
-        if (LinearAlg2D::getDist2FromLine(first_path_start,  second_path_middle, second_path_middle + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(first_path_end,    second_path_middle, second_path_middle + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_middle,  first_path_middle  + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_middle,  first_path_middle  + merged_direction) > 4 * line_width * line_width)
+        if (LinearAlg2D::getDist2FromLine(first_path_start,  second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width)
         {
             return false; //One of the lines is too far from the merged line. Lines would be too wide or too far off.
+        }
+        if (first_is_already_merged && first_path.points.size() > 1 && first_path.points[first_path.points.size() - 2] == second_path_destination_point)  // yes this can actually happen
+        {
+            return false;
         }
 
         mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start);
