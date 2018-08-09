@@ -547,7 +547,9 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
     for (size_t layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
         SliceLayer& layer = mesh.layers[layer_idx];
-
+        
+        int infill_overlap = mesh.getSettingInMicrons("infill_overlap_mm");
+        
         for (SliceLayerPart& part : layer.parts)
         {
             assert(part.infill_area_per_combine_per_density.size() == 0 && "infill_area_per_combine_per_density is supposed to be uninitialized");
@@ -593,12 +595,25 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
                 // add new infill_area_per_combine for the current density
                 part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-                const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
+                Polygons more_dense_infill = infill_area.difference(less_dense_infill);
+                
+                int min_remove_infill = MIN_AREA_SIZE * 2; // This value works for most cases
+                
+                //
+                more_dense_infill.removeSmallAreas(min_remove_infill);
+                if(more_dense_infill.size() > 0)
+                {
+                    more_dense_infill = more_dense_infill.offset(infill_overlap);
+                }
+
                 infill_area_per_combine_current_density.push_back(more_dense_infill);
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-            infill_area_per_combine_current_density.push_back(infill_area);
+            
+            const Polygons infill_with_offset = infill_area.offset(infill_overlap);
+            
+            infill_area_per_combine_current_density.push_back(infill_with_offset);
             part.infill_area_own = nullptr; // clear infill_area_own, it's not needed any more.
             assert(part.infill_area_per_combine_per_density.size() != 0 && "infill_area_per_combine_per_density is now initialized");
         }
