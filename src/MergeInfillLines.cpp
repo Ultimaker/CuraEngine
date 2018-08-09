@@ -22,6 +22,29 @@ namespace cura
     }
 
 
+    /*
+     * first_is_already_merged == false
+     *
+     *       o     o
+     *      /     /
+     *     /     /
+     *    /     /      --->     o-----o
+     *   /     /               /
+     *  /     /               /
+     * o     o               o
+     *
+     *
+     * first_is_already_merged == true
+     *
+     *                   o
+     *                  /
+     *                 /
+     *    o-----o     /     --->    o-----------o   or with slight   o-----o-----o
+     *   /           /             /                   bend         /
+     *  /           /             /                                /
+     * o           o             o                                o
+     *
+     */
     void MergeInfillLines::mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const
     {
         coord_t first_path_length_flow = 0;
