@@ -233,7 +233,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = in_outline.offset(outline_offset  - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
     if (perimeter_gaps)
     {
@@ -633,7 +633,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 void Infill::connectLines(Polygons& result_lines)
 {
     //TODO: We're reconstructing the outline here. We should store it and compute it only once.
-    Polygons outline = in_outline.offset(outline_offset);
+    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
 
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
     for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)

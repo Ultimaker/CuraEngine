@@ -1381,7 +1381,15 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][0], /*outline_offset =*/ 0
+
+        Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
+        double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
+        
+        // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
+        // especially on vertical surfaces
+        in_outline.removeSmallAreas(minimum_small_area);
+        
+        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/ 0
             , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
             , /*Polygons* perimeter_gaps =*/ nullptr
             , /*bool connected_zigzags =*/ false
