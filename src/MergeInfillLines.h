@@ -36,44 +36,32 @@ private:
     ExtruderPlan& extruder_plan;
 
     /*
-     * Checks if two paths can be merged.
+     * Connect the second path into the first path. Use if the end of the first_path coincides with the start of the second path.
      * \param first_path The first of the two paths to merge.
      * \param first_path_start The starting point of the first path.
      * \param second_path The other of the two paths to merge.
      * \param second_path_start The starting point of the second path.
-     * \return ``True`` if the two lines can be merged into one, or ``False`` if
-     * they can't.
-     */
-    //bool isConvertible(const GCodePath& first_path, Point first_path_start, const GCodePath& second_path, const Point second_path_start) const;
-
-    /*
-     * Strategy to merge lines
      */
     void mergeLinesSharedEndStartPoint(GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const;
 
     /*
-     * Merge adjacent lines by drawing a line through them. Apply alternative strategy if first line is already merged.
+     * Use to merge adjacent lines by drawing a line through them. Apply alternative strategy if first line is already merged.
      * Merging is only permitted if both lines have 2 points each, or if the first line is already a merged line and the second is a 2 point line.
+     * \param first_path The first of the two paths to merge.
+     * \param first_path_start The starting point of the first path.
+     * \param second_path The other of the two paths to merge.
+     * \param second_path_start The starting point of the second path.
      */
     void mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const;
 
     /*
-     * \return true: merged into first_path, second_path can be discarded
-     */
-    bool tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, Point second_path_start) const;
-
-    /*
-     * Merges two lines together.
-     *
-     * This changes the destination of the first path and adds the extrusion of
+     * Try to merge lines.
+     * If success, this changes the destination of the first path and adds the extrusion of
      * the two lines together.
      * The second path is untouched. We must skip that path later.
-     * \param first_path The line to merge the second path into.
-     * \param first_path_start Where the first path starts off.
-     * \param second_path The line to merge into the first path.
-     * \param second_path_start Where the second path starts off.
+     * \return true: merged second_path into first_path, second_path can be discarded, false: nothing happened
      */
-    //void mergeLines(GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, const bool mod_start) const;
+    bool tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, Point second_path_start) const;
 };
 
 } //namespace cura

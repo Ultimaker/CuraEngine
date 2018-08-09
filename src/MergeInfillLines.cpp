@@ -24,7 +24,6 @@ namespace cura
 
     void MergeInfillLines::mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const
     {
-        //Alternative: Merge adjacent lines by drawing a line through them.
         coord_t first_path_length_flow = 0;
         Point average_first_path;
 
@@ -204,9 +203,7 @@ namespace cura
 
             if (tryMerge(is_merged.find(first_path_index) != is_merged.end(), first_path, first_path_start, second_path, second_path_start))
             {
-                /* If we combine two lines, the second path is inside the first
-                line, so the iteration after that we need to merge the first line
-                with the line after the second line, so we do NOT update
+                /* If we combine two lines, the next path may also be merged into the fist line, so we do NOT update
                 first_path_index. */
                 for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
                 {
