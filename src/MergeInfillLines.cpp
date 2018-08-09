@@ -120,7 +120,7 @@ namespace cura
         const coord_t first_size = vSize(first_direction);  // it's an estimate if first_is_already_merged as it may contain more points, but we're mostly going one direction
         const coord_t second_size = vSize(second_direction);
         const coord_t line_width = first_path.config->getLineWidth();
-        // restrict length
+        //Restrict length, this prevents wide gaps to be filled with a very wide line.
         if (!first_is_already_merged && first_size > 3 * line_width)
         {
             return false;
