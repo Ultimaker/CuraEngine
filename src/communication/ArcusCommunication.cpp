@@ -32,6 +32,7 @@ public:
         : socket(nullptr)
         , object_count(0)
         , last_sent_progress(-1)
+        , slice_count(0)
     { }
 
     /*
