@@ -7,7 +7,6 @@
 #include <sstream> // ostringstream
 #include <regex> // regex parsing for temp flow graph
 #include <string> //Parsing strings (stod, stoul).
-#include "../utils/logoutput.h"
 
 #include "Settings.h"
 #include "SettingRegistry.h"
@@ -18,6 +17,8 @@
 #include "types/Ratio.h" //For ratio settings and percentages.
 #include "types/Temperature.h" //For temperature settings.
 #include "types/Velocity.h" //For velocity settings.
+#include "../Application.h" //To get the extruders.
+#include "../utils/logoutput.h"
 
 namespace cura
 {
@@ -82,7 +83,11 @@ template<> bool Settings::get<bool>(const std::string& key) const
 template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
 {
     int extruder_nr = get<int>(key);
-    //TODO: Get the extruder with the correct extruder number.
+    if (extruder_nr < 0)
+    {
+        extruder_nr = get<size_t>("extruder_nr");
+    }
+    return Application::getInstance().current_slice.scene.extruders[extruder_nr];
 }
 
 template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const
