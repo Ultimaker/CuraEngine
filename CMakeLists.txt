@@ -92,7 +92,6 @@ endif()
 set(engine_SRCS # Except main.cpp.
     src/Application.cpp
     src/bridge.cpp
-    src/commandSocket.cpp
     src/ConicalOverhang.cpp
     src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp

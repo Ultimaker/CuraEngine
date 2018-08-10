@@ -6,14 +6,11 @@
 
 #include <list>
 
-#include "settings/Settings.h"
-#include "commandSocket.h"
-
 #include "gcodeExport.h"
 #include "LayerPlan.h"
 #include "MeshGroup.h"
-
 #include "Preheat.h"
+#include "settings/Settings.h"
 
 namespace cura 
 {

@@ -1,10 +1,12 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
 
+#include "Application.h" //To send layer view data.
+#include "communication/Communication.h" //To send layer view data.
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
 #include "PrintFeature.h"
@@ -634,7 +636,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
 }
 
-void GCodeExport::writeTravel(int x, int y, int z, double speed)
+void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t& z, const Velocity& speed)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
@@ -648,7 +650,7 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
 
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
-    CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
+    Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
     *output_stream << "G0";
     writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
@@ -930,8 +932,8 @@ void GCodeExport::startExtruder(int new_extruder)
         }
     }
 
-    CommandSocket::setExtruderForSend(new_extruder);
-    CommandSocket::setSendCurrentPosition( getPositionXY() );
+    Application::getInstance().communication->setExtruderForSend(Application::getInstance().current_slice.scene.extruders[new_extruder]);
+    Application::getInstance().communication->sendCurrentPosition(getPositionXY());
 
     //Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;

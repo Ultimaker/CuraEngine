@@ -17,7 +17,6 @@
 #include "pathOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "gcodeExport.h"
-#include "commandSocket.h"
 #include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
 #include "PrintFeature.h"

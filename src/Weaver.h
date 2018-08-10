@@ -5,7 +5,6 @@
 #define WEAVER_H
 
 #include "weaveDataStorage.h"
-#include "commandSocket.h"
 #include "settings/Settings.h"
 
 #include "MeshGroup.h"

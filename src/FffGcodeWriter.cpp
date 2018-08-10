@@ -4,15 +4,17 @@
 #include <list>
 #include <limits> // numeric_limits
 
-#include "utils/math.h"
+#include "Application.h" //To send layer view data.
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
-#include "progress/Progress.h"
-#include "wallOverlap.h"
-#include "utils/orderOptimizer.h"
 #include "GcodeLayerThreader.h"
-#include "infill/SpaghettiInfillPathGenerator.h"
 #include "InsetOrderOptimizer.h"
+#include "wallOverlap.h"
+#include "communication/Communication.h" //To send layer view data.
+#include "infill/SpaghettiInfillPathGenerator.h"
+#include "progress/Progress.h"
+#include "utils/math.h"
+#include "utils/orderOptimizer.h"
 
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
@@ -40,10 +42,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.setInitialTemps(*storage.meshgroup, getStartExtruder(storage));
     }
 
-    if (CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->beginGCode();
-    }
+    Application::getInstance().communication->beginGCode();
 
     setConfigFanSpeedLayerTime(storage);
     
@@ -486,7 +485,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
-        CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+        Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
         constexpr bool wait = true;
@@ -520,7 +519,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeFanCommand(0);
     gcode.setZ(max_object_height + 5000);
 
-    CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+    Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
     Point start_pos(storage.model_min.x, storage.model_min.y);
     gcode.writeTravel(start_pos, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
@@ -570,10 +569,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         gcode_layer.setExtruder(extruder_nr);
 
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
-        }
+        Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         Polygons wall = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_base_config.getLineWidth() / 2);
         wall.simplify(); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
@@ -634,10 +630,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
         current_extruder_nr = extruder_nr;
 
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
-        }
+        Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path.simplify(); //Remove those micron-movements.
@@ -692,10 +685,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         gcode_layer.setExtruder(extruder_nr);
         current_extruder_nr = extruder_nr;
 
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
-        }
+        Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
@@ -772,11 +762,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         }
     }
 
-    if (CommandSocket::isInstantiated())
-    {
 #pragma omp critical
-        CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_thickness);
-    }
+    Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_thickness);
 
     bool avoid_other_parts = false;
     bool avoid_supports = false;
@@ -2556,7 +2543,7 @@ void FffGcodeWriter::finalize()
     std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
     if (CommandSocket::isInstantiated())
     {
-        CommandSocket::getInstance()->sendGCodePrefix(prefix);
+        Application::getInstance().communication->sendGCodePrefix(prefix);
     }
     else
     {

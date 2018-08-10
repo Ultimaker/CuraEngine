@@ -1,10 +1,11 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef LAYERPART_H
 #define LAYERPART_H
 
 #include "sliceDataStorage.h"
 #include "slicer.h"
-#include "commandSocket.h"
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.

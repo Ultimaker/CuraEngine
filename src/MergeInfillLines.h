@@ -4,10 +4,10 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
-#include "utils/IntPoint.h"
 #include "gcodeExport.h"
 #include "LayerPlan.h"
 #include "GCodePathConfig.h"
+#include "utils/IntPoint.h"
 
 namespace cura
 {
@@ -89,14 +89,6 @@ public:
      * \return Whether lines have been merged and normal path-to-gcode generation can be skipped for the current resulting \p path_idx .
      */
     bool mergeInfillLines(unsigned int& path_idx);
-
-    /*!
-     * send a line segment through the command socket from the previous point to the given point \p to
-     */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate)
-    {
-        CommandSocket::sendLineTo(print_feature_type, to, line_width, line_thickness, line_feedrate);
-    }
 };
 
 }//namespace cura

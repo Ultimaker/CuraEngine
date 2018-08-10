@@ -8,13 +8,13 @@
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #include <sstream> // for stream.str()
 
-#include "settings/Settings.h"
-#include "utils/IntPoint.h"
-#include "utils/NoCopy.h"
 #include "timeEstimate.h"
 #include "MeshGroup.h"
-#include "commandSocket.h"
 #include "RetractionConfig.h"
+#include "settings/Settings.h"
+#include "settings/types/Velocity.h"
+#include "utils/IntPoint.h"
+#include "utils/NoCopy.h"
 
 namespace cura {
 
@@ -334,7 +334,7 @@ private:
      * \param z build plate z
      * \param speed movement speed
      */
-    void writeTravel(int x, int y, int z, double speed);
+    void writeTravel(const coord_t& x, const coord_t& y, const coord_t& z, const Velocity& speed);
 
     /*!
      * Perform un-z-hop

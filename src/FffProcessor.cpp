@@ -1,7 +1,9 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "FffProcessor.h" 
+#include "FffProcessor.h"
+#include "Application.h" //To send the layer data through the communication channel.
+#include "communication/Communication.h" //To send the layer data through the communication channel.
 
 namespace cura 
 {
@@ -106,11 +108,8 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     }
 
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-    if (CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->flushGcode();
-        CommandSocket::getInstance()->sendOptimizedLayerData();
-    }
+    Application::getInstance().communication->flushGCode();
+    Application::getInstance().communication->sendOptimizedLayerData();
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
     profile_string += getAllSettingsString(*meshgroup, meshgroup_number == 0);

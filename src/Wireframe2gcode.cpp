@@ -1,14 +1,18 @@
-#include "Wireframe2gcode.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
 #include <fstream> // debug IO
 
+#include "Application.h" //To get the communication channel.
+#include "pathOrderOptimizer.h" //For skirt/brim.
+#include "PrintFeature.h"
+#include "weaveDataStorage.h"
+#include "Wireframe2gcode.h"
+#include "communication/Communication.h" //To write g-code output.
+#include "progress/Progress.h"
 #include "utils/math.h"
 #include "utils/logoutput.h"
-#include "weaveDataStorage.h"
-#include "progress/Progress.h"
-#include "PrintFeature.h"
-#include "pathOrderOptimizer.h" //For skirt/brim.
 
 namespace cura 
 {
@@ -21,10 +25,9 @@ void Wireframe2gcode::writeGCode()
 
     const unsigned int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr"); // TODO: figure out how Wireframe works with dual extrusion
     gcode.setInitialTemps(*wireFrame.meshgroup, start_extruder_nr);
-    
-    if (CommandSocket::getInstance())
-        CommandSocket::getInstance()->beginGCode();
-    
+
+    Application::getInstance().communication->beginGCode();
+
     processStartingCode();
     
     int maxObjectHeight;
@@ -603,7 +606,7 @@ void Wireframe2gcode::processStartingCode()
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
-        CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+        Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
         constexpr bool wait = true;
         gcode.writeTemperatureCommand(start_extruder_nr, getSettingInDegreeCelsius("material_print_temperature"), wait);

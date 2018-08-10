@@ -7,7 +7,6 @@
 #include "settings/Settings.h"
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
-#include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "progress/Progress.h"

@@ -11,7 +11,6 @@
 #include "utils/gettime.h"
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "commandSocket.h"
 #include "PrintFeature.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"

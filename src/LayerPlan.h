@@ -6,22 +6,21 @@
 
 #include <vector>
 
+#include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
+#include "GCodePathConfig.h"
+#include "pathOrderOptimizer.h"
+#include "SpaceFillType.h"
+#include "wallOverlap.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
-#include "utils/polygon.h"
-#include "utils/logoutput.h"
-#include "wallOverlap.h"
-#include "commandSocket.h"
-#include "FanSpeedLayerTime.h"
-#include "SpaceFillType.h"
-#include "GCodePathConfig.h"
 #include "settings/PathConfigStorage.h"
-#include "pathOrderOptimizer.h"
-
+#include "settings/types/LayerIndex.h"
+#include "utils/logoutput.h"
 #include "utils/optional.h"
+#include "utils/polygon.h"
 
 namespace cura 
 {
@@ -176,7 +175,7 @@ public:
     double getFanSpeed();
 
 protected:
-    int layer_nr; //!< The layer number at which we are currently printing.
+    LayerIndex layer_nr; //!< The layer number at which we are currently printing.
     bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
 
@@ -386,11 +385,6 @@ public:
      * Returns nothing if the layer is empty and no travel move was ever made.
      */
     std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
-
-    /*!
-     * send a line segment through the command socket from the previous point to the given point \p to
-     */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width, int line_thickness, int line_feedrate) const;
 
     /*!
     * Set whether the next destination is inside a layer part or not.

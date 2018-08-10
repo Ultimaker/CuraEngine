@@ -1,10 +1,12 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "LayerPlanBuffer.h"
-#include "gcodeExport.h"
-#include "utils/logoutput.h"
+#include "Application.h" //To flush g-code through the communication channel.
+#include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "FffProcessor.h"
+#include "gcodeExport.h"
+#include "LayerPlanBuffer.h"
+#include "utils/logoutput.h"
 
 namespace cura {
 
@@ -50,10 +52,7 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     if (buffer.size() > buffer_size)
     {
         LayerPlan* ret = buffer.front();
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->flushGcode();
-        }
+        Application::getInstance().communication->flushGCode();
         buffer.pop_front();
         return ret;
     }
@@ -69,10 +68,7 @@ void LayerPlanBuffer::flush()
     while (!buffer.empty())
     {
         buffer.front()->writeGCode(gcode);
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->flushGcode();
-        }
+        Application::getInstance().communication->flushGCode();
         delete buffer.front();
         buffer.pop_front();
     }

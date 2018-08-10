@@ -1,12 +1,16 @@
-#include "Weaver.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
 #include <fstream> // debug IO
 #include <unistd.h>
 
-#include "progress/Progress.h"
-#include "weaveDataStorage.h"
+#include "Application.h" //To get the communication channel.
 #include "PrintFeature.h"
+#include "weaveDataStorage.h"
+#include "Weaver.h"
+#include "communication/Communication.h" //To send layer view data.
+#include "progress/Progress.h"
 
 namespace cura 
 {
@@ -57,7 +61,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
 
-        CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*0,*/ wireFrame.bottom_outline, 1, 1, 1);
+        Application::getInstance().communication->sendPolygons(PrintFeatureType::OuterWall, wireFrame.bottom_outline, 1, 1, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -88,7 +92,7 @@ void Weaver::weave(MeshGroup* meshgroup)
 
             chainify_polygons(parts1, starting_point_in_layer, chainified);
 
-            CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*layer_idx - starting_layer_idx,*/ chainified, 1, 1, 1);
+            Application::getInstance().communication->sendPolygons(PrintFeatureType::OuterWall, chainified, 1, 1, 1);
 
             if (chainified.size() > 0)
             {

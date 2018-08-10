@@ -10,7 +10,6 @@
 #include "utils/NoCopy.h"
 
 #include "weaveDataStorage.h"
-#include "commandSocket.h"
 #include "settings/Settings.h"
 
 #include "MeshGroup.h"
