@@ -66,7 +66,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
 
     // generate walls around infill pattern
-    for (unsigned int wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
+    for (size_t wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
     {
         const coord_t distance_from_outline_to_wall = outline_offset_raw - infill_line_width / 2 - wall_idx * infill_line_width;
         result_polygons.add(in_outline.offset(distance_from_outline_to_wall));

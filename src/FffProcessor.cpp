@@ -36,10 +36,11 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
         sstream << " --next";
     }
     sstream << meshgroup.getAllLocalSettingsString();
-    for (unsigned int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
+    const Scene& scene = Application::getInstance().current_slice.scene;
+    for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
     {
-        ExtruderTrain* train = meshgroup.getExtruderTrain(extruder_nr);
-        sstream << " -e" << extruder_nr << train->getAllLocalSettingsString();
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+        sstream << " -e" << extruder_nr << train.getAllLocalSettingsString();
     }
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
     {

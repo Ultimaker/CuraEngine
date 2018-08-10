@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (C) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
@@ -17,23 +19,10 @@ namespace cura
  */
 class MeshGroup : public SettingsBase, NoCopy
 {
-    ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
-    mutable int extruder_count; //!< The number of extruders. (mutable because of lazy evaluation)
 public:
-    unsigned int getExtruderCount() const;
+    MeshGroup();
 
     MeshGroup(SettingsBaseVirtual* settings_base);
-
-    ~MeshGroup();
-    
-    /*!
-     * Create a new extruder train for the @p extruder_nr, or return the one which already exists.
-     */
-    ExtruderTrain* createExtruderTrain(unsigned int extruder_nr);
-
-    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr);
-
-    const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
 
     std::vector<Mesh> meshes;
     Settings settings;
@@ -57,5 +46,6 @@ public:
  */
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings = nullptr);
 
-}//namespace cura
-#endif//MESH_GROUP_H
+} //namespace cura
+
+#endif //MESH_GROUP_H

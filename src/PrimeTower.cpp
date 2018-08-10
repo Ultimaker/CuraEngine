@@ -1,18 +1,18 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PrimeTower.h"
-
 #include <algorithm>
 #include <limits>
 
+#include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "sliceDataStorage.h"
 #include "gcodeExport.h"
-#include "LayerPlan.h"
 #include "infill.h"
+#include "LayerPlan.h"
+#include "PrimeTower.h"
 #include "PrintFeature.h"
 #include "raft.h"
+#include "sliceDataStorage.h"
 
 #define CIRCLE_RESOLUTION 32 //The number of vertices in each circle.
 
@@ -26,18 +26,19 @@ PrimeTower::PrimeTower(const SliceDataStorage& storage)
            && storage.getSettingInMicrons("prime_tower_min_volume") > 10
            && storage.getSettingInMicrons("prime_tower_size") > 10;
 
-    extruder_count = storage.meshgroup->getExtruderCount();
+    const Scene& scene = Application::getInstance().current_slice.scene;
+    extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         extruder_order[extruder_nr] = extruder_nr; //Start with default order, then sort.
     }
     //Sort from high adhesion to low adhesion.
-    const SliceDataStorage* storage_ptr = &storage; //Communicate to lambda via pointer to prevent copy.
-    std::sort(extruder_order.begin(), extruder_order.end(), [storage_ptr](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
+    const Scene* scene_pointer = &scene; //Communicate to lambda via pointer to prevent copy.
+    std::sort(extruder_order.begin(), extruder_order.end(), [scene_pointer](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
     {
-        const double adhesion_a = storage_ptr->meshgroup->getExtruderTrain(extruder_nr_a)->getSettingAsRatio("material_adhesion_tendency");
-        const double adhesion_b = storage_ptr->meshgroup->getExtruderTrain(extruder_nr_b)->getSettingAsRatio("material_adhesion_tendency");
+        const double adhesion_a = scene_pointer->extruders[extruder_nr_a].getSettingAsRatio("material_adhesion_tendency");
+        const double adhesion_b = scene_pointer->extruders[extruder_nr_b].getSettingAsRatio("material_adhesion_tendency");
         return adhesion_a < adhesion_b;
     });
 }
@@ -93,13 +94,14 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     pattern_per_extruder.resize(extruder_count);
 
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
-    for (unsigned int extruder : extruder_order)
+    const Scene& scene = Application::getInstance().current_slice.scene;
+    for (size_t extruder_nr : extruder_order)
     {
-        const coord_t line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
-        const coord_t required_volume = storage.meshgroup->getExtruderTrain(extruder)->getSettingInCubicMillimeters("prime_tower_min_volume") * 1000000000; //To cubic microns.
-        const double flow = storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("prime_tower_flow");
+        const coord_t line_width = scene.extruders[extruder_nr].getSettingInMicrons("prime_tower_line_width");
+        const coord_t required_volume = scene.extruders[extruder_nr].getSettingInCubicMillimeters("prime_tower_min_volume") * 1000000000; //To cubic microns.
+        const double flow = scene.extruders[extruder_nr].getSettingAsRatio("prime_tower_flow");
         coord_t current_volume = 0;
-        ExtrusionMoves& pattern = pattern_per_extruder[extruder];
+        ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
 
         //Create the walls of the prime tower.
         unsigned int wall_nr = 0;
@@ -120,7 +122,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         coord_t line_width_layer0 = line_width;
         if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
         {
-            line_width_layer0 *= storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_layer0 *= scene.extruders[extruder_nr].getSettingAsRatio("initial_layer_line_width_factor");
         }
         pattern_per_extruder_layer0.emplace_back();
         ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
@@ -156,7 +158,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         return;
     }
 
-    bool post_wipe = storage.meshgroup->getExtruderTrain(prev_extruder)->getSettingBoolean("prime_tower_wipe_enabled");
+    bool post_wipe = Application::getInstance().current_slice.scene.extruders[prev_extruder].getSettingBoolean("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
     const int layer_nr = gcode_layer.getLayerNr();
@@ -192,9 +194,9 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
 {
     Point ret(0, 0);
     int absolute_starting_points = 0;
-    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
     {
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
+        ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[0];
         if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
         {
             ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));

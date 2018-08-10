@@ -744,7 +744,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
     int bestPos = 0;
 
     size_t poly_size = polygon.size();
-    for (int p = 0; p < poly_size; p++)
+    for (size_t p = 0; p < poly_size; p++)
     {
         int p1_idx = (poly_size + direction * p + start_idx) % poly_size;
         int p2_idx = (poly_size + direction * (p + 1) + start_idx) % poly_size;

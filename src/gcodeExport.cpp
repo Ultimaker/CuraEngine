@@ -58,25 +58,26 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
 
-    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    const Scene& scene = Application::getInstance().current_slice.scene;
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+        setFilamentDiameter(extruder_nr, train.getSettingInMicrons("material_diameter")); 
 
-        extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
-        extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-        extruder_attr[extruder_nr].use_temp = train->getSettingBoolean("machine_nozzle_temp_enabled");
-        extruder_attr[extruder_nr].is_prime_blob_enabled = train->getSettingBoolean("prime_blob_enable");
+        extruder_attr[extruder_nr].prime_pos = Point3(train.getSettingInMicrons("extruder_prime_pos_x"), train.getSettingInMicrons("extruder_prime_pos_y"), train.getSettingInMicrons("extruder_prime_pos_z"));
+        extruder_attr[extruder_nr].prime_pos_is_abs = train.getSettingBoolean("extruder_prime_pos_abs");
+        extruder_attr[extruder_nr].use_temp = train.getSettingBoolean("machine_nozzle_temp_enabled");
+        extruder_attr[extruder_nr].is_prime_blob_enabled = train.getSettingBoolean("prime_blob_enable");
 
-        extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-        extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-        extruder_attr[extruder_nr].material_guid = train->getSettingString("material_guid");
+        extruder_attr[extruder_nr].nozzle_size = train.getSettingInMicrons("machine_nozzle_size");
+        extruder_attr[extruder_nr].nozzle_offset = Point(train.getSettingInMicrons("machine_nozzle_offset_x"), train.getSettingInMicrons("machine_nozzle_offset_y"));
+        extruder_attr[extruder_nr].material_guid = train.getSettingString("material_guid");
 
-        extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
-        extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
+        extruder_attr[extruder_nr].start_code = train.getSettingString("machine_extruder_start_code");
+        extruder_attr[extruder_nr].end_code = train.getSettingString("machine_extruder_end_code");
 
-        extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        extruder_attr[extruder_nr].nozzle_id = train->getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
+        extruder_attr[extruder_nr].last_retraction_prime_speed = train.getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].nozzle_id = train.getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
@@ -98,8 +99,8 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     // initialize current_max_z_feedrate to firmware defaults
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-        if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") <= 0.0)
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+        if (train.getSettingInMillimetersPerSecond("max_feedrate_z_override") <= 0.0)
         {
             // only initialize if firmware default for z feedrate is used by any extruder
             // that way we don't omit the M203 if Cura thinks the firmware is already at that feedrate, but it isn't the case
@@ -113,14 +114,15 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr)
 {
-    for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+    const Scene& scene = Application::getInstance().current_slice.scene;
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
-        
-        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-        double temp = (extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
-        setInitialTemp(extr_nr, temp);
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+
+        const double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        const double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        const double temp = (extruder_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
+        setInitialTemp(extruder_nr, temp);
     }
 
     initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature_layer_0");

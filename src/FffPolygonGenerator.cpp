@@ -39,6 +39,7 @@
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
 #include "settings/AdaptiveLayerHeights.h"
+#include "Application.h"
 
 
 namespace cura
@@ -243,15 +244,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             // add the raft offset to each layer
             if (has_raft)
             {
-                ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
+                const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[getSettingAsIndex("adhesion_extruder_nr")];
                 layer.printZ +=
                     Raft::getTotalThickness(storage)
-                    + train->getSettingInMicrons("raft_airgap")
-                    - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
+                    + train.getSettingInMicrons("raft_airgap")
+                    - train.getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
                 {
-                    layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
+                    layer.printZ += train.getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
         }
@@ -489,7 +490,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
             coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             if (layer_nr == 0)
             {
-                const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+                const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
                 double initial_layer_line_width_factor = train.getSettingAsRatio("initial_layer_line_width_factor");
                 wall_line_width_0 *= initial_layer_line_width_factor;
             }
@@ -515,6 +516,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
 {
+    const Scene& scene = Application::getInstance().current_slice.scene;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
@@ -528,7 +530,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
         }
         for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
         {
-            const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+            const ExtruderTrain& train_wall_x = scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
             bool fill_gaps_between_inner_wall_and_skin_or_infill =
                 mesh.getSettingInMicrons("infill_line_distance") > 0
                 && mesh.getSettingInMicrons("infill_overlap_mm") >= 0
@@ -541,11 +543,11 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
             if (layer_nr == 0)
             {
-                const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+                const ExtruderTrain& train_wall_0 = scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
                 wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
-                const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+                const ExtruderTrain& train_wall_x = scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
                 wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
-                const ExtruderTrain& train_skin = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("top_bottom_extruder_nr"));
+                const ExtruderTrain& train_skin = scene.extruders[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")];
                 skin_line_width *= train_skin.getSettingAsRatio("initial_layer_line_width_factor");
             }
             for (SliceLayerPart& part : layer.parts)
@@ -753,9 +755,10 @@ void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMe
         int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
         if (layer_nr == 0)
         {
-            const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+            const Scene& scene = Application::getInstance().current_slice.scene;
+            const ExtruderTrain& train_wall_0 = scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
             line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
-            const ExtruderTrain& train_wall_x = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_x_extruder_nr"));
+            const ExtruderTrain& train_wall_x = scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
             line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
         }
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
@@ -872,7 +875,7 @@ void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage,
 
 void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
 {
-    unsigned int extruder_count = storage.meshgroup->getExtruderCount();
+    const size_t extruder_count = Application::getInstance().current_slice.scene.extruders.size();
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
@@ -885,7 +888,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             {
                 continue; //Special type of mesh that doesn't get printed.
             }
-            for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+            for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
                 for (int layer_nr = mesh.layers.size() - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
                 {
@@ -992,7 +995,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
-    SettingsBaseVirtual* train = storage.meshgroup->getExtruderTrain(getSettingBoolean("adhesion_extruder_nr"));
+    SettingsBaseVirtual* train = &(Application::getInstance().current_slice.scene.extruders[getSettingBoolean("adhesion_extruder_nr")]);
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:

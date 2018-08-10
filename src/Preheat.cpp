@@ -1,6 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h" //To get settings.
 #include "Preheat.h"
 
 namespace cura 
@@ -8,10 +9,8 @@ namespace cura
 
 void Preheat::setConfig(const MeshGroup& meshgroup)
 {
-    for (unsigned int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
+    for (const ExtruderTrain& extruder_train : Application::getInstance().current_slice.scene.extruders)
     {
-        assert(meshgroup.getExtruderTrain(extruder_nr) != nullptr);
-        const ExtruderTrain& extruder_train = *meshgroup.getExtruderTrain(extruder_nr);
         config_per_extruder.emplace_back();
         Config& config = config_per_extruder.back();
         double machine_nozzle_cool_down_speed = extruder_train.getSettingInSeconds("machine_nozzle_cool_down_speed");

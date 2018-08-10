@@ -360,7 +360,7 @@ public:
      * \param extruder_nr the extruder number to check.
      * \return a bool indicating whether prime blob is enabled for the given extruder number.
      */
-    bool getExtruderPrimeBlobEnabled(const unsigned int extruder_nr) const;
+    bool getExtruderPrimeBlobEnabled(const size_t extruder_nr) const;
 
 private:
     /*!

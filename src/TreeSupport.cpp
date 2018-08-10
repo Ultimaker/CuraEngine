@@ -1,14 +1,14 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h" //To get settings.
+#include "TreeSupport.h"
 #include "progress/Progress.h"
 #include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
 #include "utils/polygonUtils.h" //For moveInside.
-
-#include "TreeSupport.h"
 
 #define SQRT_2 1.4142135623730950488 //Square root of 2.
 #define CIRCLE_RESOLUTION 10 //The number of vertices in each circle.
@@ -49,28 +49,28 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
     coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
     unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
-    const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
+    const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice.scene.extruders[adhesion_extruder_nr];
     coord_t extra_skirt_line_width = 0;
     const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-    for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
     {
-        if (extruder == adhesion_extruder_nr || !is_extruder_used[extruder]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+        if (extruder_nr == adhesion_extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
         {
             continue;
         }
-        const ExtruderTrain* other_extruder = storage.meshgroup->getExtruderTrain(extruder);
-        extra_skirt_line_width += other_extruder->getSettingInMicrons("skirt_brim_line_width") * other_extruder->getSettingAsRatio("initial_layer_line_width_factor");
+        const ExtruderTrain& other_extruder = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+        extra_skirt_line_width += other_extruder.getSettingInMicrons("skirt_brim_line_width") * other_extruder.getSettingAsRatio("initial_layer_line_width_factor");
     }
     switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
     {
         case EPlatformAdhesion::BRIM:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("brim_line_count") + extra_skirt_line_width;
+            adhesion_size = adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder.getSettingAsCount("brim_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::RAFT:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("raft_margin");
+            adhesion_size = adhesion_extruder.getSettingInMicrons("raft_margin");
             break;
         case EPlatformAdhesion::SKIRT:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("skirt_line_count") + extra_skirt_line_width;
+            adhesion_size = adhesion_extruder.getSettingInMicrons("skirt_gap") + adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder.getSettingAsCount("skirt_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::NONE:
             adhesion_size = 0;

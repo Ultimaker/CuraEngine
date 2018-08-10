@@ -1,9 +1,12 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <clipper.hpp>
 
-#include "utils/math.h"
+#include "Application.h" //To get settings.
 #include "raft.h"
 #include "support.h"
+#include "utils/math.h"
 
 namespace cura {
 
@@ -11,8 +14,8 @@ void Raft::generate(SliceDataStorage& storage, int distance)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
-    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-    const int shield_line_width_layer0 = train->getSettingInMicrons("skirt_brim_line_width");
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
+    const int shield_line_width_layer0 = train.getSettingInMicrons("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
         Polygons draft_shield_raft = storage.draft_protection_shield.offset(shield_line_width_layer0) // start half a line width outside shield
@@ -26,13 +29,13 @@ void Raft::generate(SliceDataStorage& storage, int distance)
                                         .difference(ooze_shield.offset(-distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raftOutline = storage.raftOutline.unionPolygons(ooze_shield_raft);
     }
-    coord_t smoothing = train->getSettingInMicrons("raft_smoothing");
+    coord_t smoothing = train.getSettingInMicrons("raft_smoothing");
     storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
 }
 
 int Raft::getTotalThickness(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     return train.getSettingInMicrons("raft_base_thickness")
         + train.getSettingInMicrons("raft_interface_thickness")
         + train.getSettingAsCount("raft_surface_layers") * train.getSettingInMicrons("raft_surface_thickness");
@@ -40,7 +43,7 @@ int Raft::getTotalThickness(const SliceDataStorage& storage)
 
 int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
@@ -76,7 +79,7 @@ int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
 
 int Raft::getTotalExtraLayers(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;

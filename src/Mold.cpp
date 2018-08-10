@@ -1,6 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h" //To get settings.
 #include "Mold.h"
 #include "utils/IntPoint.h"
 #include "sliceDataStorage.h"
@@ -56,7 +57,7 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
             coord_t open_polyline_width = mesh.getSettingInMicrons("wall_line_width_0");
             if (layer_nr == 0)
             {
-                const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
+                const ExtruderTrain& train_wall_0 = Application::getInstance().current_slice.scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
                 open_polyline_width *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
             }
             double angle = mesh.getSettingInAngleDegrees("mold_angle");

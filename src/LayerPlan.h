@@ -43,7 +43,7 @@ protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
 
-    int extruder; //!< The extruder used for this paths in the current plan.
+    size_t extruder; //!< The extruder used for this paths in the current plan.
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
     /*!
@@ -256,7 +256,7 @@ private:
 
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
-    int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
+    size_t last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
     SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
 
     std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
@@ -395,17 +395,17 @@ public:
     void setIsInside(bool is_inside);
 
     /*!
-     * Plan a switch to a new extruder
-     * 
-     * \param extruder The extruder number to which to switch
-     * \return whether the extruder has changed
+     * \brief Plan a switch to a new extruder.
+     * \param extruder_nr The extruder number to switch to.
+     * \return Whether the extruder has changed. It won't have changed if we
+     * were already on this extruder.
      */
-    bool setExtruder(int extruder);
+    bool setExtruder(const size_t extruder_nr);
 
     /*!
      * Get the last planned extruder.
      */
-    int getExtruder() const
+    size_t getExtruder() const
     {
         return extruder_plans.back().extruder;
     }

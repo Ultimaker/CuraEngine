@@ -4,14 +4,15 @@
 
 #include "SkirtBrim.h"
 #include "support.h"
+#include "Application.h"
 
 namespace cura 
 {
 
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline)
 {
-    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(storage.meshgroup->getSettingAsExtruderNr("adhesion_extruder_nr"));
-    const bool external_only = is_skirt || train->getSettingBoolean("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.meshgroup->getSettingAsExtruderNr("adhesion_extruder_nr")];
+    const bool external_only = is_skirt || train.getSettingBoolean("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const int layer_nr = 0;
     if (is_skirt)
     {
@@ -107,9 +108,9 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     const bool is_skirt = start_distance > 0;
 
     const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
-    const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
-    const int primary_extruder_skirt_brim_line_width = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor");
-    const int64_t primary_extruder_minimal_length = adhesion_extruder->getSettingInMicrons("skirt_brim_minimal_length");
+    const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice.scene.extruders[adhesion_extruder_nr];
+    const int primary_extruder_skirt_brim_line_width = adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor");
+    const int64_t primary_extruder_minimal_length = adhesion_extruder.getSettingInMicrons("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
 
@@ -183,20 +184,20 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-        for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
         {
-            if (extruder == adhesion_extruder_nr || !extruder_is_used[extruder])
+            if (extruder_nr == adhesion_extruder_nr || !extruder_is_used[extruder_nr])
             {
                 continue;
             }
-            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-            const int width = train->getSettingInMicrons("skirt_brim_line_width") * train->getSettingAsRatio("initial_layer_line_width_factor");
-            const int64_t minimal_length = train->getSettingInMicrons("skirt_brim_minimal_length");
+            const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+            const int width = train.getSettingInMicrons("skirt_brim_line_width") * train.getSettingAsRatio("initial_layer_line_width_factor");
+            const int64_t minimal_length = train.getSettingInMicrons("skirt_brim_minimal_length");
             offset_distance += last_width / 2 + width/2;
             last_width = width;
-            while (storage.skirt_brim[extruder].polygonLength() < minimal_length)
+            while (storage.skirt_brim[extruder_nr].polygonLength() < minimal_length)
             {
-                storage.skirt_brim[extruder].add(first_layer_outline.offset(offset_distance, ClipperLib::jtRound));
+                storage.skirt_brim[extruder_nr].add(first_layer_outline.offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
             }
         }

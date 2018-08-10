@@ -1,5 +1,4 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string.h>
@@ -11,8 +10,6 @@
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
-
-#include "settings/SettingRegistry.h" // loadExtruderJSONsettings
 
 namespace cura
 {
@@ -37,56 +34,7 @@ void* fgets_(char* ptr, size_t len, FILE* f)
 
 MeshGroup::MeshGroup(SettingsBaseVirtual* settings_base)
 : SettingsBase(settings_base)
-, extruder_count(-1)
 {}
-
-MeshGroup::~MeshGroup()
-{
-    for (unsigned int extruder = 0; extruder < MAX_EXTRUDERS; extruder++)
-    {
-        if (extruders[extruder])
-        {
-            delete extruders[extruder];
-        }
-    }
-}
-
-unsigned int MeshGroup::getExtruderCount() const
-{
-    if (extruder_count == -1)
-    {
-        extruder_count = getSettingAsCount("machine_extruder_count");
-    }
-    return extruder_count;
-}
-
-ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
-{
-    assert((int)extruder_nr >= 0 && (int)extruder_nr < getSettingAsCount("machine_extruder_count") && "only valid extruder trains may be requested!");
-    if (!extruders[extruder_nr])
-    {
-        extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
-        int err = SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
-        if (err)
-        {
-            logError("Couldn't load extruder.def.json for extruder %i\n", extruder_nr);
-            std::exit(1);
-        }
-    }
-    return extruders[extruder_nr];
-}
-
-ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr)
-{
-    assert(extruders[extruder_nr]);
-    return extruders[extruder_nr];
-}
-
-const ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr) const
-{
-    assert(extruders[extruder_nr]);
-    return extruders[extruder_nr];
-}
 
 Point3 MeshGroup::min() const
 {
@@ -140,8 +88,6 @@ void MeshGroup::clear()
 
 void MeshGroup::finalize()
 {
-    extruder_count = getSettingAsCount("machine_extruder_count");
-
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
     Point3 meshgroup_offset(0, 0, 0);
     if (!getSettingBoolean("machine_center_is_zero"))

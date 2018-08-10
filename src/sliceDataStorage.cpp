@@ -1,9 +1,9 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "sliceDataStorage.h"
-
+#include "Application.h" //To get settings.
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
+#include "sliceDataStorage.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "infill/DensityProvider.h" // for destructor
 
@@ -331,7 +331,7 @@ Point SliceMeshStorage::getZSeamHint() const
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
 {
     std::vector<RetractionConfig> ret;
-    ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
+    ret.resize(Application::getInstance().current_slice.scene.extruders.size()); // initializes with constructor RetractionConfig()
     return ret;
 }
 
@@ -477,17 +477,17 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
 
     std::vector<bool> ret;
-    ret.resize(meshgroup->getExtruderCount(), false);
+    ret.resize(Application::getInstance().current_slice.scene.extruders.size(), false);
 
     if (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (unsigned int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
             {
-                if (skirt_brim[extr_nr].size() > 0)
+                if (skirt_brim[extruder_nr].size() > 0)
                 {
-                    ret[extr_nr] = true;
+                    ret[extruder_nr] = true;
                     continue;
                 }
             }
@@ -530,7 +530,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
 {
 
     std::vector<bool> ret;
-    ret.resize(meshgroup->getExtruderCount(), false);
+    ret.resize(Application::getInstance().current_slice.scene.extruders.size(), false);
 
     bool include_adhesion = true;
     bool include_helper_parts = true;
@@ -557,11 +557,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (unsigned int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
             {
-                if (skirt_brim[extr_nr].size() > 0)
+                if (skirt_brim[extruder_nr].size() > 0)
                 {
-                    ret[extr_nr] = true;
+                    ret[extruder_nr] = true;
                     continue;
                 }
             }
@@ -614,15 +614,15 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     return ret;
 }
 
-bool SliceDataStorage::getExtruderPrimeBlobEnabled(const unsigned int extruder_nr) const
+bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) const
 {
-    if (extruder_nr >= meshgroup->getExtruderCount())
+    if (extruder_nr >= Application::getInstance().current_slice.scene.extruders.size())
     {
         return false;
     }
 
-    const ExtruderTrain *train = meshgroup->getExtruderTrain(extruder_nr);
-    return train->getSettingBoolean("prime_blob_enable");
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+    return train.getSettingBoolean("prime_blob_enable");
 }
 
 

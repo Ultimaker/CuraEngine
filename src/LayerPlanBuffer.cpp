@@ -146,11 +146,11 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, d
 Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
-    int extruder = extruder_plan.extruder;
+    size_t extruder = extruder_plan.extruder;
     double initial_print_temp = extruder_plan.required_start_temperature;
 
     double in_between_time = 0.0; // the duration during which the extruder isn't used
-    for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
+    for (size_t extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
         ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
         if (extruder_plan_before.extruder == extruder)
@@ -202,8 +202,8 @@ void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_ex
 void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp)
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
-    int extruder = extruder_plan.extruder;
-    for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 2; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
+    size_t extruder = extruder_plan.extruder;
+    for (size_t extruder_plan_before_idx = extruder_plan_idx - 2; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     {
         if (extruder_plans[extruder_plan_before_idx]->extruder == extruder)
         {
@@ -220,7 +220,7 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
-    const int extruder = extruder_plan.extruder;
+    const size_t extruder = extruder_plan.extruder;
     if (!gcode.getExtruderUsesTemp(extruder))
     {
         return;
@@ -327,7 +327,7 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx)
 {
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
-    const int extruder = last_extruder_plan.extruder;
+    const size_t extruder = last_extruder_plan.extruder;
     if (!gcode.getExtruderUsesTemp(extruder))
     {
         return;
@@ -475,7 +475,7 @@ void LayerPlanBuffer::insertTempCommands()
     {
         unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
-        int extruder = extruder_plan.extruder;
+        size_t extruder = extruder_plan.extruder;
         double time = extruder_plan.estimates.getTotalUnretractedTime();
         double avg_flow;
         if (time > 0.0)

@@ -152,7 +152,8 @@ void Application::printLicense() const
 }
 
 void Application::slice(const int argc, char** argv)
-{   
+{
+    //TODO: Fix command line slicing with new setting structure.
     FffProcessor::getInstance()->time_keeper.restart();
     
     FMatrix3x3 transformation; // the transformation applied to a model when loaded
@@ -184,7 +185,7 @@ void Application::slice(const int argc, char** argv)
                         
                         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
                         { // initialize remaining extruder trains and load the defaults
-                            meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+                            //TODO: meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
                         }
 
                         meshgroup->finalize();
@@ -196,7 +197,7 @@ void Application::slice(const int argc, char** argv)
                         FffProcessor::getInstance()->time_keeper.restart();
                         delete meshgroup;
                         meshgroup = new MeshGroup(FffProcessor::getInstance());
-                        last_extruder_train = meshgroup->createExtruderTrain(0); 
+                        //TODO: last_extruder_train = meshgroup->createExtruderTrain(0); 
                         last_settings_object = meshgroup;
                         
                     }catch(...){
@@ -238,7 +239,7 @@ void Application::slice(const int argc, char** argv)
                         str++;
                         extruder_train_nr = std::strtol(str, &str, 10);
                         str--;
-                        last_settings_object = meshgroup->createExtruderTrain(extruder_train_nr);
+                        //TODO: last_settings_object = meshgroup->createExtruderTrain(extruder_train_nr);
                         last_extruder_train = last_settings_object;
                         break;
                     case 'l':
@@ -250,7 +251,7 @@ void Application::slice(const int argc, char** argv)
 
                         if (!last_extruder_train)
                         {
-                            last_extruder_train = meshgroup->createExtruderTrain(0); // assume a json has already been provided on the command line
+                            //TODO: last_extruder_train = meshgroup->createExtruderTrain(0); // assume a json has already been provided on the command line
                         }
                         if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation, last_extruder_train))
                         {
@@ -315,7 +316,7 @@ void Application::slice(const int argc, char** argv)
     int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
     for (extruder_train_nr = 0; extruder_train_nr < extruder_count; extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
-        meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
+        //TODO: meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
     }
     
     

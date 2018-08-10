@@ -26,10 +26,10 @@ private:
     const unsigned int support_infill_extruder_nr;
     const unsigned int support_roof_extruder_nr;
     const unsigned int support_bottom_extruder_nr;
-    const ExtruderTrain* adhesion_extruder_train;
-    const ExtruderTrain* support_infill_train;
-    const ExtruderTrain* support_roof_train;
-    const ExtruderTrain* support_bottom_train;
+    const ExtruderTrain& adhesion_extruder_train;
+    const ExtruderTrain& support_infill_train;
+    const ExtruderTrain& support_roof_train;
+    const ExtruderTrain& support_bottom_train;
 
     const std::vector<double> line_width_factor_per_extruder;
     static std::vector<double> getLineWidthFactorPerExtruder(const SliceDataStorage& storage, int layer_nr);

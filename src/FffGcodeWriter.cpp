@@ -4,7 +4,7 @@
 #include <list>
 #include <limits> // numeric_limits
 
-#include "Application.h" //To send layer view data.
+#include "Application.h"
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
 #include "GcodeLayerThreader.h"
@@ -76,9 +76,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     gcode.writeLayerCountComment(total_layers);
 
     { // calculate the mesh order for each extruder
-        int extruder_count = storage.meshgroup->getExtruderCount();
+        const size_t extruder_count = Application::getInstance().current_slice.scene.settings.get<size_t>("machine_extruder_count");
         mesh_order_per_extruder.reserve(extruder_count);
-        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
             mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
         }
@@ -259,19 +259,18 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
 {
-    for (unsigned int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    for (const ExtruderTrain& train : Application::getInstance().current_slice.scene.extruders)
     {
         fan_speed_layer_time_settings_per_extruder.emplace_back();
         FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder.back();
-        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
-        fan_speed_layer_time_settings.cool_min_layer_time = train->getSettingInSeconds("cool_min_layer_time");
-        fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train->getSettingInSeconds("cool_min_layer_time_fan_speed_max");
-        fan_speed_layer_time_settings.cool_fan_speed_0 = train->getSettingInPercentage("cool_fan_speed_0");
-        fan_speed_layer_time_settings.cool_fan_speed_min = train->getSettingInPercentage("cool_fan_speed_min");
-        fan_speed_layer_time_settings.cool_fan_speed_max = train->getSettingInPercentage("cool_fan_speed_max");
-        fan_speed_layer_time_settings.cool_min_speed = train->getSettingInMillimetersPerSecond("cool_min_speed");
-        fan_speed_layer_time_settings.cool_fan_full_layer = train->getSettingAsLayerNumber("cool_fan_full_layer");
-        if (!train->getSettingBoolean("cool_fan_enabled"))
+        fan_speed_layer_time_settings.cool_min_layer_time = train.getSettingInSeconds("cool_min_layer_time");
+        fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train.getSettingInSeconds("cool_min_layer_time_fan_speed_max");
+        fan_speed_layer_time_settings.cool_fan_speed_0 = train.getSettingInPercentage("cool_fan_speed_0");
+        fan_speed_layer_time_settings.cool_fan_speed_min = train.getSettingInPercentage("cool_fan_speed_min");
+        fan_speed_layer_time_settings.cool_fan_speed_max = train.getSettingInPercentage("cool_fan_speed_max");
+        fan_speed_layer_time_settings.cool_min_speed = train.getSettingInMillimetersPerSecond("cool_min_speed");
+        fan_speed_layer_time_settings.cool_fan_full_layer = train.getSettingAsLayerNumber("cool_fan_full_layer");
+        if (!train.getSettingBoolean("cool_fan_enabled"))
         {
             fan_speed_layer_time_settings.cool_fan_speed_0 = 0;
             fan_speed_layer_time_settings.cool_fan_speed_min = 0;
@@ -282,39 +281,38 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
 {
-    for (unsigned int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    for (const ExtruderTrain& train : Application::getInstance().current_slice.scene.extruders)
     {
         storage.coasting_config.emplace_back();
-        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
         CoastingConfig& coasting_config = storage.coasting_config.back();
-        coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable"); 
-        coasting_config.coasting_volume = std::max(0.0, train->getSettingInCubicMillimeters("coasting_volume"));
-        coasting_config.coasting_min_volume = std::max(0.0, train->getSettingInCubicMillimeters("coasting_min_volume"));
-        coasting_config.coasting_speed = train->getSettingInPercentage("coasting_speed") / 100.0; 
+        coasting_config.coasting_enable = train.getSettingBoolean("coasting_enable"); 
+        coasting_config.coasting_volume = std::max(0.0, train.getSettingInCubicMillimeters("coasting_volume"));
+        coasting_config.coasting_min_volume = std::max(0.0, train.getSettingInCubicMillimeters("coasting_min_volume"));
+        coasting_config.coasting_speed = train.getSettingInPercentage("coasting_speed") / 100.0; 
     }
 }
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    int extruder_count = storage.meshgroup->getExtruderCount();
-    for (int extruder = 0; extruder < extruder_count; extruder++)
+    Scene& scene = Application::getInstance().current_slice.scene;
+    for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
     {
-        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
-        retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? train->getSettingInMillimeters("retraction_amount") : 0;
-        retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
-        retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
-        retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
-        retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
-        retraction_config.retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
-        retraction_config.retraction_extrusion_window = train->getSettingInMillimeters("retraction_extrusion_window");
-        retraction_config.retraction_count_max = train->getSettingAsCount("retraction_count_max");
+        ExtruderTrain& train = scene.extruders[extruder_index];
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_index];
+        retraction_config.distance = (train.getSettingBoolean("retraction_enable"))? train.getSettingInMillimeters("retraction_amount") : 0;
+        retraction_config.prime_volume = train.getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        retraction_config.speed = train.getSettingInMillimetersPerSecond("retraction_retract_speed");
+        retraction_config.primeSpeed = train.getSettingInMillimetersPerSecond("retraction_prime_speed");
+        retraction_config.zHop = train.getSettingInMicrons("retraction_hop");
+        retraction_config.retraction_min_travel_distance = train.getSettingInMicrons("retraction_min_travel");
+        retraction_config.retraction_extrusion_window = train.getSettingInMillimeters("retraction_extrusion_window");
+        retraction_config.retraction_count_max = train.getSettingAsCount("retraction_count_max");
 
-        RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder];
-        switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
+        RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder_index];
+        switch_retraction_config.distance = train.getSettingInMillimeters("switch_extruder_retraction_amount"); 
         switch_retraction_config.prime_volume = 0.0;
-        switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
-        switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
+        switch_retraction_config.speed = train.getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
+        switch_retraction_config.primeSpeed = train.getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
         switch_retraction_config.zHop = retraction_config.zHop; // not used, because the last_retraction_config is used to govern how how high to zHop
         switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
         switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
@@ -324,11 +322,11 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 
 unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
 {
-    int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+    size_t start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::NONE)
     {
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-        for (unsigned int extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
+        for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
         {
             start_extruder_nr = extruder_nr;
             if (extruder_is_used[extruder_nr])
@@ -337,7 +335,7 @@ unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
             }
         }
     }
-    assert(start_extruder_nr >= 0 && start_extruder_nr < storage.meshgroup->getExtruderCount() && "start_extruder_nr must be a valid extruder");
+    assert(start_extruder_nr >= 0 && start_extruder_nr < Application::getInstance().current_slice.scene.extruders.size() && "start_extruder_nr must be a valid extruder");
     return start_extruder_nr;
 }
 
@@ -435,7 +433,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             {
                 if (extruder_is_used[extruder_nr])
                 {
-                    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                    ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
                     double extruder_temp;
                     if (extruder_nr == start_extruder_nr)
                     {
@@ -455,7 +453,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
                 {
                     if (extruder_is_used[extruder_nr])
                     {
-                        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                        ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
                         double extruder_temp;
                         if (extruder_nr == start_extruder_nr)
                         {
@@ -487,7 +485,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     { // initialize extruder trains
         Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
+        const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[start_extruder_nr];
         constexpr bool wait = true;
         double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
         double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
@@ -520,9 +518,9 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.setZ(max_object_height + 5000);
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
-    gcode.writeTravel(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
+    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice.scene.extruders[gcode.getExtruderNr()].getSettingInMillimetersPerSecond("speed_travel"));
     Point start_pos(storage.model_min.x, storage.model_min.y);
-    gcode.writeTravel(start_pos, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"));
+    gcode.writeTravel(start_pos, Application::getInstance().current_slice.scene.extruders[gcode.getExtruderNr()].getSettingInMillimetersPerSecond("speed_travel"));
 
     if (storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0") != 0)
     {
@@ -534,8 +532,8 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
-    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-    
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+
     CombingMode combing_mode = storage.getSettingAsCombingMode("retraction_combing"); 
 
     int z = 0;
@@ -552,19 +550,19 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     { // raft base layer
         int layer_nr = initial_raft_layer_nr;
-        int layer_height = train->getSettingInMicrons("raft_base_thickness");
+        int layer_height = train.getSettingInMicrons("raft_base_thickness");
         z += layer_height;
-        int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
+        int64_t comb_offset = train.getSettingInMicrons("raft_base_line_spacing");
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_base = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_base)
         {
-            double regular_fan_speed = train->getSettingInPercentage("raft_base_fan_speed");
+            double regular_fan_speed = train.getSettingInPercentage("raft_base_fan_speed");
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, combing_mode, comb_offset, train->getSettingInMicrons("raft_base_line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, combing_mode, comb_offset, train.getSettingInMicrons("raft_base_line_width"), train.getSettingBoolean("travel_avoid_other_parts"), train.getSettingBoolean("travel_avoid_supports"), train.getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -588,10 +586,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool skip_some_zags = false;
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
-        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+        const coord_t maximum_resolution = train.getSettingInMicrons("meshfix_maximum_resolution");
 
         Infill infill_comp(
-            EFillMethod::LINES, zig_zaggify_infill, connect_polygons, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"),
+            EFillMethod::LINES, zig_zaggify_infill, connect_polygons, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.getSettingInMicrons("raft_base_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
@@ -612,19 +610,19 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     { // raft interface layer
         int layer_nr = initial_raft_layer_nr + 1;
-        int layer_height = train->getSettingInMicrons("raft_interface_thickness");
+        int layer_height = train.getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
-        int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
+        int64_t comb_offset = train.getSettingInMicrons("raft_interface_line_spacing");
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_interface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_interface)
         {
-            double regular_fan_speed = train->getSettingInPercentage("raft_interface_fan_speed");
+            double regular_fan_speed = train.getSettingInPercentage("raft_interface_fan_speed");
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, combing_mode, comb_offset, train.getSettingInMicrons("raft_interface_line_width"), train.getSettingBoolean("travel_avoid_other_parts"), train.getSettingBoolean("travel_avoid_supports"), train.getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -637,7 +635,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr coord_t infill_outline_width = 0;
         Polygons raftLines;
         int offset_from_poly_outline = 0;
-        double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
+        double fill_angle = train.getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
         constexpr bool zig_zaggify_infill = true;
         constexpr bool connect_polygons = true; // why not?
 
@@ -649,10 +647,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool skip_some_zags = false;
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
-        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+        const coord_t maximum_resolution = train.getSettingInMicrons("meshfix_maximum_resolution");
 
         Infill infill_comp(
-            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_interface_line_spacing"),
+            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.getSettingInMicrons("raft_interface_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
@@ -662,23 +660,23 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
     
-    int layer_height = train->getSettingInMicrons("raft_surface_thickness");
+    int layer_height = train.getSettingInMicrons("raft_surface_thickness");
 
-    for (int raftSurfaceLayer = 1; raftSurfaceLayer <= train->getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
+    for (int raftSurfaceLayer = 1; raftSurfaceLayer <= train.getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
     { // raft surface layers
         const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
-        const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
+        const int64_t comb_offset = train.getSettingInMicrons("raft_surface_line_spacing");
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_surface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_surface)
         {
-            double regular_fan_speed = train->getSettingInPercentage("raft_surface_fan_speed");
+            double regular_fan_speed = train.getSettingInPercentage("raft_surface_fan_speed");
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train->getSettingInMicrons("raft_surface_line_width"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingBoolean("travel_avoid_supports"), train->getSettingInMicrons("travel_avoid_distance"));
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, combing_mode, comb_offset, train.getSettingInMicrons("raft_surface_line_width"), train.getSettingBoolean("travel_avoid_other_parts"), train.getSettingBoolean("travel_avoid_supports"), train.getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
@@ -687,7 +685,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
-        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+        const coord_t maximum_resolution = train.getSettingInMicrons("meshfix_maximum_resolution");
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path.simplify(maximum_resolution); //Remove those micron-movements.
         constexpr coord_t infill_outline_width = 0;
@@ -707,7 +705,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr coord_t pocket_size = 0;
 
         Infill infill_comp(
-            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train->getSettingInMicrons("raft_surface_line_spacing"),
+            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.getSettingInMicrons("raft_surface_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
@@ -762,6 +760,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         }
     }
 
+    const Scene& scene = Application::getInstance().current_slice.scene;
 #pragma omp critical
     Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_thickness);
 
@@ -769,17 +768,17 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
     bool avoid_supports = false;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-    for (unsigned int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
     {
-        if (extruder_is_used[extr_nr])
+        if (extruder_is_used[extruder_nr])
         {
-            ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
+            const ExtruderTrain& extruder = scene.extruders[extruder_nr];
 
-            if (extr->getSettingBoolean("travel_avoid_other_parts"))
+            if (extruder.getSettingBoolean("travel_avoid_other_parts"))
             {
                 avoid_other_parts = true;
-                avoid_supports |= extr->getSettingBoolean("travel_avoid_supports");
-                avoid_distance = std::max(avoid_distance, extr->getSettingInMicrons("travel_avoid_distance"));
+                avoid_supports |= extruder.getSettingBoolean("travel_avoid_supports");
+                avoid_distance = std::max(avoid_distance, extruder.getSettingInMicrons("travel_avoid_distance"));
             }
         }
     }
@@ -790,8 +789,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
         if (layer_nr == 0)
         {
-            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(mesh_settings.getSettingAsExtruderNr((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr"));
-            max_inner_wall_width *= train->getSettingAsRatio("initial_layer_line_width_factor");
+            const ExtruderTrain& train = scene.extruders[mesh_settings.getSettingAsExtruderNr((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr")];
+            max_inner_wall_width *= train.getSettingAsRatio("initial_layer_line_width_factor");
         }
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
@@ -803,7 +802,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         :
         extruder_order_per_layer[layer_nr];
 
-    const coord_t first_outer_wall_line_width = storage.meshgroup->getExtruderTrain(extruder_order.front())->getSettingInMicrons("wall_line_width_0");
+    const coord_t first_outer_wall_line_width = scene.extruders[extruder_order.front()].getSettingInMicrons("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, first_outer_wall_line_width, avoid_other_parts, avoid_supports, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
@@ -903,12 +902,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         return;
     }
     // Start brim close to the prime location
-    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
     Point start_close_to;
-    if (train->getSettingBoolean("prime_blob_enable"))
+    if (train.getSettingBoolean("prime_blob_enable"))
     {
-        bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-        Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+        bool prime_pos_is_abs = train.getSettingBoolean("extruder_prime_pos_abs");
+        Point prime_pos = Point(train.getSettingInMicrons("extruder_prime_pos_x"), train.getSettingInMicrons("extruder_prime_pos_y"));
         start_close_to = prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
     }
     else
@@ -916,8 +915,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
     
-    if(train->getSettingBoolean("brim_outside_only") == true)
-    {   
+    if (train.getSettingBoolean("brim_outside_only") == true)
+    {
         gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
         gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
     }
@@ -1072,8 +1071,8 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }
-    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-    const Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+    const Point layer_start_position = Point(train.getSettingInMicrons("layer_start_x"), train.getSettingInMicrons("layer_start_y"));
     std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
 
     std::vector<unsigned int> ret;
@@ -1157,11 +1156,11 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
 
 
     ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
-    Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
+    Point layer_start_position = Point(train.getSettingInMicrons("layer_start_x"), train.getSettingInMicrons("layer_start_y"));
     PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_config);
     for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
     {
@@ -2176,7 +2175,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const int extruder_nr = (gcode_layer.getLayerNr() <= 0) ? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
-    const ExtruderTrain& infill_extruder = *storage.meshgroup->getExtruderTrain(extruder_nr);
+    const ExtruderTrain& infill_extruder = Application::getInstance().current_slice.scene.extruders[extruder_nr];
 
     coord_t default_support_line_distance = infill_extruder.getSettingInMicrons("support_line_distance");
     
@@ -2318,9 +2317,9 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     }
 
     const int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
-    const ExtruderTrain& roof_extr = *storage.meshgroup->getExtruderTrain(roof_extruder_nr);
+    const ExtruderTrain& roof_extruder = Application::getInstance().current_slice.scene.extruders[roof_extruder_nr];
 
-    const EFillMethod pattern = roof_extr.getSettingAsFillMethod("support_roof_pattern");
+    const EFillMethod pattern = roof_extruder.getSettingAsFillMethod("support_roof_pattern");
     const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_roof_height", gcode_layer.getLayerNr());
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = false; // connections might happen in mid air in between the infill lines
@@ -2336,13 +2335,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
-    const coord_t maximum_resolution = roof_extr.getSettingInMicrons("meshfix_maximum_resolution");
+    const coord_t maximum_resolution = roof_extruder.getSettingInMicrons("meshfix_maximum_resolution");
 
-    coord_t support_roof_line_distance = roof_extr.getSettingInMicrons("support_roof_line_distance");
-    const coord_t support_roof_line_width = roof_extr.getSettingInMicrons("support_roof_line_width");
+    coord_t support_roof_line_distance = roof_extruder.getSettingInMicrons("support_roof_line_distance");
+    const coord_t support_roof_line_width = roof_extruder.getSettingInMicrons("support_roof_line_width");
     if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * support_roof_line_width)
     { // if roof is dense
-        support_roof_line_distance *= roof_extr.getSettingAsRatio("initial_layer_line_width_factor");
+        support_roof_line_distance *= roof_extruder.getSettingAsRatio("initial_layer_line_width_factor");
     }
 
     Polygons infill_outline = support_layer.support_roof;
@@ -2394,9 +2393,9 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     }
 
     const int bottom_extruder_nr = getSettingAsIndex("support_bottom_extruder_nr");
-    const ExtruderTrain& bottom_extr = *storage.meshgroup->getExtruderTrain(bottom_extruder_nr);
+    const ExtruderTrain& bottom_extruder = Application::getInstance().current_slice.scene.extruders[bottom_extruder_nr];
 
-    const EFillMethod pattern = bottom_extr.getSettingAsFillMethod("support_bottom_pattern");
+    const EFillMethod pattern = bottom_extruder.getSettingAsFillMethod("support_bottom_pattern");
     const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_bottom_height", gcode_layer.getLayerNr());
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = true; // less retractions and less moves only make the bottoms easier to print
@@ -2412,9 +2411,9 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
-    const coord_t maximum_resolution = bottom_extr.getSettingInMicrons("meshfix_maximum_resolution");
+    const coord_t maximum_resolution = bottom_extruder.getSettingInMicrons("meshfix_maximum_resolution");
 
-    const coord_t support_bottom_line_distance = bottom_extr.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
+    const coord_t support_bottom_line_distance = bottom_extruder.getSettingInMicrons("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
     Infill bottom_computation(
         pattern, zig_zaggify_infill, connect_polygons, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
         support_bottom_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
@@ -2483,15 +2482,15 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     {
         if (extruder_prime_layer_nr[extruder_nr] == gcode_layer.getLayerNr())
         {
-            ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+            const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
 
-            if (train->getSettingBoolean("prime_blob_enable"))
+            if (train.getSettingBoolean("prime_blob_enable"))
             { // only move to prime position if we do a blob/poop
                 // ideally the prime position would be respected whether we do a blob or not,
                 // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
                 // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
-                bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-                Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+                bool prime_pos_is_abs = train.getSettingBoolean("extruder_prime_pos_abs");
+                Point prime_pos = Point(train.getSettingInMicrons("extruder_prime_pos_x"), train.getSettingInMicrons("extruder_prime_pos_y"));
                 gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
 
                 gcode_layer.planPrime();
@@ -2519,7 +2518,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
         return;
     }
 
-    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
     if (gcode_layer.getLayerNr() == 0 && outermost_prime_tower_extruder != gcode_layer.getExtruder())
     {
         return;
