@@ -395,7 +395,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 {
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
-    if (!CommandSocket::isInstantiated())
+    if (Application::getInstance().communication->isSequential())
     {
         std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
@@ -2541,7 +2541,7 @@ void FffGcodeWriter::finalize()
         extruder_is_used.push_back(gcode.getExtruderIsUsed(extr_nr));
     }
     std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
-    if (CommandSocket::isInstantiated())
+    if (!Application::getInstance().communication->isSequential())
     {
         Application::getInstance().communication->sendGCodePrefix(prefix);
     }

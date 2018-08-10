@@ -34,6 +34,18 @@ public:
     virtual const bool hasSlice() const = 0;
 
     /*
+     * \brief Whether the output needs to be sent from start to finish or not.
+     *
+     * This determines if the g-code output needs to be output from start to
+     * finish in order.
+     * This matters because the start g-code contains information on the
+     * statistics of the print. These statistics can only be generated at the
+     * end of the slice. Preferably we'd send the start g-code last, so that the
+     * statistics in the start g-code can be more accurate.
+     */
+    virtual const bool isSequential() const = 0;
+
+    /*
      * \brief Indicate to the communication channel what the current progress of
      * slicing the current slice is.
      */

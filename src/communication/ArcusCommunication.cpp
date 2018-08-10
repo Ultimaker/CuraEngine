@@ -480,6 +480,11 @@ void ArcusCommunication::flushGCode()
     private_data->gcode_output_stream.str("");
 }
 
+const bool ArcusCommunication::isSequential() const
+{
+    return false; //We don't necessarily need to send the start g-code before the rest. We can send it afterwards when we have more accurate print statistics.
+}
+
 const bool ArcusCommunication::hasSlice() const
 {
     return private_data->socket->getState() != Arcus::SocketState::Closed

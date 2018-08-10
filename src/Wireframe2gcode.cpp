@@ -555,7 +555,7 @@ void Wireframe2gcode::processStartingCode()
 {
     int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
 
-    if (!CommandSocket::isInstantiated())
+    if (Application::getInstance().communication->isSequential())
     {
         std::vector<bool> extruder_is_used;
         extruder_is_used.resize(getSettingAsCount("machine_extruder_count"), false);
