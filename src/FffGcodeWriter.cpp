@@ -1474,9 +1474,19 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                WallOverlapComputation* wall_overlap_computation(nullptr);
-                int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
+                if (part.insets[0].size() > 0)
+                {
+                    // start this first wall at the same vertex the spiral starts
+                    ConstPolygonRef spiral_inset = part.insets[0][0];
+                    const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[bottom_layers];
+                    if (spiral_start_vertex < spiral_inset.size())
+                    {
+                        gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+                    }
+                    WallOverlapComputation* wall_overlap_computation(nullptr);
+                    int wall_0_wipe_dist(0);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
+                }
             }
         }
         // for non-spiralized layers, if bridging is enabled, determine the shape of the unsupported areas below this part
