@@ -1059,8 +1059,22 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
 
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
 {
+    const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
+
+    // we always start at the point the last layer (if any) ended
     const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
     addTravel_simple(origin);
+
+    if (!smooth_contours && last_seam_vertex_idx >= 0) {
+        // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
+        // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
+        // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
+        Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx], wall[(seam_vertex_idx + 1) % wall.size()]);
+        if (vSize(join_first_wall_at - origin) > 10)
+        {
+            addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, 1.0, true);
+        }
+    }
 
     const int n_points = wall.size();
     Polygons last_wall_polygons;
