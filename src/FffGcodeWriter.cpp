@@ -165,31 +165,32 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         ConstPolygonRef last_wall = (*storage.spiralize_wall_outlines[last_layer_nr])[0];
         ConstPolygonRef wall = layer.parts[0].insets[0][0];
         const int n_points = wall.size();
-        const int last_layer_seam_vertex_idx = storage.spiralize_seam_vertex_indices[last_layer_nr];
-        const Point& last_layer_seam_vertex = last_wall[last_layer_seam_vertex_idx];
+        Point last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
 
         // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
         // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
 
-        int seam_vertex_idx = PolygonUtils::findNearestVert(last_layer_seam_vertex, wall);
+        int seam_vertex_idx = PolygonUtils::findNearestVert(last_wall_seam_vertex, wall);
 
-        // now test the candidate seam vertex and if it lies "forward" of the last line segment in the last layer, use the preceding vertex for the seam instead
+        // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
+        // and if it isn't, we move forward
 
-        if (vSize(last_layer_seam_vertex - wall[seam_vertex_idx]) >= mesh.getSettingInMicrons("meshfix_maximum_resolution"))
+        if (vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.getSettingInMicrons("meshfix_maximum_resolution"))
         {
-            // get the vertex that preceded the last layer seam vertex so we can determine the direction of the last line segment output
-            const Point& precedes_last_layer_seam_vertex = last_wall[(last_layer_seam_vertex_idx + last_wall.size() - 1) % last_wall.size()];
+            // get the inward normal of the last layer seam vertex
+            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
 
-            // test if our candidate seam vertex is "forward" of the last line segment output
-            double a = LinearAlg2D::getAngleLeft(precedes_last_layer_seam_vertex, last_layer_seam_vertex, wall[seam_vertex_idx]);
+            // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
-            const double half_sector_width = M_PI/2;
+            // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
+            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
-            if (a > (M_PI-half_sector_width) && a < (M_PI+half_sector_width))
+            if (a <= 0 || a >= M_PI)
             {
-                // the candidate seam vertex is forward of the last layer's end point but we want it to be behind so
-                // use the preceding vertex as the seam
-                seam_vertex_idx = (seam_vertex_idx + n_points - 1) % n_points;
+                // the vertex was not on the left of the vector so move the seam vertex on
+                seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
             }
         }
 
