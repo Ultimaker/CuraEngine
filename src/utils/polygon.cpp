@@ -182,9 +182,9 @@ unsigned int Polygons::findInside(Point p, bool border_result)
         return false;
     }
     
-    int64_t min_x[size()];
+    int64_t* min_x = static_cast<int64_t*>(alloca(sizeof(int64_t) * size()));
     std::fill_n(min_x, size(), std::numeric_limits<int64_t>::max());  // initialize with int.max
-    int crossings[size()];
+    int* crossings = static_cast<int*>(alloca(sizeof(int) * size()));
     std::fill_n(crossings, size(), 0);  // initialize with zeros
     
     for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)

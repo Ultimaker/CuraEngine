@@ -15,7 +15,7 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
-    bool picked[polygons.size()];
+    bool* picked = static_cast<bool*>(alloca(sizeof(bool) * polygons.size()));
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     loc_to_line = nullptr;
 
@@ -209,7 +209,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
-    bool picked[polygons.size()];
+    bool* picked = static_cast<bool*>(alloca(sizeof(bool) * polygons.size()));
 
     loc_to_line = nullptr;
 
