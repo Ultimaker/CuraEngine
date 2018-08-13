@@ -37,13 +37,13 @@ public:
     /*
      * \brief Indicate that we're beginning to send g-code.
      */
-    void beginGCode();
+    void beginGCode() override;
 
     /*
      * \brief Flush all g-code still in the stream into a message queued in the
      * socket.
      */
-    void flushGCode();
+    void flushGCode() override;
 
     /*
      * \brief Indicates that for Arcus we don't need to send the g-code from
