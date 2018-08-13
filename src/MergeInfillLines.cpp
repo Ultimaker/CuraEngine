@@ -23,29 +23,42 @@ namespace cura
 
 
     /*
-     * first_is_already_merged == false
+     * first_is_already_merged == false, first_path_start_may_move == false
      *
      *       o     o
      *      /     /
      *     /     /
-     *    /     /      --->     o-----o
+     *    /  +  /      --->     o-----o
      *   /     /               /
      *  /     /               /
      * o     o               o
      *
+     * first_is_already_merged == false, first_path_start_may_move == true
+     *
+     *       o     o
+     *      /     /
+     *     /     /
+     *    /  +  /      --->   -(t)-o-----o
+     *   /     /
+     *  /     /
+     * o     o
+     *
+     * travel (t) to first location is done through first_path_start_changed and new_first_path_start.
+     * this gets rid of the tiny "blips". Depending on the merged line distance a small gap may appear, but this is
+     * accounted for in the volume.
      *
      * first_is_already_merged == true
      *
      *                   o
      *                  /
      *                 /
-     *    o-----o     /     --->    o-----------o   or with slight   o-----o-----o
+     *    o-----o  +  /     --->    o-----------o   or with slight   o-----o-----o
      *   /           /             /                   bend         /
      *  /           /             /                                /
      * o           o             o                                o
      *
      */
-    void MergeInfillLines::mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start) const
+    void MergeInfillLines::mergeLinesSideBySide(const bool first_is_already_merged, const bool first_path_start_may_move, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, bool& first_path_start_changed, Point& new_first_path_start) const
     {
         coord_t first_path_length_flow = 0;
         Point average_first_path;
@@ -100,6 +113,11 @@ namespace cura
         else
         {
             first_path.points.clear();
+            if (first_path_start_may_move)
+            {
+                first_path_start_changed = true;
+                new_first_path_start = average_first_path;
+            }
             first_path.points.push_back(average_first_path);
             first_path.points.push_back(average_second_path);
         }
@@ -114,7 +132,7 @@ namespace cura
     }
 
 
-    bool MergeInfillLines::tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, Point second_path_start) const
+    bool MergeInfillLines::tryMerge(const bool first_is_already_merged, const bool first_path_start_may_change, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, Point second_path_start, bool& first_path_start_changed, Point& new_first_path_start) const
     {
         if (first_path.config->isTravelPath()) //Don't merge travel moves.
         {
@@ -194,12 +212,12 @@ namespace cura
             return false;
         }
 
-        mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start);
+        mergeLinesSideBySide(first_is_already_merged, first_path_start_may_change, first_path, first_path_start, second_path, second_path_start, first_path_start_changed, new_first_path_start);
         return true;
     }
 
 
-    bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Point starting_position) const
+    bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Point& starting_position) const
     {
         /* Algorithm overview:
             1. Loop over all lines to see if they can be merged.
@@ -215,21 +233,34 @@ namespace cura
 
         //For each two adjacent lines, see if they can be merged.
         size_t first_path_index = 0;
-        Point first_path_start = starting_position;
+        Point first_path_start = Point(starting_position.X, starting_position.Y);  // this one is not going to be overwritten
         size_t second_path_index = 1;
+        size_t first_path_start_index = 1;
+        size_t second_path_start_index = 1;
+        bool first_path_start_may_change = false;
+        bool second_path_start_may_change;
 
         for (; second_path_index < paths.size(); second_path_index++)
         {
             GCodePath& first_path = paths[first_path_index];
             GCodePath& second_path = paths[second_path_index];
+            second_path_start_index = second_path_index - 1;
             Point second_path_start = paths[second_path_index - 1].points.back();
+            second_path_start_may_change = paths[second_path_index - 1].config->isTravelPath() && second_path_index != 1;
             if (second_path.config->isTravelPath())
             {
                 continue; //Skip travel paths.
             }
 
-            if (tryMerge(is_merged.find(first_path_index) != is_merged.end(), first_path, first_path_start, second_path, second_path_start))
+            bool first_path_start_changed = false;
+            Point new_first_path_start;
+            if (tryMerge(is_merged.find(first_path_index) != is_merged.end(), first_path_start_may_change, first_path, first_path_start, second_path, second_path_start, first_path_start_changed, new_first_path_start))
             {
+                if (first_path_start_changed)
+                {
+                    paths[first_path_start_index].points.back().X = new_first_path_start.X;
+                    paths[first_path_start_index].points.back().Y = new_first_path_start.Y;
+                }
                 /* If we combine two lines, the next path may also be merged into the fist line, so we do NOT update
                 first_path_index. */
                 for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
@@ -247,7 +278,9 @@ namespace cura
                 /* If we do not combine, the next iteration we must simply merge the
                 second path with the line after it. */
                 first_path_index = second_path_index;
+                first_path_start_index = second_path_start_index;
                 first_path_start = second_path_start;
+                first_path_start_may_change = second_path_start_may_change;
             }
         }
 
