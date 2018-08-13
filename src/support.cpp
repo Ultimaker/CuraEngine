@@ -353,7 +353,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                         {
                             continue;
                         }
-                        if (not part.outline_boundary_box.hit(lower_layer_part.outline_boundary_box))
+                        if (!part.outline_boundary_box.hit(lower_layer_part.outline_boundary_box))
                         {
                             continue;
                         }
