@@ -680,7 +680,7 @@ public:
      */
     void addLine(const Point from, const Point to)
     {
-        paths.emplace_back((std::initializer_list<Point>){from, to});
+        paths.emplace_back(ClipperLib::Path{from, to});
     }
 
     template<typename... Args>
