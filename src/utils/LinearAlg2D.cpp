@@ -153,6 +153,7 @@ coord_t LinearAlg2D::getDist2FromLine(const Point p, const Point a, const Point 
     //  :
     //  p
     // return px_size
+    assert(a != b);  // the line can't be a point
     const Point vab = b - a;
     const Point vap = p - a;
     const coord_t dott = dot(vab, vap);

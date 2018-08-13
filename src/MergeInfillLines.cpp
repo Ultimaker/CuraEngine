@@ -186,6 +186,10 @@ namespace cura
         {
             return false; //Lines are too far away from each other.
         }
+        if (merged_direction.X == 0 && merged_direction.Y == 0)
+        {
+            return true;  // we can just disregard the second point as it's exactly at the leave point of the first path.
+        }
         if (LinearAlg2D::getDist2FromLine(first_path_start,  second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
             || LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
             || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
