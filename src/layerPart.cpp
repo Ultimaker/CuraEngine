@@ -47,7 +47,8 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers,
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 #pragma omp parallel for default(none) shared(mesh,slicer) firstprivate(union_layers,union_all_remove_holes) schedule(dynamic)
-    for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
+    // Use a signed type for the loop counter so MSVC compiles
+    for (int layer_nr = 0; layer_nr < total_layers; layer_nr++)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
         SlicerLayer& slice_layer = slicer->layers[layer_nr];

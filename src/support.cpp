@@ -785,7 +785,8 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
     #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
-    for (unsigned int layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
+    // Use a signed type for the loop counter so MSVC compiles
+    for (int layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
         mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
@@ -840,7 +841,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
-    for (unsigned int layer_idx = 1; layer_idx < layer_count; layer_idx++)
+    // Use a signed type for the loop counter so MSVC compiles
+    for (int layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, false);
         if (!is_support_mesh_place_holder)
@@ -1043,7 +1045,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                                                   , static_cast<int>(layer_count - (layer_z_distance_top - 1)));
         const size_t max_checking_idx_size_t = std::max(0, max_checking_layer_idx);
 #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
-        for (size_t layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
+        // Use a signed type for the loop counter so MSVC compiles
+        for (int layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
         {
             support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, false));
         }
