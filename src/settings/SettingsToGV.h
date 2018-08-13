@@ -6,7 +6,11 @@
 #include <stdio.h> // for file output
 #include <sstream>
 #include <iostream> // debug IO
+#ifdef _WIN32
+#include <windows.h> // GetFullPathNameA
+#else
 #include <libgen.h> // dirname
+#endif
 #include <string>
 #include <algorithm> // find_if
 #include <regex> // regex_search
@@ -262,9 +266,16 @@ private:
         
         if (json_document.HasMember("inherits"))
         {
-            std::string filename_copy = std::string(filename.c_str()); // copy the string because dirname(.) changes the input string!!!
-            char* filename_cstr = (char*)filename_copy.c_str();
-            int err = generate(std::string(dirname(filename_cstr)) + std::string("/") + json_document["inherits"].GetString());
+            char* filename_cstr = static_cast<char*>(alloca(sizeof(char) * (filename.size() + 1)));
+#ifdef _WIN32
+            char* name_start;
+            GetFullPathNameA(filename.c_str(), filename.size() + 1, filename_cstr, &name_start);
+            std::string folder_name{filename_cstr, name_start};
+#else
+            std::strcpy(filename_cstr, filename.c_str()); // copy the string because dirname(.) changes the input string!!!
+            std::string folder_name = std::string(dirname(filename_cstr));
+#endif
+            int err = generate(folder_name + std::string("/") + json_document["inherits"].GetString());
             if (err)
             {
                 return err;
