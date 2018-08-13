@@ -2,7 +2,6 @@
 
 #include <cmath> // sqrt
 #include <fstream> // debug IO
-#include <unistd.h>
 
 #include "progress/Progress.h"
 #include "weaveDataStorage.h"
