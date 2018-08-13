@@ -420,6 +420,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
     {
         extruder_attr[e].totalFilament = 0.0;
         extruder_attr[e].currentTemperature = 0;
+        extruder_attr[e].waited_for_temperature = false;
     }
     current_e_value = 0.0;
     estimateCalculator.reset();
@@ -1040,7 +1041,7 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
         return;
     }
 
-    if (!wait && extruder_attr[extruder].currentTemperature == temperature)
+    if ((!wait || extruder_attr[extruder].waited_for_temperature) && extruder_attr[extruder].currentTemperature == temperature)
     {
         return;
     }
@@ -1052,10 +1053,12 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
             *output_stream << "M105" << new_line; // get temperatures from the last update, the M109 will not let get the target temperature
         }
         *output_stream << "M109";
+        extruder_attr[extruder].waited_for_temperature = true;
     }
     else
     {
         *output_stream << "M104";
+        extruder_attr[extruder].waited_for_temperature = false;
     }
     if (extruder != current_extruder)
     {
