@@ -87,6 +87,10 @@ if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
 endif()
 
+if (WIN32)
+    add_definitions(-DNOMINMAX)
+endif()
+
 option (ENABLE_OPENMP
     "Use OpenMP for parallel code" ON)
 
