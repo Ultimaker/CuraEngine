@@ -22,14 +22,17 @@ class Infill
 
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
+    bool connect_polygons; //!< Whether to connect as much polygons together into a single path
     const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
     coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
     coord_t infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
+    int infill_multiplier; //!< the number of infill lines next to each other
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z; //!< height of the layer for which we generate infill
     coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    int wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
@@ -51,14 +54,17 @@ public:
      */
     Infill(EFillMethod pattern
         , bool zig_zaggify
+        , bool connect_polygons
         , const Polygons& in_outline
         , coord_t outline_offset
         , coord_t infill_line_width
         , coord_t line_distance
         , coord_t infill_overlap
+        , int infill_multiplier
         , double fill_angle
         , coord_t z
         , coord_t shift
+        , int wall_line_count = 0
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
@@ -70,14 +76,17 @@ public:
     )
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
+    , connect_polygons(connect_polygons)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
     , infill_line_width(infill_line_width)
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
+    , infill_multiplier(infill_multiplier)
     , fill_angle(fill_angle)
     , z(z)
     , shift(shift)
+    , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
     , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
@@ -100,6 +109,24 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
+    /*!
+     * Generate the infill pattern without the infill_multiplier functionality
+     */
+    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+
+    /*!
+     * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
+     * 
+     * This is done in a way such that there is not overlap between the lines
+     * except the middle original one if the multiplier is odd.
+     * 
+     * This introduces a lot of line segments.
+     * 
+     * \param[in,out] result_polygons The polygons to be multiplied (input and output)
+     * \param[in,out] result_lines The lines to be multiplied (input and output)
+     */
+    void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
+
     struct InfillLineSegment
     {
         /*!

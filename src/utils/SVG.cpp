@@ -26,7 +26,7 @@ std::string SVG::toString(Color color)
 SVG::SVG(const char* filename, AABB aabb, Point canvas_size)
 : aabb(aabb)
 , aabb_size(aabb.max - aabb.min)
-, border(200,100)
+, border(canvas_size.X / 5, canvas_size.Y / 10)
 , canvas_size(canvas_size)
 , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
 {

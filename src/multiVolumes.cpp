@@ -15,6 +15,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_or
         if (volume_1.mesh->getSettingBoolean("infill_mesh") 
             || volume_1.mesh->getSettingBoolean("anti_overhang_mesh")
             || volume_1.mesh->getSettingBoolean("support_mesh")
+            || volume_1.mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
             )
         {
             continue;
@@ -25,6 +26,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_or
             if (volume_2.mesh->getSettingBoolean("infill_mesh")
                 || volume_2.mesh->getSettingBoolean("anti_overhang_mesh")
                 || volume_2.mesh->getSettingBoolean("support_mesh")
+                || volume_2.mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                 )
             {
                 continue;
@@ -113,8 +115,9 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];
-                //Do not apply cutting_mesh for meshes which have settings (cutting_mesh, anti_overhang_mesh).
-                if (carved_mesh.getSettingBoolean("cutting_mesh") || carved_mesh.getSettingBoolean("anti_overhang_mesh"))
+                //Do not apply cutting_mesh for meshes which have settings (cutting_mesh, anti_overhang_mesh, support_mesh).
+                if (carved_mesh.getSettingBoolean("cutting_mesh") || carved_mesh.getSettingBoolean("anti_overhang_mesh")
+                    || carved_mesh.getSettingBoolean("support_mesh"))
                 {
                     continue;
                 }

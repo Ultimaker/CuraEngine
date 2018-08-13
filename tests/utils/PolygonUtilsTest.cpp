@@ -421,5 +421,140 @@ void PolygonUtilsTest::spreadDotsAssert(PolygonsPointIndex start, PolygonsPointI
     }
 }
 
+void PolygonUtilsTest::getNextParallelIntersectionTest1()
+{
+    Point start_point(20, 100);
+    Point line_to = Point(150, 200);
+    bool forward = true;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(0, 40), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest2()
+{
+    Point start_point(80, 100);
+    Point line_to = Point(150, 200);
+    bool forward = true;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(37, 100), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest3()
+{
+    Point start_point(20, 100);
+    Point line_to = Point(120, 200);
+    bool forward = false;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(70, 100), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest4()
+{
+    Point start_point(50, 100);
+    Point line_to = Point(150, 200);
+    bool forward = true;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(0, 0), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest5()
+{
+    Point start_point(10, 0);
+    Point line_to = Point(-90, -100);
+    bool forward = true;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(60, 0), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest6()
+{
+    Point start_point(10, 0);
+    Point line_to = Point(-90, -100);
+    bool forward = false;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(0, 40), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest7()
+{
+    Point start_point(50, 100);
+    Point line_to = Point(150, 100);
+    bool forward = true;
+    coord_t dist = 25;
+    getNextParallelIntersectionAssert(Point(0, 75), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest8()
+{
+    Point start_point(50, 100);
+    Point line_to = Point(50, 200);
+    bool forward = true;
+    coord_t dist = 25;
+    getNextParallelIntersectionAssert(Point(25, 100), start_point, line_to, forward, dist);
+}
+void PolygonUtilsTest::getNextParallelIntersectionTest9()
+{
+    Point start_point(100, 100);
+    Point line_to = Point(200, 200);
+    bool forward = true;
+    coord_t dist = 80;
+    getNextParallelIntersectionAssert(std::optional<Point>(), start_point, line_to, forward, dist);
+}
+
+void PolygonUtilsTest::getNextParallelIntersectionTest10()
+{
+    Point start_point(5, 100);
+    Point line_to = Point(105, 200);
+    bool forward = true;
+    coord_t dist = 35;
+    getNextParallelIntersectionAssert(Point(0, 45), start_point, line_to, forward, dist);
+}
+
+void PolygonUtilsTest::getNextParallelIntersectionAssert(std::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist)
+{
+    ClosestPolygonPoint start = PolygonUtils::findClosest(start_point, test_squares);
+    std::optional<ClosestPolygonPoint> computed = PolygonUtils::getNextParallelIntersection(start, line_to, dist, forward);
+
+    std::stringstream ss;
+    ss << "PolygonUtils::getNextParallelIntersection(" << start_point << ", " << line_to << ", " << dist << ", " << forward << ") ";
+
+    constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
+
+    auto draw = [this, predicted, start, line_to, dist, computed]()
+        {
+            if (!draw_problem_scenario)
+            {
+                return;
+            }
+            SVG svg("output/bs.svg", AABB(test_squares), Point(500,500));
+            svg.writePolygons(test_squares);
+            svg.writeLine(start.p(), line_to, SVG::Color::BLUE);
+            svg.writePoint(start.p(), true);
+            Point vec = line_to - start.p();
+            Point shift = normal(turn90CCW(vec), dist);
+            svg.writeLine(start.p() - vec + shift, line_to + vec + shift, SVG::Color::GREEN);
+            svg.writeLine(start.p() - vec - shift, line_to + vec - shift, SVG::Color::GREEN);
+            if (computed)
+            {
+                svg.writePoint(computed->p(), true, 5, SVG::Color::RED);
+            }
+            if (predicted)
+            {
+                svg.writePoint(*predicted, true, 5, SVG::Color::GREEN);
+            }
+        };
+
+    if (!predicted && computed)
+    {
+        draw();
+        ss << "gave a result (" << computed->p() << ") rather than the predicted no result!\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    if (predicted && !computed)
+    {
+        draw();
+        ss << "gave no result rather than the predicted " << *predicted << "!\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    if (predicted && computed)
+    {
+        draw();
+        ss << "gave " << computed->p() << " while it was predicted to be " << *predicted << "!\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(*predicted - computed->p()) < maximum_error);
+    }
+}
 
 }

@@ -164,7 +164,7 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
             }
             else
             {
-                layer.getInnermostWalls(comb_boundary, max_inset);
+                layer.getInnermostWalls(comb_boundary, max_inset, mesh);
             }
         }
         return comb_boundary;
@@ -196,7 +196,10 @@ bool LayerPlan::setExtruder(int extruder)
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
-        addTravel(end_pos); //  + extruder_offset cause it 
+        if (end_pos_absolute || last_planned_position)
+        {
+            addTravel(end_pos); //  + extruder_offset cause it
+        }
     }
     if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
@@ -224,7 +227,10 @@ bool LayerPlan::setExtruder(int extruder)
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
-        last_planned_position = start_pos;
+        if (start_pos_absolute || last_planned_position)
+        {
+            last_planned_position = start_pos;
+        }
     }
     return true;
 }
@@ -494,10 +500,12 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index)
         {
             int poly_idx = orderOptimizer.polyOrder[index];
-            addPolygon(polygons[poly_idx], orderOptimizer.polyOrder[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
+
+static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
 {
@@ -527,6 +535,10 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             // if we are accelerating after a bridge line, the segment length is less than the whole line length
             Point segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len) ? line_end : cur_point + (line_end - cur_point) * acceleration_segment_len / distance_to_line_end;
 
+            // flow required for the next line segment - when accelerating after a bridge segment, the flow is increased in inverse proportion to the speed_factor
+            // so the slower the feedrate, the greater the flow - the idea is to get the extruder back to normal pressure as quickly as possible
+            const float segment_flow = (speed_factor < 1) ? flow * (1 / speed_factor) : flow;
+
             // if a bridge is present in this wall, this particular segment may need to be partially or wholely coasted
             if (distance_to_bridge_start > 0)
             {
@@ -536,7 +548,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
-                const double coast_dist = std::min(non_bridge_line_volume, 100000.0f) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
+                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
@@ -550,7 +562,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                     if ((len - coast_dist) > min_line_len)
                     {
                         // segment is longer than coast distance so extrude using non-bridge config to start of coast
-                        addExtrusionMove(segment_end + coast_dist * (cur_point - segment_end) / len, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, speed_factor);
+                        addExtrusionMove(segment_end + coast_dist * (cur_point - segment_end) / len, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
                     }
                     // then coast to start of bridge segment
                     addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, 0, spiralize, speed_factor);
@@ -558,7 +570,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, speed_factor);
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
                 }
 
                 distance_to_bridge_start -= len;
@@ -566,9 +578,9 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, speed_factor);
+                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
             }
-            non_bridge_line_volume += vSize(cur_point - segment_end) * flow * speed_factor * non_bridge_config.getSpeed();
+            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             distance_to_line_end = vSize(cur_point - line_end);
@@ -686,7 +698,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
         }
     }
 
-    float non_bridge_line_volume = 0; // zero before first non-bridge line is output
+    float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
@@ -906,8 +918,10 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
     orderOptimizer.optimize();
-    for (int poly_idx : orderOptimizer.polyOrder)
+
+    for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
+        const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
         ConstPolygonRef polygon = polygons[poly_idx];
         const size_t start = orderOptimizer.polyStart[poly_idx];
         const size_t end = 1 - start;
@@ -915,11 +929,34 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         addTravel(p0);
         const Point& p1 = polygon[end];
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+
+        // Wipe
         if (wipe_dist != 0)
         {
+            bool wipe = true;
             int line_width = config.getLineWidth();
-            if (vSize2(p1-p0) > line_width * line_width * 4)
-            { // otherwise line will get optimized by combining multiple into a single extrusion move
+
+            // Don't wipe is current extrusion is too small
+            if (vSize2(p1 - p0) <= line_width * line_width * 4)
+            {
+                wipe = false;
+            }
+
+            // Don't wipe if next starting point is very near
+            if (wipe && (order_idx < orderOptimizer.polyOrder.size() - 1))
+            {
+                const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
+                ConstPolygonRef next_polygon = polygons[next_poly_idx];
+                const size_t next_start = orderOptimizer.polyStart[next_poly_idx];
+                const Point& next_p0 = next_polygon[next_start];
+                if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
+                {
+                    wipe = false;
+                }
+            }
+
+            if (wipe)
+            {
                 addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }

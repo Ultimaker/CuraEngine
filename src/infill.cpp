@@ -11,6 +11,7 @@
 #include "utils/UnionFind.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/ImageBasedDensityProvider.h"
+#include "utils/PolygonConnector.h"
 #include "infill/UniformDensityProvider.h"
 
 /*!
@@ -41,10 +42,50 @@ namespace cura {
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
+    coord_t outline_offset_raw = outline_offset;
+    outline_offset -= wall_line_count * infill_line_width; // account for extra walls
+
+    if (infill_multiplier > 1)
+    {
+        bool zig_zaggify_real = zig_zaggify;
+        if (infill_multiplier % 2 == 0)
+        {
+            zig_zaggify = false; // generate the basic infill pattern without going via the borders
+        }
+        Polygons generated_result_polygons;
+        Polygons generated_result_lines;
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        zig_zaggify = zig_zaggify_real;
+        multiplyInfill(generated_result_polygons, generated_result_lines);
+        result_polygons.add(generated_result_polygons);
+        result_lines.add(generated_result_lines);
+    }
+    else
+    {
+        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+    }
+
+    // generate walls around infill pattern
+    for (unsigned int wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
+    {
+        const coord_t distance_from_outline_to_wall = outline_offset_raw - infill_line_width / 2 - wall_idx * infill_line_width;
+        result_polygons.add(in_outline.offset(distance_from_outline_to_wall));
+    }
+
+    if (connect_polygons)
+    {
+        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        connector.add(result_polygons);
+        result_polygons = connector.connect();
+    }
+}
+
+void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+{
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
 
-    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
     {
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
@@ -103,11 +144,91 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     //TODO: The connected lines algorithm is only available for linear-based infill, for now.
     //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
     //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-    if (zig_zaggify && (pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
     {
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+}
+
+void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
+{
+    if (pattern == EFillMethod::CONCENTRIC)
+    {
+        result_polygons = result_polygons.processEvenOdd(); // make into areas
+    }
+
+    bool odd_multiplier = infill_multiplier % 2 == 1;
+    coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
+
+    if (zig_zaggify && !odd_multiplier)
+    {
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+    }
+
+    const Polygons outline = in_outline.offset(outline_offset);
+
+    Polygons result;
+    Polygons first_offset;
+    { // calculate [first_offset]
+        const Polygons first_offset_lines = result_lines.offsetPolyLine(offset); // make lines on both sides of the input lines
+        const Polygons first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
+        const Polygons first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
+        const Polygons first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
+        first_offset = first_offset_lines.unionPolygons(first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
+        if (zig_zaggify)
+        {
+            first_offset = outline.difference(first_offset);
+        }
+    }
+    result.add(first_offset);
+    Polygons reference_polygons = first_offset;
+    for (int infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
+    {
+        Polygons extra_offset = reference_polygons.offset(-infill_line_width);
+        result.add(extra_offset);
+        reference_polygons = std::move(extra_offset);
+    }
+
+    if (zig_zaggify)
+    {
+        result = result.intersection(outline);
+    }
+
+    if (!odd_multiplier)
+    {
+        result_polygons.clear();
+        result_lines.clear();
+    }
+    result_polygons.add(result);
+    if (!zig_zaggify)
+    {
+        for (PolygonRef poly : result_polygons)
+        { // make polygons into polylines
+            if (poly.empty())
+            {
+                continue;
+            }
+            poly.add(poly[0]);
+        }
+        Polygons polylines = outline.intersectionPolyLines(result_polygons);
+        for (PolygonRef polyline : polylines)
+        {
+            Point last_point = no_point;
+            for (Point point : polyline)
+            {
+                Polygon line;
+                if (last_point != no_point)
+                {
+                    line.add(last_point);
+                    line.add(point);
+                    result_lines.add(line);
+                }
+                last_point = point;
+            }
+        }
+        result_polygons.clear(); // the output should only contain polylines
+    }
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
