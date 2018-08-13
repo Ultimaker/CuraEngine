@@ -28,6 +28,9 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__ ((deprecated))
 #elif defined(_MSC_VER)
+// This is needed to define M_PI under msvc
+#define _USE_MATH_DEFINES
+#include <math.h>
 #define DEPRECATED(func) __declspec(deprecated) func
 #else
 #pragma message("WARNING: You need to implement DEPRECATED for this compiler")
