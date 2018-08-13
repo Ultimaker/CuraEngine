@@ -143,15 +143,6 @@ namespace cura
         const coord_t first_size = vSize(first_direction);  // it's an estimate if first_is_already_merged as it may contain more points, but we're mostly going one direction
         const coord_t second_size = vSize(second_direction);
         const coord_t line_width = first_path.config->getLineWidth();
-        //Restrict length, this prevents wide gaps to be filled with a very wide line.
-        if (!first_is_already_merged && first_size > 3 * line_width)
-        {
-            return false;
-        }
-        if (second_size > 3 * line_width)
-        {
-            return false;
-        }
 
         //Check if lines are connected end-to-end and can be merged that way.
         if (vSize2(first_path_end - second_path_start) < line_width * line_width || vSize2(first_path_start - second_path_end) < line_width * line_width) //Paths are already (practically) connected, end-to-end.
@@ -190,10 +181,11 @@ namespace cura
         {
             return true;  // we can just disregard the second point as it's exactly at the leave point of the first path.
         }
-        if (LinearAlg2D::getDist2FromLine(first_path_start,  second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width)
+        // Max 1 line width to the side of the merged_direction
+        if (LinearAlg2D::getDist2FromLine(first_path_start,  second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
+            || LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width)
         {
             return false; //One of the lines is too far from the merged line. Lines would be too wide or too far off.
         }
