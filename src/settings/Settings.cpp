@@ -9,7 +9,6 @@
 #include <string> //Parsing strings (stod, stoul).
 
 #include "Settings.h"
-#include "SettingRegistry.h"
 #include "types/AngleDegrees.h" //For angle settings.
 #include "types/AngleRadians.h" //For angle settings.
 #include "types/Duration.h" //For duration and time settings.
@@ -591,23 +590,9 @@ SettingsMessenger::SettingsMessenger(SettingsBaseVirtual* parent)
 {
 }
 
-void SettingsBase::_setSetting(std::string key, std::string value)
-{
-    setting_values[key] = value;
-}
-
-
 void SettingsBase::setSetting(std::string key, std::string value)
 {
-    if (SettingRegistry::getInstance()->settingExists(key))
-    {
-        _setSetting(key, value);
-    }
-    else
-    {
-        cura::logWarning("Setting an unregistered setting %s to %s\n", key.c_str(), value.c_str());
-        _setSetting(key, value); // Handy when programmers are in the process of introducing a new setting
-    }
+    setting_values[key] = value;
 }
 
 void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent)

@@ -152,13 +152,6 @@ public:
         for (auto pair : setting_values)
             std::cerr << pair.first << " : " << pair.second << std::endl;
     }
-protected:
-    /*!
-     * Set a setting without checking if it's registered.
-     * 
-     * Used in SettingsRegistry
-     */
-    void _setSetting(std::string key, std::string value);
 };
 
 /*!

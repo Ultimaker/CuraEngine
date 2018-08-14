@@ -14,7 +14,6 @@
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
 #include "../FffProcessor.h" //To start a slice and get time estimates.
-#include "../settings/SettingRegistry.h" //To load JSON files with setting definitions.
 
 namespace cura
 {
