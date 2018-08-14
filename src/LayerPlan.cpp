@@ -1637,14 +1637,6 @@ void LayerPlan::optimizePaths(const Point& starting_position)
     for (ExtruderPlan& extr_plan : extruder_plans)
     {
         //Merge paths whose endpoints are very close together into one line.
-        if (layer_nr == 235)
-        {
-            std::cout << "yooo\n";
-        }
-        if (layer_nr == 236)
-        {
-            std::cout << "nooo\n";
-        }
         MergeInfillLines merger(extr_plan);
         merger.mergeInfillLines(extr_plan.paths, starting_position);
     }

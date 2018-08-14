@@ -238,7 +238,6 @@ namespace cura
             const bool first_is_already_merged = is_merged.find(first_path_index) != is_merged.end();
             if (allow_try_merge && tryMerge(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start))
             {
-//                std::cout << "yess \n";
 //                if (!first_is_already_merged)
 //                {
 //                    std::cout << "first_path_index" << first_path_index << "prev istravel: " << paths[first_path_index - 1].isTravelPath() <<"\n";
