@@ -45,6 +45,18 @@ public:
     static Application& getInstance();
 
     /*!
+     * \brief Print to the stderr channel what the original call to the executable was.
+     * \param argc The number of arguments provided to the application.
+     * \param argv The arguments provided to the application.
+     */
+    void printCall(const int argc, char** argv) const;
+
+    /*!
+     * \brief Print to the stderr channel how to use CuraEngine.
+     */
+    void printHelp() const;
+
+    /*!
      * \brief Starts the application.
      *
      * It will start by parsing the command line arguments to see what it must
@@ -63,18 +75,6 @@ protected:
      */
     void connect(const int argc, char** argv);
 #endif //ARCUS
-
-    /*!
-     * \brief Print to the stderr channel what the original call to the executable was.
-     * \param argc The number of arguments provided to the application.
-     * \param argv The arguments provided to the application.
-     */
-    void printCall(const int argc, char** argv) const;
-
-    /*!
-     * \brief Print to the stderr channel how to use CuraEngine.
-     */
-    void printHelp() const;
 
     /*!
      * \brief Print the header and license to the stderr channel.
