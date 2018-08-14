@@ -220,7 +220,7 @@ namespace cura
             bool allow_try_merge = true;
             // see if we meet criteria to merge. should be: travel - path1 not travel - (...) - travel - path2 not travel - travel
             // we're checking the travels here
-            if (first_path_index == 0 || !paths[first_path_index - 1].isTravelPath())
+            if (first_path_index <= 1 || !paths[first_path_index - 1].isTravelPath())  // "<= 1" because we don't want the first travel being changed. That may introduce a hole somewhere
             {
                 allow_try_merge = false;
             }
@@ -238,12 +238,11 @@ namespace cura
             const bool first_is_already_merged = is_merged.find(first_path_index) != is_merged.end();
             if (allow_try_merge && tryMerge(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start))
             {
-//                if (!first_is_already_merged)
-//                {
-//                    std::cout << "first_path_index" << first_path_index << "prev istravel: " << paths[first_path_index - 1].isTravelPath() <<"\n";
-//                    paths[first_path_index - 1].points.back().X = new_first_path_start.X;
-//                    paths[first_path_index - 1].points.back().Y = new_first_path_start.Y;
-//                }
+                if (!first_is_already_merged)
+                {
+                    paths[first_path_index - 1].points.back().X = new_first_path_start.X;
+                    paths[first_path_index - 1].points.back().Y = new_first_path_start.Y;
+                }
                 /* If we combine two lines, the next path may also be merged into the fist line, so we do NOT update
                 first_path_index. */
                 for (size_t to_delete_index = first_path_index + 1; to_delete_index <= second_path_index; to_delete_index++)
