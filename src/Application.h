@@ -46,10 +46,8 @@ public:
 
     /*!
      * \brief Print to the stderr channel what the original call to the executable was.
-     * \param argc The number of arguments provided to the application.
-     * \param argv The arguments provided to the application.
      */
-    void printCall(const int argc, char** argv) const;
+    void printCall() const;
 
     /*!
      * \brief Print to the stderr channel how to use CuraEngine.
@@ -64,7 +62,7 @@ public:
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */
-    void run(const int argc, char** argv);
+    void run(const size_t argc, char** argv);
 
 protected:
 #ifdef ARCUS
@@ -73,7 +71,7 @@ protected:
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */
-    void connect(const int argc, char** argv);
+    void connect();
 #endif //ARCUS
 
     /*!
@@ -86,9 +84,20 @@ protected:
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */
-    void slice(const size_t argc, char** argv);
+    void slice();
 
 private:
+    /*
+     * \brief The number of arguments that the application was called with.
+     */
+    size_t argc;
+
+    /*
+     * \brief An array of C strings containing the arguments that the
+     * application was called with.
+     */
+    char** argv;
+
     /*!
      * \brief Constructs a new Application instance.
      *

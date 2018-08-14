@@ -31,7 +31,7 @@ Application& Application::getInstance()
 }
 
 #ifdef ARCUS
-void Application::connect(const int argc, char** argv)
+void Application::connect()
 {
     std::string ip = "127.0.0.1";
     int port = 49674;
@@ -48,7 +48,7 @@ void Application::connect(const int argc, char** argv)
     int n_threads;
 #endif // _OPENMP
 
-    for(int argn = 3; argn < argc; argn++)
+    for(size_t argn = 3; argn < argc; argn++)
     {
         char* str = argv[argn];
         if (str[0] == '-')
@@ -71,7 +71,7 @@ void Application::connect(const int argc, char** argv)
 #endif // _OPENMP
                 default:
                     logError("Unknown option: %c\n", *str);
-                    printCall(argc, argv);
+                    printCall();
                     printHelp();
                     break;
                 }
@@ -83,12 +83,12 @@ void Application::connect(const int argc, char** argv)
 }
 #endif //ARCUS
 
-void Application::printCall(const int argc, char** argv) const
+void Application::printCall() const
 {
     cura::logError("Command called:\n");
-    for (int idx= 0; idx < argc; idx++)
+    for (size_t argument_index = 0; argument_index < argc; argument_index++)
     {
-        cura::logError("%s ", argv[idx]);
+        cura::logError("%s ", argv[argument_index]);
     }
     cura::logError("\n");
 }
@@ -150,7 +150,7 @@ void Application::printLicense() const
     logAlways("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 }
 
-void Application::slice(const size_t argc, char** argv)
+void Application::slice()
 {
     std::vector<std::string> arguments;
     for (size_t argument_index = 0; argument_index < argc; argument_index++)
@@ -161,8 +161,11 @@ void Application::slice(const size_t argc, char** argv)
     communication = new CommandLine(arguments);
 }
 
-void Application::run(const int argc, char** argv)
+void Application::run(const size_t argc, char** argv)
 {
+    this->argc = argc;
+    this->argv = argv;
+
     printLicense();
     Progress::init();
 
@@ -187,13 +190,13 @@ void Application::run(const int argc, char** argv)
 #ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
     {
-        connect(argc, argv);
+        connect();
     }
     else
 #endif //ARCUS
     if (stringcasecompare(argv[1], "slice") == 0)
     {
-        slice(argc, argv);
+        slice();
     }
     else if (stringcasecompare(argv[1], "help") == 0)
     {
@@ -239,7 +242,7 @@ void Application::run(const int argc, char** argv)
                         break;
                     default:
                         logError("Unknown option: %c\n", *str);
-                        printCall(argc, argv);
+                        printCall();
                         printHelp();
                         break;
                     }
@@ -266,7 +269,7 @@ void Application::run(const int argc, char** argv)
     else
     {
         logError("Unknown command: %s\n", argv[1]);
-        printCall(argc, argv);
+        printCall();
         printHelp();
         exit(1);
     }
