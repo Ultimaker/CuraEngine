@@ -137,6 +137,11 @@ private:
      * \brief The command line arguments that the application was called with.
      */
     const std::vector<std::string>& arguments;
+
+    /*
+     * The last progress update that we output to stdcerr.
+     */
+    unsigned int last_shown_progress;
 };
 
 } //namespace cura
