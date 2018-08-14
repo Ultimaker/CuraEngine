@@ -169,11 +169,13 @@ namespace cura
         {
             return true;  // we can just disregard the second point as it's exactly at the leave point of the first path.
         }
+
         // Max 1 line width to the side of the merged_direction
         if (LinearAlg2D::getDist2FromLine(first_path_start,  second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
             || LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
             || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width)
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
+            || dot(normal(merged_direction, 1000), normal(second_path_end - second_path_start, 1000)) > 866000)  // angle of old second_path with new merged direction should not be too small (30 degrees), as it will introduce holes
         {
             return false; //One of the lines is too far from the merged line. Lines would be too wide or too far off.
         }
