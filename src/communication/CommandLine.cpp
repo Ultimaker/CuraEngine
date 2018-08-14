@@ -36,6 +36,7 @@ void CommandLine::sendOptimizedLayerData() { }
 void CommandLine::sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) { }
 void CommandLine::sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) { }
 void CommandLine::setExtruderForSend(const ExtruderTrain& extruder) { }
+void CommandLine::setLayerForSend(const LayerIndex& layer_nr) { }
 
 const bool CommandLine::hasSlice() const
 {

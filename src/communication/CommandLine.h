@@ -130,6 +130,15 @@ public:
     void setExtruderForSend(const ExtruderTrain& extruder) override;
 
     /*
+     * \brief Set which layer is being used for the following calls to
+     * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
+     *
+     * This has no effect though because we don't shwo these three functions
+     * because the command line doesn't show layer view.
+     */
+    void setLayerForSend(const LayerIndex& layer_nr) override;
+
+    /*
      * \brief Slice the next scene that the command line commands us to slice.
      */
     void sliceNext() override;
