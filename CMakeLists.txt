@@ -59,7 +59,7 @@ option(BUILD_TESTS OFF)
 if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG" OR CMAKE_BUILD_TYPE_UPPER MATCHES "RELWITHDEBINFO")
     message(STATUS "Building debug release of CuraEngine.")
     if (NOT MSVC)
-        add_compile_options(-Wextra -O0 -g -fno-omit-frame-pointer)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
     endif()
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
@@ -67,9 +67,9 @@ if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG" OR CMAKE_BUILD_TYPE_UPPER MATCHES "REL
 endif()
 
 if (MSVC)
-    add_compile_options(/EHsc /W3)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /W3")
 else()
-    add_compile_options(-Wall) # Add warnings
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
 endif()
 
 option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
@@ -77,9 +77,9 @@ option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
 if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
     message (STATUS "Compile with more optimization flags")
     if (MSVC)
-        add_compile_options(/fp:fast)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} /fp:fast")
     else()
-        add_compile_options(-Ofast -funroll-loops)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
     endif()
 endif ()
 
