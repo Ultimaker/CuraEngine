@@ -4,6 +4,7 @@
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
+#include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <vector> //To store the command line arguments.
 

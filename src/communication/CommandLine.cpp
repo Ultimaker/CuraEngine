@@ -6,8 +6,7 @@
 #include <libgen.h> //To get the parent directory of a file path.
 #include <numeric> //For std::accumulate.
 #include <omp.h> //To change the number of threads to slice with.
-#include <rapidjson/document.h> //Loading JSON documents to get settings from them.
-#include <rapidjson/error/en.h>
+#include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/rapidjson.h>
 #include <unordered_set>
