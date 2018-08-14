@@ -46,6 +46,6 @@ Typically such gaps occur in very sharp corners. The nozzle is too fat to fit al
 
 When generating a wall, CuraEngine also checks for overlap with previously printed walls. This includes the wall right before it, where there could be considerable overlap. The part of the new wall that overlaps with the previous wall will get its line width reduced such that the new area of that part of the line is only the part that is not covered by the other line.
 
-![Overlap Compensated](assets/overlap_compensated.svg)
+![Overlap Compensated](assets/overlap_compensation.svg)
 
 Instead of actually reducing the flow rate of this thinner line segment, the speed of movement is increased. Typically a printer will have more short-term control over its velocity than its flow rate.
