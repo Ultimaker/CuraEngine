@@ -9,7 +9,6 @@
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "settings/SettingRegistry.h"
-#include "settings/SettingsToGV.h"
 #include "utils/logoutput.h"
 
 namespace cura
@@ -443,13 +442,6 @@ void Application::run(const int argc, char** argv)
             log("\t\te\tVisualize (max/min) error function relationships.\n");
             log("\t\tw\tVisualize (max/min) warning function relationships.\n");
             log("\n");
-    
-        }
-        
-        SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz, error_viz, warning_viz, global_only_viz);
-        if (gv_out.generate(std::string(argv[2])))
-        {
-            logError("Failed to analyse json file: %s\n", argv[2]);
         }
     }
     else
