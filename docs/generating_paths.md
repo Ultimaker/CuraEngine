@@ -81,3 +81,19 @@ The line widths of these lines are then adjusted in order to cover the same area
 ![Line Width Adjusted](assets/gap_filled_compensated.svg)
 
 The area covered by this adjusted line approximates the total area of the gap, since it equals the area covered by the original thin lines.
+
+Travelling
+----
+When moving from A to B, CuraEngine needs to be careful not to make the fragile surface of your print ugly by hitting it with a hot, plastic-covered nozzle in the wrong spots. It employs a couple of techniques to minimise this.
+
+If a retraction is requested while the nozzle happens to be located on a wall, it needs to move inside the mesh a bit further first. Retracting causes the nozzle to pause for a while. During this time it is oozing material and melting any previously printed material it's touching. Inside the model this is less of an issue since it's not visible. The nozzle will move inside, retract there, then move to the infill of its destination part. Similarly, in the destination part it may also not directly go to its destination location if this lies too close to the outside of the print. It must travel to the inside of the mesh first, away from the walls, unretract there and then move to its final destination.
+
+The travel from one part to another will ooze some material even if the material is retracted. That's why CuraEngine will first find the place where the two parts are closest together and make the crossing there instead of at the place where it started. This technique is called combing. It minimises the amount of material that ends up as a blip on the outside of your print. The total travel time is longer, but the travel time outside of the model is shorter. The image below sketches an example of how such a travel would look.
+
+![Travel Move with Combing](assets/travel_combing.svg)
+
+With any travel move CuraEngine needs to be careful not to cross any outside walls unnecessarily. It could avoid hitting these walls with a Z-hop, but the Z axis is typically slow and susceptible to wear. It could also move around these walls horizontally with collision avoidance.
+
+Collision avoidance is performed by offsetting everything that the nozzle might hit with a certain safe distance, and then seeing if the travel move intersects this offset. If it does, the intersection points are determined and the decision must be made as to which direction to go in order to avoid this object. The decision of which direction to go is heuristically determined based on the amount of vertices along the perimeter of the shape that needs to be avoided. The side with the fewest vertices is assumed to be the shortest detour, so the travel move is adjusted to follow the perimeter of the offset along that side. If any vertices can be skipped without hitting another perimeter, these vertices are left out. The result looks like the image below.
+
+![Avoiding Collisions](assets/travel_avoidance.svg)
