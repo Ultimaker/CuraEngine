@@ -13,17 +13,7 @@ namespace cura
     }
 
     /*
-     * first_is_already_merged == false, first_path_start_may_move == false
-     *
-     *       o     o
-     *      /     /
-     *     /     /
-     *    /  +  /      --->     o-----o
-     *   /     /               /
-     *  /     /               /
-     * o     o               o
-     *
-     * first_is_already_merged == false, first_path_start_may_move == true
+     * first_is_already_merged == false
      *
      *       o     o
      *      /     /
@@ -120,25 +110,6 @@ namespace cura
 
     bool MergeInfillLines::tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const
     {
-        if (first_path.config->isTravelPath()) //Don't merge travel moves.
-        {
-            return false;
-        }
-        if (first_path.config != second_path.config) //Only merge lines that have the same type.
-        {
-            return false;
-        }
-        if (first_path.config->type != PrintFeatureType::Infill && first_path.config->type != PrintFeatureType::Skin) //Only merge skin and infill lines.
-        {
-            return false;
-        }
-        if ((!first_is_already_merged && first_path.points.size() > 1) || second_path.points.size() > 1)
-        {
-            // For now we only merge simple lines, not polylines, to keep it simple.
-            // If the first line is already a merged line, then allow it.
-            return false;
-        }
-
         const Point first_path_end = first_path.points.back();
         const Point second_path_end = second_path.points.back();
         const coord_t line_width = first_path.config->getLineWidth();
@@ -230,14 +201,27 @@ namespace cura
             {
                 allow_try_merge = false;
             }
-            // don't do magic on already connecting lines
-            if (vSize2(first_path.points.back() - second_path_start) < line_width * line_width)
+            if (first_path.config->isTravelPath()) //Don't merge travel moves.
             {
+                allow_try_merge = false;
+            }
+            if (first_path.config != second_path.config) //Only merge lines that have the same type.
+            {
+                allow_try_merge = false;
+            }
+            if (first_path.config->type != PrintFeatureType::Infill && first_path.config->type != PrintFeatureType::Skin) //Only merge skin and infill lines.
+            {
+                allow_try_merge = false;
+            }
+            const bool first_is_already_merged = is_merged.find(first_path_index) != is_merged.end();
+            if ((!first_is_already_merged && first_path.points.size() > 1) || second_path.points.size() > 1)
+            {
+                // For now we only merge simple lines, not polylines, to keep it simple.
+                // If the first line is already a merged line, then allow it.
                 allow_try_merge = false;
             }
 
             Point new_first_path_start;
-            const bool first_is_already_merged = is_merged.find(first_path_index) != is_merged.end();
             if (allow_try_merge && tryMerge(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start))
             {
                 if (!first_is_already_merged)
