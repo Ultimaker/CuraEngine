@@ -11,6 +11,7 @@
 
 namespace cura
 {
+class Settings;
 
 /*
  * \brief When slicing via the command line, interprets the command line
@@ -142,6 +143,47 @@ private:
      * The last progress update that we output to stdcerr.
      */
     unsigned int last_shown_progress;
+
+    /*
+     * \brief Get the default search directories to search for definition files.
+     * \return The default search directories to search for definition files.
+     */
+    std::unordered_set<std::string> defaultSearchDirectories();
+
+    /*
+     * \brief Load a JSON file and store the settings inside it.
+     * \param json_filename The location of the JSON file to load settings from.
+     * \param settings The settings storage to store the settings in.
+     * \return Error code. If it's 0, the file was successfully loaded. If it's
+     * 1, the file could not be opened. If it's 2, there was a syntax error in
+     * the file.
+     */
+    int loadJSON(const std::string& json_filename, Settings& settings);
+
+    /*
+     * \brief Load a JSON document and store the settings inside it.
+     * \param document The JSON document to load the settings from.
+     * \param settings The settings storage to store the settings in.
+     * \return Error code. If it's 0, the document was successfully loaded. If
+     * it's 1, some inheriting file could not be opened.
+     */
+    int loadJSON(const rapidjson::Document& document, const std::unordered_set<std::string>& search_directories, Settings& settings);
+
+    /*
+     * \brief Load an element containing a list of settings.
+     * \param element The JSON element "settings" or "overrides" that contains
+     * settings.
+     * \param settings The settings storage to store the new settings in.
+     */
+    void loadJSONSettings(const rapidjson::Value& element, Settings& settings);
+
+    /*
+     * \brief Find a definition file in the search directories.
+     * \param definition_id The ID of the definition to look for.
+     * \param search_directories The directories to search in.
+     * \return The first definition file that matches the definition ID.
+     */
+    const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories);
 };
 
 } //namespace cura

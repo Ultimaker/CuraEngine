@@ -1,8 +1,16 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <cstring> //For strtok and strcopy.
+#include <fstream> //To check if files exist.
+#include <libgen.h> //To get the parent directory of a file path.
 #include <numeric> //For std::accumulate.
 #include <omp.h> //To change the number of threads to slice with.
+#include <rapidjson/document.h> //Loading JSON documents to get settings from them.
+#include <rapidjson/error/en.h>
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/rapidjson.h>
+#include <unordered_set>
 
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
@@ -154,7 +162,7 @@ void CommandLine::sliceNext()
                                 delete mesh_group;
                                 exit(1);
                             }
-                            if (SettingRegistry::getInstance()->loadJSONsettings(argument, last_settings))
+                            if (loadJSON(argument, *last_settings))
                             {
                                 logError("Failed to load JSON file: %s\n", argument);
                                 delete mesh_group;
@@ -287,6 +295,186 @@ void CommandLine::sliceNext()
     FffProcessor::getInstance()->finalize();
 
     delete mesh_group;
+}
+
+int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
+{
+    FILE* file = fopen(json_filename.c_str(), "rb");
+    if (!file)
+    {
+        logError("Couldn't open JSON file.\n");
+        return 1;
+    }
+
+    rapidjson::Document json_document;
+    char read_buffer[4096];
+    rapidjson::FileReadStream reader_stream(file, read_buffer, sizeof(read_buffer));
+    json_document.ParseStream(reader_stream);
+    fclose(file);
+    if (json_document.HasParseError())
+    {
+        logError("Error parsing JSON (offset %u): %s\n", static_cast<unsigned int>(json_document.GetErrorOffset()), GetParseError_En(json_document.GetParseError()));
+        return 2;
+    }
+
+    std::unordered_set<std::string> search_directories; //For finding the inheriting JSON files.
+    char filename_copy[json_filename.size()];
+    std::strcpy(filename_copy, json_filename.c_str());
+    std::string directory = std::string(dirname(filename_copy));
+    search_directories.emplace(directory);
+
+    return loadJSON(json_document, search_directories, settings);
+}
+
+std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
+{
+    std::unordered_set<std::string> result;
+
+    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
+    if (paths)
+    {
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+        char delims[] = ":"; //Colon for Unix.
+#else
+        char delims[] = ";"; //Semicolon for Windows.
+#endif
+        char* path = strtok(paths, delims);
+        while (path != nullptr)
+        {
+            result.emplace(path);
+            path = strtok(nullptr, ";:,"); //Continue searching in last call to strtok.
+        }
+    }
+
+    return result;
+}
+
+int CommandLine::loadJSON(const rapidjson::Document& document, const std::unordered_set<std::string>& search_directories, Settings& settings)
+{
+    //Inheritance from other JSON documents.
+    if (document.HasMember("inherits") && document["inherits"].IsString())
+    {
+        std::string parent_file = findDefinitionFile(document["inherits"].GetString(), search_directories);
+        if (parent_file == "")
+        {
+            logError("Inherited JSON file \"%s\" not found.\n", document["inherits"].GetString());
+            return 1;
+        }
+        int error_code = loadJSON(parent_file, settings); //Head-recursively load the settings file that we inherit from.
+        if (error_code)
+        {
+            return error_code;
+        }
+    }
+
+    //Extruders defined from here, if any.
+    //Note that this always puts the extruder settings in the slice of the current extruder. It doesn't keep the nested structure of the JSON files, if extruders would have their own sub-extruders.
+    Slice& slice = Application::getInstance().current_slice;
+    if (document.HasMember("metadata") && document["metadata"].IsObject())
+    {
+        const rapidjson::Value& metadata = document["metadata"];
+        if (metadata.HasMember("machine_extruder_trains") && metadata["machine_extruder_trains"].IsObject())
+        {
+            const rapidjson::Value& extruder_trains = metadata["machine_extruder_trains"];
+            for (rapidjson::Value::ConstMemberIterator extruder_train = extruder_trains.MemberBegin(); extruder_train != extruder_trains.MemberEnd(); extruder_train++)
+            {
+                const int extruder_nr = atoi(extruder_train->name.GetString());
+                if (extruder_nr < 0)
+                {
+                    continue;
+                }
+                while (slice.scene.extruders.size() <= static_cast<size_t>(extruder_nr))
+                {
+                    slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
+                }
+                const rapidjson::Value& extruder_id = extruder_train->value;
+                if (!extruder_id.IsString())
+                {
+                    continue;
+                }
+                const std::string extruder_definition_id(extruder_id.GetString());
+                const std::string extruder_file = findDefinitionFile(extruder_definition_id, search_directories);
+                loadJSON(extruder_file, slice.scene.extruders[extruder_nr].settings);
+            }
+        }
+    }
+
+    if (document.HasMember("settings") && document["settings"].IsObject())
+    {
+        loadJSONSettings(document["settings"], settings);
+    }
+    if (document.HasMember("overrides") && document["overrides"].IsObject())
+    {
+        loadJSONSettings(document["overrides"], settings);
+    }
+    return 0;
+}
+
+void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& settings)
+{
+    for (rapidjson::Value::ConstMemberIterator setting = element.MemberBegin(); setting != element.MemberEnd(); setting++)
+    {
+        const std::string name = setting->name.GetString();
+
+        const rapidjson::Value& setting_object = setting->value;
+        if (!setting_object.IsObject())
+        {
+            logError("JSON setting %s is not an object!\n", name.c_str());
+            continue;
+        }
+
+        if (setting_object.HasMember("children"))
+        {
+            loadJSONSettings(setting_object["children"], settings);
+        }
+        else //Only process leaf settings. We don't process categories or settings that have sub-settings.
+        {
+            if (!setting_object.HasMember("default_value"))
+            {
+                logWarning("JSON setting %s has no default_value!\n", name.c_str());
+            }
+            const rapidjson::Value& default_value = setting_object["default_value"];
+            std::string value_string;
+            if (default_value.IsString())
+            {
+                value_string = default_value.GetString();
+            }
+            else if (default_value.IsTrue())
+            {
+                value_string = "true";
+            }
+            else if (default_value.IsFalse())
+            {
+                value_string = "false";
+            }
+            else if (default_value.IsNumber())
+            {
+                std::ostringstream ss;
+                ss << default_value.GetDouble();
+                value_string = ss.str();
+            }
+            else
+            {
+                logWarning("Unrecognized data type in JSON setting %s\n", name.c_str());
+                continue;
+            }
+            settings.add(name, value_string);
+        }
+    }
+}
+
+const std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories)
+{
+    for (const std::string& search_directory : search_directories)
+    {
+        const std::string candidate = search_directory + std::string("/") + definition_id + std::string(".def.json");
+        const std::ifstream ifile(candidate.c_str()); //Check whether the file exists and is readable by opening it.
+        if (ifile)
+        {
+            return candidate;
+        }
+    }
+    return std::string("");
 }
 
 } //namespace cura
