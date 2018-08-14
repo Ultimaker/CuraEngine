@@ -86,7 +86,7 @@ protected:
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */
-    void slice(const int argc, char** argv);
+    void slice(const size_t argc, char** argv);
 
 private:
     /*!

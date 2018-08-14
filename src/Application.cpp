@@ -150,7 +150,7 @@ void Application::printLicense() const
     logAlways("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 }
 
-void Application::slice(const int argc, char** argv)
+void Application::slice(const size_t argc, char** argv)
 {
     std::vector<std::string> arguments;
     for (size_t argument_index = 0; argument_index < argc; argument_index++)
