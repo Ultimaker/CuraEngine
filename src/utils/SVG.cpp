@@ -1,7 +1,5 @@
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SVG.h"
-#include <exception>
-#include <stdexcept>
 
 namespace cura {
 
