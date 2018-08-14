@@ -82,6 +82,14 @@ The line widths of these lines are then adjusted in order to cover the same area
 
 The area covered by this adjusted line approximates the total area of the gap, since it equals the area covered by the original thin lines.
 
+Optimal Line Order
+----
+When a bunch of lines are printed together, the optimal order in which to print these lines is approximated. This is not used for all lines together, but only for a group of lines of the same feature and the same part, such as the skin lines within one part. Finding the perfect order is a special case of the [Travelling Salesman Problem](https://en.wikipedia.org/wiki/Travelling_salesman_problem) which is an NP-hard problem for which only exponential-time algorithms exist, which is infeasible to compute for CuraEngine within a desirable time span. The Nearest Neighbour approximation heuristic is made, which is only quadratic.
+
+For this approximation, after printing a line, CuraEngine looks for the nearest endpoint of a line that has not yet been printed. It travels there and prints that line. Then the nearest unprinted line is chosen again, and so on until all lines have been printed.
+
+One slight adjustment needs to be made though because the nozzle cannot accelerate perfectly. Travel moves that move in a line parallel to the line that has just been printed are preferred. There is a weighting scheme to make this consideration based on the sine of the angle between the printed line and the line towards the destination. This reduces overal printing time due to acceleration limitations.
+
 Travelling
 ----
 When moving from A to B, CuraEngine needs to be careful not to make the fragile surface of your print ugly by hitting it with a hot, plastic-covered nozzle in the wrong spots. It employs a couple of techniques to minimise this.
