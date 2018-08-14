@@ -191,7 +191,7 @@ void CommandLine::sliceNext()
                             const FMatrix3x3 transformation = last_settings->get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
 
                             argument = arguments[argument_index];
-                            if (!loadMeshIntoMeshGroup(mesh_group, argument.c_str(), transformation, last_extruder))
+                            if (!loadMeshIntoMeshGroup(mesh_group, argument.c_str(), transformation, &last_extruder.settings))
                             {
                                 logError("Failed to load model: %s\n", argument);
                                 delete mesh_group;

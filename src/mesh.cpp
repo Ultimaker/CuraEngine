@@ -24,6 +24,13 @@ Mesh::Mesh(SettingsBaseVirtual* parent)
 {
 }
 
+Mesh::Mesh(Settings* parent)
+: settings(*parent)
+, has_disconnected_faces(false)
+, has_overlapping_faces(false)
+{
+}
+
 Mesh::Mesh() : SettingsBase(nullptr)
 , has_disconnected_faces(false)
 , has_overlapping_faces(false)
