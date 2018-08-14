@@ -8,7 +8,7 @@
 #include "Application.h"
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
-#include "settings/SettingRegistry.h"
+#include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "utils/logoutput.h"
 
 namespace cura
@@ -152,194 +152,13 @@ void Application::printLicense() const
 
 void Application::slice(const int argc, char** argv)
 {
-    //TODO: Fix command line slicing with new setting structure.
-    FffProcessor::getInstance()->time_keeper.restart();
-    
-    FMatrix3x3 transformation; // the transformation applied to a model when loaded
-                        
-    MeshGroup* meshgroup = new MeshGroup(FffProcessor::getInstance());
-    
-    int extruder_train_nr = 0;
-
-#ifdef _OPENMP
-    int n_threads;
-#endif // _OPENMP
-
-    SettingsBase* last_extruder_train = nullptr;
-    // extruder defaults cannot be loaded yet cause no json has been parsed
-    SettingsBase* last_settings_object = FffProcessor::getInstance();
-    for(int argn = 2; argn < argc; argn++)
+    std::vector<std::string> arguments;
+    for (size_t argument_index = 0; argument_index < argc; argument_index++)
     {
-        char* str = argv[argn];
-        if (str[0] == '-')
-        {
-            if (str[1] == '-')
-            {
-                if (stringcasecompare(str, "--next") == 0)
-                {
-                    try {
-                        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-                        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                        log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
-                        
-                        for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
-                        { // initialize remaining extruder trains and load the defaults
-                            //TODO: meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
-                        }
-
-                        meshgroup->finalize();
-
-                        //start slicing
-                        FffProcessor::getInstance()->processMeshGroup(meshgroup);
-                        
-                        // initialize loading of new meshes
-                        FffProcessor::getInstance()->time_keeper.restart();
-                        delete meshgroup;
-                        meshgroup = new MeshGroup(FffProcessor::getInstance());
-                        //TODO: last_extruder_train = meshgroup->createExtruderTrain(0); 
-                        last_settings_object = meshgroup;
-                        
-                    }catch(...){
-                        logError("Unknown exception\n");
-                        exit(1);
-                    }
-                }else{
-                    logError("Unknown option: %s\n", str);
-                }
-            }else{
-                for(str++; *str; str++)
-                {
-                    switch(*str)
-                    {
-                    case 'v':
-                        increaseVerboseLevel();
-                        break;
-#ifdef _OPENMP
-                    case 'm':
-                        str++;
-                        n_threads = std::strtol(str, &str, 10);
-                        str--;
-                        n_threads = std::max(1, n_threads);
-                        omp_set_num_threads(n_threads);
-                        break;
-#endif // _OPENMP
-                    case 'p':
-                        enableProgressLogging();
-                        break;
-                    case 'j':
-                        argn++;
-                        if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], last_settings_object))
-                        {
-                            logError("Failed to load json file: %s\n", argv[argn]);
-                            std::exit(1);
-                        }
-                        break;
-                    case 'e':
-                        str++;
-                        extruder_train_nr = std::strtol(str, &str, 10);
-                        str--;
-                        //TODO: last_settings_object = meshgroup->createExtruderTrain(extruder_train_nr);
-                        last_extruder_train = last_settings_object;
-                        break;
-                    case 'l':
-                        argn++;
-                        
-                        log("Loading %s from disk...\n", argv[argn]);
-
-                        transformation = last_settings_object->getSettingAsPointMatrix("mesh_rotation_matrix"); // the transformation applied to a model when loaded
-
-                        if (!last_extruder_train)
-                        {
-                            //TODO: last_extruder_train = meshgroup->createExtruderTrain(0); // assume a json has already been provided on the command line
-                        }
-                        if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation, last_extruder_train))
-                        {
-                            logError("Failed to load model: %s\n", argv[argn]);
-                            std::exit(1);
-                        }
-                        else 
-                        {
-                            last_settings_object = &(meshgroup->meshes.back()); // pointer is valid until a new object is added, so this is OK
-                        }
-                        break;
-                    case 'o':
-                        argn++;
-                        if (!FffProcessor::getInstance()->setTargetFile(argv[argn]))
-                        {
-                            logError("Failed to open %s for output.\n", argv[argn]);
-                            exit(1);
-                        }
-                        break;
-                    case 'g':
-#pragma GCC diagnostic push
-#ifdef __GNUC__
-#if GNUC > 4
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough" //Fall-through is intended.
-#endif
-#endif
-                        last_settings_object = meshgroup;
-#pragma GCC diagnostic pop
-                    case 's':
-                        {
-                            //Parse the given setting and store it.
-                            argn++;
-                            char* valuePtr = strchr(argv[argn], '=');
-                            if (valuePtr)
-                            {
-                                *valuePtr++ = '\0';
-
-                                last_settings_object->setSetting(argv[argn], valuePtr);
-                            }
-                        }
-                        break;
-                    default:
-                        logError("Unknown option: %c\n", *str);
-                        printCall(argc, argv);
-                        printHelp();
-                        exit(1);
-                        break;
-                    }
-                }
-            }
-        }
-        else
-        {
-            
-            logError("Unknown option: %s\n", argv[argn]);
-            printCall(argc, argv);
-            printHelp();
-            exit(1);
-        }
+        arguments.emplace_back(argv[argument_index]);
     }
 
-    int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
-    for (extruder_train_nr = 0; extruder_train_nr < extruder_count; extruder_train_nr++)
-    { // initialize remaining extruder trains and load the defaults
-        //TODO: meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
-    }
-    
-    
-#ifndef DEBUG
-    try {
-#endif
-        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-        meshgroup->finalize();
-        log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
-        
-        //start slicing
-        FffProcessor::getInstance()->processMeshGroup(meshgroup);
-
-#ifndef DEBUG
-    }catch(...){
-        logError("Unknown exception\n");
-        exit(1);
-    }
-#endif
-    //Finalize the processor, this adds the end.gcode. And reports statistics.
-    FffProcessor::getInstance()->finalize();
-
-    delete meshgroup;
+    communication = new CommandLine(arguments);
 }
 
 void Application::run(const int argc, char** argv)
