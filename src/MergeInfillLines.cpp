@@ -12,6 +12,18 @@ namespace cura
         //Just copy the parameters to their fields.
     }
 
+    coord_t MergeInfillLines::calcPathLength(const Point path_start, GCodePath& path) const
+    {
+        Point previous_point = path_start;
+        coord_t result = 0;
+        for (const Point point : path.points)
+        {
+            result += vSize(point - previous_point);
+            previous_point = point;
+        }
+        return result;
+    }
+
     /*
      * first_is_already_merged == false
      *
@@ -38,18 +50,12 @@ namespace cura
      * o           o             o                                o
      *
      */
-    void MergeInfillLines::mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const
+    bool MergeInfillLines::mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const
     {
-        coord_t first_path_length_flow = 0;
         Point average_first_path;
 
-        Point previous_point = first_path_start;
-        for (const Point point : first_path.points)
-        {
-            first_path_length_flow += vSize(point - previous_point);
-            previous_point = point;
-        }
-        first_path_length_flow *= first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
+        coord_t first_path_length = calcPathLength(first_path_start, first_path);
+        coord_t first_path_length_flow = first_path_length * first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
 
         if (first_is_already_merged)
         {
@@ -66,26 +72,57 @@ namespace cura
             average_first_path /= (first_path.points.size() + 1);
         }
 
-        coord_t second_path_length_flow = 0;
-        Point previous_point_second = second_path_start;
+        coord_t second_path_length = calcPathLength(second_path_start, second_path);
         Point average_second_path = second_path_start;
         for (const Point point : second_path.points)
         {
-            second_path_length_flow += vSize(point - previous_point_second);
             average_second_path += point;
-            previous_point_second = point;
         }
-        second_path_length_flow *= second_path.flow;
+        coord_t second_path_length_flow = second_path_length *= second_path.flow;
         average_second_path /= (second_path.points.size() + 1);
 
-        coord_t new_path_length = 0;
+
+        // predict new length and flow, returning false doesn't quite work as expected
+        // this is to pretend huge blobs, but they don't occur anymore after tweaking
+
+//        coord_t new_length = first_path_length;
+//        if (first_is_already_merged)
+//        {
+//            // check if the new point is a good extension of last part of existing polyline
+//            // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
+//            if (first_path.points.size() > 1 && LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]) == 0)
+//            {
+//                new_length -= vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
+//                first_path.points[first_path.points.size() - 1] = average_second_path;
+//            } else {
+//                first_path.points.push_back(average_second_path);
+//            }
+//            new_length += vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
+//        }
+//        else
+//        {
+//            new_length -= vSize(first_path.points.back() - first_path_start);
+//            first_path.points.clear();
+//            new_first_path_start = average_first_path;
+//            first_path.points.push_back(average_second_path);
+//            new_length += vSize(first_path.points.back() - new_first_path_start);
+//        }
+//        double new_flow = ((first_path_length_flow + second_path_length_flow) / static_cast<double>(new_length));
+//        if (new_flow > 3.5)
+//        {
+//            std::cout << "new flow:" << new_flow << "\n";
+//            std::cout << "new length: " << new_length << "\n";
+//            std::cout << "length factor: " << (first_path_length + second_path_length) / static_cast<double>(new_length) << "\n";
+//            //return false;
+//        }
 
         if (first_is_already_merged)
         {
             // check if the new point is a good extension of last part of existing polyline
             // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
-            if (first_path.points.size() > 1 && LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size()-2], first_path.points[first_path.points.size()-1]) == 0) {
-                first_path.points[first_path.points.size()-1] = average_second_path;
+            if (first_path.points.size() > 1 && LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]) == 0)
+            {
+                first_path.points[first_path.points.size() - 1] = average_second_path;
             } else {
                 first_path.points.push_back(average_second_path);
             }
@@ -94,17 +131,14 @@ namespace cura
         {
             first_path.points.clear();
             new_first_path_start = average_first_path;
-            //first_path.points.push_back(average_first_path);
             first_path.points.push_back(average_second_path);
         }
-        previous_point = first_path_start;
-        for (const Point point : first_path.points)
-        {
-            new_path_length += vSize(point - previous_point);
-            previous_point = point;
-        }
 
+        coord_t new_path_length = calcPathLength(first_path_start, first_path);
         first_path.flow = static_cast<double>(first_path_length_flow + second_path_length_flow) / new_path_length;
+        std::cout << "new flow:" << first_path.flow << "\n";
+
+        return true;
     }
 
 
@@ -143,10 +177,11 @@ namespace cura
         }
 
         // Max 1 line width to the side of the merged_direction
-        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            || abs(dot(normal(merged_direction, 1000), normal(second_path_end - second_path_start, 1000))) > 866000)  // angle of old second_path with new merged direction should not be too small (30 degrees), as it will introduce holes
+        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
+            //|| abs(dot(normal(merged_direction, 1000), normal(second_path_end - second_path_start, 1000))) > 866000    // 866000 angle of old second_path with new merged direction should not be too small (30 degrees), as it will introduce holes
+            )
         {
             return false; //One of the lines is too far from the merged line. Lines would be too wide or too far off.
         }
@@ -154,8 +189,8 @@ namespace cura
         {
             return false;
         }
-        mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start);
-        return true;
+
+        return mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start);
     }
 
 
@@ -183,7 +218,6 @@ namespace cura
             GCodePath& first_path = paths[first_path_index];
             GCodePath& second_path = paths[second_path_index];
             Point second_path_start = paths[second_path_index - 1].points.back();
-            const coord_t line_width = first_path.config->getLineWidth();
 
             if (second_path.config->isTravelPath())
             {

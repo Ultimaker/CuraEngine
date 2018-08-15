@@ -36,6 +36,11 @@ private:
     ExtruderPlan& extruder_plan;
 
     /*
+     *
+     */
+    coord_t calcPathLength(const Point path_start, GCodePath& path) const;
+
+    /*
      * Use to merge adjacent lines by drawing a line through them. Apply alternative strategy if first line is already merged.
      * Merging is only permitted if both lines have 2 points each, or if the first line is already a merged line and the second is a 2 point line.
      * \param first_is_already_merged Indicate if the first_path is already a merged path.
@@ -44,8 +49,9 @@ private:
      * \param second_path The other of the two paths to merge.
      * \param second_path_start The starting point of the second path.
      * \param first_path_start_changed is a result. If set to true, we have changed first_path_start
+     * \return true: success, false: fail because of flow constraints
      */
-    void mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const;
+    bool mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const;
 
     /*
      * Try to merge lines.
