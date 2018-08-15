@@ -17,7 +17,7 @@ public:
      * \param plan An extruder plan that contains the path configurations and
      * settings that we can use.
      */
-    MergeInfillLines(ExtruderPlan& plan);
+    MergeInfillLines(ExtruderPlan& plan, const coord_t nozzle_size);
 
     /*
      * Check for lots of small moves and combine them into one large line.
@@ -34,6 +34,7 @@ private:
      * we can use.
      */
     ExtruderPlan& extruder_plan;
+    const coord_t nozzle_size;
 
     /*
      *

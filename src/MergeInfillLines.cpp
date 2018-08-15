@@ -7,7 +7,7 @@
 namespace cura
 {
 
-    MergeInfillLines::MergeInfillLines(ExtruderPlan& plan) : extruder_plan(plan)
+    MergeInfillLines::MergeInfillLines(ExtruderPlan& plan, const coord_t nozzle_size) : extruder_plan(plan), nozzle_size(nozzle_size)
     {
         //Just copy the parameters to their fields.
     }
@@ -56,6 +56,7 @@ namespace cura
 
         coord_t first_path_length = calcPathLength(first_path_start, first_path);
         coord_t first_path_length_flow = first_path_length * first_path.flow; //To get the volume we don't need to include the line width since it's the same for both lines.
+        const coord_t line_width = first_path.config->getLineWidth();
 
         if (first_is_already_merged)
         {
@@ -82,40 +83,34 @@ namespace cura
         average_second_path /= (second_path.points.size() + 1);
 
 
-        // predict new length and flow, returning false doesn't quite work as expected
-        // this is to pretend huge blobs, but they don't occur anymore after tweaking
+        // predict new length and flow and if the new flow is to big, don't merge. conditions in this part must exactly match the actual merging
+        coord_t new_path_length = first_path_length;
+        if (first_is_already_merged)
+        {
+            // check if the new point is a good extension of last part of existing polyline
+            // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
+            if (first_path.points.size() > 1 && LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]) == 0)
+            {
+                new_path_length -= vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
+                new_path_length += vSize(first_path.points[first_path.points.size() - 2] - average_second_path);
+            }
+            else
+            {
+                new_path_length += vSize(first_path.points[first_path.points.size() - 1] - average_second_path);
+            }
+        }
+        else
+        {
+            new_path_length -= vSize(first_path.points.back() - first_path_start);
+            new_path_length += vSize(average_second_path - average_first_path);
+        }
+        double new_flow = ((first_path_length_flow + second_path_length_flow) / static_cast<double>(new_path_length));
+        if (new_flow > 2 * nozzle_size / line_width)  // TODO: replace 400 (0.4 mm) with actual nozzle size
+        {
+            return false;
+        }
 
-//        coord_t new_length = first_path_length;
-//        if (first_is_already_merged)
-//        {
-//            // check if the new point is a good extension of last part of existing polyline
-//            // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
-//            if (first_path.points.size() > 1 && LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]) == 0)
-//            {
-//                new_length -= vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
-//                first_path.points[first_path.points.size() - 1] = average_second_path;
-//            } else {
-//                first_path.points.push_back(average_second_path);
-//            }
-//            new_length += vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
-//        }
-//        else
-//        {
-//            new_length -= vSize(first_path.points.back() - first_path_start);
-//            first_path.points.clear();
-//            new_first_path_start = average_first_path;
-//            first_path.points.push_back(average_second_path);
-//            new_length += vSize(first_path.points.back() - new_first_path_start);
-//        }
-//        double new_flow = ((first_path_length_flow + second_path_length_flow) / static_cast<double>(new_length));
-//        if (new_flow > 3.5)
-//        {
-//            std::cout << "new flow:" << new_flow << "\n";
-//            std::cout << "new length: " << new_length << "\n";
-//            std::cout << "length factor: " << (first_path_length + second_path_length) / static_cast<double>(new_length) << "\n";
-//            //return false;
-//        }
-
+        // do the actual merging
         if (first_is_already_merged)
         {
             // check if the new point is a good extension of last part of existing polyline
@@ -129,12 +124,11 @@ namespace cura
         }
         else
         {
-            first_path.points.clear();
             new_first_path_start = average_first_path;
+            first_path.points.clear();
             first_path.points.push_back(average_second_path);
         }
 
-        coord_t new_path_length = calcPathLength(first_path_start, first_path);
         first_path.flow = static_cast<double>(first_path_length_flow + second_path_length_flow) / new_path_length;
 
         return true;
@@ -176,9 +170,9 @@ namespace cura
         }
 
         // Max 1 line width to the side of the merged_direction
-        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > 4 * line_width * line_width
+        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
             //|| abs(dot(normal(merged_direction, 1000), normal(second_path_end - second_path_start, 1000))) > 866000    // 866000 angle of old second_path with new merged direction should not be too small (30 degrees), as it will introduce holes
             )
         {
