@@ -136,7 +136,6 @@ namespace cura
 
         coord_t new_path_length = calcPathLength(first_path_start, first_path);
         first_path.flow = static_cast<double>(first_path_length_flow + second_path_length_flow) / new_path_length;
-        std::cout << "new flow:" << first_path.flow << "\n";
 
         return true;
     }
