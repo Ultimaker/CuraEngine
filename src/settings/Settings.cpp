@@ -532,6 +532,18 @@ template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& k
     return result;
 }
 
+const std::string Settings::getAllSettingsString() const
+{
+    std::stringstream sstream;
+    for (const std::pair<std::string, Setting> pair : settings)
+    {
+        char buffer[4096];
+        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.value.c_str()}.str);
+        sstream << buffer;
+    }
+    return sstream.str();
+}
+
 void Settings::setLimitToExtruder(const std::string& key, ExtruderTrain* limit_to_extruder)
 {
     settings.at(key).limit_to_extruder = limit_to_extruder;
@@ -622,21 +634,6 @@ const std::string& SettingsBase::getSettingString(const std::string& key) const
     std::exit(-1);
     static std::string empty_string; // use static object rather than "" to avoid compilation warning
     return empty_string;
-}
-
-std::string SettingsBase::getAllLocalSettingsString() const
-{
-    std::stringstream sstream;
-    for (auto pair : setting_values)
-    {
-        if (!pair.second.empty())
-        {
-            char buffer[4096];
-            snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
-            sstream << buffer;
-        }
-    }
-    return sstream.str();
 }
 
 void SettingsMessenger::setSetting(std::string key, std::string value)

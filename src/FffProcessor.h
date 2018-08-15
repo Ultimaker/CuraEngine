@@ -33,7 +33,7 @@ public:
      * \return The instance
      */
     static FffProcessor* getInstance() 
-    { 
+    {
         return &instance; 
     }
 

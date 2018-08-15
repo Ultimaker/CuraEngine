@@ -64,6 +64,16 @@ public:
     template<typename A> A get(const std::string& key) const;
 
     /*
+     * \brief Get a string containing all settings in this container.
+     *
+     * The string is formatted in the same way as the command line arguments
+     * when slicing using CuraEngine from the command line. In theory you could
+     * put the output of this command in a call to CuraEngine.
+     * \return A string containing all settings and their values.
+     */
+    const std::string getAllSettingsString() const;
+
+    /*
      * Change the extruder that this setting needs to be obtained from.
      */
     void setLimitToExtruder(const std::string& key, ExtruderTrain* limit_to_extruder);
@@ -138,14 +148,6 @@ public:
     void setSetting(std::string key, std::string value);
     void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     const std::string& getSettingString(const std::string& key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
-
-    /*!
-     * Format a string that contains all settings and their values similar to a
-     * command to call CuraEngine with via CLI.
-     *
-     * \return A string containing all local settings and their values.
-     */
-    std::string getAllLocalSettingsString() const;
 
     void debugOutputAllLocalSettings()  const
     {
