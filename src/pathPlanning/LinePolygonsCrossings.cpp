@@ -107,7 +107,7 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
 }
 
 
-bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
+bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
     {
@@ -124,25 +124,25 @@ bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
     }
 
     CombPath basicPath;
-    getBasicCombingPath(basicPath);
+    generateBasicCombingPath(basicPath);
     optimizePath(basicPath, combPath);
 //     combPath = basicPath; // uncomment to disable comb path optimization
     return true;
 }
 
 
-void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath) 
+void LinePolygonsCrossings::generateBasicCombingPath(CombPath& combPath)
 {
     for (PolyCrossings* crossing = getNextPolygonAlongScanline(transformed_startPoint.X)
         ; crossing != nullptr
         ; crossing = getNextPolygonAlongScanline(crossing->max.x))
     {
-        getBasicCombingPath(*crossing, combPath);
+        generateBasicCombingPath(*crossing, combPath);
     }
     combPath.push_back(endPoint);
 }
 
-void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
+void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath)
 {
     // minimise the path length by measuring the length of both paths around the polygon so we can determine the shorter path
 
