@@ -52,7 +52,7 @@ private:
      * \param first_path_start_changed is a result. If set to true, we have changed first_path_start
      * \return true: success, false: fail because of flow constraints
      */
-    bool mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const;
+    bool mergeLinesSideBySide(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start, coord_t& error_area) const;
 
     /*
      * Try to merge lines.
@@ -67,7 +67,7 @@ private:
      * \param new_first_path_start if first_path_start is changed, this is the result of that
      * \return true: merged second_path into first_path, second_path can be discarded, false: nothing happened
      */
-    bool tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start) const;
+    bool tryMerge(const bool first_is_already_merged, GCodePath& first_path, const Point first_path_start, GCodePath& second_path, const Point second_path_start, Point& new_first_path_start, coord_t& error_area) const;
 };
 
 } //namespace cura
