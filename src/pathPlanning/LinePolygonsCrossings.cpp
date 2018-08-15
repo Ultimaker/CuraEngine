@@ -153,7 +153,9 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
     std::vector<Point> fwd_points;
     Point prev = combPath.back();
     coord_t fwd_len = 0;
-    for (unsigned int point_idx = polyCrossings.min.point_idx; point_idx != polyCrossings.max.point_idx; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
+    for (unsigned int point_idx = polyCrossings.min.point_idx
+        ; point_idx != polyCrossings.max.point_idx
+        ; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
     {
         const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
         fwd_points.push_back(p);
@@ -167,7 +169,9 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
     coord_t rev_len = 0;
     unsigned int min_idx = (polyCrossings.min.point_idx == 0)? poly.size() - 1 : polyCrossings.min.point_idx - 1;
     unsigned int max_idx = (polyCrossings.max.point_idx == 0)? poly.size() - 1 : polyCrossings.max.point_idx - 1;
-    for (unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
+    for (unsigned int point_idx = min_idx
+        ; point_idx != max_idx
+        ; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
     {
         const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
         rev_points.push_back(p);
