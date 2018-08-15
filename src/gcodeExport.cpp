@@ -15,8 +15,6 @@
 
 namespace cura {
 
-double layer_height; //!< report basic layer height in RepRap gcode file.
-
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
@@ -82,8 +80,6 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     machine_name = meshgroup->getSettingString("machine_name");
     machine_buildplate_type = meshgroup->getSettingString("machine_buildplate_type");
-
-    layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
     relative_extrusion = meshgroup->getSettingBoolean("relative_extrusion");
 
@@ -224,7 +220,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 prefix << "0m";
             }
             prefix << new_line;
-            prefix << ";Layer height: " << layer_height << new_line;
+            prefix << ";Layer height: " << Application::getInstance().current_slice.scene.settings.get<double>("layer_height") << new_line;
         }
     }
 
@@ -652,6 +648,7 @@ void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t&
 
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
+    const double layer_height = Application::getInstance().current_slice.scene.settings.get<double>("layer_height");
     Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
     *output_stream << "G0";
