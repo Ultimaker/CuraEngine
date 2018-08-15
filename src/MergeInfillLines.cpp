@@ -87,14 +87,18 @@ namespace cura
         coord_t new_path_length = first_path_length;
         coord_t dist2_from_line = 0;
         coord_t new_error_area = 0;
+        coord_t merged_part_length = 0;
         if (first_is_already_merged)
         {
             // check if the new point is a good extension of last part of existing polyline
             // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
-            dist2_from_line = LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]);
-            new_error_area = sqrt(dist2_from_line) * vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]) / 2;
+            if (first_path.points.size() > 1) {
+                dist2_from_line = LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]);
+                merged_part_length = vSize(first_path.points[first_path.points.size() - 2] - average_second_path);
+                new_error_area = sqrt(dist2_from_line) * merged_part_length / 2;
+            }
             // The max error margin uses the meshfix_maximum_resolution setting
-            if (first_path.points.size() > 1 && error_area + new_error_area < 2 * nozzle_size * maximum_resolution)
+            if (first_path.points.size() > 1 && error_area + new_error_area < merged_part_length * maximum_resolution)
             {
                 new_path_length -= vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
                 new_path_length += vSize(first_path.points[first_path.points.size() - 2] - average_second_path);
