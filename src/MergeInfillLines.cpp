@@ -7,7 +7,7 @@
 namespace cura
 {
 
-    MergeInfillLines::MergeInfillLines(ExtruderPlan& plan, const coord_t nozzle_size) : extruder_plan(plan), nozzle_size(nozzle_size)
+    MergeInfillLines::MergeInfillLines(ExtruderPlan& plan, const coord_t nozzle_size, const coord_t maximum_resolution) : extruder_plan(plan), nozzle_size(nozzle_size), maximum_resolution(maximum_resolution)
     {
         //Just copy the parameters to their fields.
     }
@@ -93,8 +93,8 @@ namespace cura
             // because of potential accumulation of errors introduced each time a line is merged, we do not allow any error.
             dist2_from_line = LinearAlg2D::getDist2FromLine(average_second_path, first_path.points[first_path.points.size() - 2], first_path.points[first_path.points.size() - 1]);
             new_error_area = sqrt(dist2_from_line) * vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]) / 2;
-            // The max error margin is kind of arbitrary, but it should relate somehow to line_width
-            if (first_path.points.size() > 1 && error_area + new_error_area < line_width * line_width)
+            // The max error margin uses the meshfix_maximum_resolution setting
+            if (first_path.points.size() > 1 && error_area + new_error_area < 2 * nozzle_size * maximum_resolution)
             {
                 new_path_length -= vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
                 new_path_length += vSize(first_path.points[first_path.points.size() - 2] - average_second_path);

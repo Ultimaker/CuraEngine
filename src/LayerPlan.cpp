@@ -1636,9 +1636,11 @@ void LayerPlan::optimizePaths(const Point& starting_position)
 {
     for (ExtruderPlan& extr_plan : extruder_plans)
     {
-        coord_t nozzle_size = storage.meshgroup->getExtruderTrain(extr_plan.extruder)->getSettingInMicrons("machine_nozzle_size");
+        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr_plan.extruder);
+        const coord_t nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
         //Merge paths whose endpoints are very close together into one line.
-        MergeInfillLines merger(extr_plan, nozzle_size);
+        MergeInfillLines merger(extr_plan, nozzle_size, maximum_resolution);
         merger.mergeInfillLines(extr_plan.paths, starting_position);
     }
 }
