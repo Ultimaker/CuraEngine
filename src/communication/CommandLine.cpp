@@ -95,11 +95,6 @@ void CommandLine::sliceNext()
     Settings& last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
 
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
-    const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
-    while (slice.scene.extruders.size() < extruder_count)
-    {
-        slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
-    }
     ExtruderTrain& last_extruder = slice.scene.extruders[0];
 
     for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
@@ -166,6 +161,16 @@ void CommandLine::sliceNext()
                             {
                                 logError("Failed to load JSON file: %s\n", argument);
                                 exit(1);
+                            }
+
+                            //If this was the global stack, create extruders for the machine_extruder_count setting.
+                            if (&last_settings == &slice.scene.settings)
+                            {
+                                const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+                                while (slice.scene.extruders.size() < extruder_count)
+                                {
+                                    slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
+                                }
                             }
                             break;
                         case 'e':
