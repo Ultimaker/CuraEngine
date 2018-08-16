@@ -28,8 +28,8 @@ SVG::SVG(const char* filename, AABB aabb, Point canvas_size, Color background)
 , aabb_size(aabb.max - aabb.min)
 , border(canvas_size.X / 5, canvas_size.Y / 10)
 , canvas_size(canvas_size)
-, background(background)
 , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
+, background(background)
 {
     output_is_html = strcmp(filename + strlen(filename) - 4, "html") == 0;
     out = fopen(filename, "w");
@@ -49,7 +49,7 @@ SVG::SVG(const char* filename, AABB aabb, Point canvas_size, Color background)
     
     if(background != Color::NONE)
     {
-        fprintf(out, "<rect width=\"100%\" height=\"100%\" fill=\"%s\"/>\n", toString(background).c_str());
+        fprintf(out, "<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n", toString(background).c_str());
     }
 
 }
