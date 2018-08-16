@@ -470,6 +470,7 @@ void LayerPlanBuffer::insertTempCommands()
 
 
     // insert commands for all extruder plans on this layer
+    Scene& scene = Application::getInstance().current_slice->scene;
     LayerPlan& layer_plan = *buffer.back();
     for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
@@ -515,7 +516,7 @@ void LayerPlanBuffer::insertTempCommands()
             int extruder = extruder_plan.extruder;
             for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
-                if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
+                if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
                 {
                     // override values from GCodeExport::setInitialTemps
                     // the first used extruder should be set to the required temp in the start gcode

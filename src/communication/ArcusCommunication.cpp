@@ -622,12 +622,10 @@ void ArcusCommunication::sliceNext()
 
     //Handle the main Slice message.
     const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
+    Slice slice(slice_message->object_lists().size());
     if(slice_message)
     {
         logDebug("Received a Slice message.\n");
-
-        Slice slice;
-        Application::getInstance().current_slice = &slice;
 
         private_data->readGlobalSettingsMessage(slice_message->global_settings());
         private_data->readExtruderSettingsMessage(slice_message->extruders());
@@ -657,18 +655,8 @@ void ArcusCommunication::sliceNext()
 
     if (!private_data->objects_to_slice.empty())
     {
-        const size_t object_count = private_data->objects_to_slice.size();
-        logDebug("Slicing %i objects.\n", object_count);
-        FffProcessor::getInstance()->resetMeshGroupNumber();
-        for (size_t i = 0; i < object_count; i++)
-        {
-            logDebug("Slicing object %i of %i.\n", i + 1, object_count);
-            if (!FffProcessor::getInstance()->processMeshGroup(private_data->objects_to_slice[i].get()))
-            {
-                logError("Slicing mesh group failed!\n");
-            }
-        }
-        logDebug("Done slicing objects.\n");
+        Application::getInstance().current_slice = &slice;
+        slice.scene.compute();
         private_data->objects_to_slice.clear();
         FffProcessor::getInstance()->finalize();
         flushGCode();

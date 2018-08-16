@@ -87,14 +87,19 @@ void CommandLine::sliceNext()
             num_mesh_groups++;
         }
     }
-    //Slice slice(num_mesh_groups);
-    Slice slice;
+    Slice slice(num_mesh_groups);
 
     Application::getInstance().current_slice = &slice;
 
-    MeshGroup* mesh_group = new MeshGroup();
+    size_t mesh_group_index = 0;
+    Settings& last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
+
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
-    Settings* last_settings = &mesh_group->settings;
+    const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+    while (slice.scene.extruders.size() < extruder_count)
+    {
+        slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
+    }
     ExtruderTrain& last_extruder = slice.scene.extruders[0];
 
     for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
@@ -110,22 +115,9 @@ void CommandLine::sliceNext()
                     {
                         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
 
-                        const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
-                        while (slice.scene.extruders.size() < extruder_count)
-                        {
-                            slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
-                        }
-
-                        mesh_group->finalize();
-
-                        //Start slicing.
-                        FffProcessor::getInstance()->processMeshGroup(mesh_group);
-
-                        //Initialize loading of the next meshes.
+                        mesh_group_index++;
                         FffProcessor::getInstance()->time_keeper.restart();
-                        delete mesh_group;
-                        mesh_group = new MeshGroup();
-                        last_settings = &mesh_group->settings;
+                        last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
                     }
                     catch(...)
                     {
@@ -133,7 +125,6 @@ void CommandLine::sliceNext()
                         //This prevents the "something went wrong" dialogue on Windows to pop up on a thrown exception.
                         //Only ClipperLib currently throws exceptions. And only in the case that it makes an internal error.
                         logError("Unknown exception!\n");
-                                delete mesh_group;
                         exit(1);
                     }
                 }
@@ -169,13 +160,11 @@ void CommandLine::sliceNext()
                             if (argument_index >= arguments.size())
                             {
                                 logError("Missing JSON file with -j argument.");
-                                delete mesh_group;
                                 exit(1);
                             }
-                            if (loadJSON(argument, *last_settings))
+                            if (loadJSON(argument, last_settings))
                             {
                                 logError("Failed to load JSON file: %s\n", argument);
-                                delete mesh_group;
                                 exit(1);
                             }
                             break;
@@ -186,7 +175,7 @@ void CommandLine::sliceNext()
                             {
                                 slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
                             }
-                            last_settings = &slice.scene.extruders[extruder_nr].settings;
+                            last_settings = slice.scene.extruders[extruder_nr].settings;
                             break;
                         }
                         case 'l':
@@ -195,22 +184,20 @@ void CommandLine::sliceNext()
                             if (argument_index >= arguments.size())
                             {
                                 logError("Missing model file with -l argument.");
-                                delete mesh_group;
                                 exit(1);
                             }
 
-                            const FMatrix3x3 transformation = last_settings->get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
+                            const FMatrix3x3 transformation = last_settings.get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
 
                             argument = arguments[argument_index];
-                            if (!loadMeshIntoMeshGroup(mesh_group, argument.c_str(), transformation, &last_extruder.settings))
+                            if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, &last_extruder.settings))
                             {
                                 logError("Failed to load model: %s\n", argument);
-                                delete mesh_group;
                                 exit(1);
                             }
                             else
                             {
-                                last_settings = &mesh_group->meshes.back().settings;
+                                last_settings = slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
                             }
                             break;
                         }
@@ -219,19 +206,17 @@ void CommandLine::sliceNext()
                             if (argument_index >= arguments.size())
                             {
                                 logError("Missing output file with -o argument.");
-                                delete mesh_group;
                                 exit(1);
                             }
                             argument = arguments[argument_index];
                             if (!FffProcessor::getInstance()->setTargetFile(argument.c_str()))
                             {
                                 logError("Failed to open %s for output.\n", argument);
-                                delete mesh_group;
                                 exit(1);
                             }
                             break;
                         case 'g':
-                            last_settings = &mesh_group->settings;
+                            last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
                             //Fall-through is intended here. No break!
                         case 's':
                         {
@@ -240,7 +225,6 @@ void CommandLine::sliceNext()
                             if (argument_index >= arguments.size())
                             {
                                 logError("Missing setting name and value with -s argument.");
-                                delete mesh_group;
                                 exit(1);
                             }
                             argument = arguments[argument_index];
@@ -249,18 +233,16 @@ void CommandLine::sliceNext()
                             if (value_position == std::string::npos)
                             {
                                 logError("Missing value in setting argument: -s %s", argument);
-                                delete mesh_group;
                                 exit(1);
                             }
                             std::string value = argument.substr(value_position + 1);
-                            last_settings->add(key, value);
+                            last_settings.add(key, value);
                             break;
                         }
                         default:
                             logError("Unknown option: -%c\n", argument[1]);
                             Application::getInstance().printCall();
                             Application::getInstance().printHelp();
-                            delete mesh_group;
                             exit(1);
                             break;
                     }
@@ -272,7 +254,6 @@ void CommandLine::sliceNext()
             logError("Unknown option: %s\n", argument);
             Application::getInstance().printCall();
             Application::getInstance().printHelp();
-            delete mesh_group;
             exit(1);
         }
     }
@@ -283,11 +264,11 @@ void CommandLine::sliceNext()
     try
     {
 #endif //DEBUG
-        mesh_group->finalize();
+        slice.scene.mesh_groups[mesh_group_index].finalize();
         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
 
         //Start slicing.
-        FffProcessor::getInstance()->processMeshGroup(mesh_group);
+        slice.scene.compute();
 #ifndef DEBUG
     }
     catch(...)
@@ -296,15 +277,12 @@ void CommandLine::sliceNext()
         //This prevents the "something went wrong" dialogue on Windows to pop up on a thrown exception.
         //Only ClipperLib currently throws exceptions. And only in the case that it makes an internal error.
         logError("Unknown exception.\n");
-        delete mesh_group;
         exit(1);
     }
 #endif //DEBUG
 
     //Finalize the processor. This adds the end g-code and reports statistics.
     FffProcessor::getInstance()->finalize();
-
-    delete mesh_group;
 }
 
 int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
@@ -379,8 +357,7 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
 
     //Extruders defined from here, if any.
     //Note that this always puts the extruder settings in the slice of the current extruder. It doesn't keep the nested structure of the JSON files, if extruders would have their own sub-extruders.
-    Slice slice;
-    Application::getInstance().current_slice = &slice;
+    Scene& scene = Application::getInstance().current_slice->scene;
     if (document.HasMember("metadata") && document["metadata"].IsObject())
     {
         const rapidjson::Value& metadata = document["metadata"];
@@ -394,9 +371,9 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
                 {
                     continue;
                 }
-                while (slice.scene.extruders.size() <= static_cast<size_t>(extruder_nr))
+                while (scene.extruders.size() <= static_cast<size_t>(extruder_nr))
                 {
-                    slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
+                    scene.extruders.emplace_back(scene.extruders.size(), &scene.settings);
                 }
                 const rapidjson::Value& extruder_id = extruder_train->value;
                 if (!extruder_id.IsString())
@@ -405,7 +382,7 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
                 }
                 const std::string extruder_definition_id(extruder_id.GetString());
                 const std::string extruder_file = findDefinitionFile(extruder_definition_id, search_directories);
-                loadJSON(extruder_file, slice.scene.extruders[extruder_nr].settings);
+                loadJSON(extruder_file, scene.extruders[extruder_nr].settings);
             }
         }
     }

@@ -6,7 +6,9 @@
 namespace cura
 {
 
-Slice::Slice() {}
+Slice::Slice(const size_t num_mesh_groups)
+: scene(num_mesh_groups)
+{}
 
 void Slice::compute(std::string& output_gcode)
 {

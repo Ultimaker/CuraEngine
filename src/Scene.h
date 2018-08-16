@@ -4,8 +4,11 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include "FffPolygonGenerator.h"
+#include "FffGcodeWriter.h"
 #include "MeshGroup.h" //To store the mesh groups in the scene.
 #include "settings/Settings.h" //To store the global settings.
+#include "utils/gettime.h" //For tracking the time spent on slicing.
 
 namespace cura
 {
@@ -17,38 +20,69 @@ class Scene
 {
 public:
     /*
-     * Create an empty scene.
-     *
-     * This scene will have no models in it, no extruders, no settings, no
-     * nothing.
-     */
-    Scene();
-
-    /*
-     * The global settings in the scene.
+     * \brief The global settings in the scene.
      */
     Settings settings;
 
     /*
-     * The mesh groups in the scene.
+     * \brief The mesh groups in the scene.
      */
     std::vector<MeshGroup> mesh_groups;
 
     /*
-     * The extruders in the scene.
+     * \brief The extruders in the scene.
      */
     std::vector<ExtruderTrain> extruders;
 
+    /*
+     * \brief The mesh group that is being processed right now.
+     *
+     * During initialisation this may be nullptr. For the most part, during the
+     * slicing process, you can be assured that this will not be null so you can
+     * safely dereference it.
+     */
+    std::vector<MeshGroup>::iterator current_mesh_group;
+
+    /*
+     * \brief Create an empty scene.
+     *
+     * This scene will have no models in it, no extruders, no settings, no
+     * nothing.
+     * \param num_mesh_groups The number of mesh groups to allocate for.
+     */
+    Scene(const size_t num_mesh_groups);
+
+    /*
+     * \brief Slices the current scene. This sends g-code output through the
+     * currently active communication channel.
+     */
+    void compute();
+
 private:
     /*
-     * You are not allowed to copy the scene.
+     * \brief You are not allowed to copy the scene.
      */
     Scene(const Scene&) = delete;
 
     /*
-     * You are not allowed to copy by assignment either.
+     * \brief You are not allowed to copy by assignment either.
      */
     Scene& operator =(const Scene&) = delete;
+
+    /*
+     * \brief Gets a string that contains all settings.
+     *
+     * This string mimics the command line call of CuraEngine. In theory you
+     * could call CuraEngine with this output in the command in order to
+     * reproduce the output.
+     */
+    const std::string getAllSettingsString() const;
+
+    /*
+     * \brief Generate the 3D printing instructions to print a given mesh group.
+     * \param mesh_group The mesh group to slice.
+     */
+    void processMeshGroup(MeshGroup& mesh_group);
 };
 
 } //namespace cura

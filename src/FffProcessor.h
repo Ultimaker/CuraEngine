@@ -25,8 +25,9 @@ private:
      * The FffProcessor used for the (current) slicing (The instance of this singleton)
      */
     static FffProcessor instance; 
-    
+
     FffProcessor();
+
 public:
     /*!
      * Get the instance
@@ -37,27 +38,7 @@ public:
         return &instance; 
     }
 
-    /*!
-     * Get the index of the meshgroup currently being processed, starting at zero.
-     */
-    int getMeshgroupNr();
-
 private:
-    /*!
-     * The polygon generator, which slices the models and generates all polygons to be printed and areas to be filled.
-     */
-    FffPolygonGenerator polygon_generator;
-
-    /*!
-     * The gcode writer, which generates paths in layer plans in a buffer, which converts these paths into gcode commands.
-     */
-    FffGcodeWriter gcode_writer;
-
-    /*!
-     * The index of the meshgroup currently being processed, starting at zero.
-     */
-    int meshgroup_number;
-
     /*!
      * A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
      * 
@@ -79,24 +60,19 @@ private:
 
 public:
     /*!
-     * Get a string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
-     * 
-     * \return A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
+     * The gcode writer, which generates paths in layer plans in a buffer, which converts these paths into gcode commands.
      */
-    std::string getProfileString() { return profile_string; }
+    FffGcodeWriter gcode_writer;
+
+    /*!
+     * The polygon generator, which slices the models and generates all polygons to be printed and areas to be filled.
+     */
+    FffPolygonGenerator polygon_generator;
 
     /*!
      * The stop watch used to time how long the different stages take to compute.
      */
     TimeKeeper time_keeper; // TODO: use singleton time keeper
-
-    /*!
-     * Reset the meshgroup number to the first meshgroup to start a new slicing.
-     */
-    void resetMeshGroupNumber()
-    {
-        meshgroup_number = 0;
-    }
 
     /*!
      * Set the target to write gcode to: to a file.
@@ -152,15 +128,6 @@ public:
     {
         gcode_writer.finalize();
     }
-
-    /*!
-     * Generate gcode for a given \p meshgroup
-     * The primary function of this class.
-     * 
-     * \param meshgroup The meshgroup for which to generate gcode
-     * \return Whether this function succeeded
-     */
-    bool processMeshGroup(MeshGroup* meshgroup);
 };
 
 }//namespace cura

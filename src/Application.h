@@ -21,13 +21,6 @@ class Application
 {
 public:
     /*
-     * \brief The slice that is currently ongoing.
-     *
-     * If no slice has started yet, this will be a nullptr.
-     */
-    Slice* current_slice;
-
-    /*
      * \brief The communication currently in use.
      *
      * This may be set to ``nullptr`` during the initialisation of the program,
@@ -37,6 +30,13 @@ public:
      * initialised.
      */
     Communication* communication;
+
+    /*
+     * \brief The slice that is currently ongoing.
+     *
+     * If no slice has started yet, this will be a nullptr.
+     */
+    Slice* current_slice;
 
     /*!
      * Gets the instance of this application class.

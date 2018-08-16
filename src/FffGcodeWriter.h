@@ -37,7 +37,8 @@ namespace cura
  */
 class FffGcodeWriter : public SettingsMessenger, NoCopy
 {
-    friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
+    friend class Scene; // cause WireFrame2Gcode uses the member [gcode] (TODO)
+    friend class FffProcessor; //Because FffProcessor exposes finalize (TODO)
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
