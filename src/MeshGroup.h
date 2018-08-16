@@ -20,8 +20,6 @@ namespace cura
 class MeshGroup : public SettingsBase, NoCopy
 {
 public:
-    MeshGroup();
-
     std::vector<Mesh> meshes;
     Settings settings;
 

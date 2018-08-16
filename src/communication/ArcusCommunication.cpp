@@ -110,7 +110,7 @@ public:
             return; //Don't slice empty mesh groups.
         }
 
-        objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
+        objects_to_slice.push_back(std::make_shared<MeshGroup>());
         MeshGroup* mesh_group = objects_to_slice.back().get();
         mesh_group->settings.setParent(&Application::getInstance().current_slice.scene.settings);
 

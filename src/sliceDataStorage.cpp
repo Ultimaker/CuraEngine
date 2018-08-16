@@ -336,7 +336,7 @@ std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
 }
 
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
-    meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
+    meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup()), //If no mesh group is provided, we roll our own.
     print_layer_count(0),
     retraction_config_per_extruder(initializeRetractionConfigs()),
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),

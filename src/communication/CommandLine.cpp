@@ -81,7 +81,7 @@ void CommandLine::sliceNext()
     Application::getInstance().current_slice.reset(); //Create a new Slice.
     Slice& slice = Application::getInstance().current_slice;
 
-    MeshGroup* mesh_group = new MeshGroup(FffProcessor::getInstance());
+    MeshGroup* mesh_group = new MeshGroup();
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
     Settings* last_settings = &mesh_group->settings;
     ExtruderTrain& last_extruder = slice.scene.extruders[0];
@@ -113,7 +113,7 @@ void CommandLine::sliceNext()
                         //Initialize loading of the next meshes.
                         FffProcessor::getInstance()->time_keeper.restart();
                         delete mesh_group;
-                        mesh_group = new MeshGroup(FffProcessor::getInstance());
+                        mesh_group = new MeshGroup();
                         last_settings = &mesh_group->settings;
                     }
                     catch(...)
