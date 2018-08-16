@@ -773,7 +773,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    int snapDistance = MM2INT(1.0); // TODO: hardcoded value
+    int snapDistance = mesh->getSettingInMicrons("minimum_polygon_circumference");
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
     polygons.erase(it, polygons.end());
 
