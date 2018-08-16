@@ -88,9 +88,9 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount(storage))
 , layer_thickness(layer_thickness)
-, has_prime_tower_planned_per_extruder(Application::getInstance().current_slice.scene.extruders.size(), false)
+, has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
 , last_extruder_previous_layer(start_extruder)
-, last_planned_extruder_setting_base(&(Application::getInstance().current_slice.scene.extruders[start_extruder]))
+, last_planned_extruder_setting_base(&(Application::getInstance().current_slice->scene.extruders[start_extruder]))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
 , comb_boundary_inside1(computeCombBoundaryInside(combing_mode, 1))
 , comb_boundary_inside2(computeCombBoundaryInside(combing_mode, 2))
@@ -109,14 +109,14 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     {
         comb = nullptr;
     }
-    for (const ExtruderTrain& train : Application::getInstance().current_slice.scene.extruders)
+    for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
     {
         layer_start_pos_per_extruder.emplace_back(train.getSettingInMicrons("layer_start_x"), train.getSettingInMicrons("layer_start_y"));
     }
-    extruder_plans.reserve(Application::getInstance().current_slice.scene.extruders.size());
+    extruder_plans.reserve(Application::getInstance().current_slice->scene.extruders.size());
     extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     { //Skirt and brim.
         skirt_brim_is_processed[extruder_nr] = false;
     }
@@ -213,9 +213,9 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     else 
     {
         extruder_plans.emplace_back(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder_nr], storage.retraction_config_per_extruder[extruder_nr]);
-        assert(extruder_plans.size() <= Application::getInstance().current_slice.scene.extruders.size() && "Never use the same extruder twice on one layer!");
+        assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
     }
-    last_planned_extruder_setting_base = &(Application::getInstance().current_slice.scene.extruders[extruder_nr]);
+    last_planned_extruder_setting_base = &(Application::getInstance().current_slice->scene.extruders[extruder_nr]);
 
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
 
@@ -1253,7 +1253,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_nr = extruder_plan.extruder;
             gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
-            const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             if (train.getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
             {
                 gcode.writeMaxZFeedrate(train.getSettingInMillimetersPerSecond("max_feedrate_z_override"));
@@ -1276,7 +1276,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
-        else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice.scene.extruders[extruder_nr].getSettingBoolean("retract_at_layer_change"))
+        else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].getSettingBoolean("retract_at_layer_change"))
         {
             // only do the retract if the paths are not spiralized
             if (!storage.getSettingBoolean("magic_spiralize"))
@@ -1291,7 +1291,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 return  a.path_idx < b.path_idx; 
             } );
 
-        const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+        const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
         if (train.getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
         {
             gcode.writeMaxZFeedrate(train.getSettingInMillimetersPerSecond("max_feedrate_z_override"));

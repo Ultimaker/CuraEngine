@@ -15,8 +15,9 @@ namespace cura
 {
 
 Application::Application()
+: communication(nullptr)
+, current_slice(nullptr)
 {
-    communication = nullptr;
 }
 
 Application::~Application()

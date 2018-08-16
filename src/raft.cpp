@@ -14,7 +14,7 @@ void Raft::generate(SliceDataStorage& storage, int distance)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
-    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     const int shield_line_width_layer0 = train.getSettingInMicrons("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
@@ -35,7 +35,7 @@ void Raft::generate(SliceDataStorage& storage, int distance)
 
 int Raft::getTotalThickness(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     return train.getSettingInMicrons("raft_base_thickness")
         + train.getSettingInMicrons("raft_interface_thickness")
         + train.getSettingAsCount("raft_surface_layers") * train.getSettingInMicrons("raft_surface_thickness");
@@ -43,7 +43,7 @@ int Raft::getTotalThickness(const SliceDataStorage& storage)
 
 int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
@@ -79,7 +79,7 @@ int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
 
 int Raft::getTotalExtraLayers(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[storage.getSettingAsIndex("adhesion_extruder_nr")];
     if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;

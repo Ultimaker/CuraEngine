@@ -26,7 +26,7 @@ PrimeTower::PrimeTower(const SliceDataStorage& storage)
            && storage.getSettingInMicrons("prime_tower_min_volume") > 10
            && storage.getSettingInMicrons("prime_tower_size") > 10;
 
-    const Scene& scene = Application::getInstance().current_slice.scene;
+    const Scene& scene = Application::getInstance().current_slice->scene;
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -94,7 +94,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     pattern_per_extruder.resize(extruder_count);
 
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
-    const Scene& scene = Application::getInstance().current_slice.scene;
+    const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr : extruder_order)
     {
         const coord_t line_width = scene.extruders[extruder_nr].getSettingInMicrons("prime_tower_line_width");
@@ -158,7 +158,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         return;
     }
 
-    bool post_wipe = Application::getInstance().current_slice.scene.extruders[prev_extruder].getSettingBoolean("prime_tower_wipe_enabled");
+    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].getSettingBoolean("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
     const int layer_nr = gcode_layer.getLayerNr();
@@ -194,9 +194,9 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
 {
     Point ret(0, 0);
     int absolute_starting_points = 0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
-        ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[0];
+        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[0];
         if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
         {
             ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));

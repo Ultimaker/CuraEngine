@@ -9,7 +9,7 @@ namespace cura
 
 void Preheat::setConfig(const MeshGroup& meshgroup)
 {
-    for (const ExtruderTrain& extruder_train : Application::getInstance().current_slice.scene.extruders)
+    for (const ExtruderTrain& extruder_train : Application::getInstance().current_slice->scene.extruders)
     {
         config_per_extruder.emplace_back();
         Config& config = config_per_extruder.back();

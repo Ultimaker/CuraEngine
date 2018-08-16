@@ -56,7 +56,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
 
-    const Scene& scene = Application::getInstance().current_slice.scene;
+    const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
@@ -110,7 +110,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr)
 {
-    const Scene& scene = Application::getInstance().current_slice.scene;
+    const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
@@ -220,7 +220,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 prefix << "0m";
             }
             prefix << new_line;
-            prefix << ";Layer height: " << Application::getInstance().current_slice.scene.settings.get<double>("layer_height") << new_line;
+            prefix << ";Layer height: " << Application::getInstance().current_slice->scene.settings.get<double>("layer_height") << new_line;
         }
     }
 
@@ -648,7 +648,7 @@ void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t&
 
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
-    const double layer_height = Application::getInstance().current_slice.scene.settings.get<double>("layer_height");
+    const double layer_height = Application::getInstance().current_slice->scene.settings.get<double>("layer_height");
     Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
     *output_stream << "G0";
@@ -931,7 +931,7 @@ void GCodeExport::startExtruder(int new_extruder)
         }
     }
 
-    Application::getInstance().communication->setExtruderForSend(Application::getInstance().current_slice.scene.extruders[new_extruder]);
+    Application::getInstance().communication->setExtruderForSend(Application::getInstance().current_slice->scene.extruders[new_extruder]);
     Application::getInstance().communication->sendCurrentPosition(getPositionXY());
 
     //Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.

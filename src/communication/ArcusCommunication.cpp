@@ -67,20 +67,20 @@ public:
      */
     void readGlobalSettingsMessage(const cura::proto::SettingList& global_settings_message)
     {
-        Slice& slice = Application::getInstance().current_slice;
+        Slice* slice = Application::getInstance().current_slice;
         for (const cura::proto::Setting& setting_message : global_settings_message.settings())
         {
-            slice.scene.settings.add(setting_message.name(), setting_message.value());
+            slice->scene.settings.add(setting_message.name(), setting_message.value());
         }
     }
     
     void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<cura::proto::Extruder>& extruder_message)
     {
-        Slice& slice = Application::getInstance().current_slice;
-        const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+        Slice* slice = Application::getInstance().current_slice;
+        const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
         for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
-            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+            slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
         }
         for (const cura::proto::Extruder& extruder_message : extruder_message)
         {
@@ -90,7 +90,7 @@ public:
                 logWarning("Received extruder index that is out of range: %i", extruder_nr);
                 continue;
             }
-            ExtruderTrain& extruder = slice.scene.extruders[extruder_nr];
+            ExtruderTrain& extruder = slice->scene.extruders[extruder_nr];
             for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
             {
                 extruder.setSetting(setting_message.name(), setting_message.value());
@@ -112,7 +112,7 @@ public:
 
         objects_to_slice.push_back(std::make_shared<MeshGroup>());
         MeshGroup* mesh_group = objects_to_slice.back().get();
-        mesh_group->settings.setParent(&Application::getInstance().current_slice.scene.settings);
+        mesh_group->settings.setParent(&Application::getInstance().current_slice->scene.settings);
 
         //Load the settings in the mesh group.
         for (const cura::proto::Setting& setting : mesh_group_message.settings())
@@ -578,7 +578,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
     message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
@@ -626,8 +626,8 @@ void ArcusCommunication::sliceNext()
     {
         logDebug("Received a Slice message.\n");
 
-        Application::getInstance().current_slice.reset(); //Create a new Slice.
-        Slice& slice = Application::getInstance().current_slice;
+        Slice slice;
+        Application::getInstance().current_slice = &slice;
 
         private_data->readGlobalSettingsMessage(slice_message->global_settings());
         private_data->readExtruderSettingsMessage(slice_message->extruders());

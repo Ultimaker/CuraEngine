@@ -27,7 +27,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     std::stringstream sstream;
     if (first_meshgroup)
     {
-        sstream << Application::getInstance().current_slice.scene.settings.getAllSettingsString(); //Global settings.
+        sstream << Application::getInstance().current_slice->scene.settings.getAllSettingsString(); //Global settings.
         sstream << " -g";
     }
     else 
@@ -35,7 +35,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
         sstream << " --next";
     }
     sstream << meshgroup.settings.getAllSettingsString();
-    const Scene& scene = Application::getInstance().current_slice.scene;
+    const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];

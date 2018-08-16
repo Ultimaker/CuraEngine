@@ -49,16 +49,16 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
     coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
     unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
-    const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice.scene.extruders[adhesion_extruder_nr];
+    const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice->scene.extruders[adhesion_extruder_nr];
     coord_t extra_skirt_line_width = 0;
     const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
         if (extruder_nr == adhesion_extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
         {
             continue;
         }
-        const ExtruderTrain& other_extruder = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+        const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
         extra_skirt_line_width += other_extruder.getSettingInMicrons("skirt_brim_line_width") * other_extruder.getSettingAsRatio("initial_layer_line_width_factor");
     }
     switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))

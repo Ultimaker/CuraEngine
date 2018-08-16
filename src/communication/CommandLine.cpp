@@ -59,7 +59,7 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
     log("Total print time: %5.3fs\n", sum);
 
     sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
     {
         sum += FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr);
     }
@@ -78,8 +78,19 @@ void CommandLine::sliceNext()
 {
     FffProcessor::getInstance()->time_keeper.restart();
 
-    Application::getInstance().current_slice.reset(); //Create a new Slice.
-    Slice& slice = Application::getInstance().current_slice;
+    //Count the number of mesh groups to slice for.
+    size_t num_mesh_groups = 1;
+    for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
+    {
+        if (arguments[argument_index].find("--next") == 0) //Starts with "--next".
+        {
+            num_mesh_groups++;
+        }
+    }
+    //Slice slice(num_mesh_groups);
+    Slice slice;
+
+    Application::getInstance().current_slice = &slice;
 
     MeshGroup* mesh_group = new MeshGroup();
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
@@ -368,7 +379,8 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
 
     //Extruders defined from here, if any.
     //Note that this always puts the extruder settings in the slice of the current extruder. It doesn't keep the nested structure of the JSON files, if extruders would have their own sub-extruders.
-    Slice& slice = Application::getInstance().current_slice;
+    Slice slice;
+    Application::getInstance().current_slice = &slice;
     if (document.HasMember("metadata") && document["metadata"].IsObject())
     {
         const rapidjson::Value& metadata = document["metadata"];

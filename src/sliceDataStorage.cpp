@@ -331,7 +331,7 @@ Point SliceMeshStorage::getZSeamHint() const
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
 {
     std::vector<RetractionConfig> ret;
-    ret.resize(Application::getInstance().current_slice.scene.extruders.size()); // initializes with constructor RetractionConfig()
+    ret.resize(Application::getInstance().current_slice->scene.extruders.size()); // initializes with constructor RetractionConfig()
     return ret;
 }
 
@@ -477,13 +477,13 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
 
     std::vector<bool> ret;
-    ret.resize(Application::getInstance().current_slice.scene.extruders.size(), false);
+    ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
 
     if (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
+            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
                 if (skirt_brim[extruder_nr].size() > 0)
                 {
@@ -530,7 +530,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
 {
 
     std::vector<bool> ret;
-    ret.resize(Application::getInstance().current_slice.scene.extruders.size(), false);
+    ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
 
     bool include_adhesion = true;
     bool include_helper_parts = true;
@@ -557,7 +557,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
         { // process brim/skirt
-            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice.scene.extruders.size(); extruder_nr++)
+            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
                 if (skirt_brim[extruder_nr].size() > 0)
                 {
@@ -616,12 +616,12 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
 
 bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) const
 {
-    if (extruder_nr >= Application::getInstance().current_slice.scene.extruders.size())
+    if (extruder_nr >= Application::getInstance().current_slice->scene.extruders.size())
     {
         return false;
     }
 
-    const ExtruderTrain& train = Application::getInstance().current_slice.scene.extruders[extruder_nr];
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     return train.getSettingBoolean("prime_blob_enable");
 }
 

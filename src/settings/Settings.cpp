@@ -86,7 +86,7 @@ template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) 
     {
         extruder_nr = get<size_t>("extruder_nr");
     }
-    return Application::getInstance().current_slice.scene.extruders[extruder_nr];
+    return Application::getInstance().current_slice->scene.extruders[extruder_nr];
 }
 
 template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const

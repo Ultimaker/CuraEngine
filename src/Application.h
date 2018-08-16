@@ -23,10 +23,9 @@ public:
     /*
      * \brief The slice that is currently ongoing.
      *
-     * If no slice has started yet, this will be an empty Slice object or the
-     * latest successful slice.
+     * If no slice has started yet, this will be a nullptr.
      */
-    Slice current_slice;
+    Slice* current_slice;
 
     /*
      * \brief The communication currently in use.

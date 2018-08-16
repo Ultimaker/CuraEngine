@@ -18,7 +18,7 @@ coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceDataStorage& stor
     coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
     if (layer_nr == 0)
     {
-        const ExtruderTrain& train_skin = Application::getInstance().current_slice.scene.extruders[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")];
+        const ExtruderTrain& train_skin = Application::getInstance().current_slice->scene.extruders[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")];
         skin_line_width *= train_skin.getSettingAsRatio("initial_layer_line_width_factor");
     }
     return skin_line_width;
@@ -29,7 +29,7 @@ coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceDataStorage& sto
     coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
     if (layer_nr == 0)
     {
-        const ExtruderTrain& train_wall_0 = Application::getInstance().current_slice.scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
+        const ExtruderTrain& train_wall_0 = Application::getInstance().current_slice->scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
         wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
     }
     return wall_line_width_0;
@@ -39,7 +39,7 @@ coord_t SkinInfillAreaComputation::getWallLineWidthX(const SliceDataStorage& sto
     coord_t wall_line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
     if (layer_nr == 0)
     {
-        const ExtruderTrain& train_wall_x = Application::getInstance().current_slice.scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
+        const ExtruderTrain& train_wall_x = Application::getInstance().current_slice->scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
         wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
     }
     return wall_line_width_x;
@@ -48,7 +48,7 @@ coord_t SkinInfillAreaComputation::getInfillSkinOverlap(const SliceDataStorage& 
 {
     coord_t infill_skin_overlap = 0;
     { // compute infill_skin_overlap
-        const ExtruderTrain& train_infill = Application::getInstance().current_slice.scene.extruders[mesh.getSettingAsExtruderNr("infill_extruder_nr")];
+        const ExtruderTrain& train_infill = Application::getInstance().current_slice->scene.extruders[mesh.getSettingAsExtruderNr("infill_extruder_nr")];
         const coord_t infill_line_width_factor = (layer_nr == 0) ? train_infill.getSettingAsRatio("initial_layer_line_width_factor") : 1.0;
         const bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") * infill_line_width_factor + 10;
         if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
