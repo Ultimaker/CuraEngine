@@ -32,10 +32,6 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-MeshGroup::MeshGroup(SettingsBaseVirtual* settings_base)
-: SettingsBase(settings_base)
-{}
-
 Point3 MeshGroup::min() const
 {
     if (meshes.size() < 1)

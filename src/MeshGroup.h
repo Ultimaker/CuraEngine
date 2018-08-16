@@ -22,8 +22,6 @@ class MeshGroup : public SettingsBase, NoCopy
 public:
     MeshGroup();
 
-    MeshGroup(SettingsBaseVirtual* settings_base);
-
     std::vector<Mesh> meshes;
     Settings settings;
 
