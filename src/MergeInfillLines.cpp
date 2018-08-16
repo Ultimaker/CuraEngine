@@ -114,7 +114,7 @@ namespace cura
             new_path_length += vSize(average_second_path - average_first_path);
         }
         double new_flow = ((first_path_length_flow + second_path_length_flow) / static_cast<double>(new_path_length));
-        if (new_flow > 2 * nozzle_size / line_width)  // line width becomes too wide
+        if (new_flow > 3 * nozzle_size / line_width)  // line width becomes too wide. strictly speaking it should not exceed 2 * nozzle_size, but 3* produces better results in practice
         {
             return false;
         }
