@@ -622,36 +622,38 @@ void ArcusCommunication::sliceNext()
 
     //Handle the main Slice message.
     const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
-    Slice slice(slice_message->object_lists().size());
-    if(slice_message)
+    if (!slice_message)
     {
-        logDebug("Received a Slice message.\n");
-
-        private_data->readGlobalSettingsMessage(slice_message->global_settings());
-        private_data->readExtruderSettingsMessage(slice_message->extruders());
-        const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
-
-        //For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
-        for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
-        {
-            const int32_t extruder_nr = setting_extruder.extruder(); //Cast from proto::int to int32_t!
-            if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
-            {
-                //If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
-                continue;
-            }
-            ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
-            slice.scene.settings.setLimitToExtruder(setting_extruder.name(), &extruder);
-        }
-
-        //Load all mesh groups, meshes and their settings.
-        private_data->object_count = 0;
-        for (const cura::proto::ObjectList& mesh_group_message : slice_message->object_lists())
-        {
-            private_data->readMeshGroupMessage(mesh_group_message);
-        }
-        logDebug("Done reading Slice message.\n");
+        return;
     }
+    logDebug("Received a Slice message.\n");
+
+    Slice slice(slice_message->object_lists().size());
+
+    private_data->readGlobalSettingsMessage(slice_message->global_settings());
+    private_data->readExtruderSettingsMessage(slice_message->extruders());
+    const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+
+    //For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
+    for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
+    {
+        const int32_t extruder_nr = setting_extruder.extruder(); //Cast from proto::int to int32_t!
+        if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
+        {
+            //If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
+            continue;
+        }
+        ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
+        slice.scene.settings.setLimitToExtruder(setting_extruder.name(), &extruder);
+    }
+
+    //Load all mesh groups, meshes and their settings.
+    private_data->object_count = 0;
+    for (const cura::proto::ObjectList& mesh_group_message : slice_message->object_lists())
+    {
+        private_data->readMeshGroupMessage(mesh_group_message);
+    }
+    logDebug("Done reading Slice message.\n");
 
     if (!private_data->objects_to_slice.empty())
     {
