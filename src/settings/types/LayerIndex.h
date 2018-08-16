@@ -8,7 +8,7 @@ namespace cura
 {
 
 /*
- * Struct behaving like a layer number.
+ * \brief Struct behaving like a layer number.
  *
  * This is a facade. It behaves exactly like an integer but is used to indicate
  * that it is a layer number.
@@ -16,18 +16,26 @@ namespace cura
 struct LayerIndex
 {
     /*
-     * Casts an integer to a LayerIndex instance.
+     * \brief Default constructor setting the layer index to 0.
+     */
+    LayerIndex() : value(0) {};
+
+    /*
+     * \brief Casts an integer to a LayerIndex instance.
      */
     LayerIndex(int value) : value(value) {};
 
     /*
-     * Casts the LayerIndex instance to an integer.
+     * \brief Casts the LayerIndex instance to an integer.
      */
     operator int() const
     {
         return value;
     }
 
+    /*
+     * Some operators to add and subtract layer numbers.
+     */
     LayerIndex operator +(const LayerIndex& other) const
     {
         return LayerIndex(value + other.value);
@@ -51,7 +59,7 @@ struct LayerIndex
     }
 
     /*
-     * The actual layer index.
+     * \brief The actual layer index.
      *
      * Note that this could be negative for raft layers.
      */

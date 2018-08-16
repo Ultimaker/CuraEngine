@@ -10,7 +10,7 @@ namespace cura
 {
 
 /*
- * Represents an angle in radians.
+ * \brief Represents an angle in radians.
  *
  * This is a facade. It behaves like a double, but this is using clock
  * arithmetic which guarantees that the value is always between 0 and 2 * pi.
@@ -18,12 +18,17 @@ namespace cura
 struct AngleRadians
 {
     /*
-     * Translate the double value in degrees to an AngleRadians instance.
+     * \brief Default constructor setting the angle to 0.
+     */
+    AngleRadians() : value(0.0) {};
+
+    /*
+     * \brief Translate the double value in degrees to an AngleRadians instance.
      */
     AngleRadians(double value) : value(std::fmod(std::fmod(value * M_PI / 180, TAU) + TAU, TAU)) {};
 
     /*
-     * Casts the AngleRadians instance to a double.
+     * \brief Casts the AngleRadians instance to a double.
      */
     operator double() const
     {
@@ -53,7 +58,7 @@ struct AngleRadians
     }
 
     /*
-     * The actual angle, as a double.
+     * \brief The actual angle, as a double.
      *
      * This value should always be between 0 and 2 * pi.
      */

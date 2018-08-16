@@ -17,12 +17,17 @@ namespace cura
 struct Velocity
 {
     /*
-     * Casts a double to a Velocity instance.
+     * \brief Default constructor setting velocity to 0.
+     */
+    Velocity() : value(0.0) {};
+
+    /*
+     * \brief Casts a double to a Velocity instance.
      */
     Velocity(double value) : value(std::max(value, 0.0)) {};
 
     /*
-     * Casts the Temperature instance to a double.
+     * \brief Casts the Temperature instance to a double.
      */
     operator double() const
     {
@@ -30,7 +35,7 @@ struct Velocity
     }
 
     /*
-     * The actual temperature, as a double.
+     * \brief The actual temperature, as a double.
      */
     double value = 0;
 };

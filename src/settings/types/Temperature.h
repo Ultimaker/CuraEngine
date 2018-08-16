@@ -8,19 +8,24 @@ namespace cura
 {
 
 /*
- * Represents a temperature in degrees Celsius.
+ * \brief Represents a temperature in degrees Celsius.
  *
  * This is a facade. It behaves like a double.
  */
 struct Temperature
 {
     /*
-     * Casts a double to a Temperature instance.
+     * \brief Default constructor setting the temperature to 0.
+     */
+    Temperature() : value(0.0) {};
+
+    /*
+     * \brief Casts a double to a Temperature instance.
      */
     Temperature(double value) : value(value) {};
 
     /*
-     * Casts the Temperature instance to a double.
+     * \brief Casts the Temperature instance to a double.
      */
     operator double() const
     {
@@ -28,7 +33,7 @@ struct Temperature
     }
 
     /*
-     * The actual temperature, as a double.
+     * \brief The actual temperature, as a double.
      */
     double value = 0;
 };

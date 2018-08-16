@@ -8,19 +8,24 @@ namespace cura
 {
 
 /*
- * Represents a duration in seconds.
+ * \brief Represents a duration in seconds.
  *
  * This is a facade. It behaves like a double, only it can't be negative.
  */
 struct Duration
 {
     /*
-     * Casts a double to a Duration instance.
+     * \brief Default constructor setting the duration to 0.
+     */
+    Duration() : value(0) {};
+
+    /*
+     * \brief Casts a double to a Duration instance.
      */
     Duration(double value) : value(std::max(value, 0.0)) {};
 
     /*
-     * Casts the Duration instance to a double.
+     * \brief Casts the Duration instance to a double.
      */
     operator double() const
     {
@@ -28,7 +33,7 @@ struct Duration
     }
 
     /*
-     * The actual duration, as a double.
+     * \brief The actual duration, as a double.
      */
     double value = 0;
 };

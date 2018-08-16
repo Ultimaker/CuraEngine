@@ -8,19 +8,24 @@ namespace cura
 {
 
 /*
- * Represents a ratio between two numbers.
+ * \brief Represents a ratio between two numbers.
  *
  * This is a facade. It behaves like a double.
  */
 struct Ratio
 {
     /*
-     * Casts a double to a Ratio instance.
+     * \brief Default constructor setting the ratio to 1.
+     */
+    Ratio() : value(1.0) {};
+
+    /*
+     * \brief Casts a double to a Ratio instance.
      */
     Ratio(double value) : value(value / 100) {};
 
     /*
-     * Casts the Ratio instance to a double.
+     * \brief Casts the Ratio instance to a double.
      */
     operator double() const
     {
@@ -28,7 +33,7 @@ struct Ratio
     }
 
     /*
-     * The actual ratio, as a double.
+     * \brief The actual ratio, as a double.
      */
     double value = 0;
 };

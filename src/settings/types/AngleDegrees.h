@@ -10,7 +10,7 @@ namespace cura
 {
 
 /*
- * Represents an angle in degrees.
+ * \brief Represents an angle in degrees.
  *
  * This is a facade. It behaves like a double, but this is using clock
  * arithmetic which guarantees that the value is always between 0 and 360.
@@ -18,12 +18,17 @@ namespace cura
 struct AngleDegrees
 {
     /*
-     * Casts a double to an AngleDegrees instance.
+     * \brief Default constructor setting the angle to 0.
+     */
+    AngleDegrees() : value(0.0) {};
+
+    /*
+     * \brief Casts a double to an AngleDegrees instance.
      */
     AngleDegrees(double value) : value(std::fmod(std::fmod(value, 360) + 360, 360)) {};
 
     /*
-     * Casts the AngleDegrees instance to a double.
+     * \brief Casts the AngleDegrees instance to a double.
      */
     operator double() const
     {
@@ -53,7 +58,7 @@ struct AngleDegrees
     }
 
     /*
-     * The actual angle, as a double.
+     * \brief The actual angle, as a double.
      *
      * This value should always be between 0 and 360.
      */
