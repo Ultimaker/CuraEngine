@@ -105,7 +105,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         }
     }
 
-    estimateCalculator.setFirmwareDefaults(meshgroup);
+    estimateCalculator.setFirmwareDefaults(meshgroup->settings);
 }
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr)
@@ -427,7 +427,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
 
 void GCodeExport::updateTotalPrintTime()
 {
-    std::vector<double> estimates = estimateCalculator.calculate();
+    std::vector<Duration> estimates = estimateCalculator.calculate();
     for(size_t i = 0; i < estimates.size(); i++)
     {
         total_print_times[i] += estimates[i];

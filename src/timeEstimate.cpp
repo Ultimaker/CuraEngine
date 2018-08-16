@@ -15,21 +15,21 @@ namespace cura
 
 #define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
 
-void TimeEstimateCalculator::setFirmwareDefaults(const SettingsBaseVirtual* settings_base)
+void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
 {
-    max_feedrate[X_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_x");
-    max_feedrate[Y_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_y");
-    max_feedrate[Z_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_z");
-    max_feedrate[E_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_e");
-    max_acceleration[X_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_x");
-    max_acceleration[Y_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_y");
-    max_acceleration[Z_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_z");
-    max_acceleration[E_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_e");
-    max_xy_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_xy");
-    max_z_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_z");
-    max_e_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_e");
-    minimumfeedrate = settings_base->getSettingInMillimetersPerSecond("machine_minimum_feedrate");
-    acceleration = settings_base->getSettingInMillimetersPerSecond("machine_acceleration");
+    max_feedrate[X_AXIS] = settings.get<Velocity>("machine_max_feedrate_x");
+    max_feedrate[Y_AXIS] = settings.get<Velocity>("machine_max_feedrate_y");
+    max_feedrate[Z_AXIS] = settings.get<Velocity>("machine_max_feedrate_z");
+    max_feedrate[E_AXIS] = settings.get<Velocity>("machine_max_feedrate_e");
+    max_acceleration[X_AXIS] = settings.get<Velocity>("machine_max_acceleration_x");
+    max_acceleration[Y_AXIS] = settings.get<Velocity>("machine_max_acceleration_y");
+    max_acceleration[Z_AXIS] = settings.get<Velocity>("machine_max_acceleration_z");
+    max_acceleration[E_AXIS] = settings.get<Velocity>("machine_max_acceleration_e");
+    max_xy_jerk = settings.get<Velocity>("machine_max_jerk_xy");
+    max_z_jerk = settings.get<Velocity>("machine_max_jerk_z");
+    max_e_jerk = settings.get<Velocity>("machine_max_jerk_e");
+    minimumfeedrate = settings.get<Velocity>("machine_minimum_feedrate");
+    acceleration = settings.get<Velocity>("machine_acceleration");
 }
 
 
@@ -38,22 +38,22 @@ void TimeEstimateCalculator::setPosition(Position newPos)
     currentPosition = newPos;
 }
 
-void TimeEstimateCalculator::addTime(double time)
+void TimeEstimateCalculator::addTime(const Duration& time)
 {
     extra_time += time;
 }
 
-void TimeEstimateCalculator::setAcceleration(double acc)
+void TimeEstimateCalculator::setAcceleration(const Velocity& acc)
 {
     acceleration = acc;
 }
 
-void TimeEstimateCalculator::setMaxXyJerk(double jerk)
+void TimeEstimateCalculator::setMaxXyJerk(const Velocity& jerk)
 {
     max_xy_jerk = jerk;
 }
 
-void TimeEstimateCalculator::setMaxZFeedrate(double max_z_feedrate)
+void TimeEstimateCalculator::setMaxZFeedrate(const Velocity& max_z_feedrate)
 {
     max_feedrate[Z_AXIS] = max_z_feedrate;
 }
@@ -103,10 +103,10 @@ static inline double acceleration_time_from_distance(double initial_feedrate, do
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
 void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor)
 {
-    double initial_feedrate = block->nominal_feedrate*entry_factor;
-    double final_feedrate = block->nominal_feedrate*exit_factor;
+    Velocity initial_feedrate = block->nominal_feedrate * entry_factor;
+    Velocity final_feedrate = block->nominal_feedrate * exit_factor;
 
-    double acceleration = block->acceleration;
+    Velocity acceleration = block->acceleration;
     double accelerate_distance = estimate_acceleration_distance(initial_feedrate, block->nominal_feedrate, acceleration);
     double decelerate_distance = estimate_acceleration_distance(block->nominal_feedrate, final_feedrate, -acceleration);
 
@@ -130,7 +130,7 @@ void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double 
     block->final_feedrate = final_feedrate;
 }                    
 
-void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeatureType feature)
+void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatureType feature)
 {
     Block block;
     memset(&block, 0, sizeof(block));
@@ -156,12 +156,14 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
     Position current_feedrate;
     Position current_abs_feedrate;
     double feedrate_factor = 1.0;
-    for(unsigned int n=0; n<NUM_AXIS; n++)
+    for(unsigned int n = 0; n < NUM_AXIS; n++)
     {
-        current_feedrate[n] = block.delta[n] * feedrate / block.distance;
+        current_feedrate[n] = (block.delta[n] * feedrate) / block.distance;
         current_abs_feedrate[n] = fabs(current_feedrate[n]);
         if (current_abs_feedrate[n] > max_feedrate[n])
+        {
             feedrate_factor = std::min(feedrate_factor, max_feedrate[n] / current_abs_feedrate[n]);
+        }
     }
     //TODO: XY_FREQUENCY_LIMIT
     
@@ -224,13 +226,13 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
     blocks.push_back(block);
 }
 
-std::vector<double> TimeEstimateCalculator::calculate()
+std::vector<Duration> TimeEstimateCalculator::calculate()
 {
     reverse_pass();
     forward_pass();
     recalculate_trapezoids();
     
-    std::vector<double> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    std::vector<Duration> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
     totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
     for(unsigned int n=0; n<blocks.size(); n++)
     {

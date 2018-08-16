@@ -30,6 +30,28 @@ struct Duration
     operator double() const
     {
         return value;
+    };
+
+    /*
+     * Some operators to do arithmetic with Durations.
+     */
+    Duration operator +(const Duration& other) const
+    {
+        return Duration(value + other.value);
+    };
+    Duration operator -(const Duration& other) const
+    {
+        return Duration(value + other.value);
+    };
+    Duration& operator +=(const Duration& other)
+    {
+        value += other.value;
+        return *this;
+    }
+    Duration& operator -=(const Duration& other)
+    {
+        value -= other.value;
+        return *this;
     }
 
     /*
