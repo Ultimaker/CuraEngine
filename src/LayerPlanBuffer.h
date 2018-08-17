@@ -55,7 +55,7 @@ public:
     , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
 
-    void setPreheatConfig(MeshGroup& settings);
+    void setPreheatConfig();
 
     /*!
      * Push a new layer plan into the buffer

@@ -12,6 +12,7 @@
 #include "MeshGroup.h"
 #include "RetractionConfig.h"
 #include "settings/Settings.h"
+#include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
@@ -57,8 +58,8 @@ private:
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
 
         double totalFilament; //!< total filament used per extruder in mm^3
-        int currentTemperature;
-        int initial_temp; //!< Temperature this nozzle needs to be at the start of the print.
+        Temperature currentTemperature;
+        Temperature initial_temp; //!< Temperature this nozzle needs to be at the start of the print.
 
         double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
         double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
@@ -92,7 +93,7 @@ private:
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
-    unsigned int extruder_count;
+    size_t extruder_count;
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
     std::string machine_buildplate_type;
@@ -112,7 +113,7 @@ private:
     double current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
     double current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
-    double current_max_z_feedrate; //!< The current max z speed (in mm/s)
+    Velocity current_max_z_feedrate; //!< The current max z speed (in mm/s)
 
     AABB3D total_bounding_box; //!< The bounding box of all g-code.
 
@@ -139,7 +140,7 @@ private:
 
     unsigned int layer_nr; //!< for sending travel data
 
-    int initial_bed_temp; //!< bed temperature at the beginning of the print.
+    Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -464,22 +465,18 @@ public:
     double getCurrentMaxZFeedrate();
 
     /*!
-     * Set member variables using the settings in \p settings
-     * 
-     * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
+     * Set member variables using the settings in \p settings.
      */
-    void preSetup(const MeshGroup* settings);
+    void preSetup();
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
      * These temperatures are set in the pre-print setup in the firmware.
      * 
      * See FffGcodeWriter::processStartingCode
-     * 
-     * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
      * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr);
+    void setInitialTemps(const unsigned int start_extruder_nr);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps

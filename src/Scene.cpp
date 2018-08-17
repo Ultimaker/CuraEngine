@@ -68,8 +68,6 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
 {
     FffProcessor* fff_processor = FffProcessor::getInstance();
     fff_processor->time_keeper.restart();
-    fff_processor->polygon_generator.setParent(&mesh_group);
-    fff_processor->gcode_writer.setParent(&mesh_group);
 
     TimeKeeper time_keeper_total;
 
@@ -88,7 +86,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
         return;
     }
 
-    if (mesh_group.getSettingBoolean("wireframe_enabled"))
+    if (mesh_group.settings.get<bool>("wireframe_enabled"))
     {
         log("Starting Neith Weaver...\n");
 
@@ -102,7 +100,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     }
     else //Normal operation (not wireframe).
     {
-        SliceDataStorage storage(&mesh_group);
+        SliceDataStorage storage;
 
         if (!fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
         {

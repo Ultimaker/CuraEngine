@@ -10,6 +10,7 @@
 #include "raft.h" // getTotalExtraLayers
 #include "sliceDataStorage.h"
 #include "communication/Communication.h"
+#include "settings/types/Ratio.h"
 #include "utils/polygonUtils.h"
 
 namespace cura {
@@ -977,7 +978,6 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
     Polygons last_wall_polygons;
     last_wall_polygons.add(last_wall);
     const int max_dist2 = config.getLineWidth() * config.getLineWidth() * 4; // (2 * lineWidth)^2;
-    const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
 
     double total_length = 0.0; // determine the length of the complete wall
     Point p0 = origin;
@@ -998,6 +998,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
     // the last point is the seam vertex as the polygon is a loop
     double wall_length = 0.0;
     p0 = origin;
+    const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
     for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
         // p is a point from the current wall polygon
@@ -1225,22 +1226,22 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     gcode.writeLayerComment(layer_nr);
 
     // flow-rate compensation
-    gcode.setFlowRateExtrusionSettings(storage.getSettingInMillimeters("flow_rate_max_extrusion_offset"), storage.getSettingInPercentage("flow_rate_extrusion_offset_factor") / 100);
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    gcode.setFlowRateExtrusionSettings(mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"), mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor"));
 
-    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && storage.getSettingBoolean("machine_heated_bed") && storage.getSettingInDegreeCelsius("material_bed_temperature") != 0)
+    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature") != 0)
     {
         bool wait = false;
-        gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature"), wait);
+        gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
 
     gcode.setZ(z);
-    
-    
+
     const GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
 
     size_t extruder_nr = gcode.getExtruderNr();
-    bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
-    bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
+    bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
+    bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -1279,7 +1280,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].getSettingBoolean("retract_at_layer_change"))
         {
             // only do the retract if the paths are not spiralized
-            if (!storage.getSettingBoolean("magic_spiralize"))
+            if (!mesh_group_settings.get<bool>("magic_spiralize"))
             {
                 gcode.writeRetraction(retraction_config);
             }
@@ -1357,7 +1358,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 last_extrusion_config = path.config;
                 update_extrusion_offset = true;
-            } else {
+            }
+            else
+            {
                 update_extrusion_offset = false;
             }
 

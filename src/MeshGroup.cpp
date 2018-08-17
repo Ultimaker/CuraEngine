@@ -86,10 +86,10 @@ void MeshGroup::finalize()
 {
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
     Point3 meshgroup_offset(0, 0, 0);
-    if (!getSettingBoolean("machine_center_is_zero"))
+    if (!settings.get<bool>("machine_center_is_zero"))
     {
-        meshgroup_offset.x = getSettingInMicrons("machine_width") / 2;
-        meshgroup_offset.y = getSettingInMicrons("machine_depth") / 2;
+        meshgroup_offset.x = settings.get<coord_t>("machine_width") / 2;
+        meshgroup_offset.y = settings.get<coord_t>("machine_depth") / 2;
     }
     
     // If a mesh position was given, put the mesh at this position in 3D space. 
@@ -247,18 +247,18 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, Settings* object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh mesh(object_parent_settings);
+        if (loadMeshSTL(&mesh, filename, transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
-            log("loading '%s' took %.3f seconds\n",filename,load_timer.restart());
+            log("loading '%s' took %.3f seconds\n", filename, load_timer.restart());
             return true;
         }
     }

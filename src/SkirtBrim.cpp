@@ -1,5 +1,4 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SkirtBrim.h"
@@ -11,7 +10,7 @@ namespace cura
 
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline)
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[storage.meshgroup->getSettingAsExtruderNr("adhesion_extruder_nr")];
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     const bool external_only = is_skirt || train.getSettingBoolean("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const int layer_nr = 0;
     if (is_skirt)
@@ -107,7 +106,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 {
     const bool is_skirt = start_distance > 0;
 
-    const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+    const size_t adhesion_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("adhesion_extruder_nr");
     const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice->scene.extruders[adhesion_extruder_nr];
     const int primary_extruder_skirt_brim_line_width = adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor");
     const int64_t primary_extruder_minimal_length = adhesion_extruder.getSettingInMicrons("skirt_brim_minimal_length");

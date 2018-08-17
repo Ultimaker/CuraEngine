@@ -48,13 +48,14 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(const MeshGroup* meshgroup)
+void GCodeExport::preSetup()
 {
-    setFlavor(meshgroup->getSettingAsGCodeFlavor("machine_gcode_flavor"));
-    firmware_retract = meshgroup->getSettingBoolean("machine_firmware_retract");
-    use_extruder_offset_to_offset_coords = meshgroup->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
+    std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice->scene.current_mesh_group;
+    setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
+    firmware_retract = mesh_group->settings.get<bool>("machine_firmware_retract");
+    use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
 
-    extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
+    extruder_count = mesh_group->settings.get<size_t>("machine_extruder_count");
 
     const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -78,10 +79,10 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         extruder_attr[extruder_nr].nozzle_id = train.getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
 
-    machine_name = meshgroup->getSettingString("machine_name");
-    machine_buildplate_type = meshgroup->getSettingString("machine_buildplate_type");
+    machine_name = mesh_group->settings.get<std::string>("machine_name");
+    machine_buildplate_type = mesh_group->settings.get<std::string>("machine_buildplate_type");
 
-    relative_extrusion = meshgroup->getSettingBoolean("relative_extrusion");
+    relative_extrusion = mesh_group->settings.get<bool>("relative_extrusion");
 
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -100,15 +101,15 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         {
             // only initialize if firmware default for z feedrate is used by any extruder
             // that way we don't omit the M203 if Cura thinks the firmware is already at that feedrate, but it isn't the case
-            current_max_z_feedrate = meshgroup->getSettingInMillimetersPerSecond("machine_max_feedrate_z");
+            current_max_z_feedrate = mesh_group->settings.get<Velocity>("machine_max_feedrate_z");
             break;
         }
     }
 
-    estimateCalculator.setFirmwareDefaults(meshgroup->settings);
+    estimateCalculator.setFirmwareDefaults(mesh_group->settings);
 }
 
-void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr)
+void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -121,7 +122,7 @@ void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int 
         setInitialTemp(extruder_nr, temp);
     }
 
-    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature_layer_0");
+    initial_bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)

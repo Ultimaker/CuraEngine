@@ -1,10 +1,13 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (C) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <iterator>
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
 #include "AdaptiveLayerHeights.h"
+#include "../Application.h"
 
 namespace cura
 {
@@ -14,10 +17,9 @@ AdaptiveLayer::AdaptiveLayer(int layer_height)
     this->layer_height = layer_height;
 }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(MeshGroup* mesh_group, int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
+AdaptiveLayerHeights::AdaptiveLayerHeights(int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
 {
     // store the required parameters
-    this->mesh_group = mesh_group;
     this->layer_height = layer_thickness;
     this->initial_layer_height = initial_layer_thickness;
     this->max_variation = static_cast<int>(variation);
@@ -58,7 +60,7 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
 void AdaptiveLayerHeights::calculateLayers()
 {
     const int minimum_layer_height = *std::min_element(this->allowed_layer_heights.begin(), this->allowed_layer_heights.end());
-    SlicingTolerance slicing_tolerance = this->mesh_group->getSettingAsSlicingTolerance("slicing_tolerance");
+    SlicingTolerance slicing_tolerance = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<int> triangles_of_interest;
     int z_level = 0;
     int previous_layer_height = 0;
@@ -190,7 +192,7 @@ void AdaptiveLayerHeights::calculateLayers()
 void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
 {
     // loop over all mesh faces (triangles) and find their slopes
-    for (const auto& mesh : this->mesh_group->meshes)
+    for (const Mesh& mesh : Application::getInstance().current_slice->scene.current_mesh_group->meshes)
     {
         // Skip meshes that are not printable
         if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))

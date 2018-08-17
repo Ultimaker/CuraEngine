@@ -1,4 +1,4 @@
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PRIME_TOWER_H
@@ -62,7 +62,7 @@ public:
      *
      * \param storage A storage where it retrieves the prime tower settings.
      */
-    PrimeTower(const SliceDataStorage& storage);
+    PrimeTower();
 
     /*!
      * Generate the prime tower area to be used on each layer

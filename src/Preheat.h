@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PREHEAT_H
 #define PREHEAT_H
 
@@ -109,9 +112,8 @@ public:
 
     /*!
      * Set the nozzle and material temperature settings for each extruder train.
-     * \param meshgroup Where to get settings from
      */
-    void setConfig(const MeshGroup& meshgroup);
+    void setConfig();
 
     bool usesFlowDependentTemp(int extruder_nr)
     {

@@ -7,7 +7,7 @@
 namespace cura 
 {
 
-void Preheat::setConfig(const MeshGroup& meshgroup)
+void Preheat::setConfig()
 {
     for (const ExtruderTrain& extruder_train : Application::getInstance().current_slice->scene.extruders)
     {

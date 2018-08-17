@@ -4,18 +4,19 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "utils/IntPoint.h"
-#include "utils/optional.h"
-#include "utils/polygon.h"
-#include "utils/NoCopy.h"
-#include "utils/AABB.h"
+#include "gcodeExport.h" // CoastingConfig
 #include "mesh.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
-#include "TopSurface.h"
-#include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
+#include "TopSurface.h"
 #include "infill/SierpinskiFillProvider.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/AABB.h"
+#include "utils/IntPoint.h"
+#include "utils/NoCopy.h"
+#include "utils/optional.h"
+#include "utils/polygon.h"
 
 namespace cura 
 {
@@ -270,11 +271,9 @@ public:
     Point getZSeamHint() const;
 };
 
-class SliceDataStorage : public SettingsMessenger, NoCopy
+class SliceDataStorage : public NoCopy
 {
 public:
-    MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
-
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
@@ -305,15 +304,9 @@ public:
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
-     * specified mesh group.
-     * 
-     * It will obtain the settings from the mesh group too. The mesh group is
-     * not yet sliced in this constructor. If no mesh group is provided, an
-     * empty one will be created.
-     * 
-     * \param meshgroup The mesh group to load into this data storage, if any.
+     * current mesh group.
      */
-    SliceDataStorage(MeshGroup* meshgroup);
+    SliceDataStorage();
 
     ~SliceDataStorage()
     {
@@ -352,7 +345,7 @@ public:
      * \param layer_nr the layer for which to check
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed(int layer_nr) const;
+    std::vector<bool> getExtrudersUsed(LayerIndex layer_nr) const;
 
     /*!
      * Gets whether prime blob is enabled for the given extruder number.

@@ -1,4 +1,5 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (C) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
 #define CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
@@ -40,12 +41,6 @@ public:
 class AdaptiveLayerHeights
 {
 public:
-
-    /*!
-     * The mesh to analyse. Uses it's triangles to calculate the adaptive layer heights.
-     */
-    const MeshGroup* mesh_group = nullptr;
-
     /**
      * The maximum deviation from the base layer height.
      */
@@ -93,7 +88,7 @@ public:
      */
     std::vector<AdaptiveLayer>* getLayers();
 
-    AdaptiveLayerHeights(MeshGroup* mesh_group, int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold);
+    AdaptiveLayerHeights(int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold);
 
 private:
 

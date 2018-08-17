@@ -19,14 +19,14 @@
 namespace cura 
 {
 
-PrimeTower::PrimeTower(const SliceDataStorage& storage)
+PrimeTower::PrimeTower()
 : wipe_from_middle(false)
 {
-    enabled = storage.getSettingBoolean("prime_tower_enable")
-           && storage.getSettingInMicrons("prime_tower_min_volume") > 10
-           && storage.getSettingInMicrons("prime_tower_size") > 10;
-
     const Scene& scene = Application::getInstance().current_slice->scene;
+    enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
+           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
+           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -50,13 +50,14 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
         return;
     }
 
-    coord_t tower_size = storage.getSettingInMicrons("prime_tower_size");
-    bool circular_prime_tower = storage.getSettingBoolean("prime_tower_circular");
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
+    const bool circular_prime_tower = mesh_group_settings.get<bool>("prime_tower_circular");
 
     PolygonRef p = outer_poly.newPoly();
     int tower_distance = 0; 
-    int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
-    int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
+    const int x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const int y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     if (circular_prime_tower)
     {
         double_t tower_radius = tower_size / 2;
@@ -90,7 +91,8 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 {
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     pattern_per_extruder.resize(extruder_count);
 
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
@@ -120,7 +122,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 
         //Generate the pattern for the first layer.
         coord_t line_width_layer0 = line_width;
-        if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+        if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
         {
             line_width_layer0 *= scene.extruders[extruder_nr].getSettingAsRatio("initial_layer_line_width_factor");
         }

@@ -113,7 +113,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         coord_t variable_layer_height_max_variation = getSettingInMicrons("adaptive_layer_height_variation");
         coord_t variable_layer_height_variation_step = getSettingInMicrons("adaptive_layer_height_variation_step");
         double adaptive_threshold = getSettingInAngleDegrees("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(meshgroup, layer_thickness, initial_layer_thickness,
+        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, initial_layer_thickness,
                                                           variable_layer_height_max_variation,
                                                           variable_layer_height_variation_step, adaptive_threshold);
 
@@ -165,22 +165,23 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     Mold::process(storage, slicerList, layer_thickness);
 
+    Scene& scene = Application::getInstance().current_slice->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+        Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
         }
     }
 
-    MultiVolumes::carveCuttingMeshes(slicerList, storage.meshgroup->meshes);
+    MultiVolumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
-    if (storage.getSettingBoolean("carve_multiple_volumes"))
+    if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
     {
-        carveMultipleVolumes(slicerList, storage.getSettingBoolean("alternate_carve_order"));
+        carveMultipleVolumes(slicerList, scene.current_mesh_group->settings.get<bool>("alternate_carve_order"));
     }
 
     generateMultipleVolumesOverlap(slicerList);
@@ -188,7 +189,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("cutting_mesh"))
         {
@@ -201,7 +202,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         storage.meshes.emplace_back(&storage, &meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
@@ -423,14 +424,15 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     bool process_infill = mesh.getSettingInMicrons("infill_line_distance") > 0;
     if (!process_infill)
     { // do process infill anyway if it's modified by modifier meshes
+        Scene& scene = Application::getInstance().current_slice->scene;
         for (unsigned int other_mesh_order_idx(mesh_order_idx + 1); other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
         {
             unsigned int other_mesh_idx = mesh_order[other_mesh_order_idx];
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (other_mesh.getSettingBoolean("infill_mesh"))
             {
-                AABB3D aabb = storage.meshgroup->meshes[mesh_idx].getAABB();
-                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx].getAABB();
+                AABB3D aabb = scene.current_mesh_group->meshes[mesh_idx].getAABB();
+                AABB3D other_aabb = scene.current_mesh_group->meshes[other_mesh_idx].getAABB();
                 if (aabb.hit(other_aabb))
                 {
                     process_infill = true;
@@ -902,23 +904,24 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
 
         //Height of where the support reaches.
-        const unsigned int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: Support extruder should be configurable per object.
+        Scene& scene = Application::getInstance().current_slice->scene;
+        const size_t support_infill_extruder_nr = scene.current_mesh_group->settings.get<size_t>("support_infill_extruder_nr"); // TODO: Support extruder should be configurable per object.
         max_print_height_per_extruder[support_infill_extruder_nr] =
             std::max(max_print_height_per_extruder[support_infill_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const unsigned int support_roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr"); // TODO: Support roof extruder should be configurable per object.
+        const size_t support_roof_extruder_nr = scene.current_mesh_group->settings.get<size_t>("support_roof_extruder_nr"); // TODO: Support roof extruder should be configurable per object.
         max_print_height_per_extruder[support_roof_extruder_nr] =
             std::max(max_print_height_per_extruder[support_roof_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const unsigned int support_bottom_extruder_nr = storage.getSettingAsIndex("support_bottom_extruder_nr"); //TODO: Support bottom extruder should be configurable per object.
+        const size_t support_bottom_extruder_nr = scene.current_mesh_group->settings.get<size_t>("support_bottom_extruder_nr"); //TODO: Support bottom extruder should be configurable per object.
         max_print_height_per_extruder[support_bottom_extruder_nr] =
             std::max(max_print_height_per_extruder[support_bottom_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
 
         //Height of where the platform adhesion reaches.
-        if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+        if (scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
         {
-            const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+            const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<size_t>("adhesion_extruder_nr");
             max_print_height_per_extruder[adhesion_extruder_nr] =
                 std::max(0, max_print_height_per_extruder[adhesion_extruder_nr]);
         }

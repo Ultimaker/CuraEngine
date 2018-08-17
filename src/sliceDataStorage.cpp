@@ -335,17 +335,16 @@ std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
     return ret;
 }
 
-SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
-    meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup()), //If no mesh group is provided, we roll our own.
-    print_layer_count(0),
-    retraction_config_per_extruder(initializeRetractionConfigs()),
-    extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
-    max_print_height_second_to_last_extruder(-1),
-    primeTower(*this)
+SliceDataStorage::SliceDataStorage()
+: print_layer_count(0)
+, retraction_config_per_extruder(initializeRetractionConfigs())
+, extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs())
+, max_print_height_second_to_last_extruder(-1)
 {
-    Point3 machine_max(getSettingInMicrons("machine_width"), getSettingInMicrons("machine_depth"), getSettingInMicrons("machine_height"));
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    Point3 machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
     Point3 machine_min(0, 0, 0);
-    if (getSettingBoolean("machine_center_is_zero"))
+    if (mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
         machine_max /= 2;
         machine_min -= machine_max;
@@ -475,13 +474,13 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
 
 std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
-
     std::vector<bool> ret;
     ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
 
-    if (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
     {
-        ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
+        ret[mesh_group_settings.get<size_t>("adhesion_extruder_nr")] = true;
         { // process brim/skirt
             for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
@@ -502,15 +501,15 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     {
         if (mesh.getSettingBoolean("support_enable") || mesh.getSettingBoolean("support_tree_enable") || mesh.getSettingBoolean("support_mesh"))
         {
-            ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-            ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-            if (getSettingBoolean("support_roof_enable"))
+            ret[mesh_group_settings.get<size_t>("support_extruder_nr_layer_0")] = true;
+            ret[mesh_group_settings.get<size_t>("support_infill_extruder_nr")] = true;
+            if (mesh_group_settings.get<bool>("support_roof_enable"))
             {
-                ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+                ret[mesh_group_settings.get<size_t>("support_roof_extruder_nr")] = true;
             }
-            if (getSettingBoolean("support_bottom_enable"))
+            if (mesh_group_settings.get<bool>("support_bottom_enable"))
             {
-                ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+                ret[mesh_group_settings.get<size_t>("support_bottom_extruder_nr")] = true;
             }
         }
     }
@@ -526,11 +525,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     return ret;
 }
 
-std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
+std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
 {
-
     std::vector<bool> ret;
     ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
     bool include_adhesion = true;
     bool include_helper_parts = true;
@@ -548,14 +547,14 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
             include_adhesion = false;
         }
     }
-    else if (layer_nr > 0 || getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
+    else if (layer_nr > 0 || mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
     { // only include adhesion only for layers where platform adhesion actually occurs
         // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
         include_adhesion = false;
     }
-    if (include_adhesion && getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+    if (include_adhesion && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
     {
-        ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
+        ret[mesh_group_settings.get<size_t>("adhesion_extruder_nr")] = true;
         { // process brim/skirt
             for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
@@ -580,23 +579,23 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
             {
                 if (!support_layer.support_infill_parts.empty())
                 {
-                    ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
+                    ret[mesh_group_settings.get<size_t>("support_extruder_nr_layer_0")] = true;
                 }
             }
             else
             {
                 if (!support_layer.support_infill_parts.empty())
                 {
-                    ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
+                    ret[mesh_group_settings.get<size_t>("support_infill_extruder_nr")] = true;
                 }
             }
             if (!support_layer.support_bottom.empty())
             {
-                ret[getSettingAsIndex("support_bottom_extruder_nr")] = true;
+                ret[mesh_group_settings.get<size_t>("support_bottom_extruder_nr")] = true;
             }
             if (!support_layer.support_roof.empty())
             {
-                ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+                ret[mesh_group_settings.get<size_t>("support_roof_extruder_nr")] = true;
             }
         }
     }

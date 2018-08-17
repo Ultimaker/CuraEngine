@@ -11,11 +11,12 @@ namespace cura
 
 void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height)
 {
+    Scene& scene = Application::getInstance().current_slice->scene;
     { // check whether we even need to process molds
         bool has_any_mold = false;
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
             if (mesh.getSettingBoolean("mold_enabled"))
             {
                 has_any_mold = true;
@@ -47,7 +48,7 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         // first generate outlines
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
             Slicer& slicer = *slicer_list[mesh_idx];
             if (!mesh.getSettingBoolean("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
             {
@@ -99,7 +100,7 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         // carve molds out of all other models
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
             if (!mesh.getSettingBoolean("mold_enabled"))
             {
                 continue; // only cut original models out of all molds

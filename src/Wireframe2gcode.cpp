@@ -21,10 +21,10 @@ namespace cura
 void Wireframe2gcode::writeGCode()
 {
 
-    gcode.preSetup(wireFrame.meshgroup);
+    gcode.preSetup();
 
     const unsigned int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr"); // TODO: figure out how Wireframe works with dual extrusion
-    gcode.setInitialTemps(*wireFrame.meshgroup, start_extruder_nr);
+    gcode.setInitialTemps(start_extruder_nr);
 
     Application::getInstance().communication->beginGCode();
 

@@ -40,10 +40,26 @@ struct LayerIndex
     {
         return LayerIndex(value + other.value);
     }
+    LayerIndex operator +(const size_t& other) const
+    {
+        return LayerIndex(value + other);
+    }
+    LayerIndex operator +(const int& other) const
+    {
+        return LayerIndex(value + other);
+    }
 
     LayerIndex operator -(const LayerIndex& other) const
     {
         return LayerIndex(value - other.value);
+    }
+    LayerIndex operator -(const size_t& other) const
+    {
+        return LayerIndex(value - other);
+    }
+    LayerIndex operator -(const int& other) const
+    {
+        return LayerIndex(value - other);
     }
 
     LayerIndex& operator +=(const LayerIndex& other)
@@ -56,6 +72,19 @@ struct LayerIndex
     {
         value -= other.value;
         return *this;
+    }
+
+    LayerIndex& operator ++()
+    {
+        value++;
+        return *this;
+    }
+
+    LayerIndex operator ++(int) //Postfix.
+    {
+        LayerIndex original_value(*this);
+        operator++(); //Increment myself.
+        return original_value;
     }
 
     /*

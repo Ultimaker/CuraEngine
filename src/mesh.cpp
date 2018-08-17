@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "mesh.h"
@@ -24,8 +24,8 @@ Mesh::Mesh(SettingsBaseVirtual* parent)
 {
 }
 
-Mesh::Mesh(Settings* parent)
-: settings(*parent)
+Mesh::Mesh(Settings& parent)
+: settings(parent)
 , has_disconnected_faces(false)
 , has_overlapping_faces(false)
 {

@@ -22,10 +22,9 @@ class ExtruderTrain; // forward decl for SliceDataStorage
 class PathConfigStorage
 {
 private:
-    const unsigned int adhesion_extruder_nr;
-    const unsigned int support_infill_extruder_nr;
-    const unsigned int support_roof_extruder_nr;
-    const unsigned int support_bottom_extruder_nr;
+    const size_t support_infill_extruder_nr;
+    const size_t support_roof_extruder_nr;
+    const size_t support_bottom_extruder_nr;
     const ExtruderTrain& adhesion_extruder_train;
     const ExtruderTrain& support_infill_train;
     const ExtruderTrain& support_roof_train;

@@ -13,9 +13,9 @@ namespace cura {
 
 
 
-void LayerPlanBuffer::setPreheatConfig(MeshGroup& settings)
+void LayerPlanBuffer::setPreheatConfig()
 {
-    preheat_config.setConfig(settings);
+    preheat_config.setConfig();
 }
 
 void LayerPlanBuffer::push(LayerPlan& layer_plan)
@@ -93,11 +93,12 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
 
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (!prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
     {
         prev_layer->setIsInside(new_layer_destination_state->second);
-        const bool force_retract = prev_layer->storage.getSettingBoolean("retract_at_layer_change") ||
-          (prev_layer->storage.getSettingBoolean("travel_retract_before_outer_wall") && (prev_layer->storage.getSettingBoolean("outer_inset_first") || prev_layer->storage.getSettingAsCount("wall_line_count") == 1)); //Moving towards an outer wall.
+        const bool force_retract = mesh_group_settings.get<bool>("retract_at_layer_change") ||
+          (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
         prev_layer->addTravel(first_location_new_layer, force_retract);
     }
 }
@@ -106,8 +107,8 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
 {
     assert(buffer.size() > 0);
     auto newest_layer_it = --buffer.end();
-    // Assume the print head is homed at the start of a meshgroup.
-    // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second meshgroup.
+    // Assume the print head is homed at the start of a mesh group.
+    // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second mesh group.
     // It's not that bad, though. They are naive estimates any way.
     Point starting_position(0, 0);
     if (buffer.size() >= 2)
