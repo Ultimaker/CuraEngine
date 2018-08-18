@@ -1096,6 +1096,35 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         return;
     }
 
+    // if this is the last layer, avoid an abrupt end by printing the same outline again but this time taper the spiral by reducing
+    // the flow whilst keeping the same height - once the flow is down to a minimum allowed value, coast a little further
+
+    const bool is_last_layer = (size_t)layer_nr == (storage.spiralize_wall_outlines.capacity() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr;
+
+    const double min_flow = 0.5; // lowest allowed flow while tapering the spiral
+    double speed_factor = 1;
+
+    if (is_last_layer)
+    {
+        // HACK ALERT - the last layer is approx 50% longer than the previous layer so it should take longer to print but the
+        // normal slow down for quick layers mechanism can kick in and speed this layer up (because it is longer) but we prefer
+        // the layer to be printed at a similar speed to the previous layer to avoid abrupt changes in extrusion rate so we slow it down
+
+        const FanSpeedLayerTimeSettings& layer_time_settings = extruder_plans.back().fan_speed_layer_time_settings;
+        const double min_time = layer_time_settings.cool_min_layer_time;
+        const double normal_layer_time = total_length / config.getSpeed();
+
+        // would this layer's speed normally get reduced to satisfy the min layer time?
+        if (normal_layer_time < min_time)
+        {
+            // yes, so the extended version will not get slowed down so much and we want to compensate for that
+            const double extended_layer_time = (total_length * (2 - min_flow)) / config.getSpeed();
+
+            // modify the speed factor to cancel out the speed increase that would normally happen due to the longer layer time
+            speed_factor = normal_layer_time / std::min(extended_layer_time, min_time);
+        }
+    }
+
     // extrude to the points following the seam vertex
     // the last point is the seam vertex as the polygon is a loop
     double wall_length = 0.0;
@@ -1115,18 +1144,42 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
             if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
-                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true, speed_factor);
             }
             else
             {
                 // no point in the last wall was found close enough to the current wall point so don't interpolate
-                addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+                addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true, speed_factor);
             }
         }
         else
         {
             // no smoothing, use point verbatim
-            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true, speed_factor);
+        }
+    }
+
+    if (is_last_layer)
+    {
+        // add the tapering spiral
+        const double min_spiral_coast_dist = 10; // mm
+        double distance_coasted = 0;
+        wall_length = 0;
+        for (int wall_point_idx = 1; wall_point_idx <= n_points && distance_coasted < min_spiral_coast_dist; wall_point_idx++)
+        {
+            const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+            const double seg_length = vSizeMM(p - p0);
+            wall_length += seg_length;
+            p0 = p;
+            // flow is reduced in step with the distance travelled so the wall width should remain roughly constant
+            double flow = 1 - (wall_length / total_length);
+            if (flow < min_flow)
+            {
+                flow = 0;
+                distance_coasted += seg_length;
+            }
+            // reduce number of paths created when polygon has many points by limiting precision of flow
+            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, false, speed_factor);
         }
     }
 }
