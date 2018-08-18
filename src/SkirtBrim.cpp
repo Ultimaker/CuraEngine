@@ -130,6 +130,11 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         start_distance = primary_extruder_skirt_brim_line_width / 2;
     }
 
+    if (adhesion_extruder->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM)
+    {
+        start_distance += adhesion_extruder->getSettingInMicrons("brim_gap");
+    }
+
     int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
 
