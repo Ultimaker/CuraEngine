@@ -17,12 +17,12 @@ struct Duration
     /*
      * \brief Default constructor setting the duration to 0.
      */
-    Duration() : value(0) {};
+    constexpr Duration() : value(0) {};
 
     /*
      * \brief Casts a double to a Duration instance.
      */
-    Duration(double value) : value(std::max(value, 0.0)) {};
+    constexpr Duration(double value) : value(value > 0.0 ? value : 0.0) {};
 
     /*
      * \brief Casts the Duration instance to a double.
@@ -59,6 +59,11 @@ struct Duration
      */
     double value = 0;
 };
+
+constexpr Duration operator "" _s(const long double seconds)
+{
+    return Duration(seconds);
+}
 
 }
 
