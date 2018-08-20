@@ -74,7 +74,7 @@ public:
         }
     }
     
-    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<cura::proto::Extruder>& extruder_message)
+    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<cura::proto::Extruder>& extruder_messages)
     {
         Slice* slice = Application::getInstance().current_slice;
         const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
@@ -82,7 +82,7 @@ public:
         {
             slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
         }
-        for (const cura::proto::Extruder& extruder_message : extruder_message)
+        for (const cura::proto::Extruder& extruder_message : extruder_messages)
         {
             const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
             if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
