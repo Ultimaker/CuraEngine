@@ -93,7 +93,7 @@ public:
             ExtruderTrain& extruder = slice->scene.extruders[extruder_nr];
             for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
             {
-                extruder.setSetting(setting_message.name(), setting_message.value());
+                extruder.settings.add(setting_message.name(), setting_message.value());
             }
         }
     }

@@ -248,12 +248,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[getSettingAsIndex("adhesion_extruder_nr")];
                 layer.printZ +=
                     Raft::getTotalThickness(storage)
-                    + train.getSettingInMicrons("raft_airgap")
-                    - train.getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
+                    + train.settings.get<coord_t>("raft_airgap")
+                    - train.settings.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
                 {
-                    layer.printZ += train.getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
+                    layer.printZ += train.settings.get<coord_t>("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
         }
@@ -493,7 +493,7 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
             if (layer_nr == 0)
             {
                 const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
-                double initial_layer_line_width_factor = train.getSettingAsRatio("initial_layer_line_width_factor");
+                Ratio initial_layer_line_width_factor = train.settings.get<Ratio>("initial_layer_line_width_factor");
                 wall_line_width_0 *= initial_layer_line_width_factor;
             }
             for (SliceLayerPart& part : layer.parts)
@@ -537,7 +537,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 mesh.getSettingInMicrons("infill_line_distance") > 0
                 && mesh.getSettingInMicrons("infill_overlap_mm") >= 0
                 && !(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CONCENTRIC
-                    && (mesh.getSettingBoolean("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.getSettingInPercentage("initial_layer_line_width_factor") > 100))
+                    && (mesh.getSettingBoolean("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor") > 1.0))
                 );
             SliceLayer& layer = mesh.layers[layer_nr];
             coord_t wall_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
@@ -546,11 +546,11 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             if (layer_nr == 0)
             {
                 const ExtruderTrain& train_wall_0 = scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
-                wall_line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
+                wall_line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
                 const ExtruderTrain& train_wall_x = scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
-                wall_line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
+                wall_line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
                 const ExtruderTrain& train_skin = scene.extruders[mesh.getSettingAsExtruderNr("top_bottom_extruder_nr")];
-                skin_line_width *= train_skin.getSettingAsRatio("initial_layer_line_width_factor");
+                skin_line_width *= train_skin.settings.get<Ratio>("initial_layer_line_width_factor");
             }
             for (SliceLayerPart& part : layer.parts)
             {
@@ -759,9 +759,9 @@ void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMe
         {
             const Scene& scene = Application::getInstance().current_slice->scene;
             const ExtruderTrain& train_wall_0 = scene.extruders[mesh.getSettingAsExtruderNr("wall_0_extruder_nr")];
-            line_width_0 *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
             const ExtruderTrain& train_wall_x = scene.extruders[mesh.getSettingAsExtruderNr("wall_x_extruder_nr")];
-            line_width_x *= train_wall_x.getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
         }
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
         {
@@ -998,17 +998,17 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
-    SettingsBaseVirtual* train = &(Application::getInstance().current_slice->scene.extruders[getSettingBoolean("adhesion_extruder_nr")]);
+    ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[getSettingBoolean("adhesion_extruder_nr")];
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
-        SkirtBrim::generate(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"));
+        SkirtBrim::generate(storage, train.settings.get<coord_t>("skirt_gap"), train.settings.get<size_t>("skirt_line_count"));
         break;
     case EPlatformAdhesion::BRIM:
-        SkirtBrim::generate(storage, 0, train->getSettingAsCount("brim_line_count"));
+        SkirtBrim::generate(storage, 0, train.settings.get<size_t>("brim_line_count"));
         break;
     case EPlatformAdhesion::RAFT:
-        Raft::generate(storage, train->getSettingInMicrons("raft_margin"));
+        Raft::generate(storage, train.settings.get<coord_t>("raft_margin"));
         break;
     case EPlatformAdhesion::NONE:
         break;
@@ -1022,10 +1022,10 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     {
         return;
     }
-    int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
-    int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
-    int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
-    int64_t range_random_point_dist = avg_dist_between_points / 2;
+    const coord_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
+    const coord_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
+    const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    const coord_t range_random_point_dist = avg_dist_between_points / 2;
     unsigned int start_layer_nr = (mesh.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM)? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
     for (unsigned int layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
     {
@@ -1059,11 +1059,14 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 
                     p0 = &p1;
                 }
-                while (result.size() < 3 )
+                while (result.size() < 3)
                 {
-                    unsigned int point_idx = poly.size() - 2;
+                    size_t point_idx = poly.size() - 2;
                     result.add(poly[point_idx]);
-                    if (point_idx == 0) { break; }
+                    if (point_idx == 0)
+                    {
+                        break;
+                    }
                     point_idx--;
                 }
                 if (result.size() < 3)

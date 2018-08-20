@@ -9,14 +9,12 @@
 namespace cura 
 {
     
-class ExtruderTrain : public SettingsBase
+class ExtruderTrain
 {
 public:
-    ExtruderTrain(SettingsBaseVirtual* settings, const size_t extruder_nr);
-
     /*
-     * Creates a new extruder. This extruder will have no settings but inherits
-     * everything from the global settings.
+     * \brief Creates a new extruder. This extruder will have no settings but
+     * inherits everything from the global settings.
      */
     ExtruderTrain(const size_t extruder_nr, Settings* parent_settings);
 

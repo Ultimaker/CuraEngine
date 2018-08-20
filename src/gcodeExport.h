@@ -12,6 +12,7 @@
 #include "MeshGroup.h"
 #include "RetractionConfig.h"
 #include "settings/Settings.h"
+#include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
 #include "utils/IntPoint.h"
@@ -29,7 +30,7 @@ struct CoastingConfig
 {
     bool coasting_enable; //!< Whether coasting is enabled on the extruder to which this config is attached 
     double coasting_volume; //!< The volume leeked when printing without feeding
-    double coasting_speed; //!< A modifier (0-1) on the last used travel speed to move slower during coasting
+    Ratio coasting_speed; //!< A modifier (0-1) on the last used travel speed to move slower during coasting
     double coasting_min_volume;  //!< The minimal volume printed to build up enough pressure to leek the coasting_volume
 };
 
@@ -48,7 +49,7 @@ private:
         bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
-        int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
+        coord_t nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
         std::string material_guid; //!< The GUID for the material used by this extruder
@@ -65,7 +66,7 @@ private:
         double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
 
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
-        double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
+        Velocity last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
         std::string nozzle_id; //!< Type of the printcore, such as "AA 0.4", "BB 0.8", etc.
 
@@ -124,10 +125,10 @@ private:
      * 
      * \note After GCodeExport::writeExtrusion(Point, double, double) has been called currentPosition.z coincides with this value
      */
-    int current_layer_z;
-    int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
+    coord_t current_layer_z;
+    coord_t is_z_hopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
-    int current_extruder;
+    size_t current_extruder;
     double currentFanSpeed;
     EGCodeFlavor flavor;
 
@@ -227,7 +228,7 @@ public:
 
     int getExtruderNr() const;
     
-    void setFilamentDiameter(unsigned int n, int diameter);
+    void setFilamentDiameter(size_t extruder, const coord_t diameter);
     
     double getCurrentExtrudedVolume() const;
 
@@ -239,7 +240,7 @@ public:
      * \param extruder_nr The extruder number for which to get the total netto extruded volume
      * \return total filament printed in mm^3
      */
-    double getTotalFilamentUsed(int extruder_nr);
+    double getTotalFilamentUsed(size_t extruder_nr);
 
     /*!
      * Get the total estimated print time in seconds for each feature
@@ -284,7 +285,7 @@ public:
      */
     void resetExtrusionValue();
     
-    void writeDelay(double timeAmount);
+    void writeDelay(const Duration& time_amount);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -292,7 +293,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(Point p, double speed);
+    void writeTravel(const Point& p, const Velocity& speed);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -302,7 +303,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -311,7 +312,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(Point3 p, double speed);
+    void writeTravel(const Point3& p, const Velocity& speed);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -325,7 +326,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -351,7 +352,7 @@ private:
      * \param feature the print feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const int x, const int y, const int z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset = false);
 
     /*!
      * Write the F, X, Y, Z and E value (if they are not different from the last)
@@ -363,7 +364,7 @@ private:
      * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(double speed, int x, int y, int z, double e, PrintFeatureType feature);
+    void writeFXYZE(const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
@@ -374,7 +375,7 @@ private:
      * \param extrusion_mm3_per_mm flow
      * \param feature print feature to track print time for
      */
-    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+    void writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 public:
     /*!
      * Get ready for extrusion moves:
@@ -392,7 +393,7 @@ public:
      * 
      * \param hop_height The height to move above the current layer
      */
-    void writeZhopStart(int hop_height);
+    void writeZhopStart(const coord_t hop_height);
 
     /*!
      * End a z hop: go back to the layer height
@@ -408,7 +409,7 @@ public:
      * 
      * \param new_extruder The extruder to start with
      */
-    void startExtruder(int new_extruder);
+    void startExtruder(const size_t new_extruder);
 
     /*!
      * Switch to the new_extruder: 
@@ -421,7 +422,7 @@ public:
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
      */
-    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder);
 
     void writeCode(const char* str);
     
@@ -430,32 +431,32 @@ public:
      * 
      * \param travel_speed The travel speed when priming involves a movement
      */
-    void writePrimeTrain(double travel_speed);
+    void writePrimeTrain(const Velocity& travel_speed);
     
     void writeFanCommand(double speed);
     
-    void writeTemperatureCommand(int extruder, double temperature, bool wait = false);
-    void writeBedTemperatureCommand(double temperature, bool wait = false);
+    void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false);
+    void writeBedTemperatureCommand(const Temperature& temperature, const bool wait = false);
 
     /*!
      * Write the command for setting the acceleration for print moves to a specific value
      */
-    void writePrintAcceleration(double acceleration);
+    void writePrintAcceleration(const Velocity& acceleration);
 
     /*!
      * Write the command for setting the acceleration for travel moves to a specific value
      */
-    void writeTravelAcceleration(double acceleration);
+    void writeTravelAcceleration(const Velocity& acceleration);
 
     /*!
      * Write the command for setting the jerk to a specific value
      */
-    void writeJerk(double jerk);
+    void writeJerk(const Velocity& jerk);
 
     /*!
      * Write the command for setting the maximum z feedrate to a specific value
      */
-    void writeMaxZFeedrate(double max_z_feedrate);
+    void writeMaxZFeedrate(const Velocity& max_z_feedrate);
 
     /*!
      * Get the last set max z feedrate value sent in the gcode.

@@ -99,7 +99,7 @@ double GCodePathConfig::getFlowPercentage() const
 
 double GCodePathConfig::calculateExtrusion() const
 {
-    return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow) / 100.0;
+    return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
 }
 
 

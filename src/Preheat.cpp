@@ -13,33 +13,33 @@ void Preheat::setConfig()
     {
         config_per_extruder.emplace_back();
         Config& config = config_per_extruder.back();
-        double machine_nozzle_cool_down_speed = extruder_train.getSettingInSeconds("machine_nozzle_cool_down_speed");
-        double machine_nozzle_heat_up_speed = extruder_train.getSettingInSeconds("machine_nozzle_heat_up_speed");
-        double material_extrusion_cool_down_speed = extruder_train.getSettingInSeconds("material_extrusion_cool_down_speed");
+        const Temperature machine_nozzle_cool_down_speed = extruder_train.settings.get<Temperature>("machine_nozzle_cool_down_speed"); //In degrees per second.
+        const Temperature machine_nozzle_heat_up_speed = extruder_train.settings.get<Temperature>("machine_nozzle_heat_up_speed");
+        const Temperature material_extrusion_cool_down_speed = extruder_train.settings.get<Temperature>("material_extrusion_cool_down_speed");
         assert(material_extrusion_cool_down_speed < machine_nozzle_heat_up_speed && "The extrusion cooldown speed must be smaller than the heat up speed; otherwise the printing temperature cannot be reached!");
         config.time_to_cooldown_1_degree[0] = 1.0 / machine_nozzle_cool_down_speed;
         config.time_to_heatup_1_degree[0] = 1.0 / machine_nozzle_heat_up_speed;
         config.time_to_cooldown_1_degree[1] = 1.0 / (machine_nozzle_cool_down_speed + material_extrusion_cool_down_speed);
         config.time_to_heatup_1_degree[1] = 1.0 / (machine_nozzle_heat_up_speed - material_extrusion_cool_down_speed);
-        config.standby_temp = extruder_train.getSettingInSeconds("material_standby_temperature");
+        config.standby_temp = extruder_train.settings.get<Duration>("material_standby_temperature");
 
-        config.min_time_window = extruder_train.getSettingInSeconds("machine_min_cool_heat_time_window");
+        config.min_time_window = extruder_train.settings.get<Duration>("machine_min_cool_heat_time_window");
 
-        config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
-        config.material_print_temperature_layer_0 = extruder_train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-        config.material_initial_print_temperature = extruder_train.getSettingInDegreeCelsius("material_initial_print_temperature");
-        config.material_final_print_temperature = extruder_train.getSettingInDegreeCelsius("material_final_print_temperature");
+        config.material_print_temperature = extruder_train.settings.get<Temperature>("material_print_temperature");
+        config.material_print_temperature_layer_0 = extruder_train.settings.get<Temperature>("material_print_temperature_layer_0");
+        config.material_initial_print_temperature = extruder_train.settings.get<Temperature>("material_initial_print_temperature");
+        config.material_final_print_temperature = extruder_train.settings.get<Temperature>("material_final_print_temperature");
 
-        config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
+        config.flow_dependent_temperature = extruder_train.settings.get<bool>("material_flow_dependent_temperature"); 
 
-        config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("material_flow_temp_graph"); // [[0.1,180],[20,230]]
+        config.flow_temp_graph = extruder_train.settings.get<FlowTempGraph>("material_flow_temp_graph"); // [[0.1,180],[20,230]]
     }
 }
 
-double Preheat::getTimeToGoFromTempToTemp(int extruder, double temp_before, double temp_after, bool during_printing)
+Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)
 {
     Config& config = config_per_extruder[extruder];
-    double time;
+    Duration time;
     if (temp_after > temp_before)
     {
         time = (temp_after - temp_before) * config.time_to_heatup_1_degree[during_printing];
@@ -48,10 +48,10 @@ double Preheat::getTimeToGoFromTempToTemp(int extruder, double temp_before, doub
     {
         time = (temp_before - temp_after) * config.time_to_cooldown_1_degree[during_printing];
     }
-    return std::max(0.0, time);
+    return std::max(0.0_s, time);
 }
 
-double Preheat::getTemp(unsigned int extruder, double flow, bool is_initial_layer)
+Temperature Preheat::getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer)
 {
     if (is_initial_layer && config_per_extruder[extruder].material_print_temperature_layer_0 != 0)
     {

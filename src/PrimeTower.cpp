@@ -37,8 +37,8 @@ PrimeTower::PrimeTower()
     const Scene* scene_pointer = &scene; //Communicate to lambda via pointer to prevent copy.
     std::sort(extruder_order.begin(), extruder_order.end(), [scene_pointer](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
     {
-        const double adhesion_a = scene_pointer->extruders[extruder_nr_a].getSettingAsRatio("material_adhesion_tendency");
-        const double adhesion_b = scene_pointer->extruders[extruder_nr_b].getSettingAsRatio("material_adhesion_tendency");
+        const Ratio adhesion_a = scene_pointer->extruders[extruder_nr_a].settings.get<Ratio>("material_adhesion_tendency");
+        const Ratio adhesion_b = scene_pointer->extruders[extruder_nr_b].settings.get<Ratio>("material_adhesion_tendency");
         return adhesion_a < adhesion_b;
     });
 }
@@ -99,9 +99,9 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr : extruder_order)
     {
-        const coord_t line_width = scene.extruders[extruder_nr].getSettingInMicrons("prime_tower_line_width");
-        const coord_t required_volume = scene.extruders[extruder_nr].getSettingInCubicMillimeters("prime_tower_min_volume") * 1000000000; //To cubic microns.
-        const double flow = scene.extruders[extruder_nr].getSettingAsRatio("prime_tower_flow");
+        const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
+        const coord_t required_volume = scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume") * 1000000000; //To cubic microns.
+        const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
         ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
 
@@ -124,7 +124,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         coord_t line_width_layer0 = line_width;
         if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
         {
-            line_width_layer0 *= scene.extruders[extruder_nr].getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_layer0 *= scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
         }
         pattern_per_extruder_layer0.emplace_back();
         ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
@@ -160,7 +160,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         return;
     }
 
-    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].getSettingBoolean("prime_tower_wipe_enabled");
+    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings.get<bool>("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
     const int layer_nr = gcode_layer.getLayerNr();
@@ -199,9 +199,9 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) c
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
         ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[0];
-        if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
+        if (train.settings.get<bool>("machine_extruder_start_pos_abs"))
         {
-            ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
+            ret += Point(train.settings.get<coord_t>("machine_extruder_start_pos_x"), train.settings.get<coord_t>("machine_extruder_start_pos_y"));
             absolute_starting_points++;
         }
     }

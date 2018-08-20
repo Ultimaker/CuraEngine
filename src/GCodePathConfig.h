@@ -1,9 +1,12 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef G_CODE_PATH_CONFIG_H
 #define G_CODE_PATH_CONFIG_H
 
 #include "RetractionConfig.h"
 #include "PrintFeature.h"
+#include "settings/types/Ratio.h" //For flow rate.
 
 namespace cura 
 {
@@ -19,9 +22,9 @@ public:
      */
     struct SpeedDerivatives
     {
-        double speed; //!< movement speed (mm/s)
-        double acceleration; //!< acceleration of head movement (mm/s^2)
-        double jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
+        Velocity speed; //!< movement speed (mm/s)
+        Velocity acceleration; //!< acceleration of head movement (mm/s^2)
+        Velocity jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
     };
     const PrintFeatureType type; //!< name of the feature type
     static constexpr double FAN_SPEED_DEFAULT = -1;
@@ -29,7 +32,7 @@ private:
     SpeedDerivatives speed_derivatives; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     const int line_width; //!< width of the line extruded
     const int layer_thickness; //!< current layer height in micron
-    const double flow; //!< extrusion flow modifier in %
+    const Ratio flow; //!< extrusion flow modifier.
     const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
     const bool is_bridge_path; //!< whether current config is used when bridging
     const double fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise

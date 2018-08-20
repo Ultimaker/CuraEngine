@@ -29,20 +29,17 @@ class Preheat
     class Config
     {
     public:
-        double time_to_heatup_1_degree[2]; //!< average time it takes to heat up one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
-        double time_to_cooldown_1_degree[2]; //!< average time it takes to cool down one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
+        Duration time_to_heatup_1_degree[2]; //!< average time it takes to heat up one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
+        Duration time_to_cooldown_1_degree[2]; //!< average time it takes to cool down one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
 
-        double standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
+        Duration standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
 
-        double min_time_window; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
+        Duration min_time_window; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
 
-        double material_print_temperature; //!< default print temp (backward compatilibily)
-
-        double material_print_temperature_layer_0; //!< initial layer print temp
-
-        double material_initial_print_temperature; //!< print temp when first starting to extrude after a layer switch
-
-        double material_final_print_temperature; //!< print temp at the end of all extrusion moves of an extruder to which it's cooled down just before - during the extrusion
+        Temperature material_print_temperature; //!< default print temp (backward compatilibily)
+        Temperature material_print_temperature_layer_0; //!< initial layer print temp
+        Temperature material_initial_print_temperature; //!< print temp when first starting to extrude after a layer switch
+        Temperature material_final_print_temperature; //!< print temp at the end of all extrusion moves of an extruder to which it's cooled down just before - during the extrusion
 
         bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
     
@@ -56,9 +53,9 @@ public:
      */
     struct WarmUpResult
     {
-        double total_time_window; //!< The total time in which cooling and heating takes place.
-        double heating_time; //!< The total time needed to heat to the required temperature.
-        double lowest_temperature; //!< The lower temperature from which heating starts.
+        Duration total_time_window; //!< The total time in which cooling and heating takes place.
+        Duration heating_time; //!< The total time needed to heat to the required temperature.
+        Temperature lowest_temperature; //!< The lower temperature from which heating starts.
     };
 
     /*!
@@ -66,9 +63,9 @@ public:
      */
     struct CoolDownResult
     {
-        double total_time_window; //!< The total time in which heating and cooling takes place.
-        double cooling_time; //!< The total time needed to cool down to the required temperature.
-        double highest_temperature; //!< The upper temperature from which cooling starts.
+        Duration total_time_window; //!< The total time in which heating and cooling takes place.
+        Duration cooling_time; //!< The total time needed to cool down to the required temperature.
+        Temperature highest_temperature; //!< The upper temperature from which cooling starts.
     };
 
     /*!
@@ -128,7 +125,7 @@ public:
      * \param is_initial_layer Whether the initial layer temperature should be returned instead of flow-based temperature
      * \return The corresponding optimal temperature
      */
-    double getTemp(unsigned int extruder, double flow, bool is_initial_layer);
+    Temperature getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer);
 
     /*!
      * Return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
@@ -196,7 +193,7 @@ public:
      * \param during_printing Whether the planned cooldown / warmup occurs during printing or while in standby mode
      * \return The time needed
      */
-    double getTimeToGoFromTempToTemp(int extruder, double temp_before, double temp_after, bool during_printing);
+    Duration getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing);
 };
 
 } // namespace cura 

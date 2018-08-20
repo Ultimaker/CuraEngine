@@ -146,6 +146,7 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
 SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count)
 : SettingsMessenger(mesh)
 , p_slice_data_storage(p_slice_data_storage)
+, settings(mesh->settings)
 , layer_nr_max_filled_layer(0)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
@@ -621,7 +622,7 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     }
 
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-    return train.getSettingBoolean("prime_blob_enable");
+    return train.settings.get<bool>("prime_blob_enable");
 }
 
 

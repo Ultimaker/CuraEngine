@@ -81,7 +81,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, int64_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_thickness, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
@@ -91,7 +91,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
 , last_extruder_previous_layer(start_extruder)
-, last_planned_extruder_setting_base(&(Application::getInstance().current_slice->scene.extruders[start_extruder]))
+, last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
 , comb_boundary_inside1(computeCombBoundaryInside(combing_mode, 1))
 , comb_boundary_inside2(computeCombBoundaryInside(combing_mode, 2))
@@ -112,7 +112,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
     }
     for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
     {
-        layer_start_pos_per_extruder.emplace_back(train.getSettingInMicrons("layer_start_x"), train.getSettingInMicrons("layer_start_y"));
+        layer_start_pos_per_extruder.emplace_back(train.settings.get<coord_t>("layer_start_x"), train.settings.get<coord_t>("layer_start_y"));
     }
     extruder_plans.reserve(Application::getInstance().current_slice->scene.extruders.size());
     extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
@@ -129,9 +129,9 @@ LayerPlan::~LayerPlan()
         delete comb;
 }
 
-SettingsBaseVirtual* LayerPlan::getLastPlannedExtruderTrainSettings()
+ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
 {
-    return last_planned_extruder_setting_base;
+    return last_planned_extruder;
 }
 
 
@@ -190,16 +190,16 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     setIsInside(false);
     { // handle end position of the prev extruder
-        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
-        bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
-        Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
+        ExtruderTrain* train = getLastPlannedExtruderTrain();
+        const bool end_pos_absolute = train->settings.get<bool>("machine_extruder_end_pos_abs");
+        Point end_pos(train->settings.get<coord_t>("machine_extruder_end_pos_x"), train->settings.get<coord_t>("machine_extruder_end_pos_y"));
         if (!end_pos_absolute)
         {
             end_pos += getLastPlannedPositionOrStartingPosition();
         }
         else 
         {
-            Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+            const Point extruder_offset(train->settings.get<coord_t>("machine_nozzle_offset_x"), train->settings.get<coord_t>("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
         if (end_pos_absolute || last_planned_position)
@@ -216,21 +216,19 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         extruder_plans.emplace_back(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder_nr], storage.retraction_config_per_extruder[extruder_nr]);
         assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
     }
-    last_planned_extruder_setting_base = &(Application::getInstance().current_slice->scene.extruders[extruder_nr]);
-
-//     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
+    last_planned_extruder = &Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     { // handle starting pos of the new extruder
-        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
-        bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
-        Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
+        ExtruderTrain* train = getLastPlannedExtruderTrain();
+        const bool start_pos_absolute = train->settings.get<bool>("machine_extruder_start_pos_abs");
+        Point start_pos(train->settings.get<coord_t>("machine_extruder_start_pos_x"), train->settings.get<coord_t>("machine_extruder_start_pos_y"));
         if (!start_pos_absolute)
         {
             start_pos += getLastPlannedPositionOrStartingPosition();
         }
         else 
         {
-            Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+            Point extruder_offset(train->settings.get<coord_t>("machine_nozzle_offset_x"), train->settings.get<coord_t>("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
         if (start_pos_absolute || last_planned_position)
@@ -241,9 +239,9 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     return true;
 }
 
-void LayerPlan::moveInsideCombBoundary(int distance)
+void LayerPlan::moveInsideCombBoundary(const coord_t distance)
 {
-    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
     if (PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2) != NO_INDEX)
@@ -288,13 +286,13 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
 
     bool combed = false;
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
+    const ExtruderTrain* extr = getLastPlannedExtruderTrain();
 
-    const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
-    const coord_t maximum_travel_resolution = extr->getSettingInMicrons("meshfix_maximum_travel_resolution");
+    const bool perform_z_hops = extr->settings.get<bool>("retraction_hop_enabled");
+    const coord_t maximum_travel_resolution = extr->settings.get<coord_t>("meshfix_maximum_travel_resolution");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
-    bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+    bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->settings.get<bool>("retraction_hop_after_extruder_switch");
 
     const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
     if (is_first_travel_of_layer)
@@ -312,11 +310,11 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
 
     if (comb != nullptr && !bypass_combing)
     {
-        const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
+        const bool perform_z_hops_only_when_collides = extr->settings.get<bool>("retraction_hop_only_when_collides");
 
         CombPaths combPaths;
-        bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
-        bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
+        const bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
+        const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
         combed = comb->calc(*last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
@@ -341,7 +339,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 if (combPaths.size() == 1)
                 {
                     CombPath comb_path = combPaths[0];
-                    if (extr->getSettingBoolean("limit_support_retractions") &&
+                    if (extr->settings.get<bool>("limit_support_retractions") &&
                         combPaths.throughAir && !comb_path.cross_boundary && comb_path.size() == 2 && comb_path[0] == *last_planned_position && comb_path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
@@ -349,7 +347,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 }
             }
 
-            float dist = 0;
+            coord_t dist = 0;
             Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
@@ -368,7 +366,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 }
                 last_planned_position = combPath.back();
                 dist += vSize(last_point - p);
-                const double retract_threshold = extr->getSettingInMicrons("retraction_combing_max_distance");
+                const coord_t retract_threshold = extr->settings.get<coord_t>("retraction_combing_max_distance");
                 path->retract = retract || (retract_threshold > 0 && dist > retract_threshold);
                 // don't perform a z-hop
             }
@@ -381,10 +379,10 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
             assert (extr != nullptr);
-            int innermost_wall_line_width = extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+            coord_t innermost_wall_line_width = extr->settings.get<coord_t>((extr->settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
             if (layer_nr == 0)
             {
-                innermost_wall_line_width *= extr->getSettingAsRatio("initial_layer_line_width_factor");
+                innermost_wall_line_width *= extr->settings.get<Ratio>("initial_layer_line_width_factor");
             }
             moveInsideCombBoundary(innermost_wall_line_width);
         }
@@ -520,9 +518,9 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
     const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-    const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double bridge_wall_coast = extr->getSettingInPercentage("bridge_wall_coast");
+    const ExtruderTrain* extr = getLastPlannedExtruderTrain();
+    const coord_t min_bridge_line_len = extr->settings.get<coord_t>("bridge_wall_min_length");
+    const Ratio bridge_wall_coast = extr->settings.get<Ratio>("bridge_wall_coast");
 
     Point cur_point = p0;
 
@@ -554,7 +552,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
-                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
+                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 40;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
@@ -708,10 +706,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     double speed_factor = 1.0; // start first line at normal speed
     double distance_to_bridge_start = 0; // will be updated before each line is processed
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-    const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double wall_min_flow = extr->getSettingAsRatio("wall_min_flow");
-    const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
+    const ExtruderTrain* extr = getLastPlannedExtruderTrain();
+    const double min_bridge_line_len = extr->settings.get<coord_t>("bridge_wall_min_length");
+    const double wall_min_flow = extr->settings.get<Ratio>("wall_min_flow");
+    const bool wall_min_flow_retract = extr->settings.get<bool>("wall_min_flow_retract");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -1255,9 +1253,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
             const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-            if (train.getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
+            if (train.settings.get<Velocity>("max_feedrate_z_override") > 0)
             {
-                gcode.writeMaxZFeedrate(train.getSettingInMillimetersPerSecond("max_feedrate_z_override"));
+                gcode.writeMaxZFeedrate(train.settings.get<Velocity>("max_feedrate_z_override"));
             }
 
             { // require printing temperature to be met
@@ -1277,7 +1275,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
-        else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].getSettingBoolean("retract_at_layer_change"))
+        else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
         {
             // only do the retract if the paths are not spiralized
             if (!mesh_group_settings.get<bool>("magic_spiralize"))
@@ -1293,12 +1291,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             } );
 
         const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        if (train.getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
+        if (train.settings.get<Velocity>("max_feedrate_z_override") > 0)
         {
-            gcode.writeMaxZFeedrate(train.getSettingInMillimetersPerSecond("max_feedrate_z_override"));
+            gcode.writeMaxZFeedrate(train.settings.get<Velocity>("max_feedrate_z_override"));
         }
-        bool speed_equalize_flow_enabled = train.getSettingBoolean("speed_equalize_flow_enabled");
-        double speed_equalize_flow_max = train.getSettingInMillimetersPerSecond("speed_equalize_flow_max");
+        const bool speed_equalize_flow_enabled = train.settings.get<bool>("speed_equalize_flow_enabled");
+        const double speed_equalize_flow_max = train.settings.get<Velocity>("speed_equalize_flow_max");
         const coord_t nozzle_size = gcode.getNozzleSize(extruder_nr);
 
         bool update_extrusion_offset = true;
@@ -1311,7 +1309,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (path.perform_prime)
             {
-                gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
+                gcode.writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
                 gcode.writeRetraction(retraction_config);
             }
 
@@ -1476,12 +1474,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (train.getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
+        if (train.settings.get<bool>("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
             const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config);
-            if (extruder_plan_idx == extruder_plans.size() - 1 || !train.getSettingBoolean("machine_extruder_end_pos_abs"))
+            if (extruder_plan_idx == extruder_plans.size() - 1 || !train.settings.get<bool>("machine_extruder_end_pos_abs"))
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
                 // or do it anyway when we switch extruder in-place
                 gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));

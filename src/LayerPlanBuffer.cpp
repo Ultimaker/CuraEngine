@@ -11,7 +11,7 @@
 namespace cura {
 
 
-
+constexpr Duration LayerPlanBuffer::extra_preheat_time;
 
 void LayerPlanBuffer::setPreheatConfig()
 {
@@ -150,7 +150,7 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
     size_t extruder = extruder_plan.extruder;
     double initial_print_temp = extruder_plan.required_start_temperature;
 
-    double in_between_time = 0.0; // the duration during which the extruder isn't used
+    Duration in_between_time = 0.0_s; // the duration during which the extruder isn't used
     for (size_t extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
         ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];

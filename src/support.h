@@ -130,24 +130,31 @@ private:
     static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh);
 
     /*!
-     * Generate support polygons over all layers for one object.
-     * 
-     * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
-     * 
+     * \brief Generate support polygons over all layers for one object.
+     *
+     * This function also handles small overhang areas (creates towers with
+     * larger diameter than just the overhang area) and single walls which could
+     * otherwise fall over.
+     *
      * The anti_overhang areas are taken into account.
+     *
+     * \warning This function should be called only once for handling support
+     * meshes with drop down and once for all support meshes without drop down.
+     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage
+     * of one support mesh with the given value of support_mesh_drop_down.
      * 
-     * \warning This function should be called only once for handling support meshes with drop down and
-     * once for all support meshes without drop down.
-     * The \p mesh_idx should then correspond to an empty \ref SliceMeshStorage of one support mesh with the given value of support_mesh_drop_down.
-     * 
-     * \param storage data storage containing the input layer outline data
-     * \param infill_settings The settings base to get the settings from which are based on the infill of the support
-     * \param roof_settings The settings base to get the settings from which are based on the top interface of the support
-     * \param bottom_settings The settings base to get the settings from which are based on the bottom interface of the support
-     * \param mesh_idx The index of the object for which to generate support areas
-     * \param layer_count total number of layers
+     * \param storage Data storage containing the input layer outline data.
+     * \param infill_settings The settings which are based on the infill of the
+     * support.
+     * \param roof_settings The settings which are based on the top interface of
+     * the support.
+     * \param bottom_settings The settings base to get the bottom interface of
+     * the support.
+     * \param mesh_idx The index of the object for which to generate support
+     * areas.
+     * \param layer_count Total number of layers.
      */
-    static void generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, const size_t mesh_idx, const size_t layer_count, std::vector<Polygons>& support_areas);
+    static void generateSupportAreasForMesh(SliceDataStorage& storage, const Settings& infill_settings, const Settings& roof_settings, const Settings& bottom_settings, const size_t mesh_idx, const size_t layer_count, std::vector<Polygons>& support_areas);
 
     /*!
      * Generate support bottom areas for a given mesh.

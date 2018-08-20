@@ -16,9 +16,8 @@
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
+#include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
 #include "utils/math.h"
-
-#define TAU 6.283185307179586477
 
 namespace cura 
 {
@@ -64,11 +63,11 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
-    const coord_t support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
+    const EFillMethod support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
+    const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
 
     // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    unsigned int wall_line_count = infill_extruder.getSettingAsCount("support_wall_count");
+    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
 
     // generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
@@ -94,7 +93,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
             coord_t support_line_width_here = support_line_width;
             if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
             {
-                support_line_width_here *= infill_extruder.getSettingAsRatio("initial_layer_line_width_factor");
+                support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
             }
             // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
             // tower will remove themselves from the support, so the outlines of the parts can be changed.
@@ -183,8 +182,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const size_t total_layer_count = storage.print_layer_count;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t gradual_support_step_height = infill_extruder.getSettingInMicrons("gradual_support_infill_step_height");
-    const size_t max_density_steps = infill_extruder.getSettingAsCount("gradual_support_infill_steps");
+    const coord_t gradual_support_step_height = infill_extruder.settings.get<coord_t>("gradual_support_infill_step_height");
+    const size_t max_density_steps = infill_extruder.settings.get<size_t>("gradual_support_infill_steps");
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -302,7 +301,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     // How many support infill layers to combine to obtain the requested sparse thickness.
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const unsigned int combine_layers_amount = std::max(1U, round_divide(infill_extruder.getSettingInMicrons("support_infill_sparse_thickness"), std::max(layer_height, (coord_t) 1)));
+    const size_t combine_layers_amount = std::max(1U, round_divide(infill_extruder.settings.get<coord_t>("support_infill_sparse_thickness"), std::max(layer_height, coord_t(1))));
     if (combine_layers_amount <= 1)
     {
         return;
@@ -509,18 +508,18 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 continue;
             }
             const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder];
-            extra_skirt_line_width += other_extruder.getSettingInMicrons("skirt_brim_line_width") * other_extruder.getSettingAsRatio("initial_layer_line_width_factor");
+            extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         }
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
             case EPlatformAdhesion::BRIM:
-                adhesion_size = adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder.getSettingAsCount("brim_line_count") + extra_skirt_line_width;
+                adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::RAFT:
-                adhesion_size = adhesion_extruder.getSettingInMicrons("raft_margin");
+                adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
                 break;
             case EPlatformAdhesion::SKIRT:
-                adhesion_size = adhesion_extruder.getSettingInMicrons("skirt_gap") + adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder.getSettingAsCount("skirt_line_count") + extra_skirt_line_width;
+                adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::NONE:
                 adhesion_size = 0;
@@ -630,9 +629,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             continue;
         }
-        SettingsBaseVirtual* infill_settings = &storage.meshes[mesh_idx];
-        SettingsBaseVirtual* roof_settings = &storage.meshes[mesh_idx];
-        SettingsBaseVirtual* bottom_settings = &storage.meshes[mesh_idx];
+        Settings& infill_settings = storage.meshes[mesh_idx].settings;
+        Settings& roof_settings = storage.meshes[mesh_idx].settings;
+        Settings& bottom_settings = storage.meshes[mesh_idx].settings;
         if (mesh.getSettingBoolean("support_mesh"))
         {
             if ((mesh.getSettingBoolean("support_mesh_drop_down") && support_meshes_drop_down_handled) ||
@@ -643,9 +642,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
             // use extruder train settings rather than the per-object settings of the first support mesh encountered.
             // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
             // instead we must use the support extruder settings, which is the settings base common to all support meshes.
-            infill_settings = &mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-            roof_settings = &mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr");
-            bottom_settings = &mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr");
+            infill_settings = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
+            roof_settings = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings;
+            bottom_settings = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings;
             if (mesh.getSettingBoolean("support_mesh_drop_down"))
             {
                 support_meshes_drop_down_handled = true;
@@ -658,8 +657,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         std::vector<Polygons> mesh_support_areas_per_layer;
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
 
-        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
-        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
+        generateSupportAreasForMesh(storage, infill_settings, roof_settings, bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
+        for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
@@ -700,7 +699,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const EFillMethod support_pattern = infill_extruder.getSettingAsFillMethod("support_pattern");
+    const EFillMethod& support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
     if (support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
     {
         AABB3D aabb;
@@ -711,26 +710,26 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             {
                 continue;
             }
-            SettingsBaseVirtual* infill_settings = &storage.meshes[mesh_idx];
+            Settings& infill_settings = storage.meshes[mesh_idx].settings;
             if (mesh.getSettingBoolean("support_mesh"))
             {
                 // use extruder train settings rather than the per-object settings of the first support mesh encountered.
                 // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
                 // instead we must use the support extruder settings, which is the settings base common to all support meshes.
-                infill_settings = &mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+                infill_settings = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
             }
-            const coord_t aabb_expansion = infill_settings->getSettingInMicrons("support_offset");
+            const coord_t aabb_expansion = infill_settings.get<coord_t>("support_offset");
             AABB3D aabb_here(mesh.bounding_box);
             aabb_here.include(aabb_here.min - Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
         
-        std::string cross_subdisivion_spec_image_file = infill_extruder.getSettingString("cross_support_density_image");
+        std::string cross_subdisivion_spec_image_file = infill_extruder.settings.get<std::string>("cross_support_density_image");
         std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extruder.getSettingInMicrons("support_line_distance"), infill_extruder.getSettingInMicrons("support_line_width"), cross_subdisivion_spec_image_file);
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"), cross_subdisivion_spec_image_file);
         }
         else
         {
@@ -738,7 +737,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             {
                 logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
             }
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extruder.getSettingInMicrons("support_line_distance"), infill_extruder.getSettingInMicrons("support_line_width"));
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"));
         }
     }
 }
@@ -805,7 +804,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
  * 
  * for support buildplate only: purge all support not connected to build plate
  */
-void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const SettingsBaseVirtual& infill_settings, const SettingsBaseVirtual& roof_settings, const SettingsBaseVirtual& bottom_settings, const size_t mesh_idx, const size_t layer_count, std::vector<Polygons>& support_areas)
+void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const Settings& infill_settings, const Settings& roof_settings, const Settings& bottom_settings, const size_t mesh_idx, const size_t layer_count, std::vector<Polygons>& support_areas)
 {
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
 
@@ -823,7 +822,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     // early out
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
-    const coord_t z_distance_top = ((mesh.getSettingBoolean("support_roof_enable"))? roof_settings : infill_settings).getSettingInMicrons("support_top_distance");
+    const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable"))? roof_settings : infill_settings).get<coord_t>("support_top_distance");
     const size_t layer_z_distance_top = std::max(0U, round_up_divide(z_distance_top, layer_thickness)) + 1; // support must always be 1 layer below overhang
     if (layer_z_distance_top + 1 > layer_count)
     {
@@ -834,10 +833,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     std::vector<Polygons> xy_disallowed_per_layer;
     xy_disallowed_per_layer.resize(layer_count);
     // simplified processing for bottom layer - just ensure support clears part by XY distance
-    const coord_t xy_distance = infill_settings.getSettingInMicrons("support_xy_distance");
-    const coord_t xy_distance_overhang = infill_settings.getSettingInMicrons("support_xy_distance_overhang");
-    const bool use_xy_distance_overhang = infill_settings.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
-    const double angle = ((mesh.getSettingBoolean("support_roof_enable"))? roof_settings : infill_settings).getSettingInAngleRadians("support_angle");
+    const coord_t xy_distance = infill_settings.get<coord_t>("support_xy_distance");
+    const coord_t xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
+    const bool use_xy_distance_overhang = infill_settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+    const AngleRadians angle = ((mesh.settings.get<bool>("support_roof_enable"))? roof_settings : infill_settings).get<AngleRadians>("support_angle");
     const double tan_angle = tan(angle) - 0.01;  // the XY-component of the supportAngle
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
@@ -868,42 +867,42 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const bool is_support_mesh_drop_down_place_holder = is_support_mesh_place_holder && mesh.getSettingBoolean("support_mesh_drop_down");
 
     const coord_t bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_width"));
-    const coord_t join_distance = infill_settings.getSettingInMicrons("support_join_distance");
-    const coord_t extension_offset = infill_settings.getSettingInMicrons("support_offset");
+    const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
+    const coord_t extension_offset = infill_settings.get<coord_t>("support_offset");
 
-    const coord_t tower_diameter = infill_settings.getSettingInMicrons("support_tower_diameter");
-    const coord_t minimum_diameter = infill_settings.getSettingInMicrons("support_minimal_diameter");
-    const bool use_towers = infill_settings.getSettingBoolean("support_use_towers") && minimum_diameter > 0;
-    const double tower_roof_angle = infill_settings.getSettingInAngleRadians("support_tower_roof_angle");
+    const coord_t tower_diameter = infill_settings.get<coord_t>("support_tower_diameter");
+    const coord_t minimum_diameter = infill_settings.get<coord_t>("support_minimal_diameter");
+    const bool use_towers = infill_settings.get<bool>("support_use_towers") && minimum_diameter > 0;
+    const AngleRadians tower_roof_angle = infill_settings.get<AngleRadians>("support_tower_roof_angle");
     const double tan_tower_roof_angle = tan(tower_roof_angle);
-    const int tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
+    const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     
     coord_t smoothing_distance;
     { // compute best smoothing_distance
         const ExtruderTrain& infill_train = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-        const coord_t infill_line_width = infill_train.getSettingInMicrons("support_line_width");
+        const coord_t infill_line_width = infill_train.settings.get<coord_t>("support_line_width");
         smoothing_distance = infill_line_width;
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
             const ExtruderTrain& roof_train = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr");
-            const coord_t roof_line_width = roof_train.getSettingInMicrons("support_roof_line_width");
+            const coord_t roof_line_width = roof_train.settings.get<coord_t>("support_roof_line_width");
             smoothing_distance = std::max(smoothing_distance, roof_line_width);
         }
 
         if (mesh.getSettingBoolean("support_bottom_enable"))
         {
             const ExtruderTrain& bottom_train = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr");
-            const coord_t bottom_line_width = bottom_train.getSettingInMicrons("support_bottom_line_width");
+            const coord_t bottom_line_width = bottom_train.settings.get<coord_t>("support_bottom_line_width");
             smoothing_distance = std::max(smoothing_distance, bottom_line_width);
         }
     }
 
-    const coord_t z_distance_bottom = ((mesh.getSettingBoolean("support_bottom_enable"))? bottom_settings : infill_settings).getSettingInMicrons("support_bottom_distance");
+    const coord_t z_distance_bottom = ((mesh.getSettingBoolean("support_bottom_enable"))? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
     const size_t bottom_empty_layer_count = std::max(0U, round_up_divide(z_distance_bottom, layer_thickness)); // number of empty layers between support and model
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.getSettingInMicrons("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
-    const double conical_support_angle = infill_settings.getSettingInAngleRadians("support_conical_angle");
+    const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
     coord_t conical_support_offset;
     if (conical_support_angle > 0) 
     { // outward ==> wider base than overhang
@@ -913,9 +912,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     { // inward ==> smaller base than overhang
         conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
     }
-    const bool conical_support = infill_settings.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
-    const coord_t conical_smallest_breadth = infill_settings.getSettingInMicrons("support_conical_min_width");
-    const int supportMinAreaSqrt = infill_settings.getSettingInMicrons("support_minimal_diameter");
+    const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
+    const coord_t conical_smallest_breadth = infill_settings.get<coord_t>("support_conical_min_width");
+    const int supportMinAreaSqrt = infill_settings.get<coord_t>("support_minimal_diameter");
 
     for (unsigned int layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != (unsigned int)-1; layer_idx--)
     {
@@ -1197,7 +1196,7 @@ void AreaSupport::detectOverhangPoints(
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
+    const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
 
     mesh.overhang_points.resize(storage.print_layer_count);
 
@@ -1358,7 +1357,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     }
     const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), layer_height); //Number of layers between support bottom and model.
     const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), layer_height)); //Resolution of generating support bottoms above model.
-    const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").getSettingInMicrons("support_bottom_line_width");
+    const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings.get<coord_t>("support_bottom_line_width");
 
     const unsigned int scan_count = std::max(1u, (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
     const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
@@ -1389,7 +1388,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     }
     const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), layer_height); //Number of layers between support roof and model.
     const unsigned int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), layer_height)); //Resolution of generating support roof below model.
-    const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").getSettingInMicrons("support_roof_line_width");
+    const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings.get<coord_t>("support_roof_line_width");
 
     const unsigned int scan_count = std::max(1u, (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
     const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.

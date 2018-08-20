@@ -239,10 +239,10 @@ public:
     int z;
 
 private:
-    const int layer_nr; //!< The layer number of this layer plan
+    const LayerIndex layer_nr; //!< The layer number of this layer plan
     const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
-    int layer_thickness;
+    coord_t layer_thickness;
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
@@ -257,7 +257,7 @@ private:
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
     size_t last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
-    SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
+    ExtruderTrain* last_planned_extruder; //!< The extruder for which a move has most recently been planned.
 
     std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
     bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
@@ -308,15 +308,16 @@ public:
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, unsigned int start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, int64_t travel_avoid_distance);
+    LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_height, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance);
     ~LayerPlan();
 
     void overrideFanSpeeds(double speed);
+
     /*!
-     * Get the settings base of the last extruder planned.
-     * \return the settings base of the last extruder planned.
+     * \brief Get the last planned extruder train.
+     * \return The last planned extruder.
      */
-    SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
+    ExtruderTrain* getLastPlannedExtruderTrain();
 
     const Polygons* getCombBoundaryInside() const
     {
@@ -607,7 +608,7 @@ public:
      * 
      * \param distance The distance to the comb boundary after we moved inside it.
      */
-    void moveInsideCombBoundary(int distance);
+    void moveInsideCombBoundary(const coord_t distance);
 };
 
 }//namespace cura

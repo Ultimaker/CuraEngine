@@ -11,8 +11,8 @@ namespace cura
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-    const bool external_only = is_skirt || train.getSettingBoolean("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
-    const int layer_nr = 0;
+    const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
+    const LayerIndex layer_nr = 0;
     if (is_skirt)
     {
         const bool include_helper_parts = true;
@@ -60,10 +60,10 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
         }
     }
-    constexpr int join_distance = 20;
+    constexpr coord_t join_distance = 20;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
-    constexpr int smallest_line_length = 200;
-    constexpr int largest_error_of_removed_point = 50;
+    constexpr coord_t smallest_line_length = 200;
+    constexpr coord_t largest_error_of_removed_point = 50;
     first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
     if (first_layer_outline.size() == 0)
     {
@@ -108,8 +108,8 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     const size_t adhesion_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("adhesion_extruder_nr");
     const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice->scene.extruders[adhesion_extruder_nr];
-    const int primary_extruder_skirt_brim_line_width = adhesion_extruder.getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder.getSettingAsRatio("initial_layer_line_width_factor");
-    const int64_t primary_extruder_minimal_length = adhesion_extruder.getSettingInMicrons("skirt_brim_minimal_length");
+    const coord_t primary_extruder_skirt_brim_line_width = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t primary_extruder_minimal_length = adhesion_extruder.settings.get<coord_t>("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
 
@@ -190,8 +190,8 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
                 continue;
             }
             const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-            const int width = train.getSettingInMicrons("skirt_brim_line_width") * train.getSettingAsRatio("initial_layer_line_width_factor");
-            const int64_t minimal_length = train.getSettingInMicrons("skirt_brim_minimal_length");
+            const coord_t width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
+            const coord_t minimal_length = train.settings.get<coord_t>("skirt_brim_minimal_length");
             offset_distance += last_width / 2 + width/2;
             last_width = width;
             while (storage.skirt_brim[extruder_nr].polygonLength() < minimal_length)

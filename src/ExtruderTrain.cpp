@@ -4,12 +4,6 @@
 namespace cura 
 {
 
-ExtruderTrain::ExtruderTrain(SettingsBaseVirtual* settings, const size_t extruder_nr)
-: SettingsBase(settings)
-, extruder_nr(extruder_nr)
-{
-}
-
 ExtruderTrain::ExtruderTrain(const size_t extruder_nr, Settings* parent_settings) : extruder_nr(extruder_nr)
 {
     settings.setParent(parent_settings);

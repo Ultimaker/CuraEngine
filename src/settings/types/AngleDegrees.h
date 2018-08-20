@@ -42,6 +42,10 @@ struct AngleDegrees
     {
         return std::fmod(std::fmod(value + other.value, 360) + 360, 360);
     }
+    AngleDegrees operator +(const int& other) const
+    {
+        return operator+(AngleDegrees(other));
+    }
     AngleDegrees& operator +=(const AngleDegrees& other)
     {
         value = std::fmod(std::fmod(value + other.value, 360) + 360, 360);

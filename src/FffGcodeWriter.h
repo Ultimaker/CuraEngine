@@ -225,7 +225,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    LayerPlan& processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const;
+    LayerPlan& processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, size_t total_layers) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.
