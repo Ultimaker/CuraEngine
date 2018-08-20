@@ -149,7 +149,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             delete p_node;
         }
+        layer.clear();
     }
+    contact_nodes.clear();
 
     storage.support.generated = true;
 }
@@ -544,6 +546,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
         {
             delete old_node;
         }
+        to_free.clear();
 
         Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
