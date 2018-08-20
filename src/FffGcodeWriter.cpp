@@ -513,6 +513,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
         }
     }
+    gcode.setExtruderFanNumber(start_extruder_nr);
 }
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
