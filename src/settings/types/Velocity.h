@@ -41,11 +41,7 @@ struct Velocity
     {
         return Velocity(value * other.value);
     }
-    Velocity operator *(const double& other) const
-    {
-        return Velocity(value * other);
-    }
-    Velocity operator *(const int& other) const
+    template<typename E> Velocity operator *(const E& other) const
     {
         return Velocity(value * other);
     }
@@ -53,11 +49,7 @@ struct Velocity
     {
         return Velocity(value / other.value);
     }
-    Velocity operator /(const double& other) const
-    {
-        return Velocity(value / other);
-    }
-    Velocity operator /(const int& other) const
+    template<typename E> Velocity operator /(const E& other) const
     {
         return Velocity(value / other);
     }
@@ -66,9 +58,19 @@ struct Velocity
         value *= other.value;
         return *this;
     }
+    template<typename E> Velocity& operator *(const E& other)
+    {
+        value *= other;
+        return *this;
+    }
     Velocity& operator /=(const Velocity& other)
     {
         value /= other.value;
+        return *this;
+    }
+    template<typename E> Velocity& operator /(const E& other)
+    {
+        value /= other;
         return *this;
     }
 

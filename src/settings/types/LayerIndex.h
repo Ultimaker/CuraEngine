@@ -40,11 +40,7 @@ struct LayerIndex
     {
         return LayerIndex(value + other.value);
     }
-    LayerIndex operator +(const size_t& other) const
-    {
-        return LayerIndex(value + other);
-    }
-    LayerIndex operator +(const int& other) const
+    template<typename E> LayerIndex operator +(const E& other) const
     {
         return LayerIndex(value + other);
     }
@@ -53,11 +49,7 @@ struct LayerIndex
     {
         return LayerIndex(value - other.value);
     }
-    LayerIndex operator -(const size_t& other) const
-    {
-        return LayerIndex(value - other);
-    }
-    LayerIndex operator -(const int& other) const
+    template<typename E> LayerIndex operator -(const E& other) const
     {
         return LayerIndex(value - other);
     }
@@ -67,10 +59,20 @@ struct LayerIndex
         value += other.value;
         return *this;
     }
+    template<typename E> LayerIndex& operator +=(const E& other)
+    {
+        value += other;
+        return *this;
+    }
 
     LayerIndex& operator -=(const LayerIndex& other)
     {
         value -= other.value;
+        return *this;
+    }
+    template<typename E> LayerIndex& operator -=(const E& other)
+    {
+        value -= other;
         return *this;
     }
 
