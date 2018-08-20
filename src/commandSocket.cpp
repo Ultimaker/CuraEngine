@@ -427,6 +427,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
     for (auto setting : list->settings())
     {
         meshgroup->setSetting(setting.name(), setting.value());
+        logDebug("    Setting: %s\n", setting.name());
     }
 
     { // load extruder settings
@@ -509,8 +510,10 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
         for (auto setting : object.settings())
         {
             mesh.setSetting(setting.name(), setting.value());
-        }
 
+        }
+        //PJP
+        mesh.mesh_name = object.name();
         mesh.finish();
     }
 

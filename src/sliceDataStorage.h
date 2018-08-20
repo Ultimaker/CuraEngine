@@ -226,7 +226,7 @@ class SliceMeshStorage : public SettingsMessenger // passes on settings from a M
 public:
     SliceDataStorage *p_slice_data_storage;
     std::vector<SliceLayer> layers;
-
+    std::string mesh_name;
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer

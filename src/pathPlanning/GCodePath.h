@@ -28,7 +28,7 @@ public:
     GCodePath();
 
     const GCodePathConfig* config; //!< The configuration settings of the path.
-    const size_t mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
+    std::string mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     double speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
@@ -54,7 +54,7 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig& config, size_t mesh_id, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
+    GCodePath(const GCodePathConfig& config, std::string mesh_id, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.

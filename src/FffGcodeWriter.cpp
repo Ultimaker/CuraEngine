@@ -1177,9 +1177,9 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     }
 
     const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-
-    gcode_layer.setMesh(reinterpret_cast<size_t>(&mesh));
-
+    //PJP
+    gcode_layer.setMesh(mesh.mesh_name);
+    
     ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
     Point layer_start_position = Point(train->getSettingInMicrons("layer_start_x"), train->getSettingInMicrons("layer_start_y"));
     PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_config);
@@ -1201,8 +1201,8 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
     }
-
-    gcode_layer.setMesh(0);
+    //remove this as wipe movements would get put into this category
+    //gcode_layer.setMesh("NONMESH");
 }
 
 void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer) const

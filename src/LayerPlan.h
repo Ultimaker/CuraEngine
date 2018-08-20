@@ -248,7 +248,7 @@ private:
 
     bool has_prime_tower_planned;
 
-    size_t current_mesh; //<! A unique ID for the mesh of the last planned move.
+    std::string current_mesh; //<! A unique ID for the mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -421,7 +421,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const size_t mesh_id);
+    void setMesh(const std::string mesh_id);
 
     /*!
      * Set bridge_wall_mask.

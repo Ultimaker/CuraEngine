@@ -81,7 +81,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, int layer_nr, int z, int l
 , is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount(storage))
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned(false)
-, current_mesh(0)
+, current_mesh("NONMESH")
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(start_extruder))
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
@@ -227,8 +227,9 @@ bool LayerPlan::setExtruder(int extruder)
     }
     return true;
 }
-
-void LayerPlan::setMesh(const size_t mesh_id)
+//PJP
+//void LayerPlan::setMesh(const size_t mesh_id)
+void LayerPlan::setMesh(const std::string mesh_id)
 {
     current_mesh = mesh_id;
 }
@@ -1190,7 +1191,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     int extruder = gcode.getExtruderNr();
     bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
     bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
-    size_t current_mesh = 0;
+	std::string current_mesh = "NONMESH";
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -1257,13 +1258,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
-            if (path.mesh_id != current_mesh)
-            {
-                current_mesh = path.mesh_id;
-                std::stringstream ss;
-                ss << "MESH:" << current_mesh;
-                gcode.writeComment(ss.str());
-            }
+
 
             if (path.perform_prime)
             {
@@ -1305,6 +1300,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeZhopEnd();
                 }
             }
+
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)
             {
                 gcode.writeTypeComment(path.config->type);
@@ -1334,7 +1330,15 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
             }
-
+            //This seems to be the best location to place this, but still not ideal.
+            if (path.mesh_id != current_mesh)
+            {
+                current_mesh = path.mesh_id;
+                std::stringstream ss;
+                ss << "MESH:" << current_mesh;
+                gcode.writeComment(ss.str());
+            } 
+  /* This seems to duplicate some travel paths, now just with a single G0 command. Is it really needed?      
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
@@ -1343,7 +1347,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 continue;
             }
-            
+  */
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {

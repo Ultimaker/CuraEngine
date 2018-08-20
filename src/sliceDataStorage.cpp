@@ -109,6 +109,7 @@ SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh*
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
 , cross_fill_provider(nullptr)
+, mesh_name(mesh->mesh_name)
 {
     layers.resize(slice_layer_count);
 }
