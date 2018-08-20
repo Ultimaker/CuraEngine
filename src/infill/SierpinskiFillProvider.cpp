@@ -120,7 +120,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
     Point3 model_middle = aabb_3d.getMiddle();
 
     int depth = 0;
-    coord_t aabb_size = min_line_distance;
+    float aabb_size = min_line_distance * sqrt2;
     while (aabb_size < max_side_length)
     {
         aabb_size *= 2;
