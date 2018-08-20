@@ -656,16 +656,18 @@ float InfillFractal2D<CellGeometry>::getChildrenActualizedVolume(const Cell& cel
 {
     // The actualized volume of squares doesn't depend on surrounding cells,
     // so we just call getActualizedVolume(.)
-    float actualized_volume = 0;
+    float children_actualized_volume = 0;
     for (idx_t child_idx : cell.children)
     {
         if (child_idx < 0)
         {
             continue;
         }
-        actualized_volume += getActualizedVolume(cell_data[child_idx]);
+        children_actualized_volume += getActualizedVolume(cell_data[child_idx]);
     }
-    return actualized_volume;
+    const float parent_actualized_volume = getActualizedVolume(cell);
+    const float ret = std::max(parent_actualized_volume, children_actualized_volume); // enforce that child cells always have more actualized volume than parent cells
+    return ret;
 }
 
 template<typename CellGeometry>
