@@ -522,6 +522,10 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
     {
         return CombingMode::NO_SKIN;
     }
+    if (value == "infill")
+    {
+        return CombingMode::INFILL;
+    }
     return CombingMode::ALL;
 }
 
