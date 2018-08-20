@@ -604,7 +604,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
     auto addNonBridgeLine = [&](const Point& line_end)
     {
-        int64_t distance_to_line_end = vSize(cur_point - line_end);
+        double distance_to_line_end = vSize(cur_point - line_end);
 
         while (distance_to_line_end > min_line_len)
         {
@@ -624,7 +624,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
                 const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
-                const int64_t coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
+                const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 4000;
 
                 if ((distance_to_bridge_start - distance_to_line_end) <= coast_dist)
                 {
@@ -632,7 +632,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
                     segment_end = line_end;
                 }
 
-                const int64_t len = vSize(cur_point - segment_end);
+                const double len = vSize(cur_point - segment_end);
                 if (coast_dist > 0 && ((distance_to_bridge_start - len) <= coast_dist))
                 {
                     if ((len - coast_dist) > min_line_len)
