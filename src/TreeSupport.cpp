@@ -145,9 +145,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
     for (auto& layer : contact_nodes)
     {
-        for (Node* node : layer)
+        for (Node* p_node : layer)
         {
-            delete node;
+            delete p_node;
         }
     }
 
