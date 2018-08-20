@@ -69,6 +69,8 @@ private:
 
         std::string nozzle_id; //!< Type of the printcore, such as "AA 0.4", "BB 0.8", etc.
 
+        unsigned fan_number; // nozzle print cooling fan number
+
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
@@ -91,6 +93,7 @@ private:
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
         , nozzle_id("")
+        , fan_number(0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -129,7 +132,8 @@ private:
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
     int current_extruder;
-    double currentFanSpeed;
+    double current_fan_speed;
+    unsigned fan_number; // current print cooling fan number
     EGCodeFlavor flavor;
 
     std::vector<double> total_print_times; //!< The total estimated print time in seconds for each feature
@@ -432,6 +436,13 @@ public:
      * \param travel_speed The travel speed when priming involves a movement
      */
     void writePrimeTrain(double travel_speed);
+
+    /*!
+     * Set the print cooling fan number (used as P parameter to M10[67]) for the specified extruder
+     *
+     * \param extruder The current extruder
+     */
+    void setExtruderFanNumber(int extruder);
     
     void writeFanCommand(double speed);
     

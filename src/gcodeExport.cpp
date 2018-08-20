@@ -24,7 +24,7 @@ GCodeExport::GCodeExport()
 
     current_e_value = 0;
     current_extruder = 0;
-    currentFanSpeed = -1;
+    current_fan_speed = -1;
 
     total_print_times = std::vector<double>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
@@ -40,6 +40,8 @@ GCodeExport::GCodeExport()
     initial_bed_temp = 0;
 
     extruder_count = 0;
+
+    fan_number = 0;
 
     total_bounding_box = AABB3D();
 }
@@ -75,6 +77,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         extruder_attr[extruder_nr].nozzle_id = train->getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
+        extruder_attr[extruder_nr].fan_number = train->getSettingAsCount("machine_extruder_cooling_fan_number");
     }
 
     machine_name = meshgroup->getSettingString("machine_name");
@@ -936,6 +939,8 @@ void GCodeExport::startExtruder(int new_extruder)
 
     //Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;
+
+    setExtruderFanNumber(new_extruder);
 }
 
 void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
@@ -1012,26 +1017,35 @@ void GCodeExport::writePrimeTrain(double travel_speed)
     extruder_attr[current_extruder].is_primed = true;
 }
 
+void GCodeExport::setExtruderFanNumber(int extruder)
+{
+    if (extruder_attr[extruder].fan_number != fan_number)
+    {
+        fan_number = extruder_attr[extruder].fan_number;
+        current_fan_speed = -1; // ensure fan speed gcode gets output for this fan
+    }
+}
 
 void GCodeExport::writeFanCommand(double speed)
 {
-    if (std::abs(currentFanSpeed - speed) < 0.1)
+    if (std::abs(current_fan_speed - speed) < 0.1)
         return;
     if (speed > 0)
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M126 T0" << new_line; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
         else
-            *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100} << new_line;
+            *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100} << " P" << fan_number << new_line;
     }
     else
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M127 T0" << new_line;
         else
-            *output_stream << "M107" << new_line;
+            *output_stream << "M107 P" << fan_number << new_line;
     }
-    currentFanSpeed = speed;
+
+    current_fan_speed = speed;
 }
 
 void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool wait)
