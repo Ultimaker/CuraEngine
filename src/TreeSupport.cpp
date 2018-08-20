@@ -122,7 +122,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
-    std::vector<std::unordered_set<Node>> contact_nodes;
+    std::vector<std::unordered_set<Node*>> contact_nodes;
     contact_nodes.reserve(storage.support.supportLayers.size());
     for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
     {
@@ -142,6 +142,16 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
     //Generate support areas.
     drawCircles(storage, contact_nodes, model_collision);
+
+    for (auto& layer : contact_nodes)
+    {
+        for (Node* p_node : layer)
+        {
+            delete p_node;
+        }
+        layer.clear();
+    }
+    contact_nodes.clear();
 
     storage.support.generated = true;
 }
@@ -178,7 +188,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     }
 }
 
-void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision)
+void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision)
 {
     const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
     const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
@@ -203,8 +213,10 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
 
         //Draw the support areas and add the roofs appropriately to the support roof instead of normal areas.
-        for (const Node node : contact_nodes[layer_nr])
+        for (const Node* p_node : contact_nodes[layer_nr])
         {
+            const Node& node = *p_node;
+
             Polygon circle;
             const double scale = (double)(node.distance_to_top + 1) / tip_layers;
             for (Point corner : branch_circle)
@@ -293,7 +305,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     }
 }
 
-void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
+void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
 {
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = storage.getSettingInMicrons("layer_height");
@@ -306,23 +318,29 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
     const bool support_rests_on_model = storage.getSettingAsSupportType("support_type") == ESupportType::EVERYWHERE;
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
+        auto& layer_contact_nodes = contact_nodes[layer_nr];
+        std::deque<std::pair<size_t, Node*>> unsupported_branch_leaves; // All nodes that are leaves on this layer that would result in unsupported ('mid-air') branches.
+
         //Group together all nodes for each part.
         std::vector<PolygonsPart> parts = model_avoidance[0][layer_nr].splitIntoParts();
-        std::vector<std::unordered_map<Point, Node>> nodes_per_part;
+        std::vector<std::unordered_map<Point, Node*>> nodes_per_part;
         nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
         for (size_t part_index = 0; part_index < parts.size(); part_index++)
         {
             nodes_per_part.emplace_back();
         }
-        for (Node node : contact_nodes[layer_nr])
+        for (Node* p_node : layer_contact_nodes)
         {
+            const Node& node = *p_node;
+
             if (!support_rests_on_model && !node.to_buildplate) //Can't rest on model and unable to reach the build plate. Then we must drop the node and leave parts unsupported.
             {
+                unsupported_branch_leaves.push_front({ layer_nr, p_node });
                 continue;
             }
             if (node.to_buildplate || parts.empty()) //It's outside, so make it go towards the build plate.
             {
-                nodes_per_part[0][node.position] = node;
+                nodes_per_part[0][node.position] = p_node;
                 continue;
             }
             /* Find which part this node is located in and group the nodes in
@@ -354,14 +372,14 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                 }
             }
             //Put it in the best one.
-            nodes_per_part[closest_part + 1][node.position] = node; //Index + 1 because the 0th index is the outside part.
+            nodes_per_part[closest_part + 1][node.position] = p_node; //Index + 1 because the 0th index is the outside part.
         }
         //Create a MST for every part.
         std::vector<MinimumSpanningTree> spanning_trees;
-        for (const std::unordered_map<Point, Node> group : nodes_per_part)
+        for (std::unordered_map<Point, Node*>& group : nodes_per_part)
         {
             std::unordered_set<Point> points_to_buildplate;
-            for (std::pair<Point, Node> entry : group)
+            for (const std::pair<Point, Node*>& entry : group)
             {
                 points_to_buildplate.insert(entry.first); //Just the position of the node.
             }
@@ -372,15 +390,16 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
         {
             const MinimumSpanningTree& mst = spanning_trees[group_index];
             //In the first pass, merge all nodes that are close together.
-            std::unordered_set<Node> to_delete;
-            for (std::pair<Point, Node> entry : nodes_per_part[group_index])
+            std::unordered_set<Node*> to_delete;
+            for (const std::pair<Point, Node*>& entry : nodes_per_part[group_index])
             {
-                const Node node = entry.second;
-                if (to_delete.find(node) != to_delete.end())
+                Node* p_node = entry.second;
+                const Node& node = *p_node;
+                if (to_delete.find(p_node) != to_delete.end())
                 {
                     continue; //Delete this node (don't create a new node for it on the next layer).
                 }
-                std::vector<Point> neighbours = mst.adjacentNodes(node.position);
+                const std::vector<Point>& neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) < maximum_move_distance * maximum_move_distance && mst.adjacentNodes(neighbours[0]).size() == 1) //We have just two nodes left, and they're very close!
                 {
                     //Insert a completely new node and let both original nodes fade.
@@ -411,8 +430,14 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     }
 
                     const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr - 1].inside(next_position);
-                    Node next_node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
+                    Node* next_node = new Node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
                     insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
+
+                    // Make sure the next pass doens't drop down either of these (since that already happened).
+                    Node *const neighbour = nodes_per_part[group_index][neighbours[0]];
+                    node.merged_neighbours.push_front(neighbour);
+                    to_delete.insert(neighbour);
+                    to_delete.insert(p_node);
                 }
                 else if (neighbours.size() > 1) //Don't merge leaf nodes because we would then incur movement greater than the maximum move distance.
                 {
@@ -421,19 +446,22 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     {
                         if (vSize2(neighbour - node.position) < maximum_move_distance * maximum_move_distance)
                         {
-                            const Node& neighbour_node = nodes_per_part[group_index][neighbour];
-                            node.distance_to_top = std::max(node.distance_to_top, neighbour_node.distance_to_top);
-                            node.support_roof_layers_below = std::max(node.support_roof_layers_below, neighbour_node.support_roof_layers_below);
+                            Node* neighbour_node = nodes_per_part[group_index][neighbour];
+                            node.distance_to_top = std::max(node.distance_to_top, neighbour_node->distance_to_top);
+                            node.support_roof_layers_below = std::max(node.support_roof_layers_below, neighbour_node->support_roof_layers_below);
+                            node.merged_neighbours.push_front(neighbour_node);
+                            node.merged_neighbours.insert_after(node.merged_neighbours.end(), neighbour_node->merged_neighbours.begin(), neighbour_node->merged_neighbours.end());
                             to_delete.insert(neighbour_node);
                         }
                     }
                 }
             }
             //In the second pass, move all middle nodes.
-            for (std::pair<Point, Node> entry : nodes_per_part[group_index])
+            for (std::pair<Point, Node*> entry : nodes_per_part[group_index])
             {
-                Node node = entry.second;
-                if (to_delete.find(node) != to_delete.end())
+                Node* p_node = entry.second;
+                const Node& node = *p_node;
+                if (to_delete.find(p_node) != to_delete.end())
                 {
                     continue;
                 }
@@ -444,6 +472,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                     const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, model_collision[0][layer_nr]);
                     if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
                     {
+                        unsupported_branch_leaves.push_front({layer_nr, p_node});
                         continue;
                     }
                 }
@@ -492,15 +521,38 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
                 }
 
                 const bool to_buildplate = !model_avoidance[branch_radius_sample][layer_nr - 1].inside(next_layer_vertex);
-                Node next_node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate);
+                Node* next_node = new Node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
                 insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
             }
         }
+
+        // Prune all branches that couldn't find support on either the model or the buildplate (resulting in 'mid-air' branches).
+        std::set<Node*> to_free;
+        for (;! unsupported_branch_leaves.empty(); unsupported_branch_leaves.pop_back())
+        {
+            const auto& entry = unsupported_branch_leaves.back();
+            Node* i_node = entry.second;
+            for (size_t i_layer = entry.first; i_node != nullptr; ++i_layer, i_node = i_node->parent)
+            {
+                contact_nodes[i_layer].erase(i_node);
+                to_free.insert(i_node);
+                for (Node* neighbour : i_node->merged_neighbours)
+                {
+                    unsupported_branch_leaves.push_front({i_layer, neighbour});
+                }
+            }
+        }
+        for (Node* old_node : to_free)
+        {
+            delete old_node;
+        }
+        to_free.clear();
+
         Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
 }
 
-void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node>>& contact_nodes, const std::vector<Polygons>& collision_areas)
+void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node*>>& contact_nodes, const std::vector<Polygons>& collision_areas)
 {
     const coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
 
@@ -558,7 +610,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     {
                         constexpr size_t distance_to_top = 0;
                         constexpr bool to_buildplate = true;
-                        Node contact_node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate);
+                        Node* contact_node = new Node(candidate, distance_to_top, (layer_nr + z_distance_top_layers) % 2, support_roof_layers, to_buildplate, Node::NO_PARENT);
                         contact_nodes[layer_nr].insert(contact_node);
                         added = true;
                     }
@@ -570,24 +622,25 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 PolygonUtils::moveInside(overhang_part, candidate);
                 constexpr size_t distance_to_top = 0;
                 constexpr bool to_buildplate = true;
-                Node contact_node(candidate, distance_to_top, layer_nr % 2, support_roof_layers, to_buildplate);
+                Node* contact_node = new Node(candidate, distance_to_top, layer_nr % 2, support_roof_layers, to_buildplate, Node::NO_PARENT);
                 contact_nodes[layer_nr].insert(contact_node);
             }
         }
     }
 }
 
-void TreeSupport::insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node& node)
+void TreeSupport::insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node* p_node)
 {
-    std::unordered_set<Node>::iterator conflicting_node = nodes_layer.find(node);
-    if (conflicting_node == nodes_layer.end()) //No conflict.
+    std::unordered_set<Node*>::iterator conflicting_node_it = nodes_layer.find(p_node);
+    if (conflicting_node_it == nodes_layer.end()) //No conflict.
     {
-        nodes_layer.insert(node);
+        nodes_layer.insert(p_node);
         return;
     }
 
-    conflicting_node->distance_to_top = std::max(conflicting_node->distance_to_top, node.distance_to_top);
-    conflicting_node->support_roof_layers_below = std::max(conflicting_node->support_roof_layers_below, node.support_roof_layers_below);
+    Node* conflicting_node = *conflicting_node_it;
+    conflicting_node->distance_to_top = std::max(conflicting_node->distance_to_top, p_node->distance_to_top);
+    conflicting_node->support_roof_layers_below = std::max(conflicting_node->support_roof_layers_below, p_node->support_roof_layers_below);
 }
 
 void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const std::vector<std::vector<Polygons>>& model_collision, std::vector<std::vector<Polygons>>& model_avoidance)
