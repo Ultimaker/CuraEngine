@@ -23,10 +23,12 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
     subdivision_structure_3d->initialize();
     if (density >= 1.0 || density >= line_width / min_line_distance)
     {
+        logDebug("Creating max depth pattern.\n");
         subdivision_structure_3d->createMaxDepthPattern();
     }
     else
     {
+        logDebug("Creating dithered pattern.\n");
         subdivision_structure_3d->createDitheredPattern();
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
