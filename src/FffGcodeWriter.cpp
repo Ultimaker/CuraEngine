@@ -875,6 +875,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         addPrimeTower(storage, gcode_layer, prev_extruder);
     }
 
+    gcode_layer.optimizePaths(gcode.getPositionXY());
+
     return gcode_layer;
 }
 

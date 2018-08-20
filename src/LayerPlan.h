@@ -615,6 +615,12 @@ public:
      * \param distance The distance to the comb boundary after we moved inside it.
      */
     void moveInsideCombBoundary(int distance);
+
+    /*!
+     * Having all extruder plans ready including travels, we can now optimize the final result by merging some lines together
+     * \param starting_position Start from this coordinate.
+     * */
+    void optimizePaths(const Point& starting_position);
 };
 
 }//namespace cura
