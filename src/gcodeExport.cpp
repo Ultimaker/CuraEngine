@@ -1035,14 +1035,28 @@ void GCodeExport::writeFanCommand(double speed)
         if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M126 T0" << new_line; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
         else
-            *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100} << " P" << fan_number << new_line;
+        {
+            *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100};
+            if (fan_number)
+            {
+                *output_stream << " P" << fan_number;
+            }
+            *output_stream << new_line;
+        }
     }
     else
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M127 T0" << new_line;
         else
-            *output_stream << "M107 P" << fan_number << new_line;
+        {
+            *output_stream << "M107";
+            if (fan_number)
+            {
+                *output_stream << " P" << fan_number;
+            }
+            *output_stream << new_line;
+        }
     }
 
     current_fan_speed = speed;
