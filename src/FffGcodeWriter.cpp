@@ -2542,7 +2542,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
         return;
     }
 
-    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    const int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
     if (gcode_layer.getLayerNr() == 0 && outermost_prime_tower_extruder != gcode_layer.getExtruder())
     {
         return;
