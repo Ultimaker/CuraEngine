@@ -63,7 +63,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
 {
-    z = std::min(z, aabb_3d.max.z); // limit the z to where the pattern is generated; layer heights can go higher than the model...
+    z = std::min(z, aabb_3d.max.z - 1); // limit the z to where the pattern is generated; layer heights can go higher than the model...
     if (fill_pattern_for_all_layers)
     {
         if (pattern == EFillMethod::CROSS_3D)
@@ -127,7 +127,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         depth += 2;
     }
     const float half_sqrt2 = .5 * sqrt2;
-    if (aabb_size * half_sqrt2 >= max_side_length)
+    if (aabb_size * half_sqrt2 >= max_side_length - 1)
     {
         aabb_size *= half_sqrt2;
         depth--;
