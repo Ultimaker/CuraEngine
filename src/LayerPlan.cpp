@@ -1486,18 +1486,17 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
 
-        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
+        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool
+            {
                 return  a.path_idx < b.path_idx; 
-            } );
+            });
 
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
         {
             gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
         }
-        bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
-        double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
-        int64_t nozzle_size = gcode.getNozzleSize(extruder);
+        const coord_t nozzle_size = gcode.getNozzleSize(extruder);
 
         bool update_extrusion_offset = true;
 
@@ -1570,12 +1569,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-
-            if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
-            { // !! has effect on path_idx !!
-                // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
-                continue;
-            }
 
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
@@ -1843,6 +1836,19 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
 
     gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
     return true;
+}
+
+void LayerPlan::optimizePaths(const Point& starting_position)
+{
+    for (ExtruderPlan& extr_plan : extruder_plans)
+    {
+        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr_plan.extruder);
+        const coord_t nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+        //Merge paths whose endpoints are very close together into one line.
+        MergeInfillLines merger(extr_plan, nozzle_size, maximum_resolution);
+        merger.mergeInfillLines(extr_plan.paths, starting_position);
+    }
 }
 
 }//namespace cura

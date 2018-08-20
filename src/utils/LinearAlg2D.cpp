@@ -146,4 +146,21 @@ bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_trans
     return false;
 }
 
+coord_t LinearAlg2D::getDist2FromLine(const Point p, const Point a, const Point b)
+{
+    //  x.......a------------b
+    //  :
+    //  :
+    //  p
+    // return px_size
+    assert(a != b);  // the line can't be a point
+    const Point vab = b - a;
+    const Point vap = p - a;
+    const coord_t dott = dot(vab, vap);
+    const coord_t ax_size2 = dott * dott / vSize2(vab);
+    const coord_t ap_size2 = vSize2(vap);
+    const coord_t px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
+    return px_size2;
+}
+
 } // namespace cura
