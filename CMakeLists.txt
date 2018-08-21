@@ -154,7 +154,6 @@ set(engine_SRCS # Except main.cpp.
     src/settings/AdaptiveLayerHeights.cpp
     src/settings/PathConfigStorage.cpp
     src/settings/Settings.cpp
-    src/settings/SettingsBaseVirtual.cpp
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
