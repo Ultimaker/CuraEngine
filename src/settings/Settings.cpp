@@ -554,38 +554,5 @@ void Settings::setParent(Settings* new_parent)
     parent = new_parent;
 }
 
-////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
-
-//c++11 no longer defines M_PI, so add our own constant.
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-std::string toString(EGCodeFlavor flavor)
-{
-    switch (flavor)
-    {
-        case EGCodeFlavor::BFB:
-            return "BFB";
-        case EGCodeFlavor::MACH3:
-            return "Mach3";
-        case EGCodeFlavor::MAKERBOT:
-            return "Makerbot";
-        case EGCodeFlavor::ULTIGCODE:
-            return "UltiGCode";
-        case EGCodeFlavor::MARLIN_VOLUMATRIC:
-            return "Marlin(Volumetric)";
-        case EGCodeFlavor::GRIFFIN:
-            return "Griffin";
-        case EGCodeFlavor::REPETIER:
-            return "Repetier";
-        case EGCodeFlavor::REPRAP:
-            return "RepRap";
-        case EGCodeFlavor::MARLIN:
-        default:
-            return "Marlin";
-    }
-}
-
 }//namespace cura
 

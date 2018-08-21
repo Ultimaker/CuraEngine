@@ -106,11 +106,6 @@ private:
 #define VERSION "DEV"
 #endif
 
-/*!
- * Converts a gcode flavor type to string so that it can be included in the gcode.
- */
-std::string toString(EGCodeFlavor flavor);
-
 #define MAX_EXTRUDERS 16
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.

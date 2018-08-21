@@ -181,6 +181,14 @@ public:
     GCodeExport();
     ~GCodeExport();
 
+    /*
+     * \brief Converts the g-code flavor to a string as it must be printed in
+     * the g-code.
+     * \param flavor The g-code flavor to print.
+     * \return A serialized form of this flavor.
+     */
+    const std::string flavorToString(const EGCodeFlavor& flavor) const;
+
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
      * 

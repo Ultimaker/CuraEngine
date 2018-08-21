@@ -134,6 +134,31 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
     }
 }
 
+const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
+{
+    switch (flavor)
+    {
+        case EGCodeFlavor::BFB:
+            return "BFB";
+        case EGCodeFlavor::MACH3:
+            return "Mach3";
+        case EGCodeFlavor::MAKERBOT:
+            return "Makerbot";
+        case EGCodeFlavor::ULTIGCODE:
+            return "UltiGCode";
+        case EGCodeFlavor::MARLIN_VOLUMATRIC:
+            return "Marlin(Volumetric)";
+        case EGCodeFlavor::GRIFFIN:
+            return "Griffin";
+        case EGCodeFlavor::REPETIER:
+            return "Repetier";
+        case EGCodeFlavor::REPRAP:
+            return "RepRap";
+        case EGCodeFlavor::MARLIN:
+        default:
+            return "Marlin";
+    }
+}
 
 std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
@@ -144,7 +169,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
     case EGCodeFlavor::GRIFFIN:
         prefix << ";START_OF_HEADER" << new_line;
         prefix << ";HEADER_VERSION:0.1" << new_line;
-        prefix << ";FLAVOR:" << toString(flavor) << new_line;
+        prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
@@ -192,7 +217,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";END_OF_HEADER" << new_line;
         break;
     default:
-        prefix << ";FLAVOR:" << toString(flavor) << new_line;
+        prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
         prefix << ";TIME:" << ((print_time)? static_cast<int>(*print_time) : 6666) << new_line;
         if (flavor == EGCodeFlavor::ULTIGCODE)
         {

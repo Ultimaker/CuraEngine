@@ -1229,7 +1229,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     if (layer_nr == 1 - Raft::getTotalExtraLayers(storage) && mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature") != 0)
     {
-        bool wait = false;
+        constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
 
