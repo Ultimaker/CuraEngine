@@ -33,7 +33,7 @@ public:
         , object_count(0)
         , last_sent_progress(-1)
         , slice_count(0)
-    { }
+    {}
 
     /*
      * Get the optimised layer data for a specific layer.

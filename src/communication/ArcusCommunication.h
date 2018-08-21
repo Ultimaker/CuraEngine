@@ -20,6 +20,7 @@ class Slice;
  */
 class ArcusCommunication : public Communication
 {
+    friend class ArcusCommunicationTest;  // For unit tests
 public:
     /*
      * \brief Construct a new communicator that listens to libArcus messages via
