@@ -170,7 +170,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {
     if (settings.get<bool>("magic_spiralize"))
     {
-        if (settings.get<size_t>("wall_0_extruder_nr") == extruder_nr)
+        if (settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
         {
             return true;
         }
@@ -179,24 +179,24 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
             return false;
         }
     }
-    if (settings.get<size_t>("wall_line_count") > 0 && settings.get<size_t>("wall_0_extruder_nr") == extruder_nr)
+    if (settings.get<size_t>("wall_line_count") > 0 && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
     if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter") || settings.get<bool>("fill_perimeter_gaps"))
-        && settings.get<size_t>("wall_x_extruder_nr") == extruder_nr)
+        && settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
-    if (settings.get<coord_t>("infill_line_distance") > 0 && settings.get<size_t>("infill_extruder_nr") == extruder_nr)
+    if (settings.get<coord_t>("infill_line_distance") > 0 && settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
-    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<size_t>("top_bottom_extruder_nr") == extruder_nr)
+    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
-    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<size_t>("roofing_layer_count") > 0 && settings.get<size_t>("roofing_extruder_nr") == extruder_nr)
+    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<size_t>("roofing_layer_count") > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
@@ -215,7 +215,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
         return false;
     }
     const SliceLayer& layer = layers[layer_nr];
-    if (settings.get<size_t>("wall_0_extruder_nr") == extruder_nr && (settings.get<size_t>("wall_line_count") > 0 || settings.get<size_t>("skin_outline_count") > 0))
+    if (settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr && (settings.get<size_t>("wall_line_count") > 0 || settings.get<size_t>("skin_outline_count") > 0))
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -234,7 +234,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     }
     if (settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
         && (settings.get<size_t>("wall_line_count") > 0 || settings.get<size_t>("skin_outline_count") > 0)
-        && settings.get<size_t>("wall_0_extruder_nr") == extruder_nr)
+        && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -253,7 +253,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     }
     if (settings.get<bool>("fill_outline_gaps")
         && settings.get<size_t>("wall_line_count") > 0
-        && settings.get<size_t>("wall_0_extruder_nr") == extruder_nr)
+        && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -263,7 +263,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
         }
     }
-    if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter")) && settings.get<size_t>("wall_x_extruder_nr") == extruder_nr)
+    if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter")) && settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -273,7 +273,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
         }
     }
-    if (settings.get<coord_t>("infill_line_distance") > 0 && settings.get<size_t>("infill_extruder_nr") == extruder_nr)
+    if (settings.get<coord_t>("infill_line_distance") > 0 && settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -283,7 +283,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
         }
     }
-    if (settings.get<size_t>("top_bottom_extruder_nr") == extruder_nr)
+    if (settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -296,7 +296,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
         }
     }
-    if (settings.get<size_t>("roofing_extruder_nr") == extruder_nr)
+    if (settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {

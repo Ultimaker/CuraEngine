@@ -104,7 +104,7 @@ void InsetOrderOptimizer::processHoleInsets()
                     --inset_idx; // we've shortened the vector so decrement the index otherwise, we'll skip an element
                 }
             }
-            if (insets_that_do_not_surround_holes.size() > 0 && extruder_nr == mesh.settings.get<size_t>("wall_x_extruder_nr"))
+            if (insets_that_do_not_surround_holes.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
             {
                 gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -263,7 +263,7 @@ void InsetOrderOptimizer::processHoleInsets()
             }
         }
 
-        if (hole_inner_walls.size() > 0 && extruder_nr == mesh.settings.get<size_t>("wall_x_extruder_nr"))
+        if (hole_inner_walls.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
         {
             // output the inset polys
 
@@ -271,7 +271,7 @@ void InsetOrderOptimizer::processHoleInsets()
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             if (outer_inset_first)
             {
-                if (extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr"))
+                if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
                 {
                     gcode_layer.addWalls(hole_outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
                 }
@@ -298,7 +298,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 gcode_layer.addTravel(dest);
                 std::reverse(hole_inner_walls.begin(), hole_inner_walls.end());
                 gcode_layer.addWalls(hole_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
-                if (extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr"))
+                if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
                 {
                     gcode_layer.addWall(hole_outer_wall[0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
@@ -307,7 +307,7 @@ void InsetOrderOptimizer::processHoleInsets()
             }
             added_something = true;
         }
-        else if (extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr"))
+        else if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
         {
             // just the outer wall, no level 1 insets
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -391,7 +391,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         }
     }
 
-    if (part_inner_walls.size() > 0 && extruder_nr == mesh.settings.get<size_t>("wall_x_extruder_nr"))
+    if (part_inner_walls.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
     {
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -404,7 +404,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
 
         if (outer_inset_first)
         {
-            if (include_outer && extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr"))
+            if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             {
                 gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
@@ -431,7 +431,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 gcode_layer.addTravel(dest);
             }
             gcode_layer.addWalls(part_inner_walls, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
-            if (include_outer && extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr"))
+            if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             {
                 gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
                 // move inside so an immediately following retract doesn't occur on the outer wall
@@ -440,7 +440,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         }
         added_something = true;
     }
-    else if (include_outer && extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr"))
+    else if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
     {
         // just the outer wall, no inners
 
@@ -542,7 +542,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     }
 
     // finally, mop up all the remaining insets that can occur in the gaps between holes
-    if (extruder_nr == mesh.settings.get<size_t>("wall_x_extruder_nr"))
+    if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
     {
         Polygons remaining;
         for (unsigned int inset_level = 1; inset_level < inset_polys.size(); ++inset_level)
