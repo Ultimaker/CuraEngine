@@ -579,9 +579,9 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
 static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, double distance_to_bridge_start)
+void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, coord_t distance_to_bridge_start)
 {
-    const double min_line_len = 5; // we ignore lines less than 5um long
+    const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = 1000; // accelerate using segments of this length
     const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
@@ -600,7 +600,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
 
     auto addNonBridgeLine = [&](const Point& line_end)
     {
-        double distance_to_line_end = vSize(cur_point - line_end);
+        coord_t distance_to_line_end = vSize(cur_point - line_end);
 
         while (distance_to_line_end > min_line_len)
         {
@@ -628,7 +628,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                     segment_end = line_end;
                 }
 
-                const double len = vSize(cur_point - segment_end);
+                const coord_t len = vSize(cur_point - segment_end);
                 if (coast_dist > 0 && ((distance_to_bridge_start - len) <= coast_dist))
                 {
                     if ((len - coast_dist) > min_line_len)
@@ -772,7 +772,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
 
     float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
-    double distance_to_bridge_start = 0; // will be updated before each line is processed
+    coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
     const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
     const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
