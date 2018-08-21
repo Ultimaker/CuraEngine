@@ -260,7 +260,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     }
 }
 
-void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer)
+void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer)
 {
     inset0_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
     insetX_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
