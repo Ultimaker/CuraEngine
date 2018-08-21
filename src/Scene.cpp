@@ -91,7 +91,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     {
         log("Starting Neith Weaver...\n");
 
-        Weaver weaver(fff_processor);
+        Weaver weaver;
         weaver.weave(&mesh_group);
         
         log("Starting Neith Gcode generation...\n");

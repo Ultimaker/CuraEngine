@@ -4,12 +4,12 @@
 #ifndef WEAVER_H
 #define WEAVER_H
 
-#include "weaveDataStorage.h"
-#include "settings/Settings.h"
-
+#include "Application.h" //To get the mesh group settings.
 #include "MeshGroup.h"
 #include "slicer.h"
-
+#include "weaveDataStorage.h"
+#include "settings/Settings.h"
+#include "settings/types/AngleRadians.h" //For the nozzle angle.
 #include "utils/NoCopy.h"
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
@@ -20,7 +20,7 @@ namespace cura
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
  */
-class Weaver : public SettingsMessenger, NoCopy
+class Weaver : public NoCopy
 {
     friend class Wireframe2gcode;
 private:
@@ -28,31 +28,31 @@ private:
     static const int MOVE_TO_STRAIGHTEN = 1;
     static const int RETRACT_TO_STRAIGHTEN = 2;
     
-    int initial_layer_thickness;
-    int connectionHeight; 
-    int line_width;
+    coord_t initial_layer_thickness;
+    coord_t connectionHeight; 
+    coord_t line_width;
     
-    int roof_inset; 
+    coord_t roof_inset; 
     
-    int nozzle_outer_diameter; 
-    double nozzle_expansion_angle; 
-    int nozzle_clearance; 
-    int nozzle_top_diameter;
+    coord_t nozzle_outer_diameter; 
+    AngleRadians nozzle_expansion_angle; 
+    coord_t nozzle_clearance; 
+    coord_t nozzle_top_diameter;
    
     
 public:
-    Weaver(SettingsBase* settings_base) : SettingsMessenger(settings_base) 
+    Weaver()
     {
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
+        connectionHeight = mesh_group_settings.get<coord_t>("wireframe_height");
         
-        initial_layer_thickness = getSettingInMicrons("layer_height_0");
-        connectionHeight = getSettingInMicrons("wireframe_height"); 
+        line_width = mesh_group_settings.get<coord_t>("wall_line_width_x");
         
-        line_width = getSettingInMicrons("wall_line_width_x");
-        
-        roof_inset = getSettingInMicrons("wireframe_roof_inset"); 
-        nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter");      // ___       ___   .
-        nozzle_expansion_angle = getSettingInAngleRadians("machine_nozzle_expansion_angle");  //     \_U_/       .
-        nozzle_clearance = getSettingInMicrons("wireframe_nozzle_clearance");                // at least line width
+        roof_inset = mesh_group_settings.get<coord_t>("wireframe_roof_inset");
+        nozzle_outer_diameter = mesh_group_settings.get<coord_t>("machine_nozzle_tip_outer_diameter");      // ___     ___   .
+        nozzle_expansion_angle = mesh_group_settings.get<AngleRadians>("machine_nozzle_expansion_angle");  //     \_U_/       .
+        nozzle_clearance = mesh_group_settings.get<coord_t>("wireframe_nozzle_clearance");                // at least line width
         nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
     }
 
