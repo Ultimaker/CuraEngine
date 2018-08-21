@@ -4,6 +4,15 @@
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
 
+#ifndef VERSION
+#define VERSION "DEV"
+#endif
+
+#define MAX_EXTRUDERS 16
+
+//Maximum number of infill layers that can be combined into a single infill extrusion area.
+#define MAX_INFILL_COMBINE 8
+
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -98,19 +107,7 @@ private:
     std::unordered_map<std::string, Setting> settings;
 };
 
+} //namespace cura
 
-
-////////////////////////////OLD IMPLEMENTATION BELOW////////////////////////////
-
-#ifndef VERSION
-#define VERSION "DEV"
-#endif
-
-#define MAX_EXTRUDERS 16
-
-//Maximum number of infill layers that can be combined into a single infill extrusion area.
-#define MAX_INFILL_COMBINE 8
-
-}//namespace cura
-#endif//SETTINGS_SETTINGS_H
+#endif //SETTINGS_SETTINGS_H
 
