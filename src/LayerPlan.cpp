@@ -1238,10 +1238,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
 
     size_t extruder_nr = gcode.getExtruderNr();
-    bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
-    bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
+    const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
+    const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
 
-    for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
+    for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
@@ -1266,8 +1266,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
                 constexpr bool wait = false;
-                double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
-                int prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
+                Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
+                const LayerIndex prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
                 if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
