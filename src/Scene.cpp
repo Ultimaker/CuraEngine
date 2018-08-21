@@ -118,7 +118,6 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
     fff_processor->polygon_generator.setParent(fff_processor); // otherwise consequent getSetting calls (e.g. for finalize) will refer to non-existent meshgroup
-    fff_processor->gcode_writer.setParent(fff_processor); // otherwise consequent getSetting calls (e.g. for finalize) will refer to non-existent meshgroup
 }
 
 } //namespace cura

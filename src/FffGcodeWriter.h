@@ -35,7 +35,7 @@ namespace cura
  * 
  * The main function of this class is FffGcodeWriter::writeGCode().
  */
-class FffGcodeWriter : public SettingsMessenger, NoCopy
+class FffGcodeWriter : public NoCopy
 {
     friend class Scene; // cause WireFrame2Gcode uses the member [gcode] (TODO)
     friend class FffProcessor; //Because FffProcessor exposes finalize (TODO)
@@ -85,7 +85,13 @@ private:
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
 public:
-    FffGcodeWriter(SettingsBase* settings);
+    /*
+     * \brief Construct a g-code writer.
+     *
+     * This sets the initial state of the printer correctly in itself, so that
+     * it's ready for writing.
+     */
+    FffGcodeWriter();
 
     /*!
      * Set the target to write gcode to: to a file.
@@ -659,7 +665,7 @@ private:
      * \param layer_nr The layer number of the layer for which to determine the interface angle
      * \return The angle of support interface.
      */
-    double supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const LayerIndex layer_nr) const;
+    AngleDegrees supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const LayerIndex layer_nr) const;
 
 public:
     /*!

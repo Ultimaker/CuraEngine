@@ -11,8 +11,7 @@ namespace cura
 FffProcessor FffProcessor::instance; // definition must be in cpp
 
 FffProcessor::FffProcessor()
-: gcode_writer(this)
-, polygon_generator(this)
+: polygon_generator(this)
 {
 }
 
