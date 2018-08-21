@@ -4,16 +4,14 @@
 #ifndef SETTINGSBASEVIRTUAL_H
 #define SETTINGSBASEVIRTUAL_H
 
-#include "../FlowTempGraph.h"
-#include "../utils/floatpoint.h"
-#include "../utils/IntPoint.h" //For coord_t.
+#include "../utils/floatpoint.h" //For FMatrix3x3.
 
 namespace cura
 {
 
 /*!
  * In Cura different infill methods are available.
- * This enum defines which fill patterns are available to get a uniform naming troughout the engine.
+ * This enum defines which fill patterns are available to get a uniform naming throughout the engine.
  * The different methods are used for top/bottom, support and sparse infill.
  */
 enum class EFillMethod
