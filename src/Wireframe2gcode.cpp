@@ -190,7 +190,7 @@ void Wireframe2gcode::go_down(WeaveConnectionPart& part, unsigned int segment_id
         Point3& to = segment.to;
         Point3 from = gcode.getPosition();// segment.from;
         Point3 vec = to - from;
-        Point3 in_between = from + vec * straight_first_when_going_down / 100;
+        Point3 in_between = from + vec * static_cast<double>(straight_first_when_going_down);
         
         Point3 up(in_between.x, in_between.y, from.z);
         int64_t new_length = (up - from).vSize() + (to - up).vSize() + 5;
@@ -534,7 +534,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
         strategy = STRATEGY_RETRACT;
     
     go_back_to_last_top = false;
-    straight_first_when_going_down = getSettingInPercentage("wireframe_straight_before_down");
+    straight_first_when_going_down = getSettingAsRatio("wireframe_straight_before_down");
     
     roof_fall_down = getSettingInMicrons("wireframe_roof_fall_down");
     roof_drag_along = getSettingInMicrons("wireframe_roof_drag_along");
