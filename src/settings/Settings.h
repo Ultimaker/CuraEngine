@@ -10,7 +10,7 @@
 #include <sstream>
 
 #include "Setting.h" //The individual setting.
-#include "SettingsBaseVirtual.h"
+#include "EnumSettings.h"
 #include "../utils/string.h"
 
 namespace cura
