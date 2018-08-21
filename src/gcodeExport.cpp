@@ -55,9 +55,9 @@ void GCodeExport::preSetup()
     firmware_retract = mesh_group->settings.get<bool>("machine_firmware_retract");
     use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
 
-    extruder_count = mesh_group->settings.get<size_t>("machine_extruder_count");
-
     const Scene& scene = Application::getInstance().current_slice->scene;
+    extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
@@ -135,7 +135,7 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 }
 
 
-std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
 

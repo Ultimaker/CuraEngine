@@ -578,7 +578,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
     message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);

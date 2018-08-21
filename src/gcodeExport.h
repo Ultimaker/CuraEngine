@@ -190,7 +190,7 @@ public:
      * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
+    std::string getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setLayerNr(unsigned int layer_nr);
     

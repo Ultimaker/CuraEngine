@@ -59,7 +59,7 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
     log("Total print time: %5.3fs\n", sum);
 
     sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.settings.get<size_t>("machine_extruder_count"); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
         sum += FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr);
     }
