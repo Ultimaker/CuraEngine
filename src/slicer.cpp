@@ -745,7 +745,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
+    if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
     { // don't stitch when using (any) mesh surface mode, i.e. also don't stitch when using mixed mesh surface and closed polygons, because then polylines which are supposed to be open will be closed
         stitch(open_polylines);
     }
@@ -778,15 +778,15 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     polygons.erase(it, polygons.end());
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
-    const coord_t line_segment_resolution = mesh->getSettingInMicrons("meshfix_maximum_resolution");
+    const coord_t line_segment_resolution = mesh->settings.get<coord_t>("meshfix_maximum_resolution");
     polygons.simplify(line_segment_resolution, line_segment_resolution / 2); //Maximum error is half of the resolution so it's only a limit when removing really sharp corners.
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
-    int xy_offset = mesh->getSettingInMicrons("xy_offset");
+    coord_t xy_offset = mesh->settings.get<coord_t>("xy_offset");
     if (is_initial_layer)
     {
-        xy_offset = mesh->getSettingInMicrons("xy_offset_layer_0");
+        xy_offset = mesh->settings.get<coord_t>("xy_offset_layer_0");
     }
 
     if (xy_offset != 0)
@@ -799,7 +799,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
                bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
-    SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
+    SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
 
     assert(slice_layer_count > 0);
 
@@ -808,7 +808,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
     layers.resize(slice_layer_count);
 
     // compensate first layer thickness depending on slicing mode
-    int initial = initial_layer_thickness - thickness;
+    coord_t initial = initial_layer_thickness - thickness;
     if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
         initial += thickness / 2;
@@ -949,8 +949,8 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         ;
     }
 
-    mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
-    log("slice make polygons took %.3f seconds\n",slice_timer.restart());
+    mesh->expandXY(mesh->settings.get<coord_t>("xy_offset"));
+    log("slice make polygons took %.3f seconds\n", slice_timer.restart());
 }
 
 }//namespace cura

@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
@@ -17,7 +20,7 @@ public:
      * \param my_center the center of the cube
      * \param depth the recursion depth of the cube (0 is most recursed)
      */
-    SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int depth);
+    SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth);
 
     ~SubDivCube(); //!< destructor (also destroys children
 
@@ -31,7 +34,7 @@ public:
      * \param z the specified layer height
      * \param result (output) The resulting lines
      */
-    void generateSubdivisionLines(int64_t z, Polygons& result);
+    void generateSubdivisionLines(coord_t z, Polygons& result);
 private:
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
@@ -39,7 +42,7 @@ private:
      * \param result (output) The resulting lines
      * \param directional_line_groups Array of 3 times a polylines. Used to keep track of line segments that are all pointing the same direction for line segment combining
      */
-    void generateSubdivisionLines(int64_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
+    void generateSubdivisionLines(coord_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
     struct CubeProperties
     {
         int64_t side_length; //!< side length of cubes
@@ -84,14 +87,14 @@ private:
      */
     void addLineAndCombine(Polygons& group, Point from, Point to);
 
-    unsigned int depth; //!< the recursion depth of the cube (0 is most recursed)
+    size_t depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
     SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
     static std::vector<CubeProperties> cube_properties_per_recursion_step; //!< precomputed array of basic properties of cubes based on recursion depth.
-    static double radius_multiplier; //!< multiplier for the bounding radius when determining if a cube should be subdivided
+    static Ratio radius_multiplier; //!< multiplier for the bounding radius when determining if a cube should be subdivided
     static Point3Matrix rotation_matrix; //!< The rotation matrix to get from axis aligned cubes to cubes standing on a corner point aligned with the infill_angle
     static PointMatrix infill_rotation_matrix; //!< Horizontal rotation applied to infill
-    static int32_t radius_addition; //!< addition to the bounding radius when determining if a cube should be subdivided
+    static coord_t radius_addition; //!< addition to the bounding radius when determining if a cube should be subdivided
 };
 
 }

@@ -57,7 +57,7 @@ A Mesh is the most basic representation of a 3D model. It contains all the faces
 
 See MeshFace for the specifics of how/when faces are connected.
 */
-class Mesh : public SettingsBase // inherits settings
+class Mesh
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
@@ -67,7 +67,6 @@ public:
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
     Settings settings;
 
-    Mesh(SettingsBaseVirtual* parent); //!< initializes the settings
     Mesh(Settings& parent);
     Mesh();
 

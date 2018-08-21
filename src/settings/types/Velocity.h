@@ -58,7 +58,7 @@ struct Velocity
         value *= other.value;
         return *this;
     }
-    template<typename E> Velocity& operator *(const E& other)
+    template<typename E> Velocity& operator *=(const E& other)
     {
         value *= other;
         return *this;
@@ -68,7 +68,7 @@ struct Velocity
         value /= other.value;
         return *this;
     }
-    template<typename E> Velocity& operator /(const E& other)
+    template<typename E> Velocity& operator /=(const E& other)
     {
         value /= other;
         return *this;
@@ -79,35 +79,6 @@ struct Velocity
      */
     double value = 0;
 };
-
-}
-
-namespace std
-{
-
-inline cura::Velocity min(const cura::Velocity& first, const cura::Velocity& second) //Needs to be inlined to prevent multiple definitions.
-{
-    if (first.value < second.value)
-    {
-        return first;
-    }
-    else
-    {
-        return second;
-    }
-}
-
-inline cura::Velocity max(const cura::Velocity& first, const cura::Velocity& second) //Needs to be inlined to prevent multiple definitions.
-{
-    if (first.value > second.value)
-    {
-        return first;
-    }
-    else
-    {
-        return second;
-    }
-}
 
 }
 

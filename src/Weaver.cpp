@@ -31,8 +31,8 @@ void Weaver::weave(MeshGroup* meshgroup)
     for(Mesh& mesh : meshgroup->meshes)
     {
         cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count,
-                                                mesh.getSettingBoolean("meshfix_keep_open_polygons"),
-                                                mesh.getSettingBoolean("meshfix_extensive_stitching"),
+                                                mesh.settings.get<bool>("meshfix_keep_open_polygons"),
+                                                mesh.settings.get<bool>("meshfix_extensive_stitching"),
                                                 false, &layer_thicknesses);
         slicerList.push_back(slicer);
     }

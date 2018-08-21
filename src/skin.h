@@ -21,7 +21,7 @@ public:
      * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
      * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
      */
-    SkinInfillAreaComputation(int layer_nr, const SliceDataStorage& storage, SliceMeshStorage& mesh, bool process_infill);
+    SkinInfillAreaComputation(const LayerIndex& layer_nr, const SliceDataStorage& storage, SliceMeshStorage& mesh, bool process_infill);
 
     /*!
      * Generate the skin areas and its insets.
@@ -38,7 +38,7 @@ public:
      * \param mesh The mesh to combine the infill layers of.
      * \param amount The number of layers to combine.
      */
-    static void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount);
+    static void combineInfillLayers(SliceMeshStorage& mesh, const size_t amount);
 
     /*!
      * Generate infill areas which cause a gradually less dense infill structure from top to bottom.
@@ -84,7 +84,7 @@ protected:
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] upskin The areas of top skin to be pdated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, int min_infill_area, Polygons& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, const double min_infill_area, Polygons& upskin);
 
     /*!
      * Calculate the basic areas which have air below
@@ -94,7 +94,7 @@ protected:
      * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
      * \param[in,out] downskin The areas of bottom skin to be updated by the layers above. The input is the area within the inner walls (or an empty Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, int min_infill_area, Polygons& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, const double min_infill_area, Polygons& downskin);
 
     /*!
      * Apply skin expansion:
@@ -148,17 +148,17 @@ protected:
     void generateInnerSkinInfill(SkinPart& skin_part);
 
 protected:
-    const int layer_nr; //!< The index of the layer for which to generate the skins and infill.
+    const LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
     SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
-    const int bottom_layer_count; //!< The number of layers of bottom skin
-    const int top_layer_count; //!< The number of layers of top skin
-    const int wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
-    const int skin_line_width; //!< The line width of the skin.
-    const int wall_line_width_0; //!< The line width of the outer wall
-    const int wall_line_width_x; //!< The line width of the inner most wall
-    const int innermost_wall_line_width; //!< width of the innermost wall lines
-    const int infill_skin_overlap; //!< overlap distance between infill and skin
-    const int skin_inset_count; //!< The number of perimeters to surround the skin
+    const size_t bottom_layer_count; //!< The number of layers of bottom skin
+    const size_t top_layer_count; //!< The number of layers of top skin
+    const size_t wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
+    const coord_t skin_line_width; //!< The line width of the skin.
+    const coord_t wall_line_width_0; //!< The line width of the outer wall
+    const coord_t wall_line_width_x; //!< The line width of the inner most wall
+    const coord_t innermost_wall_line_width; //!< width of the innermost wall lines
+    const coord_t infill_skin_overlap; //!< overlap distance between infill and skin
+    const size_t skin_inset_count; //!< The number of perimeters to surround the skin
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
@@ -166,13 +166,13 @@ protected:
     coord_t bottom_reference_wall_expansion; //!< The horizontal expansion to apply to the bottom reference wall in order to shrink the bottom skin
     coord_t top_skin_expand_distance; //!< The distance by which the top skins should be larger than the original top skins.
     coord_t bottom_skin_expand_distance; //!< The distance by which the bottom skins should be larger than the original bottom skins.
-    const int top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
-    const int bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
+    const size_t top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
+    const size_t bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:
-    static coord_t getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the skin line width, which might be different for the first layer.
-    static coord_t getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
-    static coord_t getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
-    static coord_t getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr, coord_t innermost_wall_line_width); //!< Compute the infill_skin_overlap
+    static coord_t getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
+    static coord_t getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
+    static coord_t getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
+    static coord_t getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr, const coord_t& innermost_wall_line_width); //!< Compute the infill_skin_overlap
 
     /*!
      * Helper function to get the walls of each part which might intersect with \p part_here

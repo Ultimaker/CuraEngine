@@ -95,7 +95,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            if (mesh.getSettingBoolean("support_tree_enable"))
+            if (mesh.settings.get<bool>("support_tree_enable"))
             {
                 use_tree_support = true;
                 break;
@@ -131,7 +131,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (!mesh.getSettingBoolean("support_tree_enable"))
+        if (!mesh.settings.get<bool>("support_tree_enable"))
         {
             continue;
         }
@@ -506,7 +506,7 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node>>& contact_nodes, const std::vector<Polygons>& collision_areas)
 {
-    const coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
+    const coord_t point_spread = mesh.settings.get<coord_t>("support_tree_branch_distance");
 
     //First generate grid points to cover the entire area of the print.
     AABB bounding_box = mesh.bounding_box.flatten();
@@ -533,11 +533,11 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
         }
     }
 
-    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
-    const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
-    const size_t support_roof_layers = mesh.getSettingBoolean("support_roof_enable") ? round_divide(mesh.getSettingInMicrons("support_roof_height"), mesh.getSettingInMicrons("layer_height")) : 0; //How many roof layers, if roof is enabled.
-    const coord_t half_overhang_distance = tan(mesh.getSettingInAngleRadians("support_angle")) * layer_height / 2;
+    const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")) : 0; //How many roof layers, if roof is enabled.
+    const coord_t half_overhang_distance = tan(mesh.settings.get<AngleRadians>("support_angle")) * layer_height / 2;
     for (size_t layer_nr = 1; (int)layer_nr < (int)mesh.overhang_areas.size() - (int)z_distance_top_layers; layer_nr++)
     {
         const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
@@ -600,8 +600,8 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-    const double angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
-    const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
+    const AngleRadians angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
+    const coord_t maximum_move_distance = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_avoidance) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)

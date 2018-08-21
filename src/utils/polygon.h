@@ -957,7 +957,7 @@ public:
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
      */
     void removeSmallAreas(double minAreaSize)
-    {               
+    {
         Polygons& thiss = *this;
         for(unsigned int i=0; i<size(); i++)
         {

@@ -13,14 +13,17 @@ namespace cura {
 class AreaSupport {
 public:
     /*!
-     * Move support mesh outlines from slicer data into the support storage
+     * \brief Move support mesh outlines from slicer data into the support
+     * storage.
      * 
-     * \param[out] storage Where to store the support areas
-     * \param mesh Where to get the settings from what kind of support mesh it is.
-     * \param slicer Where to get the outlines from
-     * \return Whether the mesh is used up in support and no normal mesh processing is needed
+     * \param[out] storage Where to store the support areas.
+     * \param mesh_settings Where to get the settings from what kind of support
+     * mesh it is.
+     * \param slicer Where to get the outlines from.
+     * \return Whether the mesh is used up in support and no normal mesh
+     * processing is needed.
      */
-    static bool handleSupportModifierMesh(SliceDataStorage& storage, const SettingsBaseVirtual& mesh, const Slicer* slicer);
+    static bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer);
 
     /*!
      * \brief Generate the overhang areas for all models.
@@ -284,12 +287,12 @@ private:
         Polygons& supportLayer_this,
         std::vector<Polygons>& towerRoofs,
         std::vector<std::vector<Polygons>>& overhang_points,
-        int layer_idx,
-        int towerRoofExpansionDistance,
-        int supportTowerDiameter,
-        int supportMinAreaSqrt,
-        int layer_count,
-        int z_layer_distance_tower
+        LayerIndex layer_idx,
+        coord_t towerRoofExpansionDistance,
+        coord_t supportTowerDiameter,
+        coord_t supportMinAreaSqrt,
+        size_t layer_count,
+        coord_t z_layer_distance_tower
     );
     
     /*!
@@ -300,8 +303,8 @@ private:
      */
     static void handleWallStruts(
         Polygons& supportLayer_this,
-        int supportMinAreaSqrt,
-        int supportTowerDiameter
+        coord_t supportMinAreaSqrt,
+        coord_t supportTowerDiameter
     );
 
     /*!

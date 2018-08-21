@@ -222,7 +222,7 @@ public:
 
 class SubDivCube; // forward declaration to prevent dependency loop
 
-class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
+class SliceMeshStorage
 {
 public:
     SliceDataStorage *p_slice_data_storage;
@@ -242,7 +242,7 @@ public:
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
-    SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count);
+    SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, const size_t slice_layer_count);
 
     virtual ~SliceMeshStorage();
 
@@ -250,14 +250,14 @@ public:
      * \param extruder_nr The extruder for which to check
      * \return whether a particular extruder is used by this mesh
      */
-    bool getExtruderIsUsed(int extruder_nr) const;
+    bool getExtruderIsUsed(const size_t extruder_nr) const;
 
     /*!
      * \param extruder_nr The extruder for which to check
      * \param layer_nr the layer for which to check
      * \return whether a particular extruder is used by this mesh on a particular layer
      */
-    bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
+    bool getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const;
 
     /*!
      * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,

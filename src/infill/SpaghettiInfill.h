@@ -50,7 +50,7 @@ protected:
         double total_volume_mm3; //!< The total volume of the pillar
         coord_t connection_inset_dist; //!< Horizontal component of the spaghetti_max_infill_angle: the distance insetted corresponding to the maximum angle which can be filled by spaghetti infill.
         coord_t bottom_z; //!< The z coordinate of the bottom of the first layer this pillar is present in
-        int last_layer_added = -1; //!< The last layer from which areas got added to this pillar
+        LayerIndex last_layer_added = -1; //!< The last layer from which areas got added to this pillar
 
         /*!
          * Basic constructor of a pillar from a single area, which is to be the top of the new pillar

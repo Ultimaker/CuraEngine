@@ -74,9 +74,10 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
-        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_overhang_mesh"))
+        if (!mesh.settings.get<bool>("infill_mesh") && !mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             empty = false;
+            break;
         }
     }
     if (empty)

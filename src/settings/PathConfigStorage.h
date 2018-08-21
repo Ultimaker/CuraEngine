@@ -6,8 +6,9 @@
 
 #include <vector>
 
-#include "../utils/IntPoint.h" // coord_t
 #include "../GCodePathConfig.h"
+#include "../settings/types/LayerIndex.h"
+#include "../utils/IntPoint.h" // coord_t
 
 namespace cura
 {
@@ -30,8 +31,8 @@ private:
     const ExtruderTrain& support_roof_train;
     const ExtruderTrain& support_bottom_train;
 
-    const std::vector<double> line_width_factor_per_extruder;
-    static std::vector<double> getLineWidthFactorPerExtruder(const SliceDataStorage& storage, int layer_nr);
+    const std::vector<Ratio> line_width_factor_per_extruder;
+    static std::vector<Ratio> getLineWidthFactorPerExtruder(const SliceDataStorage& storage, const LayerIndex& layer_nr);
 public:
     class MeshPathConfigs
     {
@@ -49,7 +50,7 @@ public:
         GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;
 
-        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, int layer_nr, const std::vector<double>& line_width_factor_per_extruder);
+        MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex& layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder);
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
     };
 
@@ -70,10 +71,10 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness);
+    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness);
 
 private:
-    void handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count);
+    void handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);
 };
 
 }; // namespace cura

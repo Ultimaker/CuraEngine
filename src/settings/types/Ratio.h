@@ -17,12 +17,12 @@ struct Ratio
     /*
      * \brief Default constructor setting the ratio to 1.
      */
-    Ratio() : value(1.0) {};
+    constexpr Ratio() : value(1.0) {};
 
     /*
      * \brief Casts a double to a Ratio instance.
      */
-    Ratio(double value) : value(value / 100) {};
+    constexpr Ratio(double value) : value(value / 100) {};
 
     /*
      * \brief Casts the Ratio instance to a double.
@@ -37,6 +37,11 @@ struct Ratio
      */
     double value = 0;
 };
+
+constexpr Ratio operator "" _r(const long double ratio)
+{
+    return Ratio(ratio);
+}
 
 }
 

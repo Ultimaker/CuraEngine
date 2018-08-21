@@ -38,10 +38,10 @@ Point3 MeshGroup::min() const
     {
         return Point3(0, 0, 0);
     }
-    Point3 ret(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+    Point3 ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")) //Don't count pieces that are not printed.
         {
             continue;
         }
@@ -62,7 +62,7 @@ Point3 MeshGroup::max() const
     Point3 ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")) //Don't count pieces that are not printed.
         {
             continue;
         }
@@ -95,8 +95,8 @@ void MeshGroup::finalize()
     // If a mesh position was given, put the mesh at this position in 3D space. 
     for(Mesh& mesh : meshes)
     {
-        Point3 mesh_offset(mesh.getSettingInMicrons("mesh_position_x"), mesh.getSettingInMicrons("mesh_position_y"), mesh.getSettingInMicrons("mesh_position_z"));
-        if (mesh.getSettingBoolean("center_object"))
+        Point3 mesh_offset(mesh.settings.get<coord_t>("mesh_position_x"), mesh.settings.get<coord_t>("mesh_position_y"), mesh.settings.get<coord_t>("mesh_position_z"));
+        if (mesh.settings.get<bool>("center_object"))
         {
             Point3 object_min = mesh.min();
             Point3 object_max = mesh.max();

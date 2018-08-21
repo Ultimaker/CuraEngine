@@ -30,7 +30,7 @@ public:
     mesh_config(mesh_config),
     part(part),
     layer_nr(layer_nr),
-    z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), z_seam_pos, mesh.getSettingAsZSeamCornerPrefType("z_seam_corner")),
+    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), z_seam_pos, mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
     added_something(false),
     wall_overlapper_0(nullptr),
     wall_overlapper_x(nullptr)
@@ -42,7 +42,7 @@ private:
     const SliceDataStorage& storage;
     LayerPlan& gcode_layer;
     const SliceMeshStorage& mesh;
-    const int extruder_nr;
+    const size_t extruder_nr;
     const PathConfigStorage::MeshPathConfigs& mesh_config;
     const SliceLayerPart& part;
     const unsigned int layer_nr;

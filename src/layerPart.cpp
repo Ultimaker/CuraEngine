@@ -58,7 +58,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers,
     for (unsigned int layer_nr = total_layers - 1; static_cast<int>(layer_nr) != -1; layer_nr--)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
-        if (layer_storage.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.openPolyLines.size() > 0) )
+        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.openPolyLines.size() > 0) )
         {
             mesh.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             break;

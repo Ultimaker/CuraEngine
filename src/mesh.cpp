@@ -17,13 +17,6 @@ static inline uint32_t pointHash(const Point3& p)
     return ((p.x + vertex_meld_distance/2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance/2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance/2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(SettingsBaseVirtual* parent)
-: SettingsBase(parent)
-, has_disconnected_faces(false)
-, has_overlapping_faces(false)
-{
-}
-
 Mesh::Mesh(Settings& parent)
 : settings(parent)
 , has_disconnected_faces(false)
@@ -31,7 +24,8 @@ Mesh::Mesh(Settings& parent)
 {
 }
 
-Mesh::Mesh() : SettingsBase(nullptr)
+Mesh::Mesh()
+: settings()
 , has_disconnected_faces(false)
 , has_overlapping_faces(false)
 {

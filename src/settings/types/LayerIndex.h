@@ -81,11 +81,21 @@ struct LayerIndex
         value++;
         return *this;
     }
-
     LayerIndex operator ++(int) //Postfix.
     {
-        LayerIndex original_value(*this);
+        LayerIndex original_value(value);
         operator++(); //Increment myself.
+        return original_value;
+    }
+    LayerIndex operator --()
+    {
+        value--;
+        return *this;
+    }
+    LayerIndex operator --(int) //Postfix.
+    {
+        LayerIndex original_value(value);
+        operator--(); //Decrement myself.
         return original_value;
     }
 

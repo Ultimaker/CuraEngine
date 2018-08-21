@@ -6,9 +6,10 @@
 #include <string.h>
 #include <algorithm>
 
-#include "utils/math.h"
 #include "timeEstimate.h"
+#include "utils/math.h"
 #include "settings/Settings.h"
+#include "settings/types/Ratio.h"
 
 namespace cura
 {
@@ -66,9 +67,9 @@ void TimeEstimateCalculator::reset()
 
 // Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the 
 // acceleration within the allotted distance.
-static inline double max_allowable_speed(double acceleration, double target_velocity, double distance)
+static inline Velocity max_allowable_speed(Velocity acceleration, Velocity target_velocity, double distance)
 {
-  return sqrt(target_velocity*target_velocity-2*acceleration*distance);
+  return sqrt(target_velocity * target_velocity - 2 * acceleration * distance);
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
@@ -155,14 +156,14 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     
     Position current_feedrate;
     Position current_abs_feedrate;
-    double feedrate_factor = 1.0;
+    Ratio feedrate_factor = 1.0;
     for(unsigned int n = 0; n < NUM_AXIS; n++)
     {
         current_feedrate[n] = (block.delta[n] * feedrate) / block.distance;
         current_abs_feedrate[n] = fabs(current_feedrate[n]);
         if (current_abs_feedrate[n] > max_feedrate[n])
         {
-            feedrate_factor = std::min(feedrate_factor, max_feedrate[n] / current_abs_feedrate[n]);
+            feedrate_factor = std::min(feedrate_factor, Ratio(max_feedrate[n] / current_abs_feedrate[n]));
         }
     }
     //TODO: XY_FREQUENCY_LIMIT
@@ -184,34 +185,41 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
             block.acceleration = max_acceleration[n];
     }
     
-    double vmax_junction = max_xy_jerk/2; 
-    double vmax_junction_factor = 1.0; 
-    if(current_abs_feedrate[Z_AXIS] > max_z_jerk/2)
-        vmax_junction = std::min(vmax_junction, max_z_jerk/2);
-    if(current_abs_feedrate[E_AXIS] > max_e_jerk/2)
-        vmax_junction = std::min(vmax_junction, max_e_jerk/2);
+    Velocity vmax_junction = max_xy_jerk / 2; 
+    Ratio vmax_junction_factor = 1.0; 
+    if(current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
+    {
+        vmax_junction = std::min(vmax_junction, max_z_jerk / 2);
+    }
+    if(current_abs_feedrate[E_AXIS] > max_e_jerk / 2)
+    {
+        vmax_junction = std::min(vmax_junction, max_e_jerk / 2);
+    }
     vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
-    double safe_speed = vmax_junction;
+    Velocity safe_speed = vmax_junction;
     
-    if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
+    if((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
     {
         double xy_jerk = sqrt(square(current_feedrate[X_AXIS]-previous_feedrate[X_AXIS])+square(current_feedrate[Y_AXIS]-previous_feedrate[Y_AXIS]));
         vmax_junction = block.nominal_feedrate;
-        if (xy_jerk > max_xy_jerk) {
-            vmax_junction_factor = (max_xy_jerk/xy_jerk);
+        if(xy_jerk > max_xy_jerk)
+        {
+            vmax_junction_factor = Ratio(max_xy_jerk / xy_jerk);
         } 
-        if(fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk) {
-            vmax_junction_factor = std::min(vmax_junction_factor, (max_z_jerk/fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
+        if(fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk)
+        {
+            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
         } 
-        if(fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk) {
-            vmax_junction_factor = std::min(vmax_junction_factor, (max_e_jerk/fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
+        if(fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk)
+        {
+            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
         } 
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }
     
     block.max_entry_speed = vmax_junction;
 
-    double v_allowable = max_allowable_speed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
+    Velocity v_allowable = max_allowable_speed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
     block.entry_speed = std::min(vmax_junction, v_allowable);
     block.nominal_length_flag = block.nominal_feedrate <= v_allowable;
     block.recalculate_flag = true; // Always calculate trapezoid for new block

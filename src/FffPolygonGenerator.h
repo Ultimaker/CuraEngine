@@ -157,7 +157,7 @@ private:
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processInsets(const SliceDataStorage& storage, SliceMeshStorage& mesh, unsigned int layer_nr);
+    void processInsets(const SliceDataStorage& storage, SliceMeshStorage& mesh, size_t layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.

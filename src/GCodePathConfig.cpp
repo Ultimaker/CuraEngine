@@ -22,7 +22,7 @@ GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
 
 
 
-GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int layer_height, double flow, GCodePathConfig::SpeedDerivatives speed_derivatives, bool is_bridge_path, double fan_speed)
+GCodePathConfig::GCodePathConfig(const PrintFeatureType& type, const coord_t line_width, const coord_t layer_height, const Ratio& flow, const GCodePathConfig::SpeedDerivatives speed_derivatives, const bool is_bridge_path, const double fan_speed)
 : type(type)
 , speed_derivatives(speed_derivatives)
 , line_width(line_width)
@@ -34,7 +34,7 @@ GCodePathConfig::GCodePathConfig(PrintFeatureType type, int line_width, int laye
 {
 }
 
-void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer_nr) 
+void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer_nr) 
 {
     double max_speed_layer = max_speed_layer_nr;
     speed_derivatives.speed = (speed_derivatives.speed * layer_nr) / max_speed_layer + (first_layer_config.speed * (max_speed_layer - layer_nr) / max_speed_layer);

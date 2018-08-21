@@ -158,10 +158,10 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
         for (const SliceMeshStorage& mesh : storage.meshes)
         {
             const SliceLayer& layer = mesh.layers[layer_nr];
-            if (mesh.getSettingBoolean("infill_mesh")) {
+            if (mesh.settings.get<bool>("infill_mesh")) {
                 continue;
             }
-            if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
+            if (mesh.settings.get<CombingMode>("retraction_combing") == CombingMode::NO_SKIN)
             {
                 for (const SliceLayerPart& part : layer.parts)
                 {
@@ -904,7 +904,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             // determine how much the skin/infill lines overlap the combing boundary
             for (const SliceMeshStorage& mesh : storage.meshes)
             {
-                int overlap = std::max(mesh.getSettingInMicrons("skin_overlap_mm"), mesh.getSettingInMicrons("infill_overlap_mm"));
+                const coord_t overlap = std::max(mesh.settings.get<coord_t>("skin_overlap_mm"), mesh.settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
                 {
                     dist = overlap;
