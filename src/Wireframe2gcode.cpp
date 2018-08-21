@@ -594,9 +594,9 @@ void Wireframe2gcode::processStartingCode()
             }
             if (scene_settings.get<bool>("material_print_temp_wait"))
             {
-                for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+                for(size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
                 {
-                    double print_temp = scene_settings.get<Temperature>("material_print_temperature");
+                    const Temperature print_temp = scene_settings.get<Temperature>("material_print_temperature");
                     gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
                 }
             }
