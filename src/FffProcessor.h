@@ -24,9 +24,7 @@ private:
     /*!
      * The FffProcessor used for the (current) slicing (The instance of this singleton)
      */
-    static FffProcessor instance; 
-
-    FffProcessor();
+    static FffProcessor instance;
 
 public:
     /*!

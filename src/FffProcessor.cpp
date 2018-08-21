@@ -10,11 +10,6 @@ namespace cura
 
 FffProcessor FffProcessor::instance; // definition must be in cpp
 
-FffProcessor::FffProcessor()
-: polygon_generator(this)
-{
-}
-
 std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup)
 {
     std::stringstream sstream;

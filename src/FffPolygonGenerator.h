@@ -27,17 +27,9 @@ namespace cura
  * 
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public SettingsMessenger, NoCopy
+class FffPolygonGenerator : public NoCopy
 {
 public:
-    /*!
-     * Basic constructor
-     */
-    FffPolygonGenerator(SettingsBase* settings_)
-    : SettingsMessenger(settings_)
-    {
-    }
-
     /*!
      * Slice the \p object, process the outline information into inset perimeter polygons, support area polygons, etc. 
      * 
@@ -59,7 +51,7 @@ private:
      * of the draft shield if the limit is FULL.
      * \return The actual height of the draft shield.
      */
-    unsigned int getDraftShieldLayerCount(unsigned int total_layers) const;
+    size_t getDraftShieldLayerCount(const size_t total_layers) const;
 
     /*!
      * Slice the \p object and store the outlines in the \p storage.
@@ -88,7 +80,7 @@ private:
      * \param mesh_order The order in which the meshes are processed (used for infill meshes)
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
-    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
+    void processBasicWallsSkinInfill(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
 
     /*!
      * Generate areas for the gaps between outer wall and the outline where the first wall doesn't fit.
@@ -113,7 +105,7 @@ private:
      * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed
      */
-    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order);
+    void processInfillMesh(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order);
     
     /*!
      * Process features which are derived from the basic walls, skin, and infill:
