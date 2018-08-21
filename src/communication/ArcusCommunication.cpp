@@ -629,6 +629,7 @@ void ArcusCommunication::sliceNext()
     logDebug("Received a Slice message.\n");
 
     Slice slice(slice_message->object_lists().size());
+    Application::getInstance().current_slice = &slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
@@ -657,7 +658,6 @@ void ArcusCommunication::sliceNext()
 
     if (!private_data->objects_to_slice.empty())
     {
-        Application::getInstance().current_slice = &slice;
         slice.scene.compute();
         private_data->objects_to_slice.clear();
         FffProcessor::getInstance()->finalize();
