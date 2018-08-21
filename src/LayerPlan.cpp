@@ -1090,7 +1090,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
-void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
+void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
 {
     const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
 
@@ -1129,15 +1129,20 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         return;
     }
 
-    // if this is the last layer, avoid an abrupt end by printing the same outline again but this time taper the spiral by reducing
+    // if this is the bottom layer, avoid creating a big elephants foot by starting with a reduced flow and increasing the flow
+    // so that by the time the end of the first spiral is complete the flow is 100% - note that immediately before the spiral
+    // is output, the extruder will be printing a normal wall line and so will be fully pressurised so that will tend to keep the
+    // flow going
+
+    // if this is the top layer, avoid an abrupt end by printing the same outline again but this time taper the spiral by reducing
     // the flow whilst keeping the same height - once the flow is down to a minimum allowed value, coast a little further
 
-    const bool is_last_layer = (size_t)layer_nr == (storage.spiralize_wall_outlines.capacity() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr;
+    const double min_bottom_layer_flow = 0.25; // start the bottom spiral at this flow rate
+    const double min_top_layer_flow = 0.25; // lowest allowed flow while tapering the last spiral
 
-    const double min_flow = 0.5; // lowest allowed flow while tapering the spiral
-    double speed_factor = 1;
+    double speed_factor = 1; // may be reduced when printing the top layer so as to avoid a jump in extrusion rate as the layer starts
 
-    if (is_last_layer)
+    if (is_top_layer)
     {
         // HACK ALERT - the last layer is approx 50% longer than the previous layer so it should take longer to print but the
         // normal slow down for quick layers mechanism can kick in and speed this layer up (because it is longer) but we prefer
@@ -1151,7 +1156,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         if (normal_layer_time < min_time)
         {
             // yes, so the extended version will not get slowed down so much and we want to compensate for that
-            const double extended_layer_time = (total_length * (2 - min_flow)) / config.getSpeed();
+            const double extended_layer_time = (total_length * (2 - min_top_layer_flow)) / config.getSpeed();
 
             // modify the speed factor to cancel out the speed increase that would normally happen due to the longer layer time
             speed_factor = normal_layer_time / std::min(extended_layer_time, min_time);
@@ -1166,33 +1171,36 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
     {
         // p is a point from the current wall polygon
         const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        wall_length += vSizeMM(p - p0);
+        p0 = p;
+
+        const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((1 - min_bottom_layer_flow) * wall_length / total_length)) : 1.0;
+
         if (smooth_contours)
         {
-            wall_length += vSizeMM(p - p0);
-            p0 = p;
-
             // now find the point on the last wall that is closest to p
             ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+
             // if we found a point and it's not further away than max_dist2, use it
             if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
-                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true, speed_factor);
+                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, true, speed_factor);
             }
             else
             {
                 // no point in the last wall was found close enough to the current wall point so don't interpolate
-                addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true, speed_factor);
+                addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
             }
         }
         else
         {
             // no smoothing, use point verbatim
-            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true, speed_factor);
+            addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
         }
     }
 
-    if (is_last_layer)
+    if (is_top_layer)
     {
         // add the tapering spiral
         const double min_spiral_coast_dist = 10; // mm
@@ -1206,7 +1214,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
             p0 = p;
             // flow is reduced in step with the distance travelled so the wall width should remain roughly constant
             double flow = 1 - (wall_length / total_length);
-            if (flow < min_flow)
+            if (flow < min_top_layer_flow)
             {
                 flow = 0;
                 distance_coasted += seg_length;
