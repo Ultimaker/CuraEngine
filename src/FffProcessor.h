@@ -18,7 +18,7 @@
 namespace cura {
 
 //FusedFilamentFabrication processor. Singleton class
-class FffProcessor : public SettingsBase , NoCopy
+class FffProcessor : public NoCopy
 {
 private:
     /*!
