@@ -473,13 +473,13 @@ void LayerPlanBuffer::insertTempCommands()
     // insert commands for all extruder plans on this layer
     Scene& scene = Application::getInstance().current_slice->scene;
     LayerPlan& layer_plan = *buffer.back();
-    for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
+    for (size_t extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
-        unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
+        const size_t overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
         size_t extruder = extruder_plan.extruder;
-        double time = extruder_plan.estimates.getTotalUnretractedTime();
-        double avg_flow;
+        Duration time = extruder_plan.estimates.getTotalUnretractedTime();
+        Ratio avg_flow;
         if (time > 0.0)
         {
             avg_flow = extruder_plan.estimates.getMaterial() / time;
@@ -514,8 +514,8 @@ void LayerPlanBuffer::insertTempCommands()
 
         if (buffer.size() == 1 && extruder_plan_idx == 0)
         { // the very first extruder plan of the current meshgroup
-            int extruder = extruder_plan.extruder;
-            for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
+            size_t extruder = extruder_plan.extruder;
+            for (size_t extruder_idx = 0; extruder_idx < scene.extruders.size(); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
                 if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
                 {

@@ -29,7 +29,7 @@ namespace cura
  * \image latex assets/precool.png "Temperature Regulation" width=10cm
  * 
  */
-class LayerPlanBuffer : SettingsMessenger
+class LayerPlanBuffer
 {
     GCodeExport& gcode;
     
@@ -50,9 +50,8 @@ class LayerPlanBuffer : SettingsMessenger
      */
     std::list<LayerPlan*> buffer;
 public:
-    LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
-    : SettingsMessenger(settings)
-    , gcode(gcode)
+    LayerPlanBuffer(GCodeExport& gcode)
+    : gcode(gcode)
     , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
 
