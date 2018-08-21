@@ -9,6 +9,7 @@
 
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
+#include <Arcus/Socket.h>
 
 namespace cura
 {
@@ -28,7 +29,7 @@ public:
      * \param ip The IP address to connect the socket to.
      * \param port The port number to connect the socket to.
      */
-    ArcusCommunication(const std::string& ip, const uint16_t port);
+    ArcusCommunication(const std::string& ip, const uint16_t port, Arcus::Socket* socket);
 
     /*
      * \brief Closes the connection.

@@ -8,6 +8,7 @@
 
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
+#include <Arcus/Socket.h>
 #include <Arcus/Types.h>
 
 #include "../src/communication/ArcusCommunication.h"
@@ -40,11 +41,25 @@ class ArcusCommunicationTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    class MockSocketListener //: public Arcus::Socket
+    class MockSocket : public Arcus::Socket
     {
     public:
-        void sendMessage(Arcus::MessagePtr message);
-        MockSocketListener();
+        MockSocket();
+        //virtual ~MockSocket();
+        virtual Arcus::SocketState::SocketState getState() const;
+//        virtual Arcus::Error getLastError() const;
+        virtual void clearError();
+        virtual bool registerMessageType(const google::protobuf::Message* message_type);
+        virtual bool registerAllMessageTypes(const std::string& file_name);
+        virtual void addListener(Arcus::SocketListener* listener);
+        virtual void removeListener(Arcus::SocketListener* listener);
+        virtual void connect(const std::string& address, int port);
+        virtual void listen(const std::string& address, int port);
+        virtual void close();
+        virtual void reset();
+        virtual void sendMessage(Arcus::MessagePtr message);
+//        virtual Arcus::MessagePtr takeNextMessage();
+//        virtual Arcus::MessagePtr createMessage(const std::string& type_name);
     };
 
 
@@ -89,7 +104,7 @@ public:
 private:
     std::string ip;
     uint16_t port;
-    MockSocketListener* socket;
+    MockSocket* socket;
 
 };
 

@@ -80,7 +80,7 @@ void Application::connect()
         }
     }
 
-    communication = new ArcusCommunication(ip, port);
+    communication = new ArcusCommunication(ip, port, new Arcus::Socket());
 }
 #endif //ARCUS
 

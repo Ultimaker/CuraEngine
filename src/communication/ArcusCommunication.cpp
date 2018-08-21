@@ -431,11 +431,11 @@ private:
     }
 };
 
-ArcusCommunication::ArcusCommunication(const std::string& ip, const uint16_t port)
+ArcusCommunication::ArcusCommunication(const std::string& ip, const uint16_t port, Arcus::Socket* socket)
     : private_data(new Private)
     , path_compiler(new PathCompiler(*private_data))
 {
-    private_data->socket = new Arcus::Socket();
+    private_data->socket = socket;  //new Arcus::Socket();
     private_data->socket->addListener(new Listener);
 
     private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
