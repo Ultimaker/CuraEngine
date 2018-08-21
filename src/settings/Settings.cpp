@@ -597,11 +597,6 @@ SettingsBase::SettingsBase(SettingsBaseVirtual* parent)
 {
 }
 
-SettingsMessenger::SettingsMessenger(SettingsBaseVirtual* parent)
-: SettingsBaseVirtual(parent)
-{
-}
-
 void SettingsBase::setSetting(std::string key, std::string value)
 {
     setting_values[key] = value;
@@ -634,22 +629,6 @@ const std::string& SettingsBase::getSettingString(const std::string& key) const
     std::exit(-1);
     static std::string empty_string; // use static object rather than "" to avoid compilation warning
     return empty_string;
-}
-
-void SettingsMessenger::setSetting(std::string key, std::string value)
-{
-    parent->setSetting(key, value);
-}
-
-void SettingsMessenger::setSettingInheritBase(std::string key, const SettingsBaseVirtual& new_parent)
-{
-    parent->setSettingInheritBase(key, new_parent);
-}
-
-
-const std::string& SettingsMessenger::getSettingString(const std::string& key) const
-{
-    return parent->getSettingString(key);
 }
 
 }//namespace cura

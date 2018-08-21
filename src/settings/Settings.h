@@ -156,22 +156,6 @@ public:
     }
 };
 
-/*!
- * Base class for an object which passes on settings from another object.
- * An object which is a subclass of SettingsMessenger can be handled as a SettingsBase;
- * the difference is that such an object cannot hold any settings, but can only pass on the settings from its parent.
- */
-class SettingsMessenger : public SettingsBaseVirtual
-{
-public:
-    SettingsMessenger(SettingsBaseVirtual* parent); //!< construct a SettingsMessenger with a parent settings object
-    
-    void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
-    void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
-    const std::string& getSettingString(const std::string& key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
-};
-
-
 }//namespace cura
 #endif//SETTINGS_SETTINGS_H
 
