@@ -66,11 +66,11 @@ private:
      * For each raft/filler layer, the extruders to be used in that layer in the order in which they are going to be used.
      * The first number is the first raft layer. Indexing is shifted compared to normal negative layer numbers for raft/filler layers.
      */
-    std::vector<std::vector<unsigned int>> extruder_order_per_layer_negative_layers;
+    std::vector<std::vector<size_t>> extruder_order_per_layer_negative_layers;
 
-    std::vector<std::vector<unsigned int>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    std::vector<std::vector<size_t>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
 
-    std::vector<std::vector<unsigned int>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
+    std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
     /*!
      * For each extruder on which layer the prime will be planned,
@@ -80,7 +80,7 @@ private:
      * the layer numbers are all zero (or less in case of raft)
      * or they are the first layer at which the extruder is needed
      */
-    int extruder_prime_layer_nr[MAX_EXTRUDERS];
+    LayerIndex extruder_prime_layer_nr[MAX_EXTRUDERS];
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
@@ -301,7 +301,7 @@ private:
      * \param current_extruder The current extruder with which we last printed
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<unsigned int> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const;
+    std::vector<size_t> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
@@ -312,7 +312,7 @@ private:
      * \param extruder_nr The extruder for which to determine the order
      * \return A vector of mesh indices ordered on print order for that extruder.
      */
-    std::vector<unsigned int> calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const;
+    std::vector<size_t> calculateMeshOrder(const SliceDataStorage& storage, const size_t extruder_nr) const;
 
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer in mesh surface mode.

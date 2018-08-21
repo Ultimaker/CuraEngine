@@ -228,12 +228,12 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
         storage.spiralize_seam_vertex_indices[layer_nr] = 0;
 
         // iterate through extruders until we find a mesh that has a part with insets
-        const std::vector<unsigned int>& extruder_order = extruder_order_per_layer[layer_nr];
+        const std::vector<size_t>& extruder_order = extruder_order_per_layer[layer_nr];
         for (unsigned int extruder_idx = 0; !done_this_layer && extruder_idx < extruder_order.size(); ++extruder_idx)
         {
             const unsigned int extruder_nr = extruder_order[extruder_idx];
             // iterate through this extruder's meshes until we find a part with insets
-            const std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
+            const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
             for (unsigned int mesh_idx : mesh_order)
             {
                 SliceMeshStorage& mesh = storage.meshes[mesh_idx];
@@ -601,7 +601,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
         // and then switch back to the original extruder.
-        std::vector<unsigned int> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
+        std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
         for (unsigned int to_be_primed_extruder_nr : extruder_order)
         {
             setExtruder_addPrime(storage, gcode_layer, to_be_primed_extruder_nr);
@@ -798,8 +798,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
-    assert(static_cast<int>(extruder_order_per_layer_negative_layers.size()) + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
-    const std::vector<unsigned int>& extruder_order =
+    assert(static_cast<LayerIndex>(extruder_order_per_layer_negative_layers.size()) + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
+    const std::vector<size_t>& extruder_order =
         (layer_nr < 0)?
         extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr]
         :
@@ -837,14 +837,14 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
         if (layer_nr >= 0)
         {
-            const std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
-            for (unsigned int mesh_idx : mesh_order)
+            const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
+            for (size_t mesh_idx : mesh_order)
             {
                 const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
                 const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
-                    assert(extruder_nr == mesh.settings.get<size_t>("wall_0_extruder_nr") && "mesh surface mode should always only be printed with the outer wall extruder!");
+                    assert(extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && "mesh surface mode should always only be printed with the outer wall extruder!");
                     addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer);
                 }
                 else
@@ -1008,20 +1008,20 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     {
         last_extruder = gcode.getExtruderNr();
     }
-    for (int layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<int>(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
-        std::vector<std::vector<unsigned int>>& extruder_order_per_layer_here = (layer_nr < 0)? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
+        std::vector<std::vector<size_t>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
         extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
         last_extruder = extruder_order_per_layer_here.back().back();
         extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
     }
 }
 
-std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const unsigned int start_extruder, const int layer_nr) const
+std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const
 {
     size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     assert(static_cast<int>(extruder_count) > 0);
-    std::vector<unsigned int> ret;
+    std::vector<size_t> ret;
     ret.push_back(start_extruder);
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
 
@@ -1036,7 +1036,7 @@ std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStarti
         || (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
         // check if we need prime blob on the first layer
-        for (unsigned int used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
+        for (size_t used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
         {
             if (this->getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
             {
@@ -1045,7 +1045,7 @@ std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStarti
         }
     }
 
-    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if (extruder_nr == start_extruder)
         { // skip the current extruder, it's the one we started out planning
@@ -1061,9 +1061,9 @@ std::vector<unsigned int> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStarti
     return ret;
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const
+std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, const size_t extruder_nr) const
 {
-    OrderOptimizer<unsigned int> mesh_idx_order_optimizer;
+    OrderOptimizer<size_t> mesh_idx_order_optimizer;
 
     std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice->scene.current_mesh_group;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
@@ -1078,14 +1078,14 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
     }
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     const Point layer_start_position(train.settings.get<coord_t>("layer_start_x"), train.settings.get<coord_t>("layer_start_y"));
-    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
+    std::list<size_t> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
 
-    std::vector<unsigned int> ret;
+    std::vector<size_t> ret;
     ret.reserve(mesh_indices_order.size());
 
-    for(unsigned i: mesh_indices_order)
+    for(size_t i: mesh_indices_order)
     {
-        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[i].second;
+        const size_t mesh_idx = mesh_idx_order_optimizer.items[i].second;
         ret.push_back(mesh_idx);
     }
     return ret;
