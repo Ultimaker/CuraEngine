@@ -115,46 +115,6 @@ std::string toString(EGCodeFlavor flavor);
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.
 #define MAX_INFILL_COMBINE 8
-    
-class SettingsBase;
-
-class SettingRegistry;
-/*!
- * Base class for every object that can hold settings.
- * The SettingBase object can hold multiple key-value pairs that define settings.
- * The settings that are set on a SettingBase are checked against the SettingRegistry to ensure keys are valid.
- * Different conversion functions are available for settings to increase code clarity and in the future make
- * unit conversions possible.
- */
-class SettingsBase : public SettingsBaseVirtual
-{
-    friend class SettingRegistry;
-private:
-    std::unordered_map<std::string, std::string> setting_values;
-
-    /*!
-     * Mapping for each setting which must inherit from a different setting base than \ref SettingsBaseVirtual::parent
-     */
-    std::unordered_map<std::string, const SettingsBaseVirtual*> setting_inherit_base;
-public:
-    SettingsBase(); //!< SettingsBase without a parent settings object
-    SettingsBase(SettingsBaseVirtual* parent); //!< construct a SettingsBase with a parent settings object
-
-    /*!
-     * Set a setting to a value.
-     * \param key the setting
-     * \param value the value
-     */
-    void setSetting(std::string key, std::string value);
-    void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
-    const std::string& getSettingString(const std::string& key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
-
-    void debugOutputAllLocalSettings()  const
-    {
-        for (auto pair : setting_values)
-            std::cerr << pair.first << " : " << pair.second << std::endl;
-    }
-};
 
 }//namespace cura
 #endif//SETTINGS_SETTINGS_H

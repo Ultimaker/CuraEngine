@@ -587,49 +587,5 @@ std::string toString(EGCodeFlavor flavor)
     }
 }
 
-SettingsBase::SettingsBase()
-: SettingsBaseVirtual(nullptr)
-{
-}
-
-SettingsBase::SettingsBase(SettingsBaseVirtual* parent)
-: SettingsBaseVirtual(parent)
-{
-}
-
-void SettingsBase::setSetting(std::string key, std::string value)
-{
-    setting_values[key] = value;
-}
-
-void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent)
-{
-    setting_inherit_base.emplace(key, &parent);
-}
-
-
-const std::string& SettingsBase::getSettingString(const std::string& key) const
-{
-    auto value_it = setting_values.find(key);
-    if (value_it != setting_values.end())
-    {
-        return value_it->second;
-    }
-    auto inherit_override_it = setting_inherit_base.find(key);
-    if (inherit_override_it != setting_inherit_base.end())
-    {
-        return inherit_override_it->second->getSettingString(key);
-    }
-    if (parent)
-    {
-        return parent->getSettingString(key);
-    }
-
-    cura::logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
-    std::exit(-1);
-    static std::string empty_string; // use static object rather than "" to avoid compilation warning
-    return empty_string;
-}
-
 }//namespace cura
 
