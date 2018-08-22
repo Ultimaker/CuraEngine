@@ -33,7 +33,7 @@ public:
         , object_count(0)
         , last_sent_progress(-1)
         , slice_count(0)
-    { }
+    {}
 
     /*
      * Get the optimised layer data for a specific layer.
@@ -431,11 +431,21 @@ private:
     }
 };
 
-ArcusCommunication::ArcusCommunication(const std::string& ip, const uint16_t port)
+ArcusCommunication::ArcusCommunication()
     : private_data(new Private)
     , path_compiler(new PathCompiler(*private_data))
 {
-    private_data->socket = new Arcus::Socket();
+}
+
+ArcusCommunication::~ArcusCommunication()
+{
+    log("Closing connection.\n");
+    private_data->socket->close();
+}
+
+void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
+{
+    private_data->socket = new Arcus::Socket;
     private_data->socket->addListener(new Listener);
 
     private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
@@ -456,12 +466,6 @@ ArcusCommunication::ArcusCommunication(const std::string& ip, const uint16_t por
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); //Wait until we're connected. Check every 100ms.
     }
     log("Connected to %s:%i\n", ip.c_str(), port);
-}
-
-ArcusCommunication::~ArcusCommunication()
-{
-    log("Closing connection.\n");
-    private_data->socket->close();
 }
 
 void ArcusCommunication::beginGCode()

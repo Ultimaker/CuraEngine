@@ -9,6 +9,7 @@
 
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
+#include <Arcus/Socket.h>
 
 namespace cura
 {
@@ -20,6 +21,7 @@ class Slice;
  */
 class ArcusCommunication : public Communication
 {
+    friend class ArcusCommunicationTest;  // For unit tests
 public:
     /*
      * \brief Construct a new communicator that listens to libArcus messages via
@@ -27,12 +29,17 @@ public:
      * \param ip The IP address to connect the socket to.
      * \param port The port number to connect the socket to.
      */
-    ArcusCommunication(const std::string& ip, const uint16_t port);
+    ArcusCommunication();
 
     /*
      * \brief Closes the connection.
      */
     ~ArcusCommunication();
+
+    /*
+     * \brief Initialize and connect the socket
+     */
+    void connect(const std::string& ip, const uint16_t port);
 
     /*
      * \brief Indicate that we're beginning to send g-code.
