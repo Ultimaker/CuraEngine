@@ -19,7 +19,6 @@ namespace cura
 class ArcusCommunicationTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(ArcusCommunicationTest);
-    CPPUNIT_TEST(smokeTest);
     CPPUNIT_TEST(beginGCodeTest);
     CPPUNIT_TEST(flushGCodeTest);
     CPPUNIT_TEST(isSequentialTest);
@@ -60,6 +59,11 @@ public:
         virtual void sendMessage(Arcus::MessagePtr message);
 //        virtual Arcus::MessagePtr takeNextMessage();
 //        virtual Arcus::MessagePtr createMessage(const std::string& type_name);
+        void setName(std::string new_name);
+
+        std::vector<Arcus::MessagePtr> sent_messages;
+    private:
+        std::string name;
     };
 
 
@@ -80,9 +84,8 @@ public:
     void tearDown();
 
     /*!
-     * \brief Smoke test
+     * \brief Tests for every function
      */
-    void smokeTest();
     void beginGCodeTest();
     void flushGCodeTest();
     void isSequentialTest();

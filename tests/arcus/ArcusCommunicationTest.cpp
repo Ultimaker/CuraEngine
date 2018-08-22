@@ -10,8 +10,9 @@ namespace cura
     CPPUNIT_TEST_SUITE_REGISTRATION(ArcusCommunicationTest);
 
     ArcusCommunicationTest::MockSocket::MockSocket()
+    : sent_messages(std::vector<Arcus::MessagePtr>())
+    , name("")
     {
-
     }
 
 //    ArcusCommunicationTest::MockSocket::~MockSocket()
@@ -40,6 +41,7 @@ namespace cura
     bool ArcusCommunicationTest::MockSocket::registerMessageType(const google::protobuf::Message* message_type)
     {
         std::cout << "registerMessageType" << message_type << "\n";
+        return true;
     }
 
     bool ArcusCommunicationTest::MockSocket::registerAllMessageTypes(const std::string& file_name)
@@ -80,7 +82,13 @@ namespace cura
 
     void ArcusCommunicationTest::MockSocket::sendMessage(Arcus::MessagePtr message)
     {
-        std::cout << "sendMessage: " << message << "\n";
+        sent_messages.emplace_back(message);
+        std::cout << name << ": sendMessage: " << message->ByteSize() << " -> '" << message->DebugString() << "'\n";
+    }
+
+    void ArcusCommunicationTest::MockSocket::setName(std::string new_name)
+    {
+        name = new_name;
     }
 
 //    Arcus::MessagePtr ArcusCommunicationTest::MockSocket::takeNextMessage()
@@ -108,10 +116,6 @@ namespace cura
         //Do nothing.
     }
 
-    void ArcusCommunicationTest::smokeTest()
-    {
-    }
-
     void ArcusCommunicationTest::beginGCodeTest()
     {
         ac->beginGCode();
@@ -119,7 +123,11 @@ namespace cura
 
     void ArcusCommunicationTest::flushGCodeTest()
     {
+        socket->setName("flushGCodeTest");
         ac->flushGCode();
+        // If I don't do anything, no sendMessage calls should be made
+        std::cout << "Checking for sent messages when nothing has been done yet...\n";
+        CPPUNIT_ASSERT(socket->sent_messages.size() == 0);
     }
 
     void ArcusCommunicationTest::isSequentialTest()

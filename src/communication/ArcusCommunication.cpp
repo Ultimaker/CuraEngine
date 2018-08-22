@@ -476,7 +476,12 @@ void ArcusCommunication::beginGCode()
 void ArcusCommunication::flushGCode()
 {
     std::shared_ptr<proto::GCodeLayer> message = std::make_shared<proto::GCodeLayer>();
-    message->set_data(private_data->gcode_output_stream.str());
+    const ::std::string& message_str = private_data->gcode_output_stream.str();
+    if (message_str.size() == 0)
+    {
+        return;
+    }
+    message->set_data(message_str);
 
     //Send the g-code to the front-end! Yay!
     private_data->socket->sendMessage(message);
