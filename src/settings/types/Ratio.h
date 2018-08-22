@@ -33,6 +33,46 @@ struct Ratio
     }
 
     /*
+     * Some operators for arithmetic on ratios.
+     */
+    Ratio operator *(const Ratio& other) const
+    {
+        return Ratio(value * other.value);
+    }
+    template<typename E> Ratio operator *(const E& other) const
+    {
+        return Ratio(value * other);
+    }
+    Ratio operator /(const Ratio& other) const
+    {
+        return Ratio(value / other.value);
+    }
+    template<typename E> Ratio operator /(const E& other) const
+    {
+        return Ratio(value / other);
+    }
+    Ratio& operator *=(const Ratio& other)
+    {
+        value *= other.value;
+        return *this;
+    }
+    template<typename E> Ratio& operator *=(const E& other)
+    {
+        value *= other;
+        return *this;
+    }
+    Ratio& operator /=(const Ratio& other)
+    {
+        value /= other.value;
+        return *this;
+    }
+    template<typename E> Ratio& operator /=(const E& other)
+    {
+        value /= other;
+        return *this;
+    }
+
+    /*
      * \brief The actual ratio, as a double.
      */
     double value = 0;
