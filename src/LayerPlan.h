@@ -283,7 +283,7 @@ private:
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
-    GCodePath* getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0);
+    GCodePath* getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow = 1.0_r, bool spiralize = false, const Ratio speed_factor = 1.0_r);
 
 public:
     /*!
@@ -460,7 +460,7 @@ public:
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \param fan_speed fan speed override for this path
      */
-    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false, double speed_factor = 1.0, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow = 1.0_r, bool spiralize = false, double speed_factor = 1.0, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -473,7 +473,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false);
+    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio& flow_ratio = 1.0_r, bool always_retract = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -494,7 +494,7 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      * \param reverse_order Adds polygons in reverse order
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0, bool always_retract = false, bool reverse_order = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio flow_ratio = 1.0_r, bool always_retract = false, bool reverse_order = false);
 
     /*!
      * Add a single line that is part of a wall to the gcode.

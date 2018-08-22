@@ -64,11 +64,13 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
+    {
         return &paths.back();
+    }
     paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     return ret;
@@ -422,7 +424,7 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor, double fan_speed)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow, bool spiralize, double speed_factor, double fan_speed)
 {
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor);
     path->points.push_back(p);
@@ -430,21 +432,21 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     last_planned_position = p;
 }
 
-void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, const Ratio& flow_ratio, bool always_retract)
 {
     Point p0 = polygon[start_idx];
     addTravel(p0, always_retract);
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const Ratio flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const Ratio flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
         if (wall_0_wipe_dist > 0)
@@ -478,9 +480,8 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_order)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order)
 {
-    
     if (polygons.size() == 0)
     {
         return;
