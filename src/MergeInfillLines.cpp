@@ -80,8 +80,7 @@ namespace cura
             average_second_path += point;
         }
         coord_t second_path_length_flow = second_path_length *= second_path.flow;
-        average_second_path /= (second_path.points.size() + 1);
-
+        average_second_path /= (coord_t) (second_path.points.size() + 1);
 
         // predict new length and flow and if the new flow is to big, don't merge. conditions in this part must exactly match the actual merging
         coord_t new_path_length = first_path_length;
