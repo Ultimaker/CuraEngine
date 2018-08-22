@@ -60,6 +60,7 @@ public:
 //        virtual Arcus::MessagePtr takeNextMessage();
 //        virtual Arcus::MessagePtr createMessage(const std::string& type_name);
         void setName(std::string new_name);
+        void printMessages();
 
         std::vector<Arcus::MessagePtr> sent_messages;
     private:

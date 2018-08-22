@@ -91,6 +91,15 @@ namespace cura
         name = new_name;
     }
 
+    void ArcusCommunicationTest::MockSocket::printMessages()
+    {
+        std::cout << name << ": printing messages:\n";
+        for (auto message : sent_messages)
+        {
+            std::cout << name << ": message: " << message->ByteSize() << " -> '" << message->DebugString() << "'\n";
+        }
+    }
+
 //    Arcus::MessagePtr ArcusCommunicationTest::MockSocket::takeNextMessage()
 //    {}
 //
@@ -123,6 +132,7 @@ namespace cura
 
     void ArcusCommunicationTest::flushGCodeTest()
     {
+        std::cout << "flushGCodeTest...\n";
         socket->setName("flushGCodeTest");
         ac->flushGCode();
         // If I don't do anything, no sendMessage calls should be made
@@ -142,22 +152,52 @@ namespace cura
 
     void ArcusCommunicationTest::sendCurrentPositionTest()
     {
+        socket->setName("sendCurrentPositionTest");
         ac->sendCurrentPosition(Point(1, 2));
+//        ac->flushGCode();
+//        std::cout << "num messages" << socket->sent_messages.size() << "\n";
+//        CPPUNIT_ASSERT(false);
     }
 
     void ArcusCommunicationTest::sendGCodePrefixTest()
     {
+        const std::string& prefix = "bladibla";
 
+        socket->setName("sendGCodePrefixTest");
+        ac->sendGCodePrefix(prefix);
+        ac->flushGCode();
+        std::cout << "making sure that there are any messages sent...\n";
+        CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
+        socket->printMessages();
+        std::cout << "making sure that the original prefix occurs somewhere...\n";
+        bool found_prefix = false;
+        for (auto message : socket->sent_messages)
+        {
+            if (message->DebugString().find(prefix) != std::string::npos)
+            {
+                found_prefix = true;
+                break;
+            }
+        }
+        CPPUNIT_ASSERT(found_prefix);
     }
 
     void ArcusCommunicationTest::sendFinishedSlicingTest()
     {
-
+        socket->setName("sendFinishedSlicingTest");
+        std::cout << "sendFinishedSlicingTest...\n";
+        ac->sendFinishedSlicing();
+        CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
+        socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendLayerCompleteTest()
     {
-
+        socket->setName("sendLayerCompleteTest");
+        std::cout << "sendLayerCompleteTest...\n";
+        ac->sendLayerComplete(10, 20, 30);
+        socket->printMessages();
+        //CPPUNIT_ASSERT(false);
     }
 
     void ArcusCommunicationTest::sendLineToTest()
