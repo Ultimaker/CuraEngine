@@ -29,12 +29,17 @@ public:
      * \param ip The IP address to connect the socket to.
      * \param port The port number to connect the socket to.
      */
-    ArcusCommunication(const std::string& ip, const uint16_t port, Arcus::Socket* socket);
+    ArcusCommunication();
 
     /*
      * \brief Closes the connection.
      */
     ~ArcusCommunication();
+
+    /*
+     * \brief Initialize and connect the socket
+     */
+    void connect(const std::string& ip, const uint16_t port);
 
     /*
      * \brief Indicate that we're beginning to send g-code.

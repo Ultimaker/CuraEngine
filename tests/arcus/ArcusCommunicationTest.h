@@ -11,7 +11,7 @@
 #include <Arcus/Socket.h>
 #include <Arcus/Types.h>
 
-#include "../src/communication/ArcusCommunication.h"
+#include "../src/communication/ArcusCommunication.cpp"  // cpp, not h because of the Private class within the class
 
 namespace cura
 {
@@ -105,7 +105,7 @@ private:
     std::string ip;
     uint16_t port;
     MockSocket* socket;
-
+    ArcusCommunication* ac;
 };
 
 }

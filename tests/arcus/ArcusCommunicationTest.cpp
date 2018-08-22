@@ -99,6 +99,8 @@ namespace cura
         ip = "0.0.0.0";
         port = 12345;
         socket = new MockSocket();
+        ac = new ArcusCommunication();
+        ac->private_data->socket = socket;
     }
 
     void ArcusCommunicationTest::tearDown()
@@ -108,40 +110,31 @@ namespace cura
 
     void ArcusCommunicationTest::smokeTest()
     {
-        Communication* ac = new ArcusCommunication(ip, port, socket);
     }
 
     void ArcusCommunicationTest::beginGCodeTest()
     {
-        ArcusCommunication* ac = new ArcusCommunication(ip, port, socket);
         ac->beginGCode();
-
-        // requires a lot of friendly touching privates
-//        FffProcessor::getInstance()->gcode_writer.gcode.output_stream;
-
-        //ac->private_data->socket->getState()
-        //ac.flushGCode();
-
     }
 
     void ArcusCommunicationTest::flushGCodeTest()
     {
-
+        ac->flushGCode();
     }
 
     void ArcusCommunicationTest::isSequentialTest()
     {
-
+        ac->isSequential();
     }
 
     void ArcusCommunicationTest::hasSliceTest()
     {
-
+        ac->hasSlice();
     }
 
     void ArcusCommunicationTest::sendCurrentPositionTest()
     {
-
+        ac->sendCurrentPosition(Point(1, 2));
     }
 
     void ArcusCommunicationTest::sendGCodePrefixTest()
