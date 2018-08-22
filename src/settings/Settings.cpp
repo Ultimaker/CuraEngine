@@ -31,19 +31,25 @@ template<> std::string Settings::get<std::string>(const std::string& key) const
 {
     if (settings.find(key) != settings.end())
     {
-        Setting setting = settings.at(key);
-        //TODO: If the setting has limit_to_extruder set, ask that extruder for the value instead.
+        const Setting& setting = settings.at(key);
+        if (setting.limit_to_extruder)
+        {
+            return setting.limit_to_extruder->settings.getWithoutLimiting(key);
+        }
         return setting.value;
     }
     else if(parent)
     {
-        Setting setting = parent->get<std::string>(key);
-        //TODO: If the setting has limit_to_extruder set, ask that extruder for the value instead.
+        const Setting& setting = parent->get<std::string>(key);
+        if (setting.limit_to_extruder)
+        {
+            return setting.limit_to_extruder->settings.getWithoutLimiting(key);
+        }
         return setting.value;
     }
     else
     {
-        logError("Trying to retrieve unregistered setting with no value given: '%s'\n", key.c_str());
+        logError("Trying to retrieve setting with no value given: '%s'\n", key.c_str());
         std::exit(2);
     }
 }
@@ -552,6 +558,23 @@ void Settings::setLimitToExtruder(const std::string& key, ExtruderTrain* limit_t
 void Settings::setParent(Settings* new_parent)
 {
     parent = new_parent;
+}
+
+std::string Settings::getWithoutLimiting(const std::string& key) const
+{
+    if (settings.find(key) != settings.end())
+    {
+        return settings.at(key).value;
+    }
+    else if(parent)
+    {
+        return parent->get<std::string>(key);
+    }
+    else
+    {
+        logError("Trying to retrieve setting with no value given: '%s'\n", key.c_str());
+        std::exit(2);
+    }
 }
 
 }//namespace cura

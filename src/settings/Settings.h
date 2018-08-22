@@ -69,6 +69,8 @@ public:
      *      is returned.
      *   3. If a setting is not known at all, an error is returned and the
      *      application is closed with an error value of 2.
+     * \param key The key of the setting to get.
+     * \return The setting's value, cast to the desired type.
      */
     template<typename A> A get(const std::string& key) const;
 
@@ -105,6 +107,17 @@ private:
      * \brief A dictionary to map the setting keys to the actual setting values.
      */
     std::unordered_map<std::string, Setting> settings;
+
+    /*!
+     * \brief Get the value of a setting, but without looking at the limiting to
+     * extruder.
+     *
+     * This is the same as the normal ``get`` function, but skipping step 2 and
+     * only for strings.
+     * \param key The key of the setting to get.
+     * \return The setting's value.
+     */
+    std::string getWithoutLimiting(const std::string& key) const;
 };
 
 } //namespace cura
