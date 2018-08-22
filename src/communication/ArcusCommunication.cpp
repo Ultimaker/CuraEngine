@@ -110,21 +110,21 @@ public:
             return; //Don't slice empty mesh groups.
         }
 
-        objects_to_slice.push_back(std::make_shared<MeshGroup>());
-        MeshGroup* mesh_group = objects_to_slice.back().get();
-        mesh_group->settings.setParent(&Application::getInstance().current_slice->scene.settings);
+        Scene& scene = Application::getInstance().current_slice->scene;
+        MeshGroup& mesh_group = scene.mesh_groups.at(object_count);
+        mesh_group.settings.setParent(&Application::getInstance().current_slice->scene.settings);
 
         //Load the settings in the mesh group.
         for (const cura::proto::Setting& setting : mesh_group_message.settings())
         {
-            mesh_group->settings.add(setting.name(), setting.value());
+            mesh_group.settings.add(setting.name(), setting.value());
         }
 
         FMatrix3x3 matrix;
         for (const cura::proto::Object& object : mesh_group_message.objects())
         {
-            unsigned int bytes_per_face = sizeof(FPoint3) * 3; //3 vectors per face.
-            size_t face_count = object.vertices().size() / bytes_per_face;
+            const size_t bytes_per_face = sizeof(FPoint3) * 3; //3 vectors per face.
+            const size_t face_count = object.vertices().size() / bytes_per_face;
 
             if (face_count <= 0)
             {
@@ -132,8 +132,8 @@ public:
                 continue;
             }
 
-            mesh_group->meshes.emplace_back();
-            Mesh& mesh = mesh_group->meshes.back();
+            mesh_group.meshes.emplace_back();
+            Mesh& mesh = mesh_group.meshes.back();
 
             //Load the settings for the mesh.
             for (const cura::proto::Setting& setting : object.settings())
@@ -158,14 +158,13 @@ public:
             mesh.finish();
         }
         object_count++;
-        mesh_group->finalize();
+        mesh_group.finalize();
     }
 
     Arcus::Socket* socket; //!< Socket to send data to.
     size_t object_count; //!< Number of objects that need to be sliced.
     std::string temp_gcode_file; //!< Temporary buffer for the g-code.
     std::ostringstream gcode_output_stream; //!< The stream to write g-code to.
-    std::vector<std::shared_ptr<MeshGroup>> objects_to_slice; //!< Print object that holds one or more meshes that need to be sliced.
 
     SliceDataStruct<cura::proto::Layer> sliced_layers;
     SliceDataStruct<cura::proto::LayerOptimized> optimized_layers;
@@ -665,14 +664,14 @@ void ArcusCommunication::sliceNext()
     }
     logDebug("Done reading Slice message.\n");
 
-    if (!private_data->objects_to_slice.empty())
+    if (!slice.scene.mesh_groups.empty())
     {
         slice.scene.compute();
-        private_data->objects_to_slice.clear();
         FffProcessor::getInstance()->finalize();
         flushGCode();
         sendPrintTimeMaterialEstimates();
         sendFinishedSlicing();
+        slice.reset();
         private_data->slice_count++;
     }
 
