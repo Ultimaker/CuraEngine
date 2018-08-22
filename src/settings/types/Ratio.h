@@ -22,7 +22,7 @@ struct Ratio
     /*
      * \brief Casts a double to a Ratio instance.
      */
-    constexpr Ratio(double value) : value(value / 100) {};
+    constexpr Ratio(double value) : value(value) {};
 
     /*
      * \brief Casts the Ratio instance to a double.
