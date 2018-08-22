@@ -47,27 +47,27 @@ double GCodePathConfig::getExtrusionMM3perMM() const
     return extrusion_mm3_per_mm;
 }
 
-double GCodePathConfig::getSpeed() const
+Velocity GCodePathConfig::getSpeed() const
 {
     return speed_derivatives.speed;
 }
 
-double GCodePathConfig::getAcceleration() const
+Velocity GCodePathConfig::getAcceleration() const
 {
     return speed_derivatives.acceleration;
 }
 
-double GCodePathConfig::getJerk() const
+Velocity GCodePathConfig::getJerk() const
 {
     return speed_derivatives.jerk;
 }
 
-int GCodePathConfig::getLineWidth() const
+coord_t GCodePathConfig::getLineWidth() const
 {
     return line_width;
 }
 
-int GCodePathConfig::getLayerThickness() const
+coord_t GCodePathConfig::getLayerThickness() const
 {
     return this->layer_thickness;
 }
@@ -92,7 +92,7 @@ double GCodePathConfig::getFanSpeed() const
     return fan_speed;
 }
 
-double GCodePathConfig::getFlowPercentage() const
+Ratio GCodePathConfig::getFlowRatio() const
 {
     return flow;
 }

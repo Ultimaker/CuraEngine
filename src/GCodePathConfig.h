@@ -66,19 +66,19 @@ public:
     /*!
      * Get the movement speed in mm/s
      */
-    double getSpeed() const;
+    Velocity getSpeed() const;
 
     /*!
      * Get the current acceleration of this config
      */
-    double getAcceleration() const;
+    Velocity getAcceleration() const;
 
     /*!
      * Get the current jerk of this config
      */
-    double getJerk() const;
+    Velocity getJerk() const;
 
-    int getLineWidth() const;
+    coord_t getLineWidth() const;
 
     bool isTravelPath() const;
 
@@ -86,9 +86,9 @@ public:
 
     double getFanSpeed() const;
 
-    double getFlowPercentage() const;
+    Ratio getFlowRatio() const;
 
-    int getLayerThickness() const;
+    coord_t getLayerThickness() const;
 
     const PrintFeatureType& getPrintFeatureType() const;
 

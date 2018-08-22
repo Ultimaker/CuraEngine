@@ -549,7 +549,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 // speed_flow_factor approximates how the extrusion rate alters between the non-bridge wall line and the following bridge wall line
                 // if the extrusion rates are the same, its value will be 1, if the bridge config extrusion rate is < the non-bridge config extrusion rate, the value is < 1
 
-                const double speed_flow_factor = (bridge_config.getSpeed() * bridge_config.getFlowPercentage()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowPercentage());
+                const Ratio speed_flow_factor((bridge_config.getSpeed() * bridge_config.getFlowRatio()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowRatio()));
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
                 const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 40;
@@ -657,7 +657,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                        speed_factor = std::min(bridge_config.getSpeed() / non_bridge_config.getSpeed(), 1.0);
+                        speed_factor = std::min(bridge_config.getSpeed() / non_bridge_config.getSpeed(), Velocity(1.0));
                     }
                 }
                 else

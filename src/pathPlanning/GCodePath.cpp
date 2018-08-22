@@ -34,7 +34,7 @@ double GCodePath::getExtrusionMM3perMM()
 
 int GCodePath::getLineWidthForLayerView()
 {
-    return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
+    return flow * config->getLineWidth() * config->getFlowRatio();
 }
 
 void GCodePath::setFanSpeed(double fan_speed)
