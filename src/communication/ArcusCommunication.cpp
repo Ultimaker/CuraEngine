@@ -662,11 +662,11 @@ void ArcusCommunication::sliceNext()
     if (!slice.scene.mesh_groups.empty())
     {
         slice.scene.compute();
-        slice.reset();
         FffProcessor::getInstance()->finalize();
         flushGCode();
         sendPrintTimeMaterialEstimates();
         sendFinishedSlicing();
+        slice.reset();
         private_data->slice_count++;
     }
 

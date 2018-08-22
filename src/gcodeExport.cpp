@@ -175,7 +175,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
         prefix << ";TARGET_MACHINE.NAME:" << machine_name << new_line;
 
-        for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+        for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
             if (!extruder_is_used[extr_nr])
             {
