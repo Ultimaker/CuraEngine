@@ -504,8 +504,8 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode)
     flowFlat = scene_settings.get<Ratio>("wireframe_flow_flat");
 
     const double line_area = M_PI * square(INT2MM(line_width) / 2.0);
-    extrusion_mm3_per_mm_connection = line_area * flowConnection / 100.0;
-    extrusion_mm3_per_mm_flat = line_area * flowFlat / 100.0;
+    extrusion_mm3_per_mm_connection = line_area * flowConnection;
+    extrusion_mm3_per_mm_flat = line_area * flowFlat;
 
     update_extrusion_offset = false;
 
