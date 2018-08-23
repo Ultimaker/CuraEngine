@@ -1206,7 +1206,6 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     }
     
     const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
-    const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
 
     bool added_something = false;
 
