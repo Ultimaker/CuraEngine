@@ -32,7 +32,7 @@ private:
     const ExtruderTrain& support_bottom_train;
 
     const std::vector<Ratio> line_width_factor_per_extruder;
-    static std::vector<Ratio> getLineWidthFactorPerExtruder(const SliceDataStorage& storage, const LayerIndex& layer_nr);
+    static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);
 public:
     class MeshPathConfigs
     {

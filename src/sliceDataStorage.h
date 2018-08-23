@@ -330,7 +330,7 @@ public:
      * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
      * \param include_helper_parts whether to include support and prime tower
      */
-    Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const;
+    Polygons getLayerSecondOrInnermostWalls(const LayerIndex& layer_nr, bool include_helper_parts) const;
 
     /*!
      * Get the extruders used.

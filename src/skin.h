@@ -15,13 +15,16 @@ class SkinInfillAreaComputation
 public:
 
     /*!
-     * Initialize the parameters for skin and infill area computation.
+     * \brief Initialize the parameters for skin and infill area computation.
      * 
-     * \param layer_nr The index of the layer for which to generate the skins and infill.
-     * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
-     * \param process_infill Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
+     * \param layer_nr The index of the layer for which to generate the skins
+     * and infill.
+     * \param mesh The storage where the layer outline information (input) is
+     * stored and where the skin insets and fill areas (output) are stored.
+     * \param process_infill Whether to process infill, i.e. whether there's a
+     * positive infill density or there are infill meshes modifying this mesh.
      */
-    SkinInfillAreaComputation(const LayerIndex& layer_nr, const SliceDataStorage& storage, SliceMeshStorage& mesh, bool process_infill);
+    SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill);
 
     /*!
      * Generate the skin areas and its insets.
@@ -169,10 +172,10 @@ protected:
     const size_t top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
     const size_t bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:
-    static coord_t getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
-    static coord_t getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
-    static coord_t getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
-    static coord_t getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr, const coord_t& innermost_wall_line_width); //!< Compute the infill_skin_overlap
+    static coord_t getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
+    static coord_t getWallLineWidth0(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
+    static coord_t getWallLineWidthX(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
+    static coord_t getInfillSkinOverlap(const SliceMeshStorage& mesh, const LayerIndex& layer_nr, const coord_t& innermost_wall_line_width); //!< Compute the infill_skin_overlap
 
     /*!
      * Helper function to get the walls of each part which might intersect with \p part_here

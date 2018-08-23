@@ -14,7 +14,7 @@
 namespace cura 
 {
 
-coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
+coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {
     coord_t skin_line_width = mesh.settings.get<coord_t>("skin_line_width");
     if (layer_nr == 0)
@@ -25,7 +25,7 @@ coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceDataStorage& stor
     return skin_line_width;
 }
 
-coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
+coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {
     coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
     if (layer_nr == 0)
@@ -35,7 +35,7 @@ coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceDataStorage& sto
     }
     return wall_line_width_0;
 }
-coord_t SkinInfillAreaComputation::getWallLineWidthX(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
+coord_t SkinInfillAreaComputation::getWallLineWidthX(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {
     coord_t wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
     if (layer_nr == 0)
@@ -45,7 +45,7 @@ coord_t SkinInfillAreaComputation::getWallLineWidthX(const SliceDataStorage& sto
     }
     return wall_line_width_x;
 }
-coord_t SkinInfillAreaComputation::getInfillSkinOverlap(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_nr, const coord_t& innermost_wall_line_width)
+coord_t SkinInfillAreaComputation::getInfillSkinOverlap(const SliceMeshStorage& mesh, const LayerIndex& layer_nr, const coord_t& innermost_wall_line_width)
 {
     coord_t infill_skin_overlap = 0;
     { // compute infill_skin_overlap
@@ -60,17 +60,17 @@ coord_t SkinInfillAreaComputation::getInfillSkinOverlap(const SliceDataStorage& 
     return infill_skin_overlap;
 }
 
-SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, const SliceDataStorage& storage, SliceMeshStorage& mesh, bool process_infill)
+SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill)
 : layer_nr(layer_nr)
 , mesh(mesh)
 , bottom_layer_count(mesh.settings.get<size_t>("bottom_layers"))
 , top_layer_count(mesh.settings.get<size_t>("top_layers"))
 , wall_line_count(mesh.settings.get<size_t>("wall_line_count"))
-, skin_line_width(getSkinLineWidth(storage, mesh, layer_nr))
-, wall_line_width_0(getWallLineWidth0(storage, mesh, layer_nr))
-, wall_line_width_x(getWallLineWidthX(storage, mesh, layer_nr))
+, skin_line_width(getSkinLineWidth(mesh, layer_nr))
+, wall_line_width_0(getWallLineWidth0(mesh, layer_nr))
+, wall_line_width_x(getWallLineWidthX(mesh, layer_nr))
 , innermost_wall_line_width((wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x)
-, infill_skin_overlap(getInfillSkinOverlap(storage, mesh, layer_nr, innermost_wall_line_width))
+, infill_skin_overlap(getInfillSkinOverlap(mesh, layer_nr, innermost_wall_line_width))
 , skin_inset_count(mesh.settings.get<size_t>("skin_outline_count"))
 , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)

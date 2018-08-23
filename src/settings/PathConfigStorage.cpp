@@ -10,7 +10,7 @@
 namespace cura
 {
 
-std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const SliceDataStorage& storage, const LayerIndex& layer_nr)
+std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerIndex& layer_nr)
 {
     std::vector<Ratio> ret;
     for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
@@ -164,7 +164,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 , support_infill_train(Application::getInstance().current_slice->scene.extruders[support_infill_extruder_nr])
 , support_roof_train(Application::getInstance().current_slice->scene.extruders[support_roof_extruder_nr])
 , support_bottom_train(Application::getInstance().current_slice->scene.extruders[support_bottom_extruder_nr])
-, line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(storage, layer_nr))
+, line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
 , raft_base_config(
             PrintFeatureType::SupportInterface
             , adhesion_extruder_train.settings.get<coord_t>("raft_base_line_width")

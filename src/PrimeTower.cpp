@@ -43,7 +43,7 @@ PrimeTower::PrimeTower()
     });
 }
 
-void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
+void PrimeTower::generateGroundpoly()
 {
     if (!enabled)
     {
@@ -56,11 +56,11 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 
     PolygonRef p = outer_poly.newPoly();
     int tower_distance = 0; 
-    const int x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
-    const int y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     if (circular_prime_tower)
     {
-        double_t tower_radius = tower_size / 2;
+        const coord_t tower_radius = tower_size / 2;
         for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
         {
             const double angle = (double) i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
@@ -80,16 +80,15 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
 }
 
-void PrimeTower::generatePaths(const SliceDataStorage& storage)
+void PrimeTower::generatePaths()
 {
-    enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (enabled)
     {
-        generatePaths_denseInfill(storage);
+        generatePaths_denseInfill();
     }
 }
 
-void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
+void PrimeTower::generatePaths_denseInfill()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -169,7 +168,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         post_wipe = false;
     }
 
-    addToGcode_denseInfill(storage, gcode_layer, new_extruder);
+    addToGcode_denseInfill(gcode_layer, new_extruder);
 
     // post-wipe:
     if (post_wipe)
@@ -180,9 +179,9 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     gcode_layer.setPrimeTowerIsPlanned(new_extruder);
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
+void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount(storage))
+    const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount())
         ? pattern_per_extruder_layer0[extruder_nr]
         : pattern_per_extruder[extruder_nr];
 

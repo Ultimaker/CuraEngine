@@ -9,38 +9,44 @@ namespace cura {
 class Raft
 {
 public:
-    static void generate(SliceDataStorage& storage, int distance);
+    static void generate(SliceDataStorage& storage, coord_t distance);
 
     /*!
-     * Get the height difference between the raft and the bottom of layer 1.
+     * \brief Get the height difference between the raft and the bottom of
+     * layer 1.
      * 
-     * This is used for the filler layers because they don't use the layer_0_z_overlap
+     * This is used for the filler layers because they don't use the
+     * layer_0_z_overlap.
      */
-    static int getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage);
+    static coord_t getZdiffBetweenRaftAndLayer1();
 
     /*!
-     * Get the amount of layers to fill the airgap and initial layer with helper parts (support, prime tower, etc.)
+     * \brief Get the amount of layers to fill the airgap and initial layer with
+     * helper parts (support, prime tower, etc.).
      * 
-     * The initial layer gets a separate filler layer because we don't want to apply the layer_0_z_overlap to it.
+     * The initial layer gets a separate filler layer because we don't want to
+     * apply the layer_0_z_overlap to it.
      */
-    static int getFillerLayerCount(const SliceDataStorage& storage);
+    static size_t getFillerLayerCount();
 
     /*!
-     * Get the layer height of the filler layers in between the raft and layer 1
+     * \brief Get the layer height of the filler layers in between the raft and
+     * layer 1.
      */
-    static int getFillerLayerHeight(const SliceDataStorage& storage);
+    static coord_t getFillerLayerHeight();
 
     /*!
-     * Get the total thickness of the raft (without airgap)
+     * \brief Get the total thickness of the raft (without airgap).
      */
-    static int getTotalThickness(const SliceDataStorage& storage);
+    static coord_t getTotalThickness();
 
     /*!
-     * Get the total amount of extra layers below zero because there is a raft.
+     * \brief Get the total amount of extra layers below zero because there is a
+     * raft.
      * 
      * This includes the filler layers which are introduced in the air gap.
      */
-    static int getTotalExtraLayers(const SliceDataStorage& storage);
+    static size_t getTotalExtraLayers();
 
 };
 

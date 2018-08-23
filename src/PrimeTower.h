@@ -68,17 +68,13 @@ public:
      * Generate the prime tower area to be used on each layer
      * 
      * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
-     * 
-     * \param storage Where to retrieve prime tower settings from
      */
-    void generateGroundpoly(const SliceDataStorage& storage);
+    void generateGroundpoly();
 
     /*!
      * Generate the area where the prime tower should be.
-     * 
-     * \param storage where to get settings from
      */
-    void generatePaths(const SliceDataStorage& storage);
+    void generatePaths();
 
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
@@ -115,21 +111,20 @@ private:
      * 
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
-     * 
-     * \param storage where to get settings from
      */
-    void generatePaths_denseInfill(const SliceDataStorage& storage);
+    void generatePaths_denseInfill();
 
     /*!
      * \see PrimeTower::addToGcode
      *
      * Add path plans for the prime tower to the \p gcode_layer
      *
-     * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
+     * \param[in,out] gcode_layer Where to get the current extruder from. Where
+     * to store the generated layer paths.
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
+    void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 };
 
 

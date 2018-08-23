@@ -44,7 +44,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     Application::getInstance().communication->beginGCode();
 
-    setConfigFanSpeedLayerTime(storage);
+    setConfigFanSpeedLayerTime();
     
     setConfigCoasting(storage);
 
@@ -101,7 +101,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             if (extruder_is_used_in_filler_layers)
             {
-                process_layer_starting_layer_nr = -Raft::getFillerLayerCount(storage);
+                process_layer_starting_layer_nr = -Raft::getFillerLayerCount();
                 break;
             }
         }
@@ -257,7 +257,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
     }
 }
 
-void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
+void FffGcodeWriter::setConfigFanSpeedLayerTime()
 {
     for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
     {
@@ -541,7 +541,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     CombingMode combing_mode = mesh_group_settings.get<CombingMode>("retraction_combing"); 
 
     coord_t z = 0;
-    const int initial_raft_layer_nr = -Raft::getTotalExtraLayers(storage);
+    const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
 
     // some infill config for all lines infill generation below
     constexpr int offset_from_poly_outline = 0;
@@ -733,9 +733,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 #ifdef DEBUG
         assert(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
 #endif // DEBUG
-        const int filler_layer_count = Raft::getFillerLayerCount(storage);
-        layer_thickness = Raft::getFillerLayerHeight(storage);
-        z = Raft::getTotalThickness(storage) + (filler_layer_count + layer_nr + 1) * layer_thickness;
+        const int filler_layer_count = Raft::getFillerLayerCount();
+        layer_thickness = Raft::getFillerLayerHeight();
+        z = Raft::getTotalThickness() + (filler_layer_count + layer_nr + 1) * layer_thickness;
     }
     else
     {
@@ -1013,7 +1013,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     {
         last_extruder = gcode.getExtruderNr();
     }
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(storage); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<size_t>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
         extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
@@ -1038,7 +1038,7 @@ std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtr
     }
 
     // check if we are on the first layer
-    if ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers(storage))
+    if ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -Raft::getTotalExtraLayers())
         || (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
     {
         // check if we need prime blob on the first layer
@@ -2497,7 +2497,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     }
 
     const unsigned int previous_extruder = gcode_layer.getExtruder();
-    if (previous_extruder == static_cast<unsigned int>(extruder_nr) && !(static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage))) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
+    if (previous_extruder == static_cast<size_t>(extruder_nr) && !(static_cast<size_t>(extruder_nr) == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount())) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
     {
         return;
     }
@@ -2530,7 +2530,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
     // The first layer of the prime tower is printed with one material only, so do not prime another material on the
     // first layer again.
-    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount(storage)) //Always print a prime tower with outermost extruder.
+    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -Raft::getFillerLayerCount()) //Always print a prime tower with outermost extruder.
     {
         addPrimeTower(storage, gcode_layer, previous_extruder);
     }

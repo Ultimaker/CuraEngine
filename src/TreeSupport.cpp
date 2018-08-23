@@ -139,7 +139,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Drop nodes to lower layers.
-    dropNodes(storage, contact_nodes, model_collision, model_avoidance, model_internal_guide);
+    dropNodes(contact_nodes, model_collision, model_avoidance, model_internal_guide);
 
     //Generate support areas.
     drawCircles(storage, contact_nodes, model_collision);
@@ -308,7 +308,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     }
 }
 
-void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
+void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.

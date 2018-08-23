@@ -157,11 +157,10 @@ public:
 
 private:
     /*!
-     * Set the FffGcodeWriter::fan_speed_layer_time_settings by retrieving all settings from the global/per-meshgroup settings.
-     * 
-     * \param[out] storage The data storage to which to save the configuration
+     * \brief Set the FffGcodeWriter::fan_speed_layer_time_settings by
+     * retrieving all settings from the global/per-meshgroup settings.
      */
-    void setConfigFanSpeedLayerTime(SliceDataStorage& storage);
+    void setConfigFanSpeedLayerTime();
 
     /*!
      * Create and set the SliceDataStorage::coasting_config for each extruder.

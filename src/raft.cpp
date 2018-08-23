@@ -10,7 +10,7 @@
 
 namespace cura {
 
-void Raft::generate(SliceDataStorage& storage, int distance)
+void Raft::generate(SliceDataStorage& storage, coord_t distance)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
@@ -33,7 +33,7 @@ void Raft::generate(SliceDataStorage& storage, int distance)
     storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
 }
 
-int Raft::getTotalThickness(const SliceDataStorage& storage)
+coord_t Raft::getTotalThickness()
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     return train.settings.get<coord_t>("raft_base_thickness")
@@ -41,7 +41,7 @@ int Raft::getTotalThickness(const SliceDataStorage& storage)
         + train.settings.get<size_t>("raft_surface_layers") * train.settings.get<coord_t>("raft_surface_thickness");
 }
 
-int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
+coord_t Raft::getZdiffBetweenRaftAndLayer1()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
@@ -58,15 +58,13 @@ int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
     return z_diff_raft_to_bottom_of_layer_1;
 }
 
-
-int Raft::getFillerLayerCount(const SliceDataStorage& storage)
+size_t Raft::getFillerLayerCount()
 {
     const coord_t normal_layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    const unsigned int filler_layer_count = round_divide(getZdiffBetweenRaftAndLayer1(storage), normal_layer_height);
-    return filler_layer_count;
+    return round_divide(getZdiffBetweenRaftAndLayer1(), normal_layer_height);
 }
 
-int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
+coord_t Raft::getFillerLayerHeight()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
@@ -74,19 +72,18 @@ int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
         const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
         return normal_layer_height;
     }
-    const unsigned int filler_layer_height = round_divide(getZdiffBetweenRaftAndLayer1(storage), getFillerLayerCount(storage));
-    return filler_layer_height;
+    return round_divide(getZdiffBetweenRaftAndLayer1(), getFillerLayerCount());
 }
 
 
-int Raft::getTotalExtraLayers(const SliceDataStorage& storage)
+size_t Raft::getTotalExtraLayers()
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     if (train.settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
     }
-    return 2 + train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount(storage);
+    return 2 + train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount();
 }
 
 

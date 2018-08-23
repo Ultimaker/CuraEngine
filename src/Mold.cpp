@@ -9,7 +9,7 @@
 namespace cura
 {
 
-void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height)
+void Mold::process(std::vector<Slicer*>& slicer_list, coord_t layer_height)
 {
     Scene& scene = Application::getInstance().current_slice->scene;
     { // check whether we even need to process molds

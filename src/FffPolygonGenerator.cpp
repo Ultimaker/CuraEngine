@@ -167,7 +167,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
     meshgroup->clear();
 
-    Mold::process(storage, slicerList, layer_thickness);
+    Mold::process(slicerList, layer_thickness);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
@@ -251,7 +251,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             {
                 const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
                 layer.printZ +=
-                    Raft::getTotalThickness(storage)
+                    Raft::getTotalThickness()
                     + train.settings.get<coord_t>("raft_airgap")
                     - train.settings.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
@@ -347,9 +347,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
-    storage.primeTower.generateGroundpoly(storage);
-    storage.primeTower.generatePaths(storage);
-    storage.primeTower.subtractFromSupport(storage);
+    if (storage.max_print_height_second_to_last_extruder >= 0)
+    {
+        storage.primeTower.generateGroundpoly();
+        storage.primeTower.generatePaths();
+        storage.primeTower.subtractFromSupport(storage);
+    }
 
     logDebug("Processing ooze shield\n");
     processOozeShield(storage);
@@ -408,7 +411,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
-        processInsets(storage, mesh, layer_number);
+        processInsets(mesh, layer_number);
 #ifdef _OPENMP
         if (omp_get_thread_num() == 0)
 #endif
@@ -455,7 +458,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
 
     processed_layer_count = 0;
-#pragma omp parallel default(none) shared(mesh_layer_count, storage, mesh, mesh_max_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
+#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
     {
 
 #pragma omp for schedule(dynamic)
@@ -464,7 +467,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
             if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
-                processSkinsAndInfill(storage, mesh, layer_number, process_infill);
+                processSkinsAndInfill(mesh, layer_number, process_infill);
             }
 #ifdef _OPENMP
             if (omp_get_thread_num() == 0)
@@ -752,7 +755,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
  *
  * processInsets only reads and writes data for the current layer
  */
-void FffPolygonGenerator::processInsets(const SliceDataStorage& storage, SliceMeshStorage& mesh, size_t layer_nr)
+void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
@@ -867,14 +870,14 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
  * processSkinsAndInfill read (depend on) mesh.layers[*].parts[*].{insets,boundingBox}.
  *                       write mesh.layers[n].parts[*].{skin_parts,infill_area}.
  */
-void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage, SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill)
+void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill)
 {
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
     {
         return;
     }
 
-    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, storage, mesh, process_infill);
+    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, process_infill);
     skin_infill_area_computation.generateSkinsAndInfill();
 
     if (mesh.settings.get<bool>("ironing_enabled") && (!mesh.settings.get<bool>("ironing_only_highest_layer") || static_cast<unsigned int>(mesh.layer_nr_max_filled_layer) == layer_nr))
