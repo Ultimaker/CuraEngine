@@ -45,12 +45,12 @@ public:
      *
      * We can't go back and erase some g-code very easily.
      */
-    const bool isSequential() const override;
+    bool isSequential() const override;
 
     /*
      * \brief Test if there are any more slices to be made.
      */
-    const bool hasSlice() const override;
+    bool hasSlice() const override;
 
     /*
      * \brief Send the current position.

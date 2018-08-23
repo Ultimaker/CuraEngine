@@ -31,7 +31,7 @@ public:
     /*
      * \brief Test if there are more slices to be queued.
      */
-    virtual const bool hasSlice() const = 0;
+    virtual bool hasSlice() const = 0;
 
     /*
      * \brief Whether the output needs to be sent from start to finish or not.
@@ -43,7 +43,7 @@ public:
      * end of the slice. Preferably we'd send the start g-code last, so that the
      * statistics in the start g-code can be more accurate.
      */
-    virtual const bool isSequential() const = 0;
+    virtual bool isSequential() const = 0;
 
     /*
      * \brief Indicate to the communication channel what the current progress of

@@ -37,12 +37,12 @@ void CommandLine::sendPolygons(const PrintFeatureType& type, const Polygons& pol
 void CommandLine::setExtruderForSend(const ExtruderTrain& extruder) { }
 void CommandLine::setLayerForSend(const LayerIndex& layer_nr) { }
 
-const bool CommandLine::hasSlice() const
+bool CommandLine::hasSlice() const
 {
     return !arguments.empty();
 }
 
-const bool CommandLine::isSequential() const
+bool CommandLine::isSequential() const
 {
     return true; //We have to receive the g-code in sequential order. Start g-code before the rest and so on.
 }

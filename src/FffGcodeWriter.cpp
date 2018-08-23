@@ -698,14 +698,14 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         AngleDegrees fill_angle = 90 * raft_surface_layer;
         constexpr bool zig_zaggify_infill = true;
 
-        constexpr int wall_line_count = 0;
+        constexpr size_t wall_line_count = 0;
         const Point& infill_origin = Point();
         Polygons* perimeter_gaps = nullptr;
         constexpr bool connected_zigzags = false;
         constexpr bool connect_polygons = false; // midway connections between polygons can make the surface less smooth
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
-        constexpr int zag_skip_count = 0;
+        constexpr size_t zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
         Infill infill_comp(
@@ -720,7 +720,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     }
 }
 
-LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, size_t total_layers) const
+LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
 {
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
 
@@ -871,7 +871,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     return gcode_layer;
 }
 
-bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, unsigned int extruder_nr) const
+bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const
 {
     bool need_prime_blob = false;
     switch (gcode.getFlavor())

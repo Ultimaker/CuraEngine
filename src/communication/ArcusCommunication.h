@@ -58,12 +58,12 @@ public:
      *
      * We can send the start g-code out of order if we want.
      */
-    const bool isSequential() const override;
+    bool isSequential() const override;
 
     /*
      * \brief Test if there are any more slices in the queue.
      */
-    const bool hasSlice() const override;
+    bool hasSlice() const override;
 
     /*
      * \brief Send the current position to the front-end.

@@ -231,7 +231,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    LayerPlan& processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, size_t total_layers) const;
+    LayerPlan& processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.
@@ -242,7 +242,7 @@ private:
      * 
      * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, unsigned int extruder_nr) const;
+    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const;
 
     /*!
      * Plan priming of all used extruders which haven't been primed yet
