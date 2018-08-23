@@ -826,7 +826,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, ConstPolygonRef polygo
 
     int64_t closestDist2_score = vSize2(from - best) + penalty_function(best);
     int bestPos = 0;
-//
+
     for (unsigned int p = 0; p<polygon.size(); p++)
     {
         const Point& p1 = polygon[p];

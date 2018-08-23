@@ -463,6 +463,10 @@ template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
     {
         return CombingMode::NO_SKIN;
     }
+    else if (value == "infill")
+    {
+        return CombingMode::INFILL;
+    }
     else //Default.
     {
         return CombingMode::ALL;

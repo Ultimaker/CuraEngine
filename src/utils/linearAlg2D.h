@@ -283,24 +283,15 @@ public:
     static bool getPointOnLineWithDist(const Point& p, const Point& a, const Point& b, const coord_t dist, Point& result);
 
     /*!
-     * Get the squared distance from a point \p p to the line on which \p a and \p b lie
+     * Get the squared distance from a point \p p to the line on which \p a and
+     * \p b lie
+     * \param p The point to measure the distance from.
+     * \param a One of the points through which the line goes.
+     * \param b One of the points through which the line goes.
+     * \return The distance between the point and the line, squared.
      */
-    static inline coord_t getDist2FromLine(const Point& p, const Point& a, const Point& b)
-    {
-        //  x.......a------------b
-        //  :
-        //  :
-        //  p
-        // return px_size
-        const Point vab = b - a;
-        const Point vap = p - a;
-        const coord_t dott = dot(vab, vap);
-        const coord_t ax_size2 = dott * dott / vSize2(vab);
-        const coord_t ap_size2 = vSize2(vap);
-        const coord_t px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
-        return px_size2;
-    }
-    
+    static coord_t getDist2FromLine(const Point& p, const Point& a, const Point& b);
+
     /*!
      * Check whether a corner is acute or obtuse.
      * 

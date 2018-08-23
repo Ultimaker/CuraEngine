@@ -446,6 +446,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
     {
         extruder_attr[e].totalFilament = 0.0;
         extruder_attr[e].currentTemperature = 0;
+        extruder_attr[e].waited_for_temperature = false;
     }
     current_e_value = 0.0;
     estimateCalculator.reset();
@@ -1077,7 +1078,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         return;
     }
 
-    if (!wait && extruder_attr[extruder].currentTemperature == temperature)
+    if ((!wait || extruder_attr[extruder].waited_for_temperature) && extruder_attr[extruder].currentTemperature == temperature)
     {
         return;
     }
@@ -1089,10 +1090,12 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
             *output_stream << "M105" << new_line; // get temperatures from the last update, the M109 will not let get the target temperature
         }
         *output_stream << "M109";
+        extruder_attr[extruder].waited_for_temperature = true;
     }
     else
     {
         *output_stream << "M104";
+        extruder_attr[extruder].waited_for_temperature = false;
     }
     if (extruder != current_extruder)
     {
@@ -1235,9 +1238,9 @@ void GCodeExport::finalize(const char* endCode)
     writeCode(endCode);
     int64_t print_time = getSumTotalPrintTimes();
     int mat_0 = getTotalFilamentUsed(0);
-    log("Print time: %d\n", print_time);
-    log("Print time (readable): %dh %dm %ds\n", print_time / 60 / 60, (print_time / 60) % 60, print_time % 60);
-    log("Filament: %d\n", mat_0);
+    log("Print time (s): %d\n", print_time);
+    log("Print time (hr|min|s): %dh %dm %ds\n", print_time / 60 / 60, (print_time / 60) % 60, print_time % 60);
+    log("Filament (mm^3): %d\n", mat_0);
     for(int n=1; n<MAX_EXTRUDERS; n++)
         if (getTotalFilamentUsed(n) > 0)
             log("Filament%d: %d\n", n + 1, int(getTotalFilamentUsed(n)));

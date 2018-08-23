@@ -978,6 +978,16 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
 
+
+        support_areas[layer_idx] = layer_this;
+        Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
+    }
+    
+    // Remove disallowed area only after generating initial layers
+    for (unsigned int layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != (unsigned int)-1; layer_idx--)
+    {
+        Polygons layer_this = support_areas[layer_idx];
+        
         // Enforce XY distance before bottom distance,
         // because xy_offset might have introduced overlap between model and support,
         // which makes stair stepping conclude the support already rests on the model,
@@ -988,14 +998,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         {
             layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
-
+        
         // move up from model
         moveUpFromModel(storage, stair_removal, layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
-
         support_areas[layer_idx] = layer_this;
-
-        Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
     }
+    
     
     // do stuff for when support on buildplate only
     if (support_type == ESupportType::PLATFORM_ONLY)

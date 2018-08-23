@@ -60,6 +60,7 @@ private:
 
         double totalFilament; //!< total filament used per extruder in mm^3
         Temperature currentTemperature;
+        bool waited_for_temperature; //!< Whether the most recent temperature command has been a heat-and-wait command (M109) or not (M104).
         Temperature initial_temp; //!< Temperature this nozzle needs to be at the start of the print.
 
         double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
@@ -85,6 +86,7 @@ private:
         , filament_area(0)
         , totalFilament(0)
         , currentTemperature(0)
+        , waited_for_temperature(false)
         , initial_temp(0)
         , retraction_e_amount_current(0.0)
         , retraction_e_amount_at_e_start(0.0)
