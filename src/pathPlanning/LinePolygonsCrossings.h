@@ -109,16 +109,16 @@ private:
     bool calcScanlineCrossings(bool fail_on_unavoidable_obstacles);
     
     /*! 
-     * Get the basic combing path and optimize it.
+     * Generate the basic combing path and optimize it.
      * 
      * \param combPath Output parameter: the points along the combing path.
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles);
+    bool generateCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles);
     
     /*! 
-     * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
+     * Generate the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
      * 
      * Walk trough the crossings, for every boundary we cross, find the initial cross point and the exit point. Then add all the points in between
      * to the \p combPath and continue with the next boundary we will cross, until there are no more boundaries to cross.
@@ -126,10 +126,10 @@ private:
      * 
      * \param combPath Output parameter: the points along the combing path.
      */
-    void getBasicCombingPath(CombPath& combPath);
+    void generateBasicCombingPath(CombPath& combPath);
     
     /*! 
-     * Get the basic combing path, following a single boundary polygon when it hits it, until it passes the scanline again.
+     * Generate the basic combing path, following a single boundary polygon when it hits it, until it passes the scanline again.
      * 
      * Find the initial cross point and the exit point. Then add all the points in between
      * to the \p combPath and continue with the next boundary we will cross, until there are no more boundaries to cross.
@@ -137,7 +137,7 @@ private:
      * 
      * \param combPath Output parameter: where to add the points along the combing path.
      */
-    void getBasicCombingPath(PolyCrossings& crossings, CombPath& combPath);
+    void generateBasicCombingPath(PolyCrossings& crossings, CombPath& combPath);
     
     /*!
      * Find the first polygon cutting the scanline after \p x.
@@ -190,7 +190,7 @@ public:
     static bool comb(const Polygons& boundary, LocToLineGrid& loc_to_line_grid, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, loc_to_line_grid, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        return linePolygonsCrossings.generateCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     };
 };
 
