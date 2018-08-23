@@ -290,6 +290,7 @@ namespace cura
 
     void ArcusCommunicationTest::sendPrintTimeMaterialEstimatesTest()
     {
+        // Segfault
 //        socket->setName("sendPrintTimeMaterialEstimatesTest");
 //        std::cout << "sendPrintTimeMaterialEstimatesTest...\n";
 //        ac->sendPrintTimeMaterialEstimates();
@@ -298,20 +299,20 @@ namespace cura
 
     void ArcusCommunicationTest::sendProgressTest()
     {
-//        socket->setName("sendProgressTest");
-//        std::cout << "sendProgressTest...\n";
-//        ac->sendProgress(10);
-//        socket->printMessages();
-//        ac->sendProgress(50);
-//        socket->printMessages();
+        socket->setName("sendProgressTest");
+        std::cout << "sendProgressTest...\n";
+        ac->sendProgress(10);
+        socket->printMessages();
+        ac->sendProgress(50);
+        socket->printMessages();
     }
 
     void ArcusCommunicationTest::setLayerForSendTest()
     {
-//        socket->setName("setLayerForSendTest");
-//        std::cout << "setLayerForSendTest...\n";
-//        ac->setLayerForSend(42);
-//        socket->printMessages();
+        socket->setName("setLayerForSendTest");
+        std::cout << "setLayerForSendTest...\n";
+        ac->setLayerForSend(42);
+        socket->printMessages();
     }
 
     void ArcusCommunicationTest::setExtruderForSendTest()
@@ -321,10 +322,10 @@ namespace cura
 
     void ArcusCommunicationTest::sliceNextTest()
     {
-//        socket->setName("sliceNextTest");
-//        std::cout << "sliceNextTest...\n";
-//        ac->sliceNext();
-//        socket->printMessages();
+        socket->setName("sliceNextTest");
+        std::cout << "sliceNextTest...\n";
+        ac->sliceNext();
+        socket->printMessages();
     }
 
 }
