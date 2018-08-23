@@ -340,6 +340,7 @@ public:
         std::string line_velocity_data;
         line_velocities.clear();
         line_velocity_data.append(reinterpret_cast<const char*>(line_velocities.data()), line_velocities.size() * sizeof(float));
+        path_segment->set_line_feedrate(line_velocity_data);
     }
 
     /*!
