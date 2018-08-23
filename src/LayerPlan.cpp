@@ -88,8 +88,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
 , layer_nr(layer_nr)
-, is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers())
-, is_raft_layer(layer_nr < 0 - Raft::getFillerLayerCount())
+, is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+, is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
 , last_extruder_previous_layer(start_extruder)
@@ -1298,7 +1298,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     gcode.setFlowRateExtrusionSettings(mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"), mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor"));
 
-    if (layer_nr == 1 - Raft::getTotalExtraLayers() && mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature") != 0)
+    if (layer_nr == 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) && mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature") != 0)
     {
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);

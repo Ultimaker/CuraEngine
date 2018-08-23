@@ -1111,12 +1111,12 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
             const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
 
-            unsigned int vert_before_idx = next_point_idx;
+            size_t vert_before_idx = next_point_idx;
             if (forward)
             {
                 vert_before_idx = (next_point_idx > 0)? vert_before_idx - 1 : poly.size() - 1;
             }
-            assert(vert_before_idx < poly.size() && vert_before_idx >= 0);
+            assert(vert_before_idx < poly.size());
             return ClosestPolygonPoint(intersection, vert_before_idx, poly);
         }
 

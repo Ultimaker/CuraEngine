@@ -320,7 +320,7 @@ public:
      * \param include_helper_parts whether to include support and prime tower
      * \param external_polys_only whether to disregard all hole polygons
      */
-    Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
 
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.

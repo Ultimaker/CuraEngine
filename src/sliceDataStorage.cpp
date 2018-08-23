@@ -353,9 +353,9 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
+Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only) const
 {
-    if (layer_nr < 0 && layer_nr < -Raft::getFillerLayerCount())
+    if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
         if (include_helper_parts)
         {
@@ -402,7 +402,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         }
         if (include_helper_parts)
         {
-            const SupportLayer& support_layer = support.supportLayers[std::max(0, layer_nr)];
+            const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
             if (support.generated) 
             {
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
@@ -424,7 +424,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
 
 Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(const LayerIndex& layer_nr, bool include_helper_parts) const
 {
-    if (layer_nr < 0 && layer_nr < -Raft::getFillerLayerCount())
+    if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
         if (include_helper_parts)
         {
@@ -537,7 +537,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
     if (layer_nr < 0)
     {
         include_models = false;
-        if (layer_nr < -Raft::getFillerLayerCount())
+        if (layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
         {
             include_helper_parts = false;
         }
