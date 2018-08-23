@@ -58,7 +58,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point& position) override;
+    void sendCurrentPosition(const Point&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -71,7 +71,7 @@ public:
     /*
      * \brief Output the g-code header.
      */
-    void sendGCodePrefix(const std::string& prefix) const override;
+    void sendGCodePrefix(const std::string&) const override;
 
     /*
      * \brief Indicate that the layer has been completely sent.
@@ -79,14 +79,14 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) override;
+    void sendLayerComplete(const LayerIndex&, const coord_t&, const coord_t&) override;
 
     /*
      * \brief Send a line for display.
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendLineTo(const PrintFeatureType&, const Point&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Complete a layer to show it in layer view.
@@ -100,14 +100,14 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendPolygon(const PrintFeatureType&, const ConstPolygonRef&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Send a polygon to show it in layer view.
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendPolygons(const PrintFeatureType&, const Polygons&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Show an estimate of how long the print would take and how much
@@ -127,7 +127,7 @@ public:
      * This has no effect though because we don't show these three functions
      * because the command line doesn't show layer view.
      */
-    void setExtruderForSend(const ExtruderTrain& extruder) override;
+    void setExtruderForSend(const ExtruderTrain&) override;
 
     /*
      * \brief Set which layer is being used for the following calls to
@@ -136,7 +136,7 @@ public:
      * This has no effect though because we don't shwo these three functions
      * because the command line doesn't show layer view.
      */
-    void setLayerForSend(const LayerIndex& layer_nr) override;
+    void setLayerForSend(const LayerIndex&) override;
 
     /*
      * \brief Slice the next scene that the command line commands us to slice.
