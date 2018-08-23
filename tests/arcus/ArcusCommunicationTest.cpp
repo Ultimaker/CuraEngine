@@ -93,7 +93,7 @@ namespace cura
 
     void ArcusCommunicationTest::MockSocket::printMessages()
     {
-        std::cout << name << ": printing messages:\n";
+        std::cout << name << ": " << sent_messages.size() << " messages:\n";
         for (auto message : sent_messages)
         {
             std::cout << name << ": message: " << message->ByteSize() << " -> '" << message->DebugString() << "'\n";
@@ -118,6 +118,41 @@ namespace cura
         socket = new MockSocket();
         ac = new ArcusCommunication();
         ac->private_data->socket = socket;
+
+        // from: PolygonConnectorTest
+        test_square.emplace_back(0, 0);
+        test_square.emplace_back(1000, 0);
+        test_square.emplace_back(1000, 1000);
+        test_square.emplace_back(0, 1000);
+        test_shapes.add(test_square);
+
+        test_square2.emplace_back(1100, 1500);
+        test_square2.emplace_back(2000, 1500);
+        test_square2.emplace_back(2000, -500);
+        test_square2.emplace_back(1100, -500);
+        test_shapes.add(test_square2);
+
+        test_triangle.emplace_back(0, 2100);
+        test_triangle.emplace_back(500, 1100);
+        test_triangle.emplace_back(1500, 2100);
+        test_shapes.add(test_triangle);
+
+        for (double a = 0; a < 1.0; a += .05)
+        {
+            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
+        }
+        test_shapes.add(test_circle);
+
+        test_convex_shape.emplace_back(-300, 0);
+        test_convex_shape.emplace_back(-100, 500);
+        test_convex_shape.emplace_back(-100, 600);
+        test_convex_shape.emplace_back(-200, 1000);
+        test_convex_shape.emplace_back(-500, 1500);
+        test_convex_shape.emplace_back(-1500, 1500);
+        test_convex_shape.emplace_back(-1500, 1500);
+        test_convex_shape.emplace_back(-1600, 1100);
+        test_convex_shape.emplace_back(-700, 200);
+        test_shapes.add(test_convex_shape);
     }
 
     void ArcusCommunicationTest::tearDown()
@@ -197,42 +232,86 @@ namespace cura
         std::cout << "sendLayerCompleteTest...\n";
         ac->sendLayerComplete(10, 20, 30);
         socket->printMessages();
-        //CPPUNIT_ASSERT(false);
+        //CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
     }
 
     void ArcusCommunicationTest::sendLineToTest()
     {
+        const PrintFeatureType& type = PrintFeatureType::OuterWall;
+        const Point& to = Point(100, 100);
+        const coord_t& line_width = 400;
+        const coord_t& line_thickness = 200;
+        const Velocity& velocity = Velocity(10.0);
 
+        socket->setName("sendLineToTest");
+        std::cout << "sendLineToTest...\n";
+        ac->sendLineTo(type, to, line_width, line_thickness, velocity);
+        ac->sendLayerComplete(10, 20, 30);
+        socket->printMessages();
+        //CPPUNIT_ASSERT(false);
     }
 
     void ArcusCommunicationTest::sendOptimizedLayerDataTest()
     {
-
+        socket->setName("sendOptimizedLayerDataTest");
+        std::cout << "sendOptimizedLayerDataTest...\n";
+        ac->sendOptimizedLayerData();
+        socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendPolygonTest()
     {
+        const PrintFeatureType& type = PrintFeatureType::OuterWall;
+        const ConstPolygonRef& polygon_ref = test_circle;
+        const coord_t& line_width = 400;
+        const coord_t& line_thickness = 200;
+        const Velocity& velocity = Velocity(10.0);
+
+        socket->setName("sendPolygonTest");
+        std::cout << "sendPolygonTest...\n";
+        ac->sendPolygon(type, polygon_ref, line_width, line_thickness, velocity);
+        socket->printMessages();
 
     }
 
     void ArcusCommunicationTest::sendPolygonsTest()
     {
+        const PrintFeatureType& type = PrintFeatureType::OuterWall;
+        const Polygons& polygons = test_shapes;
+        const coord_t& line_width = 400;
+        const coord_t& line_thickness = 200;
+        const Velocity& velocity = Velocity(10.0);
 
+        socket->setName("sendPolygonsTest");
+        std::cout << "sendPolygonsTest...\n";
+        ac->sendPolygons(type, polygons, line_width, line_thickness, velocity);
+        socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendPrintTimeMaterialEstimatesTest()
     {
-
+//        socket->setName("sendPrintTimeMaterialEstimatesTest");
+//        std::cout << "sendPrintTimeMaterialEstimatesTest...\n";
+//        ac->sendPrintTimeMaterialEstimates();
+//        socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendProgressTest()
     {
-
+//        socket->setName("sendProgressTest");
+//        std::cout << "sendProgressTest...\n";
+//        ac->sendProgress(10);
+//        socket->printMessages();
+//        ac->sendProgress(50);
+//        socket->printMessages();
     }
 
     void ArcusCommunicationTest::setLayerForSendTest()
     {
-
+//        socket->setName("setLayerForSendTest");
+//        std::cout << "setLayerForSendTest...\n";
+//        ac->setLayerForSend(42);
+//        socket->printMessages();
     }
 
     void ArcusCommunicationTest::setExtruderForSendTest()
@@ -242,7 +321,10 @@ namespace cura
 
     void ArcusCommunicationTest::sliceNextTest()
     {
-
+//        socket->setName("sliceNextTest");
+//        std::cout << "sliceNextTest...\n";
+//        ac->sliceNext();
+//        socket->printMessages();
     }
 
 }

@@ -110,6 +110,15 @@ private:
     uint16_t port;
     MockSocket* socket;
     ArcusCommunication* ac;
+
+    // From PolygonConnectorTest
+    Polygon test_square;
+    Polygon test_square2; // larger and more to the right
+    Polygon test_triangle;
+    Polygon test_circle;
+    Polygon test_convex_shape;
+
+    Polygons test_shapes; // all above polygons
 };
 
 }
