@@ -76,12 +76,15 @@ public:
     
     void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<cura::proto::Extruder>& extruder_messages)
     {
+        //Make sure we have enough extruders added currently.
         Slice* slice = Application::getInstance().current_slice;
         const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
         for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
             slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
         }
+
+        //Parse the extruder number and the settings from the messages.
         for (const cura::proto::Extruder& extruder_message : extruder_messages)
         {
             const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
@@ -90,7 +93,7 @@ public:
                 logWarning("Received extruder index that is out of range: %i", extruder_nr);
                 continue;
             }
-            ExtruderTrain& extruder = slice->scene.extruders[extruder_nr];
+            ExtruderTrain& extruder = slice->scene.extruders[extruder_nr]; //Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
             for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
             {
                 extruder.settings.add(setting_message.name(), setting_message.value());
