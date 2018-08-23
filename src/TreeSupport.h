@@ -41,17 +41,23 @@ public:
     {
         static constexpr Node* NO_PARENT = nullptr;
 
-        Node() :
-            position(Point(0, 0)),
-            distance_to_top(0),
-            skin_direction(false),
-            support_roof_layers_below(0),
-            to_buildplate(true),
-            parent(nullptr)
+        Node()
+         : distance_to_top(0)
+         , position(Point(0, 0))
+         , skin_direction(false)
+         , support_roof_layers_below(0)
+         , to_buildplate(true)
+         , parent(nullptr)
         {}
 
         Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate, Node* const parent)
-         : distance_to_top(distance_to_top), position(position), skin_direction(skin_direction), support_roof_layers_below(support_roof_layers_below), to_buildplate(to_buildplate), parent(parent) {}
+         : distance_to_top(distance_to_top)
+         , position(position)
+         , skin_direction(skin_direction)
+         , support_roof_layers_below(support_roof_layers_below)
+         , to_buildplate(to_buildplate)
+         , parent(parent)
+        {}
 
         /*!
          * \brief The number of layers to go to the top of this branch.
