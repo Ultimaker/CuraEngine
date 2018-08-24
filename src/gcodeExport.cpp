@@ -246,7 +246,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 prefix << "0m";
             }
             prefix << new_line;
-            prefix << ";Layer height: " << Application::getInstance().current_slice->scene.settings.get<double>("layer_height") << new_line;
+            prefix << ";Layer height: " << Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height") << new_line;
         }
     }
 
