@@ -808,19 +808,16 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
     layers.resize(slice_layer_count);
 
     // set (and initialize compensation for) initial layer, depending on slicing mode
-    int adjusted_layer_offset = layers[0].z - thickness;
+    layers[0].z = std::max(0LL, initial_layer_thickness - thickness);
+    int adjusted_layer_offset = initial_layer_thickness;
     if (use_variable_layer_heights)
     {
         layers[0].z = adaptive_layers->at(0).z_position;
     }
-    else
+    else if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
-        layers[0].z = std::max(0, adjusted_layer_offset);
-        if (slicing_tolerance == SlicingTolerance::MIDDLE)
-        {
-            layers[0].z = initial_layer_thickness / 2;
-            adjusted_layer_offset = initial_layer_thickness - (thickness / 2);
-        }
+        layers[0].z = initial_layer_thickness / 2;
+        adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
     }
 
     // define all layer z positions (depending on slicing mode, see above)
@@ -832,7 +829,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         }
         else
         {
-            layers[layer_nr].z = adjusted_layer_offset + (thickness * layer_nr);
+            layers[layer_nr].z = adjusted_layer_offset + (thickness * (layer_nr - 1));
         }
     }
 
