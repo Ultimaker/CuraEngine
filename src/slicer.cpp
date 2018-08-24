@@ -807,15 +807,24 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
 
     layers.resize(slice_layer_count);
 
+    //// compensate first layer thickness depending on slicing mode
+    //int initial = initial_layer_thickness - thickness;
+    //if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    //{
+    //    initial += thickness / 2;
+    //}
+
+    // initial layer z position, depending on slicing mode
+    layers[0].z =
+        use_variable_layer_heights ?
+        adaptive_layers->at(0).z_position :
+        ((slicing_tolerance == SlicingTolerance::MIDDLE) ? initial_layer_thickness / 2 : 0);
+
     // compensate first layer thickness depending on slicing mode
-    int initial = initial_layer_thickness - thickness;
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
-    {
-        initial += thickness / 2;
-    }
+    int adjusted_layer_offset = layers[0].z + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? -thickness / 2 : 0);
 
     // define all layer z positions depending on slicing mode
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
@@ -823,7 +832,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         }
         else
         {
-            layers[layer_nr].z = initial + (thickness * layer_nr);
+            layers[layer_nr].z = adjusted_layer_offset + (thickness * layer_nr);
         }
     }
 
