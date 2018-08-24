@@ -38,7 +38,7 @@ template<> std::string Settings::get<std::string>(const std::string& key) const
         }
         return setting.value;
     }
-    else if(parent)
+    else if (parent)
     {
         const Setting& setting = parent->get<std::string>(key);
         if (setting.limit_to_extruder)
