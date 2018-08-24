@@ -17,7 +17,7 @@ class Communication;
  * maintains communication with other applications and uses that to schedule
  * slices.
  */
-class Application
+class Application : NoCopy
 {
 public:
     /*
