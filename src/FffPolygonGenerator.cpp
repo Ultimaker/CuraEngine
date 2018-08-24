@@ -826,7 +826,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     return true;
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, size_t& total_layers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const coord_t layer_height, size_t& total_layers)
 {
     int n_empty_first_layers = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)

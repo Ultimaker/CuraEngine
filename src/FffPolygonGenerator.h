@@ -134,7 +134,7 @@ private:
      * \param layer_height The height of each layer
      * \param total_layers The total number of layers
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, size_t& total_layers);
+    void removeEmptyFirstLayers(SliceDataStorage& storage, const coord_t layer_height, size_t& total_layers);
 
     /*!
      * Set \ref SliceDataStorage::max_print_height_per_extruder and \ref SliceDataStorage::max_print_height_order and \ref SliceDataStorage::max_print_height_second_to_last_extruder

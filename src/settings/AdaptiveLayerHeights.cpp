@@ -12,10 +12,7 @@
 namespace cura
 {
 
-AdaptiveLayer::AdaptiveLayer(int layer_height)
-{
-    this->layer_height = layer_height;
-}
+AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height(layer_height) { }
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
 {
@@ -62,8 +59,8 @@ void AdaptiveLayerHeights::calculateLayers()
     const int minimum_layer_height = *std::min_element(this->allowed_layer_heights.begin(), this->allowed_layer_heights.end());
     SlicingTolerance slicing_tolerance = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<int> triangles_of_interest;
-    int z_level = 0;
-    int previous_layer_height = 0;
+    coord_t z_level = 0;
+    coord_t previous_layer_height = 0;
 
     // the first layer has it's own independent height set, so we always add that
     z_level += this->initial_layer_height;
@@ -83,9 +80,9 @@ void AdaptiveLayerHeights::calculateLayers()
         for (auto & layer_height : this->allowed_layer_heights)
         {
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
-            const int lower_bound = z_level;
+            const coord_t lower_bound = z_level;
             // if slicing tolerance "middle" is used, a layer is interpreted as the middle of the upper and lower bounds.
-            const int upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? (layer_height / 2) : layer_height);
+            const coord_t upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? (layer_height / 2) : layer_height);
 
             if (layer_height == this->allowed_layer_heights[0])
             {

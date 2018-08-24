@@ -188,7 +188,7 @@ bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
     }
 }
 
-SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist, int layer_height, coord_t bottom_z)
+SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, coord_t connection_inset_dist, const coord_t layer_height, coord_t bottom_z)
 {
     std::list<SpaghettiInfill::InfillPillar>::iterator ret = pillar_base.end();
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)

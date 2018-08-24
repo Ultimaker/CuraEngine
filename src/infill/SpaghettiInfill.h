@@ -60,7 +60,7 @@ protected:
          * \param layer_height The layer height of the layer which contains the \p _top_part
          * \param bottom_z The z coordinate of the bottom of layer which contains \p _top_part
          */
-        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, int layer_height, coord_t bottom_z)
+        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, const coord_t layer_height, coord_t bottom_z)
         : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
         , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
         , connection_inset_dist(connection_inset_dist)
@@ -111,7 +111,7 @@ private:
      * \param layer_height The layer height of the added area
      * \param bottom_z The z coordinate of the bottom of the layer which contains the \p infill_part
      */
-    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, int layer_height, coord_t bottom_z);
+    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, const coord_t layer_height, coord_t bottom_z);
 };
 
 }//namespace cura

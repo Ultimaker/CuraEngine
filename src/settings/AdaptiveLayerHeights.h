@@ -11,11 +11,10 @@ namespace cura {
 class AdaptiveLayer
 {
 public:
-
     /*!
      * Height of the layer in microns.
      */
-    int layer_height;
+    coord_t layer_height;
 
     /*!
      * The absolute z position of the layer.
@@ -32,7 +31,7 @@ public:
      */
     int print_speed;
 
-    explicit AdaptiveLayer(int layer_height);
+    explicit AdaptiveLayer(const coord_t layer_height);
 };
 
 /**
