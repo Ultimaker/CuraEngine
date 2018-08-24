@@ -821,7 +821,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         ((slicing_tolerance == SlicingTolerance::MIDDLE) ? initial_layer_thickness / 2 : 0);
 
     // compensate first layer thickness depending on slicing mode
-    int adjusted_layer_offset = layers[0].z + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? -thickness / 2 : 0);
+    int adjusted_layer_offset = (slicing_tolerance == SlicingTolerance::MIDDLE) ? initial_layer_thickness - (thickness / 2) : layers[0].z - thickness;
 
     // define all layer z positions depending on slicing mode
     for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
