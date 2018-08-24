@@ -807,23 +807,23 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
 
     layers.resize(slice_layer_count);
 
-    //// compensate first layer thickness depending on slicing mode
-    //int initial = initial_layer_thickness - thickness;
-    //if (slicing_tolerance == SlicingTolerance::MIDDLE)
-    //{
-    //    initial += thickness / 2;
-    //}
+    // set (and initialize compensation for) initial layer, depending on slicing mode
+    int adjusted_layer_offset = layers[0].z - thickness;
+    if (use_variable_layer_heights)
+    {
+        layers[0].z = adaptive_layers->at(0).z_position;
+    }
+    else
+    {
+        layers[0].z = std::max(0, adjusted_layer_offset);
+        if (slicing_tolerance == SlicingTolerance::MIDDLE)
+        {
+            layers[0].z = initial_layer_thickness / 2;
+            adjusted_layer_offset = initial_layer_thickness - (thickness / 2);
+        }
+    }
 
-    // initial layer z position, depending on slicing mode
-    layers[0].z =
-        use_variable_layer_heights ?
-        adaptive_layers->at(0).z_position :
-        ((slicing_tolerance == SlicingTolerance::MIDDLE) ? initial_layer_thickness / 2 : 0);
-
-    // compensate first layer thickness depending on slicing mode
-    int adjusted_layer_offset = (slicing_tolerance == SlicingTolerance::MIDDLE) ? initial_layer_thickness - (thickness / 2) : layers[0].z - thickness;
-
-    // define all layer z positions depending on slicing mode
+    // define all layer z positions (depending on slicing mode, see above)
     for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
