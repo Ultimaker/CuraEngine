@@ -22,6 +22,10 @@ void Scene::compute()
     for (std::vector<MeshGroup>::iterator mesh_group = mesh_groups.begin(); mesh_group != mesh_groups.end(); mesh_group++)
     {
         current_mesh_group = mesh_group;
+        for (ExtruderTrain& extruder : extruders)
+        {
+            extruder.settings.setParent(&current_mesh_group->settings);
+        }
         processMeshGroup(*mesh_group);
     }
 }

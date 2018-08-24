@@ -474,7 +474,7 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
 
     log("Connecting to %s:%i\n", ip.c_str(), port);
     private_data->socket->connect(ip, port);
-    while(private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
+    while (private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); //Wait until we're connected. Check every 100ms.
     }
