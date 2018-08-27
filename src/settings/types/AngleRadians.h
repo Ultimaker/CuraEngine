@@ -25,7 +25,7 @@ struct AngleRadians
     /*
      * \brief Translate the double value in degrees to an AngleRadians instance.
      */
-    AngleRadians(double value) : value(std::fmod(std::fmod(value * M_PI / 180, TAU) + TAU, TAU)) {};
+    AngleRadians(double value) : value(std::fmod(std::fmod(value * TAU / 360, TAU) + TAU, TAU)) {};
 
     /*
      * \brief Casts the AngleRadians instance to a double.
