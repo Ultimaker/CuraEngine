@@ -10,6 +10,7 @@
 
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
+#include "settings/types/Ratio.h" //For speed factors.
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
 
 namespace cura
@@ -102,7 +103,7 @@ private:
     void forward_pass();
     void recalculate_trapezoids();
     
-    void calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor);
+    void calculate_trapezoid_for_block(Block *block, const Ratio& entry_factor, const Ratio& exit_factor);
     void planner_reverse_pass_kernel(Block *previous, Block *current, Block *next);
     void planner_forward_pass_kernel(Block *previous, Block *current, Block *next);
 };
