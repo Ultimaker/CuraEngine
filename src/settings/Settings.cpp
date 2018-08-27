@@ -102,12 +102,12 @@ template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const
 
 template<> coord_t Settings::get<coord_t>(const std::string& key) const
 {
-    return get<double>(key) * 1000.0;
+    return MM2INT(get<double>(key)); //The settings are all in millimetres, but we need to interpret them as microns.
 }
 
 template<> AngleRadians Settings::get<AngleRadians>(const std::string& key) const
 {
-    return get<double>(key);
+    return get<double>(key) * M_PI / 180; //The settings are all in degrees, but we need to interpret them as radians.
 }
 
 template<> AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
@@ -127,7 +127,7 @@ template<> Velocity Settings::get<Velocity>(const std::string& key) const
 
 template<> Ratio Settings::get<Ratio>(const std::string& key) const
 {
-    return get<double>(key) / 100.0;
+    return get<double>(key) / 100.0; //The settings are all in percentages, but we need to interpret them as radians.
 }
 
 template<> Duration Settings::get<Duration>(const std::string& key) const
