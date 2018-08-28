@@ -56,7 +56,10 @@ INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
 INLINE Point operator*(const Point& p0, const coord_t i) { return Point(p0.X * i, p0.Y * i); }
-INLINE Point operator*(const coord_t i, const Point& p0) { return p0 * i; }
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> //Use only for numeric types.
+INLINE Point operator*(const Point& p0, const T i) { return Point(p0.X * i, p0.Y * i); }
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> //Use only for numeric types.
+INLINE Point operator*(const T i, const Point& p0) { return p0 * i; }
 INLINE Point operator/(const Point& p0, const coord_t i) { return Point(p0.X/i, p0.Y/i); }
 INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.X, p0.Y/p1.Y); }
 
