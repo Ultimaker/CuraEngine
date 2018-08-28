@@ -655,7 +655,7 @@ void ArcusCommunication::sliceNext()
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
-    const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+    const size_t extruder_count = slice.scene.extruders.size();
 
     //For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
     for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
@@ -667,7 +667,7 @@ void ArcusCommunication::sliceNext()
             continue;
         }
         ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
-        slice.scene.settings.setLimitToExtruder(setting_extruder.name(), &extruder);
+        slice.scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
     }
 
     //Load all mesh groups, meshes and their settings.

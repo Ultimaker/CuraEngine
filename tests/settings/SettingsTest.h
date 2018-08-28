@@ -9,7 +9,6 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "../src/settings/Setting.h"
 #include "../src/settings/Settings.h"
 #include "../src/settings/types/LayerIndex.h"
 #include "../src/settings/types/AngleRadians.h"

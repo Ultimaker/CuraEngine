@@ -22,36 +22,32 @@
 namespace cura
 {
 
-void Settings::add(const std::string& key, const std::string value, ExtruderTrain* limit_to_extruder)
+void Settings::add(const std::string& key, const std::string value)
 {
-    settings.insert(std::pair<std::string, Setting>(key, Setting(value, limit_to_extruder)));
+    settings.emplace(key, value);
 }
 
 template<> std::string Settings::get<std::string>(const std::string& key) const
 {
+    //If this settings base has a setting value for it, look that up.
     if (settings.find(key) != settings.end())
     {
-        const Setting& setting = settings.at(key);
-        if (setting.limit_to_extruder)
-        {
-            return setting.limit_to_extruder->settings.getWithoutLimiting(key);
-        }
-        return setting.value;
+        return settings.at(key);
     }
-    else if (parent)
+
+    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice->scene.limit_to_extruder;
+    if (limit_to_extruder.find(key) != limit_to_extruder.end())
     {
-        const Setting& setting = parent->get<std::string>(key);
-        if (setting.limit_to_extruder)
-        {
-            return setting.limit_to_extruder->settings.getWithoutLimiting(key);
-        }
-        return setting.value;
+        return limit_to_extruder.at(key)->settings.getWithoutLimiting(key);
     }
-    else
+
+    if (parent)
     {
-        logError("Trying to retrieve setting with no value given: '%s'\n", key.c_str());
-        std::exit(2);
+        return parent->get<std::string>(key);
     }
+
+    logError("Trying to retrieve setting with no value given: '%s'\n", key.c_str());
+    std::exit(2);
 }
 
 template<> int Settings::get<int>(const std::string& key) const
@@ -545,18 +541,13 @@ template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& k
 const std::string Settings::getAllSettingsString() const
 {
     std::stringstream sstream;
-    for (const std::pair<std::string, Setting> pair : settings)
+    for (const std::pair<std::string, std::string> pair : settings)
     {
         char buffer[4096];
-        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.value.c_str()}.str);
+        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
         sstream << buffer;
     }
     return sstream.str();
-}
-
-void Settings::setLimitToExtruder(const std::string& key, ExtruderTrain* limit_to_extruder)
-{
-    settings.at(key).limit_to_extruder = limit_to_extruder;
 }
 
 void Settings::setParent(Settings* new_parent)
@@ -568,7 +559,7 @@ std::string Settings::getWithoutLimiting(const std::string& key) const
 {
     if (settings.find(key) != settings.end())
     {
-        return settings.at(key).value;
+        return settings.at(key);
     }
     else if(parent)
     {
