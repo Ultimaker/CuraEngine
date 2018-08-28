@@ -128,7 +128,7 @@ void CommandLine::sliceNext()
                 }
                 else
                 {
-                    logError("Unknown option: %s\n", argument);
+                    logError("Unknown option: %s\n", argument.c_str());
                 }
             }
             else //Starts with "-" but not with "--".
@@ -162,7 +162,7 @@ void CommandLine::sliceNext()
                             }
                             if (loadJSON(argument, last_settings))
                             {
-                                logError("Failed to load JSON file: %s\n", argument);
+                                logError("Failed to load JSON file: %s\n", argument.c_str());
                                 exit(1);
                             }
 
@@ -200,7 +200,7 @@ void CommandLine::sliceNext()
                             argument = arguments[argument_index];
                             if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
                             {
-                                logError("Failed to load model: %s\n", argument);
+                                logError("Failed to load model: %s\n", argument.c_str());
                                 exit(1);
                             }
                             else
@@ -219,7 +219,7 @@ void CommandLine::sliceNext()
                             argument = arguments[argument_index];
                             if (!FffProcessor::getInstance()->setTargetFile(argument.c_str()))
                             {
-                                logError("Failed to open %s for output.\n", argument);
+                                logError("Failed to open %s for output.\n", argument.c_str());
                                 exit(1);
                             }
                             break;
@@ -240,7 +240,7 @@ void CommandLine::sliceNext()
                             std::string key = argument.substr(0, value_position);
                             if (value_position == std::string::npos)
                             {
-                                logError("Missing value in setting argument: -s %s", argument);
+                                logError("Missing value in setting argument: -s %s", argument.c_str());
                                 exit(1);
                             }
                             std::string value = argument.substr(value_position + 1);
@@ -259,7 +259,7 @@ void CommandLine::sliceNext()
         }
         else
         {
-            logError("Unknown option: %s\n", argument);
+            logError("Unknown option: %s\n", argument.c_str());
             Application::getInstance().printCall();
             Application::getInstance().printHelp();
             exit(1);
