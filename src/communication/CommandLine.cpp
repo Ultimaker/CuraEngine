@@ -5,7 +5,9 @@
 #include <fstream> //To check if files exist.
 #include <libgen.h> //To get the parent directory of a file path.
 #include <numeric> //For std::accumulate.
-#include <omp.h> //To change the number of threads to slice with.
+#ifdef _OPENMP
+    #include <omp.h> //To change the number of threads to slice with.
+#endif //_OPENMP
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/filereadstream.h>

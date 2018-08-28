@@ -8,7 +8,7 @@
 #include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
-#include <omp.h>
+    #include <omp.h>
 #endif // _OPENMP
 
 #include "Application.h" //To get settings.
