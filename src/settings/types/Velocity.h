@@ -4,8 +4,6 @@
 #ifndef VELOCITY_H
 #define VELOCITY_H
 
-#include <algorithm> //For std::max and std::min.
-
 namespace cura
 {
 
@@ -24,7 +22,7 @@ struct Velocity
     /*
      * \brief Casts a double to a Velocity instance.
      */
-    Velocity(double value) : value(std::max(value, 0.0)) {};
+    Velocity(double value) : value(value) {};
 
     /*
      * \brief Casts the Temperature instance to a double.

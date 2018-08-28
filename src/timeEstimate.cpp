@@ -69,14 +69,16 @@ void TimeEstimateCalculator::reset()
 // acceleration within the allotted distance.
 static inline Velocity max_allowable_speed(const Velocity& acceleration, const Velocity& target_velocity, double distance)
 {
-  return sqrt(target_velocity * target_velocity - 2 * acceleration * distance);
+    return sqrt(target_velocity * target_velocity - 2 * acceleration * distance);
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
 static inline float estimate_acceleration_distance(const Velocity& initial_rate, const Velocity& target_rate, const Velocity& acceleration)
 {
     if (acceleration == 0)
+    {
         return 0.0;
+    }
     return (square(target_rate)-square(initial_rate)) / (2.0*acceleration);
 }
 
@@ -87,8 +89,10 @@ static inline float estimate_acceleration_distance(const Velocity& initial_rate,
 static inline double intersection_distance(const Velocity& initial_rate, const Velocity& final_rate, const Velocity& acceleration, double distance)
 {
     if (acceleration == 0.0)
+    {
         return 0.0;
-    return (2.0*acceleration*distance-square(initial_rate)+square(final_rate)) / (4.0*acceleration);
+    }
+    return (2.0 * acceleration * distance - square(initial_rate) + square(final_rate)) / (4.0 * acceleration);
 }
 
 // This function gives the time it needs to accelerate from an initial speed to reach a final distance.
