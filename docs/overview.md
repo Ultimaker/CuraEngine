@@ -23,6 +23,10 @@ All data for the engine is stored in the "SliceDataStorage". It's important to r
 
 Coordinates are stored in 64bit integers as microns in the code. So if you see a value of 1000 then this mean 1mm of distance. This is because Clipper works on 64bit integers and microns give a high enough resolution without limiting the size too much. Note that there are some bits and pieces of code that need to be careful about 64bit overflows, especially calculating lengths sqrt(x*x+y*y) can cause overflows.
 
+Settings
+--------
+See [this page](settings.md).
+
 OptimizedModel
 --------------
 The OptimizedModel is a 3D model stored with vertex<->face relations. This gives touching face relations which are used later on to slice into layers faster.
