@@ -18,7 +18,7 @@ Scene::Scene(const size_t num_mesh_groups)
 
 void Scene::compute()
 {
-    logWarning("%s", getAllSettingsString());
+    logWarning("%s", getAllSettingsString().c_str());
     for (std::vector<MeshGroup>::iterator mesh_group = mesh_groups.begin(); mesh_group != mesh_groups.end(); mesh_group++)
     {
         current_mesh_group = mesh_group;
