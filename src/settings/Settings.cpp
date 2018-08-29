@@ -24,7 +24,14 @@ namespace cura
 
 void Settings::add(const std::string& key, const std::string value)
 {
-    settings.emplace(key, value);
+    if (settings.find(key) != settings.end()) //Already exists.
+    {
+        settings[key] = value;
+    }
+    else //New setting.
+    {
+        settings.emplace(key, value);
+    }
 }
 
 template<> std::string Settings::get<std::string>(const std::string& key) const

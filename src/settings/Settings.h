@@ -41,10 +41,8 @@ public:
     /*!
      * \brief Adds a new setting.
      * \param key The name by which the setting is identified.
-     * \param value The value of the setting. This value can never change over
-     * the course of the lifetime of this ``Settings`` container (which is
-     * normally over the course of a slice. The value is always added and stored
-     * in serialised form as a string.
+     * \param value The value of the setting. The value is always added and
+     * stored in serialised form as a string.
      */
     void add(const std::string& key, const std::string value);
 
