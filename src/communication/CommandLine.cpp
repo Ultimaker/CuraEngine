@@ -223,7 +223,7 @@ void CommandLine::sliceNext()
                         break;
                     case 'g':
                         last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
-                        //Fall-through is intended here. No break!
+                        /* ... falls through ... */
                     case 's':
                     {
                         //Parse the given setting and store it.
