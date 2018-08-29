@@ -158,6 +158,7 @@ void CommandLine::sliceNext()
                             logError("Missing JSON file with -j argument.");
                             exit(1);
                         }
+                        argument = arguments[argument_index];
                         if (loadJSON(argument, last_settings))
                         {
                             logError("Failed to load JSON file: %s\n", argument.c_str());
