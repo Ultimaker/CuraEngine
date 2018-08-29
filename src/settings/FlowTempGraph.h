@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 
+#include "types/Temperature.h"
 #include "../utils/logoutput.h"
 
 namespace cura
@@ -18,13 +19,14 @@ class FlowTempGraph
 public:
     struct Datum
     {
-        double flow; //!< The flow in mm^3/s
-        double temp; //!< The temperature in *C
-        Datum(double flow, double temp)
+        const double flow; //!< The flow in mm^3/s
+        const Temperature temp; //!< The temperature in *C
+        Datum(const double flow, const Temperature temp)
         : flow(flow)
         , temp(temp)
         {}
     };
+
     std::vector<Datum> data; //!< The points of the graph between which the graph is linearly interpolated
 
     /*!
@@ -37,7 +39,7 @@ public:
      * \param material_print_temperature The default printing temp (backward compatibility for when the graph fails)
      * \return the corresponding temp
      */
-    double getTemp(double flow, double material_print_temperature, bool flow_dependent_temperature);
+    double getTemp(const double flow, const Temperature material_print_temperature, const bool flow_dependent_temperature) const;
 };
 
 } // namespace cura
