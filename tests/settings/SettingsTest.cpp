@@ -90,7 +90,8 @@ void SettingsTest::addSettingExtruderTrainTest()
 void SettingsTest::addSettingLayerIndexTest()
 {
     settings.add("test_setting", "-4");
-    CPPUNIT_ASSERT_EQUAL(LayerIndex(-4), settings.get<LayerIndex>("test_setting"));
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("LayerIndex settings start counting from 0, so subtract one.",
+                                 LayerIndex(-5), settings.get<LayerIndex>("test_setting"));
 }
 
 void SettingsTest::addSettingCoordTTest()
