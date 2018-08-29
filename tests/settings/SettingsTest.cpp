@@ -137,7 +137,8 @@ void SettingsTest::addSettingVelocityTest()
 void SettingsTest::addSettingRatioTest()
 {
     settings.add("test_setting", "1.618");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Ratio(1.618), settings.get<Ratio>("test_setting"), DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("With ratios, the input is interpreted in percentages.",
+                                         Ratio(0.01618), settings.get<Ratio>("test_setting"), DELTA);
 }
 
 void SettingsTest::addSettingDurationTest()
