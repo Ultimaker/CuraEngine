@@ -875,6 +875,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         addPrimeTower(storage, gcode_layer, prev_extruder);
     }
 
+    gcode_layer.optimizePaths(gcode.getPositionXY());
+
     return gcode_layer;
 }
 
@@ -1381,7 +1383,15 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][0], /*outline_offset =*/ 0
+
+        Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
+        double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
+        
+        // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
+        // especially on vertical surfaces
+        in_outline.removeSmallAreas(minimum_small_area);
+        
+        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/ 0
             , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
             , /*Polygons* perimeter_gaps =*/ nullptr
             , /*bool connected_zigzags =*/ false
@@ -2498,17 +2508,13 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-            if (train->getSettingBoolean("prime_blob_enable"))
-            { // only move to prime position if we do a blob/poop
-                // ideally the prime position would be respected whether we do a blob or not,
-                // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
-                // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
-                bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-                Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
+            // We always prime an extruder, but whether it will be a prime blob/poop depends on if prime blob is enabled.
+            // This is decided in GCodeExport::writePrimeTrain().
+            bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+            gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
 
-                gcode_layer.planPrime();
-            }
+            gcode_layer.planPrime();
         }
 
         if (gcode_layer.getLayerNr() == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
@@ -2532,7 +2538,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
         return;
     }
 
-    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    const int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
     if (gcode_layer.getLayerNr() == 0 && outermost_prime_tower_extruder != gcode_layer.getExtruder())
     {
         return;

@@ -773,7 +773,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    int snapDistance = MM2INT(1.0); // TODO: hardcoded value
+    int snapDistance = mesh->getSettingInMicrons("minimum_polygon_circumference");
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
     polygons.erase(it, polygons.end());
 
@@ -807,15 +807,21 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
 
     layers.resize(slice_layer_count);
 
-    // compensate first layer thickness depending on slicing mode
-    int initial = initial_layer_thickness - thickness;
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    // set (and initialize compensation for) initial layer, depending on slicing mode
+    layers[0].z = std::max(0LL, initial_layer_thickness - thickness);
+    int adjusted_layer_offset = initial_layer_thickness;
+    if (use_variable_layer_heights)
     {
-        initial += thickness / 2;
+        layers[0].z = adaptive_layers->at(0).z_position;
+    }
+    else if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    {
+        layers[0].z = initial_layer_thickness / 2;
+        adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
     }
 
-    // define all layer z positions depending on slicing mode
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    // define all layer z positions (depending on slicing mode, see above)
+    for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
@@ -823,7 +829,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         }
         else
         {
-            layers[layer_nr].z = initial + (thickness * layer_nr);
+            layers[layer_nr].z = adjusted_layer_offset + (thickness * (layer_nr - 1));
         }
     }
 
