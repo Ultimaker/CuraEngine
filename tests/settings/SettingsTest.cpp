@@ -171,17 +171,17 @@ void SettingsTest::addSettingFlowTempGraphTest()
 void SettingsTest::addSettingFMatrix3x3Test()
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); //Try various spacing and radixes.
-    FMatrix3x3 flow_matrix = settings.get<FMatrix3x3>("test_setting");
+    FMatrix3x3 float_matrix = settings.get<FMatrix3x3>("test_setting");
 
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, flow_matrix.m[0][0], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, flow_matrix.m[0][1], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.3, flow_matrix.m[0][2], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, flow_matrix.m[1][0], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.0, flow_matrix.m[1][1], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, flow_matrix.m[1][2], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.0, flow_matrix.m[2][0], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, flow_matrix.m[2][1], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, flow_matrix.m[2][2], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, float_matrix.m[0][0], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, float_matrix.m[1][0], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.3, float_matrix.m[2][0], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, float_matrix.m[0][1], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.0, float_matrix.m[1][1], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, float_matrix.m[2][1], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.0, float_matrix.m[0][2], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, float_matrix.m[1][2], DELTA);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, float_matrix.m[2][2], DELTA);
 }
 
 void SettingsTest::addSettingVectorTest()
