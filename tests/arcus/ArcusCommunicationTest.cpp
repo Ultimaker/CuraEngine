@@ -117,7 +117,7 @@ namespace cura
         port = 12345;
         socket = new MockSocket();
         ac = new ArcusCommunication();
-        ac->private_data->socket = socket;
+        ac->setSocketMock(socket);
 
         // from: PolygonConnectorTest
         test_square.emplace_back(0, 0);
@@ -177,12 +177,12 @@ namespace cura
 
     void ArcusCommunicationTest::isSequentialTest()
     {
-        ac->isSequential();
+        CPPUNIT_ASSERT(ac->isSequential());
     }
 
     void ArcusCommunicationTest::hasSliceTest()
     {
-        ac->hasSlice();
+        ac->hasSlice(); // TODO: Only possible when there's a slice send.
     }
 
     void ArcusCommunicationTest::sendCurrentPositionTest()

@@ -481,6 +481,12 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
     log("Connected to %s:%i\n", ip.c_str(), port);
 }
 
+// On the one hand, don't expose the socket for normal use, but on the other, we need to mock it for unit-tests.
+void ArcusCommunication::setSocketMock(Arcus::Socket* socket)
+{
+    private_data->socket = socket;
+}
+
 void ArcusCommunication::beginGCode()
 {
     FffProcessor::getInstance()->setTargetStream(&private_data->gcode_output_stream);

@@ -9,7 +9,12 @@
 
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
-#include <Arcus/Socket.h>
+
+//Forward declarations to speed up compilation.
+namespace Arcus
+{
+    class Socket;
+}
 
 namespace cura
 {
@@ -181,6 +186,10 @@ public:
     void sliceNext() override;
 
 private:
+    /* \brief Put any mock-socket there to assist with Unit-Testing.
+     */
+    void setSocketMock(Arcus::Socket* socket);
+
     /*
      * \brief PIMPL pattern subclass that contains the private implementation.
      */

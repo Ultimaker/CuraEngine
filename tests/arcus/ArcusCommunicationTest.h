@@ -11,7 +11,8 @@
 #include <Arcus/Socket.h>
 #include <Arcus/Types.h>
 
-#include "../src/communication/ArcusCommunication.cpp"  // cpp, not h because of the Private class within the class
+#include "../src/communication/ArcusCommunication.h"
+#include "../src/utils/polygon.h"
 
 namespace cura
 {
