@@ -426,6 +426,7 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
             if (!setting_object.HasMember("default_value"))
             {
                 logWarning("JSON setting %s has no default_value!\n", name.c_str());
+                continue;
             }
             const rapidjson::Value& default_value = setting_object["default_value"];
             std::string value_string;
