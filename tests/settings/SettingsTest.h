@@ -9,16 +9,7 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "../src/settings/FlowTempGraph.h"
 #include "../src/settings/Settings.h"
-#include "../src/settings/types/LayerIndex.h"
-#include "../src/settings/types/AngleRadians.h"
-#include "../src/settings/types/AngleDegrees.h"
-#include "../src/settings/types/Temperature.h"
-#include "../src/settings/types/Velocity.h"
-#include "../src/settings/types/Ratio.h"
-#include "../src/settings/types/Duration.h"
-#include "../src/utils/floatpoint.h"
 
 #define DELTA 0.000000001   // Used to skip rounding errors when comparing doubles
 
@@ -50,14 +41,6 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    /*!
-     * \brief Sets up the test suite to prepare for testing.
-     * 
-     * Since <em>SettingsTest</em> only has static functions, no instance
-     * needs to be created here.
-     */
-    void setUp();
-
     /*!
      * \brief Test if a setting with a string value is correctly inserted
      */

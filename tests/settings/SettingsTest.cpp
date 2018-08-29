@@ -4,6 +4,15 @@
 #include <cmath> //For M_PI.
 
 #include "SettingsTest.h"
+#include "../src/settings/FlowTempGraph.h"
+#include "../src/settings/types/LayerIndex.h"
+#include "../src/settings/types/AngleRadians.h"
+#include "../src/settings/types/AngleDegrees.h"
+#include "../src/settings/types/Temperature.h"
+#include "../src/settings/types/Velocity.h"
+#include "../src/settings/types/Ratio.h"
+#include "../src/settings/types/Duration.h"
+#include "../src/utils/floatpoint.h"
 
 namespace cura
 {
