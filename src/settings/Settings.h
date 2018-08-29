@@ -38,6 +38,11 @@ class ExtruderTrain; //Forward declaration to save compilation time.
 class Settings
 {
 public:
+    /*
+     * \brief Properly initialises the Settings instance.
+     */
+    Settings();
+
     /*!
      * \brief Adds a new setting.
      * \param key The name by which the setting is identified.
