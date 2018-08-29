@@ -165,69 +165,47 @@ private:
 
     // Some fixtures
     Settings settings;
-    std::string setting_key_string;
     std::string setting_value_string;
-    std::string setting_key_int;
     int setting_value_int;
     std::string setting_value_int_string;
-    std::string setting_key_int2;
     int setting_value_int2;
     std::string setting_value_int_string2;
-    std::string setting_key_double;
     double setting_value_double;
     std::string setting_value_double_string;
-    std::string setting_key_size_t;
     std::size_t setting_value_size_t;
     std::string setting_value_size_t_string;
-    std::string setting_key_unsigned_int;
     unsigned int setting_value_unsigned_int;
     std::string setting_value_unsigned_int_string;
-    std::string setting_key_bool;
     bool setting_value_bool;
     std::string setting_value_bool_string;
-    std::string setting_key_bool2;
     bool setting_value_bool2;
     std::string setting_value_bool_string2;
-    std::string setting_key_bool3;
     bool setting_value_bool3;
     std::string setting_value_bool_string3;
-    std::string setting_key_bool4;
     bool setting_value_bool4;
     std::string setting_value_bool_string4;
-    std::string setting_key_bool5;
     bool setting_value_bool5;
     std::string setting_value_bool_string5;
-    std::string setting_key_layerindex;
     LayerIndex setting_value_layerindex = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_layerindex_string;
-    std::string setting_key_coord_t;
     coord_t setting_value_coord_t;
     std::string setting_value_coord_t_string;
-    std::string setting_key_angleradians;
     AngleRadians setting_value_angleradians = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_angleradians_string;
-    std::string setting_key_angledegrees;
     AngleDegrees setting_value_angledegrees = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_angledegrees_string;
-    std::string setting_key_temperature;
     Temperature setting_value_temperature = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_temperature_string;
-    std::string setting_key_velocity;
     Velocity setting_value_velocity = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_velocity_string;
-    std::string setting_key_velocity2;
     Velocity setting_value_velocity2 = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_velocity_string2;
-    std::string setting_key_ratio;
     Ratio setting_value_ratio = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_ratio_string;
-    std::string setting_key_duration;
     Duration setting_value_duration = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_duration_string;
-    std::string setting_key_duration2;
     Duration setting_value_duration2 = 0;    // Set initial value here since there is not default constructor
     std::string setting_value_duration_string2;
-    std::string setting_key_flowtempgraph;
     double setting_value_flowtempgraph_flow;
     double setting_value_flowtempgraph_temp;
     double setting_value_flowtempgraph_flow2;
@@ -235,10 +213,8 @@ private:
     double setting_value_flowtempgraph_flow3;
     double setting_value_flowtempgraph_temp3;
     std::string setting_value_flowtempgraph_string;
-    std::string setting_key_fmatrix3x3;
     double setting_value_fmatrix3x3[3][3];
     std::string setting_value_fmatrix3x3_string;
-    std::string setting_key_vector;
     std::vector<int> setting_value_vector;
     std::string setting_value_vector_string;
 };
