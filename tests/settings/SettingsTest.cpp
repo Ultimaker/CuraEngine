@@ -244,4 +244,20 @@ void SettingsTest::inheritanceTest()
                                  override_value, settings.get<std::string>("test_setting"));
 }
 
+void SettingsTest::limitToExtruderTest()
+{
+    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
+    Application::getInstance().current_slice = current_slice.get();
+    current_slice->scene.extruders.emplace_back(0, nullptr);
+    current_slice->scene.extruders.emplace_back(1, nullptr);
+    current_slice->scene.extruders.emplace_back(2, nullptr);
+
+    //Add a setting to the extruder this is limiting to.
+    const std::string limit_extruder_value = "I was gonna tell a time travelling joke but you didn't like it.";
+    current_slice->scene.extruders[2].settings.add("test_setting", limit_extruder_value);
+    current_slice->scene.limit_to_extruder.emplace("test_setting", &current_slice->scene.extruders[2]);
+
+    CPPUNIT_ASSERT_EQUAL(limit_extruder_value, settings.get<std::string>("test_setting"));
+}
+
 }

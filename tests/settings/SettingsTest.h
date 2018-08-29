@@ -39,6 +39,7 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingVectorTest);
     CPPUNIT_TEST(overwriteSettingTest);
     CPPUNIT_TEST(inheritanceTest);
+    CPPUNIT_TEST(limitToExtruderTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -146,6 +147,11 @@ public:
      * \brief Test setting inheritance from the parent setting.
      */
     void inheritanceTest();
+
+    /*
+     * \brief Test limit to extruder functionality.
+     */
+    void limitToExtruderTest();
 
 private:
     Settings settings; //Settings fixture to test on.
