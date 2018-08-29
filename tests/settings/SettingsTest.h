@@ -59,14 +59,6 @@ public:
     void setUp();
 
     /*!
-     * \brief Tears down the test suite when testing is done.
-     * 
-     * Since <em>SettingsTest</em> only has static functions, no instance
-     * exists that needs to be destroyed.
-     */
-    void tearDown();
-
-    /*!
      * \brief Test if a setting with a string value is correctly inserted
      */
     void addSettingStringTest();

@@ -71,11 +71,6 @@ void SettingsTest::setUp()
     setting_value_vector_string = "[0, 1,2, 3 ,  5, 8,13]";
 }
 
-void SettingsTest::tearDown()
-{
-    //Do nothing.
-}
-
 void SettingsTest::addSettingStringTest()
 {
     settings.add("test_setting", setting_value_string);
