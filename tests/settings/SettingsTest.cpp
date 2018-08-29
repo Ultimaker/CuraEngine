@@ -96,8 +96,9 @@ void SettingsTest::addSettingLayerIndexTest()
 
 void SettingsTest::addSettingCoordTTest()
 {
-    settings.add("test_setting", "8589934592"); //2^33, so this MUST be a 64-bit integer! (Or at least 33-bit, but those don't exist.)
-    CPPUNIT_ASSERT_EQUAL(coord_t(8589934592), settings.get<coord_t>("test_setting"));
+    settings.add("test_setting", "8589934.592"); //2^33 microns, so this MUST be a 64-bit integer! (Or at least 33-bit, but those don't exist.)
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Coordinates must be entered in the setting as millimetres, but are converted to micrometres.",
+                                 coord_t(8589934592), settings.get<coord_t>("test_setting"));
 }
 
 void SettingsTest::addSettingAngleRadiansTest()
