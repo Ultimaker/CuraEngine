@@ -9,6 +9,7 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
+#include "../src/settings/FlowTempGraph.h"
 #include "../src/settings/Settings.h"
 #include "../src/settings/types/LayerIndex.h"
 #include "../src/settings/types/AngleRadians.h"
@@ -17,7 +18,6 @@
 #include "../src/settings/types/Velocity.h"
 #include "../src/settings/types/Ratio.h"
 #include "../src/settings/types/Duration.h"
-#include "../src/FlowTempGraph.h"
 #include "../src/utils/floatpoint.h"
 
 #define DELTA 0.000000001   // Used to skip rounding errors when comparing doubles

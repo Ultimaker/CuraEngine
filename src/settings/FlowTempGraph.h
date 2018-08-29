@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 
-#include "utils/logoutput.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {
