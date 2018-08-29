@@ -27,9 +27,6 @@ public:
     };
     std::vector<Datum> data; //!< The points of the graph between which the graph is linearly interpolated
 
-    FlowTempGraph()
-    {}
-    
     /*!
      * Get the temperature corresponding to a specific flow.
      * 
