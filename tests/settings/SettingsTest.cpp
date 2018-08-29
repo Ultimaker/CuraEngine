@@ -2,8 +2,10 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> //For M_PI.
+#include <memory> //For shared_ptr.
 
 #include "SettingsTest.h"
+#include "../src/Application.h" //To test extruder train settings.
 #include "../src/settings/FlowTempGraph.h"
 #include "../src/settings/types/LayerIndex.h"
 #include "../src/settings/types/AngleRadians.h"
@@ -80,11 +82,24 @@ void SettingsTest::addSettingBoolTest()
     CPPUNIT_ASSERT_EQUAL(false, settings.get<bool>("test_setting"));
 }
 
+class Slice; //Forward declaration to save some time compiling.
+
 void SettingsTest::addSettingExtruderTrainTest()
 {
-    // TODO: Do it when the implementation is done.
-    CPPUNIT_ASSERT_MESSAGE("TODO: The value of the 'ExtruderTrain' setting is not the same as the expected value!",
-                           false);
+    //Add a slice with some extruder trains.
+    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
+    Application::getInstance().current_slice = current_slice.get();
+    current_slice->scene.extruders.emplace_back(0, nullptr);
+    current_slice->scene.extruders.emplace_back(1, nullptr);
+    current_slice->scene.extruders.emplace_back(2, nullptr);
+
+    settings.add("test_setting", "2");
+    CPPUNIT_ASSERT_EQUAL(&current_slice->scene.extruders[2], &settings.get<ExtruderTrain&>("test_setting"));
+
+    settings.add("extruder_nr", "1");
+    settings.add("test_setting", "-1"); //-1 should let it fall back to the current extruder_nr.
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("If the extruder is negative, it uses the extruder_nr setting.",
+                                 &current_slice->scene.extruders[1], &settings.get<ExtruderTrain&>("test_setting"));
 }
 
 void SettingsTest::addSettingLayerIndexTest()
