@@ -20,6 +20,11 @@ namespace cura
 {
     CPPUNIT_TEST_SUITE_REGISTRATION(SettingsTest);
 
+void SettingsTest::setUp()
+{
+    settings = Settings(); //New instance to test with.
+}
+
 void SettingsTest::addSettingStringTest()
 {
     const std::string setting_value("The human body contains enough bones to make an entire skeleton.");
@@ -219,6 +224,24 @@ void SettingsTest::overwriteSettingTest()
     CPPUNIT_ASSERT_MESSAGE("When overriding a setting, the original value was not changed.",
                            settings.get<std::string>("test_setting") != std::string("P"));
     CPPUNIT_ASSERT_EQUAL(std::string("NP"), settings.get<std::string>("test_setting"));
+}
+
+void SettingsTest::inheritanceTest()
+{
+    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
+    Application::getInstance().current_slice = current_slice.get();
+
+    const std::string value = "A nuclear explosion would be a disaster.";
+    Settings parent;
+    parent.add("test_setting", value);
+    settings.setParent(&parent);
+
+    CPPUNIT_ASSERT_EQUAL(value, settings.get<std::string>("test_setting"));
+
+    const std::string override_value = "It's quick, it's easy and it's free: Pouring river water in your socks.";
+    settings.add("test_setting", override_value);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The new value overrides the one from the parent.",
+                                 override_value, settings.get<std::string>("test_setting"));
 }
 
 }

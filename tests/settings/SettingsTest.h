@@ -38,9 +38,15 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingFMatrix3x3Test);
     CPPUNIT_TEST(addSettingVectorTest);
     CPPUNIT_TEST(overwriteSettingTest);
+    CPPUNIT_TEST(inheritanceTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
+    /*
+     * \brief Generate fixtures for these tests.
+     */
+    void setUp();
+
     /*!
      * \brief Test if a setting with a string value is correctly inserted
      */
@@ -135,6 +141,11 @@ public:
      * \brief Test to overwrite the value of the same setting
      */
     void overwriteSettingTest();
+
+    /*
+     * \brief Test setting inheritance from the parent setting.
+     */
+    void inheritanceTest();
 
 private:
     Settings settings; //Settings fixture to test on.
