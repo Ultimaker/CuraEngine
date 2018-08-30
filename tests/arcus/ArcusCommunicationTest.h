@@ -64,6 +64,7 @@ public:
     void flushGCodeTest();
     void isSequentialTest();
     void hasSliceTest();
+    void readExtruderSettingsMessageTest();
     void sendCurrentPositionTest();
     void sendGCodePrefixTest();
     void sendFinishedSlicingTest();

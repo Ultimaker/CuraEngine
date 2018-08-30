@@ -6,6 +6,19 @@
 namespace cura
 {
 
+void ArcusCommunicationPrivateTest::setUp()
+{
+    instance = new ArcusCommunication::Private();
+}
 
+void ArcusCommunicationPrivateTest::tearDown()
+{
+    delete instance;
+}
+
+void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
+{
+    
+}
 
 } //namespace cura
