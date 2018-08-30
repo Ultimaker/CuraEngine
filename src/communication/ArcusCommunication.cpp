@@ -33,6 +33,7 @@ public:
         , object_count(0)
         , last_sent_progress(-1)
         , slice_count(0)
+        , millisecUntilNextTry(100)
     {}
 
     /*
@@ -188,6 +189,8 @@ public:
      * has already been reserved for them.
      */
     size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
+
+    const size_t millisecUntilNextTry; // How long we wait until we try to connect again.
 };
 
 /*
@@ -476,7 +479,7 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
     private_data->socket->connect(ip, port);
     while (private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); //Wait until we're connected. Check every 100ms.
+        std::this_thread::sleep_for(std::chrono::milliseconds(private_data->millisecUntilNextTry)); //Wait until we're connected. Check every XXXms.
     }
     log("Connected to %s:%i\n", ip.c_str(), port);
 }
