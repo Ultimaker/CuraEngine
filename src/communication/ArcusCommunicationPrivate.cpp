@@ -1,6 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#ifdef ARCUS
+
 #include "ArcusCommunicationPrivate.h"
 #include "../Application.h"
 
@@ -129,3 +131,5 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
 }
 
 } //namespace cura
+
+#endif //ARCUS

@@ -3,6 +3,7 @@
 
 #ifndef ARCUSCOMMUNICATIONPRIVATE_H
 #define ARCUSCOMMUNICATIONPRIVATE_H
+#ifdef ARCUS
 
 #include <sstream> //For ostringstream.
 
@@ -72,4 +73,5 @@ public:
 
 } //namespace cura
 
+#endif //ARCUS
 #endif //ARCUSCOMMUNICATIONPRIVATE_H
