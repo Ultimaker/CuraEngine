@@ -187,10 +187,12 @@ set(engine_TEST_INFILL
 set(engine_TEST_SETTINGS
     SettingsTest
 )
-set(engine_TEST_ARCUS
-    ArcusCommunicationTest
-    ArcusCommunicationPrivateTest
-)
+if (ENABLE_ARCUS)
+    set(engine_TEST_ARCUS
+        ArcusCommunicationTest
+        ArcusCommunicationPrivateTest
+    )
+endif ()
 set(engine_TEST_UTILS
     SparseGridTest
     IntPointTest
@@ -273,11 +275,13 @@ if (BUILD_TESTS)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
-    foreach (test ${engine_TEST_ARCUS})
-        add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
-        target_link_libraries(${test} _CuraEngine cppunit)
-        add_test(${test} ${test})
-    endforeach()
+    if (ENABLE_ARCUS)
+        foreach (test ${engine_TEST_ARCUS})
+            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
+            target_link_libraries(${test} _CuraEngine cppunit)
+            add_test(${test} ${test})
+        endforeach()
+    endif ()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
