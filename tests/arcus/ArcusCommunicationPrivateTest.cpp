@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ArcusCommunicationPrivateTest.h"
+#include "MockSocket.h"
 
 namespace cura
 {
@@ -9,10 +10,12 @@ namespace cura
 void ArcusCommunicationPrivateTest::setUp()
 {
     instance = new ArcusCommunication::Private();
+    instance->socket = new MockSocket();
 }
 
 void ArcusCommunicationPrivateTest::tearDown()
 {
+    delete instance->socket;
     delete instance;
 }
 
