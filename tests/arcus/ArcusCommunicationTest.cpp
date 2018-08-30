@@ -3,6 +3,7 @@
 
 #include <google/protobuf/message.h>
 
+#include "MockSocket.h" //To mock out the communication with the front-end.
 #include "ArcusCommunicationTest.h"
 #include "../src/settings/types/LayerIndex.h"
 #include "../src/FffProcessor.h"
@@ -10,39 +11,6 @@
 namespace cura
 {
     CPPUNIT_TEST_SUITE_REGISTRATION(ArcusCommunicationTest);
-
-    ArcusCommunicationTest::MockSocket::MockSocket()
-    {
-    }
-
-    void ArcusCommunicationTest::MockSocket::connect(const std::string& address, int port) { /* Do nothing. */ }
-    void ArcusCommunicationTest::MockSocket::listen(const std::string& address, int port) { /* Do nothing. */ }
-    void ArcusCommunicationTest::MockSocket::close() { /* Do nothing. */ }
-    void ArcusCommunicationTest::MockSocket::reset() { /* Do nothing. */ }
-
-    void ArcusCommunicationTest::MockSocket::sendMessage(Arcus::MessagePtr message)
-    {
-        sent_messages.push_back(message);
-    }
-
-    Arcus::MessagePtr ArcusCommunicationTest::MockSocket::takeNextMessage()
-    {
-        Arcus::MessagePtr result = received_messages.front();
-        received_messages.pop_front();
-        return result;
-    }
-
-    void ArcusCommunicationTest::MockSocket::pushMessageToReceivedQueue(Arcus::MessagePtr message)
-    {
-        received_messages.push_back(message);
-    }
-
-    Arcus::MessagePtr ArcusCommunicationTest::MockSocket::popMessageFromSendQueue()
-    {
-        Arcus::MessagePtr result = sent_messages.front();
-        sent_messages.pop_front();
-        return result;
-    }
 
     void ArcusCommunicationTest::setUp()
     {
@@ -260,6 +228,5 @@ namespace cura
         ac->sliceNext();
         //socket->printMessages();
     }
-
 }
 

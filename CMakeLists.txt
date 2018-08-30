@@ -189,6 +189,7 @@ set(engine_TEST_SETTINGS
 )
 set(engine_TEST_ARCUS
     ArcusCommunicationTest
+    ArcusCommunicationPrivateTest
 )
 set(engine_TEST_UTILS
     SparseGridTest
@@ -199,6 +200,11 @@ set(engine_TEST_UTILS
     PolygonTest
     StringTest
     UnionFindTest
+)
+
+# Helper classes for some tests.
+set(engine_TEST_ARCUS_HELPERS
+    tests/arcus/MockSocket.cpp
 )
 
 # Generating ProtoBuf protocol
@@ -268,7 +274,7 @@ if (BUILD_TESTS)
         add_test(${test} ${test})
     endforeach()
     foreach (test ${engine_TEST_ARCUS})
-        add_executable(${test} tests/main.cpp tests/arcus/${test}.cpp)
+        add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()

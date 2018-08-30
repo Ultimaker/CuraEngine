@@ -41,30 +41,6 @@ class ArcusCommunicationTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    class MockSocket : public Arcus::Socket
-    {
-    public:
-        MockSocket();
-        //virtual ~MockSocket();
-
-        virtual void connect(const std::string& address, int port);
-        virtual void listen(const std::string& address, int port);
-        virtual void close();
-        virtual void reset();
-
-        virtual void sendMessage(Arcus::MessagePtr message);
-        virtual Arcus::MessagePtr takeNextMessage();
-        //virtual Arcus::MessagePtr createMessage(const std::string& type_name);
-
-        void pushMessageToReceivedQueue(Arcus::MessagePtr message);
-        Arcus::MessagePtr popMessageFromSendQueue();
-        // void setName(const std::string& new_name);
-        // void printMessages();
-
-        std::deque<Arcus::MessagePtr> sent_messages;
-        std::deque<Arcus::MessagePtr> received_messages;
-    };
-
     /*!
      * \brief Sets up the test suite to prepare for testing.
      *
