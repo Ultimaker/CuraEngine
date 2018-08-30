@@ -7,6 +7,8 @@
 namespace cura
 {
 
+CPPUNIT_TEST_SUITE_REGISTRATION(ArcusCommunicationPrivateTest);
+
 void ArcusCommunicationPrivateTest::setUp()
 {
     instance = new ArcusCommunication::Private();
