@@ -186,7 +186,8 @@ public:
     void sliceNext() override;
 
 private:
-    /* \brief Put any mock-socket there to assist with Unit-Testing.
+    /*
+     * \brief Put any mock-socket there to assist with Unit-Testing.
      */
     void setSocketMock(Arcus::Socket* socket);
 

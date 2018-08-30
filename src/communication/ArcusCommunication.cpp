@@ -4,11 +4,11 @@
 #ifdef ARCUS
 
 #include <Arcus/Socket.h> //The socket to communicate to.
-#include <sstream> //For ostringstream.
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 #include "ArcusCommunication.h"
+#include "ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
 #include "../Application.h" //To get and set the current slice command.
@@ -24,174 +24,6 @@ namespace cura
 
 //Forward declarations for compilation speed.
 class MeshGroup;
-
-class ArcusCommunication::Private
-{
-public:
-    Private()
-        : socket(nullptr)
-        , object_count(0)
-        , last_sent_progress(-1)
-        , slice_count(0)
-        , millisecUntilNextTry(100)
-    {}
-
-    /*
-     * Get the optimised layer data for a specific layer.
-     * \param layer_nr The layer number to get the optimised layer data for.
-     * \return The optimised layer data for that layer.
-     */
-    std::shared_ptr<cura::proto::LayerOptimized> getOptimizedLayerById(LayerIndex layer_nr)
-    {
-        layer_nr += optimized_layers.current_layer_offset;
-        std::unordered_map<int, std::shared_ptr<proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
-
-        if (find_result != optimized_layers.slice_data.end()) //Load layer from the cache.
-        {
-            return find_result->second;
-        }
-        else //Not in the cache yet. Create an empty layer.
-        {
-            std::shared_ptr<proto::LayerOptimized> layer = std::make_shared<proto::LayerOptimized>();
-            layer->set_id(layer_nr);
-            optimized_layers.current_layer_count++;
-            optimized_layers.slice_data[layer_nr] = layer;
-            return layer;
-        }
-    }
-
-    /*
-     * Reads the global settings from a Protobuf message.
-     *
-     * The global settings are stored in the current scene.
-     * \param global_settings_message The global settings message.
-     */
-    void readGlobalSettingsMessage(const cura::proto::SettingList& global_settings_message)
-    {
-        Slice* slice = Application::getInstance().current_slice;
-        for (const cura::proto::Setting& setting_message : global_settings_message.settings())
-        {
-            slice->scene.settings.add(setting_message.name(), setting_message.value());
-        }
-    }
-    
-    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<cura::proto::Extruder>& extruder_messages)
-    {
-        //Make sure we have enough extruders added currently.
-        Slice* slice = Application::getInstance().current_slice;
-        const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
-        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-        {
-            slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
-        }
-
-        //Parse the extruder number and the settings from the messages.
-        for (const cura::proto::Extruder& extruder_message : extruder_messages)
-        {
-            const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
-            if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
-            {
-                logWarning("Received extruder index that is out of range: %i", extruder_nr);
-                continue;
-            }
-            ExtruderTrain& extruder = slice->scene.extruders[extruder_nr]; //Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
-            for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
-            {
-                extruder.settings.add(setting_message.name(), setting_message.value());
-            }
-        }
-    }
-
-    /*
-     * \brief Reads a Protobuf message describing a mesh group.
-     *
-     * This gets the vertex data from the message as well as the settings.
-     */
-    void readMeshGroupMessage(const cura::proto::ObjectList& mesh_group_message)
-    {
-        if (mesh_group_message.objects_size() <= 0)
-        {
-            return; //Don't slice empty mesh groups.
-        }
-
-        Scene& scene = Application::getInstance().current_slice->scene;
-        MeshGroup& mesh_group = scene.mesh_groups.at(object_count);
-        mesh_group.settings.setParent(&Application::getInstance().current_slice->scene.settings);
-
-        //Load the settings in the mesh group.
-        for (const cura::proto::Setting& setting : mesh_group_message.settings())
-        {
-            mesh_group.settings.add(setting.name(), setting.value());
-        }
-
-        FMatrix3x3 matrix;
-        for (const cura::proto::Object& object : mesh_group_message.objects())
-        {
-            const size_t bytes_per_face = sizeof(FPoint3) * 3; //3 vectors per face.
-            const size_t face_count = object.vertices().size() / bytes_per_face;
-
-            if (face_count <= 0)
-            {
-                logWarning("Got an empty mesh. Ignoring it!");
-                continue;
-            }
-
-            mesh_group.meshes.emplace_back();
-            Mesh& mesh = mesh_group.meshes.back();
-
-            //Load the settings for the mesh.
-            for (const cura::proto::Setting& setting : object.settings())
-            {
-                mesh.settings.add(setting.name(), setting.value());
-            }
-            ExtruderTrain& extruder = mesh.settings.get<ExtruderTrain&>("extruder_nr"); //Set the parent setting to the correct extruder.
-            mesh.settings.setParent(&extruder.settings);
-
-            for (size_t face = 0; face < face_count; face++)
-            {
-                const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-                const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(data.data());
-
-                Point3 verts[3];
-                verts[0] = matrix.apply(float_vertices[0]);
-                verts[1] = matrix.apply(float_vertices[1]);
-                verts[2] = matrix.apply(float_vertices[2]);
-                mesh.addFace(verts[0], verts[1], verts[2]);
-            }
-
-            mesh.finish();
-        }
-        object_count++;
-        mesh_group.finalize();
-    }
-
-    Arcus::Socket* socket; //!< Socket to send data to.
-    size_t object_count; //!< Number of objects that need to be sliced.
-    std::string temp_gcode_file; //!< Temporary buffer for the g-code.
-    std::ostringstream gcode_output_stream; //!< The stream to write g-code to.
-
-    SliceDataStruct<cura::proto::Layer> sliced_layers;
-    SliceDataStruct<cura::proto::LayerOptimized> optimized_layers;
-
-    int last_sent_progress; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
-
-    /*
-     * \brief How often we've sliced so far during this run of CuraEngine.
-     *
-     * This is currently used to limit the number of slices per run to 1,
-     * because CuraEngine produced different output for each slice. The fix was
-     * to restart CuraEngine every time you make a slice.
-     *
-     * Once this bug is resolved, we can allow multiple slices for each run. Our
-     * intuition says that there might be some differences if we let stuff
-     * depend on the order of iteration in unordered_map or unordered_set,
-     * because those data structures will give a different order if more memory
-     * has already been reserved for them.
-     */
-    size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
-
-    const size_t millisecUntilNextTry; // How long we wait until we try to connect again.
-};
 
 /*
  * \brief A computation class that formats layer view data in a way that the
@@ -558,7 +390,7 @@ void ArcusCommunication::sendOptimizedLayerData()
 {
     path_compiler->flushPathSegments(); //Make sure the last path segment has been flushed from the compiler.
 
-    SliceDataStruct<cura::proto::LayerOptimized>& data = private_data->optimized_layers;
+    SliceDataStruct<proto::LayerOptimized>& data = private_data->optimized_layers;
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
     if (data.sliced_objects < private_data->object_count) //Nothing to send.
