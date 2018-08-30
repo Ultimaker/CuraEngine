@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ArcusCommunicationPrivateTest.h"
+#include "MockSocket.h"
 
 #include "../src/Application.h"
 #include "../src/Slice.h"
@@ -16,12 +17,13 @@ constexpr size_t gkTestNumMeshGroups = 1;
 void ArcusCommunicationPrivateTest::setUp()
 {
     instance = new ArcusCommunication::Private();
-
+    instance->socket = new MockSocket();
     Application::getInstance().current_slice = new Slice(gkTestNumMeshGroups);
 }
 
 void ArcusCommunicationPrivateTest::tearDown()
 {
+    delete instance->socket;
     delete instance;
 
     delete Application::getInstance().current_slice;
