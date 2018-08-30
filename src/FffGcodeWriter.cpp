@@ -2549,6 +2549,12 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 
 void FffGcodeWriter::finalize()
 {
+    if (getSettingBoolean("machine_heated_bed"))
+    {
+        gcode.writeBedTemperatureCommand(0); //Cool down the bed (M140).
+        //Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
+    }
+
     double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
