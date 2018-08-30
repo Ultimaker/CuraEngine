@@ -133,127 +133,125 @@ void CommandLine::sliceNext()
             }
             else //Starts with "-" but not with "--".
             {
-                for (argument_index++; argument_index < arguments.size(); argument_index++)
+                argument = arguments[argument_index];
+                switch(argument[1])
                 {
-                    argument = arguments[argument_index];
-                    switch(argument[1])
-                    {
-                        case 'v':
-                            increaseVerboseLevel();
-                            break;
+                    case 'v':
+                        increaseVerboseLevel();
+                        break;
 #ifdef _OPENMP
-                        case 'm':
-                        {
-                            int threads = stoi(argument.substr(1));
-                            threads = std::max(1, threads);
-                            omp_set_num_threads(threads);
-                            break;
-                        }
-#endif //_OPENMP
-                        case 'p':
-                            enableProgressLogging();
-                            break;
-                        case 'j':
-                            argument_index++;
-                            if (argument_index >= arguments.size())
-                            {
-                                logError("Missing JSON file with -j argument.");
-                                exit(1);
-                            }
-                            if (loadJSON(argument, last_settings))
-                            {
-                                logError("Failed to load JSON file: %s\n", argument.c_str());
-                                exit(1);
-                            }
-
-                            //If this was the global stack, create extruders for the machine_extruder_count setting.
-                            if (&last_settings == &slice.scene.settings)
-                            {
-                                const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
-                                while (slice.scene.extruders.size() < extruder_count)
-                                {
-                                    slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
-                                }
-                            }
-                            break;
-                        case 'e':
-                        {
-                            size_t extruder_nr = stoul(argument.substr(1));
-                            while (slice.scene.extruders.size() <= extruder_nr) //Make sure we have enough extruders up to the extruder_nr that the user wanted.
-                            {
-                                slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
-                            }
-                            last_settings = slice.scene.extruders[extruder_nr].settings;
-                            break;
-                        }
-                        case 'l':
-                        {
-                            argument_index++;
-                            if (argument_index >= arguments.size())
-                            {
-                                logError("Missing model file with -l argument.");
-                                exit(1);
-                            }
-
-                            const FMatrix3x3 transformation = last_settings.get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
-
-                            argument = arguments[argument_index];
-                            if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
-                            {
-                                logError("Failed to load model: %s\n", argument.c_str());
-                                exit(1);
-                            }
-                            else
-                            {
-                                last_settings = slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
-                            }
-                            break;
-                        }
-                        case 'o':
-                            argument_index++;
-                            if (argument_index >= arguments.size())
-                            {
-                                logError("Missing output file with -o argument.");
-                                exit(1);
-                            }
-                            argument = arguments[argument_index];
-                            if (!FffProcessor::getInstance()->setTargetFile(argument.c_str()))
-                            {
-                                logError("Failed to open %s for output.\n", argument.c_str());
-                                exit(1);
-                            }
-                            break;
-                        case 'g':
-                            last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
-                            //Fall-through is intended here. No break!
-                        case 's':
-                        {
-                            //Parse the given setting and store it.
-                            argument_index++;
-                            if (argument_index >= arguments.size())
-                            {
-                                logError("Missing setting name and value with -s argument.");
-                                exit(1);
-                            }
-                            argument = arguments[argument_index];
-                            const size_t value_position = argument.find("=");
-                            std::string key = argument.substr(0, value_position);
-                            if (value_position == std::string::npos)
-                            {
-                                logError("Missing value in setting argument: -s %s", argument.c_str());
-                                exit(1);
-                            }
-                            std::string value = argument.substr(value_position + 1);
-                            last_settings.add(key, value);
-                            break;
-                        }
-                        default:
-                            logError("Unknown option: -%c\n", argument[1]);
-                            Application::getInstance().printCall();
-                            Application::getInstance().printHelp();
-                            exit(1);
-                            break;
+                    case 'm':
+                    {
+                        int threads = stoi(argument.substr(1));
+                        threads = std::max(1, threads);
+                        omp_set_num_threads(threads);
+                        break;
                     }
+#endif //_OPENMP
+                    case 'p':
+                        enableProgressLogging();
+                        break;
+                    case 'j':
+                        argument_index++;
+                        if (argument_index >= arguments.size())
+                        {
+                            logError("Missing JSON file with -j argument.");
+                            exit(1);
+                        }
+                        argument = arguments[argument_index];
+                        if (loadJSON(argument, last_settings))
+                        {
+                            logError("Failed to load JSON file: %s\n", argument.c_str());
+                            exit(1);
+                        }
+
+                        //If this was the global stack, create extruders for the machine_extruder_count setting.
+                        if (&last_settings == &slice.scene.settings)
+                        {
+                            const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+                            while (slice.scene.extruders.size() < extruder_count)
+                            {
+                                slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
+                            }
+                        }
+                        break;
+                    case 'e':
+                    {
+                        size_t extruder_nr = stoul(argument.substr(1));
+                        while (slice.scene.extruders.size() <= extruder_nr) //Make sure we have enough extruders up to the extruder_nr that the user wanted.
+                        {
+                            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+                        }
+                        last_settings = slice.scene.extruders[extruder_nr].settings;
+                        break;
+                    }
+                    case 'l':
+                    {
+                        argument_index++;
+                        if (argument_index >= arguments.size())
+                        {
+                            logError("Missing model file with -l argument.");
+                            exit(1);
+                        }
+                        argument = arguments[argument_index];
+
+                        const FMatrix3x3 transformation = last_settings.get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
+
+                        if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
+                        {
+                            logError("Failed to load model: %s\n", argument.c_str());
+                            exit(1);
+                        }
+                        else
+                        {
+                            last_settings = slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
+                        }
+                        break;
+                    }
+                    case 'o':
+                        argument_index++;
+                        if (argument_index >= arguments.size())
+                        {
+                            logError("Missing output file with -o argument.");
+                            exit(1);
+                        }
+                        argument = arguments[argument_index];
+                        if (!FffProcessor::getInstance()->setTargetFile(argument.c_str()))
+                        {
+                            logError("Failed to open %s for output.\n", argument.c_str());
+                            exit(1);
+                        }
+                        break;
+                    case 'g':
+                        last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
+                        /* ... falls through ... */
+                    case 's':
+                    {
+                        //Parse the given setting and store it.
+                        argument_index++;
+                        if (argument_index >= arguments.size())
+                        {
+                            logError("Missing setting name and value with -s argument.");
+                            exit(1);
+                        }
+                        argument = arguments[argument_index];
+                        const size_t value_position = argument.find("=");
+                        std::string key = argument.substr(0, value_position);
+                        if (value_position == std::string::npos)
+                        {
+                            logError("Missing value in setting argument: -s %s", argument.c_str());
+                            exit(1);
+                        }
+                        std::string value = argument.substr(value_position + 1);
+                        last_settings.add(key, value);
+                        break;
+                    }
+                    default:
+                        logError("Unknown option: -%c\n", argument[1]);
+                        Application::getInstance().printCall();
+                        Application::getInstance().printHelp();
+                        exit(1);
+                        break;
                 }
             }
         }
@@ -428,6 +426,7 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
             if (!setting_object.HasMember("default_value"))
             {
                 logWarning("JSON setting %s has no default_value!\n", name.c_str());
+                continue;
             }
             const rapidjson::Value& default_value = setting_object["default_value"];
             std::string value_string;

@@ -22,9 +22,21 @@
 namespace cura
 {
 
+Settings::Settings()
+{
+    parent = nullptr; //Needs to be properly initialised because we check against this if the parent is not set.
+}
+
 void Settings::add(const std::string& key, const std::string value)
 {
-    settings.emplace(key, value);
+    if (settings.find(key) != settings.end()) //Already exists.
+    {
+        settings[key] = value;
+    }
+    else //New setting.
+    {
+        settings.emplace(key, value);
+    }
 }
 
 template<> std::string Settings::get<std::string>(const std::string& key) const
