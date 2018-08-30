@@ -16,6 +16,7 @@ namespace cura
 
 class ArcusCommunication::Private
 {
+    friend class ArcusCommunicationPrivateTest;
 public:
     Private();
 
