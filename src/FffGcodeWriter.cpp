@@ -2208,7 +2208,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
-    const double support_infill_angle = 0;
+    const double support_infill_angle = infill_extruder.getSettingInAngleDegrees("support_infill_angle");
     constexpr int infill_multiplier = 1; // there is no frontend setting for this (yet)
     constexpr int wall_line_count = 0;
     coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
