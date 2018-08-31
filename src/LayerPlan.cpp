@@ -964,7 +964,7 @@ unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsig
 
     unsigned curr_idx = start_idx;
 
-    for(;;)
+    while(true)
     {
         const Point& vertex = wall[curr_idx];
         if (!air_below.inside(vertex, true))
