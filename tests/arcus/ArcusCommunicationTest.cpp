@@ -116,7 +116,7 @@ namespace cura
     void ArcusCommunicationTest::sendFinishedSlicingTest()
     {
         ac->sendFinishedSlicing();
-        CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
+        CPPUNIT_ASSERT_EQUAL(size_t(1), socket->sent_messages.size());
     }
 
     void ArcusCommunicationTest::sendLayerCompleteTest()
