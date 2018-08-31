@@ -80,8 +80,8 @@ void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
     extruder_message->set_id(0);
 
     //Fill the extruder with settings.
-    proto::SettingList extruder_settings = extruder_message->settings();
-    cura::proto::Setting* setting = extruder_settings.add_settings();
+    proto::SettingList* extruder_settings = extruder_message->mutable_settings();
+    cura::proto::Setting* setting = extruder_settings->add_settings();
     setting->set_name("test_setting");
     const std::string setting_value = "You put the 'sexy' in 'dyslexic'.";
     setting->set_value(setting_value);
