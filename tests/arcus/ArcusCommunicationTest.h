@@ -23,7 +23,6 @@ class ArcusCommunicationTest : public CppUnit::TestFixture
     CPPUNIT_TEST(flushGCodeTest);
     CPPUNIT_TEST(isSequentialTest);
     CPPUNIT_TEST(hasSliceTest);
-    CPPUNIT_TEST(sendCurrentPositionTest);
     CPPUNIT_TEST(sendGCodePrefixTest);
     CPPUNIT_TEST(sendFinishedSlicingTest);
     CPPUNIT_TEST(sendLayerCompleteTest);
@@ -63,7 +62,6 @@ public:
     void isSequentialTest();
     void hasSliceTest();
     void readExtruderSettingsMessageTest();
-    void sendCurrentPositionTest();
     void sendGCodePrefixTest();
     void sendFinishedSlicingTest();
     void sendLayerCompleteTest();

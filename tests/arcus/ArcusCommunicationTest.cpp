@@ -94,12 +94,6 @@ namespace cura
         CPPUNIT_ASSERT_MESSAGE("Can't slice more than once.", !ac->hasSlice());
     }
 
-    void ArcusCommunicationTest::sendCurrentPositionTest()
-    {
-//         ac->sendCurrentPosition(Point(1, 2));
-// //        ac->flushGCode();
-    }
-
     void ArcusCommunicationTest::sendGCodePrefixTest()
     {
         const std::string& prefix = "bladibla";
