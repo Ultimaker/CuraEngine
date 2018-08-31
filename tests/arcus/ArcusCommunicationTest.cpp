@@ -84,7 +84,7 @@ namespace cura
 
     void ArcusCommunicationTest::isSequentialTest()
     {
-        CPPUNIT_ASSERT(ac->isSequential());
+        CPPUNIT_ASSERT(!ac->isSequential());
     }
 
     void ArcusCommunicationTest::hasSliceTest()
