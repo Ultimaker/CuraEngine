@@ -89,7 +89,9 @@ namespace cura
 
     void ArcusCommunicationTest::hasSliceTest()
     {
-        CPPUNIT_ASSERT(ac->hasSlice()); // TODO: Only possible when there's a slice send.
+        CPPUNIT_ASSERT(ac->hasSlice());
+        ac->private_data->slice_count = 1;
+        CPPUNIT_ASSERT_MESSAGE("Can't slice more than once.", !ac->hasSlice());
     }
 
     void ArcusCommunicationTest::sendCurrentPositionTest()
