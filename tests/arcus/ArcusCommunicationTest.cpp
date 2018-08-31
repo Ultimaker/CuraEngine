@@ -146,20 +146,4 @@ namespace cura
         message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
         CPPUNIT_ASSERT_EQUAL(float(25), message->amount());
     }
-
-    void ArcusCommunicationTest::setLayerForSendTest()
-    {
-        ac->setLayerForSend(42);
-    }
-
-    void ArcusCommunicationTest::setExtruderForSendTest()
-    {
-
-    }
-
-    void ArcusCommunicationTest::sliceNextTest()
-    {
-        ac->sliceNext();
-    }
 }
-

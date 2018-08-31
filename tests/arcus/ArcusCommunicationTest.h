@@ -27,10 +27,6 @@ class ArcusCommunicationTest : public CppUnit::TestFixture
     CPPUNIT_TEST(sendFinishedSlicingTest);
     CPPUNIT_TEST(sendLayerCompleteTest);
     CPPUNIT_TEST(sendProgressTest);
-    CPPUNIT_TEST(setLayerForSendTest);
-    CPPUNIT_TEST(setExtruderForSendTest);
-    CPPUNIT_TEST(sliceNextTest);
-
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -61,9 +57,6 @@ public:
     void sendFinishedSlicingTest();
     void sendLayerCompleteTest();
     void sendProgressTest();
-    void setLayerForSendTest();
-    void setExtruderForSendTest();
-    void sliceNextTest();
 
 private:
     std::string ip;
