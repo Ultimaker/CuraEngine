@@ -71,7 +71,7 @@ void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
     }
 }
 
-void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
+void ArcusCommunicationPrivateTest::readSingleExtruderSettingsMessageTest()
 {
     google::protobuf::RepeatedPtrField<proto::Extruder> messages; //Construct a message.
 
@@ -81,7 +81,7 @@ void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
 
     //Fill the extruder with settings.
     proto::SettingList* extruder_settings = extruder_message->mutable_settings();
-    cura::proto::Setting* setting = extruder_settings->add_settings();
+    proto::Setting* setting = extruder_settings->add_settings();
     setting->set_name("test_setting");
     const std::string setting_value = "You put the 'sexy' in 'dyslexic'.";
     setting->set_value(setting_value);
@@ -93,6 +93,36 @@ void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Reading the extruders must construct the correct amount of extruders in the scene.",
                                  size_t(1), Application::getInstance().current_slice->scene.extruders.size());
     CPPUNIT_ASSERT_EQUAL(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("test_setting"));
+}
+
+void ArcusCommunicationPrivateTest::readMultiExtruderSettingsMessageTest()
+{
+    google::protobuf::RepeatedPtrField<proto::Extruder> messages; //Construct a message.
+
+    //Test with two extruders.
+    proto::Extruder* second_extruder = messages.Add(); //Out of order on purpose.
+    second_extruder->set_id(1);
+    proto::Extruder* first_extruder = messages.Add();
+    first_extruder->set_id(0);
+
+    //Give a different value for each extruder.
+    proto::SettingList* first_extruder_settings = first_extruder->mutable_settings();
+    proto::Setting* first_setting = first_extruder_settings->add_settings();
+    first_setting->set_name("What extruder are you?");
+    first_setting->set_value("First");
+    proto::SettingList* second_extruder_settings = second_extruder->mutable_settings();
+    proto::Setting* second_setting = second_extruder_settings->add_settings();
+    second_setting->set_name("What extruder are you?");
+    second_setting->set_value("Second");
+
+    Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "2");
+    //Run the call that we're testing.
+    instance->readExtruderSettingsMessage(messages);
+
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Reading the extruders must construct the correct amount of extruders in the scene.",
+                                 size_t(2), Application::getInstance().current_slice->scene.extruders.size());
+    CPPUNIT_ASSERT_EQUAL(std::string("First"), Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
+    CPPUNIT_ASSERT_EQUAL(std::string("Second"), Application::getInstance().current_slice->scene.extruders[1].settings.get<std::string>("What extruder are you?"));
 }
 
 } //namespace cura
