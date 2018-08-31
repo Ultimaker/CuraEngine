@@ -5,8 +5,9 @@
 
 #include "MockSocket.h" //To mock out the communication with the front-end.
 #include "ArcusCommunicationTest.h"
-#include "../src/settings/types/LayerIndex.h"
 #include "../src/FffProcessor.h"
+#include "../src/communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
+#include "../src/settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -64,10 +65,21 @@ namespace cura
 
     void ArcusCommunicationTest::flushGCodeTest()
     {
-        // socket->setName("flushGCodeTest");
-        // ac->flushGCode();
-        // // If I don't do anything, no sendMessage calls should be made
-        // CPPUNIT_ASSERT(socket->sent_messages.size() == 0);
+        //Before there is g-code, no messages should be sent if we were to flush.
+        ac->flushGCode();
+        CPPUNIT_ASSERT(socket->sent_messages.empty());
+
+        //Input some 'g-code' to flush.
+        const std::string test_gcode = "This Fibonacci joke is as bad as the last two you heard combined.\n"
+                                       "It's pretty cool how the Chinese made a language entirely out of tattoos."; //Multi-line to see flushing behaviour.
+        ac->private_data->gcode_output_stream.write(test_gcode.c_str(), test_gcode.size());
+
+        //Call the function we're testing. This time it should give us a message.
+        ac->flushGCode();
+
+        CPPUNIT_ASSERT_EQUAL(size_t(1), socket->sent_messages.size());
+        const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.front().get());
+        CPPUNIT_ASSERT_EQUAL(test_gcode, message->data());
     }
 
     void ArcusCommunicationTest::isSequentialTest()
