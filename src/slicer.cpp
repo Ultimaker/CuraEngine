@@ -377,8 +377,7 @@ void SlicerLayer::planPolylineStitch(
     }
 }
 
-void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1,
-                                const bool reverse[2]) const
+void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1, const bool reverse[2]) const
 {
     if (reverse[0])
     {

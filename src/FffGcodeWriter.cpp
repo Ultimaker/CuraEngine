@@ -1109,9 +1109,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         return;
     }
 
-    if (mesh.getSettingBoolean("anti_overhang_mesh")
-        || mesh.getSettingBoolean("support_mesh")
-    )
+    if (mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
     {
         return;
     }
@@ -1122,9 +1120,9 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
 
 
     Polygons polygons;
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for (const SliceLayerPart& part : layer->parts)
     {
-        polygons.add(layer->parts[partNr].outline);
+        polygons.add(part.outline);
     }
 
     ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
