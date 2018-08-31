@@ -73,7 +73,26 @@ void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
 
 void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
 {
+    google::protobuf::RepeatedPtrField<proto::Extruder> messages; //Construct a message.
 
+    //Test with one extruder.
+    proto::Extruder* extruder_message = messages.Add();
+    extruder_message->set_id(0);
+
+    //Fill the extruder with settings.
+    proto::SettingList extruder_settings = extruder_message->settings();
+    cura::proto::Setting* setting = extruder_settings.add_settings();
+    setting->set_name("test_setting");
+    const std::string setting_value = "You put the 'sexy' in 'dyslexic'.";
+    setting->set_value(setting_value);
+
+    Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "1");
+    //Run the call that we're testing.
+    instance->readExtruderSettingsMessage(messages);
+
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Reading the extruders must construct the correct amount of extruders in the scene.",
+                                 size_t(1), Application::getInstance().current_slice->scene.extruders.size());
+    CPPUNIT_ASSERT_EQUAL(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("test_setting"));
 }
 
 } //namespace cura
