@@ -20,7 +20,6 @@ namespace cura
 class ArcusCommunicationTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(ArcusCommunicationTest);
-    CPPUNIT_TEST(beginGCodeTest);
     CPPUNIT_TEST(flushGCodeTest);
     CPPUNIT_TEST(isSequentialTest);
     CPPUNIT_TEST(hasSliceTest);
@@ -60,7 +59,6 @@ public:
     /*!
      * \brief Tests for every function
      */
-    void beginGCodeTest();
     void flushGCodeTest();
     void isSequentialTest();
     void hasSliceTest();

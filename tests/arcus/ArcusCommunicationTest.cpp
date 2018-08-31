@@ -62,11 +62,6 @@ namespace cura
         ac = nullptr;
     }
 
-    void ArcusCommunicationTest::beginGCodeTest()
-    {
-        ac->beginGCode();
-    }
-
     void ArcusCommunicationTest::flushGCodeTest()
     {
         // socket->setName("flushGCodeTest");
