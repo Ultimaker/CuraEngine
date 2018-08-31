@@ -78,7 +78,7 @@ namespace cura
         ac->flushGCode();
 
         CPPUNIT_ASSERT_EQUAL(size_t(1), socket->sent_messages.size());
-        const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.front().get());
+        const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.back().get());
         CPPUNIT_ASSERT_EQUAL(test_gcode, message->data());
     }
 
@@ -134,8 +134,17 @@ namespace cura
 
     void ArcusCommunicationTest::sendProgressTest()
     {
-        ac->sendProgress(10);;
+        ac->private_data->object_count = 2; //If there are two objects, all progress should get halved.
+
+        ac->sendProgress(10);
+        CPPUNIT_ASSERT_EQUAL(size_t(1), socket->sent_messages.size());
+        proto::Progress* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+        CPPUNIT_ASSERT_EQUAL(float(5), message->amount());
+
         ac->sendProgress(50);
+        CPPUNIT_ASSERT_EQUAL(size_t(2), socket->sent_messages.size());
+        message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+        CPPUNIT_ASSERT_EQUAL(float(25), message->amount());
     }
 
     void ArcusCommunicationTest::setLayerForSendTest()
