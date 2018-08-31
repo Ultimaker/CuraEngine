@@ -196,7 +196,7 @@ double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
 
 coord_t SettingsBaseVirtual::getSettingInMicrons(std::string key) const
 {
-    return getSettingInMillimeters(key) * 1000.0;
+    return MM2INT(getSettingInMillimeters(key));
 }
 
 double SettingsBaseVirtual::getSettingInAngleDegrees(std::string key) const
@@ -521,6 +521,10 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
     if (value == "noskin")
     {
         return CombingMode::NO_SKIN;
+    }
+    if (value == "infill")
+    {
+        return CombingMode::INFILL;
     }
     return CombingMode::ALL;
 }

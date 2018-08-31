@@ -155,8 +155,80 @@ Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_
             if (mesh.getSettingBoolean("infill_mesh")) {
                 continue;
             }
-            if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
+            const CombingMode combing_mode = mesh.getSettingAsCombingMode("retraction_combing");
+            if (combing_mode == CombingMode::NO_SKIN)
             {
+                // we need to include the walls in the comb boundary otherwise it's not possible to tell if a travel move crosses a skin region
+
+                const coord_t line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+
+                for (const SliceLayerPart& part : layer.parts)
+                {
+                    const unsigned num_insets = part.insets.size();
+                    Polygons outer = part.outline; // outer boundary of wall combing region
+                    coord_t outer_to_outline_dist = 0; // distance from outer to the part's outline
+
+                    if (num_insets > 1 && part.insets[1].size() == part.outline.size())
+                    {
+                        // part's wall has multiple lines and the 2nd wall line is complete
+                        // set the outer boundary to the inside edge of the outer wall
+
+                        outer = part.insets[0].offset(-line_width_0/2);
+                        outer_to_outline_dist = line_width_0;
+                    }
+                    else if (num_insets > 0)
+                    {
+                        // set the outer boundary to be 1/4 line width inside the centre line of the outer wall
+
+                        outer = part.insets[0].offset(-line_width_0/4);
+                        outer_to_outline_dist = line_width_0*3/4;
+                    }
+
+                    // finally, check that outer actually has the same number of polygons as the part's outline
+                    // if it doesn't it means that the outer wall is missing where the part narrows so in those
+                    // regions we need to use the part outline for the outer boundary of the combing region
+                    // (expect poor results due to the nozzle being allowed to go right to the part's edge)
+
+                    if (outer.size() != part.outline.size())
+                    {
+                        // first we calculate the part outline for those portions of the part where outer is missing
+                        // this is done by shrinking the part outline so that it is very slightly smaller than outer, then expanding it again so it is very
+                        // slightly larger than its original size and subtracting that from the original part outline
+                        // NOTE - the additional small shrink/expands are required to ensure that the polygons overlap a little so we do not rely on exact results
+
+                        Polygons outline_where_outer_is_missing(part.outline.difference(part.outline.offset(-(outer_to_outline_dist+5)).offset(outer_to_outline_dist+10)));
+
+                        // merge outer with the portions of the part outline we just calculated
+                        // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
+
+                        outer = outer.offset(outer_to_outline_dist/2+10).unionPolygons(outline_where_outer_is_missing.offset(outer_to_outline_dist/2+10)).offset(-(outer_to_outline_dist/2+10));
+                    }
+
+                    Polygons inner; // inner boundary of wall combing region
+
+                    // the inside of the wall combing region is just inside the wall's inner edge so it can meet up with the infill (if any)
+
+                    if (num_insets == 0)
+                    {
+                        inner = part.outline.offset(-10);
+                    }
+                    else if (num_insets == 1)
+                    {
+                        inner = part.insets[0].offset(-10-line_width_0/2);
+                    }
+                    else if(num_insets > 1)
+                    {
+                        inner = part.insets[num_insets - 1].offset(-10-mesh.getSettingInMicrons("wall_line_width_x")/2);
+                    }
+
+                    // combine the wall combing region (outer - inner) with the infill (if any)
+                    comb_boundary.add(part.infill_area.unionPolygons(outer.difference(inner)));
+                }
+            }
+            else if (combing_mode == CombingMode::INFILL)
+            {
+                // this is the old "no skin" code which was completely misnamed as it totally ignores the existence of walls
+                // and skin and so will route straight across them when the travel doesn't cross any infill
                 for (const SliceLayerPart& part : layer.parts)
                 {
                     comb_boundary.add(part.infill_area);
@@ -196,7 +268,10 @@ bool LayerPlan::setExtruder(int extruder)
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
-        addTravel(end_pos); //  + extruder_offset cause it 
+        if (end_pos_absolute || last_planned_position)
+        {
+            addTravel(end_pos); //  + extruder_offset cause it
+        }
     }
     if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
@@ -224,7 +299,10 @@ bool LayerPlan::setExtruder(int extruder)
             Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
-        last_planned_position = start_pos;
+        if (start_pos_absolute || last_planned_position)
+        {
+            last_planned_position = start_pos;
+        }
     }
     return true;
 }
@@ -938,8 +1016,10 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
     orderOptimizer.optimize();
-    for (int poly_idx : orderOptimizer.polyOrder)
+
+    for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
+        const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
         ConstPolygonRef polygon = polygons[poly_idx];
         const size_t start = orderOptimizer.polyStart[poly_idx];
         const size_t end = 1 - start;
@@ -947,11 +1027,34 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         addTravel(p0);
         const Point& p1 = polygon[end];
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+
+        // Wipe
         if (wipe_dist != 0)
         {
+            bool wipe = true;
             int line_width = config.getLineWidth();
-            if (vSize2(p1-p0) > line_width * line_width * 4)
-            { // otherwise line will get optimized by combining multiple into a single extrusion move
+
+            // Don't wipe is current extrusion is too small
+            if (vSize2(p1 - p0) <= line_width * line_width * 4)
+            {
+                wipe = false;
+            }
+
+            // Don't wipe if next starting point is very near
+            if (wipe && (order_idx < orderOptimizer.polyOrder.size() - 1))
+            {
+                const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
+                ConstPolygonRef next_polygon = polygons[next_poly_idx];
+                const size_t next_start = orderOptimizer.polyStart[next_poly_idx];
+                const Point& next_p0 = next_polygon[next_start];
+                if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
+                {
+                    wipe = false;
+                }
+            }
+
+            if (wipe)
+            {
                 addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
@@ -1276,18 +1379,17 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
 
-        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
+        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool
+            {
                 return  a.path_idx < b.path_idx; 
-            } );
+            });
 
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
         {
             gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
         }
-        bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
-        double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
-        int64_t nozzle_size = gcode.getNozzleSize(extruder);
+        const coord_t nozzle_size = gcode.getNozzleSize(extruder);
 
         bool update_extrusion_offset = true;
 
@@ -1360,12 +1462,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-
-            if (MergeInfillLines(gcode, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
-            { // !! has effect on path_idx !!
-                // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
-                continue;
-            }
 
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
@@ -1633,6 +1729,19 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_
 
     gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
     return true;
+}
+
+void LayerPlan::optimizePaths(const Point& starting_position)
+{
+    for (ExtruderPlan& extr_plan : extruder_plans)
+    {
+        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr_plan.extruder);
+        const coord_t nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        const coord_t maximum_resolution = train->getSettingInMicrons("meshfix_maximum_resolution");
+        //Merge paths whose endpoints are very close together into one line.
+        MergeInfillLines merger(extr_plan, nozzle_size, maximum_resolution);
+        merger.mergeInfillLines(extr_plan.paths, starting_position);
+    }
 }
 
 }//namespace cura

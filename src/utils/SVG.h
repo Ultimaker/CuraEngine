@@ -26,7 +26,8 @@ public:
         BLUE,
         GREEN,
         YELLOW,
-        RAINBOW
+        RAINBOW,
+        NONE
     };
 
 private:
@@ -39,11 +40,12 @@ private:
     const Point border;
     const Point canvas_size;
     const double scale;
+    Color background;
 
     bool output_is_html;
 
 public:
-    SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024, 1024));
+    SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024, 1024), Color background = Color::NONE);
 
     ~SVG();
 

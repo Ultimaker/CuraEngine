@@ -30,7 +30,7 @@ public:
     /*!
      * The number of insets to to generate
      */
-    int insetCount;
+    size_t inset_count;
     /*!
      * Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
      */
@@ -48,14 +48,14 @@ public:
      * \param wall_0_inset The offset applied to the outer wall.
      * \param line_width_0 Line width of the outer wall.
      * \param line_width_x Line width of other walls.
-     * \param insetCount The number of insets to to generate.
+     * \param inset_count The number of insets to to generate.
      * \param recompute_outline_based_on_outer_wall Whether to compute a more
      * accurate poly representation of the printed outlines, based on the outer
      * wall.
      * \param remove_parts_with_no_insets Whether to remove parts if they get no
      * single inset.
      */
-    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
+    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, size_t inset_count, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
