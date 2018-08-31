@@ -1106,9 +1106,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         return;
     }
 
-    if (mesh.getSettingBoolean("anti_overhang_mesh")
-        || mesh.getSettingBoolean("support_mesh")
-    )
+    if (mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
     {
         return;
     }
@@ -1119,9 +1117,9 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
 
 
     Polygons polygons;
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for (const SliceLayerPart& part : layer->parts)
     {
-        polygons.add(layer->parts[partNr].outline);
+        polygons.add(part.outline);
     }
 
     ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
@@ -2246,7 +2244,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
-    const double support_infill_angle = 0;
+    const double support_infill_angle = infill_extruder.getSettingInAngleDegrees("support_infill_angle");
     constexpr int infill_multiplier = 1; // there is no frontend setting for this (yet)
     constexpr int wall_line_count = 0;
     coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
@@ -2544,17 +2542,13 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-            if (train->getSettingBoolean("prime_blob_enable"))
-            { // only move to prime position if we do a blob/poop
-                // ideally the prime position would be respected whether we do a blob or not,
-                // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
-                // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
-                bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-                Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
+            // We always prime an extruder, but whether it will be a prime blob/poop depends on if prime blob is enabled.
+            // This is decided in GCodeExport::writePrimeTrain().
+            bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+            gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
 
-                gcode_layer.planPrime();
-            }
+            gcode_layer.planPrime();
         }
 
         if (gcode_layer.getLayerNr() == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
@@ -2589,6 +2583,12 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 
 void FffGcodeWriter::finalize()
 {
+    if (getSettingBoolean("machine_heated_bed"))
+    {
+        gcode.writeBedTemperatureCommand(0); //Cool down the bed (M140).
+        //Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
+    }
+
     double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
