@@ -132,15 +132,6 @@ namespace cura
         CPPUNIT_ASSERT_EQUAL(static_cast<float>(layer_thickness), message->thickness());
     }
 
-    void ArcusCommunicationTest::sendPrintTimeMaterialEstimatesTest()
-    {
-        // Segfault
-//        socket->setName("sendPrintTimeMaterialEstimatesTest");
-//        std::cout << "sendPrintTimeMaterialEstimatesTest...\n";
-//        ac->sendPrintTimeMaterialEstimates();
-//        socket->printMessages();
-    }
-
     void ArcusCommunicationTest::sendProgressTest()
     {
         ac->sendProgress(10);;

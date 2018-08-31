@@ -26,7 +26,6 @@ class ArcusCommunicationTest : public CppUnit::TestFixture
     CPPUNIT_TEST(sendGCodePrefixTest);
     CPPUNIT_TEST(sendFinishedSlicingTest);
     CPPUNIT_TEST(sendLayerCompleteTest);
-    CPPUNIT_TEST(sendPrintTimeMaterialEstimatesTest);
     CPPUNIT_TEST(sendProgressTest);
     CPPUNIT_TEST(setLayerForSendTest);
     CPPUNIT_TEST(setExtruderForSendTest);
@@ -61,7 +60,6 @@ public:
     void sendGCodePrefixTest();
     void sendFinishedSlicingTest();
     void sendLayerCompleteTest();
-    void sendPrintTimeMaterialEstimatesTest();
     void sendProgressTest();
     void setLayerForSendTest();
     void setExtruderForSendTest();
