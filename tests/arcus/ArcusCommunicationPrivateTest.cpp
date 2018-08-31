@@ -29,14 +29,15 @@ void ArcusCommunicationPrivateTest::tearDown()
     delete Application::getInstance().current_slice;
 }
 
-void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
+// Settings need to be loaded into different protobuf-objects during different tests.
+template<typename T>
+void loadTestSettings(const std::string& filename, T* p_settings, std::unordered_map<std::string, std::string>* p_raw_settings)
 {
-    // Read 'real-life' global settings from file:
+    T& settings = *p_settings;
+    std::unordered_map<std::string, std::string>& raw_settings = *p_raw_settings;
+
     std::ifstream test_settings_file("../tests/test_global_settings.txt");
     CPPUNIT_ASSERT(test_settings_file.is_open());
-
-    cura::proto::SettingList global_settings;
-    std::unordered_map<std::string, std::string> raw_settings;
 
     std::string line;
     while (std::getline(test_settings_file, line))
@@ -52,14 +53,23 @@ void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
 
         raw_settings.insert({key, value});
 
-        cura::proto::Setting* entry = global_settings.add_settings();
+        cura::proto::Setting* entry = settings.add_settings();
         entry->set_name(key);
         entry->set_value(value);
     }
     test_settings_file.close();
     CPPUNIT_ASSERT(! raw_settings.empty());
-    CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(global_settings.settings_size()), raw_settings.size());
-    
+    CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(settings.settings_size()), raw_settings.size());
+}
+
+void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
+{
+    // Read 'real-life' global settings from file:
+
+    cura::proto::SettingList global_settings;
+    std::unordered_map<std::string, std::string> raw_settings;
+    loadTestSettings("../tests/test_global_settings.txt", &global_settings, &raw_settings);
+
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
     
@@ -74,6 +84,108 @@ void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
 void ArcusCommunicationPrivateTest::readExtruderSettingsMessageTest()
 {
 
+}
+
+void ArcusCommunicationPrivateTest::readMeshGroupMessageTest()
+{
+    // Setup:
+    cura::proto::ObjectList mesh_message;
+
+    // - Load 'global' settings:
+    std::unordered_map<std::string, std::string> raw_settings;
+    loadTestSettings("../tests/test_global_settings.txt", &mesh_message, &raw_settings);
+
+    // - Create mesh-message-mesh:
+    cura::proto::Object* mesh = mesh_message.add_objects();
+
+    // - - Read cube vertices from a test-file, then add to message:
+    std::ifstream cube_verts_file("../tests/cube_vertices.txt");
+    CPPUNIT_ASSERT(cube_verts_file.is_open());
+
+    std::vector<float> raw_vertices;
+
+    float next;
+    while (cube_verts_file >> next)
+    {
+        raw_vertices.push_back(next);
+    }
+    cube_verts_file.close();
+    CPPUNIT_ASSERT(raw_vertices.size() % 3 == 0 && ! raw_vertices.empty());
+
+    // (NOTE: *Don't* replace the below by strncopy, direct call to constructor, etc. in any way. We need to pass '/0' inside the string. Blame protobuf!)
+    const size_t num_str = sizeof(float) * raw_vertices.size();
+    uint8_t* data = reinterpret_cast<uint8_t*>(raw_vertices.data());
+    std::string verts_as_str;
+    verts_as_str.assign(num_str, ' ');
+    for (size_t i_char = 0; i_char < num_str; ++i_char)
+    {
+        verts_as_str[i_char] = data[i_char];
+    }
+    mesh->set_vertices(verts_as_str);
+
+    // - - Add settings to the mesh:
+    cura::proto::Setting* entry = mesh->add_settings();
+    entry->set_name("extruder_nr");
+    entry->set_value("0");
+    entry = mesh->add_settings();
+    entry->set_name("center_object");
+    entry->set_value("1");
+    entry = mesh->add_settings();
+    entry->set_name("mesh_position_x");
+    entry->set_value("0");
+    entry = mesh->add_settings();
+    entry->set_name("mesh_position_y");
+    entry->set_value("0");
+    entry = mesh->add_settings();
+    entry->set_name("mesh_position_z");
+    entry->set_value("0");
+    entry = mesh->add_settings();
+
+    // The call it's actually all about:
+    instance->readMeshGroupMessage(mesh_message);
+
+    // Checks:
+    auto& scene = Application::getInstance().current_slice->scene;
+    CPPUNIT_ASSERT(! scene.mesh_groups.empty());
+
+    auto& meshes = scene.mesh_groups[0].meshes;
+    CPPUNIT_ASSERT(! meshes.empty());
+
+    auto& vertices = meshes[0].vertices;
+    CPPUNIT_ASSERT(! vertices.empty());
+    CPPUNIT_ASSERT_EQUAL(vertices.size(), 8ul); //A cube should have 8 unique vertices.
+    CPPUNIT_ASSERT_EQUAL(meshes[0].faces.size(), 12ul); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
+
+    // Distances should be the same:
+
+    // - First, collect AABBoxes:
+    std::array<coord_t, 3> raw_min_coords = {std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max()};
+    std::array<coord_t, 3> raw_max_coords = {std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min()};
+    const size_t num_vertex = raw_vertices.size();
+    for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
+    {
+        coord_t micrometers = static_cast<coord_t>(raw_vertices[i_coord] * 1000.f);
+        raw_min_coords[i_coord % 3] = std::min(micrometers, raw_min_coords[i_coord % 3]);
+        raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
+    }
+
+    std::array<coord_t, 3> min_coords = {std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max()};
+    std::array<coord_t, 3> max_coords = {std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min()};
+    for (const auto& vertex : vertices)
+    {
+        min_coords[0] = std::min(vertex.p.x, min_coords[0]);
+        min_coords[1] = std::min(vertex.p.y, min_coords[1]);
+        min_coords[2] = std::min(vertex.p.z, min_coords[2]);
+        max_coords[0] = std::max(vertex.p.x, max_coords[0]);
+        max_coords[1] = std::max(vertex.p.y, max_coords[1]);
+        max_coords[2] = std::max(vertex.p.z, max_coords[2]);
+    }
+
+    // - Then, just compare:
+    for (int i = 0; i < 3; ++i)
+    {
+        CPPUNIT_ASSERT_EQUAL(max_coords[i] - min_coords[i], raw_max_coords[i] - raw_min_coords[i]);
+    }
 }
 
 } //namespace cura

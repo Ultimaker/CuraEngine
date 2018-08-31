@@ -19,6 +19,7 @@ class ArcusCommunicationPrivateTest : public CppUnit::TestFixture
 
     CPPUNIT_TEST(readGlobalSettingsMessageTest);
     CPPUNIT_TEST(readExtruderSettingsMessageTest);
+    CPPUNIT_TEST(readMeshGroupMessageTest);
     
     CPPUNIT_TEST_SUITE_END();
 
@@ -29,6 +30,7 @@ public:
     //Our unit tests.
     void readGlobalSettingsMessageTest();
     void readExtruderSettingsMessageTest();
+    void readMeshGroupMessageTest();
 
     ArcusCommunication::Private* instance;
 };
