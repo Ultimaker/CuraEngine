@@ -69,11 +69,9 @@ namespace cura
 
     void ArcusCommunicationTest::flushGCodeTest()
     {
-        // std::cout << "flushGCodeTest...\n";
         // socket->setName("flushGCodeTest");
         // ac->flushGCode();
         // // If I don't do anything, no sendMessage calls should be made
-        // std::cout << "Checking for sent messages when nothing has been done yet...\n";
         // CPPUNIT_ASSERT(socket->sent_messages.size() == 0);
     }
 
@@ -89,24 +87,17 @@ namespace cura
 
     void ArcusCommunicationTest::sendCurrentPositionTest()
     {
-//         socket->setName("sendCurrentPositionTest");
 //         ac->sendCurrentPosition(Point(1, 2));
 // //        ac->flushGCode();
-// //        std::cout << "num messages" << socket->sent_messages.size() << "\n";
-// //        CPPUNIT_ASSERT(false);
     }
 
     void ArcusCommunicationTest::sendGCodePrefixTest()
     {
         const std::string& prefix = "bladibla";
 
-        //socket->setName("sendGCodePrefixTest");
         ac->sendGCodePrefix(prefix);
         ac->flushGCode();
-        std::cout << "making sure that there are any messages sent...\n";
         CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
-        //socket->printMessages();
-        std::cout << "making sure that the original prefix occurs somewhere...\n";
         bool found_prefix = false;
         for (auto message : socket->sent_messages)
         {
@@ -121,19 +112,13 @@ namespace cura
 
     void ArcusCommunicationTest::sendFinishedSlicingTest()
     {
-        //socket->setName("sendFinishedSlicingTest");
-        std::cout << "sendFinishedSlicingTest...\n";
         ac->sendFinishedSlicing();
         CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
-        //socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendLayerCompleteTest()
     {
-        //socket->setName("sendLayerCompleteTest");
-        std::cout << "sendLayerCompleteTest...\n";
         ac->sendLayerComplete(10, 20, 30);
-        //socket->printMessages();
         //CPPUNIT_ASSERT(socket->sent_messages.size() > 0);
     }
 
@@ -145,20 +130,13 @@ namespace cura
         const coord_t& line_thickness = 200;
         const Velocity& velocity = Velocity(10.0);
 
-        //socket->setName("sendLineToTest");
-        std::cout << "sendLineToTest...\n";
         ac->sendLineTo(type, to, line_width, line_thickness, velocity);
         ac->sendLayerComplete(10, 20, 30);
-        //socket->printMessages();
-        //CPPUNIT_ASSERT(false);
     }
 
     void ArcusCommunicationTest::sendOptimizedLayerDataTest()
     {
-        //socket->setName("sendOptimizedLayerDataTest");
-        std::cout << "sendOptimizedLayerDataTest...\n";
         ac->sendOptimizedLayerData();
-        //socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendPolygonTest()
@@ -169,10 +147,7 @@ namespace cura
         const coord_t& line_thickness = 200;
         const Velocity& velocity = Velocity(10.0);
 
-        //socket->setName("sendPolygonTest");
-        std::cout << "sendPolygonTest...\n";
         ac->sendPolygon(type, polygon_ref, line_width, line_thickness, velocity);
-        //socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendPolygonsTest()
@@ -183,10 +158,7 @@ namespace cura
         const coord_t& line_thickness = 200;
         const Velocity& velocity = Velocity(10.0);
 
-        //socket->setName("sendPolygonsTest");
-        std::cout << "sendPolygonsTest...\n";
         ac->sendPolygons(type, polygons, line_width, line_thickness, velocity);
-        //socket->printMessages();
     }
 
     void ArcusCommunicationTest::sendPrintTimeMaterialEstimatesTest()
@@ -200,20 +172,13 @@ namespace cura
 
     void ArcusCommunicationTest::sendProgressTest()
     {
-        //socket->setName("sendProgressTest");
-        std::cout << "sendProgressTest...\n";
-        ac->sendProgress(10);
-        //socket->printMessages();
+        ac->sendProgress(10);;
         ac->sendProgress(50);
-        //socket->printMessages();
     }
 
     void ArcusCommunicationTest::setLayerForSendTest()
     {
-        //socket->setName("setLayerForSendTest");
-        std::cout << "setLayerForSendTest...\n";
         ac->setLayerForSend(42);
-        //socket->printMessages();
     }
 
     void ArcusCommunicationTest::setExtruderForSendTest()
@@ -223,10 +188,7 @@ namespace cura
 
     void ArcusCommunicationTest::sliceNextTest()
     {
-        //socket->setName("sliceNextTest");
-        std::cout << "sliceNextTest...\n";
         ac->sliceNext();
-        //socket->printMessages();
     }
 }
 
