@@ -36,7 +36,7 @@ void loadTestSettings(const std::string& filename, T* p_settings, std::unordered
     T& settings = *p_settings;
     std::unordered_map<std::string, std::string>& raw_settings = *p_raw_settings;
 
-    std::ifstream test_settings_file("../tests/test_global_settings.txt");
+    std::ifstream test_settings_file(filename);
     CPPUNIT_ASSERT(test_settings_file.is_open());
 
     std::string line;
