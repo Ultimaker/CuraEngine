@@ -132,45 +132,6 @@ namespace cura
         CPPUNIT_ASSERT_EQUAL(static_cast<float>(layer_thickness), message->thickness());
     }
 
-    void ArcusCommunicationTest::sendLineToTest()
-    {
-        const PrintFeatureType& type = PrintFeatureType::OuterWall;
-        const Point& to = Point(100, 100);
-        const coord_t& line_width = 400;
-        const coord_t& line_thickness = 200;
-        const Velocity& velocity = Velocity(10.0);
-
-        ac->sendLineTo(type, to, line_width, line_thickness, velocity);
-        ac->sendLayerComplete(10, 20, 30);
-    }
-
-    void ArcusCommunicationTest::sendOptimizedLayerDataTest()
-    {
-        ac->sendOptimizedLayerData();
-    }
-
-    void ArcusCommunicationTest::sendPolygonTest()
-    {
-        const PrintFeatureType& type = PrintFeatureType::OuterWall;
-        const ConstPolygonRef& polygon_ref = test_circle;
-        const coord_t& line_width = 400;
-        const coord_t& line_thickness = 200;
-        const Velocity& velocity = Velocity(10.0);
-
-        ac->sendPolygon(type, polygon_ref, line_width, line_thickness, velocity);
-    }
-
-    void ArcusCommunicationTest::sendPolygonsTest()
-    {
-        const PrintFeatureType& type = PrintFeatureType::OuterWall;
-        const Polygons& polygons = test_shapes;
-        const coord_t& line_width = 400;
-        const coord_t& line_thickness = 200;
-        const Velocity& velocity = Velocity(10.0);
-
-        ac->sendPolygons(type, polygons, line_width, line_thickness, velocity);
-    }
-
     void ArcusCommunicationTest::sendPrintTimeMaterialEstimatesTest()
     {
         // Segfault
