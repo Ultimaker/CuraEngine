@@ -3,18 +3,6 @@ Overview
 
 Internals
 ---------
-
-The slicing process follows the following global steps:
-* Load 3D model
-* Analyze and fix 3D model
-* Slice 3D model into 2D layers
-* Build LayerParts from sliced layers
-* Generate Insets
-* Generate up/down skins areas
-* Generate sparse infill areas
-* Generate GCode for each layer
-
-Each step has more logic in it. But this is a general overview.
 All data for the engine is stored in the "SliceDataStorage". It's important to remember that only the data from the previous step is valid.
 
 Coordinates are stored in 64bit integers as microns in the code. So if you see a value of 1000 then this mean 1mm of distance. This is because Clipper works on 64bit integers and microns give a high enough resolution without limiting the size too much. Note that there are some bits and pieces of code that need to be careful about 64bit overflows, especially calculating lengths sqrt(x*x+y*y) can cause overflows.
