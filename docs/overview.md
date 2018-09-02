@@ -4,10 +4,6 @@ Overview
 Internals
 ---------
 
-The Cura Engine is structured as mainly .h files. This is not standard for an C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partialy a result of lazyness but also for optimalizations.
-
-The .h files contain different steps called from the main.cpp file. The main.cpp file contains the global slicing logic.
-
 The slicing process follows the following global steps:
 * Load 3D model
 * Analyze and fix 3D model
