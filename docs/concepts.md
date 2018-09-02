@@ -1,11 +1,17 @@
 Overview
 ========
 
-Internals
----------
-All data for the engine is stored in the "SliceDataStorage". It's important to remember that only the data from the previous step is valid.
+Storing Slice Data
+----
+Intermediate results obtained during slicing, such as the polygon shapes of a layer, are stored in the `SliceDataStorage` class and its child classes. This data is kept as short as possible, in order to reduce the memory footprint during slicing. Only the data of the previous stage in slicing is available. See the [pipeline](pipeline.md) page for details on these stages.
 
-Coordinates are stored in 64bit integers as microns in the code. So if you see a value of 1000 then this mean 1mm of distance. This is because Clipper works on 64bit integers and microns give a high enough resolution without limiting the size too much. Note that there are some bits and pieces of code that need to be careful about 64bit overflows, especially calculating lengths sqrt(x*x+y*y) can cause overflows.
+Fixed-point Coordinates
+----
+Coordinates are stored in 64-bit integers, representing the number of microns away from the coordinate origin. For instance, a difference of 1000 coordinate points represents a distance of 1mm.
+
+This coordinate system is chosen because integers are less subject to unexpected rounding errors due to the changing resolution as you get further away from 0. Also, the library that CuraEngine uses for polygon optimisation works on 64-bit integers. Using microns gives high enough resolution and doesn't limit the size in which calculations can be made much.
+
+Some care must be taken not to overflow these integers. Especially calculations involving Euclidean distance and area need to be careful of this, since they need to square the coordinates.
 
 OptimizedModel
 --------------
