@@ -13,10 +13,12 @@ This coordinate system is chosen because integers are less subject to unexpected
 
 Some care must be taken not to overflow these integers. Especially calculations involving Euclidean distance and area need to be careful of this, since they need to square the coordinates.
 
-LayerParts
-----------
-An important concept to grasp is the LayerParts. LayerParts are seperate parts inside a single layer. For example, if you have a cube. Then each layer has a single LayerPart. However, if you have a table, then the layers which build the legs have a LayerPart per leg, and thus there will be 4 LayerParts.
-A LayerPart is a seperated area inside a single layer which does not touch any other LayerParts. Most operations run on LayerParts as it reduces the amount of data to process. During GCode generation handling each LayerPart as an own step makes sure you never travel between LayerParts and thus reducing the amount of external travel.
-LayerParts are generated after the Slicer step.
+Parts
+-----
+Cura works with complex polygons that can have multiple contours. Some of these contours overlap the area covered by another contour. A *part* is a set of contours that does not overlap another set of contours.
 
-To generate the LayerParts Clipper is used. A Clipper union with extended results gives a list of Polygons with holes in them. Each polygon is a LayerPart, and the holes are added to this LayerPart.
+For example, slicing a cube will result in one square cross-section for each layer. Such a layer consists of one part. However slicing a table will result in some layers containing multiple contours, one for each leg of the table. There will then be 4 parts on that layer.
+
+Most operations in CuraEngine run on parts, since the application can then know that travel moves can safely be made within that part without needing to cross any walls. This minimises the amount of travel outside of the model.
+
+Note that each part may still contain multiple contours if these polygons overlap. The part may be hollow.
