@@ -20,6 +20,6 @@ This stage is the most complex part of CuraEngine. Here the areas that were gene
 ----
 After the plan is created we can still make modifications to the plan to some extent. We have to insert commands to pre-heat and pre-cool the nozzles before an extruder switch. In order to predict how far ahead the nozzles must start heating and cooling, time estimates are generated for each path and the temperature change commands are inserted such that the time we need to heat or cool will be covered in the upcoming moves.
 
-G-code
+[G-code](gcode_export.md)
 ----
 Finally, the plans that we've generated, including the temperature inserts, are translated from CuraEngine's internal representation to g-code.
