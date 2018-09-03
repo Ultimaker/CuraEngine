@@ -123,19 +123,19 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             line_width_layer0 *= storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("initial_layer_line_width_factor");
         }
         pattern_per_extruder_layer0.emplace_back();
-
         ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
-
-        // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
-        // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
-        // first layer of the prime tower to not stick well.
-        Polygons insets;
-        Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
-        while (!inset.empty())
-        {
-            pattern_layer0.polygons.add(inset);
-            inset = inset.offset(-line_width_layer0);
-        }
+        pattern_layer0.polygons = outer_poly.offset(-line_width_layer0 / 2);
+        const coord_t outline_offset = -line_width_layer0;
+        const coord_t line_distance = line_width_layer0;
+        constexpr double fill_angle = 45;
+        constexpr bool zig_zaggify_infill = false;
+        constexpr coord_t extra_infill_shift = 0;
+        constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
+        constexpr coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
+        constexpr bool connect_polygons = true;
+        constexpr int infill_multiplier = 1;
+        Infill infill_comp(EFillMethod::CONCENTRIC, zig_zaggify_infill, connect_polygons, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift);
+        infill_comp.generate(pattern_layer0.polygons, pattern_layer0.lines);
     }
 }
 
