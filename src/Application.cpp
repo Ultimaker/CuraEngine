@@ -39,10 +39,11 @@ void Application::connect()
 
     //Parse port number from IP address.
     std::string ip_port(argv[2]);
-    if (ip_port.find(':') != std::string::npos)
+    std::size_t found_pos = ip_port.find(':');
+    if (found_pos != std::string::npos)
     {
-        ip = ip_port.substr(0, ip_port.find(':'));
-        port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
+        ip = ip_port.substr(0, found_pos);
+        port = std::stoi(ip_port.substr(found_pos + 1).data());
     }
 
 #ifdef _OPENMP
