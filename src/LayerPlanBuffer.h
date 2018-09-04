@@ -186,11 +186,6 @@ private:
     void insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx);
 
     /*!
-     * Some small infill lines can be merged together, this will reduce g-code while maintaining the line's original function.
-     */
-    void optimizeAllInfillLines();
-
-    /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
     void insertTempCommands();
