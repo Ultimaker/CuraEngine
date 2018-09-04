@@ -129,7 +129,6 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
         // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
         // first layer of the prime tower to not stick well.
-        Polygons insets;
         Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
         while (!inset.empty())
         {
