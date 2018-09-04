@@ -132,7 +132,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         constexpr coord_t extra_infill_shift = 0;
         constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
         constexpr coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
-        constexpr bool connect_polygons = false;
+        constexpr bool connect_polygons = true;
         constexpr int infill_multiplier = 1;
         Infill infill_comp(EFillMethod::CONCENTRIC, zig_zaggify_infill, connect_polygons, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift);
         infill_comp.generate(pattern_layer0.polygons, pattern_layer0.lines);
