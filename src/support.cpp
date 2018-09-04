@@ -1368,7 +1368,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const size_t skip_layer_count = std::max(1u, round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support bottoms above model.
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings.get<coord_t>("support_bottom_line_width");
 
-    const size_t scan_count = std::max(1ul, (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
+    const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
     const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1399,7 +1399,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const size_t skip_layer_count = std::max(1u, round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support roof below model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings.get<coord_t>("support_roof_line_width");
 
-    const size_t scan_count = std::max(1ul, (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
+    const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
     const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
