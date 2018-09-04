@@ -98,14 +98,13 @@ static inline double acceleration_time_from_distance(double initial_feedrate, do
 }
     
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
-void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor)
+void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const double entry_factor, const double exit_factor)
 {
-    double initial_feedrate = block->nominal_feedrate*entry_factor;
-    double final_feedrate = block->nominal_feedrate*exit_factor;
+    const double initial_feedrate = block->nominal_feedrate * entry_factor;
+    const double final_feedrate = block->nominal_feedrate * exit_factor;
 
-    double acceleration = block->acceleration;
-    double accelerate_distance = estimate_acceleration_distance(initial_feedrate, block->nominal_feedrate, acceleration);
-    double decelerate_distance = estimate_acceleration_distance(block->nominal_feedrate, final_feedrate, -acceleration);
+    double accelerate_distance = estimate_acceleration_distance(initial_feedrate, block->nominal_feedrate, block->acceleration);
+    const double decelerate_distance = estimate_acceleration_distance(block->nominal_feedrate, final_feedrate, -block->acceleration);
 
     // Calculate the size of Plateau of Nominal Rate.
     double plateau_distance = block->distance-accelerate_distance - decelerate_distance;
@@ -115,17 +114,17 @@ void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double 
     // in order to reach the final_rate exactly at the end of this block.
     if (plateau_distance < 0)
     {
-        accelerate_distance = intersection_distance(initial_feedrate, final_feedrate, acceleration, block->distance);
+        accelerate_distance = intersection_distance(initial_feedrate, final_feedrate, block->acceleration, block->distance);
         accelerate_distance = std::max(accelerate_distance, 0.0); // Check limits due to numerical round-off
         accelerate_distance = std::min(accelerate_distance, block->distance);//(We can cast here to unsigned, because the above line ensures that we are above zero)
         plateau_distance = 0;
     }
 
     block->accelerate_until = accelerate_distance;
-    block->decelerate_after = accelerate_distance+plateau_distance;
+    block->decelerate_after = accelerate_distance + plateau_distance;
     block->initial_feedrate = initial_feedrate;
     block->final_feedrate = final_feedrate;
-}                    
+}
 
 void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeatureType feature)
 {
@@ -142,12 +141,18 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
         block.maxTravel = std::max(block.maxTravel, block.absDelta[n]);
     }
     if (block.maxTravel <= 0)
+    {
         return;
+    }
     if (feedrate < minimumfeedrate)
+    {
         feedrate = minimumfeedrate;
+    }
     block.distance = sqrtf(square(block.absDelta[0]) + square(block.absDelta[1]) + square(block.absDelta[2]));
     if (block.distance == 0.0)
+    {
         block.distance = block.absDelta[3];
+    }
     block.nominal_feedrate = feedrate;
     
     Position current_feedrate;
@@ -158,7 +163,9 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
         current_feedrate[n] = block.delta[n] * feedrate / block.distance;
         current_abs_feedrate[n] = fabs(current_feedrate[n]);
         if (current_abs_feedrate[n] > max_feedrate[n])
+        {
             feedrate_factor = std::min(feedrate_factor, max_feedrate[n] / current_abs_feedrate[n]);
+        }
     }
     //TODO: XY_FREQUENCY_LIMIT
     
@@ -179,27 +186,34 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
             block.acceleration = max_acceleration[n];
     }
     
-    double vmax_junction = max_xy_jerk/2; 
+    double vmax_junction = max_xy_jerk / 2;
     double vmax_junction_factor = 1.0; 
-    if(current_abs_feedrate[Z_AXIS] > max_z_jerk/2)
-        vmax_junction = std::min(vmax_junction, max_z_jerk/2);
-    if(current_abs_feedrate[E_AXIS] > max_e_jerk/2)
-        vmax_junction = std::min(vmax_junction, max_e_jerk/2);
+    if(current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
+    {
+        vmax_junction = std::min(vmax_junction, max_z_jerk / 2);
+    }
+    if(current_abs_feedrate[E_AXIS] > max_e_jerk / 2)
+    {
+        vmax_junction = std::min(vmax_junction, max_e_jerk / 2);
+    }
     vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
     double safe_speed = vmax_junction;
     
     if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
     {
-        double xy_jerk = sqrt(square(current_feedrate[X_AXIS]-previous_feedrate[X_AXIS])+square(current_feedrate[Y_AXIS]-previous_feedrate[Y_AXIS]));
+        const double xy_jerk = sqrt(square(current_feedrate[X_AXIS] - previous_feedrate[X_AXIS]) + square(current_feedrate[Y_AXIS] - previous_feedrate[Y_AXIS]));
         vmax_junction = block.nominal_feedrate;
-        if (xy_jerk > max_xy_jerk) {
-            vmax_junction_factor = (max_xy_jerk/xy_jerk);
+        if (xy_jerk > max_xy_jerk)
+        {
+            vmax_junction_factor = (max_xy_jerk / xy_jerk);
         } 
-        if(fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk) {
-            vmax_junction_factor = std::min(vmax_junction_factor, (max_z_jerk/fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
+        if(fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk)
+        {
+            vmax_junction_factor = std::min(vmax_junction_factor, (max_z_jerk / fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
         } 
-        if(fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk) {
-            vmax_junction_factor = std::min(vmax_junction_factor, (max_e_jerk/fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
+        if(fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk)
+        {
+            vmax_junction_factor = std::min(vmax_junction_factor, (max_e_jerk / fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
         } 
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }
@@ -229,10 +243,10 @@ std::vector<double> TimeEstimateCalculator::calculate()
     
     std::vector<double> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
     totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
-    for(unsigned int n=0; n<blocks.size(); n++)
+    for(unsigned int n = 0; n < blocks.size(); n++)
     {
-        Block& block = blocks[n];
-        double plateau_distance = block.decelerate_after - block.accelerate_until;
+        const Block& block = blocks[n];
+        const double plateau_distance = block.decelerate_after - block.accelerate_until;
         
         totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.initial_feedrate, block.accelerate_until, block.acceleration);
         totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
@@ -258,7 +272,9 @@ void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block 
         if ((!current->nominal_length_flag) && (current->max_entry_speed > next->entry_speed))
         {
             current->entry_speed = std::min(current->max_entry_speed, max_allowable_speed(-current->acceleration, next->entry_speed, current->distance));
-        } else {
+        }
+        else
+        {
             current->entry_speed = current->max_entry_speed;
         }
         current->recalculate_flag = true;
@@ -268,7 +284,7 @@ void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block 
 void TimeEstimateCalculator::reverse_pass()
 {
     Block* block[3] = {nullptr, nullptr, nullptr};
-    for(unsigned int n=blocks.size()-1; int(n)>=0; n--)
+    for(unsigned int n = blocks.size() - 1; int(n) >= 0; n--)
     {
         block[2]= block[1];
         block[1]= block[0];
