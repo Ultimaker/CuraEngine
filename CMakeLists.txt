@@ -198,7 +198,7 @@ endif ()
 # Compiling CuraEngine itself.
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
 
-add_dependencies(_CuraEngine Stb)
+add_dependencies(_CuraEngine stb)
 if(USE_SYSTEM_LIBS)
     target_link_libraries(_CuraEngine ${Polyclipping_LIBRARIES})
 else()

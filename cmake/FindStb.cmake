@@ -41,13 +41,13 @@ else()
         endif()
 
         include(ExternalProject)
-        ExternalProject_Add(Stb
+        ExternalProject_Add(stb
             GIT_REPOSITORY "https://github.com/nothings/stb.git"
             CONFIGURE_COMMAND "" #We don't want to actually go and build/test/generate it. Just need to download the headers.
             BUILD_COMMAND ""
             INSTALL_COMMAND "" #Assume that the user doesn't want to install all dependencies on his system. We just need to get them for building the application.
         )
-        set(Stb_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/Stb-prefix/src")
+        set(Stb_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/stb-prefix/src")
         set(Stb_FOUND TRUE)
         if(NOT Stb_FIND_QUIETLY)
             message(STATUS "Created Stb installation at: ${Stb_INCLUDE_DIRS}")
