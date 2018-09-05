@@ -40,6 +40,10 @@ private:
 
     Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
 
+    std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
+    const unsigned int prime_tower_start_location_skip = 13; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
+    const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
+
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
 
@@ -121,6 +125,12 @@ private:
     void generatePaths_denseInfill(const SliceDataStorage& storage);
 
     /*!
+     * \param storage where to get settings from
+     * Depends on outer_poly being generated
+     */
+    void generateStartLocations(const SliceDataStorage& storage);
+
+    /*!
      * \see PrimeTower::addToGcode
      *
      * Add path plans for the prime tower to the \p gcode_layer
@@ -130,6 +140,8 @@ private:
      * tower paths should be drawn.
      */
     void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
+
+    void gotoStartLocation(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
 };
 
 
