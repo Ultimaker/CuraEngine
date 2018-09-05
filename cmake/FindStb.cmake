@@ -47,7 +47,7 @@ else()
             BUILD_COMMAND ""
             INSTALL_COMMAND "" #Assume that the user doesn't want to install all dependencies on his system. We just need to get them for building the application.
         )
-        set(Stb_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/Stb-prefix/src/Stb")
+        set(Stb_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/Stb-prefix/src")
         set(Stb_FOUND TRUE)
         if(NOT Stb_FIND_QUIETLY)
             message(STATUS "Created Stb installation at: ${Stb_INCLUDE_DIRS}")
