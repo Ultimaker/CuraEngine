@@ -152,6 +152,12 @@ namespace cura
         const Point second_path_end = second_path.points.back();
         const coord_t line_width = first_path.config->getLineWidth();
 
+        // Reintroduction of this check prevents [CURA-5674] printing spurious infill-lines to origin:
+        if (vSize2(first_path_end - second_path_start) < line_width * line_width)
+        {
+            return false;
+        }
+
         //Lines may be adjacent side-by-side then.
         Point first_path_leave_point;
         coord_t merged_size2;
