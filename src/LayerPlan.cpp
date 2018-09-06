@@ -1065,8 +1065,8 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 {
     const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
 
-    // we always start at the point the last layer (if any) ended
-    const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    // once we are into the spiral we always start at the end point of the last layer (if any)
+    const Point origin = (last_seam_vertex_idx >= 0 && !is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
     addTravel_simple(origin);
 
     if (!smooth_contours && last_seam_vertex_idx >= 0) {
