@@ -423,56 +423,6 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     }
 }
 
-Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const
-{
-    if (layer_nr < 0 && layer_nr < -Raft::getFillerLayerCount(*this))
-    { // when processing raft
-        if (include_helper_parts)
-        {
-            return raftOutline;
-        }
-        else 
-        {
-            return Polygons();
-        }
-    }
-    else 
-    {
-        Polygons total;
-        if (layer_nr >= 0)
-        {
-            for (const SliceMeshStorage& mesh : meshes)
-            {
-                const SliceLayer& layer = mesh.layers[layer_nr];
-                layer.getInnermostWalls(total, 2, mesh);
-                if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
-                {
-                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
-                }
-            }
-        }
-        if (include_helper_parts)
-        {
-            if (support.generated) 
-            {
-                const SupportLayer& support_layer = support.supportLayers[std::max(0, layer_nr)];
-                for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
-                {
-                    total.add(support_infill_part.outline);
-                }
-                total.add(support.supportLayers[std::max(0, layer_nr)].support_bottom);
-                total.add(support.supportLayers[std::max(0, layer_nr)].support_roof);
-            }
-            if (primeTower.enabled)
-            {
-                total.add(primeTower.outer_poly);
-            }
-        }
-        return total;
-    }
-
-}
-
 std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
 

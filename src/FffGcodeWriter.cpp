@@ -870,6 +870,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, int lay
         addPrimeTower(storage, gcode_layer, prev_extruder);
     }
 
+    gcode_layer.optimizePaths(gcode.getPositionXY());
+
     return gcode_layer;
 }
 
@@ -1102,9 +1104,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         return;
     }
 
-    if (mesh.getSettingBoolean("anti_overhang_mesh")
-        || mesh.getSettingBoolean("support_mesh")
-    )
+    if (mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
     {
         return;
     }
@@ -1115,9 +1115,9 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
 
 
     Polygons polygons;
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for (const SliceLayerPart& part : layer->parts)
     {
-        polygons.add(layer->parts[partNr].outline);
+        polygons.add(part.outline);
     }
 
     ZSeamConfig z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), mesh.getZSeamHint(), mesh.getSettingAsZSeamCornerPrefType("z_seam_corner"));
@@ -1492,8 +1492,8 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
         }
-        // for non-spiralized layers, if bridging is enabled, determine the shape of the unsupported areas below this part
-        if (!spiralize && gcode_layer.getLayerNr() > 0 && mesh.getSettingBoolean("bridge_settings_enabled"))
+        // for non-spiralized layers, determine the shape of the unsupported areas below this part
+        if (!spiralize && gcode_layer.getLayerNr() > 0)
         {
             // accumulate the outlines of all of the parts that are on the layer below
 
@@ -1513,11 +1513,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
 
+            const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+
             // if support is enabled, add the support outlines also so we don't generate bridges over support
 
             if (storage.getSettingBoolean("support_enable") || storage.getSettingBoolean("support_tree_enable"))
             {
-                const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
                 const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
                 const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
                 const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
@@ -1554,27 +1555,53 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
             outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-            // max_air_gap is the max allowed width of the unsupported region below the wall line
-            // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
-            // it can be from 0 to 1/2 the outer wall line width
+            if (mesh.getSettingBoolean("bridge_settings_enabled"))
+            {
+                // max_air_gap is the max allowed width of the unsupported region below the wall line
+                // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-            const int max_air_gap = half_outer_wall_width * mesh.getSettingInPercentage("bridge_wall_max_overhang") / 100;
+                const int max_air_gap = half_outer_wall_width;
 
-            // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
-            // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
+                // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
+                // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
 
-            Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
+                Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
-            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
-            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
-            // but, instead, are 1/2 a line width inset from the outline
+                // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
+                // which is required because when the walls are being generated, the vertices do not fall on the part's outline
+                // but, instead, are 1/2 a line width inset from the outline
 
-            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+                gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+            }
+            else
+            {
+                // clear to disable use of bridging settings
+                gcode_layer.setBridgeWallMask(Polygons());
+            }
+
+            double overhang_angle = mesh.getSettingInAngleDegrees("wall_overhang_angle");
+            if (overhang_angle >= 90)
+            {
+                // clear to disable overhang detection
+                gcode_layer.setOverhangMask(Polygons());
+            }
+            else
+            {
+                // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
+                // the supported region is made up of those areas that really are supported by either model or support on the layer below
+                // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
+                // considered to be
+                double overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+                Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10+overhang_width-half_outer_wall_width)).offset(10);
+                gcode_layer.setOverhangMask(overhang_region);
+            }
         }
         else
         {
             // clear to disable use of bridging settings
             gcode_layer.setBridgeWallMask(Polygons());
+            // clear to disable overhang detection
+            gcode_layer.setOverhangMask(Polygons());
         }
 
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
@@ -1621,12 +1648,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addWalls(outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
+                            gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                         }
                         else
                         {
                             WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addWalls(outer_wall, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
+                            gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.getSettingInMicrons("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                         }
                     }
                 }
@@ -1643,12 +1670,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         if (!compensate_overlap_x)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addWalls(part.insets[processed_inset_number], mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
+                            gcode_layer.addWalls(part.insets[processed_inset_number], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
                         }
                         else
                         {
                             WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
-                            gcode_layer.addWalls(inner_wall, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
+                            gcode_layer.addWalls(inner_wall, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
                         }
                     }
                 }
@@ -1823,7 +1850,7 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                gcode_layer.addWalls(skin_perimeter, mesh_config.skin_config, mesh_config.bridge_skin_config, nullptr); // add polygons to gcode in inward order
+                gcode_layer.addWalls(skin_perimeter, mesh, mesh_config.skin_config, mesh_config.bridge_skin_config, nullptr); // add polygons to gcode in inward order
             }
         }
     }
@@ -2215,7 +2242,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const int default_support_infill_overlap = infill_extruder.getSettingInMicrons("infill_overlap_mm");
-    const double support_infill_angle = 0;
+    const double support_infill_angle = infill_extruder.getSettingInAngleDegrees("support_infill_angle");
     constexpr int infill_multiplier = 1; // there is no frontend setting for this (yet)
     constexpr int wall_line_count = 0;
     coord_t default_support_line_width = infill_extruder.getSettingInMicrons("support_line_width");
@@ -2513,17 +2540,13 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
-            if (train->getSettingBoolean("prime_blob_enable"))
-            { // only move to prime position if we do a blob/poop
-                // ideally the prime position would be respected whether we do a blob or not,
-                // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
-                // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
-                bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-                Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
-                gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
+            // We always prime an extruder, but whether it will be a prime blob/poop depends on if prime blob is enabled.
+            // This is decided in GCodeExport::writePrimeTrain().
+            bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+            gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
 
-                gcode_layer.planPrime();
-            }
+            gcode_layer.planPrime();
         }
 
         if (gcode_layer.getLayerNr() == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
@@ -2547,7 +2570,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
         return;
     }
 
-    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    const int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
     if (gcode_layer.getLayerNr() == 0 && outermost_prime_tower_extruder != gcode_layer.getExtruder())
     {
         return;
@@ -2558,6 +2581,12 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 
 void FffGcodeWriter::finalize()
 {
+    if (getSettingBoolean("machine_heated_bed"))
+    {
+        gcode.writeBedTemperatureCommand(0); //Cool down the bed (M140).
+        //Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
+    }
+
     double print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;

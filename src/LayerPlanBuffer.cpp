@@ -5,6 +5,7 @@
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
 #include "FffProcessor.h"
+#include "MergeInfillLines.h"
 
 namespace cura {
 
@@ -24,6 +25,7 @@ void LayerPlanBuffer::push(LayerPlan& layer_plan)
 void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 {
     push(layer_plan);
+
     LayerPlan* to_be_written = processBuffer();
     if (to_be_written)
     {
@@ -453,7 +455,6 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     }
 }
 
-
 void LayerPlanBuffer::insertTempCommands()
 {
     if (buffer.back()->extruder_plans.size() == 0 || (buffer.back()->extruder_plans.size() == 1 && buffer.back()->extruder_plans[0].paths.size() == 0))
@@ -471,7 +472,6 @@ void LayerPlanBuffer::insertTempCommands()
             extruder_plans.push_back(&extr_plan);
         }
     }
-
 
     // insert commands for all extruder plans on this layer
     LayerPlan& layer_plan = *buffer.back();

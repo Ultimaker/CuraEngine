@@ -135,7 +135,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
         std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
-        if (adaptive_layer_heights != NULL) {
+        if (adaptive_layer_heights != nullptr) {
             adaptive_layer_height_values = adaptive_layer_heights->getLayers();
         }
 
