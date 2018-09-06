@@ -1143,7 +1143,9 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 
         const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((1 - min_bottom_layer_flow) * wall_length / total_length)) : 1.0;
 
-        if (smooth_contours)
+        // if required, use interpolation to smooth the x/y coordinates between layers but not for the first spiralized layer
+        // as that lies directly on top of a non-spiralized wall with exactly the same outline
+        if (smooth_contours && !is_bottom_layer)
         {
             // now find the point on the last wall that is closest to p
             ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
