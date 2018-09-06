@@ -65,15 +65,17 @@ void TimeEstimateCalculator::reset()
 // acceleration within the allotted distance.
 static inline double max_allowable_speed(double acceleration, double target_velocity, double distance)
 {
-  return sqrt(target_velocity*target_velocity-2*acceleration*distance);
+    return sqrt(target_velocity * target_velocity - 2 * acceleration * distance);
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
 static inline float estimate_acceleration_distance(float initial_rate, float target_rate, float acceleration)
 {
     if (acceleration == 0)
+    {
         return 0.0;
-    return (square(target_rate)-square(initial_rate)) / (2.0*acceleration);
+    }
+    return (square(target_rate) - square(initial_rate)) / (2.0 * acceleration);
 }
 
 // This function gives you the point at which you must start braking (at the rate of -acceleration) if 
@@ -230,7 +232,7 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate, PrintFeature
 
     currentPosition = newPos;
 
-    calculate_trapezoid_for_block(&block, block.entry_speed/block.nominal_feedrate, safe_speed/block.nominal_feedrate);
+    calculate_trapezoid_for_block(&block, block.entry_speed / block.nominal_feedrate, safe_speed / block.nominal_feedrate);
     
     blocks.push_back(block);
 }
@@ -308,7 +310,7 @@ void TimeEstimateCalculator::planner_forward_pass_kernel(Block *previous, Block 
     {
         if (previous->entry_speed < current->entry_speed)
         {
-            double entry_speed = std::min(current->entry_speed, max_allowable_speed(-previous->acceleration,previous->entry_speed,previous->distance) );
+            const double entry_speed = std::min(current->entry_speed, max_allowable_speed(-previous->acceleration, previous->entry_speed, previous->distance));
 
             // Check for junction speed change
             if (current->entry_speed != entry_speed)
