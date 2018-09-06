@@ -1094,8 +1094,8 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 {
     const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
 
-    // we always start at the point the last layer (if any) ended
-    const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    // once we are into the spiral we always start at the end point of the last layer (if any)
+    const Point origin = (last_seam_vertex_idx >= 0 && !is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
     addTravel_simple(origin);
 
     if (!smooth_contours && last_seam_vertex_idx >= 0) {
@@ -1176,7 +1176,9 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 
         const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((1 - min_bottom_layer_flow) * wall_length / total_length)) : 1.0;
 
-        if (smooth_contours)
+        // if required, use interpolation to smooth the x/y coordinates between layers but not for the first spiralized layer
+        // as that lies directly on top of a non-spiralized wall with exactly the same outline
+        if (smooth_contours && !is_bottom_layer)
         {
             // now find the point on the last wall that is closest to p
             ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
