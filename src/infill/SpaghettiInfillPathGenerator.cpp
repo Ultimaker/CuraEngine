@@ -8,7 +8,7 @@
 namespace cura {
 
 
-bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_line_distance, int infill_angle, const Point& infill_origin)
+bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_angle, const Point& infill_origin)
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
@@ -19,7 +19,8 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("infill_pattern");
     const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill");
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
-    const bool connect_polygons = true; // spaghetti infill should have as least as possible travel moves
+    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
+    const bool connect_polygons = true; //Spaghetti infill should have as few as possible travel moves.
     const unsigned int infill_line_width = config.getLineWidth();
     constexpr int infill_multiplier = 1;
     const int64_t infill_shift = 0;

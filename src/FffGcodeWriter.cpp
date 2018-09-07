@@ -230,7 +230,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
         const std::vector<size_t>& extruder_order = extruder_order_per_layer[layer_nr];
         for (unsigned int extruder_idx = 0; !done_this_layer && extruder_idx < extruder_order.size(); ++extruder_idx)
         {
-            const unsigned int extruder_nr = extruder_order[extruder_idx];
+            const size_t extruder_nr = extruder_order[extruder_idx];
             // iterate through this extruder's meshes until we find a part with insets
             const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
             for (unsigned int mesh_idx : mesh_order)
@@ -1204,14 +1204,12 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         const size_t combined_infill_layers = std::max(1U, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh_group_settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
     }
-    
-    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
 
     bool added_something = false;
 
     if (mesh.settings.get<bool>("infill_before_walls"))
     {
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_angle);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle);
     }
 
     added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, mesh.getZSeamHint());
@@ -1220,7 +1218,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
     if (!mesh.settings.get<bool>("infill_before_walls"))
     {
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_angle);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle);
     }
 
     added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -1239,7 +1237,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     gcode_layer.setIsInside(false);
 }
 
-bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const coord_t infill_line_distance, const int infill_angle) const
+bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const int infill_angle) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
@@ -1249,23 +1247,24 @@ bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& g
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
     if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
     {
-        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_angle, infill_origin);
+        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle, infill_origin);
     }
     else
     {
-        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_angle, infill_origin);
-        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_line_distance, infill_angle, infill_origin);
+        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle, infill_origin);
+        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle, infill_origin);
         return added_something;
     }
 }
 
-bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const coord_t infill_line_distance, const int infill_angle, const Point& infill_origin) const
+bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const int infill_angle, const Point& infill_origin) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
         return false;
     }
     bool added_something = false;
+    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance > 0)
     {
         const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
@@ -1324,12 +1323,13 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     return added_something;
 }
 
-bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const coord_t infill_line_distance, const int infill_angle, const Point& infill_origin) const
+bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const int infill_angle, const Point& infill_origin) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
         return false;
     }
+    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
     {
         return false;
