@@ -200,22 +200,18 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_s
     
     assert(cell_data.size() > 0);
 
-    if (root_is_bogus)
-    { // always subdivide the root, which is a bogus node!
-        Cell& root = cell_data[0];
-        for (idx_t child_idx : root.children)
+    std::vector<std::vector<Cell*>> depth_ordered = getDepthOrdered();
+    for (std::vector<Cell*>& depth_cells : depth_ordered)
+    {
+        for (Cell* cell : depth_cells)
         {
-            if (child_idx >= 0 && shouldBeSubdivided(cell_data[child_idx]))
+            if (shouldBeSubdivided(*cell))
             {
-                all_to_be_subdivided.push_back(child_idx);
+                all_to_be_subdivided.push_back(cell->index);
             }
         }
     }
-    else
-    {
-        all_to_be_subdivided.push_back(0); // check whether we need to subdivide root
-    }
-    
+
     while (!all_to_be_subdivided.empty())
     {
         idx_t to_be_subdivided_idx = all_to_be_subdivided.front();
