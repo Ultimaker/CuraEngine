@@ -48,12 +48,10 @@ public:
      * mesh which should be printed with this extruder.
      * \param mesh_config the line config with which to print a print feature.
      * \param part The part for which to create gcode.
-     * \param fillAngle The angle in the XY plane at which the infill is
-     * generated.
      * \param infill_origin The origin of the infill pattern.
      * \return Whether this function added anything to the layer plan
      */
-    static bool processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int fillAngle, const Point& infill_origin);
+    static bool processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const Point& infill_origin);
 };
 
 }//namespace cura

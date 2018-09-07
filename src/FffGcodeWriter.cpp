@@ -344,7 +344,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 {
     if (mesh.infill_angles.size() == 0)
     {
-        mesh.infill_angles = mesh.settings.get<std::vector<int>>("infill_angles");
+        mesh.infill_angles = mesh.settings.get<std::vector<AngleDegrees>>("infill_angles");
         if (mesh.infill_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
@@ -367,7 +367,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
     if (mesh.roofing_angles.size() == 0)
     {
-        mesh.roofing_angles = mesh.settings.get<std::vector<int>>("roofing_angles");
+        mesh.roofing_angles = mesh.settings.get<std::vector<AngleDegrees>>("roofing_angles");
         if (mesh.roofing_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
@@ -378,7 +378,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
     if (mesh.skin_angles.size() == 0)
     {
-        mesh.skin_angles = mesh.settings.get<std::vector<int>>("skin_angles");
+        mesh.skin_angles = mesh.settings.get<std::vector<AngleDegrees>>("skin_angles");
         if (mesh.skin_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
@@ -1198,18 +1198,11 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
-    int infill_angle = 45; // original default, this will get updated to an element from mesh->infill_angles
-    if (mesh.infill_angles.size() > 0)
-    {
-        const size_t combined_infill_layers = std::max(1U, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh_group_settings.get<coord_t>("layer_height"), coord_t(1))));
-        infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
-    }
-
     bool added_something = false;
 
     if (mesh.settings.get<bool>("infill_before_walls"))
     {
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
     }
 
     added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, mesh.getZSeamHint());
@@ -1218,7 +1211,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
     if (!mesh.settings.get<bool>("infill_before_walls"))
     {
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
     }
 
     added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -1237,7 +1230,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     gcode_layer.setIsInside(false);
 }
 
-bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const int infill_angle) const
+bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
@@ -1247,17 +1240,17 @@ bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& g
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
     if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
     {
-        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle, infill_origin);
+        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_origin);
     }
     else
     {
-        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle, infill_origin);
-        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_angle, infill_origin);
+        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_origin);
+        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_origin);
         return added_something;
     }
 }
 
-bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const int infill_angle, const Point& infill_origin) const
+bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const Point& infill_origin) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
@@ -1268,6 +1261,12 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     if (infill_line_distance > 0)
     {
         const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+        AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+        if (mesh.infill_angles.size() > 0)
+        {
+            const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
+            infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
+        }
 
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
@@ -1323,7 +1322,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     return added_something;
 }
 
-bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const int infill_angle, const Point& infill_origin) const
+bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const Point& infill_origin) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
@@ -1347,6 +1346,12 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
     const size_t wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
+    AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+    if (mesh.infill_angles.size() > 0)
+    {
+        const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
+        infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
+    }
     for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
     {
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
@@ -1385,7 +1390,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
-        double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
+        constexpr double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
         
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
         // especially on vertical surfaces

@@ -4,11 +4,12 @@
 #include "SpaghettiInfillPathGenerator.h"
 #include "../infill.h"
 #include "../FffGcodeWriter.h"
+#include "../utils/math.h" //For round_divide.
 
 namespace cura {
 
 
-bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, int infill_angle, const Point& infill_origin)
+bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage& storage, const FffGcodeWriter& fff_gcode_writer, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const Point& infill_origin)
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
     {
@@ -27,6 +28,12 @@ bool SpaghettiInfillPathGenerator::processSpaghettiInfill(const SliceDataStorage
     constexpr int wall_line_count = 0;
     const int64_t outline_offset = 0;
     const double layer_height_mm = (gcode_layer.getLayerNr() == 0) ? mesh.settings.get<double>("layer_height_0") : mesh.settings.get<double>("layer_height");
+    AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+    if (mesh.infill_angles.size() > 0)
+    {
+        const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
+        infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
+    }
 
     // For each part on this layer which is used to fill that part and parts below:
     for (const std::pair<Polygons, double>& filling_area : part.spaghetti_infill_volumes)
