@@ -510,27 +510,28 @@ template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& k
     }
 }
 
-template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
+template<> std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);
 
-    std::vector<int> result;
+    std::vector<double> result;
     if (value_string.empty())
     {
         return result;
     }
 
-    /* We're looking to match one or more integer values separated by commas and
-     * surrounded by square brackets. Note that because the QML RexExpValidator
-     * only stops unrecognised characters being input and doesn't actually barf
-     * if the trailing ']' is missing, we are lenient here and make that bracket
-     * optional. */
-    std::regex list_contents_regex("\\[([^\\]]*)\\]?");
+    /* We're looking to match one or more floating point values separated by
+     * commas and surrounded by square brackets. Note that because the QML
+     * RegExpValidator only stops unrecognised characters being input and
+     * doesn't actually barf if the trailing ']' is missing, we are lenient here
+     * and make that bracket optional.
+     */
+    std::regex list_contents_regex(R"(\[([^\]]*)\]?)");
     std::smatch list_contents_match;
     if (std::regex_search(value_string, list_contents_match, list_contents_regex) && list_contents_match.size() > 1)
     {
         std::string elements = list_contents_match.str(1);
-        std::regex element_regex("\\s*(-?[0-9]+)\\s*,?");
+        std::regex element_regex(R"(\s*([+-]?[0.9]*\.[0-9]+)\s*,?)");
         std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
 
         std::regex_token_iterator<std::string::iterator> match_iter(elements.begin(), elements.end(), element_regex, 0);
@@ -539,15 +540,33 @@ template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& k
             std::string value = *match_iter++;
             try
             {
-                result.push_back(std::stoi(value));
+                result.push_back(std::stod(value));
             }
             catch (const std::invalid_argument& e)
             {
-                logError("Couldn't read integer value (%s) in setting '%s'. Ignored.\n", value.c_str(), key.c_str());
+                logError("Couldn't read floating point value (%s) in setting '%s'. Ignored.\n", value.c_str(), key.c_str());
             }
         }
     }
     return result;
+}
+
+template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
+{
+    std::vector<double> values_doubles = get<std::vector<double>>(key);
+    std::vector<int> values_ints;
+    values_ints.reserve(values_doubles.size());
+    for (double value : values_doubles)
+    {
+        values_ints.push_back(std::round(value)); //Round to nearest integer.
+    }
+    return values_ints;
+}
+
+template<> std::vector<AngleDegrees> Settings::get<std::vector<AngleDegrees>>(const std::string& key) const
+{
+    std::vector<double> values_doubles = get<std::vector<double>>(key);
+    return std::vector<AngleDegrees>(values_doubles.begin(), values_doubles.end()); //Cast them to AngleDegrees.
 }
 
 const std::string Settings::getAllSettingsString() const
