@@ -142,6 +142,11 @@ private:
      */
     void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
 
+    /*!
+     * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
+     * This function picks a start location for this extruder on the prime tower's perimeter and travels there to avoid
+     * starting at the location everytime which can result in z-seam blobs.
+     */
     void gotoStartLocation(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
 };
 
