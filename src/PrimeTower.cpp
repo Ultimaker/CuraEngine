@@ -178,7 +178,8 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     }
 
     // Go to the start location if it's not the first layer
-    if (layer_nr != 0) {
+    if (layer_nr != 0)
+    {
         gotoStartLocation(storage, gcode_layer, new_extruder);
     }
 
