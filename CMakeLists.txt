@@ -141,6 +141,7 @@ set(engine_SRCS # Except main.cpp.
 
     src/infill/Cross3D.cpp
     src/infill/Cross3DPrism.cpp
+    src/infill/GyroidInfill.cpp
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/PolygonBasedDensityProvider.cpp
@@ -151,7 +152,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SquareSubdiv.cpp
     src/infill/SubDivCube.cpp
-    src/infill/GyroidInfill.cpp
+    src/infill/TopSkinDensityProvider.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp
