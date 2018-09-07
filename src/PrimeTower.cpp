@@ -85,7 +85,7 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     if (enabled)
     {
         generatePaths_denseInfill(storage);
-        generateStartLocations(storage);
+        generateStartLocations();
     }
 }
 
@@ -141,12 +141,12 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
-void PrimeTower::generateStartLocations(const SliceDataStorage& storage)
+void PrimeTower::generateStartLocations()
 {
-    PolygonsPointIndex segment_start; // from where to start the sequence of wipe points
-    PolygonsPointIndex segment_end; // where to end the sequence of wipe points
-
-    segment_start = segment_end = PolygonUtils::findNearestVert(middle, outer_poly);
+    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
+    // so use the same start and end segments for this.
+    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly, 0, 0);
+    PolygonsPointIndex segment_end = segment_start;
 
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
 }

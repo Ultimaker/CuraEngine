@@ -105,7 +105,7 @@ public:
 private:
 
     /*!
-     * Find an approriate representation for the point representing the location before going to the prime tower
+     * Find an appropriate representation for the point representing the location before going to the prime tower
      * 
      * \warning This is not the actual position each time before the wipe tower
      * 
@@ -125,10 +125,11 @@ private:
     void generatePaths_denseInfill(const SliceDataStorage& storage);
 
     /*!
-     * \param storage where to get settings from
-     * Depends on outer_poly being generated
+     * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
+     * The number of starting points is defined by "number_of_prime_tower_start_locations". The generated points will
+     * be stored in "prime_tower_start_locations".
      */
-    void generateStartLocations(const SliceDataStorage& storage);
+    void generateStartLocations();
 
     /*!
      * \see PrimeTower::addToGcode
