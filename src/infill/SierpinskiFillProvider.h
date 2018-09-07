@@ -8,12 +8,15 @@
 #include "../utils/optional.h"
 #include "../utils/math.h"
 
+#include "../settings/Settings.h"
+
 #include "SierpinskiFill.h"
 #include "Cross3D.h"
 #include "DensityProvider.h"
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
-#include "../settings/Settings.h"
+#include "CombinedDensityProvider.h"
+#include "TopSkinDensityProvider.h"
 
 namespace cura
 {
@@ -40,16 +43,22 @@ protected:
 public:
     const AABB3D aabb_3d;
     FractalConfig fractal_config;
+    DensityProvider* average_density_provider; //!< The object which determines the average requested density at each region
+
+    TopSkinDensityProvider* skin_density_provider; //!< The object which determines the minimal density based on being at the surface 
+    CombinedDensityProvider* combined_density_provider; //!< The combination of the average density provider and the minimal density provider in a single density provider
+
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
+
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
     std::optional<Cross3D> subdivision_structure_3d; //!< The 3D prism subdivision structure from which to generate the patterns with varying density across Z
     std::map<coord_t, const Cross3D::Cell*> z_to_start_cell_cross3d; //!< Sierpinski sequence start cell for each z coord
 
-    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density);
 
-    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file);
 
-    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, bool this_constructor_is_for_cross3d);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, bool this_constructor_is_for_cross3d);
 
     Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const;
 
