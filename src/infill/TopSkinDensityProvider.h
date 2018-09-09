@@ -25,7 +25,8 @@ public:
 
 protected:
     AABB3D print_aabb; //!< bounding box of print coordinates in which to apply the image
-    const SliceMeshStorage& mesh_data; 
+    const SliceMeshStorage& mesh_data;
+    static constexpr coord_t layer_height = 100; // TODO: get from settings!
 
 };
 

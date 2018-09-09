@@ -24,7 +24,7 @@ TopSkinDensityProvider::~TopSkinDensityProvider()
 float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) const
 {
 
-    if (aabb.max.z >= mesh_data.bounding_box.max.z - 10) // TODO magic number
+    if (aabb.max.z >= mesh_data.bounding_box.max.z - 10 - layer_height) // minus layer_height because the last layer doesn't have to be exactly at the top of the mesh.
     {
         return 1.0;
     }
