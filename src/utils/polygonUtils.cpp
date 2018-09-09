@@ -669,6 +669,8 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     }
     ConstPolygonRef poly1 = *poly1_result.poly;
     ConstPolygonRef poly2 = *poly2_result.poly;
+    size_t poly1_idx = poly1_result.poly_idx;
+    size_t poly2_idx = poly2_result.poly_idx;
     if (poly1_result.point_idx == NO_INDEX || poly2_result.point_idx == NO_INDEX)
     {
         return;
@@ -712,6 +714,9 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     check_neighboring_vert(poly1, poly2, poly1_result, poly2_result, true);
     check_neighboring_vert(poly2, poly1, poly2_result, poly1_result, false);
     check_neighboring_vert(poly2, poly1, poly2_result, poly1_result, true);
+
+    poly1_result.poly_idx = poly1_idx;
+    poly2_result.poly_idx = poly2_idx;
 }
 
 ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef polygon, int start_idx)
