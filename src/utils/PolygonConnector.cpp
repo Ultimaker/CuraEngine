@@ -3,6 +3,7 @@
 #include "PolygonConnector.h"
 
 #include "linearAlg2D.h"
+#include "AABB.h"
 
 namespace cura 
 {
@@ -243,37 +244,25 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
 
 std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnection(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
-    PolygonConnection best_connection;
-    coord_t best_connection_distance2 = std::numeric_limits<coord_t>::max();
     ClosestPolygonPoint from_location(from_poly);
-    for (ConstPolygonRef to_poly : to_polygons)
-    {
-        if (to_poly.data() == from_poly.data())
-        { // don't connect a polygon to itself
-            continue;
-        }
-        ClosestPolygonPoint to_location(to_poly);
-        PolygonUtils::findSmallestConnection(from_location, to_location);
 
-        coord_t connection_distance2 = vSize2(to_location.p() - from_location.p());
-        if (connection_distance2 < best_connection_distance2)
-        {
-            best_connection.from = from_location;
-            best_connection.to = to_location;
-            best_connection_distance2 = connection_distance2;
-            if (connection_distance2 < (line_width + 10) * (line_width + 10))
-            {
-                return best_connection;
-            }
-        }
+    Polygons to_polys;
+    for (const Polygon& poly : to_polygons)
+    {
+        to_polys.add(poly);
     }
-    if (best_connection_distance2 == std::numeric_limits<coord_t>::max())
+
+    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findSmallestConnection(from_poly, to_polys, line_width * 4 / 3, line_width * 3 / 2);
+
+    if (!connection_points.first.isValid() || !connection_points.second.isValid())
     {
         return std::optional<PolygonConnector::PolygonConnection>();
     }
     else
     {
-        return best_connection;
+        PolygonConnection ret{connection_points.first, connection_points.second};
+        ret.to.poly = &to_polygons[ret.to.poly_idx]; // because it still refered to the local variable [to_polys]
+        return ret;
     }
 }
 
