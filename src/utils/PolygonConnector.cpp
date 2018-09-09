@@ -10,7 +10,12 @@ namespace cura
 Polygons PolygonConnector::connect()
 {
     Polygons ret;
-    
+
+    if (input_polygons.empty())
+    {
+        return ret;
+    }
+
     std::vector<Polygon> to_connect;
     to_connect.reserve(input_polygons.size());
     for (ConstPolygonPointer poly : input_polygons)
@@ -20,6 +25,11 @@ Polygons PolygonConnector::connect()
 
     while (!to_connect.empty())
     {
+        if (to_connect.size() == 1)
+        {
+            ret.add(std::move(to_connect.back()));
+            break;
+        }
         Polygon current = std::move(to_connect.back());
         to_connect.pop_back();
 
