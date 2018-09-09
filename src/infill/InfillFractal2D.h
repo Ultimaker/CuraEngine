@@ -682,6 +682,7 @@ protected:
     void debugCheckDepths() const;
     void debugCheckVolumeStats() const;
     void debugCheckLoans(const Cell& cell) const;
+    void debugCheckConstraint(const Cell& sub_tree_root) const;
 
     virtual void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const = 0;
 };

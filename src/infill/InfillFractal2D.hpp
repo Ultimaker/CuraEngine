@@ -238,7 +238,8 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_s
         }
         else
         {
-//             all_to_be_subdivided.push_front(to_be_subdivided_idx); // retry after subdividing all neighbors
+            // don't pop the front
+            // retry after subdividing all neighbors
             for (std::list<Link>& side : to_be_subdivided.adjacent_cells)
             {
                 for (Link& neighbor : side)
@@ -252,6 +253,9 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_s
         }
     }
     logDebug("InfillFractal2D::createMinimalDensityPattern finished in %5.2fs.\n", tk.restart());
+#ifdef DEBUG
+    debugCheckConstraint(cell_data[0]);
+#endif
 }
 
 
@@ -711,6 +715,14 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
         debugCheckLoans(cell);
     }
 
+#ifdef DEBUG
+    bool has_children_in_direction[8];
+    for (uint_fast8_t side = 0; side < getNumberOfSides(); side++)
+    {
+        has_children_in_direction[side] = !cell.adjacent_cells[side].empty();
+    }
+#endif
+
     assert(cell.children[0] >= 0 && cell.children[1] >= 0 && "Children must be initialized for subdivision!");
     Cell& child_lb = cell_data[cell.children[0]];
     Cell& child_rb = cell_data[cell.children[1]];
@@ -761,7 +773,9 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
             assert(neighbor.reverse);
             Cell& neighboring_cell = cell_data[neighbor.to_index];
             std::list<Link>& neighboring_edge_links = neighboring_cell.adjacent_cells[opposite(side)];
-            
+
+            bool neighbor_is_relinked = false;
+
             std::list<Link*> new_incoming_links;
             std::list<Link*> new_outgoing_links;
             for (idx_t child_idx : cell.children)
@@ -787,8 +801,12 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
 
                     new_incoming_links.push_back(&*inlink);
                     new_outgoing_links.push_back(&*outlink);
+
+                    neighbor_is_relinked = true;
                 }
             }
+            assert(neighbor_is_relinked && "parent neighbors must be connected to at least one child!");
+
             // loans should always be transfered from parent links to the new child links, so that we never loose value
             transferLoans(neighbor.getReverse(), new_incoming_links);
             transferLoans(neighbor, new_outgoing_links);
@@ -806,7 +824,24 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
         solveChildDebts(cell);
     }
     
-    
+#ifdef DEBUG
+    // check neighbor connections
+    for (const idx_t child_idx : cell.children)
+    {
+        if (child_idx < 0)
+        {
+            break;
+        }
+        const Cell& child = cell_data[child_idx];
+        for (uint_fast8_t side = 0; side < getNumberOfSides(); side++)
+        {
+            if (has_children_in_direction[side])
+            {
+                assert(!child.adjacent_cells[side].empty() && "Each child must have neighbors in the directions the parent had neighbors (the same neighbor, or another child)");
+            }
+        }
+    }
+
     // debug check:
     if (redistribute_errors)
     {
@@ -823,7 +858,6 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
     }
 
     // debug check:
-    
     if (redistribute_errors)
     {
         for (const idx_t child_idx : cell.children)
@@ -837,6 +871,7 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
     }
 
     debugCheckChildrenOverlap(cell);
+#endif
 }
 
 
@@ -1228,6 +1263,31 @@ void InfillFractal2D<CellGeometry>::debugCheckLoans(const Cell& cell) const
             assert(std::isfinite(link.loan));
             assert(std::isfinite(link.getReverse().loan));
             assert(link.loan < allowed_volume_error || link.getReverse().loan < allowed_volume_error); //  "two cells can't be loaning to each other!"
+        }
+    }
+}
+
+
+template<typename CellGeometry>
+void InfillFractal2D<CellGeometry>::debugCheckConstraint(const Cell& sub_tree_root) const
+{
+    if (sub_tree_root.is_subdivided)
+    {
+        for (idx_t child_idx : sub_tree_root.children)
+        {
+            if (child_idx < 0) break;
+            const Cell& child = cell_data[child_idx];
+            debugCheckConstraint(child);
+        }
+    }
+    else
+    {
+        for (const std::list<Link>& side_links : sub_tree_root.adjacent_cells)
+        {
+            for (const Link& link : side_links)
+            {
+                assert(std::abs(cell_data[link.to_index].depth - sub_tree_root.depth) <= 1);
+            }
         }
     }
 }
