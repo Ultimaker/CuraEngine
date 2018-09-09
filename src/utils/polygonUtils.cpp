@@ -652,9 +652,11 @@ void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, Clo
         return;
     }
 
-    Point center1 = poly1.centerOfMass();
+    Point center1 = poly1[0];
+    ClosestPolygonPoint intermediate_poly2_result = findClosest(center1, poly2);
+    ClosestPolygonPoint intermediate_poly1_result = findClosest(intermediate_poly2_result.p(), poly1);
 
-    poly2_result = findClosest(center1, poly2);
+    poly2_result = findClosest(intermediate_poly1_result.p(), poly2);
     poly1_result = findClosest(poly2_result.p(), poly1);
     walkToNearestSmallestConnection(poly1_result, poly2_result);
 }
