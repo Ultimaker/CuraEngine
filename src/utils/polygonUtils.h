@@ -43,6 +43,37 @@ struct ClosestPolygonPoint
     }
 };
 
+} // namespace cura
+
+namespace std
+{
+template <>
+struct hash<cura::ClosestPolygonPoint>
+{
+    size_t operator()(const cura::ClosestPolygonPoint& cpp) const
+    {
+        return std::hash<cura::Point>()(cpp.p());
+    }
+};
+}//namespace std
+
+
+namespace std
+{
+template <typename S, typename T>
+struct hash<std::pair<S, T>>
+{
+    size_t operator()(const std::pair<S, T>& pair) const
+    {
+        return 31 * std::hash<S>()(pair.first) + 59 * std::hash<T>()(pair.second);
+    }
+};
+}//namespace std
+
+
+namespace cura
+{
+
 /*!
  * A point within a polygon and the index of which segment in the polygon the point lies on.
  */
