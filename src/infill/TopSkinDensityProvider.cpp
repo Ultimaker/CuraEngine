@@ -11,9 +11,10 @@
 
 namespace cura {
 
-TopSkinDensityProvider::TopSkinDensityProvider(const SliceMeshStorage& mesh_data)
+TopSkinDensityProvider::TopSkinDensityProvider(const SliceMeshStorage& mesh_data, bool use_skin)
 : print_aabb(mesh_data.bounding_box)
 , mesh_data(mesh_data)
+, use_skin(use_skin)
 {
 }
 
@@ -59,7 +60,21 @@ float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) 
     for (size_t layer_idx = first_layer_idx; layer_idx <= last_layer_idx; layer_idx++)
     {
         const SliceLayer& layer = mesh_data.layers[layer_idx];
-        Polygons layer_outlines = layer.getOutlines();
+        Polygons layer_outlines;
+        if (use_skin)
+        {
+            for (const SliceLayerPart& part : layer.parts)
+            {
+                for (const SkinPart& skin_part : part.skin_parts)
+                {
+                    layer_outlines.add(skin_part.outline);
+                }
+            }
+        }
+        else
+        {
+            layer_outlines = layer.getOutlines();
+        }
         if (layer_outlines.inside(middle))
         {
             first_inside_layer_idx = layer_idx;

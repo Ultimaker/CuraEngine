@@ -748,9 +748,10 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         
         std::string cross_subdisivion_spec_image_file = infill_extruder.settings.get<std::string>("cross_support_density_image");
         std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+        bool use_skin = false;
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"), cross_subdisivion_spec_image_file);
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"), cross_subdisivion_spec_image_file, use_skin);
         }
         else
         {
@@ -760,7 +761,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             }
             const coord_t line_dist = infill_extruder.settings.get<coord_t>("support_line_distance");
             const coord_t line_width = infill_extruder.settings.get<coord_t>("support_line_width");
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, line_dist, line_width, static_cast<float>(line_width) / line_dist);
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, line_dist, line_width, static_cast<float>(line_width) / line_dist, use_skin);
         }
     }
 }

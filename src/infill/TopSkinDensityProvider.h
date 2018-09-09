@@ -17,7 +17,7 @@ class SliceMeshStorage; // forw decl
 class TopSkinDensityProvider : public DensityProvider
 {
 public:
-    TopSkinDensityProvider(const SliceMeshStorage& mesh_data);
+    TopSkinDensityProvider(const SliceMeshStorage& mesh_data, bool use_skin);
 
     virtual ~TopSkinDensityProvider();
 
@@ -26,6 +26,7 @@ public:
 protected:
     AABB3D print_aabb; //!< bounding box of print coordinates in which to apply the image
     const SliceMeshStorage& mesh_data;
+    bool use_skin; //!< Whether to only require high density where there is top/bottom skin below a top surface
     static constexpr coord_t layer_height = 100; // TODO: get from settings!
 
 };
