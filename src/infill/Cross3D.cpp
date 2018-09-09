@@ -255,7 +255,8 @@ bool Cross3D::isNextTo(const Cell& a, const Cell& b, Direction side) const
             double b_area = b_polygon.area();
             Polygons intersection = a_polygon.intersection(b_polygon);
             double intersection_area = intersection.area();
-            bool triangles_overlap = std::abs(intersection_area - std::min(a_area, b_area)) < 100.0; // TODO magic number
+            double min_area = std::min(a_area, b_area);
+            bool triangles_overlap = std::abs(intersection_area - min_area) < 0.5 * min_area; // intersection area should be either zero or equal to the min_area, so the decision boundary is in the middle
             return triangles_overlap;
         }
         case Direction::LEFT:
