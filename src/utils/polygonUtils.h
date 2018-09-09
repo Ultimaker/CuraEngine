@@ -329,6 +329,9 @@ public:
      * 
      * This implementation uses a sparse grid to get to an accurate result quickly
      * 
+     * The first connection larger than \p min_connection_length and smaller than \p max_connection_length is returned.
+     * If no such connection is found the smallest conection is returned, which might be larger than \p max_connection_length or it might be smaller than \p min_connection_length.
+     * 
      * \param poly1 The polygon in which to search for a conection
      * \param polys2 The polygons to which to connect
      * \param min_connection_length The minimal conection length a connection needs to have in order to stop looking for other connections

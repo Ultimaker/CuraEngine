@@ -252,7 +252,7 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnecti
         to_polys.add(poly);
     }
 
-    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findSmallestConnection(from_poly, to_polys, line_width * 4 / 3, line_width * 3 / 2);
+    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findSmallestConnection(from_poly, to_polys, line_width - 10, line_width * 3 / 2);
 
     if (!connection_points.first.isValid() || !connection_points.second.isValid())
     {
