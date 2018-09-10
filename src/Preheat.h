@@ -23,30 +23,6 @@ namespace cura
  */
 class Preheat 
 {
-    /*!
-     * The nozzle and material temperature settings for an extruder train.
-     */
-    class Config
-    {
-    public:
-        Duration time_to_heatup_1_degree[2]; //!< average time it takes to heat up one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
-        Duration time_to_cooldown_1_degree[2]; //!< average time it takes to cool down one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
-
-        Duration standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
-
-        Duration min_time_window; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
-
-        Temperature material_print_temperature; //!< default print temp (backward compatilibily)
-        Temperature material_print_temperature_layer_0; //!< initial layer print temp
-        Temperature material_initial_print_temperature; //!< print temp when first starting to extrude after a layer switch
-        Temperature material_final_print_temperature; //!< print temp at the end of all extrusion moves of an extruder to which it's cooled down just before - during the extrusion
-
-        bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
-    
-        FlowTempGraph flow_temp_graph; //!< The graph linking flows to corresponding temperatures
-    };
-
-    std::vector<Config> config_per_extruder;//!< the nozzle and material temperature settings for each extruder train.
 public:
     /*!
      * The type of result when computing when to start heating up a nozzle before it's going to be used again.
@@ -69,54 +45,6 @@ public:
     };
 
     /*!
-     * Get the standby temperature of an extruder train
-     * \param extruder the extruder train for which to get the standby tmep
-     * \return the standby temp
-     */
-    double getStandbyTemp(int extruder)
-    {
-        return config_per_extruder[extruder].standby_temp;
-    }
-
-    /*!
-     * Get the time it takes to heat up one degree celsius
-     * 
-     * \param extruder the extruder train for which to get time it takes to heat up one degree celsius
-     * \param during_printing whether the heating takes time during printing or when idle
-     * \return the time it takes to heat up one degree celsius
-     */
-    double getTimeToHeatup1Degree(int extruder, bool during_printing)
-    {
-        return config_per_extruder[extruder].time_to_heatup_1_degree[during_printing];
-    }
-
-    /*!
-     * Get the initial print temperature when starting to extrude.
-     * \param during_printing whether the heating takes time during printing or when idle
-     */
-    double getInitialPrintTemp(int extruder)
-    {
-        return config_per_extruder[extruder].material_initial_print_temperature;
-    }
-
-    /*!
-     * Get the final print temperature at the end of all extrusion moves with the current extruder
-     */
-    double getFinalPrintTemp(int extruder)
-    {
-        return config_per_extruder[extruder].material_final_print_temperature;
-    }
-
-    /*!
-     * Set the nozzle and material temperature settings for each extruder train.
-     */
-    void setConfig();
-
-    bool usesFlowDependentTemp(int extruder_nr)
-    {
-        return config_per_extruder[extruder_nr].flow_dependent_temperature;
-    }
-    /*!
      * Get the optimal temperature corresponding to a given average flow,
      * or the initial layer temperature.
      * 
@@ -126,16 +54,6 @@ public:
      * \return The corresponding optimal temperature
      */
     Temperature getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer);
-
-    /*!
-     * Return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
-     * \param extruder The extruder for which to get the minimal time window
-     * \return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
-     */
-    double getMinimalTimeWindow(unsigned int extruder)
-    {
-        return config_per_extruder[extruder].min_time_window;
-    }
 
     /*!
      * Decide when to start warming up again after starting to cool down towards \p temp_mid.

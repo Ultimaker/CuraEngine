@@ -7,65 +7,57 @@
 namespace cura 
 {
 
-void Preheat::setConfig()
-{
-    for (const ExtruderTrain& extruder_train : Application::getInstance().current_slice->scene.extruders)
-    {
-        config_per_extruder.emplace_back();
-        Config& config = config_per_extruder.back();
-        const Temperature machine_nozzle_cool_down_speed = extruder_train.settings.get<Temperature>("machine_nozzle_cool_down_speed"); //In degrees per second.
-        const Temperature machine_nozzle_heat_up_speed = extruder_train.settings.get<Temperature>("machine_nozzle_heat_up_speed");
-        const Temperature material_extrusion_cool_down_speed = extruder_train.settings.get<Temperature>("material_extrusion_cool_down_speed");
-        assert(material_extrusion_cool_down_speed < machine_nozzle_heat_up_speed && "The extrusion cooldown speed must be smaller than the heat up speed; otherwise the printing temperature cannot be reached!");
-        config.time_to_cooldown_1_degree[0] = 1.0 / machine_nozzle_cool_down_speed;
-        config.time_to_heatup_1_degree[0] = 1.0 / machine_nozzle_heat_up_speed;
-        config.time_to_cooldown_1_degree[1] = 1.0 / (machine_nozzle_cool_down_speed + material_extrusion_cool_down_speed);
-        config.time_to_heatup_1_degree[1] = 1.0 / (machine_nozzle_heat_up_speed - material_extrusion_cool_down_speed);
-        config.standby_temp = extruder_train.settings.get<Duration>("material_standby_temperature");
-
-        config.min_time_window = extruder_train.settings.get<Duration>("machine_min_cool_heat_time_window");
-
-        config.material_print_temperature = extruder_train.settings.get<Temperature>("material_print_temperature");
-        config.material_print_temperature_layer_0 = extruder_train.settings.get<Temperature>("material_print_temperature_layer_0");
-        config.material_initial_print_temperature = extruder_train.settings.get<Temperature>("material_initial_print_temperature");
-        config.material_final_print_temperature = extruder_train.settings.get<Temperature>("material_final_print_temperature");
-
-        config.flow_dependent_temperature = extruder_train.settings.get<bool>("material_flow_dependent_temperature"); 
-
-        config.flow_temp_graph = extruder_train.settings.get<FlowTempGraph>("material_flow_temp_graph"); // [[0.1,180],[20,230]]
-    }
-}
-
 Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)
 {
-    Config& config = config_per_extruder[extruder];
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
     Duration time;
     if (temp_after > temp_before)
     {
-        time = (temp_after - temp_before) * config.time_to_heatup_1_degree[during_printing];
+        Temperature heat_up_speed = extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
+        if (during_printing)
+        {
+            heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+        }
+        time = (temp_after - temp_before) / heat_up_speed;
     }
     else
     {
-        time = (temp_before - temp_after) * config.time_to_cooldown_1_degree[during_printing];
+        Temperature cool_down_speed = extruder_settings.get<Temperature>("machine_nozzle_cool_down_speed");
+        if (during_printing)
+        {
+            cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+        }
+        time = (temp_before - temp_after) / cool_down_speed;
     }
     return std::max(0.0_s, time);
 }
 
 Temperature Preheat::getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer)
 {
-    if (is_initial_layer && config_per_extruder[extruder].material_print_temperature_layer_0 != 0)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
+    if (is_initial_layer && extruder_settings.get<Temperature>("material_print_temperature_layer_0") != 0)
     {
-        return config_per_extruder[extruder].material_print_temperature_layer_0;
+        return extruder_settings.get<Temperature>("material_print_temperature_layer_0");
     }
-    return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
+    return extruder_settings.get<FlowTempGraph>("material_flow_temp_graph").getTemp(flow, extruder_settings.get<Temperature>("material_print_temperature"), extruder_settings.get<bool>("material_flow_dependent_temperature"));
 }
 
 Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
 {
     WarmUpResult result;
-    const Config& config = config_per_extruder[extruder];
-    double time_to_cooldown_1_degree = config.time_to_cooldown_1_degree[during_printing];
-    double time_to_heatup_1_degree = config.time_to_heatup_1_degree[during_printing];
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
+    Temperature cool_down_speed = extruder_settings.get<Temperature>("machine_nozzle_cool_down_speed");
+    if (during_printing)
+    {
+        cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+    }
+    const Duration time_to_cooldown_1_degree = 1.0 / cool_down_speed;
+    Temperature heat_up_speed = extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
+    if (during_printing)
+    {
+        heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+    }
+    const Duration time_to_heatup_1_degree = 1.0 / heat_up_speed;
     result.total_time_window = time_window;
 
     //                    ,temp_end
@@ -123,9 +115,19 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
 Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
 {
     CoolDownResult result;
-    const Config& config = config_per_extruder[extruder];
-    double time_to_cooldown_1_degree = config.time_to_cooldown_1_degree[during_printing];
-    double time_to_heatup_1_degree = config.time_to_heatup_1_degree[during_printing];
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
+    Temperature cool_down_speed = extruder_settings.get<Temperature>("machine_nozzle_cool_down_speed");
+    if (during_printing)
+    {
+        cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+    }
+    const Duration time_to_cooldown_1_degree = 1.0 / cool_down_speed;
+    Temperature heat_up_speed = extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
+    if (during_printing)
+    {
+        heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+    }
+    const Duration time_to_heatup_1_degree = 1.0 / heat_up_speed;
 
     assert(temp_start != -1 && temp_mid != -1 && temp_end != -1 && "temperatures must be initialized!");
 

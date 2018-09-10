@@ -32,9 +32,9 @@ namespace cura
 class LayerPlanBuffer
 {
     GCodeExport& gcode;
-    
+
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
-    
+
     static constexpr size_t buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
 

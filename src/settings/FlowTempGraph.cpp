@@ -27,7 +27,7 @@ double FlowTempGraph::getTemp(const double flow, const Temperature material_prin
         const Datum& datum = data[datum_idx];
         if (datum.flow >= flow)
         {
-            return last_datum->temp + (datum.temp - last_datum->temp) * (flow - last_datum->flow) / (datum.flow - last_datum->flow);
+            return last_datum->temp + Temperature((datum.temp - last_datum->temp) * (flow - last_datum->flow) / (datum.flow - last_datum->flow));
         }
         last_datum = &datum;
     }

@@ -33,6 +33,28 @@ struct Temperature
     }
 
     /*
+     * Some operators to do arithmetic with Temperatures.
+     */
+    Temperature operator +(const Temperature& other) const
+    {
+        return Temperature(value + other.value);
+    };
+    Temperature operator -(const Temperature& other) const
+    {
+        return Temperature(value + other.value);
+    };
+    Temperature& operator +=(const Temperature& other)
+    {
+        value += other.value;
+        return *this;
+    }
+    Temperature& operator -=(const Temperature& other)
+    {
+        value -= other.value;
+        return *this;
+    }
+
+    /*
      * \brief The actual temperature, as a double.
      */
     double value = 0;

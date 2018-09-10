@@ -48,8 +48,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetraction(storage);
 
-    layer_plan_buffer.setPreheatConfig();
-    
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
         unsigned int start_extruder_nr = getStartExtruder(storage);

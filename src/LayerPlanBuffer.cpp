@@ -14,11 +14,6 @@ namespace cura {
 
 constexpr Duration LayerPlanBuffer::extra_preheat_time;
 
-void LayerPlanBuffer::setPreheatConfig()
-{
-    preheat_config.setConfig();
-}
-
 void LayerPlanBuffer::push(LayerPlan& layer_plan)
 {
     buffer.push_back(&layer_plan);
@@ -150,6 +145,7 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     size_t extruder = extruder_plan.extruder;
+    Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
     double initial_print_temp = extruder_plan.required_start_temperature;
 
     Duration in_between_time = 0.0_s; // the duration during which the extruder isn't used
@@ -158,13 +154,13 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
         ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
         if (extruder_plan_before.extruder == extruder)
         {
-            double temp_before = preheat_config.getFinalPrintTemp(extruder);
+            Temperature temp_before = extruder_settings.get<Temperature>("material_final_print_temperature");
             if (temp_before == 0)
             {
                 temp_before = extruder_plan_before.extrusion_temperature.value_or(initial_print_temp);
             }
             constexpr bool during_printing = false;
-            Preheat::WarmUpResult warm_up = preheat_config.getWarmUpPointAfterCoolDown(in_between_time, extruder, temp_before, preheat_config.getStandbyTemp(extruder), initial_print_temp, during_printing);
+            Preheat::WarmUpResult warm_up = preheat_config.getWarmUpPointAfterCoolDown(in_between_time, extruder, temp_before, extruder_settings.get<Temperature>("material_standby_temperature"), initial_print_temp, during_printing);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
             return warm_up;
         }
@@ -174,13 +170,13 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
     // assume the nozzle has cooled down to strandby temperature already.
     Preheat::WarmUpResult warm_up;
     warm_up.total_time_window = in_between_time;
-    warm_up.lowest_temperature = preheat_config.getStandbyTemp(extruder);
+    warm_up.lowest_temperature = extruder_settings.get<Temperature>("material_standby_temperature");
     constexpr bool during_printing = false;
     warm_up.heating_time = preheat_config.getTimeToGoFromTempToTemp(extruder, warm_up.lowest_temperature, initial_print_temp, during_printing);
     if (warm_up.heating_time > in_between_time)
     {
         warm_up.heating_time = in_between_time;
-        warm_up.lowest_temperature = initial_print_temp - in_between_time / preheat_config.getTimeToHeatup1Degree(extruder, during_printing);
+        warm_up.lowest_temperature = initial_print_temp - in_between_time * extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
     }
     warm_up.heating_time = warm_up.heating_time + extra_preheat_time;
     return warm_up;
@@ -224,6 +220,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     const size_t extruder = extruder_plan.extruder;
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
     if (!gcode.getExtruderUsesTemp(extruder))
     {
         return;
@@ -232,7 +229,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     
     Preheat::WarmUpResult heating_time_and_from_temp = computeStandbyTempPlan(extruder_plans, extruder_plan_idx);
 
-    if (heating_time_and_from_temp.total_time_window < preheat_config.getMinimalTimeWindow(extruder))
+    if (heating_time_and_from_temp.total_time_window < extruder_settings.get<Duration>("machine_min_cool_heat_time_window"))
     {
         handleStandbyTemp(extruder_plans, extruder_plan_idx, initial_print_temp);
         return; // don't insert preheat command and just stay on printing temperature
@@ -267,16 +264,16 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
 void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {   
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
-    int extruder = extruder_plan.extruder;
-    
-    
+    const size_t extruder = extruder_plan.extruder;
+
     ExtruderPlan* prev_extruder_plan = extruder_plans[extruder_plan_idx - 1];
-    
-    int prev_extruder = prev_extruder_plan->extruder;
-    
+
+    const size_t prev_extruder = prev_extruder_plan->extruder;
+
     if (prev_extruder != extruder)
     { // set previous extruder to standby temperature
-        extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(prev_extruder);
+        const Settings& previous_extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
+        extruder_plan.prev_extruder_standby_temp = previous_extruder_settings.get<Temperature>("material_standby_temperature");
     }
     
     if (prev_extruder == extruder)
@@ -295,6 +292,7 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
     const unsigned int extruder = extruder_plan.extruder;
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
 
     if (!extruder_plan.extrusion_temperature)
     {
@@ -309,7 +307,7 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
     }
 
     double heated_pre_travel_time = 0;
-    if (preheat_config.getInitialPrintTemp(extruder) != 0)
+    if (extruder_settings.get<Temperature>("material_initial_print_temperature") != 0)
     { // handle heating from initial_print_temperature to printing_tempreature
         unsigned int path_idx;
         for (path_idx = 0; path_idx < extruder_plan.paths.size(); path_idx++)
@@ -331,12 +329,13 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 {
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
     const size_t extruder = last_extruder_plan.extruder;
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
     if (!gcode.getExtruderUsesTemp(extruder))
     {
         return;
     }
 
-    double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
+    const Temperature final_print_temp = extruder_settings.get<Temperature>("material_final_print_temperature");
     if (final_print_temp == 0)
     {
         return;
@@ -478,6 +477,7 @@ void LayerPlanBuffer::insertTempCommands()
         const size_t overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
         size_t extruder = extruder_plan.extruder;
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
         Duration time = extruder_plan.estimates.getTotalUnretractedTime();
         Ratio avg_flow;
         if (time > 0.0)
@@ -487,7 +487,7 @@ void LayerPlanBuffer::insertTempCommands()
         else
         {
             assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
-            if (preheat_config.usesFlowDependentTemp(extruder)) //Average flow is only used with flow dependent temperature.
+            if (extruder_settings.get<bool>("material_flow_dependent_temperature")) //Average flow is only used with flow dependent temperature.
             {
                 logWarning("Empty extruder plans detected! Temperature control might suffer.\n");
             }
@@ -495,7 +495,7 @@ void LayerPlanBuffer::insertTempCommands()
         }
 
         const Temperature print_temp = preheat_config.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer);
-        const Temperature initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
+        const Temperature initial_print_temp = extruder_settings.get<Temperature>("material_initial_print_temperature");
         if (initial_print_temp == 0.0 // user doesn't want to use initial print temp feature
             || !extruder_used_in_meshgroup[extruder] // prime blob uses print temp rather than initial print temp
             || (overall_extruder_plan_idx > 0 && extruder_plans[overall_extruder_plan_idx - 1]->extruder == extruder  // prev plan has same extruder ..
@@ -517,6 +517,7 @@ void LayerPlanBuffer::insertTempCommands()
             size_t extruder = extruder_plan.extruder;
             for (size_t extruder_idx = 0; extruder_idx < scene.extruders.size(); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
+                const Settings& other_extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_idx].settings;
                 if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
                 {
                     // override values from GCodeExport::setInitialTemps
@@ -528,14 +529,14 @@ void LayerPlanBuffer::insertTempCommands()
                     }
                     else 
                     {
-                        gcode.setInitialTemp(extruder_idx, preheat_config.getStandbyTemp(extruder_idx));
+                        gcode.setInitialTemp(extruder_idx, other_extruder_settings.get<Temperature>("material_standby_temperature"));
                     }
                 }
                 else
                 {
                     if (extruder_idx != extruder)
                     { // TODO: do we need to do this?
-                        extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(extruder_idx);
+                        extruder_plan.prev_extruder_standby_temp = other_extruder_settings.get<Temperature>("material_standby_temperature");
                     }
                 }
             }
