@@ -84,7 +84,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
 }
 
-void SubDivCube::generateSubdivisionLines(coord_t z, Polygons& result)
+void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result)
 {
     if (cube_properties_per_recursion_step.empty()) //Infill is set to 0%.
     {
@@ -104,11 +104,11 @@ void SubDivCube::generateSubdivisionLines(coord_t z, Polygons& result)
     }
 }
 
-void SubDivCube::generateSubdivisionLines(coord_t z, Polygons& result, Polygons (&directional_line_groups)[3])
+void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result, Polygons (&directional_line_groups)[3])
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
 
-    int32_t z_diff = std::abs(z - center.z); //!< the difference between the cube center and the target layer.
+    const coord_t z_diff = std::abs(z - center.z); //!< the difference between the cube center and the target layer.
     if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;

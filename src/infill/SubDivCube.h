@@ -22,7 +22,7 @@ public:
      */
     SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth);
 
-    ~SubDivCube(); //!< destructor (also destroys children
+    ~SubDivCube(); //!< destructor (also destroys children)
 
     /*!
      * Precompute the octree of subdivided cubes
@@ -35,8 +35,7 @@ public:
      * \param z the specified layer height
      * \param result (output) The resulting lines
      */
-    void generateSubdivisionLines(coord_t z, Polygons& result);
-
+    void generateSubdivisionLines(const coord_t z, Polygons& result);
 private:
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
@@ -44,15 +43,15 @@ private:
      * \param result (output) The resulting lines
      * \param directional_line_groups Array of 3 times a polylines. Used to keep track of line segments that are all pointing the same direction for line segment combining
      */
-    void generateSubdivisionLines(coord_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
+    void generateSubdivisionLines(const coord_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
 
     struct CubeProperties
     {
-        int64_t side_length; //!< side length of cubes
-        int64_t height; //!< height of cubes based. This is the distance from one point of a cube to its 3d opposite.
-        int64_t square_height; //!< square cut across lengths. This is the diagonal distance across a face of the cube.
-        int64_t max_draw_z_diff; //!< maximum draw z differences. This is the maximum difference in z at which lines need to be drawn.
-        int64_t max_line_offset; //!< maximum line offsets. This is the maximum distance at which subdivision lines should be drawn from the 2d cube center.
+        coord_t side_length; //!< side length of cubes
+        coord_t height; //!< height of cubes based. This is the distance from one point of a cube to its 3d opposite.
+        coord_t square_height; //!< square cut across lengths. This is the diagonal distance across a face of the cube.
+        coord_t max_draw_z_diff; //!< maximum draw z differences. This is the maximum difference in z at which lines need to be drawn.
+        coord_t max_line_offset; //!< maximum line offsets. This is the maximum distance at which subdivision lines should be drawn from the 2d cube center.
     };
 
     /*!
