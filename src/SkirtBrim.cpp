@@ -8,7 +8,7 @@
 namespace cura 
 {
 
-void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline)
+void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
@@ -40,6 +40,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             //  || ||     ||[]|| > expand to fit an extra brim line
             //  |+-+|     |+--+|
             //  +---+     +----+ 
+            const coord_t primary_extruder_skirt_brim_line_width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
             Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
             if (external_only)
             { // don't remove support within empty holes where no brim is generated.
@@ -107,14 +108,14 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     const bool is_skirt = start_distance > 0;
 
     const size_t adhesion_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("adhesion_extruder_nr");
-    const ExtruderTrain& adhesion_extruder = Application::getInstance().current_slice->scene.extruders[adhesion_extruder_nr];
-    const coord_t primary_extruder_skirt_brim_line_width = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-    const coord_t primary_extruder_minimal_length = adhesion_extruder.settings.get<coord_t>("skirt_brim_minimal_length");
+    const Settings& adhesion_settings = Application::getInstance().current_slice->scene.extruders[adhesion_extruder_nr].settings;
+    const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t primary_extruder_minimal_length = adhesion_settings.get<coord_t>("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
 
     Polygons first_layer_outline;
-    getFirstLayerOutline(storage, primary_line_count, primary_extruder_skirt_brim_line_width, is_skirt, first_layer_outline);
+    getFirstLayerOutline(storage, primary_line_count, is_skirt, first_layer_outline);
 
     const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;

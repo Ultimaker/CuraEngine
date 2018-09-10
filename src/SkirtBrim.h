@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SKIRT_BRIM_H
 #define SKIRT_BRIM_H
 
@@ -25,18 +27,20 @@ public:
 
 private:
     /*!
-     * Get the reference outline of the first layer around which to generate the first brim/skirt line.
-     * 
+     * \brief Get the reference outline of the first layer around which to
+     * generate the first brim/skirt line.
+     *
      * This function may change the support polygons in the first layer
-     * in order to meet criteria for putting brim around the model as well as around the support.
-     * 
+     * in order to meet criteria for putting brim around the model as well as
+     * around the support.
+     *
      * \param storage Storage containing the parts at the first layer.
-     * \param primary_line_count Number of outsets / brim lines of the primary extruder.
-     * \param primary_extruder_skirt_brim_line_width Line widths of the initial skirt/brim lines
+     * \param primary_line_count Number of outsets / brim lines of the primary
+     * extruder.
      * \param is_skirt Whether a skirt is being generated vs a brim
      * \param[out] first_layer_outline The resulting reference polygons
      */
-    static void getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline);
+    static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline);
 
     /*!
      * Generate the skirt/brim lines around the model
