@@ -83,7 +83,7 @@ private:
      * \param[out] distance2 the squared distance to the infill border
      * \return Code 0: outside, 1: inside, 2: boundary does not exist at specified layer
      */
-    static int distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, coord_t* distance2);
+    static coord_t distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point& location, coord_t* distance2);
 
     /*!
      * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.

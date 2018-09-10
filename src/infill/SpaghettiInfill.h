@@ -61,13 +61,7 @@ protected:
          * \param layer_height The layer height of the layer which contains the \p _top_part
          * \param bottom_z The z coordinate of the bottom of layer which contains \p _top_part
          */
-        InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, coord_t bottom_z)
-        : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
-        , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
-        , connection_inset_dist(mesh.settings.get<AngleDegrees>("spaghetti_max_infill_angle") >= 90 ? MM2INT(500) : (tan(mesh.settings.get<AngleRadians>("spaghetti_max_infill_angle")) * mesh.settings.get<coord_t>("layer_height")))
-        , bottom_z(bottom_z)
-        {
-        }
+        InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, coord_t bottom_z);
 
         /*!
          * Check whether the top of this pillar is connected (enough) to the given \p infill_part.

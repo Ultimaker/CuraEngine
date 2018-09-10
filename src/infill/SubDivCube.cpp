@@ -223,7 +223,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coor
     return false;
 }
 
-int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, coord_t* distance2)
+coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point& location, coord_t* distance2)
 {
     if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {

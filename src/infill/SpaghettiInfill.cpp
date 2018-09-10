@@ -7,7 +7,6 @@
 
 namespace cura {
 
-
 void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
 {
     double total_volume_mm3 = 0.0;
@@ -152,6 +151,14 @@ Polygons SpaghettiInfill::getFillingArea(const PolygonsPart& infill_area, coord_
         poly.emplace_back(inside + Point(-line_width / 2 - 10, -line_width / 2 - 10));
     }
     return filling_area;
+}
+
+SpaghettiInfill::InfillPillar::InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, coord_t bottom_z)
+: top_part(_top_part) // TODO: prevent copy construction! Is that possible?
+, total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
+, connection_inset_dist(mesh.settings.get<AngleDegrees>("spaghetti_max_infill_angle") >= 90 ? MM2INT(500) : (tan(mesh.settings.get<AngleRadians>("spaghetti_max_infill_angle")) * mesh.settings.get<coord_t>("layer_height")))
+, bottom_z(bottom_z)
+{
 }
 
 void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
