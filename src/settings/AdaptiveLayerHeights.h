@@ -87,7 +87,15 @@ public:
      */
     std::vector<AdaptiveLayer>* getLayers();
 
-    AdaptiveLayerHeights(int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold);
+    /*!
+     * \brief Creates a new adaptive layer height calculator.
+     * \param variation How much variation is allowed in the layer thickness.
+     * \param step_size The maximum difference in layer height between two
+     * adjacent layers.
+     * \param threshold Threshold to compare the tangent of the steepest slope
+     * to.
+     */
+    AdaptiveLayerHeights(const coord_t variation, const coord_t step_size, const double threshold);
 
 private:
 

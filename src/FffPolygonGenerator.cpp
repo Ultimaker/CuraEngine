@@ -90,9 +90,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     // regular layers
     size_t slice_layer_count = 0;
-    coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
 
     // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+    coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
     if (initial_layer_thickness <= 0)
     {
         logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
@@ -117,8 +117,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         coord_t variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         coord_t variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         AngleDegrees adaptive_threshold = mesh_group_settings.get<AngleDegrees>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(initial_layer_thickness,
-                                                          variable_layer_height_max_variation,
+        adaptive_layer_heights = new AdaptiveLayerHeights(variable_layer_height_max_variation,
                                                           variable_layer_height_variation_step, adaptive_threshold);
 
         // Get the amount of layers
@@ -145,7 +144,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness, layer_thickness, slice_layer_count,
+        Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count,
                                     mesh.settings.get<bool>("meshfix_keep_open_polygons"),
                                     mesh.settings.get<bool>("meshfix_extensive_stitching"),
                                     use_variable_layer_heights, adaptive_layer_height_values);
