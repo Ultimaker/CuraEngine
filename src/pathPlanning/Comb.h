@@ -122,7 +122,6 @@ private:
 
     const coord_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     const coord_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    const coord_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
     const coord_t offset_from_inside_to_outside; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const coord_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const coord_t max_moveOutside_distance2 = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.
@@ -177,13 +176,11 @@ public:
      * which to comb within layer parts.
      * \param offset_from_outlines The offset from the outline polygon, to
      * create the combing boundary in case there is no second wall.
-     * \param travel_avoid_distance The distance by which to avoid other layer
-     * parts when travelling through air.
      * \param move_inside_distance When using comb_boundary_inside_minimum for
      * combing it tries to move points inside by this amount after calculating
      * the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t travel_avoid_distance, coord_t move_inside_distance);
+    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t move_inside_distance);
 
     ~Comb();
 
