@@ -43,7 +43,6 @@ protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
 
-    size_t extruder; //!< The extruder used for this paths in the current plan.
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
     /*!
@@ -66,14 +65,19 @@ protected:
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
 
 public:
+    size_t extruder; //!< The extruder used for this paths in the current plan.
+
     /*!
      * Simple contructor.
      * 
      * \warning Doesn't set the required temperature yet.
      * 
      * \param extruder The extruder number for which this object is a plan.
+     * \param layer_nr The layer index of the layer that this extruder plan is
+     * part of.
+     * \param is_raft_layer Whether this extruder plan is part of a raft layer.
      */
-    ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bool is_raft_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
+    ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, const bool is_initial_layer, const bool is_raft_layer, const coord_t layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments

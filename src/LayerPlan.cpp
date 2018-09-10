@@ -16,10 +16,10 @@
 namespace cura {
 
 
-ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bool is_raft_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
-: extruder(extruder)
-, heated_pre_travel_time(0)
+ExtruderPlan::ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, const bool is_initial_layer, const bool is_raft_layer, const coord_t layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
+: heated_pre_travel_time(0)
 , required_start_temperature(-1)
+, extruder(extruder)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
 , is_raft_layer(is_raft_layer)
@@ -1714,11 +1714,8 @@ void LayerPlan::optimizePaths(const Point& starting_position)
 {
     for (ExtruderPlan& extr_plan : extruder_plans)
     {
-        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extr_plan.extruder].settings;
-        const coord_t nozzle_size = extruder_settings.get<coord_t>("machine_nozzle_size");
-        const coord_t maximum_resolution = extruder_settings.get<coord_t>("meshfix_maximum_resolution");
         //Merge paths whose endpoints are very close together into one line.
-        MergeInfillLines merger(extr_plan, nozzle_size, maximum_resolution);
+        MergeInfillLines merger(extr_plan);
         merger.mergeInfillLines(extr_plan.paths, starting_position);
     }
 }
