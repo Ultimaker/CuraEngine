@@ -41,7 +41,6 @@ private:
     Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
 
     std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
-    const unsigned int prime_tower_start_location_skip = 13; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
     const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
@@ -103,16 +102,6 @@ public:
     void subtractFromSupport(SliceDataStorage& storage);
 
 private:
-
-    /*!
-     * Find an appropriate representation for the point representing the location before going to the prime tower
-     * 
-     * \warning This is not the actual position each time before the wipe tower
-     * 
-     * \param storage where to get settings from
-     * \return that location
-     */
-    Point getLocationBeforePrimeTower(const SliceDataStorage& storage) const;
 
     /*!
      * \see WipeTower::generatePaths

@@ -206,30 +206,6 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPl
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 }
 
-Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) const
-{
-    Point ret(0, 0);
-    int absolute_starting_points = 0;
-    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
-    {
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
-        if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
-        {
-            ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
-            absolute_starting_points++;
-        }
-    }
-    if (absolute_starting_points > 0)
-    { // take the average over all absolute starting positions
-        ret /= absolute_starting_points;
-    }
-    else
-    { // use the middle of the bed
-        ret = storage.machine_size.flatten().getMiddle();
-    }
-    return ret;
-}
-
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     const Polygons outside_polygon = outer_poly.getOutsidePolygons();
