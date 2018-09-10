@@ -6,6 +6,7 @@
 
 #include <list>
 
+#include "../settings/types/AngleRadians.h" //To compute the inset distance.
 #include "../utils/IntPoint.h"
 #include "../utils/polygon.h"
 #include "../sliceDataStorage.h"
@@ -48,22 +49,22 @@ protected:
         SliceLayerPart* top_slice_layer_part = nullptr; //!< A reference to the slice_layer_part from which the top part is generated
         PolygonsPart top_part; //!< The top area of this pillar
         double total_volume_mm3; //!< The total volume of the pillar
-        coord_t connection_inset_dist; //!< Horizontal component of the spaghetti_max_infill_angle: the distance insetted corresponding to the maximum angle which can be filled by spaghetti infill.
-        coord_t bottom_z; //!< The z coordinate of the bottom of the first layer this pillar is present in
+        const coord_t connection_inset_dist; //!< Horizontal component of the spaghetti_max_infill_angle: the distance insetted corresponding to the maximum angle which can be filled by spaghetti infill.
+        const coord_t bottom_z; //!< The z coordinate of the bottom of the first layer this pillar is present in
         LayerIndex last_layer_added = -1; //!< The last layer from which areas got added to this pillar
 
         /*!
          * Basic constructor of a pillar from a single area, which is to be the top of the new pillar
          * 
+         * \param mesh The mesh that this infill belongs to.
          * \param _top_part The area which is the base and the top of the new pillar
-         * \param connection_inset_dist Horizontal component of the spaghetti_max_infill_angle
          * \param layer_height The layer height of the layer which contains the \p _top_part
          * \param bottom_z The z coordinate of the bottom of layer which contains \p _top_part
          */
-        InfillPillar(const PolygonsPart& _top_part, coord_t connection_inset_dist, const coord_t layer_height, coord_t bottom_z)
+        InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, coord_t bottom_z)
         : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
         , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
-        , connection_inset_dist(connection_inset_dist)
+        , connection_inset_dist(mesh.settings.get<AngleDegrees>("spaghetti_max_infill_angle") >= 90 ? MM2INT(500) : (tan(mesh.settings.get<AngleRadians>("spaghetti_max_infill_angle")) * mesh.settings.get<coord_t>("layer_height")))
         , bottom_z(bottom_z)
         {
         }
@@ -104,14 +105,15 @@ private:
      * - add it to an existing pillar if possible
      * - otherwise create a new pillar for this area
      * The pillar to which the area was added is returned
-     * 
+     *
+     * \param mesh The mesh that the infill belongs to.
      * \param infill_part The area to add to the base
      * \param pillar_base The collection of pillars used up till the current layer
      * \param connection_inset_dist The distance insetted corresponding to the maximum angle which can be filled by spaghetti infill
      * \param layer_height The layer height of the added area
      * \param bottom_z The z coordinate of the bottom of the layer which contains the \p infill_part
      */
-    static InfillPillar& addPartToPillarBase(const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, coord_t connection_inset_dist, const coord_t layer_height, coord_t bottom_z);
+    static InfillPillar& addPartToPillarBase(const SliceMeshStorage& mesh, const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, const coord_t layer_height, coord_t bottom_z);
 };
 
 }//namespace cura

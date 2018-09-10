@@ -4,7 +4,9 @@
 #ifndef ANGLERADIANS_H
 #define ANGLERADIANS_H
 
-#define TAU (2.0*M_PI)
+#include <cmath> //For fmod.
+
+#define TAU (2.0 * M_PI)
 
 namespace cura
 {
