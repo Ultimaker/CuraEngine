@@ -29,12 +29,14 @@ public:
      * \param mesh contains infill layer data and settings
      */
     static void precomputeOctree(SliceMeshStorage& mesh);
+
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
      * \param z the specified layer height
      * \param result (output) The resulting lines
      */
     void generateSubdivisionLines(coord_t z, Polygons& result);
+
 private:
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
@@ -43,6 +45,7 @@ private:
      * \param directional_line_groups Array of 3 times a polylines. Used to keep track of line segments that are all pointing the same direction for line segment combining
      */
     void generateSubdivisionLines(coord_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
+
     struct CubeProperties
     {
         int64_t side_length; //!< side length of cubes
@@ -51,16 +54,19 @@ private:
         int64_t max_draw_z_diff; //!< maximum draw z differences. This is the maximum difference in z at which lines need to be drawn.
         int64_t max_line_offset; //!< maximum line offsets. This is the maximum distance at which subdivision lines should be drawn from the 2d cube center.
     };
+
     /*!
      * Rotates a point 120 degrees about the origin.
      * \param target the point to rotate.
      */
     static void rotatePoint120(Point& target);
+
     /*!
      * Rotates a point to align it with the orientation of the infill.
      * \param target the point to rotate.
      */
     static void rotatePointInitial(Point& target);
+
     /*!
      * Determines if a described theoretical cube should be subdivided based on if a sphere that encloses the cube touches the infill mesh.
      * \param mesh contains infill layer data and settings
@@ -68,7 +74,8 @@ private:
      * \param radius the radius of the enclosing sphere
      * \return the described cube should be subdivided
      */
-    static bool isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius);
+    static bool isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coord_t radius);
+
     /*!
      * Finds the distance to the infill border at the specified layer from the specified point.
      * \param mesh contains infill layer data and settings
@@ -77,7 +84,7 @@ private:
      * \param[out] distance2 the squared distance to the infill border
      * \return Code 0: outside, 1: inside, 2: boundary does not exist at specified layer
      */
-    static int distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, int64_t* distance2);
+    static int distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, coord_t* distance2);
 
     /*!
      * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.

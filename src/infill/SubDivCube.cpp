@@ -185,9 +185,9 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth)
     }
 }
 
-bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius)
+bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coord_t radius)
 {
-    int64_t distance2 = 0;
+    coord_t distance2 = 0;
     coord_t sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
@@ -223,7 +223,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     return false;
 }
 
-int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, int64_t* distance2)
+int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, coord_t* distance2)
 {
     if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
@@ -252,11 +252,9 @@ void SubDivCube::rotatePointInitial(Point& target)
 
 void SubDivCube::rotatePoint120(Point& target)
 {
-    constexpr double sqrt_three_fourths = 0.8660254037844386467637231707529361834714026269051903; //!< sqrt(3.0 / 4.0) = sqrt(3) / 2
-    int64_t x;
-    x = (-0.5) * target.X - sqrt_three_fourths * target.Y;
-    target.Y = (-0.5)*target.Y + sqrt_three_fourths * target.X;
-    target.X = x;
+    constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0);
+    target.Y = (-0.5) * target.Y + sqrt_three_fourths * target.X;
+    target.X = (-0.5) * target.X - sqrt_three_fourths * target.Y;
 }
 
 void SubDivCube::addLineAndCombine(Polygons& group, Point from, Point to)
