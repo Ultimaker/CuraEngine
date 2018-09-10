@@ -1254,69 +1254,71 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     {
         return false;
     }
-    bool added_something = false;
     const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
-    if (infill_line_distance > 0)
+    if (infill_line_distance <= 0)
     {
-        const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
-        AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
-        if (mesh.infill_angles.size() > 0)
-        {
-            const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
-            infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
-        }
-        const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-        const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+        return false;
+    }
 
-        //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-        for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
-        {
-            const coord_t infill_line_width = mesh_config.infill_config[combine_idx].getLineWidth();
-            const EFillMethod infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
-            const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
-            const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
-            size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
-            Polygons infill_polygons;
-            Polygons infill_lines;
-            for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
-            { // combine different density infill areas (for gradual infill)
-                size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-                coord_t infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
-                coord_t infill_shift = infill_line_distance_here / 2;
-                if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
-                {
-                    infill_line_distance_here /= 2;
-                }
+    const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+    AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+    if (mesh.infill_angles.size() > 0)
+    {
+        const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
+        infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
+    }
+    const Point3 mesh_middle = mesh.bounding_box.getMiddle();
+    const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
 
-                constexpr int wall_line_count = 0; // wall lines are always single layer
-                Polygons* perimeter_gaps = nullptr;
-                constexpr bool connected_zigzags = false;
-                constexpr bool use_endpieces = true;
-                constexpr bool skip_some_zags = false;
-                constexpr int zag_skip_count = 0;
-                const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
-
-                Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx], /*outline_offset =*/ 0
-                    , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
-                    , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
-                    , mesh.settings.get<coord_t>("cross_infill_pocket_size")
-                    , maximum_resolution);
-                infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
-            }
-            if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+    //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
+    bool added_something = false;
+    for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
+    {
+        const coord_t infill_line_width = mesh_config.infill_config[combine_idx].getLineWidth();
+        const EFillMethod infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+        const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
+        const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
+        size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
+        Polygons infill_polygons;
+        Polygons infill_lines;
+        for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
+        { // combine different density infill areas (for gradual infill)
+            size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
+            coord_t infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
+            coord_t infill_shift = infill_line_distance_here / 2;
+            if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
             {
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
-                if (!infill_polygons.empty())
-                {
-                    constexpr bool force_comb_retract = false;
-                    gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
-                    gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx]);
-                }
-                const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-                gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization);
+                infill_line_distance_here /= 2;
             }
+
+            constexpr int wall_line_count = 0; // wall lines are always single layer
+            Polygons* perimeter_gaps = nullptr;
+            constexpr bool connected_zigzags = false;
+            constexpr bool use_endpieces = true;
+            constexpr bool skip_some_zags = false;
+            constexpr int zag_skip_count = 0;
+            const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+
+            Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx], /*outline_offset =*/ 0
+                , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
+                , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
+                , mesh.settings.get<coord_t>("cross_infill_pocket_size")
+                , maximum_resolution);
+            infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+        }
+        if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+        {
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            if (!infill_polygons.empty())
+            {
+                constexpr bool force_comb_retract = false;
+                gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx]);
+            }
+            const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization);
         }
     }
     return added_something;
