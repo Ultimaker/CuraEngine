@@ -1636,25 +1636,22 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                     }
                 }
                 // Inner walls are processed
-                else
+                else if (!part.insets[processed_inset_number].empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
                 {
-                    if (part.insets[processed_inset_number].size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
+                    added_something = true;
+                    setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                    gcode_layer.setIsInside(true); // going to print stuff inside print object
+                    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+                    Polygons inner_wall = part.insets[processed_inset_number];
+                    if (!compensate_overlap_x)
                     {
-                        added_something = true;
-                        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                        gcode_layer.setIsInside(true); // going to print stuff inside print object
-                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-                        Polygons inner_wall = part.insets[processed_inset_number];
-                        if (!compensate_overlap_x)
-                        {
-                            WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addWalls(part.insets[processed_inset_number], mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
-                        }
-                        else
-                        {
-                            WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
-                            gcode_layer.addWalls(inner_wall, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
-                        }
+                        WallOverlapComputation* wall_overlap_computation(nullptr);
+                        gcode_layer.addWalls(part.insets[processed_inset_number], mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
+                    }
+                    else
+                    {
+                        WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
+                        gcode_layer.addWalls(inner_wall, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
                     }
                 }
             }
