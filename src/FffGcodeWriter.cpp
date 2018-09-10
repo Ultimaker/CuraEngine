@@ -1262,7 +1262,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
 
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
-    if (mesh.infill_angles.size() > 0)
+    if (!mesh.infill_angles.empty())
     {
         const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
@@ -1291,12 +1291,12 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 infill_line_distance_here /= 2;
             }
 
-            constexpr int wall_line_count = 0; // wall lines are always single layer
+            constexpr size_t wall_line_count = 0; // wall lines are always single layer
             Polygons* perimeter_gaps = nullptr;
             constexpr bool connected_zigzags = false;
             constexpr bool use_endpieces = true;
             constexpr bool skip_some_zags = false;
-            constexpr int zag_skip_count = 0;
+            constexpr size_t zag_skip_count = 0;
             const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
 
             Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx], /*outline_offset =*/ 0
@@ -1306,7 +1306,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 , maximum_resolution);
             infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
         }
-        if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+        if (!infill_lines.empty() || !infill_polygons.empty())
         {
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
