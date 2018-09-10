@@ -1845,7 +1845,7 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
 
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("roofing_pattern");
 
-    int roofing_angle = 45;
+    AngleDegrees roofing_angle = 45;
     if (mesh.roofing_angles.size() > 0)
     {
         roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
@@ -1876,7 +1876,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
         mesh.settings.get<EFillMethod>("top_bottom_pattern");
 
-    int skin_angle = 45;
+    AngleDegrees skin_angle = 45;
     const bool skin_alternate_rotation = mesh.settings.get<bool>("skin_alternate_rotation") && (mesh.settings.get<size_t>("top_layers") >= 4 || mesh.settings.get<size_t>("bottom_layers") >= 4 );
     if (mesh.skin_angles.size() > 0)
     {
@@ -1941,7 +1941,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
         Polygons supported_skin_part_regions;
 
-        int angle = bridgeAngle(skin_part.outline, storage, layer_nr - bridge_layer, support_layer, supported_skin_part_regions, support_threshold);
+        const int angle = bridgeAngle(skin_part.outline, storage, layer_nr - bridge_layer, support_layer, supported_skin_part_regions, support_threshold);
 
         if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
         {
@@ -1958,18 +1958,18 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                         if (bottom_layers > 2)
                         {
                             // orientate second bridge skin at +45 deg to first
-                            skin_angle = (angle + 45) % 360;
+                            skin_angle = angle + 45;
                         }
                         else
                         {
                             // orientate second bridge skin at 90 deg to first
-                            skin_angle = (angle + 90) % 360;
+                            skin_angle = angle + 90;
                         }
                         break;
 
                     case 3:
                         // orientate third bridge skin at 135 (same result as -45) deg to first
-                        skin_angle = (angle + 135) % 360;
+                        skin_angle = angle + 135;
                         break;
                 }
             }
@@ -2050,7 +2050,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, int skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const double skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
