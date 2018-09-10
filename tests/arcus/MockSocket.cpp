@@ -10,8 +10,8 @@ MockSocket::MockSocket()
 {
 }
 
-void MockSocket::connect(const std::string& address, int port) { /* Do nothing. */ }
-void MockSocket::listen(const std::string& address, int port) { /* Do nothing. */ }
+void MockSocket::connect(const std::string&, int) { /* Do nothing. */ }
+void MockSocket::listen(const std::string&, int) { /* Do nothing. */ }
 void MockSocket::close() { /* Do nothing. */ }
 void MockSocket::reset() { /* Do nothing. */ }
 
