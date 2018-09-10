@@ -1,12 +1,12 @@
-//Copyright (C) 2016 Ultimaker
-//Released under terms of the AGPLv3 License
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GCodePath.h"
 
 namespace cura
 {
 
-GCodePath::GCodePath(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor) :
+GCodePath::GCodePath(const GCodePathConfig& config, const SpaceFillType space_fill_type, const Ratio flow, const bool spiralize, const Ratio speed_factor) :
 config(&config),
 space_fill_type(space_fill_type),
 flow(flow),

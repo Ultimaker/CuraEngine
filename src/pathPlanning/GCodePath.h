@@ -1,5 +1,5 @@
-//Copyright (C) 2017 Ultimaker
-//Released under terms of the AGPLv3 License
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
@@ -27,8 +27,8 @@ class GCodePath
 public:
     const GCodePathConfig* config; //!< The configuration settings of the path.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
-    float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
-    double speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
+    Ratio flow; //!< A type-independent flow configuration (used for wall overlap compensation)
+    Ratio speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)
@@ -52,7 +52,7 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig& config, SpaceFillType space_fill_type, float flow, bool spiralize, double speed_factor = 1.0);
+    GCodePath(const GCodePathConfig& config, const SpaceFillType space_fill_type, const Ratio flow, const bool spiralize, const Ratio speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.
