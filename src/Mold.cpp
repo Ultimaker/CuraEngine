@@ -9,7 +9,7 @@
 namespace cura
 {
 
-void Mold::process(std::vector<Slicer*>& slicer_list, coord_t layer_height)
+void Mold::process(std::vector<Slicer*>& slicer_list)
 {
     Scene& scene = Application::getInstance().current_slice->scene;
     { // check whether we even need to process molds
@@ -39,6 +39,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list, coord_t layer_height)
         }
     }
 
+    const coord_t layer_height = scene.current_mesh_group->settings.get<coord_t>("layer_height");
     std::vector<Polygons> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
     mold_outline_above_per_mesh.resize(slicer_list.size());
     for (int layer_nr = layer_count - 1; layer_nr >= 0; layer_nr--)

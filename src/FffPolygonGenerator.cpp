@@ -90,7 +90,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     // regular layers
     size_t slice_layer_count = 0;
-    coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
 
     // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
@@ -101,6 +100,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     // Layer height of 0 is not allowed. Negative layer height is nonsense.
+    const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     if(layer_thickness <= 0)
     {
         logError("Layer height %i is disallowed.\n", layer_thickness);
@@ -117,7 +117,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         coord_t variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         coord_t variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         AngleDegrees adaptive_threshold = mesh_group_settings.get<AngleDegrees>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, initial_layer_thickness,
+        adaptive_layer_heights = new AdaptiveLayerHeights(initial_layer_thickness,
                                                           variable_layer_height_max_variation,
                                                           variable_layer_height_variation_step, adaptive_threshold);
 
@@ -167,7 +167,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
     meshgroup->clear();
 
-    Mold::process(slicerList, layer_thickness);
+    Mold::process(slicerList);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)

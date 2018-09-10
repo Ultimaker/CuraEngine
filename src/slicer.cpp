@@ -9,6 +9,7 @@
 #include "utils/SparsePointGridInclusive.h"
 
 #include "slicer.h"
+#include "Application.h"
 
 
 namespace cura {

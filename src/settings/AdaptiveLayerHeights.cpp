@@ -14,19 +14,18 @@ namespace cura
 
 AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height(layer_height) { }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
+AdaptiveLayerHeights::AdaptiveLayerHeights(int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold)
 {
     // store the required parameters
-    this->layer_height = layer_thickness;
-    this->initial_layer_height = initial_layer_thickness;
-    this->max_variation = static_cast<int>(variation);
-    this->step_size = static_cast<int>(step_size);
-    this->threshold = threshold;
-    this->layers = {};
+    initial_layer_height = initial_layer_thickness;
+    max_variation = static_cast<int>(variation);
+    step_size = static_cast<int>(step_size);
+    threshold = threshold;
+    layers = {};
 
-    this->calculateAllowedLayerHeights();
-    this->calculateMeshTriangleSlopes();
-    this->calculateLayers();
+    calculateAllowedLayerHeights();
+    calculateMeshTriangleSlopes();
+    calculateLayers();
 }
 
 int AdaptiveLayerHeights::getLayerCount()

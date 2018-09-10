@@ -35,7 +35,7 @@ public:
      * \param layer_height The overall layer height used (used to compute an
      * offset from the mold angle).
      */
-    static void process(std::vector<Slicer*>& slicer_list, coord_t layer_height);
+    static void process(std::vector<Slicer*>& slicer_list);
 private:
 };
 

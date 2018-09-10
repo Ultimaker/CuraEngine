@@ -87,7 +87,7 @@ public:
      */
     std::vector<AdaptiveLayer>* getLayers();
 
-    AdaptiveLayerHeights(int layer_thickness, int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold);
+    AdaptiveLayerHeights(int initial_layer_thickness, coord_t variation, coord_t step_size, double threshold);
 
 private:
 
