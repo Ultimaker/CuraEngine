@@ -185,20 +185,20 @@ public:
     ~Comb();
 
     /*!
-     * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
+     * \brief Calculate the comb paths (if any), one for each polygon combed
+     * alternated with travel paths.
      * 
      * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
-     * 
-     * \param startPoint Where to start moving from
-     * \param endPoint Where to move to
-     * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
-     * \param startInside Whether we want to start inside the comb boundary
-     * \param endInside Whether we want to end up inside the comb boundary
-     * \param via_outside_makes_combing_fail When going through air is inavoidable, stop calculation early and return false.
-     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
+     * \param train The extruder train to calculate the comb path for.
+     * \param startPoint Where to start moving from.
+     * \param endPoint Where to move to.
+     * \param[out] combPoints The points along the combing path, excluding the
+     * \p startPoint (?) and \p endPoint.
+     * \param startInside Whether we want to start inside the comb boundary.
+     * \param endInside Whether we want to end up inside the comb boundary.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles);
+    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored);
 };
 
 }//namespace cura

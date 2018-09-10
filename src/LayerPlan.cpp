@@ -360,7 +360,6 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
 
     const ExtruderTrain* extr = getLastPlannedExtruderTrain();
 
-    const bool perform_z_hops = extr->settings.get<bool>("retraction_hop_enabled");
     const coord_t maximum_travel_resolution = extr->settings.get<coord_t>("meshfix_maximum_travel_resolution");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
@@ -382,12 +381,8 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
 
     if (comb != nullptr && !bypass_combing)
     {
-        const bool perform_z_hops_only_when_collides = extr->settings.get<bool>("retraction_hop_only_when_collides");
-
         CombPaths combPaths;
-        const bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
-        const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
-        combed = comb->calc(*last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
+        combed = comb->calc(*extr, *last_planned_position, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance);
         if (combed)
         {
             bool retract = path->retract || combPaths.size() > 1;
@@ -459,7 +454,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
             moveInsideCombBoundary(innermost_wall_line_width);
         }
         path->retract = true;
-        path->perform_z_hop = perform_z_hops;
+        path->perform_z_hop = extr->settings.get<bool>("retraction_hop_enabled");
     }
 
     GCodePath& ret = addTravel_simple(p, path);

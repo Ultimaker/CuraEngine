@@ -93,7 +93,7 @@ Comb::~Comb()
     }
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, coord_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles)
+bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, coord_t max_comb_distance_ignored)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
     {
@@ -111,6 +111,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     unsigned int end_part_boundary_poly_idx;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside_optimal.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside_optimal.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
+
+    const bool perform_z_hops = train.settings.get<bool>("retraction_hop_enabled");
+    const bool perform_z_hops_only_when_collides = train.settings.get<bool>("retraction_hop_only_when_collides");
+    const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
 
     // normal combing within part using optimal comb boundary
     if (startInside && endInside && start_part_idx == end_part_idx)
@@ -153,7 +157,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     // when startPoint is inside crossing_1_in is of interest
     // when it is in between inside and outside it is equal to crossing_1_mid
 
-    if (via_outside_makes_combing_fail)
+    if (perform_z_hops && !perform_z_hops_only_when_collides) //Combing via outside makes combing fail.
     {
         return false;
     }
