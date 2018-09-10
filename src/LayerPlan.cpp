@@ -33,9 +33,9 @@ ExtruderPlan::ExtruderPlan(int extruder, int layer_nr, bool is_initial_layer, bo
 {
 }
 
-void ExtruderPlan::setExtrudeSpeedFactor(double speedFactor)
+void ExtruderPlan::setExtrudeSpeedFactor(const Ratio speed_factor)
 {
-    this->extrudeSpeedFactor = speedFactor;
+    this->extrudeSpeedFactor = speed_factor;
 }
 
 double ExtruderPlan::getExtrudeSpeedFactor()
@@ -43,10 +43,10 @@ double ExtruderPlan::getExtrudeSpeedFactor()
     return this->extrudeSpeedFactor;
 }
 
-void ExtruderPlan::setTravelSpeedFactor(double speedFactor)
+void ExtruderPlan::setTravelSpeedFactor(Ratio speed_factor)
 {
-    if (speedFactor < 1) speedFactor = 1.0;
-    this->travelSpeedFactor = speedFactor;
+    speed_factor = std::max(speed_factor, 1.0_r);
+    this->travelSpeedFactor = speed_factor;
 }
 
 double ExtruderPlan::getTravelSpeedFactor()
@@ -83,7 +83,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_thickness, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_thickness, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, coord_t comb_boundary_offset, coord_t comb_move_inside_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
@@ -95,16 +95,15 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
-, comb_boundary_inside1(computeCombBoundaryInside(combing_mode, 1))
-, comb_boundary_inside2(computeCombBoundaryInside(combing_mode, 2))
+, comb_boundary_inside1(computeCombBoundaryInside(1))
+, comb_boundary_inside2(computeCombBoundaryInside(2))
 , comb_move_inside_distance(comb_move_inside_distance)
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     size_t current_extruder = start_extruder;
-    comb = nullptr;
     was_inside = true; // not used, because the first travel move is bogus
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    if (combing_mode != CombingMode::OFF)
+    if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
     {
         comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, comb_move_inside_distance);
     }
@@ -137,8 +136,9 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
 }
 
 
-Polygons LayerPlan::computeCombBoundaryInside(CombingMode combing_mode, int max_inset)
+Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
 {
+    const CombingMode combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
     if (combing_mode == CombingMode::OFF)
     {
         return Polygons();

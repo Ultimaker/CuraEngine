@@ -138,7 +138,7 @@ public:
      * 
      * \param speedFactor The factor by which to alter the extrusion move speed
      */
-    void setExtrudeSpeedFactor(double speedFactor);
+    void setExtrudeSpeedFactor(const Ratio speed_factor);
 
     /*!
      * Get the extrude speed factor. This is used for printing slower than normal.
@@ -154,7 +154,7 @@ public:
      * 
      * \param speedFactor The factor by which to alter the non-extrusion move speed
      */
-    void setTravelSpeedFactor(double speedFactor);
+    void setTravelSpeedFactor(Ratio speed_factor);
 
     /*!
      * Get the travel speed factor. This is used for travelling slower than normal.
@@ -179,14 +179,14 @@ protected:
     bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
 
-    int layer_thickness; //!< The thickness of this layer in Z-direction
+    coord_t layer_thickness; //!< The thickness of this layer in Z-direction
 
     const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
 
     const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
 
-    double extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
-    double travelSpeedFactor; //!< The factor by which to alter the non-extrusion move speed
+    Ratio extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
+    Ratio travelSpeedFactor; //!< The factor by which to alter the non-extrusion move speed
 
     double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
     double totalPrintTime; //!< The total naive time estimate for this extruder plan
@@ -306,13 +306,12 @@ public:
      * \param start_extruder The extruder with which this layer plan starts
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer
      * time settings for each extruder.
-     * \param combing_mode What parts to avoid while combing.
      * \param comb_boundary_offset How far to avoid the walls on the outside
      * while combing.
      * \param comb_move_inside_distance How far to avoid the walls on the inside
      * while combing.
      */
-    LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_height, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance);
+    LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_height, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, coord_t comb_boundary_offset, coord_t comb_move_inside_distance);
 
     ~LayerPlan();
 
@@ -331,11 +330,12 @@ public:
 
 private:
     /*!
-     * Compute the boundary within which to comb, or to move into when performing a retraction.
-     * \param combing_mode Whether combing is enabled and full or within infill only.
+     * \brief Compute the boundary within which to comb, or to move into when
+     * performing a retraction.
+     * \param max_inset The greatest inset index.
      * \return the comb_boundary_inside
      */
-    Polygons computeCombBoundaryInside(CombingMode combing_mode, int max_inset);
+    Polygons computeCombBoundaryInside(const size_t max_inset);
 
 public:
     int getLayerNr() const

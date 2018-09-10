@@ -1,8 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FFF_AREA_GENERATOR_H
-#define FFF_AREA_GENERATOR_H
+#ifndef FFF_POLYGON_GENERATOR_H
+#define FFF_POLYGON_GENERATOR_H
 
 
 #include "MeshGroup.h"
@@ -185,8 +185,8 @@ private:
      * \param[in,out] mesh where the outer wall is retrieved and stored in.
      */
     void processFuzzyWalls(SliceMeshStorage& mesh);
-
-
 };
+
 }//namespace cura
-#endif // FFF_AREA_GENERATOR_H
+
+#endif //FFF_POLYGON_GENERATOR_H
