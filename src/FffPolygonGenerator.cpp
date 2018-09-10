@@ -315,7 +315,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         // the first layer is empty, the second is not empty, so remove the empty first layer as support isn't going to be generated under it.
         // Do this irrespective of the value of remove_empty_first_layers as that setting is hidden when support is enabled and so cannot be relied upon
 
-        removeEmptyFirstLayers(storage, mesh_group_settings.get<coord_t>("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
+        removeEmptyFirstLayers(storage, storage.print_layer_count); // changes storage.print_layer_count!
     }
 
     log("Layer count: %i\n", storage.print_layer_count);
@@ -336,7 +336,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     //   for some materials it's better to print on support than on the build plate.
     if (mesh_group_settings.get<bool>("remove_empty_first_layers"))
     {
-        removeEmptyFirstLayers(storage, mesh_group_settings.get<coord_t>("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
+        removeEmptyFirstLayers(storage, storage.print_layer_count); // changes storage.print_layer_count!
     }
     if (storage.print_layer_count == 0)
     {
@@ -826,7 +826,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     return true;
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const coord_t layer_height, size_t& total_layers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers)
 {
     int n_empty_first_layers = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
@@ -843,6 +843,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
     if (n_empty_first_layers > 0)
     {
         log("Removing %d layers because they are empty\n", n_empty_first_layers);
+        const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             std::vector<SliceLayer>& layers = mesh.layers;

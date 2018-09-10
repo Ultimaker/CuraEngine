@@ -126,15 +126,14 @@ private:
     bool isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx);
     
     /*!
-     * Remove all bottom layers which are empty.
+     * \brief Remove all bottom layers which are empty.
      * 
      * \warning Changes \p total_layers
      * 
-     * \param storage Input and Ouput parameter: stores all layers
-     * \param layer_height The height of each layer
-     * \param total_layers The total number of layers
+     * \param[in, out] storage Stores all layers.
+     * \param[in, out] total_layers The total number of layers.
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, const coord_t layer_height, size_t& total_layers);
+    void removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers);
 
     /*!
      * Set \ref SliceDataStorage::max_print_height_per_extruder and \ref SliceDataStorage::max_print_height_order and \ref SliceDataStorage::max_print_height_second_to_last_extruder
