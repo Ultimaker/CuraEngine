@@ -1205,7 +1205,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
     }
 
-    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, mesh.getZSeamHint());
+    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     processOutlineGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, added_something);
 
@@ -1461,7 +1461,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, ConstPolygonRef(*last_wall_outline), seam_vertex_idx, last_seam_vertex_idx);
 }
 
-bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, Point z_seam_pos) const
+bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
     {
@@ -1597,7 +1597,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         }
         else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
         {
-            InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr(), z_seam_pos);
+            InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
             return ioo.processInsetsWithOptimizedOrdering();
         }
         else
@@ -1621,7 +1621,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         added_something = true;
                         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                         gcode_layer.setIsInside(true); // going to print stuff inside print object
-                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), z_seam_pos, mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
                         Polygons outer_wall = part.insets[0];
                         if (!compensate_overlap_0)
                         {
@@ -1643,7 +1643,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         added_something = true;
                         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                         gcode_layer.setIsInside(true); // going to print stuff inside print object
-                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), z_seam_pos, mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
                         Polygons inner_wall = part.insets[processed_inset_number];
                         if (!compensate_overlap_x)
                         {

@@ -19,9 +19,8 @@ public:
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number
-     * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, Point z_seam_pos) :
+    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
@@ -30,7 +29,7 @@ public:
     mesh_config(mesh_config),
     part(part),
     layer_nr(layer_nr),
-    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), z_seam_pos, mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
+    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
     added_something(false),
     wall_overlapper_0(nullptr),
     wall_overlapper_x(nullptr)
