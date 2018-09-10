@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "Comb.h"
 
 #include <algorithm>
@@ -23,15 +25,15 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
   
-Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance)
+Comb::Comb(const SliceDataStorage& storage, const ExtruderTrain& train, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
+, train(train)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
 , offset_from_inside_to_outside(offset_from_outlines + offset_from_outlines_outside)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
-, avoid_other_parts(travel_avoid_other_parts)
 , boundary_inside_minimum( comb_boundary_inside_minimum ) // copy the boundary, because the partsView_inside will reorder the polygons
 , boundary_inside_optimal( comb_boundary_inside_optimal ) // copy the boundary, because the partsView_inside will reorder the polygons
 , partsView_inside_minimum( boundary_inside_minimum.splitIntoPartsView() ) // WARNING !! changes the order of boundary_inside !!
@@ -147,7 +149,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         skip_avoid_other_parts_path = true;
     }
 
-    if (avoid_other_parts && !skip_avoid_other_parts_path)
+    if (train.settings.get<bool>("travel_avoid_other_parts") && !skip_avoid_other_parts_path)
     { // compute the crossing points when moving through air
         // comb through all air, since generally the outside consists of a single part
 
@@ -178,7 +180,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     }
 
     // throught air from boundary to boundary
-    if (avoid_other_parts && !skip_avoid_other_parts_path)
+    if (train.settings.get<bool>("travel_avoid_other_parts") && !skip_avoid_other_parts_path)
     {
         combPaths.emplace_back();
         combPaths.throughAir = true;
@@ -402,22 +404,22 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
 {
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;
-    int64_t best_detour_score = std::numeric_limits<int64_t>::max();
-    int64_t best_crossing_dist2;
+    coord_t best_detour_score = std::numeric_limits<coord_t>::max();
+    coord_t best_crossing_dist2;
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine());
     bool seen_close_enough_connection = false;
     for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
     {
-        int64_t crossing_dist2 = vSize2(crossing_candidate.first.location - crossing_candidate.second.location);
+        const coord_t crossing_dist2 = vSize2(crossing_candidate.first.location - crossing_candidate.second.location);
         if (crossing_dist2 > comber.max_crossing_dist2 * 2)
         { // preliminary filtering
             continue;
         }
         
-        int64_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
-        int64_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
-        int64_t detour_dist = dist_to_start + dist_to_end;
-        int64_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
+        const coord_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
+        const coord_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
+        const coord_t detour_dist = dist_to_start + dist_to_end;
+        const coord_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
         // The detour distance is generally large compared to the crossing distance.
         // While the crossing is generally about 1mm across,
         // the distance between an arbitrary point and the boundary may well be a couple of centimetres.
@@ -437,7 +439,7 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
             best_crossing_dist2 = crossing_dist2;
         }
     }
-    if (best_detour_score == std::numeric_limits<int64_t>::max())
+    if (best_detour_score == std::numeric_limits<coord_t>::max())
     { // i.e. if best_in == nullptr or if best_out == nullptr
         return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
     }

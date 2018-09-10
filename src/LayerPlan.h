@@ -299,16 +299,25 @@ public:
     void forceNewPathStart();
 
     /*!
-     * 
+     * \brief Creates a new plan for printing a layer.
+     * \param storage The data storage this plan is stored in.
+     * \param layer_nr The layer index of this plan.
+     * \param z The height coordinate of this layer.
      * \param start_extruder The extruder with which this layer plan starts
-     * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
-     * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
-     * \param travel_avoid_supports Whether to avoid other layer supports when travaeling through air.
-     * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
-     * \param last_position The position of the head at the start of this gcode layer
-     * \param combing_mode Whether combing is enabled and full or within infill only.
+     * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer
+     * time settings for each extruder.
+     * \param combing_mode What parts to avoid while combing.
+     * \param comb_boundary_offset How far to avoid the walls on the outside
+     * while combing.
+     * \param comb_move_inside_distance How far to avoid the walls on the inside
+     * while combing.
+     * \param travel_avoid_supports Whether to avoid other layer supports when
+     * travelling through air.
+     * \param travel_avoid_distance The distance by which to avoid other layer
+     * parts when travelling through air.
      */
-    LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_height, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance);
+    LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_height, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_supports, coord_t travel_avoid_distance);
+
     ~LayerPlan();
 
     void overrideFanSpeeds(double speed);

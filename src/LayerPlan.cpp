@@ -83,7 +83,7 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_thickness, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_other_parts, bool travel_avoid_supports, coord_t travel_avoid_distance)
+LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_thickness, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, bool travel_avoid_supports, coord_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
@@ -100,13 +100,14 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , comb_move_inside_distance(comb_move_inside_distance)
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
-    int current_extruder = start_extruder;
+    size_t current_extruder = start_extruder;
+    const ExtruderTrain& current_extruder_train = Application::getInstance().current_slice->scene.extruders[current_extruder];
     comb = nullptr;
     was_inside = true; // not used, because the first travel move is bogus
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
-        comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_supports, travel_avoid_distance, comb_move_inside_distance);
+        comb = new Comb(storage, current_extruder_train, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_supports, travel_avoid_distance, comb_move_inside_distance);
     }
     else
     {
