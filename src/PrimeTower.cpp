@@ -245,24 +245,8 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 
 void PrimeTower::gotoStartLocation(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    // start location index = ([Ei + 1] * abs([LR]) ) mod [DOT_COUNT]
-    // where:
-    //  - [Ei] is the current extruder index starting from 0
-    //  - [LR] is the current layer number (converted)
-    //  - [DOT_COUNT] is the total number of dots around the prime tower's perimeter.
-
-    // Because layer number can be negative, it needs to be converted to a non-negative number.
-    int lr = gcode_layer.getLayerNr();
-    int ei = extruder_nr + 1;
-    if (lr < 0)
-    {
-        // Treat extruder index on an negative layer in the reversed order, i.e.
-        //    [DOT_COUNT] - (index mod [DOT_COUNT])
-        // to above having the same starting location for layers such as -1 and 1, -2 and 2, etc.
-        ei = number_of_prime_tower_start_locations - (ei % number_of_prime_tower_start_locations);
-        lr = -lr;
-    }
-    int current_start_location_idx = ((ei) * lr) % number_of_prime_tower_start_locations;
+    int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations)
+            + number_of_prime_tower_start_locations) % number_of_prime_tower_start_locations;
 
     const ClosestPolygonPoint wipe_location = prime_tower_start_locations[current_start_location_idx];
 
