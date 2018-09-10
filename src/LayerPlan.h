@@ -589,16 +589,14 @@ public:
      * 
      * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
      * 
-     * \param gcode The gcode to write the planned paths to
-     * \param extruder_plan_idx The index of the current extruder plan
-     * \param path_idx The index into LayerPlan::paths for the next path to be written to GCode.
-     * \param layerThickness The height of the current layer.
-     * \param coasting_volume The volume otherwise leaked during a normal move.
-     * \param coasting_speed The speed at which to move during move-coasting.
-     * \param coasting_min_volume The minimal volume a path should have (before starting to coast) which builds up enough pressure to ooze as much as \p coasting_volume.
+     * \param gcode The gcode to write the planned paths to.
+     * \param extruder_plan_idx The index of the current extruder plan.
+     * \param path_idx The index into LayerPlan::paths for the next path to be
+     * written to GCode.
+     * \param layer_thickness The height of the current layer.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume);
+    bool writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 

@@ -59,7 +59,7 @@ public:
      * 
      * \return Whether this config is the config of a travel path.
      */
-    bool isTravelPath();
+    bool isTravelPath() const;
 
     /*!
      * Get the material flow in mm^3 per mm traversed.
@@ -68,13 +68,13 @@ public:
      * 
      * \return The flow
      */
-    double getExtrusionMM3perMM();
+    double getExtrusionMM3perMM() const;
 
     /*!
      * Get the actual line width (modulated by the flow)
      * \return the actual line width as shown in layer view
      */
-    int getLineWidthForLayerView();
+    coord_t getLineWidthForLayerView() const;
 
     /*!
      * Set fan_speed

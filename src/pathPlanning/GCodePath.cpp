@@ -22,17 +22,17 @@ fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT)
     estimates = TimeMaterialEstimates();
 }
 
-bool GCodePath::isTravelPath()
+bool GCodePath::isTravelPath() const
 {
     return config->isTravelPath();
 }
 
-double GCodePath::getExtrusionMM3perMM()
+double GCodePath::getExtrusionMM3perMM() const
 {
     return flow * config->getExtrusionMM3perMM();
 }
 
-int GCodePath::getLineWidthForLayerView()
+coord_t GCodePath::getLineWidthForLayerView() const
 {
     return flow * config->getLineWidth() * config->getFlowRatio();
 }

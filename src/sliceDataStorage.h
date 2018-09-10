@@ -285,8 +285,6 @@ public:
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
-    std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
-
     SupportStorage support;
 
     Polygons skirt_brim[MAX_EXTRUDERS]; //!< Skirt and brim polygons per extruder, ordered from inner to outer polygons.

@@ -45,8 +45,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     Application::getInstance().communication->beginGCode();
 
     setConfigFanSpeedLayerTime();
-    
-    setConfigCoasting(storage);
 
     setConfigRetraction(storage);
 
@@ -276,19 +274,6 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
             fan_speed_layer_time_settings.cool_fan_speed_min = 0;
             fan_speed_layer_time_settings.cool_fan_speed_max = 0;
         }
-    }
-}
-
-void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
-{
-    for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
-    {
-        storage.coasting_config.emplace_back();
-        CoastingConfig& coasting_config = storage.coasting_config.back();
-        coasting_config.coasting_enable = train.settings.get<bool>("coasting_enable"); 
-        coasting_config.coasting_volume = std::max(0.0, train.settings.get<double>("coasting_volume"));
-        coasting_config.coasting_min_volume = std::max(0.0, train.settings.get<double>("coasting_min_volume"));
-        coasting_config.coasting_speed = train.settings.get<Ratio>("coasting_speed");
     }
 }
 
