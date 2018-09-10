@@ -26,7 +26,7 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
   
-Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance)
+Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
@@ -41,8 +41,14 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , inside_loc_to_line_minimum(PolygonUtils::createLocToLineGrid(boundary_inside_minimum, comb_boundary_offset))
 , inside_loc_to_line_optimal(PolygonUtils::createLocToLineGrid(boundary_inside_optimal, comb_boundary_offset))
 , boundary_outside(
-        [&storage, layer_nr, travel_avoid_supports, travel_avoid_distance]()
+        [&storage, layer_nr, travel_avoid_distance]()
         {
+            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+            bool travel_avoid_supports = false;
+            for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+            {
+                travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
+            }
             return storage.getLayerOutlines(layer_nr, travel_avoid_supports).offset(travel_avoid_distance);
         }
     )
@@ -151,12 +157,9 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed(layer_nr);
     bool travel_avoid_other_parts = false;
-    for (size_t extruder_index = 0; extruder_index < Application::getInstance().current_slice->scene.extruders.size(); extruder_index++)
+    for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
     {
-        if (extruder_is_used[extruder_index] && Application::getInstance().current_slice->scene.extruders[extruder_index].settings.get<bool>("travel_avoid_other_parts"))
-        {
-            travel_avoid_other_parts = true;
-        }
+        travel_avoid_other_parts |= extruder_is_used[train.extruder_nr] && train.settings.get<bool>("travel_avoid_other_parts");
     }
 
     if (travel_avoid_other_parts && !skip_avoid_other_parts_path)
