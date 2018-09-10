@@ -645,7 +645,8 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findSmallestCo
                     ret = std::make_pair(
                         ClosestPolygonPoint(connection.first, point_idx, poly1),
                         ClosestPolygonPoint(connection.second, line_from.point_idx, polys2[line_from.poly_idx], line_from.poly_idx));
-                    if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2)
+                    if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2
+                        && !polys2[line_from.poly_idx].shorterThan(max_connection_length * 2)) // don't settle quickly for small polygons
                     {
                         return false; // stop the search; break the for-loop
                     }
@@ -668,6 +669,7 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findSmallestCo
         continue_ = grid->processLine(line3, process_elem_func);
         if (!continue_) break;
     }
+    ret.first.poly_idx = 0;
     delete grid;
     return ret;
 }
