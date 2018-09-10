@@ -619,44 +619,54 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findSmallestCo
     LocToLineGrid* grid = PolygonUtils::createLocToLineGrid(polys2, max_connection_length);
 
 
-    std::unordered_set<std::pair<size_t, PolygonsPointIndex>> possible_connections;
+    std::unordered_set<std::pair<size_t, PolygonsPointIndex>> checked_segment_pairs; // pairs of index into segment start on poly1 and PolygonsPointIndex to segment start on polys2
+    coord_t best_dist2 = std::numeric_limits<coord_t>::max();
 
     for (size_t point_idx = 0; point_idx < poly1.size(); point_idx++)
     {
+        std::function<bool (const PolygonsPointIndex&)> process_elem_func =
+            [&, point_idx](const PolygonsPointIndex& line_from)
+            {
+                std::pair<size_t, PolygonsPointIndex> segment_pair = std::make_pair(point_idx, line_from);
+                if (checked_segment_pairs.count(segment_pair) > 0)
+                { // these two line segments were already checked
+                    return true; // continue looking for connections
+                }
+
+                Point a1 = poly1[point_idx];
+                Point a2 = poly1[(point_idx + 1) % poly1.size()];
+                Point b1 = line_from.p();
+                Point b2 = line_from.next().p();
+                std::pair<Point, Point> connection = LinearAlg2D::getClosestConnection(a1, a2, b1, b2);
+                coord_t dist2 = vSize2(connection.first - connection.second);
+                if (dist2 < best_dist2)
+                {
+                    best_dist2 = dist2;
+                    ret = std::make_pair(
+                        ClosestPolygonPoint(connection.first, point_idx, poly1),
+                        ClosestPolygonPoint(connection.second, line_from.point_idx, polys2[line_from.poly_idx], line_from.poly_idx));
+                    if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2)
+                    {
+                        return false; // stop the search; break the for-loop
+                    }
+                }
+
+                checked_segment_pairs.emplace(point_idx, line_from);
+                return true; // continue looking for connections
+            };
+
         std::pair<Point, Point> line = std::make_pair(poly1[point_idx], poly1[(point_idx + 1) % poly1.size()]);
         Point normal_vector = normal(turn90CCW(line.second - line.first), max_connection_length);
         std::pair<Point, Point> line2 = std::make_pair(line.first + normal_vector, line.second + normal_vector); // for neighborhood around the line
         std::pair<Point, Point> line3 = std::make_pair(line.first - normal_vector, line.second - normal_vector); // for neighborhood around the line
-        std::function<bool (const PolygonsPointIndex&)> process_elem_func = [point_idx, &possible_connections](const PolygonsPointIndex& line_from)
-            {
-                possible_connections.emplace(point_idx, line_from);
-                return true; // continue looking for connections
-            };
-        grid->processLine(line, process_elem_func);
-        grid->processLine(line2, process_elem_func);
-        grid->processLine(line3, process_elem_func);
-    }
 
-    coord_t best_dist2 = std::numeric_limits<coord_t>::max();
-    for (const std::pair<size_t, PolygonsPointIndex>& possible_connection : possible_connections)
-    {
-        Point a1 = poly1[possible_connection.first];
-        Point a2 = poly1[(possible_connection.first + 1) % poly1.size()];
-        Point b1 = possible_connection.second.p();
-        Point b2 = possible_connection.second.next().p();
-        std::pair<Point, Point> connection = LinearAlg2D::getClosestConnection(a1, a2, b1, b2);
-        coord_t dist2 = vSize2(connection.first - connection.second);
-        if (dist2 < best_dist2)
-        {
-            best_dist2 = dist2;
-            ret = std::make_pair(
-                ClosestPolygonPoint(connection.first, possible_connection.first, poly1),
-                ClosestPolygonPoint(connection.second, possible_connection.second.point_idx, polys2[possible_connection.second.poly_idx], possible_connection.second.poly_idx));
-            if (dist2 < max_connection_dist2 && dist2 > min_connection_dist2)
-            {
-                break;
-            }
-        }
+        bool continue_;
+        continue_ = grid->processLine(line, process_elem_func);
+        if (!continue_) break;
+        continue_ = grid->processLine(line2, process_elem_func);
+        if (!continue_) break;
+        continue_ = grid->processLine(line3, process_elem_func);
+        if (!continue_) break;
     }
     delete grid;
     return ret;
