@@ -118,7 +118,6 @@ private:
 
 
     const SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
-    const ExtruderTrain& train; //!< The extruder train to get settings from.
     const LayerIndex layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
 
     const coord_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
@@ -170,7 +169,6 @@ public:
      * \p Comb::comb_boundary_inside
      * 
      * \param storage Where the layer polygon data is stored.
-     * \param train The extruder train to get the settings from.
      * \param layer_nr The number of the layer for which to generate the combing
      * areas.
      * \param comb_boundary_inside_optimal The better comb boundary within which
@@ -187,7 +185,7 @@ public:
      * combing it tries to move points inside by this amount after calculating
      * the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, const ExtruderTrain& train, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance);
+    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_supports, coord_t travel_avoid_distance, coord_t move_inside_distance);
 
     ~Comb();
 
