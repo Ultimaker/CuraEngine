@@ -389,10 +389,9 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
-     * \param infill_origin The origin of the infill pattern.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const Point& infill_origin) const;
+    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -402,10 +401,9 @@ private:
      * mesh which should be printed with this extruder
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
-     * \param infill_origin The origin of the infill pattern.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const Point& infill_origin) const;
+    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Generate the insets for the walls of a given layer part.
