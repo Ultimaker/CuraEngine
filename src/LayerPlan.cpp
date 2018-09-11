@@ -548,7 +548,6 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
 
 void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_order)
 {
-    
     if (polygons.size() == 0)
     {
         return;

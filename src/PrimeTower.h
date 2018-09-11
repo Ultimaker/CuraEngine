@@ -40,6 +40,9 @@ private:
 
     Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
 
+    std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
+    const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
+
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
 
@@ -101,16 +104,6 @@ public:
 private:
 
     /*!
-     * Find an approriate representation for the point representing the location before going to the prime tower
-     * 
-     * \warning This is not the actual position each time before the wipe tower
-     * 
-     * \param storage where to get settings from
-     * \return that location
-     */
-    Point getLocationBeforePrimeTower(const SliceDataStorage& storage) const;
-
-    /*!
      * \see WipeTower::generatePaths
      * 
      * Generate the extrude paths for each extruder on even and odd layers
@@ -119,6 +112,13 @@ private:
      * \param storage where to get settings from
      */
     void generatePaths_denseInfill(const SliceDataStorage& storage);
+
+    /*!
+     * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
+     * The number of starting points is defined by "number_of_prime_tower_start_locations". The generated points will
+     * be stored in "prime_tower_start_locations".
+     */
+    void generateStartLocations();
 
     /*!
      * \see PrimeTower::addToGcode
@@ -130,6 +130,13 @@ private:
      * tower paths should be drawn.
      */
     void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
+
+    /*!
+     * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
+     * This function picks a start location for this extruder on the prime tower's perimeter and travels there to avoid
+     * starting at the location everytime which can result in z-seam blobs.
+     */
+    void gotoStartLocation(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
 };
 
 
