@@ -184,7 +184,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
     {
-        carveMultipleVolumes(slicerList, scene.current_mesh_group->settings.get<bool>("alternate_carve_order"));
+        carveMultipleVolumes(slicerList);
     }
 
     generateMultipleVolumesOverlap(slicerList);

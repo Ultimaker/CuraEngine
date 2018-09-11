@@ -1,14 +1,16 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h"
 #include "multiVolumes.h"
 
 namespace cura 
 {
  
-void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_order)
+void carveMultipleVolumes(std::vector<Slicer*> &volumes)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
+    const bool alternate_carve_order = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("alternate_carve_order");
     for (unsigned int volume_1_idx = 1; volume_1_idx < volumes.size(); volume_1_idx++)
     {
         Slicer& volume_1 = *volumes[volume_1_idx];
