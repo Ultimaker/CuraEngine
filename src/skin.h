@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SKIN_H
 #define SKIN_H
 
@@ -39,9 +41,8 @@ public:
      * all combined layers.
      * 
      * \param mesh The mesh to combine the infill layers of.
-     * \param amount The number of layers to combine.
      */
-    static void combineInfillLayers(SliceMeshStorage& mesh, const size_t amount);
+    static void combineInfillLayers(SliceMeshStorage& mesh);
 
     /*!
      * Generate infill areas which cause a gradually less dense infill structure from top to bottom.

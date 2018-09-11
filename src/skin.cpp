@@ -606,16 +606,20 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
     }
 }
 
-void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh, const size_t amount)
+void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
 {
     if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.settings.get<size_t>("top_layers")) || mesh.settings.get<size_t>("infill_line_distance") == 0) //No infill is even generated.
     {
         return;
     }
+
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const size_t amount = std::max(1U, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(layer_height, coord_t(1)))); //How many infill layers to combine to obtain the requested sparse thickness.
     if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
         return;
     }
+
     /* We need to round down the layer index we start at to the nearest
     divisible index. Otherwise we get some parts that have infill at divisible
     layers and some at non-divisible layers. Those layers would then miss each

@@ -736,9 +736,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         }
 
         // combine infill
-        const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-        const size_t combined_infill_layers = std::max(1U, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(layer_height, coord_t(1)))); //How many infill layers to combine to obtain the requested sparse thickness.
-        SkinInfillAreaComputation::combineInfillLayers(mesh, combined_infill_layers);
+        SkinInfillAreaComputation::combineInfillLayers(mesh);
     }
 
     // fuzzy skin
