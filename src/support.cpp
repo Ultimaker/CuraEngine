@@ -468,9 +468,23 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance, bool conical_support, const coord_t conical_support_offset, const coord_t conical_smallest_breadth)
+Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance)
 {
     Polygons joined;
+
+    const Settings& infill_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
+    const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
+    const coord_t layer_thickness = infill_settings.get<coord_t>("layer_height");
+    coord_t conical_support_offset;
+    if (conical_support_angle > 0)
+    { // outward ==> wider base than overhang
+        conical_support_offset = -(tan(conical_support_angle) - 0.01) * layer_thickness;
+    }
+    else
+    { // inward ==> smaller base than overhang
+        conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
+    }
+    const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
     if (conical_support)
     {
         const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -530,8 +544,9 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         }
         machine_volume_border = machine_volume_border.offset(-adhesion_size);
 
-        Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth/2);
-        Polygons small_parts = supportLayer_up.difference(insetted.offset(conical_smallest_breadth/2+20));
+        const coord_t conical_smallest_breadth = infill_settings.get<coord_t>("support_conical_min_width");
+        Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth / 2);
+        Polygons small_parts = supportLayer_up.difference(insetted.offset(conical_smallest_breadth / 2 + 20));
         joined = supportLayer_this.unionPolygons(supportLayer_up.offset(conical_support_offset))
                                   .unionPolygons(small_parts)
                                   .intersection(machine_volume_border);
@@ -541,7 +556,6 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         joined = supportLayer_this.unionPolygons(supportLayer_up);
     }
     // join different parts
-    const Settings& infill_settings = Application::getInstance().current_slice->scene.settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
     const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
     if (join_distance > 0)
     {
@@ -904,18 +918,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
-    const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
-    coord_t conical_support_offset;
-    if (conical_support_angle > 0) 
-    { // outward ==> wider base than overhang
-        conical_support_offset = -(tan(conical_support_angle) - 0.01) * layer_thickness;
-    }
-    else 
-    { // inward ==> smaller base than overhang
-        conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
-    }
-    const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
-    const coord_t conical_smallest_breadth = infill_settings.get<coord_t>("support_conical_min_width");
     const int supportMinAreaSqrt = infill_settings.get<coord_t>("support_minimal_diameter");
 
     for (unsigned int layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != (unsigned int)-1; layer_idx--)
@@ -945,7 +947,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                 layer_above = &empty;
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance, conical_support, conical_support_offset, conical_smallest_breadth);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance);
         }
 
         // make towers for small support
@@ -1010,6 +1012,17 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     if (support_type == ESupportType::PLATFORM_ONLY)
     {
         Polygons touching_buildplate = support_areas[0]; // TODO: not working for conical support!
+        const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
+        coord_t conical_support_offset;
+        if (conical_support_angle > 0)
+        { // outward ==> wider base than overhang
+            conical_support_offset = -(tan(conical_support_angle) - 0.01) * layer_thickness;
+        }
+        else
+        { // inward ==> smaller base than overhang
+            conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
+        }
+        const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
         for (unsigned int layer_idx = 1 ; layer_idx < storage.support.supportLayers.size() ; layer_idx++)
         {
             const Polygons& layer = support_areas[layer_idx];

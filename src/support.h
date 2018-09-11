@@ -211,17 +211,10 @@ private:
      * \param supportLayer_up The support areas the layer above.
      * \param supportLayer_this The overhang areas of the current layer at hand.
      * \param smoothing_distance Maximal distance in the X/Y directions of a
-     * line segment which is to be smoothed out. 
-     * \param conical_support Whether the support should be conical instead of
-     * cylindrical.
-     * \param conical_support_offset The offset determining the angle of the
-     * conical support.
-     * \param conical_smallest_breadth The breadth of the smallest support area
-     * which is not to be reduced to a smaller size due to conical support.
-     * 
+     * line segment which is to be smoothed out.
      * \return The joined support areas for this layer.
      */
-    static Polygons join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance, bool conical_support, const coord_t conical_support_offset, const coord_t conical_smallest_breadth);
+    static Polygons join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance);
 
     /*!
      * Move the support up from model (cut away polygons to ensure bottom z distance)
