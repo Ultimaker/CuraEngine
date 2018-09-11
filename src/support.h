@@ -282,8 +282,7 @@ private:
         coord_t towerRoofExpansionDistance,
         coord_t supportTowerDiameter,
         coord_t supportMinAreaSqrt,
-        size_t layer_count,
-        coord_t z_layer_distance_tower
+        size_t layer_count
     );
     
     /*!

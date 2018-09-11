@@ -931,8 +931,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             // handle straight walls
             AreaSupport::handleWallStruts(layer_this, minimum_diameter, tower_diameter);
             // handle towers
-            constexpr int z_layer_distance_tower = 1; // start tower directly below overhang point
-            AreaSupport::handleTowers(layer_this, tower_roofs, mesh.overhang_points, layer_idx, tower_roof_expansion_distance, tower_diameter, minimum_diameter, layer_count, z_layer_distance_tower);
+            AreaSupport::handleTowers(layer_this, tower_roofs, mesh.overhang_points, layer_idx, tower_roof_expansion_distance, tower_diameter, minimum_diameter, layer_count);
         }
 
         if (layer_idx + 1 < layer_count)
@@ -1263,11 +1262,10 @@ void AreaSupport::handleTowers(
     coord_t towerRoofExpansionDistance,
     coord_t supportTowerDiameter,
     coord_t supportMinAreaSqrt,
-    size_t layer_count,
-    coord_t z_layer_distance_tower
+    size_t layer_count
 )
 {
-    LayerIndex layer_overhang_point = layer_idx + z_layer_distance_tower;
+    LayerIndex layer_overhang_point = layer_idx + 1; //Start tower 1 layer below overhang point.
     if (layer_overhang_point >= static_cast<LayerIndex>(layer_count) - 1)
     {
         return;
