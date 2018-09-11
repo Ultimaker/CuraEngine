@@ -36,7 +36,6 @@ GCodeExport::GCodeExport()
 
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
-    firmware_retract = false;
     initial_bed_temp = 0;
 
     extruder_count = 0;
@@ -52,7 +51,6 @@ void GCodeExport::preSetup()
 {
     std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice->scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
-    firmware_retract = mesh_group->settings.get<bool>("machine_firmware_retract");
     use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
 
     const Scene& scene = Application::getInstance().current_slice->scene;
@@ -279,11 +277,19 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor = flavor;
     if (flavor == EGCodeFlavor::MACH3)
+    {
         for(int n=0; n<MAX_EXTRUDERS; n++)
+        {
             extruder_attr[n].extruderCharacter = 'A' + n;
+        }
+    }
     else
+    {
         for(int n=0; n<MAX_EXTRUDERS; n++)
+        {
             extruder_attr[n].extruderCharacter = 'E';
+        }
+    }
     if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
         is_volumatric = true;
@@ -339,7 +345,8 @@ void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diame
 double GCodeExport::getCurrentExtrudedVolume() const
 {
     double extrusion_amount = current_e_value;
-    if (!firmware_retract)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if (!extruder_settings.get<bool>("machine_firmware_retract"))
     { // no E values are changed to perform a retraction
         extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
         extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
@@ -764,7 +771,8 @@ void GCodeExport::writeUnretractionAndPrime()
     current_e_value += prime_volume_e;
     if (extruder_attr[current_extruder].retraction_e_amount_current)
     {
-        if (firmware_retract)
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+        if (!extruder_settings.get<bool>("machine_firmware_retract"))
         { // note that BFB is handled differently
             *output_stream << "G11" << new_line;
             //Assume default UM2 retraction settings.
@@ -850,7 +858,8 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
     }
 
-    if (firmware_retract)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if (!extruder_settings.get<bool>("machine_firmware_retract"))
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current) 
         {

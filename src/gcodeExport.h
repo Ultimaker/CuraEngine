@@ -112,7 +112,6 @@ private:
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
-    bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
     bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
 
     unsigned int layer_nr; //!< for sending travel data
