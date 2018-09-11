@@ -10,12 +10,13 @@
 
 namespace cura {
 
-void Raft::generate(SliceDataStorage& storage, coord_t distance)
+void Raft::generate(SliceDataStorage& storage)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
+    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
+    const coord_t distance = settings.get<coord_t>("raft_margin");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-    const coord_t shield_line_width_layer0 = train.settings.get<coord_t>("skirt_brim_line_width");
+    const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
         Polygons draft_shield_raft = storage.draft_protection_shield.offset(shield_line_width_layer0) // start half a line width outside shield
@@ -29,7 +30,7 @@ void Raft::generate(SliceDataStorage& storage, coord_t distance)
                                         .difference(ooze_shield.offset(-distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raftOutline = storage.raftOutline.unionPolygons(ooze_shield_raft);
     }
-    const coord_t smoothing = train.settings.get<coord_t>("raft_smoothing");
+    const coord_t smoothing = settings.get<coord_t>("raft_smoothing");
     storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
 }
 

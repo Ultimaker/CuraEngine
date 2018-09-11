@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef RAFT_H
 #define RAFT_H
 
@@ -9,7 +11,11 @@ namespace cura {
 class Raft
 {
 public:
-    static void generate(SliceDataStorage& storage, coord_t distance);
+    /*!
+     * \brief Add a raft polygon to the slice data storage.
+     * \param storage The storage to store the newly created raft.
+     */
+    static void generate(SliceDataStorage& storage);
 
     /*!
      * \brief Get the height difference between the raft and the bottom of
