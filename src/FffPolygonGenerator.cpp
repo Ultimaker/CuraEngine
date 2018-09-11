@@ -759,19 +759,9 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
     SliceLayer* layer = &mesh.layers[layer_nr];
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
     {
-        size_t inset_count = mesh.settings.get<size_t>("wall_line_count");
-        const bool spiralize = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
-        if (spiralize && layer_nr < mesh.settings.get<size_t>("bottom_layers") && ((layer_nr % 2) + 2) % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
-        {
-            inset_count += 5;
-        }
-        if (mesh.settings.get<bool>("alternate_extra_perimeter"))
-        {
-            inset_count += ((layer_nr % 2) + 2) % 2;
-        }
         const bool recompute_outline_based_on_outer_wall = (mesh.settings.get<bool>("support_enable") || mesh.settings.get<bool>("support_tree_enable")) && !mesh.settings.get<bool>("fill_outline_gaps");
         const bool remove_parts_with_no_insets = !mesh.settings.get<bool>("fill_outline_gaps");
-        WallsComputation walls_computation(mesh.settings, layer_nr, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
+        WallsComputation walls_computation(mesh.settings, layer_nr, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
         walls_computation.generateInsets(layer);
     }
     else

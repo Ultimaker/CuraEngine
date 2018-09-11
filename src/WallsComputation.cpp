@@ -5,10 +5,9 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr, const size_t inset_count, const bool recompute_outline_based_on_outer_wall, const bool remove_parts_with_no_insets)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr, const bool recompute_outline_based_on_outer_wall, const bool remove_parts_with_no_insets)
 : settings(settings)
 , layer_nr(layer_nr)
-, inset_count(inset_count)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
 , remove_parts_with_no_insets(remove_parts_with_no_insets)
 {
@@ -22,6 +21,17 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
  */
 void WallsComputation::generateInsets(SliceLayerPart* part)
 {
+    size_t inset_count = settings.get<size_t>("wall_line_count");
+    const bool spiralize = settings.get<bool>("magic_spiralize");
+    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("bottom_layers")) && ((layer_nr % 2) + 2) % 2 == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
+    {
+        inset_count += 5;
+    }
+    if (settings.get<bool>("alternate_extra_perimeter"))
+    {
+        inset_count += ((layer_nr % 2) + 2) % 2;
+    }
+
     if (inset_count == 0)
     {
         part->insets.push_back(part->outline);

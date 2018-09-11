@@ -16,8 +16,8 @@ class WallsComputation
 {
 public:
     /*!
-     * Basic constructor initialising the parameters with which to perform the
-     * walls computation.
+     * \brief Basic constructor initialising the parameters with which to
+     * perform the walls computation.
      *
      * \param settings The per-mesh settings object to get setting values from.
      * \param layer_nr The layer index that these walls are generated for.
@@ -28,7 +28,7 @@ public:
      * \param remove_parts_with_no_insets Whether to remove parts if they get no
      * single inset.
      */
-    WallsComputation(const Settings& settings, const LayerIndex layer_nr, size_t inset_count, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
+    WallsComputation(const Settings& settings, const LayerIndex layer_nr, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
@@ -52,11 +52,6 @@ private:
      * \brief The layer that these walls are generated for.
      */
     const LayerIndex layer_nr;
-
-    /*!
-     * The number of insets to to generate
-     */
-    const size_t inset_count;
 
     /*!
      * Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
