@@ -886,10 +886,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t tower_diameter = infill_settings.get<coord_t>("support_tower_diameter");
     const coord_t minimum_diameter = infill_settings.get<coord_t>("support_minimal_diameter");
     const bool use_towers = infill_settings.get<bool>("support_use_towers") && minimum_diameter > 0;
-    const AngleRadians tower_roof_angle = infill_settings.get<AngleRadians>("support_tower_roof_angle");
-    const double tan_tower_roof_angle = tan(tower_roof_angle);
-    const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
-    
+
     coord_t smoothing_distance;
     { // compute best smoothing_distance
         const ExtruderTrain& infill_train = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -931,7 +928,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             // handle straight walls
             AreaSupport::handleWallStruts(layer_this, minimum_diameter, tower_diameter);
             // handle towers
-            AreaSupport::handleTowers(layer_this, tower_roofs, mesh.overhang_points, layer_idx, tower_roof_expansion_distance, tower_diameter, minimum_diameter, layer_count);
+            AreaSupport::handleTowers(infill_settings, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
         }
 
         if (layer_idx + 1 < layer_count)
@@ -1255,13 +1252,11 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 
 
 void AreaSupport::handleTowers(
+    const Settings& settings,
     Polygons& supportLayer_this,
     std::vector<Polygons>& towerRoofs,
     std::vector<std::vector<Polygons>>& overhang_points,
     LayerIndex layer_idx,
-    coord_t towerRoofExpansionDistance,
-    coord_t supportTowerDiameter,
-    coord_t supportMinAreaSqrt,
     size_t layer_count
 )
 {
@@ -1277,12 +1272,13 @@ void AreaSupport::handleTowers(
         { // make sure we have the lowest point (make polys empty if they have small parts below)
             if (layer_overhang_point < static_cast<LayerIndex>(layer_count) && !overhang_points[layer_overhang_point - 1].empty())
             {
+                const coord_t minimum_diameter = settings.get<coord_t>("support_minimal_diameter");
                 std::vector<Polygons>& overhang_points_below = overhang_points[layer_overhang_point - 1];
                 for (Polygons& poly_here : overhang_points_here)
                 {
                     for (const Polygons& poly_below : overhang_points_below)
                     {
-                        poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt * 2));
+                        poly_here = poly_here.difference(poly_below.offset(minimum_diameter * 2));
                     }
                 }
             }
@@ -1297,6 +1293,11 @@ void AreaSupport::handleTowers(
     }
     
     // make tower roofs
+    const coord_t layer_thickness = settings.get<coord_t>("layer_height");
+    const AngleRadians tower_roof_angle = settings.get<AngleRadians>("support_tower_roof_angle");
+    const double tan_tower_roof_angle = tan(tower_roof_angle);
+    const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
+    const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
     for (size_t roof_idx = 0; roof_idx < towerRoofs.size(); roof_idx++)
     {
         Polygons& tower_roof = towerRoofs[roof_idx];
@@ -1304,9 +1305,9 @@ void AreaSupport::handleTowers(
         {
             supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
 
-            if (tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+            if (tower_roof[0].area() < tower_diameter * tower_diameter)
             {
-                tower_roof = tower_roof.offset(towerRoofExpansionDistance);
+                tower_roof = tower_roof.offset(tower_roof_expansion_distance);
             }
             else
             {

@@ -262,26 +262,25 @@ private:
     static std::pair<Polygons, Polygons> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx);
     
     /*!
-     * Adds tower pieces to the current support layer.
-     * From below the roof, the towers are added to the normal support layer and handled as normal support area.
-     * \param supportLayer_this The support areas in the layer for which we are creating towers/struts
-     * \param towerRoofs The parts of roofs which need to expand downward until they have the required diameter
+     * \brief Adds tower pieces to the current support layer.
+     *
+     * From below the roof, the towers are added to the normal support layer and
+     * handled as normal support area.
+     * \param settings The settings to use for towers.
+     * \param supportLayer_this The support areas in the layer for which we are
+     * creating towers/struts
+     * \param towerRoofs The parts of roofs which need to expand downward until
+     * they have the required diameter
      * \param overhang_points stores overhang_points of each layer
      * \param layer_idx The index of the layer at which to handle towers
-     * \param towerRoofExpansionDistance The offset distance which determines the angle of the tower roof tops
-     * \param supportTowerDiameter The diameter of the eventual tower, below the roof
-     * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
      * \param layer_count total number of layers
-     * \param z_layer_distance_tower The number of layers between an overhang point and the top of a support tower
      */
     static void handleTowers(
+        const Settings& settings,
         Polygons& supportLayer_this,
         std::vector<Polygons>& towerRoofs,
         std::vector<std::vector<Polygons>>& overhang_points,
         LayerIndex layer_idx,
-        coord_t towerRoofExpansionDistance,
-        coord_t supportTowerDiameter,
-        coord_t supportMinAreaSqrt,
         size_t layer_count
     );
     
