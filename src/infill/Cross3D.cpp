@@ -329,6 +329,8 @@ Cross3D::SliceWalker Cross3D::getSequence(const Cell& start_cell, coord_t z) con
 {
     SliceWalker ret;
 
+    assert(!start_cell.is_subdivided && "We should only generate an output path for the final subdivision structure!");
+
     const Cell* last_cell = &start_cell;
     ret.layer_sequence.push_back(last_cell);
     while (!last_cell->adjacent_cells[static_cast<size_t>(Direction::RIGHT)].empty())
@@ -350,9 +352,11 @@ Cross3D::SliceWalker Cross3D::getSequence(const Cell& start_cell, coord_t z) con
         {
             break;
         }
+        assert(!last_cell->is_subdivided && "We should only generate an output path for the final subdivision structure!");
         ret.layer_sequence.push_back(last_cell);
     }
     debugCheckHeights(ret, z);
+    assert(ret.layer_sequence.size() >= 4);
     return ret;
 }
 
@@ -654,11 +658,12 @@ void Cross3D::add45degBend(const Point end_point, const Point other_end_point, c
 
 void Cross3D::debugCheckHeights(const SliceWalker& sequence, coord_t z) const
 {
+    assert(!sequence.layer_sequence.empty());
     const Cell* prev = sequence.layer_sequence.back();
     for (const Cell* cell : sequence.layer_sequence)
     {
         assert(cell->elem.z_range.inside(z));
-        assert(cell->index != prev->index);
+        assert(cell->index != prev->index || sequence.layer_sequence.size() == 1);
         prev = cell;
     }
 }
