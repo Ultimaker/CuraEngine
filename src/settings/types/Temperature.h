@@ -41,7 +41,7 @@ struct Temperature
     };
     Temperature operator -(const Temperature& other) const
     {
-        return Temperature(value + other.value);
+        return Temperature(value - other.value);
     };
     Temperature& operator +=(const Temperature& other)
     {
