@@ -56,14 +56,14 @@ public:
     Polygons openPolylines;
 
     /*!
-     * Connect the segments into polygons for this layer of this \p mesh
-     *
-     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
-     * \param keep_none_closed Whether to throw away the data for segments which we couldn't stitch into a polygon
-     * \param extensive_stitching Whether to perform extra work to try and close polylines into polygons when there are large gaps
-     * \param is_initial_layer Whether this is the first layer of the mesh data
+     * \brief Connect the segments into polygons for this layer of this \p mesh.
+     * \param[in] mesh The mesh data for which we are connecting sliced
+     * segments. The face data is used.
+     * \param extensive_stitching Whether to perform extra work to try and close
+     * polylines into polygons when there are large gaps.
+     * \param is_initial_layer Whether this is the first layer of the mesh data.
      */
-    void makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching, bool is_initial_layer);
+    void makePolygons(const Mesh* mesh, bool extensive_stitching, bool is_initial_layer);
 
 protected:
     /*!
@@ -489,7 +489,7 @@ public:
 
     const Mesh* mesh = nullptr; //!< The sliced mesh
 
-    Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool keepNoneClosed,
+    Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count,
            bool extensiveStitching, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
 
     /*!
