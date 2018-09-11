@@ -36,7 +36,6 @@ private:
         coord_t nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
-        std::string material_guid; //!< The GUID for the material used by this extruder
 
         std::string start_code;
         std::string end_code;
@@ -195,8 +194,6 @@ public:
     int getNozzleSize(const int extruder_nr) const;
 
     Point getExtruderOffset(const int id) const;
-
-    std::string getMaterialGUID(const int extruder_nr) const; //!< returns the GUID of the material used for the nozzle with id \p extruder_nr
 
     Point getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const;
     

@@ -69,7 +69,6 @@ void GCodeExport::preSetup()
 
         extruder_attr[extruder_nr].nozzle_size = train.settings.get<coord_t>("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train.settings.get<coord_t>("machine_nozzle_offset_x"), train.settings.get<coord_t>("machine_nozzle_offset_y"));
-        extruder_attr[extruder_nr].material_guid = train.settings.get<std::string>("material_guid");
 
         extruder_attr[extruder_nr].start_code = train.settings.get<std::string>("machine_extruder_start_code");
         extruder_attr[extruder_nr].end_code = train.settings.get<std::string>("machine_extruder_end_code");
@@ -278,11 +277,6 @@ int GCodeExport::getNozzleSize(const int extruder_nr) const
 Point GCodeExport::getExtruderOffset(const int id) const
 {
     return extruder_attr[id].nozzle_offset;
-}
-
-std::string GCodeExport::getMaterialGUID(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].material_guid;
 }
 
 Point GCodeExport::getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const

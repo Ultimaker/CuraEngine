@@ -2529,10 +2529,11 @@ void FffGcodeWriter::finalize()
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
     std::vector<bool> extruder_is_used;
-    for (size_t extr_nr = 0; extr_nr < Application::getInstance().current_slice->scene.extruders.size(); extr_nr++)
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    for (size_t extr_nr = 0; extr_nr < scene.extruders.size(); extr_nr++)
     {
         filament_used.emplace_back(gcode.getTotalFilamentUsed(extr_nr));
-        material_ids.emplace_back(gcode.getMaterialGUID(extr_nr));
+        material_ids.emplace_back(scene.extruders[extr_nr].settings.get<std::string>("material_guid"));
         extruder_is_used.push_back(gcode.getExtruderIsUsed(extr_nr));
     }
     std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
