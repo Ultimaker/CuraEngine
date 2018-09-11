@@ -72,10 +72,11 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     }
 }
 
-int SkirtBrim::generatePrimarySkirtBrimLines(int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
+int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
-
-    int offset_distance = start_distance - primary_extruder_skirt_brim_line_width / 2;
+    const Settings& adhesion_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
+    const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
+    coord_t offset_distance = start_distance - primary_extruder_skirt_brim_line_width / 2;
     for (unsigned int skirt_brim_number = 0; skirt_brim_number < primary_line_count; skirt_brim_number++)
     {
         offset_distance += primary_extruder_skirt_brim_line_width;
@@ -131,7 +132,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         start_distance = primary_extruder_skirt_brim_line_width / 2;
     }
 
-    int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
+    int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
 
     // generate brim for ooze shield and draft shield
