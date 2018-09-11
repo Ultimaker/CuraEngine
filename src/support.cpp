@@ -794,7 +794,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     const bool use_towers = mesh.settings.get<bool>("support_use_towers") && minimum_diameter > 0;
     if (use_towers)
     {
-        AreaSupport::detectOverhangPoints(storage, mesh, minimum_diameter);
+        AreaSupport::detectOverhangPoints(storage, mesh);
     }
 
     //Generate the actual areas and store them in the mesh.
@@ -1210,15 +1210,11 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 }
 
 
-void AreaSupport::detectOverhangPoints(
-    const SliceDataStorage& storage,
-    SliceMeshStorage& mesh,
-    const coord_t minimum_diameter
-)
+void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+    const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
+    const coord_t minimum_diameter = mesh.settings.get<coord_t>("support_minimal_diameter");
 
     mesh.overhang_points.resize(storage.print_layer_count);
 

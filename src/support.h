@@ -239,14 +239,8 @@ private:
      * points (small areas).
      * \param storage Input layer outline information.
      * \param mesh Output mesh to store the resulting overhang points in.
-     * \param minimum_diameter Diameter of the minimal area which can be
-     * supported without a specialised strut.
      */
-    static void detectOverhangPoints(
-        const SliceDataStorage& storage,
-        SliceMeshStorage& mesh,
-        const coord_t minimum_diameter
-    );
+    static void detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh);
     
     /*!
      * Compute the basic overhang and full overhang of a layer. 
