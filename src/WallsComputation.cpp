@@ -5,11 +5,9 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr, const bool recompute_outline_based_on_outer_wall, const bool remove_parts_with_no_insets)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
 : settings(settings)
 , layer_nr(layer_nr)
-, recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
-, remove_parts_with_no_insets(remove_parts_with_no_insets)
 {
 }
 
@@ -50,6 +48,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
+    const bool recompute_outline_based_on_outer_wall = (settings.get<bool>("support_enable") || settings.get<bool>("support_tree_enable")) && !settings.get<bool>("fill_outline_gaps");
     for(size_t i = 0; i < inset_count; i++)
     {
         part->insets.push_back(Polygons());
@@ -128,6 +127,7 @@ void WallsComputation::generateInsets(SliceLayer* layer)
         generateInsets(&layer->parts[partNr]);
     }
 
+    const bool remove_parts_with_no_insets = !settings.get<bool>("fill_outline_gaps");
     //Remove the parts which did not generate an inset. As these parts are too small to print,
     // and later code can now assume that there is always minimal 1 inset line.
     for (unsigned int part_idx = 0; part_idx < layer->parts.size(); part_idx++)

@@ -759,9 +759,7 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
     SliceLayer* layer = &mesh.layers[layer_nr];
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
     {
-        const bool recompute_outline_based_on_outer_wall = (mesh.settings.get<bool>("support_enable") || mesh.settings.get<bool>("support_tree_enable")) && !mesh.settings.get<bool>("fill_outline_gaps");
-        const bool remove_parts_with_no_insets = !mesh.settings.get<bool>("fill_outline_gaps");
-        WallsComputation walls_computation(mesh.settings, layer_nr, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
+        WallsComputation walls_computation(mesh.settings, layer_nr);
         walls_computation.generateInsets(layer);
     }
     else

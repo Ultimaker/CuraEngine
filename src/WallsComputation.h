@@ -21,14 +21,8 @@ public:
      *
      * \param settings The per-mesh settings object to get setting values from.
      * \param layer_nr The layer index that these walls are generated for.
-     * \param inset_count The number of insets to to generate.
-     * \param recompute_outline_based_on_outer_wall Whether to compute a more
-     * accurate poly representation of the printed outlines, based on the outer
-     * wall.
-     * \param remove_parts_with_no_insets Whether to remove parts if they get no
-     * single inset.
      */
-    WallsComputation(const Settings& settings, const LayerIndex layer_nr, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets);
+    WallsComputation(const Settings& settings, const LayerIndex layer_nr);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
@@ -52,16 +46,6 @@ private:
      * \brief The layer that these walls are generated for.
      */
     const LayerIndex layer_nr;
-
-    /*!
-     * Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
-     */
-    const bool recompute_outline_based_on_outer_wall;
-
-    /*!
-     * Whether to remove parts which have no insets.
-     */
-    const bool remove_parts_with_no_insets;
 
     /*!
      * Generates the insets / perimeters for a single layer part.
