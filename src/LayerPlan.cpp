@@ -1362,7 +1362,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             gcode.writeMaxZFeedrate(train.settings.get<Velocity>("max_feedrate_z_override"));
         }
-        const coord_t nozzle_size = gcode.getNozzleSize(extruder_nr);
+        const coord_t nozzle_size = train.settings.get<coord_t>("machine_nozzle_size");
 
         bool update_extrusion_offset = true;
 

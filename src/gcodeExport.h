@@ -33,7 +33,6 @@ private:
         bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
-        coord_t nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
 
@@ -190,8 +189,6 @@ public:
     void setOutputStream(std::ostream* stream);
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
-
-    int getNozzleSize(const int extruder_nr) const;
 
     Point getExtruderOffset(const int id) const;
 

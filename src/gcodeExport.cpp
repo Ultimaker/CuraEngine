@@ -67,7 +67,6 @@ void GCodeExport::preSetup()
         extruder_attr[extruder_nr].prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
         extruder_attr[extruder_nr].is_prime_blob_enabled = train.settings.get<bool>("prime_blob_enable");
 
-        extruder_attr[extruder_nr].nozzle_size = train.settings.get<coord_t>("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train.settings.get<coord_t>("machine_nozzle_offset_x"), train.settings.get<coord_t>("machine_nozzle_offset_y"));
 
         extruder_attr[extruder_nr].start_code = train.settings.get<std::string>("machine_extruder_start_code");
@@ -188,8 +187,8 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             {
                 prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line;
             }
-            const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
+            const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extr_nr].settings;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << extruder_settings.get<double>("machine_nozzle_size") << new_line;
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
         }
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
@@ -222,8 +221,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";MATERIAL:" << ((filament_used.size() >= 1)? static_cast<int>(filament_used[0]) : 6666) << new_line;
             prefix << ";MATERIAL2:" << ((filament_used.size() >= 2)? static_cast<int>(filament_used[1]) : 0) << new_line;
 
-            prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
-            // TODO: the second nozzle size isn't always initiated! ";NOZZLE_DIAMETER2:"
+            prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice->scene.extruders[0].settings.get<double>("machine_nozzle_size") << new_line;
         }
         else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN)
         {
@@ -267,11 +265,6 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     assert(extruder_nr >= 0);
     assert(extruder_nr < MAX_EXTRUDERS);
     return extruder_attr[extruder_nr].is_used;
-}
-
-int GCodeExport::getNozzleSize(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].nozzle_size;
 }
 
 Point GCodeExport::getExtruderOffset(const int id) const
