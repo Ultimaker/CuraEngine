@@ -61,9 +61,6 @@ void GCodeExport::preSetup()
         const ExtruderTrain& train = scene.extruders[extruder_nr];
         setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter"));
 
-        extruder_attr[extruder_nr].start_code = train.settings.get<std::string>("machine_extruder_start_code");
-        extruder_attr[extruder_nr].end_code = train.settings.get<std::string>("machine_extruder_end_code");
-
         extruder_attr[extruder_nr].last_retraction_prime_speed = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         extruder_attr[extruder_nr].nozzle_id = train.settings.get<std::string>("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
@@ -934,7 +931,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
-    const char *start_code = extruder_attr[new_extruder].start_code.c_str();
+    const char *start_code = Application::getInstance().current_slice->scene.extruders[new_extruder].settings.get<std::string>("machine_extruder_start_code").c_str();
 
     if (*start_code)
     {
@@ -972,7 +969,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
     const size_t old_extruder = current_extruder;
-    const char *end_code = extruder_attr[old_extruder].end_code.c_str();
+    const char *end_code = Application::getInstance().current_slice->scene.extruders[old_extruder].settings.get<std::string>("machine_extruder_end_code").c_str();
 
     if (*end_code)
     {

@@ -32,8 +32,6 @@ private:
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         char extruderCharacter;
 
-        std::string start_code;
-        std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
 
         double totalFilament; //!< total filament used per extruder in mm^3
@@ -55,8 +53,6 @@ private:
         : is_primed(false)
         , is_used(false)
         , extruderCharacter(0)
-        , start_code("")
-        , end_code("")
         , filament_area(0)
         , totalFilament(0)
         , currentTemperature(0)
