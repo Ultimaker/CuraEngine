@@ -468,7 +468,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
@@ -541,10 +541,12 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         joined = supportLayer_this.unionPolygons(supportLayer_up);
     }
     // join different parts
-    if (supportJoinDistance > 0)
+    const Settings& infill_settings = Application::getInstance().current_slice->scene.settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
+    const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
+    if (join_distance > 0)
     {
-        joined = joined.offset(supportJoinDistance)
-                        .offset(-supportJoinDistance);
+        joined = joined.offset(join_distance)
+                        .offset(-join_distance);
     }
 
     // remove jagged line pieces introduced by unioning separate overhang areas for consectuive layers
@@ -867,7 +869,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const bool is_support_mesh_drop_down_place_holder = is_support_mesh_place_holder && mesh.settings.get<bool>("support_mesh_drop_down");
 
     const coord_t bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_width"));
-    const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
     const coord_t extension_offset = infill_settings.get<coord_t>("support_offset");
 
     const coord_t tower_diameter = infill_settings.get<coord_t>("support_tower_diameter");
@@ -944,7 +945,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
             constexpr int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         // make towers for small support
