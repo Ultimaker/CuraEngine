@@ -28,7 +28,6 @@ private:
     struct ExtruderTrainAttributes
     {
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
-        bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         char extruderCharacter;
@@ -54,7 +53,6 @@ private:
 
         ExtruderTrainAttributes()
         : is_primed(false)
-        , is_prime_blob_enabled(false)
         , is_used(false)
         , extruderCharacter(0)
         , start_code("")

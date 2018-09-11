@@ -61,9 +61,7 @@ void GCodeExport::preSetup()
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
-        setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter")); 
-
-        extruder_attr[extruder_nr].is_prime_blob_enabled = train.settings.get<bool>("prime_blob_enable");
+        setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter"));
 
         extruder_attr[extruder_nr].start_code = train.settings.get<std::string>("machine_extruder_start_code");
         extruder_attr[extruder_nr].end_code = train.settings.get<std::string>("machine_extruder_end_code");
@@ -997,7 +995,7 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         return;
     }
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-    if (extruder_attr[current_extruder].is_prime_blob_enabled)
+    if (extruder_settings.get<bool>("prime_blob_enable"))
     { // only move to prime position if we do a blob/poop
         // ideally the prime position would be respected whether we do a blob or not,
         // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
@@ -1013,7 +1011,7 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
     if (flavor == EGCodeFlavor::GRIFFIN)
     {
         std::string command = "G280";
-        if (!extruder_attr[current_extruder].is_prime_blob_enabled)
+        if (!extruder_settings.get<bool>("prime_blob_enable"))
         {
             command += " S1";  // use S1 to disable prime blob
         }
