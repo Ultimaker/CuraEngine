@@ -257,6 +257,9 @@ void SettingsTest::limitToExtruderTest()
     current_slice->scene.extruders[2].settings.add("test_setting", limit_extruder_value);
     current_slice->scene.limit_to_extruder.emplace("test_setting", &current_slice->scene.extruders[2]);
 
+    //Add a decoy setting to the main scene to make sure that we aren't getting the global setting instead.
+    current_slice->scene.settings.add("test_setting", "Sting has been kidnapped. The Police have no lead.");
+
     CPPUNIT_ASSERT_EQUAL(limit_extruder_value, settings.get<std::string>("test_setting"));
 }
 
