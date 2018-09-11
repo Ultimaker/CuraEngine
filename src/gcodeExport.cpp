@@ -65,7 +65,6 @@ void GCodeExport::preSetup()
 
         extruder_attr[extruder_nr].prime_pos = Point3(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"), train.settings.get<coord_t>("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
-        extruder_attr[extruder_nr].use_temp = train.settings.get<bool>("machine_nozzle_temp_enabled");
         extruder_attr[extruder_nr].is_prime_blob_enabled = train.settings.get<bool>("prime_blob_enable");
 
         extruder_attr[extruder_nr].nozzle_size = train.settings.get<coord_t>("machine_nozzle_size");
@@ -269,11 +268,6 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     assert(extruder_nr >= 0);
     assert(extruder_nr < MAX_EXTRUDERS);
     return extruder_attr[extruder_nr].is_used;
-}
-
-bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].use_temp;
 }
 
 int GCodeExport::getNozzleSize(const int extruder_nr) const
@@ -1073,7 +1067,7 @@ void GCodeExport::writeFanCommand(double speed)
 
 void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait)
 {
-    if (!extruder_attr[extruder].use_temp)
+    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }

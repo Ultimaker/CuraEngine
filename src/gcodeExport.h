@@ -30,7 +30,6 @@ private:
         Point3 prime_pos; //!< The location this nozzle is primed before printing
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
-        bool use_temp; //!< Whether to insert temperature commands for this extruder
         bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
@@ -188,12 +187,10 @@ public:
     std::string getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setLayerNr(unsigned int layer_nr);
-    
+
     void setOutputStream(std::ostream* stream);
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
-
-    bool getExtruderUsesTemp(const int extruder_nr) const; //!< Returns whether the extruder with the given index uses temperature control, i.e. whether temperature commands will be included for this extruder
 
     int getNozzleSize(const int extruder_nr) const;
 

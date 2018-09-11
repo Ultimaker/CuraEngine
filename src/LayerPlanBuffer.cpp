@@ -184,7 +184,7 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
 
 void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp)
 {
-    if (!gcode.getExtruderUsesTemp(extruder))
+    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
@@ -221,7 +221,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     const size_t extruder = extruder_plan.extruder;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
-    if (!gcode.getExtruderUsesTemp(extruder))
+    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
@@ -301,7 +301,7 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
     }
 
     const double print_temp = *extruder_plan.extrusion_temperature;
-    if (!gcode.getExtruderUsesTemp(extruder))
+    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
@@ -330,7 +330,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
     const size_t extruder = last_extruder_plan.extruder;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
-    if (!gcode.getExtruderUsesTemp(extruder))
+    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
