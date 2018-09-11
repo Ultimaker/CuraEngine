@@ -751,7 +751,9 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         bool use_skin = false;
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"), cross_subdisivion_spec_image_file, use_skin);
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"),
+                cross_subdisivion_spec_image_file, infill_extruder.settings.get<Ratio>("cross_support_image_density_min"), infill_extruder.settings.get<Ratio>("cross_support_image_density_max"), infill_extruder.settings.get<Ratio>("cross_support_image_density_transparent"),
+                use_skin);
         }
         else
         {

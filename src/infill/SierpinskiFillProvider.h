@@ -56,9 +56,9 @@ public:
 
     SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density, bool use_skin);
 
-    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, bool use_skin);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density, bool use_skin);
 
-    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, bool this_constructor_is_for_cross3d, bool use_skin);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density, bool this_constructor_is_for_cross3d, bool use_skin);
 
     Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const;
 

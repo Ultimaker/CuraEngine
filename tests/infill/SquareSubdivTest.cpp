@@ -63,7 +63,7 @@ void SquareSubdivTest::debugCheck()
 //     for (int do_dither = 0; do_dither < 3; do_dither++)
     {
         {
-            DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d);
+            DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d, 0.8, 0.0, 0.28);
 
             bool space_filling_curve = false;
             SquareSubdiv ss(*subdivider, aabb_3d, max_depth, line_width, space_filling_curve);

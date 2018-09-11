@@ -16,15 +16,24 @@ namespace cura
 class ImageBasedDensityProvider : public DensityProvider
 {
 public:
-    ImageBasedDensityProvider(const std::string filename, const AABB3D aabb);
+    /*!
+     * 
+     * \param min_density The density to output for black pixels
+     * \param max_density The density to output for white pixels
+     */
+    ImageBasedDensityProvider(const std::string filename, const AABB3D aabb, float min_density, float max_density, float transparency_density);
 
     virtual ~ImageBasedDensityProvider();
 
     virtual float operator()(const AABB3D& aabb, const int_fast8_t averaging_statistic) const;
 
 protected:
+    float min_density; //!< The density to output for black pixels
+    float density_range; //!< max_density - min_density
+    float transparency_density; //!< The density to use for transparent pixels
+    bool has_alpha_channel; //!< Whether the last channel of each pixel values is the alpha channel
     Point3 image_size; //!< dimensions of the image. Third dimension is the amount of channels.
-    uint_fast8_t channels_used; //!< number of channels from the input image we use (we disregard the alpha channel)
+    uint_fast8_t color_channel_count; //!< number of channels from the input image we use (we disregard the alpha channel)
     Point3 grid_size; //!< dimensions of the 3D grid of voxels. Same as image_size, but third channel is the number of images
     std::vector<unsigned char*> images; //!< voxel data as layers of images on top of each other
 

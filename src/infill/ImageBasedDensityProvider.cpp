@@ -16,7 +16,10 @@ namespace cura {
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
 
-ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename, const AABB3D model_aabb)
+ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename, const AABB3D model_aabb, float min_density, float max_density, float transparency_density)
+: min_density(min_density)
+, density_range(max_density - min_density)
+, transparency_density(transparency_density)
 {
     std::string last_file = filename;
     std::string file_now = filename;
@@ -30,7 +33,8 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
     }
     grid_size = image_size;
     grid_size.z = images.size();
-    channels_used = (image_size.z - 1) / 2 * 2 + 1; // disregard alpha channel. 2 channels becomes 1 and 4 channels becomes 3 channels
+    has_alpha_channel = image_size.z % 2 == 0;
+    color_channel_count = has_alpha_channel? image_size.z - 1 : image_size.z;
     if (grid_size.z == 0)
     {
         logError("Couldn't find density image '%s'.\n", filename.c_str());
@@ -154,10 +158,10 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
     img_min.z = (query_cube.min.z - print_aabb.min.z - 1) * grid_size.z / print_aabb_size.z;
     img_max.z = (query_cube.max.z - print_aabb.min.z) * grid_size.z / print_aabb_size.z + 1;
 
-    uint_fast64_t total_lightness = 0;
+    double total_lightness = 0.0;
     if (averaging_statistic < 0)
     {
-        total_lightness = std::numeric_limits<uint_fast64_t>::max();
+        total_lightness = std::numeric_limits<double>::max();
     }
     uint_fast32_t cell_count = 0;
     for (int z = std::max(static_cast<coord_t>(0), img_min.z); z <= std::min(grid_size.z - 1, img_max.z); z++)
@@ -168,12 +172,24 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
         {
             for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
             {
-                uint_fast64_t combined_lightness_here = 0;
-                for (int channel = 0; channel < channels_used; channel++)
+                double combined_lightness_here = 0;
+                for (uint_fast8_t channel = 0; channel < color_channel_count; channel++)
                 {
                     const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
-                    combined_lightness_here += lightness;
+                    combined_lightness_here += static_cast<float>(lightness) / 255.0;
                     cell_count++;
+                }
+                combined_lightness_here /= color_channel_count;
+                combined_lightness_here = min_density + density_range * combined_lightness_here;
+                if (has_alpha_channel)
+                {
+                    const uint_fast8_t alpha_channel = color_channel_count; // the alpha channel is situated right after the last color
+                    const unsigned char alpha = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + alpha_channel];
+                    if (alpha < 255)
+                    {
+                        float alpha_float = alpha / 255.0;
+                        combined_lightness_here = combined_lightness_here * alpha_float + (1.0 - alpha_float) * transparency_density;
+                    }
                 }
                 if (averaging_statistic == 0)
                 {
@@ -181,11 +197,11 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
                 }
                 else if (averaging_statistic < 0)
                 {
-                    total_lightness = std::min(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(channels_used));
+                    total_lightness = std::min(total_lightness, combined_lightness_here);
                 }
                 else
                 {
-                    total_lightness = std::max(total_lightness, combined_lightness_here / static_cast<uint_fast64_t>(channels_used));
+                    total_lightness = std::max(total_lightness, combined_lightness_here);
                 }
             }
         }
@@ -193,21 +209,25 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
     
     if (cell_count == 0)
     { // cube falls outside of image or in between pixels, so we return the closest pixel
-        assert(total_lightness == 0.0 || (averaging_statistic < 0 && total_lightness == std::numeric_limits<uint_fast64_t>::max()));
+        assert(total_lightness == 0.0 || (averaging_statistic < 0 && total_lightness == std::numeric_limits<double>::max()));
         Point3 closest_pixel = (img_min + img_max) / 2;
         closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(grid_size.x - 1, closest_pixel.x));
         closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(grid_size.y - 1, closest_pixel.y));
         closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(grid_size.z - 1, closest_pixel.z));
         const unsigned char* image = images[closest_pixel.z];
-        uint_fast64_t combined_lightness_here = 0;
-        for (int channel = 0; channel < channels_used; channel++)
+        double combined_lightness_here = 0;
+        for (int channel = 0; channel < color_channel_count; channel++)
         {
             combined_lightness_here += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
             cell_count++;
         }
-        total_lightness += (averaging_statistic == 0)? combined_lightness_here : combined_lightness_here / channels_used;
+        combined_lightness_here /= color_channel_count;
     }
-    float ret = 1.0f - (static_cast<float>(total_lightness) / ((averaging_statistic == 0)? static_cast<float>(cell_count) : 1.0) / 255.0f);
+    float ret = total_lightness;
+    if (averaging_statistic == 0)
+    {
+        ret /= cell_count;
+    }
     assert(ret >= 0.0f);
     assert(ret <= 1.0f);
     return ret;
