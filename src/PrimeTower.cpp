@@ -143,7 +143,7 @@ void PrimeTower::generatePaths_denseInfill()
 }
 
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const
+void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const
 {
     if (!enabled)
     {
@@ -172,8 +172,13 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
 
     // post-wipe:
     if (post_wipe)
-    { //Make sure we wipe the old extruder on the prime tower.
-        gcode_layer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
+    {
+        //Make sure we wipe the old extruder on the prime tower.
+        const Settings& previous_settings = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings;
+        const Point previous_nozzle_offset = Point(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
+        const Settings& new_settings = Application::getInstance().current_slice->scene.extruders[new_extruder].settings;
+        const Point new_nozzle_offset = Point(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
+        gcode_layer.addTravel(post_wipe_point - previous_nozzle_offset + new_nozzle_offset);
     }
 
     gcode_layer.setPrimeTowerIsPlanned(new_extruder);

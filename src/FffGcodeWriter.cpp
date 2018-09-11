@@ -2520,7 +2520,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
         return;
     }
 
-    storage.primeTower.addToGcode(storage, gcode_layer, gcode, prev_extruder, gcode_layer.getExtruder());
+    storage.primeTower.addToGcode(storage, gcode_layer, prev_extruder, gcode_layer.getExtruder());
 }
 
 void FffGcodeWriter::finalize()

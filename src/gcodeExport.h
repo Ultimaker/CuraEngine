@@ -33,7 +33,6 @@ private:
         bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
         bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
-        Point nozzle_offset;
         char extruderCharacter;
 
         std::string start_code;
@@ -61,7 +60,6 @@ private:
         , is_primed(false)
         , is_prime_blob_enabled(false)
         , is_used(false)
-        , nozzle_offset(0,0)
         , extruderCharacter(0)
         , start_code("")
         , end_code("")
@@ -190,9 +188,7 @@ public:
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
-    Point getExtruderOffset(const int id) const;
-
-    Point getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const;
+    Point getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
     
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;

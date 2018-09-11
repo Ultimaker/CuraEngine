@@ -84,7 +84,7 @@ public:
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const;
+    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.

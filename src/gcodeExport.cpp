@@ -67,8 +67,6 @@ void GCodeExport::preSetup()
         extruder_attr[extruder_nr].prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
         extruder_attr[extruder_nr].is_prime_blob_enabled = train.settings.get<bool>("prime_blob_enable");
 
-        extruder_attr[extruder_nr].nozzle_offset = Point(train.settings.get<coord_t>("machine_nozzle_offset_x"), train.settings.get<coord_t>("machine_nozzle_offset_y"));
-
         extruder_attr[extruder_nr].start_code = train.settings.get<std::string>("machine_extruder_start_code");
         extruder_attr[extruder_nr].end_code = train.settings.get<std::string>("machine_extruder_end_code");
 
@@ -267,15 +265,17 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     return extruder_attr[extruder_nr].is_used;
 }
 
-Point GCodeExport::getExtruderOffset(const int id) const
+Point GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
 {
-    return extruder_attr[id].nozzle_offset;
-}
-
-Point GCodeExport::getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const
-{
-    if (use_extruder_offset_to_offset_coords) { return Point(x,y) - getExtruderOffset(extruder_train); }
-    else { return Point(x,y); }
+    if (use_extruder_offset_to_offset_coords)
+    {
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_train].settings;
+        return Point(x - extruder_settings.get<coord_t>("machine_nozzle_offset_x"), y - extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+    }
+    else
+    {
+        return Point(x, y);
+    }
 }
 
 
