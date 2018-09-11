@@ -45,8 +45,6 @@ private:
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         Velocity last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
-        std::string nozzle_id; //!< Type of the printcore, such as "AA 0.4", "BB 0.8", etc.
-
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
@@ -62,7 +60,6 @@ private:
         , retraction_e_amount_at_e_start(0.0)
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
-        , nozzle_id("")
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];

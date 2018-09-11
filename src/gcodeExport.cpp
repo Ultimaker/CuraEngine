@@ -62,7 +62,6 @@ void GCodeExport::preSetup()
         setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter"));
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        extruder_attr[extruder_nr].nozzle_id = train.settings.get<std::string>("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
     }
 
     machine_name = mesh_group->settings.get<std::string>("machine_name");
@@ -178,7 +177,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             }
             const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extr_nr].settings;
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << extruder_settings.get<double>("machine_nozzle_size") << new_line;
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_settings.get<std::string>("machine_nozzle_id") << new_line;
         }
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
