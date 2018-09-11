@@ -798,13 +798,10 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     //Generate the actual areas and store them in the mesh.
-    const double support_angle = mesh.settings.get<AngleRadians>("support_angle");
-    const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
-    const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
     #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
     for (unsigned int layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
     {
-        std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer);
+        std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
         mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
         mesh.full_overhang_areas[layer_idx] = basic_and_full_overhang.second;
     }
@@ -1179,11 +1176,15 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
  *         ^^^^^^^^^      overhang extensions
  *         ^^^^^^^^^^^^^^ overhang
  */
-std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx, const int64_t max_dist_from_lower_layer)
+std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx)
 {
     Polygons supportLayer_supportee = mesh.layers[layer_idx].getOutlines();
     Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1, false);
 
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
+    const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
+    const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
     Polygons supportLayer_supported =  supportLayer_supporter.offset(max_dist_from_lower_layer);
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
 
