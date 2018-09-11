@@ -33,9 +33,8 @@ void Weaver::weave(MeshGroup* meshgroup)
 
     for(Mesh& mesh : meshgroup->meshes)
     {
-        cura::Slicer* slicer = new cura::Slicer(&mesh, connection_height, layer_count,
-                                                mesh.settings.get<bool>("meshfix_extensive_stitching"),
-                                                false, &layer_thicknesses);
+        constexpr bool variable_layer_heights = false;
+        cura::Slicer* slicer = new cura::Slicer(&mesh, connection_height, layer_count, variable_layer_heights, &layer_thicknesses);
         slicerList.push_back(slicer);
     }
 

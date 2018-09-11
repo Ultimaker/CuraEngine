@@ -144,9 +144,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count,
-                                    mesh.settings.get<bool>("meshfix_extensive_stitching"),
-                                    use_variable_layer_heights, adaptive_layer_height_values);
+        Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values);
 
         slicerList.push_back(slicer);
 

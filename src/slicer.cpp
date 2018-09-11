@@ -736,7 +736,7 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
     return ret;
 }
 
-void SlicerLayer::makePolygons(const Mesh* mesh, bool extensive_stitching, bool is_initial_layer)
+void SlicerLayer::makePolygons(const Mesh* mesh, bool is_initial_layer)
 {
     Polygons open_polylines;
 
@@ -751,7 +751,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool extensive_stitching, bool 
         stitch(open_polylines);
     }
 
-    if (extensive_stitching)
+    if (mesh->settings.get<bool>("meshfix_extensive_stitching"))
     {
         stitch_extensive(open_polylines);
     }
@@ -796,8 +796,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool extensive_stitching, bool 
     }
 }
 
-Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool extensive_stitching,
-               bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
+Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
     SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
@@ -924,10 +923,10 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
 
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
 
-#pragma omp parallel for default(none) shared(mesh, layers_ref) firstprivate(extensive_stitching)
+#pragma omp parallel for default(none) shared(mesh, layers_ref)
     for(unsigned int layer_nr = 0; layer_nr < layers_ref.size(); layer_nr++)
     {
-        layers_ref[layer_nr].makePolygons(mesh, extensive_stitching, layer_nr == 0);
+        layers_ref[layer_nr].makePolygons(mesh, layer_nr == 0);
     }
 
     switch(slicing_tolerance)
