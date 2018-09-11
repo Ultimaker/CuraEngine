@@ -285,16 +285,12 @@ private:
     );
     
     /*!
-     * Adds struts (towers against a wall) to the current layer.
-     * \param supportLayer_this The areas of the layer for which to handle the wall struts.
-     * \param supportMinAreaSqrt The minimal diameter of a wall which doesn't need a strut for reinforcement
-     * \param suportTowerDiameter The diameter of the strut
+     * \brief Adds struts (towers against a wall) to the current layer.
+     * \param settings The settings to use to create the wall struts.
+     * \param supportLayer_this The areas of the layer for which to handle the
+     * wall struts.
      */
-    static void handleWallStruts(
-        Polygons& supportLayer_this,
-        coord_t supportMinAreaSqrt,
-        coord_t supportTowerDiameter
-    );
+    static void handleWallStruts(const Settings& settings, Polygons& supportLayer_this);
 
     /*!
      * Clean up the SupportInfillParts.

@@ -883,7 +883,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_width"));
     const coord_t extension_offset = infill_settings.get<coord_t>("support_offset");
 
-    const coord_t tower_diameter = infill_settings.get<coord_t>("support_tower_diameter");
     const coord_t minimum_diameter = infill_settings.get<coord_t>("support_minimal_diameter");
     const bool use_towers = infill_settings.get<bool>("support_use_towers") && minimum_diameter > 0;
 
@@ -926,7 +925,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         if (use_towers && !is_support_mesh_place_holder)
         {
             // handle straight walls
-            AreaSupport::handleWallStruts(layer_this, minimum_diameter, tower_diameter);
+            AreaSupport::handleWallStruts(infill_settings, layer_this);
             // handle towers
             AreaSupport::handleTowers(infill_settings, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
         }
@@ -1317,12 +1316,10 @@ void AreaSupport::handleTowers(
     }
 }
 
-void AreaSupport::handleWallStruts(
-    Polygons& supportLayer_this,
-    coord_t supportMinAreaSqrt,
-    coord_t supportTowerDiameter
-    )
+void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLayer_this)
 {
+    const coord_t minimum_diameter = settings.get<coord_t>("support_minimal_diameter");
+    const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
     for (unsigned int p = 0; p < supportLayer_this.size(); p++)
     {
         PolygonRef poly = supportLayer_this[p];
@@ -1341,7 +1338,7 @@ void AreaSupport::handleWallStruts(
                 }
             }
 
-            if (best_length2 < supportMinAreaSqrt * supportMinAreaSqrt)
+            if (best_length2 < minimum_diameter * minimum_diameter)
             {
                 break; // this is a small area, not a wall!
             }
@@ -1350,15 +1347,15 @@ void AreaSupport::handleWallStruts(
             int width = sqrt( poly.area() * poly.area() / best_length2 ); // sqrt (a^2 / l^2) instead of a / sqrt(l^2)
             
             // add square tower (strut) in the middle of the wall
-            if (width < supportMinAreaSqrt)
+            if (width < minimum_diameter)
             {
                 Point mid = (poly[best] + poly[(best+1) % poly.size()] ) / 2;
                 Polygons struts;
                 PolygonRef strut = struts.newPoly();
-                strut.add(mid + Point( supportTowerDiameter/2,  supportTowerDiameter/2));
-                strut.add(mid + Point(-supportTowerDiameter/2,  supportTowerDiameter/2));
-                strut.add(mid + Point(-supportTowerDiameter/2, -supportTowerDiameter/2));
-                strut.add(mid + Point( supportTowerDiameter/2, -supportTowerDiameter/2));
+                strut.add(mid + Point( tower_diameter / 2,  tower_diameter / 2));
+                strut.add(mid + Point(-tower_diameter / 2,  tower_diameter / 2));
+                strut.add(mid + Point(-tower_diameter / 2, -tower_diameter / 2));
+                strut.add(mid + Point( tower_diameter / 2, -tower_diameter / 2));
                 supportLayer_this = supportLayer_this.unionPolygons(struts);
             }
         }
