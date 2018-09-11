@@ -45,18 +45,21 @@ public:
     static void combineInfillLayers(SliceMeshStorage& mesh);
 
     /*!
-     * Generate infill areas which cause a gradually less dense infill structure from top to bottom.
-     * 
-     * The areas generated overlap, so that more dense infill adds on to less dense infill.
-     * That way you don't have infill lines which are broken when they cross a border between separated infill areas - if they would be as such.
-     * 
-     * This function also guarantees that the SliceLayerPart::infill_area_per_combine_per_density is initialized with at least one item.
-     * The last item in the list will be equal to the infill_area after this function.
-     * 
-     * \param gradual_infill_step_height // The height difference between consecutive density infill areas
-     * \param max_infill_steps the maximum exponent of division of infill density. At 5 the least dense infill will be 2^4 * infill_line_distance i.e. one 16th as dense
+     * \brief Generate infill areas which cause a gradually less dense infill
+     * structure from top to bottom.
+     *
+     * The areas generated overlap, so that more dense infill adds on to less
+     * dense infill. That way you don't have infill lines which are broken when
+     * they cross a border between separated infill areas, if they would be as
+     * such.
+     *
+     * This function also guarantees that the
+     * SliceLayerPart::infill_area_per_combine_per_density is initialised with
+     * at least one item. The last item in the list will be equal to the
+     * infill_area after this function.
+     * \param mesh The mesh to generate the infill areas for.
      */
-    static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
+    static void generateGradualInfill(SliceMeshStorage& mesh);
 
     /*!
      * Limit the infill areas to places where they support internal overhangs.

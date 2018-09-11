@@ -704,7 +704,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         }
 
         // create gradual infill areas
-        SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.settings.get<coord_t>("gradual_infill_step_height"), mesh.settings.get<size_t>("gradual_infill_steps"));
+        SkinInfillAreaComputation::generateGradualInfill(mesh);
 
         //SubDivCube Pre-compute Octree
         if (mesh.settings.get<coord_t>("infill_line_distance") > 0
