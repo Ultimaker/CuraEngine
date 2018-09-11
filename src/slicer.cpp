@@ -954,4 +954,12 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
     log("slice make polygons took %.3f seconds\n", slice_timer.restart());
 }
 
+coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const
+{
+    const coord_t dx_01 = x1 - x0;
+    coord_t num = (y1 - y0) * (x - x0);
+    num += num > 0 ? dx_01 / 2 : -dx_01 / 2; // add in offset to round result
+    return y0 + num / dx_01;
+}
+
 }//namespace cura

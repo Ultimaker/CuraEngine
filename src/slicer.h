@@ -490,18 +490,18 @@ public:
     Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
 
     /*!
-     * Linear interpolation
+     * \brief Linear interpolation between coordinates of a line.
      *
-     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
+     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and
+     * (\p x1, \p y1).
+     * \param x The X coordinate of the point to find.
+     * \param x0 The X coordinate of the first end point of the line segment.
+     * \param x1 The X coordinate of the second end point of the line segment.
+     * \param y0 The Y coordinate of the first end point of the line segment.
+     * \param y1 The Y coordinate of the second end point of the line segment.
+     * \return The Y coordinate of the point to find.
      */
-    int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
-    {
-        int64_t dx_01 = x1 - x0;
-        int64_t num = (y1 - y0) * (x - x0);
-        num += num > 0 ? dx_01/2 : -dx_01/2; // add in offset to round result
-        int64_t y = y0 + num / dx_01;
-        return y;
-    }
+    coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const;
 
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
     {
