@@ -33,7 +33,6 @@ public:
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
 
     SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0);
-    ~SupportInfillPart();
 
     /*!
      * Initializes this SupportInfillPart by generating its insets and infill area.
