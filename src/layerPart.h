@@ -21,11 +21,32 @@ It's also the first step that stores the result in the "data storage" so all oth
 
 namespace cura {
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool union_layers, bool union_all_remove_holes);
+/*!
+ * \brief Split a layer into parts.
+ * \param settings The settings to get the settings from (whether to union or
+ * not).
+ * \param storageLayer Where to store the parts.
+ * \param layer The layer to split.
+ */
+void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer);
 
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers, bool union_all_remove_holes);
+/*!
+ * \brief Split all layers into parts.
+ * \param mesh The mesh of which to split the layers into parts.
+ * \param slicer The slicer to get the layers from.
+ */
+void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-void layerparts2HTML(SliceDataStorage& mesh, const char* filename, bool all_layers = true, int layer_nr = -1);
+/*!
+ * \brief Visualise the layer parts in an SVG document.
+ *
+ * This is just for debugging.
+ * \param mesh The mesh of which to show the layer parts.
+ * \param filename The file name to write the document to.
+ * \param all_layers Whether to show all layers or just a specific layer index.
+ * \param layer_nr If ``all_layers`` is false, which layer to show.
+ */
+void layerparts2HTML(SliceDataStorage& mesh, const char* filename, bool all_layers = true, LayerIndex layer_nr = -1);
 
 }//namespace cura
 

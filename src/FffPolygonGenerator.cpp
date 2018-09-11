@@ -215,7 +215,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings, slicer);
         if (!is_support_modifier)
         {
-            createLayerParts(meshStorage, slicer, mesh.settings.get<bool>("meshfix_union_all"), mesh.settings.get<bool>("meshfix_union_all_remove_holes"));
+            createLayerParts(meshStorage, slicer);
         }
 
         // check one if raft offset is needed
