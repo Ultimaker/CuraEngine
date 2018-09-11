@@ -27,35 +27,8 @@ private:
     static const int HIGHER_BEND_NO_STRAIGHTEN = 0;
     static const int MOVE_TO_STRAIGHTEN = 1;
     static const int RETRACT_TO_STRAIGHTEN = 2;
-    
-    coord_t initial_layer_thickness;
-    coord_t connectionHeight; 
-    coord_t line_width;
-    
-    coord_t roof_inset; 
-    
-    coord_t nozzle_outer_diameter; 
-    AngleRadians nozzle_expansion_angle; 
-    coord_t nozzle_clearance; 
-    coord_t nozzle_top_diameter;
-   
-    
-public:
-    Weaver()
-    {
-        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
-        connectionHeight = mesh_group_settings.get<coord_t>("wireframe_height");
-        
-        line_width = mesh_group_settings.get<coord_t>("wall_line_width_x");
-        
-        roof_inset = mesh_group_settings.get<coord_t>("wireframe_roof_inset");
-        nozzle_outer_diameter = mesh_group_settings.get<coord_t>("machine_nozzle_tip_outer_diameter");      // ___     ___   .
-        nozzle_expansion_angle = mesh_group_settings.get<AngleRadians>("machine_nozzle_expansion_angle");  //     \_U_/       .
-        nozzle_clearance = mesh_group_settings.get<coord_t>("wireframe_nozzle_clearance");                // at least line width
-        nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
-    }
 
+public:
     /*!
      * This is the main function for Neith / Weaving / WirePrinting / Webbed printing.
      * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
@@ -63,7 +36,6 @@ public:
      * \param objects The objects for which to create a wireframe print
      */
     void weave(MeshGroup* objects);
-    
 
 private:
     WireFrame wireFrame;
