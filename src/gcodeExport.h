@@ -27,8 +27,6 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
-        Point3 prime_pos; //!< The location this nozzle is primed before printing
-        bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
         bool is_prime_blob_enabled; //! < Whether the priming blob is enabled
 
@@ -55,9 +53,7 @@ private:
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
-        : prime_pos(0, 0, 0)
-        , prime_pos_is_abs(false)
-        , is_primed(false)
+        : is_primed(false)
         , is_prime_blob_enabled(false)
         , is_used(false)
         , extruderCharacter(0)

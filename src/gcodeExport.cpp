@@ -63,8 +63,6 @@ void GCodeExport::preSetup()
         const ExtruderTrain& train = scene.extruders[extruder_nr];
         setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter")); 
 
-        extruder_attr[extruder_nr].prime_pos = Point3(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"), train.settings.get<coord_t>("extruder_prime_pos_z"));
-        extruder_attr[extruder_nr].prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
         extruder_attr[extruder_nr].is_prime_blob_enabled = train.settings.get<bool>("prime_blob_enable");
 
         extruder_attr[extruder_nr].start_code = train.settings.get<std::string>("machine_extruder_start_code");
@@ -998,13 +996,14 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
     { // extruder is already primed once!
         return;
     }
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
     if (extruder_attr[current_extruder].is_prime_blob_enabled)
     { // only move to prime position if we do a blob/poop
         // ideally the prime position would be respected whether we do a blob or not,
         // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
-        // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
-        Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
-        if (!extruder_attr[current_extruder].prime_pos_is_abs)
+        // which is needed to automatically ignore the prime position for the printer when blob is disabled
+        Point3 prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"), extruder_settings.get<coord_t>("extruder_prime_pos_z"));
+        if (!extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
             prime_pos += currentPosition;
         }
