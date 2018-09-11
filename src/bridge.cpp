@@ -5,7 +5,7 @@
 
 namespace cura {
 
-int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions, const double support_threshold)
+int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions)
 {
     AABB boundary_box(skin_outline);
 
@@ -74,6 +74,8 @@ int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, c
         }
     }
 
+    const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
+    const Ratio support_threshold = bridge_settings_enabled ? settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
     if (support_threshold > 0)
     {
         // if the proportion of the skin region that is supported is less than supportThreshold, it's considered a bridge and we
@@ -140,8 +142,10 @@ int bridgeAngle(const Polygons& skin_outline, const SliceDataStorage& storage, c
     }
 
     if (islands.size() > 5 || islands.size() < 1)
+    {
         return -1;
-    
+    }
+
     //Next find the 2 largest islands that we rest on.
     double area1 = 0;
     double area2 = 0;
