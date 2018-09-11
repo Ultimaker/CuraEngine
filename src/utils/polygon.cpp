@@ -886,7 +886,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
     }
 }
 
-void ConstPolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef result) const
+void ConstPolygonRef::smooth_outward(const AngleDegrees min_angle, int shortcut_length, PolygonRef result) const
 {
 // example of smoothed out corner:
 //
@@ -965,7 +965,7 @@ void ConstPolygonRef::smooth_outward(float min_angle, int shortcut_length, Polyg
     ListPolyIt::convertListPolygonToPolygon(poly, result);
 }
 
-Polygons Polygons::smooth_outward(float max_angle, int shortcut_length)
+Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_length)
 {
     Polygons ret;
     for (unsigned int p = 0; p < size(); p++)

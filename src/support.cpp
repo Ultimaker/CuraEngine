@@ -468,7 +468,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance, bool conical_support, const coord_t conical_support_offset, const coord_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
@@ -573,6 +573,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
     //    |_______________________|
     //
     // dist_from_lower_layer may be up to max_dist_from_lower_layer (see below), but that value may be extremely high
+    const AngleDegrees max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
     joined = joined.smooth_outward(max_smoothing_angle, smoothing_distance);
 
     return joined;
@@ -944,8 +945,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                 layer_above = &empty;
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
-            constexpr int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
         // make towers for small support
