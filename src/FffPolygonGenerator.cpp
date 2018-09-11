@@ -765,22 +765,13 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
         {
             inset_count += 5;
         }
-        coord_t line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-        coord_t line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
-        if (layer_nr == 0)
-        {
-            const ExtruderTrain& train_wall_0 = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-            line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
-            const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-            line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
-        }
         if (mesh.settings.get<bool>("alternate_extra_perimeter"))
         {
             inset_count += ((layer_nr % 2) + 2) % 2;
         }
         const bool recompute_outline_based_on_outer_wall = (mesh.settings.get<bool>("support_enable") || mesh.settings.get<bool>("support_tree_enable")) && !mesh.settings.get<bool>("fill_outline_gaps");
         const bool remove_parts_with_no_insets = !mesh.settings.get<bool>("fill_outline_gaps");
-        WallsComputation walls_computation(mesh.settings.get<coord_t>("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
+        WallsComputation walls_computation(mesh.settings, layer_nr, inset_count, recompute_outline_based_on_outer_wall, remove_parts_with_no_insets);
         walls_computation.generateInsets(layer);
     }
     else

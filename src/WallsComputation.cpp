@@ -5,10 +5,9 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, size_t inset_count, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
-: wall_0_inset(wall_0_inset)
-, line_width_0(line_width_0)
-, line_width_x(line_width_x)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr, const size_t inset_count, const bool recompute_outline_based_on_outer_wall, const bool remove_parts_with_no_insets)
+: settings(settings)
+, layer_nr(layer_nr)
 , inset_count(inset_count)
 , recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
 , remove_parts_with_no_insets(remove_parts_with_no_insets)
@@ -28,6 +27,17 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->insets.push_back(part->outline);
         part->print_outline = part->outline;
         return;
+    }
+
+    const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset");
+    coord_t line_width_0 = settings.get<coord_t>("line_width_0");
+    coord_t line_width_x = settings.get<coord_t>("line_width_x");
+    if (layer_nr == 0)
+    {
+        const ExtruderTrain& train_wall_0 = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
+        line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
+        const ExtruderTrain& train_wall_x = settings.get<ExtruderTrain&>("wall_x_extruder_nr");
+        line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
     for(size_t i = 0; i < inset_count; i++)
