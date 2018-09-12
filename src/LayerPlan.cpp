@@ -1701,8 +1701,8 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     // write coasting path
     for (size_t point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        const Velocity coasting_speed = extruder.settings.get<Velocity>("coasting_speed");
-        const Velocity speed = coasting_speed * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor();
+        const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed");
+        const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
         gcode.writeTravel(path.points[point_idx], speed);
     }
 
