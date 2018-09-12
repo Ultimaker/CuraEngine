@@ -430,10 +430,10 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     bool process_infill = mesh.settings.get<coord_t>("infill_line_distance") > 0;
     if (!process_infill)
     { // do process infill anyway if it's modified by modifier meshes
-        Scene& scene = Application::getInstance().current_slice->scene;
-        for (size_t other_mesh_order_idx(mesh_order_idx + 1); other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
+        const Scene& scene = Application::getInstance().current_slice->scene;
+        for (size_t other_mesh_order_idx = mesh_order_idx + 1; other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
         {
-            size_t other_mesh_idx = mesh_order[other_mesh_order_idx];
+            const size_t other_mesh_idx = mesh_order[other_mesh_order_idx];
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (other_mesh.settings.get<bool>("infill_mesh"))
             {
