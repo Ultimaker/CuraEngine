@@ -5,12 +5,11 @@
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
 #include "../utils/polygon.h"
-#include "../settings/Settings.h"
 
 namespace cura
 {
 
-// The default minimum line length threashold for lines in a zag connection.
+// The default minimum line length threshold for lines in a zag connection.
 const coord_t DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD = 5;
 
 
@@ -231,11 +230,11 @@ protected:
 
 inline void ZigzagConnectorProcessor::reset()
 {
-    this->is_first_connector = true;
-    this->first_connector_end_scanline_index = 0;
-    this->last_connector_index = 0;
-    this->first_connector.clear();
-    this->current_connector.clear();
+    is_first_connector = true;
+    first_connector_end_scanline_index = 0;
+    last_connector_index = 0;
+    first_connector.clear();
+    current_connector.clear();
 }
 
 inline void ZigzagConnectorProcessor::addLine(Point from, Point to)
