@@ -160,7 +160,7 @@ private:
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill);
+    void processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.
