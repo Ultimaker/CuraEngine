@@ -49,11 +49,10 @@ GCodeExport::~GCodeExport()
 
 void GCodeExport::preSetup()
 {
-    std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice->scene.current_mesh_group;
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
-
-    const Scene& scene = Application::getInstance().current_slice->scene;
     extruder_count = Application::getInstance().current_slice->scene.extruders.size();
 
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
