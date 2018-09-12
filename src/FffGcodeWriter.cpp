@@ -2466,7 +2466,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         return;
     }
 
-    const unsigned int previous_extruder = gcode_layer.getExtruder();
+    const size_t previous_extruder = gcode_layer.getExtruder();
     if (previous_extruder == static_cast<size_t>(extruder_nr)
             && !(static_cast<size_t>(extruder_nr) == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount()))) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
     {
