@@ -282,7 +282,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     {
         ExtruderTrain& train = scene.extruders[extruder_index];
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_index];
-        retraction_config.distance = (train.settings.get<bool>("retraction_enable"))? train.settings.get<double>("retraction_amount") : 0;
+        retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0;
         retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount");
         retraction_config.speed = train.settings.get<Velocity>("retraction_retract_speed");
         retraction_config.primeSpeed = train.settings.get<Velocity>("retraction_prime_speed");
@@ -443,7 +443,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
                         if (extruder_nr == start_extruder_nr)
                         {
                             const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
-                            extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
+                            extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
                         }
                         else
                         {
@@ -764,7 +764,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     assert(static_cast<LayerIndex>(extruder_order_per_layer_negative_layers.size()) + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
     const std::vector<size_t>& extruder_order =
-        (layer_nr < 0)?
+        (layer_nr < 0) ?
         extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr]
         :
         extruder_order_per_layer[layer_nr];
@@ -789,7 +789,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
     const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
-    const size_t support_infill_extruder_nr = (layer_nr <= 0)? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+    const size_t support_infill_extruder_nr = (layer_nr <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
 
     for (const size_t& extruder_nr : extruder_order)
     {
@@ -1391,7 +1391,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
         else
         {
-            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization);
+            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization);
         }
     }
     return added_something;
@@ -1834,7 +1834,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
     const size_t layer_nr = gcode_layer.getLayerNr();
 
-    EFillMethod pattern = (layer_nr == 0)?
+    EFillMethod pattern = (layer_nr == 0) ?
         mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
         mesh.settings.get<EFillMethod>("top_bottom_pattern");
 
@@ -2007,7 +2007,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     }
 
     // calculate polygons and lines
-    Polygons* perimeter_gaps_output = (generate_perimeter_gaps)? &concentric_perimeter_gaps : nullptr;
+    Polygons* perimeter_gaps_output = (generate_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
 
     processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
 }
@@ -2051,7 +2051,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         }
 
         std::optional<Point> near_start_location;
-        const EFillMethod pattern = (gcode_layer.getLayerNr() == 0)?
+        const EFillMethod pattern = (gcode_layer.getLayerNr() == 0) ?
             mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
             mesh.settings.get<EFillMethod>("top_bottom_pattern");
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
@@ -2067,7 +2067,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         }
         else
         {
-            SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines;
+            SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
             constexpr coord_t wipe_dist = 0;
             gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
         }
@@ -2135,7 +2135,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
     const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
-    size_t support_infill_extruder_nr = (gcode_layer.getLayerNr() <= 0)? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+    size_t support_infill_extruder_nr = (gcode_layer.getLayerNr() <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
 
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, gcode_layer.getLayerNr())];
     if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty())
