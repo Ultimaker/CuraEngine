@@ -52,7 +52,7 @@ Velocity GCodePathConfig::getSpeed() const
     return speed_derivatives.speed;
 }
 
-Velocity GCodePathConfig::getAcceleration() const
+Acceleration GCodePathConfig::getAcceleration() const
 {
     return speed_derivatives.acceleration;
 }

@@ -78,6 +78,8 @@ struct Velocity
     double value = 0;
 };
 
+typedef Velocity Acceleration; //Use the same logic for acceleration variables.
+
 }
 
 #endif //VELOCITY_H

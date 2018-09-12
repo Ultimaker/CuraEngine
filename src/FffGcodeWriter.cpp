@@ -2550,8 +2550,8 @@ void FffGcodeWriter::finalize()
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<bool>("acceleration_enabled"))
     {
-        gcode.writePrintAcceleration(mesh_group_settings.get<Velocity>("machine_acceleration"));
-        gcode.writeTravelAcceleration(mesh_group_settings.get<Velocity>("machine_acceleration"));
+        gcode.writePrintAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));
+        gcode.writeTravelAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));
     }
     if (mesh_group_settings.get<bool>("jerk_enabled"))
     {

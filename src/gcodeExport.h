@@ -409,12 +409,12 @@ public:
     /*!
      * Write the command for setting the acceleration for print moves to a specific value
      */
-    void writePrintAcceleration(const Velocity& acceleration);
+    void writePrintAcceleration(const Acceleration& acceleration);
 
     /*!
      * Write the command for setting the acceleration for travel moves to a specific value
      */
-    void writeTravelAcceleration(const Velocity& acceleration);
+    void writeTravelAcceleration(const Acceleration& acceleration);
 
     /*!
      * Write the command for setting the jerk to a specific value

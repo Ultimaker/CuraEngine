@@ -59,7 +59,7 @@ public:
         Velocity nominal_feedrate;
         double maxTravel;
         double distance;
-        Velocity acceleration;
+        Acceleration acceleration;
         Position delta;
         Position absDelta;
 
@@ -69,8 +69,8 @@ public:
 private:
     Velocity max_feedrate[NUM_AXIS] = {600, 600, 40, 25}; // mm/s
     Velocity minimumfeedrate = 0.01;
-    Velocity acceleration = 3000;
-    Velocity max_acceleration[NUM_AXIS] = {9000, 9000, 100, 10000};
+    Acceleration acceleration = 3000;
+    Acceleration max_acceleration[NUM_AXIS] = {9000, 9000, 100, 10000};
     Velocity max_xy_jerk = 20.0;
     Velocity max_z_jerk = 0.4;
     Velocity max_e_jerk = 5.0;
@@ -91,7 +91,7 @@ public:
     void setPosition(Position newPos);
     void plan(Position newPos, Velocity feedRate, PrintFeatureType feature);
     void addTime(const Duration& time);
-    void setAcceleration(const Velocity& acc); //!< Set the default acceleration to \p acc
+    void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
     void setMaxZFeedrate(const Velocity& max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
 

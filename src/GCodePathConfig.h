@@ -24,7 +24,7 @@ public:
     struct SpeedDerivatives
     {
         Velocity speed; //!< movement speed (mm/s)
-        Velocity acceleration; //!< acceleration of head movement (mm/s^2)
+        Acceleration acceleration; //!< acceleration of head movement (mm/s^2)
         Velocity jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
     };
     const PrintFeatureType type; //!< name of the feature type
@@ -71,7 +71,7 @@ public:
     /*!
      * Get the current acceleration of this config
      */
-    Velocity getAcceleration() const;
+    Acceleration getAcceleration() const;
 
     /*!
      * Get the current jerk of this config

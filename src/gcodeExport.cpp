@@ -1118,7 +1118,7 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
-void GCodeExport::writePrintAcceleration(const Velocity& acceleration)
+void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
@@ -1146,7 +1146,7 @@ void GCodeExport::writePrintAcceleration(const Velocity& acceleration)
     estimateCalculator.setAcceleration(acceleration);
 }
 
-void GCodeExport::writeTravelAcceleration(const Velocity& acceleration)
+void GCodeExport::writeTravelAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {

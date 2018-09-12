@@ -22,15 +22,15 @@ void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
     max_feedrate[Y_AXIS] = settings.get<Velocity>("machine_max_feedrate_y");
     max_feedrate[Z_AXIS] = settings.get<Velocity>("machine_max_feedrate_z");
     max_feedrate[E_AXIS] = settings.get<Velocity>("machine_max_feedrate_e");
-    max_acceleration[X_AXIS] = settings.get<Velocity>("machine_max_acceleration_x");
-    max_acceleration[Y_AXIS] = settings.get<Velocity>("machine_max_acceleration_y");
-    max_acceleration[Z_AXIS] = settings.get<Velocity>("machine_max_acceleration_z");
-    max_acceleration[E_AXIS] = settings.get<Velocity>("machine_max_acceleration_e");
+    max_acceleration[X_AXIS] = settings.get<Acceleration>("machine_max_acceleration_x");
+    max_acceleration[Y_AXIS] = settings.get<Acceleration>("machine_max_acceleration_y");
+    max_acceleration[Z_AXIS] = settings.get<Acceleration>("machine_max_acceleration_z");
+    max_acceleration[E_AXIS] = settings.get<Acceleration>("machine_max_acceleration_e");
     max_xy_jerk = settings.get<Velocity>("machine_max_jerk_xy");
     max_z_jerk = settings.get<Velocity>("machine_max_jerk_z");
     max_e_jerk = settings.get<Velocity>("machine_max_jerk_e");
     minimumfeedrate = settings.get<Velocity>("machine_minimum_feedrate");
-    acceleration = settings.get<Velocity>("machine_acceleration");
+    acceleration = settings.get<Acceleration>("machine_acceleration");
 }
 
 
@@ -67,13 +67,13 @@ void TimeEstimateCalculator::reset()
 
 // Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the 
 // acceleration within the allotted distance.
-static inline Velocity max_allowable_speed(const Velocity& acceleration, const Velocity& target_velocity, double distance)
+static inline Velocity max_allowable_speed(const Acceleration& acceleration, const Velocity& target_velocity, double distance)
 {
     return sqrt(target_velocity * target_velocity - 2 * acceleration * distance);
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
-static inline float estimate_acceleration_distance(const Velocity& initial_rate, const Velocity& target_rate, const Velocity& acceleration)
+static inline float estimate_acceleration_distance(const Velocity& initial_rate, const Velocity& target_rate, const Acceleration& acceleration)
 {
     if (acceleration == 0)
     {
@@ -86,7 +86,7 @@ static inline float estimate_acceleration_distance(const Velocity& initial_rate,
 // you started at speed initial_rate and accelerated until this point and want to end at the final_rate after
 // a total travel of distance. This can be used to compute the intersection point between acceleration and
 // deceleration in the cases where the trapezoid has no plateau (i.e. never reaches maximum speed)
-static inline double intersection_distance(const Velocity& initial_rate, const Velocity& final_rate, const Velocity& acceleration, double distance)
+static inline double intersection_distance(const Velocity& initial_rate, const Velocity& final_rate, const Acceleration& acceleration, double distance)
 {
     if (acceleration == 0.0)
     {
@@ -96,7 +96,7 @@ static inline double intersection_distance(const Velocity& initial_rate, const V
 }
 
 // This function gives the time it needs to accelerate from an initial speed to reach a final distance.
-static inline double acceleration_time_from_distance(const Velocity& initial_feedrate, const Velocity& distance, const Velocity& acceleration)
+static inline double acceleration_time_from_distance(const Velocity& initial_feedrate, const Velocity& distance, const Acceleration& acceleration)
 {
     double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
     //If discriminant is negative, we're moving in the wrong direction.
@@ -111,7 +111,7 @@ void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const R
     Velocity initial_feedrate = block->nominal_feedrate * entry_factor;
     Velocity final_feedrate = block->nominal_feedrate * exit_factor;
 
-    Velocity acceleration = block->acceleration;
+    Acceleration acceleration = block->acceleration;
     double accelerate_distance = estimate_acceleration_distance(initial_feedrate, block->nominal_feedrate, acceleration);
     double decelerate_distance = estimate_acceleration_distance(block->nominal_feedrate, final_feedrate, -acceleration);
 
