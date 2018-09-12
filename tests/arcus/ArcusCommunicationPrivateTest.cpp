@@ -42,7 +42,7 @@ void loadTestSettings(const std::string& filename, T* p_settings, std::unordered
     std::string line;
     while (std::getline(test_settings_file, line))
     {
-        size_t pos = line.find_first_of(',');
+        size_t pos = line.find_first_of('=');
         if (line.size() < 3 || pos == std::string::npos) // <<- Whitespace, etc.
         {
             continue;
@@ -58,7 +58,7 @@ void loadTestSettings(const std::string& filename, T* p_settings, std::unordered
         entry->set_value(value);
     }
     test_settings_file.close();
-    CPPUNIT_ASSERT(! raw_settings.empty());
+    CPPUNIT_ASSERT(!raw_settings.empty());
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(settings.settings_size()), raw_settings.size());
 }
 
