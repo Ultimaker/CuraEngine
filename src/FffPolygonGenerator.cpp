@@ -68,11 +68,13 @@ size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) 
     }
     switch (mesh_group_settings.get<DraftShieldHeightLimitation>("draft_shield_height_limitation"))
     {
-        default:
         case DraftShieldHeightLimitation::FULL:
             return total_layers;
         case DraftShieldHeightLimitation::LIMITED:
             return std::max((coord_t)0, (mesh_group_settings.get<coord_t>("draft_shield_height") - mesh_group_settings.get<coord_t>("layer_height_0")) / mesh_group_settings.get<coord_t>("layer_height") + 1);
+        default:
+            logWarning("A draft shield height limitation option was added without implementing the new option in getDraftShieldLayerCount.");
+            return total_layers;
     }
 }
 
