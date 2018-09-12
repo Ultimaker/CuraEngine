@@ -254,7 +254,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     }
 
     const size_t initial_speedup_layer_count = mesh_group_settings.get<size_t>("speed_slowdown_layers");
-    if (layer_nr >= 0 && static_cast<unsigned int>(layer_nr) < initial_speedup_layer_count)
+    if (layer_nr >= 0 && static_cast<size_t>(layer_nr) < initial_speedup_layer_count)
     {
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
     }
