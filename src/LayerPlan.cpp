@@ -1362,7 +1362,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             gcode.writeMaxZFeedrate(extruder.settings.get<Velocity>("max_feedrate_z_override"));
         }
-        const coord_t nozzle_size = extruder.settings.get<coord_t>("machine_nozzle_size");
 
         bool update_extrusion_offset = true;
 
@@ -1461,28 +1460,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (!coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
-                    if (  // change infill  ||||||   to  /\/\/\/\/ ...
-                        false &&
-                        path_idx + 2 < paths.size() // has a next move
-                        && paths[path_idx+1].points.size() == 1 // is single extruded line
-                        && !paths[path_idx+1].config->isTravelPath() // next move is extrusion
-                        && paths[path_idx+2].config->isTravelPath() // next next move is travel
-                        && shorterThen(path.points.back() - gcode.getPositionXY(), 2 * nozzle_size) // preceding extrusion is close by
-                        && shorterThen(paths[path_idx+1].points.back() - path.points.back(), 2 * nozzle_size) // extrusion move is small
-                        && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
-                    )
+                    for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
-                        communication->sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidthForLayerView(), paths[path_idx+2].config->getLayerThickness(), speed);
-                        gcode.writeExtrusion(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM(), paths[path_idx+2].config->type, update_extrusion_offset);
-                        path_idx += 2;
-                    }
-                    else 
-                    {
-                        for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
-                        {
-                            communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
-                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
-                        }
+                        communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
+                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
                 }
             }
