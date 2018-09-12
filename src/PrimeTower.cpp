@@ -90,12 +90,12 @@ void PrimeTower::generatePaths()
 
 void PrimeTower::generatePaths_denseInfill()
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     pattern_per_extruder.resize(extruder_count);
 
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
-    const Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_nr : extruder_order)
     {
         const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
