@@ -61,7 +61,7 @@ protected:
          * \param layer_height The layer height of the layer which contains the \p _top_part
          * \param bottom_z The z coordinate of the bottom of layer which contains \p _top_part
          */
-        InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, coord_t bottom_z);
+        InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, const coord_t bottom_z);
 
         /*!
          * Check whether the top of this pillar is connected (enough) to the given \p infill_part.
@@ -81,7 +81,7 @@ protected:
          * \param filling_area_inset The inset from the boundary of the walls to get from the infill area to the filling area
          * \param line_width The line width used to generate an area just large enough for infill lines to be generated, when the infill area would otherwise be too small to get infill
          */
-        void addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width);
+        void addToTopSliceLayerPart(const coord_t filling_area_inset, const coord_t line_width);
     };
 
     /*!
@@ -92,7 +92,7 @@ protected:
      * \param line_width The line width of the infill lines
      * \return The offsetted area, or a generated area as small as possible
      */
-    static Polygons getFillingArea(const PolygonsPart& infill_area, coord_t filling_area_inset, coord_t line_width);
+    static Polygons getFillingArea(const PolygonsPart& infill_area, const coord_t filling_area_inset, const coord_t line_width);
 private:
     /*!
      * Add an area to the pillar base:
@@ -107,7 +107,7 @@ private:
      * \param layer_height The layer height of the added area
      * \param bottom_z The z coordinate of the bottom of the layer which contains the \p infill_part
      */
-    static InfillPillar& addPartToPillarBase(const SliceMeshStorage& mesh, const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, const coord_t layer_height, coord_t bottom_z);
+    static InfillPillar& addPartToPillarBase(const SliceMeshStorage& mesh, const PolygonsPart& infill_part, std::list<InfillPillar>& pillar_base, const coord_t layer_height, const coord_t bottom_z);
 };
 
 }//namespace cura

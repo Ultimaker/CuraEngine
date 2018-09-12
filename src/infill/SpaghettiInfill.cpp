@@ -54,7 +54,7 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
     assert(top_filling_layer_part->getOwnInfillArea().size() > 0);
     const PolygonsPart top_infill_part = top_filling_layer_part->getOwnInfillArea().splitIntoParts()[0]; // WARNING: we just use the very first part we encounter; there's no way for the user to choose which filling area will be used
 
-    coord_t filling_area_inset = mesh.settings.get<coord_t>("spaghetti_inset");
+    const coord_t filling_area_inset = mesh.settings.get<coord_t>("spaghetti_inset");
     const coord_t line_width = mesh.settings.get<coord_t>("infill_line_width");
     const Polygons filling_area = SpaghettiInfill::getFillingArea(top_infill_part, filling_area_inset, line_width);
 
@@ -75,7 +75,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     const coord_t line_width = mesh.settings.get<coord_t>("infill_line_width");
     coord_t spaghetti_max_height = mesh.settings.get<coord_t>("spaghetti_max_height");
 
-    coord_t filling_area_inset = mesh.settings.get<coord_t>("spaghetti_inset");
+    const coord_t filling_area_inset = mesh.settings.get<coord_t>("spaghetti_inset");
 
     std::list<SpaghettiInfill::InfillPillar> pillar_base;
     coord_t current_z = 0;
@@ -133,7 +133,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     }
 }
 
-Polygons SpaghettiInfill::getFillingArea(const PolygonsPart& infill_area, coord_t filling_area_inset, coord_t line_width)
+Polygons SpaghettiInfill::getFillingArea(const PolygonsPart& infill_area, const coord_t filling_area_inset, const coord_t line_width)
 {
     Polygons filling_area = infill_area.offset(-filling_area_inset);
     assert(infill_area.size() > 0 && infill_area[0].size() > 0 && "the top part must be a non-zero area!");
@@ -153,7 +153,7 @@ Polygons SpaghettiInfill::getFillingArea(const PolygonsPart& infill_area, coord_
     return filling_area;
 }
 
-SpaghettiInfill::InfillPillar::InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, coord_t bottom_z)
+SpaghettiInfill::InfillPillar::InfillPillar(const SliceMeshStorage& mesh, const PolygonsPart& _top_part, const coord_t layer_height, const coord_t bottom_z)
 : top_part(_top_part) // TODO: prevent copy construction! Is that possible?
 , total_volume_mm3(INT2MM(INT2MM(top_part.area())) * INT2MM(layer_height))
 , connection_inset_dist(mesh.settings.get<AngleDegrees>("spaghetti_max_infill_angle") >= 90 ? MM2INT(500) : (tan(mesh.settings.get<AngleRadians>("spaghetti_max_infill_angle")) * mesh.settings.get<coord_t>("layer_height")))
@@ -161,7 +161,7 @@ SpaghettiInfill::InfillPillar::InfillPillar(const SliceMeshStorage& mesh, const 
 {
 }
 
-void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(coord_t filling_area_inset, coord_t line_width)
+void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(const coord_t filling_area_inset, const coord_t line_width)
 {
     SliceLayerPart& slice_layer_part = *top_slice_layer_part;
     double volume = total_volume_mm3;
@@ -185,7 +185,7 @@ bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
     }
 }
 
-SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const SliceMeshStorage& mesh, const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, const coord_t layer_height, coord_t bottom_z)
+SpaghettiInfill::InfillPillar& SpaghettiInfill::addPartToPillarBase(const SliceMeshStorage& mesh, const PolygonsPart& infill_part, std::list<SpaghettiInfill::InfillPillar>& pillar_base, const coord_t layer_height, const coord_t bottom_z)
 {
     std::list<SpaghettiInfill::InfillPillar>::iterator ret = pillar_base.end();
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
