@@ -909,7 +909,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         //Height of where the platform adhesion reaches.
         if (scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
         {
-            const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<size_t>("adhesion_extruder_nr");
+            const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
             max_print_height_per_extruder[adhesion_extruder_nr] =
                 std::max(0, max_print_height_per_extruder[adhesion_extruder_nr]);
         }

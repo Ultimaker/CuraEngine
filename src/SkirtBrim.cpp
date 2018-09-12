@@ -108,7 +108,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 {
     const bool is_skirt = start_distance > 0;
 
-    const size_t adhesion_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("adhesion_extruder_nr");
+    const size_t adhesion_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
     const Settings& adhesion_settings = Application::getInstance().current_slice->scene.extruders[adhesion_extruder_nr].settings;
     const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
     const coord_t primary_extruder_minimal_length = adhesion_settings.get<coord_t>("skirt_brim_minimal_length");
