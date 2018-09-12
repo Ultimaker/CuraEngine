@@ -1,10 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <algorithm> // min
-
-#include "Application.h" //To send layer view data of our new compensated moves.
-#include "communication/Communication.h" //To send layer view data of our new compensated moves.
+#include "Application.h" //To get settings.
 #include "MergeInfillLines.h"
 #include "utils/linearAlg2D.h"
 
