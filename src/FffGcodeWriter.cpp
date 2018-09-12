@@ -751,12 +751,12 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_thickness);
 
     coord_t max_inner_wall_width = 0;
-    for (const SliceMeshStorage& mesh_settings : storage.meshes)
+    for (const SliceMeshStorage& mesh : storage.meshes)
     {
-        max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.settings.get<coord_t>((mesh_settings.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
+        max_inner_wall_width = std::max(max_inner_wall_width, mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
         if (layer_nr == 0)
         {
-            const ExtruderTrain& train = mesh_settings.settings.get<ExtruderTrain&>((mesh_settings.settings.get<size_t>("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+            const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
             max_inner_wall_width *= train.settings.get<Ratio>("initial_layer_line_width_factor");
         }
     }
