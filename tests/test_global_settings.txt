@@ -392,10 +392,7 @@ prime_tower_enable=False
 speed_print=35
 raft_base_speed=13.125
 retraction_retract_speed=25
-machine_end_gcode=G91 ;Relative movement
-G0 F15000 X8.0 Z0.5 E-4.5 ;Wiping+material retraction
-G0 F10000 Z1.5 E4.5 ;Compensation for the retraction
-G90 ;Disable relative movement
+machine_end_gcode=G91 ;Relative movement\nG0 F15000 X8.0 Z0.5 E-4.5 ;Wiping+material retraction\nG0 F10000 Z1.5 E4.5 ;Compensation for the retraction\nG90 ;Disable relative movement
 support_tree_wall_count=1
 wireframe_roof_drag_along=0.8
 material_shrinkage_percentage=0
