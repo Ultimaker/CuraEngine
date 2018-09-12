@@ -56,7 +56,7 @@ void CommandLine::sendGCodePrefix(const std::string&) const
 
 void CommandLine::sendPrintTimeMaterialEstimates() const
 {
-    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
+    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
     double sum = std::accumulate(time_estimates.begin(), time_estimates.end(), 0.0);
     log("Total print time: %5.3fs\n", sum);
 

@@ -79,10 +79,10 @@ private:
     double extrusion_offset_factor; //!< default 1
 
     Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is encoded in the gcode)
-    double currentSpeed; //!< The current speed (F values / 60) in mm/s
-    double current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
-    double current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
-    double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
+    Velocity currentSpeed; //!< The current speed (F values / 60) in mm/s
+    Acceleration current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
+    Acceleration current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
+    Velocity current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
     Velocity current_max_z_feedrate; //!< The current max z speed (in mm/s)
 
     AABB3D total_bounding_box; //!< The bounding box of all g-code.
@@ -101,7 +101,7 @@ private:
     double currentFanSpeed;
     EGCodeFlavor flavor;
 
-    std::vector<double> total_print_times; //!< The total estimated print time in seconds for each feature
+    std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
@@ -215,7 +215,7 @@ public:
      * 
      * \return total print time in seconds for each feature
      */
-    std::vector<double> getTotalPrintTimePerFeature();
+    std::vector<Duration> getTotalPrintTimePerFeature();
     /*!
      * Get the total print time in seconds for the complete print
      * 

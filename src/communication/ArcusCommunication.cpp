@@ -428,7 +428,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     logDebug("Sending print time and material estimates.\n");
     std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
 
-    std::vector<double> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
+    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
     message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
     message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
     message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);

@@ -26,7 +26,7 @@ GCodeExport::GCodeExport()
     current_extruder = 0;
     currentFanSpeed = -1;
 
-    total_print_times = std::vector<double>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
     currentSpeed = 1;
     current_print_acceleration = -1;
@@ -400,7 +400,7 @@ double GCodeExport::getTotalFilamentUsed(size_t extruder_nr)
     return extruder_attr[extruder_nr].totalFilament;
 }
 
-std::vector<double> GCodeExport::getTotalPrintTimePerFeature()
+std::vector<Duration> GCodeExport::getTotalPrintTimePerFeature()
 {
     return total_print_times;
 }
