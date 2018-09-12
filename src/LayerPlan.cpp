@@ -504,14 +504,14 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
-        const Ratio flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const Ratio flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
-        const Ratio flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const Ratio flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
         if (wall_0_wipe_dist > 0)
@@ -869,7 +869,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
     {
         const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
-        const float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
@@ -897,7 +897,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     if (wall.size() > 2)
     {
         const Point& p1 = wall[start_idx];
-        const float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
@@ -1333,7 +1333,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             { // turn off previous extruder
                 constexpr bool wait = false;
                 Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
-                const LayerIndex prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
+                const LayerIndex prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr - 1 : layer_nr;
                 if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
