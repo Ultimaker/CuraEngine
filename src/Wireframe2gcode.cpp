@@ -84,7 +84,7 @@ void Wireframe2gcode::writeGCode()
                 }
             );
     Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr);
-    for(LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(wireFrame.layers.size()); layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(wireFrame.layers.size()); layer_nr++)
     {
         Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers); // abuse the progress system of the normal mode of CuraEngine
         
@@ -99,7 +99,7 @@ void Wireframe2gcode::writeGCode()
         }
         gcode.writeFanCommand(fanSpeed);
         
-        for(size_t part_nr = 0; part_nr < layer.connections.size(); part_nr++)
+        for (size_t part_nr = 0; part_nr < layer.connections.size(); part_nr++)
         {
             WeaveConnectionPart& part = layer.connections[part_nr];
        
@@ -594,7 +594,7 @@ void Wireframe2gcode::processStartingCode()
             }
             if (scene_settings.get<bool>("material_print_temp_wait"))
             {
-                for(size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+                for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
                 {
                     const Temperature print_temp = scene_settings.get<Temperature>("material_print_temperature");
                     gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
@@ -654,7 +654,7 @@ void Wireframe2gcode::processSkirt()
 void Wireframe2gcode::finalize()
 {
     gcode.finalize(Application::getInstance().current_slice->scene.settings.get<std::string>("machine_end_gcode").c_str());
-    for(size_t e = 0; e < Application::getInstance().current_slice->scene.extruders.size(); e++)
+    for (size_t e = 0; e < Application::getInstance().current_slice->scene.extruders.size(); e++)
     {
         gcode.writeTemperatureCommand(e, 0, false);
     }
