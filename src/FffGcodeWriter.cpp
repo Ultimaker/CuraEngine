@@ -2460,8 +2460,8 @@ AngleDegrees FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& s
 
 void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    const unsigned int outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
-    if (extruder_nr == -1 && static_cast<unsigned int>(extruder_nr) != outermost_prime_tower_extruder) // an object with extruder_nr==-1 means it will be printed with any current nozzle
+    const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
+    if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
     {
         return;
     }
@@ -2501,7 +2501,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
     // The first layer of the prime tower is printed with one material only, so do not prime another material on the
     // first layer again.
-    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || static_cast<unsigned int>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount())) //Always print a prime tower with outermost extruder.
+    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || static_cast<size_t>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount())) //Always print a prime tower with outermost extruder.
     {
         addPrimeTower(storage, gcode_layer, previous_extruder);
     }
