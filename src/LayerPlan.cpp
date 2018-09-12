@@ -489,7 +489,7 @@ void LayerPlan::planPrime()
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow, bool spiralize, double speed_factor, double fan_speed)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow, bool spiralize, Ratio speed_factor, double fan_speed)
 {
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor);
     path->points.push_back(p);
