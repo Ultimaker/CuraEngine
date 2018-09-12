@@ -414,7 +414,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 }
             }
 
-            coord_t dist = 0;
+            coord_t distance = 0;
             Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
@@ -427,14 +427,14 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                     if (path->points.empty() || vSize2(path->points.back() - comb_point) > maximum_travel_resolution * maximum_travel_resolution)
                     {
                         path->points.push_back(comb_point);
-                        dist += vSize(last_point - comb_point);
+                        distance += vSize(last_point - comb_point);
                         last_point = comb_point;
                     }
                 }
                 last_planned_position = combPath.back();
-                dist += vSize(last_point - p);
+                distance += vSize(last_point - p);
                 const coord_t retract_threshold = extruder->settings.get<coord_t>("retraction_combing_max_distance");
-                path->retract = retract || (retract_threshold > 0 && dist > retract_threshold);
+                path->retract = retract || (retract_threshold > 0 && distance > retract_threshold);
                 // don't perform a z-hop
             }
         }
@@ -1639,8 +1639,8 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
     {
         const Point& point = path.points[path.points.size() - 1 - backward_point_idx];
-        const coord_t dist = vSize(point - *last);
-        accumulated_dist += dist;
+        const coord_t distance = vSize(point - *last);
+        accumulated_dist += distance;
         accumulated_dist_per_point.push_back(accumulated_dist);
         
         if (acc_dist_idx_gt_coast_dist == NO_INDEX && accumulated_dist >= coasting_dist)
