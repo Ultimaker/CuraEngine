@@ -16,20 +16,6 @@ Scene::Scene(const size_t num_mesh_groups)
     //Do nothing.
 }
 
-void Scene::compute()
-{
-    logWarning("%s", getAllSettingsString().c_str());
-    for (std::vector<MeshGroup>::iterator mesh_group = mesh_groups.begin(); mesh_group != mesh_groups.end(); mesh_group++)
-    {
-        current_mesh_group = mesh_group;
-        for (ExtruderTrain& extruder : extruders)
-        {
-            extruder.settings.setParent(&current_mesh_group->settings);
-        }
-        processMeshGroup(*mesh_group);
-    }
-}
-
 const std::string Scene::getAllSettingsString() const
 {
     std::stringstream output;

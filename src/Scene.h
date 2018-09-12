@@ -59,23 +59,6 @@ public:
     Scene(const size_t num_mesh_groups);
 
     /*
-     * \brief Slices the current scene. This sends g-code output through the
-     * currently active communication channel.
-     */
-    void compute();
-
-private:
-    /*
-     * \brief You are not allowed to copy the scene.
-     */
-    Scene(const Scene&) = delete;
-
-    /*
-     * \brief You are not allowed to copy by assignment either.
-     */
-    Scene& operator =(const Scene&) = delete;
-
-    /*
      * \brief Gets a string that contains all settings.
      *
      * This string mimics the command line call of CuraEngine. In theory you
@@ -89,6 +72,17 @@ private:
      * \param mesh_group The mesh group to slice.
      */
     void processMeshGroup(MeshGroup& mesh_group);
+
+private:
+    /*
+     * \brief You are not allowed to copy the scene.
+     */
+    Scene(const Scene&) = delete;
+
+    /*
+     * \brief You are not allowed to copy by assignment either.
+     */
+    Scene& operator =(const Scene&) = delete;
 };
 
 } //namespace cura

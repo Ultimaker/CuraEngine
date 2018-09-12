@@ -274,7 +274,7 @@ void CommandLine::sliceNext()
         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
 
         //Start slicing.
-        slice.scene.compute();
+        slice.compute();
 #ifndef DEBUG
     }
     catch(...)

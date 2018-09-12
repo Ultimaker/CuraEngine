@@ -521,7 +521,7 @@ void ArcusCommunication::sliceNext()
 
     if (!slice.scene.mesh_groups.empty())
     {
-        slice.scene.compute();
+        slice.compute();
         FffProcessor::getInstance()->finalize();
         flushGCode();
         sendPrintTimeMaterialEstimates();

@@ -10,9 +10,18 @@ Slice::Slice(const size_t num_mesh_groups)
 : scene(num_mesh_groups)
 {}
 
-void Slice::compute(std::string& output_gcode)
+void Slice::compute()
 {
-    output_gcode = ";TODO";
+    logWarning("%s", scene.getAllSettingsString().c_str());
+    for (std::vector<MeshGroup>::iterator mesh_group = scene.mesh_groups.begin(); mesh_group != scene.mesh_groups.end(); mesh_group++)
+    {
+        scene.current_mesh_group = mesh_group;
+        for (ExtruderTrain& extruder : scene.extruders)
+        {
+            extruder.settings.setParent(&scene.current_mesh_group->settings);
+        }
+        scene.processMeshGroup(*mesh_group);
+    }
 }
 
 void Slice::reset()

@@ -30,9 +30,11 @@ public:
 
     /*
      * \brief Slice the scene, producing g-code output.
-     * \param[out] output_gcode The resulting g-code.
+     *
+     * The g-code output is sent through the currently active communication
+     * channel.
      */
-    void compute(std::string& output_gcode);
+    void compute();
 
     /*
      * \brief Empty out the slice instance, restoring it as if it were a new
