@@ -113,7 +113,7 @@ void Wireframe2gcode::writeGCode()
                     writeMoveWithRetract(point_same_height);
                 }
                 writeMoveWithRetract(part.connection.from);
-                for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
+                for (size_t segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
                 {
                     handle_segment(part, segment_idx);
                 }
@@ -123,14 +123,17 @@ void Wireframe2gcode::writeGCode()
             
             gcode.writeTypeComment(PrintFeatureType::OuterWall); // top
             {
-                for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
+                for (WeaveConnectionSegment& segment : part.connection.segments)
                 {
-                    WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
-                    if (segment.segmentType == WeaveSegmentType::DOWN) continue;
+                    if (segment.segmentType == WeaveSegmentType::DOWN)
+                    {
+                        continue;
+                    }
                     if (segment.segmentType == WeaveSegmentType::MOVE) 
                     {
                         writeMoveWithRetract(segment.to);
-                    } else 
+                    }
+                    else 
                     {
                         gcode.writeExtrusion(segment.to, speedFlat, extrusion_mm3_per_mm_flat, PrintFeatureType::OuterWall);
                         gcode.writeDelay(flat_delay);
