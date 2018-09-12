@@ -18,22 +18,20 @@ class MockSocket : public Arcus::Socket
 {
 public:
     MockSocket();
-    //virtual ~MockSocket();
 
-    virtual void connect(const std::string& address, int port);
-    virtual void listen(const std::string& address, int port);
-    virtual void close();
-    virtual void reset();
+    //These functions are overridden to be no-op.
+    void connect(const std::string& address, int port) override;
+    void listen(const std::string& address, int port) override;
+    void close() override;
+    void reset() override;
 
-    virtual void sendMessage(Arcus::MessagePtr message);
-    virtual Arcus::MessagePtr takeNextMessage();
-    //virtual Arcus::MessagePtr createMessage(const std::string& type_name);
+    //Catch these functions so that we can see whether they are called.
+    void sendMessage(Arcus::MessagePtr message) override;
+    Arcus::MessagePtr takeNextMessage() override;
 
+    //Helpers to store the sent and received messages.
     void pushMessageToReceivedQueue(Arcus::MessagePtr message);
     Arcus::MessagePtr popMessageFromSendQueue();
-    // void setName(const std::string& new_name);
-    // void printMessages();
-
     std::deque<Arcus::MessagePtr> sent_messages;
     std::deque<Arcus::MessagePtr> received_messages;
 };
