@@ -27,6 +27,7 @@ class SettingsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(addSettingBoolTest);
     CPPUNIT_TEST(addSettingExtruderTrainTest);
     CPPUNIT_TEST(addSettingLayerIndexTest);
+    CPPUNIT_TEST(addSettingLayerIndexNegativeTest);
     CPPUNIT_TEST(addSettingCoordTTest);
     CPPUNIT_TEST(addSettingAngleRadiansTest);
     CPPUNIT_TEST(addSettingAngleDegreesTest);
@@ -87,6 +88,12 @@ public:
      * \brief Test if a setting with a LayerIndex value is correctly inserted
      */
     void addSettingLayerIndexTest();
+
+    /*!
+     * \brief Test if a setting with a LayerIndex value is parsed correctly even
+     * if the layer is negative.
+     */
+    void addSettingLayerIndexNegativeTest();
 
     /*!
      * \brief Test if a setting with a coord_t value is correctly inserted

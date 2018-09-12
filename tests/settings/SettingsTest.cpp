@@ -109,9 +109,16 @@ void SettingsTest::addSettingExtruderTrainTest()
 
 void SettingsTest::addSettingLayerIndexTest()
 {
-    settings.add("test_setting", "-4");
+    settings.add("test_setting", "4");
     CPPUNIT_ASSERT_EQUAL_MESSAGE("LayerIndex settings start counting from 0, so subtract one.",
-                                 LayerIndex(-5), settings.get<LayerIndex>("test_setting"));
+                                 LayerIndex(3), settings.get<LayerIndex>("test_setting"));
+}
+
+void SettingsTest::addSettingLayerIndexNegativeTest()
+{
+    settings.add("test_setting", "-10");
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("LayerIndex settings still subtract 1 even in negative layers.",
+                                 LayerIndex(-11), settings.get<LayerIndex>("test_setting"));
 }
 
 void SettingsTest::addSettingCoordTTest()
