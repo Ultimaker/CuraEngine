@@ -531,7 +531,7 @@ template<> std::vector<double> Settings::get<std::vector<double>>(const std::str
     if (std::regex_search(value_string, list_contents_match, list_contents_regex) && list_contents_match.size() > 1)
     {
         std::string elements = list_contents_match.str(1);
-        std::regex element_regex(R"(\s*([+-]?[0.9]*\.[0-9]+)\s*,?)");
+        std::regex element_regex(R"(\s*([+-]?[0-9]*\.?[0-9]+)\s*,?)");
         std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
 
         std::regex_token_iterator<std::string::iterator> match_iter(elements.begin(), elements.end(), element_regex, 0);

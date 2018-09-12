@@ -221,7 +221,6 @@ void SettingsTest::addSettingVectorTest()
     {
         CPPUNIT_ASSERT_EQUAL(ground_truth[i], vector_int[i]);
     }
-
 }
 
 void SettingsTest::overwriteSettingTest()
