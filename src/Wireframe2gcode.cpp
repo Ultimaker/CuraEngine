@@ -259,7 +259,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     bool lower_retract_start = true;
     
     Point3& to = segment.to;
-    if(lower_retract_start)
+    if (lower_retract_start)
     {
         Point3 vec = to - from;
         Point3 lowering = vec * retract_hop_dist / 2 / vec.vSize();
@@ -268,7 +268,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
         gcode.writeRetraction(retraction_config);
         gcode.writeTravel(to + lowering, speedUp);
         gcode.writeDelay(top_retract_pause);
-        if(after_retract_hop)
+        if (after_retract_hop)
         {
             gcode.writeTravel(to + Point3(0, 0, retract_hop_dist), speedFlat);
         }
@@ -279,7 +279,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
         gcode.writeRetraction(retraction_config);
         gcode.writeTravel(to + Point3(0, 0, retract_hop_dist), speedFlat);
         gcode.writeDelay(top_retract_pause);
-        if(after_retract_hop)    
+        if (after_retract_hop)    
         {
             gcode.writeTravel(to + Point3(0, 0, retract_hop_dist*3), speedFlat);
         }
@@ -533,11 +533,11 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode)
     drag_along = scene_settings.get<coord_t>("wireframe_drag_along");
     
     strategy = STRATEGY_COMPENSATE;
-    if(scene_settings.get<std::string>("wireframe_strategy") == "Compensate")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "Compensate")
         strategy = STRATEGY_COMPENSATE;
-    if(scene_settings.get<std::string>("wireframe_strategy") == "Knot")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "Knot")
         strategy = STRATEGY_KNOT;
-    if(scene_settings.get<std::string>("wireframe_strategy") == "Retract")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "Retract")
         strategy = STRATEGY_RETRACT;
     
     go_back_to_last_top = false;
