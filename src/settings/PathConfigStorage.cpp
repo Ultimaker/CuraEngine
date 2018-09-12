@@ -224,7 +224,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, int layer_
                 , GCodePathConfig::SpeedDerivatives{train->getSettingInMillimetersPerSecond("skirt_brim_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt_brim"), train->getSettingInMillimetersPerSecond("jerk_skirt_brim")}
             );
         prime_tower_config_per_extruder.emplace_back(
-                PrintFeatureType::SupportInfill
+                PrintFeatureType::PrimeTower
                 , train->getSettingInMicrons("prime_tower_line_width")
                     * ((storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0 : line_width_factor_per_extruder[extruder_nr])
                 , layer_thickness
