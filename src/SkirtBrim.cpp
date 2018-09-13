@@ -33,6 +33,9 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         }
         if (storage.support.generated && primary_line_count > 0)
         { // remove model-brim from support
+            SupportLayer& support_layer = storage.support.supportLayers[0];
+            if (train.settings.get<bool>("brim_replaces_support"))
+            {
             // avoid gap in the middle
             //    V
             //  +---+     +----+
@@ -46,9 +49,9 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             { // don't remove support within empty holes where no brim is generated.
                 model_brim_covered_area.add(first_layer_empty_holes);
             }
-            SupportLayer& support_layer = storage.support.supportLayers[0];
             AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
             support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
+            }
             for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
             {
                 first_layer_outline.add(support_infill_part.outline);
