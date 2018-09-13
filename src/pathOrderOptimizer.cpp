@@ -400,7 +400,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
             int line_start_point_idx = polyStart[best_line_idx];
             int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
-            const Point& line_start = best_line[line_start_point_idx];
             const Point& line_end = best_line[line_end_point_idx];
             prev_point = line_end;
 
