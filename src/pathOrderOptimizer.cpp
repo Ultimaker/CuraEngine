@@ -318,6 +318,11 @@ void LineOrderOptimizer::optimize(bool find_chains)
                     continue;
                 }
                 updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
+                if (best_score == 0)
+                {
+                    // can't do better than that, quit loop early
+                    break;
+                }
             }
         }
 
