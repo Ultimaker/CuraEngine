@@ -250,31 +250,31 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     {
         return EGCodeFlavor::GRIFFIN;
     }
-    else if(value == "UltiGCode")
+    else if (value == "UltiGCode")
     {
         return EGCodeFlavor::ULTIGCODE;
     }
-    else if(value == "Makerbot")
+    else if (value == "Makerbot")
     {
         return EGCodeFlavor::MAKERBOT;
     }
-    else if(value == "BFB")
+    else if (value == "BFB")
     {
         return EGCodeFlavor::BFB;
     }
-    else if(value == "Mach3")
+    else if (value == "Mach3")
     {
         return EGCodeFlavor::MACH3;
     }
-    else if(value == "RepRap (Volumetric)")
+    else if (value == "RepRap (Volumetric)")
     {
         return EGCodeFlavor::MARLIN_VOLUMATRIC;
     }
-    else if(value == "Repetier")
+    else if (value == "Repetier")
     {
         return EGCodeFlavor::REPETIER;
     }
-    else if(value == "RepRap (RepRap)")
+    else if (value == "RepRap (RepRap)")
     {
         return EGCodeFlavor::REPRAP;
     }
@@ -592,7 +592,7 @@ std::string Settings::getWithoutLimiting(const std::string& key) const
     {
         return settings.at(key);
     }
-    else if(parent)
+    else if (parent)
     {
         return parent->get<std::string>(key);
     }
