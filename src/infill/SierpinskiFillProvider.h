@@ -54,11 +54,16 @@ public:
     std::optional<Cross3D> subdivision_structure_3d; //!< The 3D prism subdivision structure from which to generate the patterns with varying density across Z
     std::map<coord_t, const Cross3D::Cell*> z_to_start_cell_cross3d; //!< Sierpinski sequence start cell for each z coord
 
-    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density, bool dense_at_top, bool use_skin);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density,
+                           bool dense_at_top, float cross_infill_top_density, bool use_skin);
 
-    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density, bool dense_at_top, bool use_skin);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width,
+                           std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density,
+                           bool dense_at_top, float cross_infill_top_density, bool use_skin);
 
-    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density, bool dense_at_top, bool use_skin, bool this_constructor_is_for_cross3d);
+    SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width,
+                           std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density,
+                           bool dense_at_top, float cross_infill_top_density, bool use_skin, bool this_constructor_is_for_cross3d);
 
     Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const;
 

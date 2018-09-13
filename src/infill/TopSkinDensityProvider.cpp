@@ -11,9 +11,10 @@
 
 namespace cura {
 
-TopSkinDensityProvider::TopSkinDensityProvider(const SliceMeshStorage& mesh_data, bool use_skin)
+TopSkinDensityProvider::TopSkinDensityProvider(const SliceMeshStorage& mesh_data, float density, bool use_skin)
 : print_aabb(mesh_data.bounding_box)
 , mesh_data(mesh_data)
+, density(density)
 , use_skin(use_skin)
 {
 }

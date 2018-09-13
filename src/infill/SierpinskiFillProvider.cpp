@@ -13,11 +13,12 @@ namespace cura
 constexpr bool SierpinskiFillProvider::get_constructor;
 constexpr bool SierpinskiFillProvider::use_dithering;
 
-SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density, bool dense_at_top, bool use_skin)
+SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density,
+                                               bool dense_at_top, float cross_infill_top_density, bool use_skin)
 : aabb_3d(aabb_3d)
 , fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
 , average_density_provider(new UniformDensityProvider(density))
-, skin_density_provider((dense_at_top && mesh_data)? new TopSkinDensityProvider(*mesh_data, use_skin) : nullptr)
+, skin_density_provider((dense_at_top && mesh_data)? new TopSkinDensityProvider(*mesh_data, cross_infill_top_density, use_skin) : nullptr)
 , combined_density_provider(skin_density_provider? new CombinedDensityProvider(*average_density_provider, *skin_density_provider) : nullptr)
 , density_provider(combined_density_provider? combined_density_provider : average_density_provider)
 // , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
@@ -33,16 +34,21 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     {
         logDebug("Creating dithered pattern.\n");
         subdivision_structure_3d->createDitheredPattern();
-        subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
+        if (dense_at_top)
+        {
+            subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
+        }
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
-SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density, bool dense_at_top, bool use_skin)
+SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width,
+                                               std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density,
+                                               bool dense_at_top, float cross_infill_top_density, bool use_skin)
 : aabb_3d(aabb_3d)
 , fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
 , average_density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d, min_density, max_density, transparency_density))
-, skin_density_provider((dense_at_top && mesh_data)? new TopSkinDensityProvider(*mesh_data, use_skin) : nullptr)
+, skin_density_provider((dense_at_top && mesh_data)? new TopSkinDensityProvider(*mesh_data, cross_infill_top_density, use_skin) : nullptr)
 , combined_density_provider(skin_density_provider? new CombinedDensityProvider(*average_density_provider, *skin_density_provider) : nullptr)
 , density_provider(combined_density_provider? combined_density_provider : average_density_provider)
 // , fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb.flatten(), fractal_config.depth, line_width, use_dithering)
@@ -58,11 +64,13 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
-SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density, bool dense_at_top, bool use_skin, bool)
+SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width,
+                                               std::string cross_subdisivion_spec_image_file, float min_density, float max_density, float transparency_density,
+                                               bool dense_at_top, float cross_infill_top_density, bool use_skin, bool)
 : aabb_3d(aabb_3d)
 , fractal_config(getFractalConfig(aabb_3d, min_line_distance, /* make_3d = */ true))
 , average_density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d, min_density, max_density, transparency_density))
-, skin_density_provider((dense_at_top && mesh_data)? new TopSkinDensityProvider(*mesh_data, use_skin) : nullptr)
+, skin_density_provider((dense_at_top && mesh_data)? new TopSkinDensityProvider(*mesh_data, cross_infill_top_density, use_skin) : nullptr)
 , combined_density_provider(skin_density_provider? new CombinedDensityProvider(*average_density_provider, *skin_density_provider) : nullptr)
 , density_provider(combined_density_provider? combined_density_provider : average_density_provider)
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
