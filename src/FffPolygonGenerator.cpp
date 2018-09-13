@@ -359,7 +359,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // the adhesion mustn't be calculated.
     if (!isEmptyLayer(storage, 0) || storage.primeTower.enabled)
     {
-        log("Processing platform adhesion\n");
+        logDebug("Processing platform adhesion\n");
         processPlatformAdhesion(storage);
     }
 
