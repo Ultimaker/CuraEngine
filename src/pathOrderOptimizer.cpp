@@ -260,7 +260,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 num_joined_lines[point_idx] = 0;
                 const Point& p = (*polygons[poly_idx])[point_idx];
                 // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
-                for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
+                for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, 10))
                 {
                     if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
                     {
