@@ -226,7 +226,6 @@ class SubDivCube; // forward declaration to prevent dependency loop
 class SliceMeshStorage
 {
 public:
-    SliceDataStorage *p_slice_data_storage;
     Settings& settings;
     std::vector<SliceLayer> layers;
 
@@ -243,7 +242,14 @@ public:
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
-    SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, const size_t slice_layer_count);
+    /*!
+     * \brief Creates a storage space for slice results of a mesh.
+     * \param mesh The mesh that the storage space belongs to.
+     * \param slice_layer_count How many layers are needed to store the slice
+     * results of the mesh. This needs to be at least as high as the highest
+     * layer that contains a part of the mesh.
+     */
+    SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count);
 
     virtual ~SliceMeshStorage();
 
