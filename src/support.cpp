@@ -29,7 +29,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         return false;
     }
     enum ModifierType { ANTI_OVERHANG, SUPPORT_DROP_DOWN, SUPPORT_VANILLA };
-    ModifierType modifier_type = (mesh_settings.get<bool>("anti_overhang_mesh"))? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down"))? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
+    ModifierType modifier_type = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
     for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
@@ -836,7 +836,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     // early out
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
-    const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable"))? roof_settings : infill_settings).get<coord_t>("support_top_distance");
+    const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<coord_t>("support_top_distance");
     const size_t layer_z_distance_top = std::max(0U, round_up_divide(z_distance_top, layer_thickness)) + 1; // support must always be 1 layer below overhang
     if (layer_z_distance_top + 1 > layer_count)
     {
@@ -850,7 +850,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t xy_distance = infill_settings.get<coord_t>("support_xy_distance");
     const coord_t xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
     const bool use_xy_distance_overhang = infill_settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
-    const AngleRadians angle = ((mesh.settings.get<bool>("support_roof_enable"))? roof_settings : infill_settings).get<AngleRadians>("support_angle");
+    const AngleRadians angle = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<AngleRadians>("support_angle");
     const double tan_angle = tan(angle) - 0.01;  // the XY-component of the supportAngle
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
@@ -906,7 +906,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         }
     }
 
-    const coord_t z_distance_bottom = ((mesh.settings.get<bool>("support_bottom_enable"))? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
+    const coord_t z_distance_bottom = ((mesh.settings.get<bool>("support_bottom_enable")) ? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
     const size_t bottom_empty_layer_count = std::max(0U, round_up_divide(z_distance_bottom, layer_thickness)); // number of empty layers between support and model
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
@@ -933,7 +933,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         if (layer_idx + 1 < layer_count)
         { // join with support from layer up
             const Polygons empty;
-            const Polygons* layer_above = (layer_idx < support_areas.size())? &support_areas[layer_idx + 1] : &empty;
+            const Polygons* layer_above = (layer_idx < support_areas.size()) ? &support_areas[layer_idx + 1] : &empty;
             if (is_support_mesh_nondrop_place_holder)
             {
                 layer_above = &empty;
