@@ -16,6 +16,7 @@
 
 #define CIRCLE_RESOLUTION 32 //The number of vertices in each circle.
 
+
 namespace cura 
 {
 
@@ -84,6 +85,7 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     if (enabled)
     {
         generatePaths_denseInfill(storage);
+        generateStartLocations();
     }
 }
 
@@ -139,6 +141,17 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
+void PrimeTower::generateStartLocations()
+{
+    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
+    // so use the same start and end segments for this.
+    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly, 0, 0);
+    PolygonsPointIndex segment_end = segment_start;
+
+    PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
+}
+
+
 void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const
 {
     if (!enabled)
@@ -164,6 +177,12 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         post_wipe = false;
     }
 
+    // Go to the start location if it's not the first layer
+    if (layer_nr != 0)
+    {
+        gotoStartLocation(storage, gcode_layer, new_extruder);
+    }
+
     addToGcode_denseInfill(storage, gcode_layer, new_extruder);
 
     // post-wipe:
@@ -187,30 +206,6 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPl
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 }
 
-Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) const
-{
-    Point ret(0, 0);
-    int absolute_starting_points = 0;
-    for (unsigned int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
-    {
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
-        if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
-        {
-            ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
-            absolute_starting_points++;
-        }
-    }
-    if (absolute_starting_points > 0)
-    { // take the average over all absolute starting positions
-        ret /= absolute_starting_points;
-    }
-    else
-    { // use the middle of the bed
-        ret = storage.machine_size.flatten().getMiddle();
-    }
-    return ret;
-}
-
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     const Polygons outside_polygon = outer_poly.getOutsidePolygons();
@@ -221,6 +216,24 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
         // take the differences of the support infill parts and the prime tower area
         support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
     }
+}
+
+
+void PrimeTower::gotoStartLocation(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
+{
+    int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations)
+            + number_of_prime_tower_start_locations) % number_of_prime_tower_start_locations;
+
+    const ClosestPolygonPoint wipe_location = prime_tower_start_locations[current_start_location_idx];
+
+    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    const coord_t inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
+    const coord_t start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
+    const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+    const Point outward_dir = wipe_location.location - prime_end;
+    const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
+
+    gcode_layer.addTravel(prime_start);
 }
 
 
