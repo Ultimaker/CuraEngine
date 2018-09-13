@@ -171,17 +171,17 @@ protected:
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
 
     /*!
-     * Get a connection parallel to a given \p first connection at an orthogonal distance \p shift from the \p first connection.
+     * Get a connection parallel to a given \p first connection at an orthogonal distance line_width from the \p first connection.
      * 
      * From a given \p first connection,
      * walk along both polygons in each direction
-     * until we are at a distance of \p shift away orthogonally from the line segment of the \p first connection.
+     * until we are at a distance of line_width away orthogonally from the line segment of the \p first connection.
      * 
      * For all combinations of such found points:
      * - check whether they are both on the same side of the \p first connection
      * - choose the connection which woukd form the smalles bridge
      */
-    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first, coord_t shift);
+    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
 };
 
 
