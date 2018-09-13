@@ -515,13 +515,13 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-        for (size_t extruder = 0; extruder < Application::getInstance().current_slice->scene.extruders.size(); extruder++)
+        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (extruder == adhesion_extruder.extruder_nr || !is_extruder_used[extruder]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
-            const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder];
+            const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         }
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
