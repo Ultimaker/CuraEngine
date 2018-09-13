@@ -172,7 +172,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     }
     //TODO: XY_FREQUENCY_LIMIT
     
-    if(feedrate_factor < 1.0)
+    if (feedrate_factor < 1.0)
     {
         for(unsigned int n=0; n<NUM_AXIS; n++)
         {
@@ -191,30 +191,30 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     
     Velocity vmax_junction = max_xy_jerk / 2; 
     Ratio vmax_junction_factor = 1.0; 
-    if(current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
+    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
     {
         vmax_junction = std::min(vmax_junction, max_z_jerk / 2);
     }
-    if(current_abs_feedrate[E_AXIS] > max_e_jerk / 2)
+    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2)
     {
         vmax_junction = std::min(vmax_junction, max_e_jerk / 2);
     }
     vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
     const Velocity safe_speed = vmax_junction;
     
-    if((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
+    if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
     {
         const Velocity xy_jerk = sqrt(square(current_feedrate[X_AXIS] - previous_feedrate[X_AXIS]) + square(current_feedrate[Y_AXIS] - previous_feedrate[Y_AXIS]));
         vmax_junction = block.nominal_feedrate;
-        if(xy_jerk > max_xy_jerk)
+        if (xy_jerk > max_xy_jerk)
         {
             vmax_junction_factor = Ratio(max_xy_jerk / xy_jerk);
         } 
-        if(fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk)
+        if (fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk)
         {
             vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
         } 
-        if(fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk)
+        if (fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk)
         {
             vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
         } 
@@ -246,7 +246,7 @@ std::vector<Duration> TimeEstimateCalculator::calculate()
     
     std::vector<Duration> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
     totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
-    for(unsigned int n=0; n<blocks.size(); n++)
+    for(unsigned int n = 0; n < blocks.size(); n++)
     {
         Block& block = blocks[n];
         double plateau_distance = block.decelerate_after - block.accelerate_until;
@@ -262,8 +262,10 @@ std::vector<Duration> TimeEstimateCalculator::calculate()
 void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block *current, Block *next)
 {
     (void)previous;
-    if(!current || !next)
+    if (!current || !next)
+    {
         return;
+    }
 
     // If entry speed is already at the maximum entry speed, no need to recheck. Block is cruising.
     // If not, block in state of acceleration or deceleration. Reset entry speed to maximum and
@@ -298,8 +300,10 @@ void TimeEstimateCalculator::reverse_pass()
 void TimeEstimateCalculator::planner_forward_pass_kernel(Block *previous, Block *current, Block *next)
 {
     (void)next;
-    if(!previous)
+    if (!previous)
+    {
         return;
+    }
 
     // If the previous block is an acceleration block, but it is not long enough to complete the
     // full speed change within the block, we need to adjust the entry speed accordingly. Entry
@@ -358,7 +362,7 @@ void TimeEstimateCalculator::recalculate_trapezoids()
         }
     }
     // Last/newest block in buffer. Exit speed is set with MINIMUM_PLANNER_SPEED. Always recalculated.
-    if(next != nullptr)
+    if (next != nullptr)
     {
         calculate_trapezoid_for_block(next, Ratio(next->entry_speed / next->nominal_feedrate), Ratio(MINIMUM_PLANNER_SPEED / next->nominal_feedrate));
         next->recalculate_flag = false;
