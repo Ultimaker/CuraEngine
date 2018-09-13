@@ -36,26 +36,6 @@ public:
         return &instance; 
     }
 
-private:
-    /*!
-     * A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
-     * 
-     * Used in debugging.
-     */
-    std::string profile_string = "";
-
-    /*!
-     * Get all settings for the current meshgroup in the format by which CuraEngine is called via the command line.
-     * 
-     * Also includes all global settings if this is the first meshgroup.
-     * 
-     * Used in debugging.
-     * 
-     * \param meshgroup The meshgroup for which to stringify all settings
-     * \param first_meshgroup Whether this is the first meshgroup and all global settigns should be included as well
-     */
-    std::string getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup);
-
 public:
     /*!
      * The gcode writer, which generates paths in layer plans in a buffer, which converts these paths into gcode commands.
