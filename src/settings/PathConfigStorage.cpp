@@ -157,9 +157,9 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 }
 
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
-: support_infill_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("support_infill_extruder_nr"))
-, support_roof_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("support_roof_extruder_nr"))
-, support_bottom_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<size_t>("support_bottom_extruder_nr"))
+: support_infill_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr)
+, support_roof_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr)
+, support_bottom_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr)
 , adhesion_extruder_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr"))
 , support_infill_train(Application::getInstance().current_slice->scene.extruders[support_infill_extruder_nr])
 , support_roof_train(Application::getInstance().current_slice->scene.extruders[support_roof_extruder_nr])
@@ -292,17 +292,17 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
         if (layer_nr < static_cast<LayerIndex>(initial_speedup_layer_count))
         {
             const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            const size_t extruder_nr_support_infill = mesh_group_settings.get<size_t>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
+            const size_t extruder_nr_support_infill = mesh_group_settings.get<ExtruderTrain&>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr").extruder_nr;
             GCodePathConfig::SpeedDerivatives& first_layer_config_infill = global_first_layer_config_per_extruder[extruder_nr_support_infill];
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {
                 support_infill_config[idx].smoothSpeed(first_layer_config_infill, std::max(LayerIndex(0), layer_nr), initial_speedup_layer_count);
             }
 
-            const size_t extruder_nr_support_roof = mesh_group_settings.get<size_t>("support_roof_extruder_nr");
+            const size_t extruder_nr_support_roof = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
             GCodePathConfig::SpeedDerivatives& first_layer_config_roof = global_first_layer_config_per_extruder[extruder_nr_support_roof];
             support_roof_config.smoothSpeed(first_layer_config_roof, std::max(LayerIndex(0), layer_nr), initial_speedup_layer_count);
-            const size_t extruder_nr_support_bottom = mesh_group_settings.get<size_t>("support_bottom_extruder_nr");
+            const size_t extruder_nr_support_bottom = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
             GCodePathConfig::SpeedDerivatives& first_layer_config_bottom = global_first_layer_config_per_extruder[extruder_nr_support_bottom];
             support_bottom_config.smoothSpeed(first_layer_config_bottom, std::max(LayerIndex(0), layer_nr), initial_speedup_layer_count);
         }

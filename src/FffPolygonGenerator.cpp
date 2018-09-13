@@ -893,15 +893,15 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
         //Height of where the support reaches.
         Scene& scene = Application::getInstance().current_slice->scene;
-        const size_t support_infill_extruder_nr = scene.current_mesh_group->settings.get<size_t>("support_infill_extruder_nr"); // TODO: Support extruder should be configurable per object.
+        const size_t support_infill_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr; // TODO: Support extruder should be configurable per object.
         max_print_height_per_extruder[support_infill_extruder_nr] =
             std::max(max_print_height_per_extruder[support_infill_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const size_t support_roof_extruder_nr = scene.current_mesh_group->settings.get<size_t>("support_roof_extruder_nr"); // TODO: Support roof extruder should be configurable per object.
+        const size_t support_roof_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr; // TODO: Support roof extruder should be configurable per object.
         max_print_height_per_extruder[support_roof_extruder_nr] =
             std::max(max_print_height_per_extruder[support_roof_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const size_t support_bottom_extruder_nr = scene.current_mesh_group->settings.get<size_t>("support_bottom_extruder_nr"); //TODO: Support bottom extruder should be configurable per object.
+        const size_t support_bottom_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr; //TODO: Support bottom extruder should be configurable per object.
         max_print_height_per_extruder[support_bottom_extruder_nr] =
             std::max(max_print_height_per_extruder[support_bottom_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
