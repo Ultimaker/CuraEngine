@@ -325,19 +325,18 @@ public:
     static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, const ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons = nullptr, const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
-     * Find the smallest connecting line segment from one polygon to a collection of other polygons.
+     * Find a connecting line segment from one polygon to a collection of other polygons.
      * 
      * This implementation uses a sparse grid to get to an accurate result quickly
      * 
      * The first connection larger than \p min_connection_length and smaller than \p max_connection_length is returned.
-     * If no such connection is found the smallest conection is returned, which might be larger than \p max_connection_length or it might be smaller than \p min_connection_length.
      * 
      * \param poly1 The polygon in which to search for a conection
      * \param polys2 The polygons to which to connect
      * \param min_connection_length The minimal conection length a connection needs to have in order to stop looking for other connections
      * \param max_connection_length The largest length of a connection to be found
      */
-    static std::pair<ClosestPolygonPoint, ClosestPolygonPoint> findSmallestConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length);
+    static std::pair<ClosestPolygonPoint, ClosestPolygonPoint> findConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length, std::function<bool (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>)> precondition);
 
     /*!
     * Find the two points in two polygons with the smallest distance.

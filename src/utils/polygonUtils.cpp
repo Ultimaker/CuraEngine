@@ -604,7 +604,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
 
 
 
-std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findSmallestConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length)
+std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length, std::function<bool (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>)> precondition)
 {
     ClosestPolygonPoint invalid;
     std::pair<ClosestPolygonPoint, ClosestPolygonPoint> ret = std::make_pair(invalid, invalid);
@@ -620,7 +620,6 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findSmallestCo
 
 
     std::unordered_set<std::pair<size_t, PolygonsPointIndex>> checked_segment_pairs; // pairs of index into segment start on poly1 and PolygonsPointIndex to segment start on polys2
-    coord_t best_dist2 = std::numeric_limits<coord_t>::max();
 
     for (size_t point_idx = 0; point_idx < poly1.size(); point_idx++)
     {
@@ -639,17 +638,13 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findSmallestCo
                 Point b2 = line_from.next().p();
                 std::pair<Point, Point> connection = LinearAlg2D::getClosestConnection(a1, a2, b1, b2);
                 coord_t dist2 = vSize2(connection.first - connection.second);
-                if (dist2 < best_dist2)
+                ret = std::make_pair(
+                    ClosestPolygonPoint(connection.first, point_idx, poly1),
+                    ClosestPolygonPoint(connection.second, line_from.point_idx, polys2[line_from.poly_idx], line_from.poly_idx));
+                if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2
+                    && precondition(ret))
                 {
-                    best_dist2 = dist2;
-                    ret = std::make_pair(
-                        ClosestPolygonPoint(connection.first, point_idx, poly1),
-                        ClosestPolygonPoint(connection.second, line_from.point_idx, polys2[line_from.poly_idx], line_from.poly_idx));
-                    if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2
-                        && !polys2[line_from.poly_idx].shorterThan(max_connection_length * 2)) // don't settle quickly for small polygons
-                    {
-                        return false; // stop the search; break the for-loop
-                    }
+                    return false; // stop the search; break the for-loop
                 }
 
                 checked_segment_pairs.emplace(point_idx, line_from);

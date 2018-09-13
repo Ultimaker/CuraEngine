@@ -81,6 +81,17 @@ protected:
         ClosestPolygonPoint from; //!< from location in the source polygon
         ClosestPolygonPoint to; //!< to location in the destination polygon
 
+        /* 
+         * \warning Doesn't properly initialize the members
+         */
+        PolygonConnection()
+        {}
+
+        PolygonConnection(ClosestPolygonPoint from, ClosestPolygonPoint to)
+        : from(from)
+        , to(to)
+        {}
+
         coord_t getDistance2()
         {
             return vSize2(to.p() - from.p());
@@ -101,6 +112,9 @@ protected:
     {
         PolygonConnection a; //!< first connection
         PolygonConnection b; //!< second connection
+        PolygonBridge(PolygonConnection a, PolygonConnection b)
+        : a(a), b(b)
+        {}
     };
 
     std::vector<PolygonBridge> all_bridges; //!< All bridges generated during any call to \ref PolygonConnector::connect(). This is just for keeping scores for debugging etc.
@@ -155,11 +169,6 @@ protected:
      * So as to try and find a bridge which is centered around the initiall found first connection
      */
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
-
-    /*!
-     * Find the smallest single connection between a polygon \p poly and all \p polygons
-     */
-    std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<Polygon>& polygons);
 
     /*!
      * Get a connection parallel to a given \p first connection at an orthogonal distance \p shift from the \p first connection.
