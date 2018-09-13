@@ -378,8 +378,7 @@ void SlicerLayer::planPolylineStitch(
     }
 }
 
-void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1,
-                                const bool reverse[2]) const
+void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1, const bool reverse[2]) const
 {
     if (reverse[0])
     {
@@ -807,16 +806,22 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
 
     layers.resize(slice_layer_count);
 
-    // compensate first layer thickness depending on slicing mode
+    // set (and initialize compensation for) initial layer, depending on slicing mode
     const coord_t initial_layer_thickness = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height_0");
-    coord_t initial = initial_layer_thickness - thickness;
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    layers[0].z = std::max(0LL, initial_layer_thickness - thickness);
+    coord_t adjusted_layer_offset = initial_layer_thickness;
+    if (use_variable_layer_heights)
     {
-        initial += thickness / 2;
+        layers[0].z = adaptive_layers->at(0).z_position;
+    }
+    else if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    {
+        layers[0].z = initial_layer_thickness / 2;
+        adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
     }
 
-    // define all layer z positions depending on slicing mode
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    // define all layer z positions (depending on slicing mode, see above)
+    for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
@@ -824,7 +829,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
         }
         else
         {
-            layers[layer_nr].z = initial + (thickness * layer_nr);
+            layers[layer_nr].z = adjusted_layer_offset + (thickness * (layer_nr - 1));
         }
     }
 

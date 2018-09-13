@@ -37,17 +37,6 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-/*!
- * \brief Visualise the layer parts in an SVG document.
- *
- * This is just for debugging.
- * \param mesh The mesh of which to show the layer parts.
- * \param filename The file name to write the document to.
- * \param all_layers Whether to show all layers or just a specific layer index.
- * \param layer_nr If ``all_layers`` is false, which layer to show.
- */
-void layerparts2HTML(SliceDataStorage& mesh, const char* filename, bool all_layers = true, LayerIndex layer_nr = -1);
-
 }//namespace cura
 
 #endif//LAYERPART_H

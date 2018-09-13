@@ -79,7 +79,7 @@ static inline float estimate_acceleration_distance(const Velocity& initial_rate,
     {
         return 0.0;
     }
-    return (square(target_rate)-square(initial_rate)) / (2.0*acceleration);
+    return (square(target_rate) - square(initial_rate)) / (2.0 * acceleration);
 }
 
 // This function gives you the point at which you must start braking (at the rate of -acceleration) if 
@@ -106,14 +106,13 @@ static inline double acceleration_time_from_distance(const Velocity& initial_fee
 }
     
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
-void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const Ratio& entry_factor, const Ratio& exit_factor)
+void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const Ratio entry_factor, const Ratio exit_factor)
 {
-    Velocity initial_feedrate = block->nominal_feedrate * entry_factor;
-    Velocity final_feedrate = block->nominal_feedrate * exit_factor;
+    const Velocity initial_feedrate = block->nominal_feedrate * entry_factor;
+    const Velocity final_feedrate = block->nominal_feedrate * exit_factor;
 
-    Acceleration acceleration = block->acceleration;
-    double accelerate_distance = estimate_acceleration_distance(initial_feedrate, block->nominal_feedrate, acceleration);
-    double decelerate_distance = estimate_acceleration_distance(block->nominal_feedrate, final_feedrate, -acceleration);
+    double accelerate_distance = estimate_acceleration_distance(initial_feedrate, block->nominal_feedrate, block->acceleration);
+    const double decelerate_distance = estimate_acceleration_distance(block->nominal_feedrate, final_feedrate, -block->acceleration);
 
     // Calculate the size of Plateau of Nominal Rate.
     double plateau_distance = block->distance-accelerate_distance - decelerate_distance;
@@ -123,14 +122,14 @@ void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const R
     // in order to reach the final_rate exactly at the end of this block.
     if (plateau_distance < 0)
     {
-        accelerate_distance = intersection_distance(initial_feedrate, final_feedrate, acceleration, block->distance);
+        accelerate_distance = intersection_distance(initial_feedrate, final_feedrate, block->acceleration, block->distance);
         accelerate_distance = std::max(accelerate_distance, 0.0); // Check limits due to numerical round-off
         accelerate_distance = std::min(accelerate_distance, block->distance);//(We can cast here to unsigned, because the above line ensures that we are above zero)
         plateau_distance = 0;
     }
 
     block->accelerate_until = accelerate_distance;
-    block->decelerate_after = accelerate_distance+plateau_distance;
+    block->decelerate_after = accelerate_distance + plateau_distance;
     block->initial_feedrate = initial_feedrate;
     block->final_feedrate = final_feedrate;
 }
@@ -150,12 +149,18 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         block.maxTravel = std::max(block.maxTravel, block.absDelta[n]);
     }
     if (block.maxTravel <= 0)
+    {
         return;
+    }
     if (feedrate < minimumfeedrate)
+    {
         feedrate = minimumfeedrate;
+    }
     block.distance = sqrtf(square(block.absDelta[0]) + square(block.absDelta[1]) + square(block.absDelta[2]));
     if (block.distance == 0.0)
+    {
         block.distance = block.absDelta[3];
+    }
     block.nominal_feedrate = feedrate;
     
     Position current_feedrate;
@@ -217,7 +222,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         if (fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk)
         {
             vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
-        } 
+        }
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }
     
@@ -248,9 +253,9 @@ std::vector<Duration> TimeEstimateCalculator::calculate()
     totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
     for(unsigned int n = 0; n < blocks.size(); n++)
     {
-        Block& block = blocks[n];
-        double plateau_distance = block.decelerate_after - block.accelerate_until;
-        
+        const Block& block = blocks[n];
+        const double plateau_distance = block.decelerate_after - block.accelerate_until;
+
         totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.initial_feedrate, block.accelerate_until, block.acceleration);
         totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
         totals[static_cast<unsigned char>(block.feature)] += acceleration_time_from_distance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
@@ -277,7 +282,9 @@ void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block 
         if ((!current->nominal_length_flag) && (current->max_entry_speed > next->entry_speed))
         {
             current->entry_speed = std::min(current->max_entry_speed, max_allowable_speed(-current->acceleration, next->entry_speed, current->distance));
-        } else {
+        }
+        else
+        {
             current->entry_speed = current->max_entry_speed;
         }
         current->recalculate_flag = true;
@@ -287,7 +294,7 @@ void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block 
 void TimeEstimateCalculator::reverse_pass()
 {
     Block* block[3] = {nullptr, nullptr, nullptr};
-    for(unsigned int n=blocks.size()-1; int(n)>=0; n--)
+    for(unsigned int n = blocks.size() - 1; int(n) >= 0; n--)
     {
         block[2]= block[1];
         block[1]= block[0];

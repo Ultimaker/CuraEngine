@@ -16,6 +16,7 @@
 
 #define CIRCLE_RESOLUTION 32 //The number of vertices in each circle.
 
+
 namespace cura 
 {
 
@@ -80,11 +81,13 @@ void PrimeTower::generateGroundpoly()
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
 }
 
-void PrimeTower::generatePaths()
+void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
+    enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (enabled)
     {
         generatePaths_denseInfill();
+        generateStartLocations();
     }
 }
 
@@ -126,22 +129,30 @@ void PrimeTower::generatePaths_denseInfill()
             line_width_layer0 *= scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
         }
         pattern_per_extruder_layer0.emplace_back();
+
         ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
-        pattern_layer0.polygons = outer_poly.offset(-line_width_layer0 / 2);
-        const coord_t outline_offset = -line_width_layer0;
-        const coord_t line_distance = line_width_layer0;
-        constexpr double fill_angle = 45;
-        constexpr bool zig_zaggify_infill = false;
-        constexpr coord_t extra_infill_shift = 0;
-        constexpr coord_t infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
-        constexpr coord_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
-        constexpr bool connect_polygons = true;
-        constexpr int infill_multiplier = 1;
-        Infill infill_comp(EFillMethod::CONCENTRIC, zig_zaggify_infill, connect_polygons, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift);
-        infill_comp.generate(pattern_layer0.polygons, pattern_layer0.lines);
+
+        // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
+        // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
+        // first layer of the prime tower to not stick well.
+        Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
+        while (!inset.empty())
+        {
+            pattern_layer0.polygons.add(inset);
+            inset = inset.offset(-line_width_layer0);
+        }
     }
 }
 
+void PrimeTower::generateStartLocations()
+{
+    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
+    // so use the same start and end segments for this.
+    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly, 0, 0);
+    PolygonsPointIndex segment_end = segment_start;
+
+    PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
+}
 
 void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const
 {
@@ -154,7 +165,8 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         return;
     }
 
-    if (gcode_layer.getLayerNr() > storage.max_print_height_second_to_last_extruder + 1)
+    const LayerIndex layer_nr = gcode_layer.getLayerNr();
+    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }
@@ -162,10 +174,15 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings.get<bool>("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
-    const int layer_nr = gcode_layer.getLayerNr();
     if (prev_extruder == new_extruder || layer_nr == 0)
     {
         post_wipe = false;
+    }
+
+    // Go to the start location if it's not the first layer
+    if (layer_nr != 0)
+    {
+        gotoStartLocation(gcode_layer, new_extruder);
     }
 
     addToGcode_denseInfill(gcode_layer, new_extruder);
@@ -196,30 +213,6 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 }
 
-Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) const
-{
-    Point ret(0, 0);
-    int absolute_starting_points = 0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
-    {
-        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[0];
-        if (train.settings.get<bool>("machine_extruder_start_pos_abs"))
-        {
-            ret += Point(train.settings.get<coord_t>("machine_extruder_start_pos_x"), train.settings.get<coord_t>("machine_extruder_start_pos_y"));
-            absolute_starting_points++;
-        }
-    }
-    if (absolute_starting_points > 0)
-    { // take the average over all absolute starting positions
-        ret /= absolute_starting_points;
-    }
-    else
-    { // use the middle of the bed
-        ret = storage.machine_size.flatten().getMiddle();
-    }
-    return ret;
-}
-
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     const Polygons outside_polygon = outer_poly.getOutsidePolygons();
@@ -232,5 +225,21 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     }
 }
 
+void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const
+{
+    int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations)
+            + number_of_prime_tower_start_locations) % number_of_prime_tower_start_locations;
+
+    const ClosestPolygonPoint wipe_location = prime_tower_start_locations[current_start_location_idx];
+
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const coord_t inward_dist = train.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 ;
+    const coord_t start_dist = train.settings.get<coord_t>("machine_nozzle_size") * 2;
+    const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+    const Point outward_dir = wipe_location.location - prime_end;
+    const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
+
+    gcode_layer.addTravel(prime_start);
+}
 
 }//namespace cura

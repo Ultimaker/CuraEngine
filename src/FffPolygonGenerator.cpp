@@ -141,7 +141,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
         std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
-        if (adaptive_layer_heights != NULL) {
+        if (adaptive_layer_heights != nullptr) {
             adaptive_layer_height_values = adaptive_layer_heights->getLayers();
         }
 
@@ -345,12 +345,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
-    if (storage.max_print_height_second_to_last_extruder >= 0)
-    {
-        storage.primeTower.generateGroundpoly();
-        storage.primeTower.generatePaths();
-        storage.primeTower.subtractFromSupport(storage);
-    }
+    storage.primeTower.generateGroundpoly();
+    storage.primeTower.generatePaths(storage);
+    storage.primeTower.subtractFromSupport(storage);
 
     logDebug("Processing ooze shield\n");
     processOozeShield(storage);
