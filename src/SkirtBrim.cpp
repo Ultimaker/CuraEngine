@@ -31,7 +31,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             first_layer_empty_holes = first_layer_outline.getEmptyHoles();
             first_layer_outline = first_layer_outline.removeEmptyHoles();
         }
-        if (storage.support.generated && primary_line_count > 0)
+        if (storage.support.generated && primary_line_count > 0 && !storage.support.supportLayers.empty())
         { // remove model-brim from support
             SupportLayer& support_layer = storage.support.supportLayers[0];
             if (train.settings.get<bool>("brim_replaces_support"))
