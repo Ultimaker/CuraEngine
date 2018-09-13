@@ -267,7 +267,7 @@ void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedD
     skin_config.smoothSpeed(                first_layer_config, layer_nr, max_speed_layer);
     ironing_config.smoothSpeed(             first_layer_config, layer_nr, max_speed_layer);
     perimeter_gap_config.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
-    for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+    for (size_t idx = 0; idx < MAX_INFILL_COMBINE; idx++)
     {
         //Infill speed (per combine part per mesh).
         infill_config[idx].smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
@@ -292,7 +292,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
         if (layer_nr < static_cast<LayerIndex>(initial_speedup_layer_count))
         {
             const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            const int extruder_nr_support_infill = mesh_group_settings.get<size_t>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
+            const size_t extruder_nr_support_infill = mesh_group_settings.get<size_t>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
             GCodePathConfig::SpeedDerivatives& first_layer_config_infill = global_first_layer_config_per_extruder[extruder_nr_support_infill];
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {
@@ -333,7 +333,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
     }
 
     { // meshes
-        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        for (size_t mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
             const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
 
