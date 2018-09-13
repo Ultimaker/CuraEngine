@@ -136,6 +136,9 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         }
         generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
+    case EFillMethod::GYROID:
+        generateGyroidInfill(result_lines);
+        break;
     default:
         logError("Fill pattern has unknown value.\n");
         break;
@@ -232,6 +235,118 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             }
         }
         result_polygons.clear(); // the output should only contain polylines
+    }
+}
+
+void Infill::generateGyroidInfill(Polygons& result_lines)
+{
+    // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
+    // kudos to the author of the Slic3r implementation which this is based on
+
+    const Polygons outline = in_outline.offset(outline_offset);
+    const AABB aabb(outline);
+
+    const int pitch = line_distance * 2.41; // this produces similar density to the "line" infill pattern
+    int num_steps = 4;
+    int step = pitch / num_steps;
+    while (step > 500 && num_steps < 16)
+    {
+        num_steps *= 2;
+        step = pitch / num_steps;
+    }
+    const double z_rads = 2 * M_PI * z / pitch;
+    const double cos_z = std::cos(z_rads);
+    const double sin_z = std::sin(z_rads);
+    std::vector<coord_t> odd_line_coords;
+    std::vector<coord_t> even_line_coords;
+    Polygons result;
+    if (std::abs(sin_z) <= std::abs(cos_z))
+    {
+        // "vertical" lines
+        const double phase_offset = ((cos_z < 0) ? M_PI : 0) + M_PI;
+        for (coord_t y = 0; y < pitch; y += step)
+        {
+            const double y_rads = 2 * M_PI * y / pitch;
+            const double a = cos_z;
+            const double b = std::sin(y_rads + phase_offset);
+            const double odd_c = sin_z * std::cos(y_rads + phase_offset);
+            const double even_c = sin_z * std::cos(y_rads + phase_offset + M_PI);
+            const double h = std::sqrt(a * a + b * b);
+            const double odd_x_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) - M_PI/2;
+            const double even_x_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) - M_PI/2;
+            odd_line_coords.push_back(odd_x_rads / M_PI * pitch);
+            even_line_coords.push_back(even_x_rads / M_PI * pitch);
+        }
+        const unsigned num_coords = odd_line_coords.size();
+        unsigned n = 0;
+        for (coord_t x = (std::floor(aabb.min.X / pitch) - 2.25) * pitch; x <= aabb.max.X; x += pitch/2)
+        {
+            bool is_first_point = true;
+            Point last;
+            for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y; y += pitch)
+            {
+                for (unsigned i = 0; i < num_coords; ++i)
+                {
+                    Point current(x + ((n & 1) ? odd_line_coords[i] : even_line_coords[i])/2 + pitch, y + (coord_t)(i * step));
+                    if (!is_first_point)
+                    {
+                        result.addLine(last, current);
+                    }
+                    last = current;
+                    is_first_point = false;
+                }
+            }
+            ++n;
+        }
+    }
+    else
+    {
+        // "horizontal" lines
+        const double phase_offset = (sin_z < 0) ? M_PI : 0;
+        for (coord_t x = 0; x < pitch; x += step)
+        {
+            const double x_rads = 2 * M_PI * x / pitch;
+            const double a = sin_z;
+            const double b = std::cos(x_rads + phase_offset);
+            const double odd_c = cos_z * std::sin(x_rads + phase_offset + M_PI);
+            const double even_c = cos_z * std::sin(x_rads + phase_offset);
+            const double h = std::sqrt(a * a + b * b);
+            const double odd_y_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) + M_PI/2;
+            const double even_y_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) + M_PI/2;
+            odd_line_coords.push_back(odd_y_rads / M_PI * pitch);
+            even_line_coords.push_back(even_y_rads / M_PI * pitch);
+        }
+        const unsigned num_coords = odd_line_coords.size();
+        unsigned n = 0;
+        for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y; y += pitch/2)
+        {
+            bool is_first_point = true;
+            Point last;
+            for (coord_t x = (std::floor(aabb.min.X / pitch) - 1) * pitch; x <= aabb.max.X; x += pitch)
+            {
+                for (unsigned i = 0; i < num_coords; ++i)
+                {
+                    Point current(x + (coord_t)(i * step), y + ((n & 1) ? odd_line_coords[i] : even_line_coords[i])/2);
+                    if (!is_first_point)
+                    {
+                        result.addLine(last, current);
+                    }
+                    last = current;
+                    is_first_point = false;
+                }
+            }
+            ++n;
+        }
+    }
+
+    Polygons poly_lines = outline.intersectionPolyLines(result);
+
+    for (PolygonRef poly_line : poly_lines)
+    {
+        for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+        {
+            result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+        }
     }
 }
 

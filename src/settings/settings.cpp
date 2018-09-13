@@ -411,6 +411,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::CROSS;
     if (value == "cross_3d")
         return EFillMethod::CROSS_3D;
+    if (value == "gyroid")
+        return EFillMethod::GYROID;
     return EFillMethod::NONE;
 }
 
