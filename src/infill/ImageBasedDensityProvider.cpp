@@ -187,7 +187,7 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
                     const unsigned char alpha = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + alpha_channel];
                     if (alpha < 255)
                     {
-                        float alpha_float = alpha / 255.0;
+                        float alpha_float = static_cast<float>(alpha) / 255.0;
                         combined_lightness_here = combined_lightness_here * alpha_float + (1.0 - alpha_float) * transparency_density;
                     }
                 }
@@ -219,9 +219,9 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
         for (int channel = 0; channel < color_channel_count; channel++)
         {
             combined_lightness_here += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
-            cell_count++;
         }
-        combined_lightness_here /= color_channel_count;
+        total_lightness = min_density + density_range * combined_lightness_here / color_channel_count;
+        cell_count = 1;
     }
     float ret = total_lightness;
     if (averaging_statistic == 0)
