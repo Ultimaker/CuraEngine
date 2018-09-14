@@ -252,7 +252,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     const Polygons outline = in_outline.offset(outline_offset);
     const AABB aabb(outline);
 
-    const int pitch = line_distance * 2.41; // this produces similar density to the "line" infill pattern
+    int pitch = line_distance * 2.41; // this produces similar density to the "line" infill pattern
     int num_steps = 4;
     int step = pitch / num_steps;
     while (step > 500 && num_steps < 16)
@@ -260,6 +260,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         num_steps *= 2;
         step = pitch / num_steps;
     }
+    pitch = step * num_steps; // recalculate to avoid precision errors
     const double z_rads = 2 * M_PI * z / pitch;
     const double cos_z = std::cos(z_rads);
     const double sin_z = std::sin(z_rads);
@@ -285,7 +286,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
             even_line_coords.push_back(even_x_rads / M_PI * pitch);
         }
         const unsigned num_coords = odd_line_coords.size();
-        unsigned n = 0;
+        unsigned num_columns = 0;
         for (coord_t x = (std::floor(aabb.min.X / pitch) - 2.25) * pitch; x <= aabb.max.X; x += pitch/2)
         {
             bool is_first_point = true;
@@ -297,7 +298,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
-                    Point current(x + ((n & 1) ? odd_line_coords[i] : even_line_coords[i])/2 + pitch, y + (coord_t)(i * step));
+                    Point current(x + ((num_columns & 1) ? odd_line_coords[i] : even_line_coords[i])/2 + pitch, y + (coord_t)(i * step));
                     bool current_inside = outline.inside(current, true);
                     if (!is_first_point)
                     {
@@ -315,12 +316,15 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             if (line.size() > 0)
                             {
                                 result.addLine(line[0][0], line[0][1]);
-                                chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
-                                if (++chain_end_index == 2)
+                                if (zig_zaggify)
                                 {
-                                    chains[0].push_back(chain_end[0]);
-                                    chains[1].push_back(chain_end[1]);
-                                    chain_end_index = 0;
+                                    chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
+                                    if (++chain_end_index == 2)
+                                    {
+                                        chains[0].push_back(chain_end[0]);
+                                        chains[1].push_back(chain_end[1]);
+                                        chain_end_index = 0;
+                                    }
                                 }
                             }
                         }
@@ -330,7 +334,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     is_first_point = false;
                 }
             }
-            ++n;
+            ++num_columns;
         }
     }
     else
@@ -351,7 +355,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
             even_line_coords.push_back(even_y_rads / M_PI * pitch);
         }
         const unsigned num_coords = odd_line_coords.size();
-        unsigned n = 0;
+        unsigned num_rows = 0;
         for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y; y += pitch/2)
         {
             bool is_first_point = true;
@@ -363,7 +367,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
-                    Point current(x + (coord_t)(i * step), y + ((n & 1) ? odd_line_coords[i] : even_line_coords[i])/2);
+                    Point current(x + (coord_t)(i * step), y + ((num_rows & 1) ? odd_line_coords[i] : even_line_coords[i])/2);
                     bool current_inside = outline.inside(current, true);
                     if (!is_first_point)
                     {
@@ -381,12 +385,15 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             if (line.size() > 0)
                             {
                                 result.addLine(line[0][0], line[0][1]);
-                                chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
-                                if (++chain_end_index == 2)
+                                if (zig_zaggify)
                                 {
-                                    chains[0].push_back(chain_end[0]);
-                                    chains[1].push_back(chain_end[1]);
-                                    chain_end_index = 0;
+                                    chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
+                                    if (++chain_end_index == 2)
+                                    {
+                                        chains[0].push_back(chain_end[0]);
+                                        chains[1].push_back(chain_end[1]);
+                                        chain_end_index = 0;
+                                    }
                                 }
                             }
                         }
@@ -396,37 +403,36 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     is_first_point = false;
                 }
             }
-            ++n;
+            ++num_rows;
         }
     }
 
-    if (zig_zaggify)
+    if (zig_zaggify && chains[0].size() > 0)
     {
+        // lines have a "colour", we don't connect two lines that have the same colour
         int colour[chains[0].size()] = { 0 };
+        int current_colour = 1;
 
         unsigned num_joined = 1;
 
         for (ConstPolygonRef outline_poly : outline)
         {
-            std::vector<Point> connector_points;
+            std::vector<Point> connector_points; // the points that make up a connector line
             bool drawing = false;
-            int current_colour = 1;
+            // go round all of the region's outline and find the chain ends that meet it
             for (unsigned outline_point_index = 0; outline_point_index < outline_poly.size() && num_joined < chains[0].size(); ++outline_point_index)
             {
                 Point op0 = outline_poly[outline_point_index];
                 Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
-                if (drawing)
-                {
-                    connector_points.push_back(op0);
-                }
                 Point cur_point = op0;
                 std::vector<unsigned> points_on_outline_chain_index;
                 std::vector<unsigned> points_on_outline_point_index;
+                // collect the chain ends that meet this segment of the outline
                 for (unsigned chain_index = 0; chain_index < chains[0].size(); ++chain_index)
                 {
                     for (unsigned point_index = 0; point_index < 2; ++point_index)
                     {
-                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1) < 100)
+                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1) < 10)
                         {
                             points_on_outline_point_index.push_back(point_index);
                             points_on_outline_chain_index.push_back(chain_index);
@@ -434,8 +440,16 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     }
                 }
 
+                if (drawing)
+                {
+                    // include the start point of this outline segment in the connector
+                    connector_points.push_back(op0);
+                }
+
+                // iterate through each of the chain ends that meet the current outline segment
                 while (points_on_outline_chain_index.size() > 0)
                 {
+                    // find the nearest chain end to the current point
                     unsigned nearest_point_index = 0;
                     float nearest_point_dist2 = std::numeric_limits<float>::infinity();
                     for (unsigned pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
@@ -447,30 +461,43 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             nearest_point_index = pi;
                         }
                     }
+                    // make the chain end the current point and add it to the connector line
                     cur_point = chains[points_on_outline_point_index[nearest_point_index]][points_on_outline_chain_index[nearest_point_index]];
                     connector_points.push_back(cur_point);
+
                     if (drawing)
                     {
+                        // check that the chain end doesn't already have the current colour
                         if (current_colour != colour[points_on_outline_chain_index[nearest_point_index]])
                         {
+                            // it doesn't so output the connector line segments and stop drawing
                             for (unsigned pi = 1; pi < connector_points.size(); ++pi)
                             {
                                 result.addLine(connector_points[pi - 1], connector_points[pi]);
                             }
                             drawing = false;
                             ++num_joined;
+                            connector_points.clear();
                         }
                         else
                         {
+                            // change the colour and start a new connector from the current location
                             ++current_colour;
+                            connector_points.clear();
+                            connector_points.push_back(cur_point);
                         }
-                        connector_points.clear();
                     }
                     else
                     {
+                        // we have just spanned a gap so now we want to start drawing again
                         drawing = true;
                     }
-                    colour[points_on_outline_chain_index[nearest_point_index]] = current_colour;
+                    // this chain has not been visited before so give it the current colour
+                    if (!colour[points_on_outline_chain_index[nearest_point_index]])
+                    {
+                        colour[points_on_outline_chain_index[nearest_point_index]] = current_colour;
+                    }
+                    // done with this chain end
                     points_on_outline_chain_index.erase(points_on_outline_chain_index.begin() + nearest_point_index);
                     points_on_outline_point_index.erase(points_on_outline_point_index.begin() + nearest_point_index);
                 }
