@@ -409,7 +409,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
 
     if (zig_zaggify && chains[0].size() > 0)
     {
-        // lines have a "colour", we don't connect two lines that have the same colour
+        // lines have a "colour" and we don't connect two lines that have the same colour
         int colour[chains[0].size()] = { 0 };
         int current_colour = 1;
 
@@ -489,10 +489,10 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     }
                     else
                     {
-                        // we have just spanned a gap so now we want to start drawing again
+                        // we have just jumped a gap so now we want to start drawing again
                         drawing = true;
                     }
-                    // this chain has not been visited before so give it the current colour
+                    // if this chain end has not been visited before give it the current colour
                     if (!colour[points_on_outline_chain_index[nearest_point_index]])
                     {
                         colour[points_on_outline_chain_index[nearest_point_index]] = current_colour;
