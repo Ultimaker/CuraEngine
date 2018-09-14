@@ -28,7 +28,7 @@ float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) 
 
     if (aabb.max.z >= mesh_data.bounding_box.max.z - 10 - layer_height) // minus layer_height because the last layer doesn't have to be exactly at the top of the mesh.
     {
-        return 1.0;
+        return density;
     }
 
     size_t first_layer_idx = mesh_data.layers.size();
@@ -94,7 +94,7 @@ float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) 
         Polygons layer_outlines = layer.getOutlines();
         if (!layer_outlines.inside(middle))
         {
-            return 1.0;
+            return density;
         }
     }
     return 0.0;
