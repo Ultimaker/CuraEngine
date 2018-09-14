@@ -6,6 +6,7 @@
 
 #include "infill.h"
 #include "functional"
+#include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
 #include "utils/logoutput.h"
 #include "utils/UnionFind.h"
@@ -243,6 +244,11 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation which this is based on
 
+    if (zig_zaggify)
+    {
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+    }
+
     const Polygons outline = in_outline.offset(outline_offset);
     const AABB aabb(outline);
 
@@ -260,6 +266,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     std::vector<coord_t> odd_line_coords;
     std::vector<coord_t> even_line_coords;
     Polygons result;
+    std::vector<Point> chains[2]; // [start_points[], end_points[]]
     if (std::abs(sin_z) <= std::abs(cos_z))
     {
         // "vertical" lines
@@ -283,16 +290,43 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         {
             bool is_first_point = true;
             Point last;
+            bool last_inside = false;
+            unsigned chain_end_index = 0;
+            Point chain_end[2];
             for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y; y += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
                     Point current(x + ((n & 1) ? odd_line_coords[i] : even_line_coords[i])/2 + pitch, y + (coord_t)(i * step));
+                    bool current_inside = outline.inside(current, true);
                     if (!is_first_point)
                     {
-                        result.addLine(last, current);
+                        if (last_inside && current_inside)
+                        {
+                            // line doesn't hit the boundary, add the whole line
+                            result.addLine(last, current);
+                        }
+                        else if (last_inside != current_inside)
+                        {
+                            // line hits the boundary, add the part that's inside the boundary
+                            Polygons line;
+                            line.addLine(last, current);
+                            line = outline.intersectionPolyLines(line);
+                            if (line.size() > 0)
+                            {
+                                result.addLine(line[0][0], line[0][1]);
+                                chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
+                                if (++chain_end_index == 2)
+                                {
+                                    chains[0].push_back(chain_end[0]);
+                                    chains[1].push_back(chain_end[1]);
+                                    chain_end_index = 0;
+                                }
+                            }
+                        }
                     }
                     last = current;
+                    last_inside = current_inside;
                     is_first_point = false;
                 }
             }
@@ -322,16 +356,43 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         {
             bool is_first_point = true;
             Point last;
+            bool last_inside = false;
+            unsigned chain_end_index = 0;
+            Point chain_end[2];
             for (coord_t x = (std::floor(aabb.min.X / pitch) - 1) * pitch; x <= aabb.max.X; x += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
                     Point current(x + (coord_t)(i * step), y + ((n & 1) ? odd_line_coords[i] : even_line_coords[i])/2);
+                    bool current_inside = outline.inside(current, true);
                     if (!is_first_point)
                     {
-                        result.addLine(last, current);
+                        if (last_inside && current_inside)
+                        {
+                            // line doesn't hit the boundary, add the whole line
+                            result.addLine(last, current);
+                        }
+                        else if (last_inside != current_inside)
+                        {
+                            // line hits the boundary, add the part that's inside the boundary
+                            Polygons line;
+                            line.addLine(last, current);
+                            line = outline.intersectionPolyLines(line);
+                            if (line.size() > 0)
+                            {
+                                result.addLine(line[0][0], line[0][1]);
+                                chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
+                                if (++chain_end_index == 2)
+                                {
+                                    chains[0].push_back(chain_end[0]);
+                                    chains[1].push_back(chain_end[1]);
+                                    chain_end_index = 0;
+                                }
+                            }
+                        }
                     }
                     last = current;
+                    last_inside = current_inside;
                     is_first_point = false;
                 }
             }
@@ -339,15 +400,85 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         }
     }
 
-    Polygons poly_lines = outline.intersectionPolyLines(result);
-
-    for (PolygonRef poly_line : poly_lines)
+    if (zig_zaggify)
     {
-        for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+        int colour[chains[0].size()] = { 0 };
+
+        unsigned num_joined = 1;
+
+        for (ConstPolygonRef outline_poly : outline)
         {
-            result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+            std::vector<Point> connector_points;
+            bool drawing = false;
+            int current_colour = 1;
+            for (unsigned outline_point_index = 0; outline_point_index < outline_poly.size() && num_joined < chains[0].size(); ++outline_point_index)
+            {
+                Point op0 = outline_poly[outline_point_index];
+                Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
+                if (drawing)
+                {
+                    connector_points.push_back(op0);
+                }
+                Point cur_point = op0;
+                std::vector<unsigned> points_on_outline_chain_index;
+                std::vector<unsigned> points_on_outline_point_index;
+                for (unsigned chain_index = 0; chain_index < chains[0].size(); ++chain_index)
+                {
+                    for (unsigned point_index = 0; point_index < 2; ++point_index)
+                    {
+                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1) < 100)
+                        {
+                            points_on_outline_point_index.push_back(point_index);
+                            points_on_outline_chain_index.push_back(chain_index);
+                        }
+                    }
+                }
+
+                while (points_on_outline_chain_index.size() > 0)
+                {
+                    unsigned nearest_point_index = 0;
+                    float nearest_point_dist2 = std::numeric_limits<float>::infinity();
+                    for (unsigned pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
+                    {
+                        float dist2 = vSize2f(chains[points_on_outline_point_index[pi]][points_on_outline_chain_index[pi]] - cur_point);
+                        if (dist2 < nearest_point_dist2)
+                        {
+                            nearest_point_dist2 = dist2;
+                            nearest_point_index = pi;
+                        }
+                    }
+                    cur_point = chains[points_on_outline_point_index[nearest_point_index]][points_on_outline_chain_index[nearest_point_index]];
+                    connector_points.push_back(cur_point);
+                    if (drawing)
+                    {
+                        if (current_colour != colour[points_on_outline_chain_index[nearest_point_index]])
+                        {
+                            for (unsigned pi = 1; pi < connector_points.size(); ++pi)
+                            {
+                                result.addLine(connector_points[pi - 1], connector_points[pi]);
+                            }
+                            drawing = false;
+                            ++num_joined;
+                        }
+                        else
+                        {
+                            ++current_colour;
+                        }
+                        connector_points.clear();
+                    }
+                    else
+                    {
+                        drawing = true;
+                    }
+                    colour[points_on_outline_chain_index[nearest_point_index]] = current_colour;
+                    points_on_outline_chain_index.erase(points_on_outline_chain_index.begin() + nearest_point_index);
+                    points_on_outline_point_index.erase(points_on_outline_point_index.begin() + nearest_point_index);
+                }
+            }
         }
     }
+
+    result_lines = result;
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
