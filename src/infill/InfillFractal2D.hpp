@@ -628,8 +628,8 @@ void InfillFractal2D<CellGeometry>::dither(Cell& parent)
         if (left_over > 0.0001)
         {
             float value_error = getValueError(parent);
-            assert(weighted_transfers.empty() || !do_subdivide || std::abs((value_error - range) / left_over) < 0.001); // do_subdivide implies valueError == range : we should hav precisely enough to do exactly one subdivision
-            assert(weighted_transfers.empty() || do_subdivide || std::abs(value_error / left_over) < 0.001); // !do_subdivide implies valueError == 0 : we should have no value left over
+            assert(weighted_transfers.empty() || !do_subdivide || std::abs(value_error - range) <= std::max(6.0f, std::abs(left_over)) * (50 * std::numeric_limits<float>::epsilon())); // do_subdivide implies valueError == range : we should have precisely enough to do exactly one subdivision
+            assert(weighted_transfers.empty() || do_subdivide || std::abs(value_error) <= std::max(6.0f, std::abs(left_over)) * (50 * std::numeric_limits<float>::epsilon())); // !do_subdivide implies valueError == 0 : we should have no value left over
         }
 #endif
 
