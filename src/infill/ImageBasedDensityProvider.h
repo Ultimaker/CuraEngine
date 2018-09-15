@@ -28,6 +28,7 @@ public:
     virtual float operator()(const AABB3D& aabb, const int_fast8_t averaging_statistic) const;
 
 protected:
+    using grid_coord_t = coord_t; //!< type synonym to make clear a variable is in voxel space
     float min_density; //!< The density to output for black pixels
     float density_range; //!< max_density - min_density
     float transparency_density; //!< The density to use for transparent pixels
@@ -52,6 +53,8 @@ protected:
      * Make the number in which the file name ends one higher.
      */
     std::string advanceFilename(const std::string& filename);
+
+    double getLightness(const grid_coord_t x, const grid_coord_t y, const grid_coord_t z) const;
 };
 
 } // namespace cura

@@ -164,33 +164,14 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
         total_lightness = std::numeric_limits<double>::max();
     }
     uint_fast32_t cell_count = 0;
-    for (int z = std::max(static_cast<coord_t>(0), img_min.z); z <= std::min(grid_size.z - 1, img_max.z); z++)
+    for (grid_coord_t z = std::max(static_cast<grid_coord_t>(0), img_min.z); z <= std::min(grid_size.z - 1, img_max.z); z++)
     {
-        const unsigned char* image = images[z];
-        assert(image);
-        for (int x = std::max(static_cast<coord_t>(0), img_min.x); x <= std::min(grid_size.x - 1, img_max.x); x++)
+        for (grid_coord_t x = std::max(static_cast<grid_coord_t>(0), img_min.x); x <= std::min(grid_size.x - 1, img_max.x); x++)
         {
-            for (int y = std::max(static_cast<coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
+            for (grid_coord_t y = std::max(static_cast<grid_coord_t>(0), img_min.y); y <= std::min(grid_size.y - 1, img_max.y); y++)
             {
-                double combined_lightness_here = 0;
-                for (uint_fast8_t channel = 0; channel < color_channel_count; channel++)
-                {
-                    const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
-                    combined_lightness_here += static_cast<float>(lightness) / 255.0;
-                    cell_count++;
-                }
-                combined_lightness_here /= color_channel_count;
-                combined_lightness_here = min_density + density_range * combined_lightness_here;
-                if (has_alpha_channel)
-                {
-                    const uint_fast8_t alpha_channel = color_channel_count; // the alpha channel is situated right after the last color
-                    const unsigned char alpha = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + alpha_channel];
-                    if (alpha < 255)
-                    {
-                        float alpha_float = static_cast<float>(alpha) / 255.0;
-                        combined_lightness_here = combined_lightness_here * alpha_float + (1.0 - alpha_float) * transparency_density;
-                    }
-                }
+                double combined_lightness_here = getLightness(x, y, z);
+                cell_count++;
                 if (averaging_statistic == 0)
                 {
                     total_lightness += combined_lightness_here;
@@ -214,13 +195,7 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
         closest_pixel.x = std::max(static_cast<coord_t>(0), std::min(grid_size.x - 1, closest_pixel.x));
         closest_pixel.y = std::max(static_cast<coord_t>(0), std::min(grid_size.y - 1, closest_pixel.y));
         closest_pixel.z = std::max(static_cast<coord_t>(0), std::min(grid_size.z - 1, closest_pixel.z));
-        const unsigned char* image = images[closest_pixel.z];
-        double combined_lightness_here = 0;
-        for (int channel = 0; channel < color_channel_count; channel++)
-        {
-            combined_lightness_here += image[((grid_size.y - 1 - closest_pixel.y) * grid_size.x + closest_pixel.x) * image_size.z + channel];
-        }
-        total_lightness = min_density + density_range * combined_lightness_here / color_channel_count;
+        total_lightness = getLightness(closest_pixel.x, closest_pixel.y, closest_pixel.z);
         cell_count = 1;
     }
     float ret = total_lightness;
@@ -232,5 +207,30 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube, const int_
     assert(ret <= 1.0f);
     return ret;
 };
+
+double ImageBasedDensityProvider::getLightness(const grid_coord_t x, const grid_coord_t y, const grid_coord_t z) const
+{
+    double combined_lightness_here = 0;
+    const unsigned char* image = images[z];
+    assert(image);
+    for (uint_fast8_t channel = 0; channel < color_channel_count; channel++)
+    {
+        const unsigned char lightness = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + channel];
+        combined_lightness_here += static_cast<float>(lightness) / 255.0;
+    }
+    combined_lightness_here /= color_channel_count;
+    combined_lightness_here = min_density + density_range * combined_lightness_here;
+    if (has_alpha_channel)
+    {
+        const uint_fast8_t alpha_channel = color_channel_count; // the alpha channel is situated right after the last color
+        const unsigned char alpha = image[((grid_size.y - 1 - y) * grid_size.x + x) * image_size.z + alpha_channel];
+        if (alpha < 255)
+        {
+            float alpha_float = static_cast<float>(alpha) / 255.0;
+            combined_lightness_here = combined_lightness_here * alpha_float + (1.0 - alpha_float) * transparency_density;
+        }
+    }
+    return combined_lightness_here;
+}
 
 }; // namespace cura
