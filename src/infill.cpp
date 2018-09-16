@@ -268,6 +268,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     std::vector<coord_t> even_line_coords;
     Polygons result;
     std::vector<Point> chains[2]; // [start_points[], end_points[]]
+    std::vector<unsigned> connected_to[2]; // [chain_indices[], chain_indices[]]
     if (std::abs(sin_z) <= std::abs(cos_z))
     {
         // "vertical" lines
@@ -324,6 +325,8 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                         chains[0].push_back(chain_end[0]);
                                         chains[1].push_back(chain_end[1]);
                                         chain_end_index = 0;
+                                        connected_to[0].push_back(std::numeric_limits<unsigned>::max());
+                                        connected_to[1].push_back(std::numeric_limits<unsigned>::max());
                                     }
                                 }
                             }
@@ -393,6 +396,8 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                         chains[0].push_back(chain_end[0]);
                                         chains[1].push_back(chain_end[1]);
                                         chain_end_index = 0;
+                                        connected_to[0].push_back(std::numeric_limits<unsigned>::max());
+                                        connected_to[1].push_back(std::numeric_limits<unsigned>::max());
                                     }
                                 }
                             }
@@ -409,9 +414,10 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
 
     if (zig_zaggify && chains[0].size() > 0)
     {
-        // lines have a "colour" and we don't connect two lines that have the same colour
-        int colour[chains[0].size()] = { 0 };
-        int current_colour = 1;
+        // this simple implementation works ok for the common situation of two (or more) chains that lie parallel to each other
+        // it fails when chains are linked together in series (this occurs when a gyroid line hits the outline and forms a sequence of bumps
+        // which are then linked together). In that situation, a loop can be formed. A more complex implementation could fix this by keeping track
+        // of all of the chains that are linked together so that it could detect if it was forming a loop. But is it worth the complexity and time cost?
 
         unsigned num_joined = 1;
 
@@ -419,6 +425,9 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         {
             std::vector<Point> connector_points; // the points that make up a connector line
             bool drawing = false;
+            // keep track of the chain+point that a connector line started at
+            unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
+            unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
             // go round all of the region's outline and find the chain ends that meet it
             for (unsigned outline_point_index = 0; outline_point_index < outline_poly.size() && num_joined < chains[0].size(); ++outline_point_index)
             {
@@ -461,16 +470,20 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             nearest_point_index = pi;
                         }
                     }
+                    const unsigned point_index = points_on_outline_point_index[nearest_point_index];
+                    const unsigned chain_index = points_on_outline_chain_index[nearest_point_index];
                     // make the chain end the current point and add it to the connector line
-                    cur_point = chains[points_on_outline_point_index[nearest_point_index]][points_on_outline_chain_index[nearest_point_index]];
+                    cur_point = chains[point_index][chain_index];
                     connector_points.push_back(cur_point);
 
                     if (drawing)
                     {
-                        // check that the chain end doesn't already have the current colour
-                        if (current_colour != colour[points_on_outline_chain_index[nearest_point_index]])
+                        // add the connector line segments but only if
+                        //  1 - the start/end points are not the opposite ends of the same chain
+                        //  2 - the other end of the current chain is not connected to the chain the connector line is coming from
+
+                        if (chain_index != connector_start_chain_index && connected_to[(point_index + 1) % 2][chain_index] != connector_start_chain_index)
                         {
-                            // it doesn't so output the connector line segments and stop drawing
                             for (unsigned pi = 1; pi < connector_points.size(); ++pi)
                             {
                                 result.addLine(connector_points[pi - 1], connector_points[pi]);
@@ -478,11 +491,13 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             drawing = false;
                             ++num_joined;
                             connector_points.clear();
+                            // remember the connection
+                            connected_to[point_index][chain_index] = connector_start_chain_index;
+                            connected_to[connector_start_point_index][connector_start_chain_index] = chain_index;
                         }
                         else
                         {
-                            // change the colour and start a new connector from the current location
-                            ++current_colour;
+                            // start a new connector from the current location
                             connector_points.clear();
                             connector_points.push_back(cur_point);
                         }
@@ -492,11 +507,11 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                         // we have just jumped a gap so now we want to start drawing again
                         drawing = true;
                     }
-                    // if this chain end has not been visited before give it the current colour
-                    if (!colour[points_on_outline_chain_index[nearest_point_index]])
-                    {
-                        colour[points_on_outline_chain_index[nearest_point_index]] = current_colour;
-                    }
+
+                    // remember the chain+point that the connector started from
+                    connector_start_chain_index = chain_index;
+                    connector_start_point_index = point_index;
+
                     // done with this chain end
                     points_on_outline_chain_index.erase(points_on_outline_chain_index.begin() + nearest_point_index);
                     points_on_outline_point_index.erase(points_on_outline_point_index.begin() + nearest_point_index);
