@@ -316,10 +316,28 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             line = outline.intersectionPolyLines(line);
                             if (line.size() > 0)
                             {
+                                // some of the line is inside the boundary
                                 result.addLine(line[0][0], line[0][1]);
                                 if (zig_zaggify)
                                 {
                                     chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
+                                    if (++chain_end_index == 2)
+                                    {
+                                        chains[0].push_back(chain_end[0]);
+                                        chains[1].push_back(chain_end[1]);
+                                        chain_end_index = 0;
+                                        connected_to[0].push_back(std::numeric_limits<unsigned>::max());
+                                        connected_to[1].push_back(std::numeric_limits<unsigned>::max());
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // none of the line is inside the boundary so the point that's actually on the boundary
+                                // is the chain end
+                                if (zig_zaggify)
+                                {
+                                    chain_end[chain_end_index] = (last_inside) ? last : current;
                                     if (++chain_end_index == 2)
                                     {
                                         chains[0].push_back(chain_end[0]);
@@ -387,10 +405,28 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             line = outline.intersectionPolyLines(line);
                             if (line.size() > 0)
                             {
+                                // some of the line is inside the boundary
                                 result.addLine(line[0][0], line[0][1]);
                                 if (zig_zaggify)
                                 {
                                     chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
+                                    if (++chain_end_index == 2)
+                                    {
+                                        chains[0].push_back(chain_end[0]);
+                                        chains[1].push_back(chain_end[1]);
+                                        chain_end_index = 0;
+                                        connected_to[0].push_back(std::numeric_limits<unsigned>::max());
+                                        connected_to[1].push_back(std::numeric_limits<unsigned>::max());
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // none of the line is inside the boundary so the point that's actually on the boundary
+                                // is the chain end
+                                if (zig_zaggify)
+                                {
+                                    chain_end[chain_end_index] = (last_inside) ? last : current;
                                     if (++chain_end_index == 2)
                                     {
                                         chains[0].push_back(chain_end[0]);
