@@ -455,7 +455,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         // which are then linked together). In that situation, a loop can be formed. A more complex implementation could fix this by keeping track
         // of all of the chains that are linked together so that it could detect if it was forming a loop. But is it worth the complexity and time cost?
 
-        unsigned points_remaining = chains[0].size() * 2;
+        int chain_ends_remaining = chains[0].size() * 2;
 
         for (ConstPolygonRef outline_poly : outline)
         {
@@ -466,14 +466,15 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
             unsigned first_chain_chain_index = std::numeric_limits<unsigned>::max();
             std::vector<Point> path_to_first_chain;
 
-            bool drawing = false;
+            bool drawing = false; // true when a connector line is being (potentially) created
 
             // keep track of the chain+point that a connector line started at
             unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
             unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
 
             // go round all of the region's outline and find the chain ends that meet it
-            for (unsigned outline_point_index = 0; points_remaining > 0 && outline_point_index < outline_poly.size(); ++outline_point_index)
+            // quit the loop early if we have seen all the chain ends and are not currently drawing a connector
+            for (unsigned outline_point_index = 0; (chain_ends_remaining > 0 || drawing) && outline_point_index < outline_poly.size(); ++outline_point_index)
             {
                 Point op0 = outline_poly[outline_point_index];
                 Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
@@ -573,7 +574,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     points_on_outline_point_index.erase(points_on_outline_point_index.begin() + nearest_point_index);
 
                     // decrement total amount of work to do
-                    --points_remaining;
+                    --chain_ends_remaining;
                 }
             }
 
@@ -598,7 +599,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                 }
             }
 
-            if (!points_remaining)
+            if (chain_ends_remaining < 1)
             {
                 break;
             }
