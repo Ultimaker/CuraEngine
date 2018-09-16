@@ -242,7 +242,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
-    // kudos to the author of the Slic3r implementation which this is based on
+    // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
 
     if (zig_zaggify)
     {
