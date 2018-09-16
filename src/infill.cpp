@@ -419,7 +419,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         // which are then linked together). In that situation, a loop can be formed. A more complex implementation could fix this by keeping track
         // of all of the chains that are linked together so that it could detect if it was forming a loop. But is it worth the complexity and time cost?
 
-        unsigned num_joined = 1;
+        unsigned points_remaining = chains[0].size() * 2;
 
         for (ConstPolygonRef outline_poly : outline)
         {
@@ -429,7 +429,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
             unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
             unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
             // go round all of the region's outline and find the chain ends that meet it
-            for (unsigned outline_point_index = 0; outline_point_index < outline_poly.size() && num_joined < chains[0].size(); ++outline_point_index)
+            for (unsigned outline_point_index = 0; points_remaining > 0 && outline_point_index < outline_poly.size(); ++outline_point_index)
             {
                 Point op0 = outline_poly[outline_point_index];
                 Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
@@ -489,7 +489,6 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                 result.addLine(connector_points[pi - 1], connector_points[pi]);
                             }
                             drawing = false;
-                            ++num_joined;
                             connector_points.clear();
                             // remember the connection
                             connected_to[point_index][chain_index] = connector_start_chain_index;
@@ -515,7 +514,15 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     // done with this chain end
                     points_on_outline_chain_index.erase(points_on_outline_chain_index.begin() + nearest_point_index);
                     points_on_outline_point_index.erase(points_on_outline_point_index.begin() + nearest_point_index);
+
+                    // decrement total amount of work to do
+                    --points_remaining;
                 }
+            }
+
+            if (!points_remaining)
+            {
+                break;
             }
         }
     }
