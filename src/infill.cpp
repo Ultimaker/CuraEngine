@@ -424,10 +424,18 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         for (ConstPolygonRef outline_poly : outline)
         {
             std::vector<Point> connector_points; // the points that make up a connector line
+
+            // we need to remember the first chain processed and the path to it from the first outline point
+            // so that later we can possibly connect to it from the last chain processed
+            unsigned first_chain_chain_index = std::numeric_limits<unsigned>::max();
+            std::vector<Point> path_to_first_chain;
+
             bool drawing = false;
+
             // keep track of the chain+point that a connector line started at
             unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
             unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
+
             // go round all of the region's outline and find the chain ends that meet it
             for (unsigned outline_point_index = 0; points_remaining > 0 && outline_point_index < outline_poly.size(); ++outline_point_index)
             {
@@ -447,6 +455,12 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             points_on_outline_chain_index.push_back(chain_index);
                         }
                     }
+                }
+
+                if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
+                {
+                    // include the outline point in the path to the first chain
+                    path_to_first_chain.push_back(op0);
                 }
 
                 if (drawing)
@@ -475,6 +489,13 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                     // make the chain end the current point and add it to the connector line
                     cur_point = chains[point_index][chain_index];
                     connector_points.push_back(cur_point);
+
+                    if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
+                    {
+                        // this is the first chain to be processed, remember it
+                        first_chain_chain_index = chain_index;
+                        path_to_first_chain.push_back(cur_point);
+                    }
 
                     if (drawing)
                     {
@@ -517,6 +538,27 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
 
                     // decrement total amount of work to do
                     --points_remaining;
+                }
+            }
+
+            // we have now visited all the points in the outline, if a connector was (potentially) being drawn
+            // check whether the first chain is already connected to the last chain and, if not, draw the
+            // connector between
+            if (drawing && first_chain_chain_index != std::numeric_limits<unsigned>::max()
+                && first_chain_chain_index != connector_start_chain_index
+                && connected_to[0][first_chain_chain_index] != connector_start_chain_index
+                && connected_to[1][first_chain_chain_index] != connector_start_chain_index)
+            {
+                // output the connector line segments from the last chain to the first point in the outline
+                connector_points.push_back(outline_poly[0]);
+                for (unsigned pi = 1; pi < connector_points.size(); ++pi)
+                {
+                    result.addLine(connector_points[pi - 1], connector_points[pi]);
+                }
+                // output the connector line segments from the first point in the outline to the first chain
+                for (unsigned pi = 1; pi < path_to_first_chain.size(); ++pi)
+                {
+                    result.addLine(path_to_first_chain[pi - 1], path_to_first_chain[pi]);
                 }
             }
 
