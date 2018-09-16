@@ -288,14 +288,14 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_columns = 0;
-        for (coord_t x = (std::floor(aabb.min.X / pitch) - 2.25) * pitch; x <= aabb.max.X; x += pitch/2)
+        for (coord_t x = (std::floor(aabb.min.X / pitch) - 2.25) * pitch; x <= aabb.max.X + pitch/2; x += pitch/2)
         {
             bool is_first_point = true;
             Point last;
             bool last_inside = false;
             unsigned chain_end_index = 0;
             Point chain_end[2];
-            for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y; y += pitch)
+            for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y + pitch; y += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
@@ -359,14 +359,14 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_rows = 0;
-        for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y; y += pitch/2)
+        for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y + pitch/2; y += pitch/2)
         {
             bool is_first_point = true;
             Point last;
             bool last_inside = false;
             unsigned chain_end_index = 0;
             Point chain_end[2];
-            for (coord_t x = (std::floor(aabb.min.X / pitch) - 1) * pitch; x <= aabb.max.X; x += pitch)
+            for (coord_t x = (std::floor(aabb.min.X / pitch) - 1) * pitch; x <= aabb.max.X + pitch; x += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
