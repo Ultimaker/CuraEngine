@@ -1021,7 +1021,6 @@ void GCodeExport::writePrimeTrain(double travel_speed)
     else
     {
         // there is no prime gcode for other firmware versions...
-        // NOTE: Flow will never get here, check for GRIFFIN-flavour also happens before calling this method.
     }
 
     extruder_attr[current_extruder].is_primed = true;
