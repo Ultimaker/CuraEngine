@@ -15,8 +15,7 @@ namespace cura
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr)
 {
-    coord_t skin_line_width = mesh.
-        s("skin_line_width");
+    coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
     if (layer_nr == 0)
     {
         const ExtruderTrain& train_skin = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("top_bottom_extruder_nr"));
