@@ -15,7 +15,8 @@ namespace cura
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceDataStorage& storage, const SliceMeshStorage& mesh, int layer_nr)
 {
-    coord_t skin_line_width = mesh.getSettingInMicrons("skin_line_width");
+    coord_t skin_line_width = mesh.
+        s("skin_line_width");
     if (layer_nr == 0)
     {
         const ExtruderTrain& train_skin = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("top_bottom_extruder_nr"));
@@ -607,7 +608,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
 
 void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
 {
-    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
+    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingInMicrons("infill_line_distance") <= 0) //No infill is even generated.
     {
         return;
     }
