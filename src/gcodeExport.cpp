@@ -1015,7 +1015,7 @@ void GCodeExport::writePrimeTrain(double travel_speed)
         {
             // Can't output via 'writeTravel', since if this is needed, the value saved for 'current height' will not be correct.
             // For similar reasons, this isn't written to the front-end via command-socket.
-            *output_stream << "G0 Z" << getPositionZ() << new_line;
+            *output_stream << "G0 Z" << MMtoStream{getPositionZ()} << new_line;
         }
     }
     else
