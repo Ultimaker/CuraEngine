@@ -548,7 +548,6 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
 
 void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract, bool reverse_order)
 {
-    
     if (polygons.size() == 0)
     {
         return;
@@ -579,16 +578,16 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
 static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, coord_t distance_to_bridge_start)
+void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, double& speed_factor, coord_t distance_to_bridge_start)
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = 1000; // accelerate using segments of this length
     const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-    const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double bridge_wall_coast = extr->getSettingInPercentage("bridge_wall_coast");
+    const double min_bridge_line_len = mesh.getSettingInMicrons("bridge_wall_min_length");
+    const double bridge_wall_coast = mesh.getSettingInPercentage("bridge_wall_coast");
+    const double overhang_speed_factor = mesh.getSettingAsRatio("wall_overhang_speed_factor");
 
     Point cur_point = p0;
 
@@ -642,7 +641,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize,
+                        (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
                 }
 
                 distance_to_bridge_start -= len;
@@ -650,7 +650,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
+                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize,
+                    (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
             }
             non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
@@ -662,7 +663,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
     if (bridge_wall_mask.empty())
     {
         // no bridges required
-        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow);
+        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize,
+            (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? 1.0 : overhang_speed_factor);
     }
     else
     {
@@ -756,28 +758,18 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const GCodePathCon
     }
 }
 
-void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     // make sure wall start point is not above air!
-    if (!bridge_wall_mask.empty()) {
-        int count = wall.size(); // avoid infinite loop if none of the points are above a solid region
-        while (count-- > 0 && bridge_wall_mask.inside(wall[start_idx], true))
-        {
-            if (++start_idx >= (int)wall.size())
-            {
-                start_idx = 0;
-            }
-        }
-    }
+    start_idx = locateFirstSupportedVertex(wall, start_idx);
 
     float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
-    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-    const double min_bridge_line_len = extr->getSettingInMicrons("bridge_wall_min_length");
-    const double wall_min_flow = extr->getSettingAsRatio("wall_min_flow");
-    const bool wall_min_flow_retract = extr->getSettingBoolean("wall_min_flow_retract");
+    const double min_bridge_line_len = mesh.getSettingInMicrons("bridge_wall_min_length");
+    const double wall_min_flow = mesh.getSettingAsRatio("wall_min_flow");
+    const bool wall_min_flow_retract = mesh.getSettingBoolean("wall_min_flow_retract");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -886,7 +878,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
                 first_line = false;
                 travel_required = false;
             }
-            addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
         }
         else
         {
@@ -912,7 +904,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
             {
                 addTravel(p0, wall_min_flow_retract);
             }
-            addWallLine(p0, p1, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
 
             if (wall_0_wipe_dist > 0)
             { // apply outer wall wipe
@@ -946,7 +938,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const GCodePathConf
     }
 }
 
-void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
@@ -956,7 +948,40 @@ void LayerPlan::addWalls(const Polygons& walls, const GCodePathConfig& non_bridg
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+    }
+}
+
+unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsigned start_idx) const
+{
+    if (bridge_wall_mask.empty() && overhang_mask.empty())
+    {
+        return start_idx;
+    }
+
+    Polygons air_below(bridge_wall_mask.unionPolygons(overhang_mask));
+
+    unsigned curr_idx = start_idx;
+
+    while(true)
+    {
+        const Point& vertex = wall[curr_idx];
+        if (!air_below.inside(vertex, true))
+        {
+            // vertex isn't above air so it's OK to use
+            return curr_idx;
+        }
+
+        if (++curr_idx >= wall.size())
+        {
+            curr_idx = 0;
+        }
+
+        if (curr_idx == start_idx)
+        {
+            // no vertices are supported so just return the original index
+            return start_idx;
+        }
     }
 }
 

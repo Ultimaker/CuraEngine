@@ -80,8 +80,7 @@ namespace cura
             average_second_path += point;
         }
         coord_t second_path_length_flow = second_path_length *= second_path.flow;
-        average_second_path /= (second_path.points.size() + 1);
-
+        average_second_path /= (coord_t) (second_path.points.size() + 1);
 
         // predict new length and flow and if the new flow is to big, don't merge. conditions in this part must exactly match the actual merging
         coord_t new_path_length = first_path_length;
@@ -152,6 +151,12 @@ namespace cura
         const Point first_path_end = first_path.points.back();
         const Point second_path_end = second_path.points.back();
         const coord_t line_width = first_path.config->getLineWidth();
+
+        // Reintroduction of this check prevents [CURA-5674] printing spurious infill-lines to origin:
+        if (vSize2(first_path_end - second_path_start) < line_width * line_width)
+        {
+            return false;
+        }
 
         //Lines may be adjacent side-by-side then.
         Point first_path_leave_point;

@@ -329,16 +329,6 @@ public:
     Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
 
     /*!
-     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * 
-     * For helper parts the outlines are used.
-     * 
-     * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
-     * \param include_helper_parts whether to include support and prime tower
-     */
-    Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const;
-
-    /*!
      * Get the extruders used.
      * 
      * \return A vector of booleans indicating whether the extruder with the
