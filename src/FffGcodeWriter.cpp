@@ -395,13 +395,6 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
 
-    if ((gcode.getFlavor() != EGCodeFlavor::ULTIGCODE) && (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP || gcode.getFlavor() == EGCodeFlavor::GRIFFIN))
-    {
-        std::ostringstream tmp;
-        tmp << "T" << start_extruder_nr;
-        gcode.writeLine(tmp.str().c_str());
-    }
-
     if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
@@ -412,6 +405,13 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
     }
     else if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
+        if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
+        {
+            std::ostringstream tmp;
+            tmp << "T" << start_extruder_nr;
+            gcode.writeLine(tmp.str().c_str());
+        }
+
         if (getSettingBoolean("material_bed_temp_prepend"))
         {
             if (getSettingBoolean("machine_heated_bed"))
@@ -480,7 +480,11 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
-    if (gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
+    if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    {
+        gcode.writeCode("T0");
+    }
+    else
     {
         processInitialLayerTemperature(storage, start_extruder_nr);
     }
