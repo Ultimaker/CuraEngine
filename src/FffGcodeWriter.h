@@ -191,6 +191,14 @@ private:
     void setInfillAndSkinAngles(SliceMeshStorage& mesh);
 
     /*!
+    * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
+    *
+    * \param[in] storage where the slice data is stored.
+    * \param[in] start_extruder_nr The extruder with which to start the print.
+    */
+    void processInitialLayerTemperature(const SliceDataStorage& storage, const unsigned int start_extruder_nr);
+
+    /*!
      * Set temperatures and perform initial priming.
      * 
      * Write a stub header if CuraEngine is in command line tool mode. (Cause writing the header afterwards would entail moving all gcode down.)

@@ -386,26 +386,20 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
     }
 }
 
-
-
-void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
+void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
 {
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     const unsigned num_extruders = storage.getSettingAsCount("machine_extruder_count");
-    if (!CommandSocket::isInstantiated())
-    {
-        std::string prefix = gcode.getFileHeader(extruder_is_used);
-        gcode.writeCode(prefix.c_str());
-    }
-
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
     if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
-        gcode.writeCode("T0"); // required before any temperature setting commands
+        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
+        constexpr bool wait = true;
+        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        double print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
     }
-
-    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
+    else if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
         if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
         {
@@ -436,7 +430,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
                     double extruder_temp;
                     if (extruder_nr == start_extruder_nr)
                     {
-                        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                        const double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
                         extruder_temp = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
                     }
                     else
@@ -469,6 +463,27 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             }
         }
     }
+}
+
+void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
+{
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    if (!CommandSocket::isInstantiated())
+    {
+        std::string prefix = gcode.getFileHeader(extruder_is_used);
+        gcode.writeCode(prefix.c_str());
+    }
+
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
+    if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    {
+        gcode.writeCode("T0");
+    }
+    else
+    {
+        processInitialLayerTemperature(storage, start_extruder_nr);
+    }
 
     gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
@@ -485,10 +500,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
-        constexpr bool wait = true;
-        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
+        processInitialLayerTemperature(storage, start_extruder_nr);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
         extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min(); // set to most negative number so that layer processing never primes this extruder any more.
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
@@ -527,6 +539,8 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
         constexpr bool wait = true;
         gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
     }
+
+    processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
     
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
