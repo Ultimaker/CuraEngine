@@ -1010,7 +1010,7 @@ void GCodeExport::writePrimeTrain(double travel_speed)
         // There was an issue with the S1 strategy parameter, where it would only change the material-position,
         //   as opposed to 'be a prime-blob maneuvre without actually printing the prime blob', as we assumed here.
         // After a chat, the firmware-team decided to change the S1 strategy behaviour,
-        //   but since people don't update their firmware at each opportunity, it was decied to fix it here as well.
+        //   but since people don't update their firmware at each opportunity, it was decided to fix it here as well.
         if (should_correct_z)
         {
             // Can't output via 'writeTravel', since if this is needed, the value saved for 'current height' will not be correct.
