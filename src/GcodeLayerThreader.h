@@ -212,8 +212,10 @@ void GcodeLayerThreader<T>::act()
             return;
         }
     }
+#ifdef _OPENMP
     // thread is blocked by too many items being processed
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
+#endif
 }
 
 template <typename T>
