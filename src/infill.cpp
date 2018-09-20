@@ -269,6 +269,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     Polygons result;
     std::vector<Point> chains[2]; // [start_points[], end_points[]]
     std::vector<unsigned> connected_to[2]; // [chain_indices[], chain_indices[]]
+    std::vector<int> line_numbers; // which row/column line a chain is part of
     if (std::abs(sin_z) <= std::abs(cos_z))
     {
         // "vertical" lines
@@ -328,6 +329,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                         chain_end_index = 0;
                                         connected_to[0].push_back(std::numeric_limits<unsigned>::max());
                                         connected_to[1].push_back(std::numeric_limits<unsigned>::max());
+                                        line_numbers.push_back(num_columns);
                                     }
                                 }
                             }
@@ -345,6 +347,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                         chain_end_index = 0;
                                         connected_to[0].push_back(std::numeric_limits<unsigned>::max());
                                         connected_to[1].push_back(std::numeric_limits<unsigned>::max());
+                                        line_numbers.push_back(num_columns);
                                     }
                                 }
                             }
@@ -417,6 +420,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                         chain_end_index = 0;
                                         connected_to[0].push_back(std::numeric_limits<unsigned>::max());
                                         connected_to[1].push_back(std::numeric_limits<unsigned>::max());
+                                        line_numbers.push_back(num_rows);
                                     }
                                 }
                             }
@@ -434,6 +438,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                                         chain_end_index = 0;
                                         connected_to[0].push_back(std::numeric_limits<unsigned>::max());
                                         connected_to[1].push_back(std::numeric_limits<unsigned>::max());
+                                        line_numbers.push_back(num_rows);
                                     }
                                 }
                             }
@@ -450,10 +455,11 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
 
     if (zig_zaggify && chains[0].size() > 0)
     {
-        // this simple implementation works ok for the common situation of two (or more) chains that lie parallel to each other
-        // it fails when chains are linked together in series (this occurs when a gyroid line hits the outline and forms a sequence of bumps
-        // which are then linked together). In that situation, a loop can be formed. A more complex implementation could fix this by keeping track
-        // of all of the chains that are linked together so that it could detect if it was forming a loop. But is it worth the complexity and time cost?
+        // zig-zaggification consists of joining alternate chain ends to make a chain of chains
+        // the basic algorithm is that we follow the infill area boundary and as we progress we are either drawing a connector or not
+        // whenever we come across the end of a chain we toggle the connector drawing state
+        // things are made more complicated by the fact that we want to avoid generating loops and so we need to keep track
+        // of the indentity of the first chain in a connected sequence
 
         int chain_ends_remaining = chains[0].size() * 2;
 
@@ -557,17 +563,25 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
                             // start a new connector from the current location
                             connector_points.clear();
                             connector_points.push_back(cur_point);
+
+                            // remember the chain+point that the connector started from
+                            connector_start_chain_index = chain_index;
+                            connector_start_point_index = point_index;
                         }
                     }
                     else
                     {
                         // we have just jumped a gap so now we want to start drawing again
                         drawing = true;
-                    }
 
-                    // remember the chain+point that the connector started from
-                    connector_start_chain_index = chain_index;
-                    connector_start_point_index = point_index;
+                        // if this connector is the first to be created or we are not connecting chains from the same row/column,
+                        // remember the chain+point that this connector is starting from
+                        if (connector_start_chain_index == std::numeric_limits<unsigned>::max() || line_numbers[chain_index] != line_numbers[connector_start_chain_index])
+                        {
+                            connector_start_chain_index = chain_index;
+                            connector_start_point_index = point_index;
+                        }
+                    }
 
                     // done with this chain end
                     points_on_outline_chain_index.erase(points_on_outline_chain_index.begin() + nearest_point_index);
