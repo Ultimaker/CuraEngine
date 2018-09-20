@@ -46,11 +46,6 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         }
         ListPolyIt from_it = to_it.prev();
 
-        if (from_it.p() != from)
-        {
-            logWarning("Polygon has multiple verts at the same place: (%lli, %lli); PolygonProximityLinker fails in such a case!\n", from.X, from.Y);
-        }
-
         ListPolyIt to_other_next_it = to_other_it.next(); // move towards [from]; the lines on the other side move in the other direction
         //           to  from
         //   o<--o<--T<--F
