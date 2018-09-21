@@ -184,6 +184,7 @@ namespace cura
         }
         if (merged_direction.X == 0 && merged_direction.Y == 0)
         {
+            new_first_path_start = first_path_start;
             return true;  // we can just disregard the second point as it's exactly at the leave point of the first path.
         }
 
