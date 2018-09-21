@@ -134,16 +134,16 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
 
-    Ratio flow = (layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : mesh.settings.get<Ratio>("material_flow");
-
-    // Use the infill extruder's settings for the infill config if specified
-    const int infill_extruder_nr = mesh.settings.get<int>("infill_extruder_nr");
-    if (infill_extruder_nr != -1)
+    Ratio flow;
+    const std::string flow_setting = (layer_nr == 0) ? "material_flow_layer_0" : "material_flow";
+    if (mesh.settings.has(flow_setting)) //Just for this particular case, the flow is limited to the infill extruder.
     {
-        const ExtruderTrain& infill_extruder_train = Application::getInstance().current_slice->scene.extruders[infill_extruder_nr];
-        flow = (layer_nr == 0) ? infill_extruder_train.settings.get<Ratio>("material_flow_layer_0") : infill_extruder_train.settings.get<Ratio>("material_flow");
+        flow = mesh.settings.get<Ratio>(flow_setting);
     }
-
+    else
+    {
+        flow = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings.get<Ratio>(flow_setting);
+    }
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         infill_config.emplace_back(

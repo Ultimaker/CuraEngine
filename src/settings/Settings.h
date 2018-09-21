@@ -71,7 +71,7 @@ public:
      */
     template<typename A> A get(const std::string& key) const;
 
-    /*
+    /*!
      * \brief Get a string containing all settings in this container.
      *
      * The string is formatted in the same way as the command line arguments
@@ -80,6 +80,18 @@ public:
      * \return A string containing all settings and their values.
      */
     const std::string getAllSettingsString() const;
+
+    /*!
+     * \brief Indicate whether this settings instance has an entry for the
+     * specified setting.
+     *
+     * If this returns ``false``, that means that the setting would be obtained
+     * via some inheritance.
+     * \param key The setting to check.
+     * \return Whether that setting is contained in this particular Settings
+     * instance (``true``) or would be obtained via inheritance (``false``).
+     */
+    bool has(const std::string& key) const;
 
     /*
      * Change the parent settings object.

@@ -581,6 +581,11 @@ const std::string Settings::getAllSettingsString() const
     return sstream.str();
 }
 
+bool Settings::has(const std::string& key) const
+{
+    return settings.find(key) != settings.end();
+}
+
 void Settings::setParent(Settings* new_parent)
 {
     parent = new_parent;
