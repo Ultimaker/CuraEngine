@@ -153,8 +153,8 @@ namespace cura
         const coord_t line_width = first_path.config->getLineWidth();
 
         // Reintroduction of this check prevents [CURA-5674] printing spurious infill-lines to origin:
-        const auto line_width_sqrd = line_width * line_width;
-        if (vSize2(first_path_end - second_path_start) < line_width_sqrd && vSize2(first_path_start - second_path_end) < line_width_sqrd)
+        const coord_t line_width_squared = line_width * line_width;
+        if (vSize2(first_path_end - second_path_start) < line_width_squared && vSize2(first_path_start - second_path_end) < line_width_squared)
         {
             return false;
         }
