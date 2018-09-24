@@ -666,9 +666,9 @@ public:
      * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
-     * \param extruder_nr The extruder to which to switch
+     * \param extruder_nr The extruder to switch to.
      */
-    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const;
+    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
 private:
     /*!

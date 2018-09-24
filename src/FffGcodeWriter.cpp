@@ -584,7 +584,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
         // and then switch back to the original extruder.
         std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
-        for (unsigned int to_be_primed_extruder_nr : extruder_order)
+        for (const size_t to_be_primed_extruder_nr : extruder_order)
         {
             setExtruder_addPrime(storage, gcode_layer, to_be_primed_extruder_nr);
             current_extruder_nr = to_be_primed_extruder_nr;
@@ -2491,21 +2491,17 @@ AngleDegrees FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& s
     return 90; //Perpendicular to support lines.
 }
 
-void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
+void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
-    if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
-    {
-        return;
-    }
 
     const size_t previous_extruder = gcode_layer.getExtruder();
-    if (previous_extruder == static_cast<size_t>(extruder_nr)
-            && !(static_cast<size_t>(extruder_nr) == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount()))) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
+    if (previous_extruder == extruder_nr && !(extruder_nr == outermost_prime_tower_extruder
+            && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount()))) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
     {
         return;
     }
-    bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
+    const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
 
     if (extruder_changed)
     {
@@ -2530,7 +2526,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
     // The first layer of the prime tower is printed with one material only, so do not prime another material on the
     // first layer again.
-    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || static_cast<size_t>(extruder_nr) == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount())) //Always print a prime tower with outermost extruder.
+    if (((extruder_changed && gcode_layer.getLayerNr() > 0) || extruder_nr == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount())) //Always print a prime tower with outermost extruder.
     {
         addPrimeTower(storage, gcode_layer, previous_extruder);
     }
