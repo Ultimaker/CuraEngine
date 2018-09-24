@@ -190,7 +190,6 @@ protected:
     const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
 
     Ratio extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
-    Ratio travelSpeedFactor; //!< The factor by which to alter the non-extrusion move speed
 
     double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
     double totalPrintTime; //!< The total naive time estimate for this extruder plan

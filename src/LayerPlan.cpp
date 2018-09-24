@@ -27,7 +27,6 @@ ExtruderPlan::ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, con
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 , retraction_config(retraction_config)
 , extrudeSpeedFactor(1.0)
-, travelSpeedFactor(1.0)
 , extraTime(0.0)
 , totalPrintTime(0)
 {
@@ -41,17 +40,6 @@ void ExtruderPlan::setExtrudeSpeedFactor(const Ratio speed_factor)
 double ExtruderPlan::getExtrudeSpeedFactor()
 {
     return extrudeSpeedFactor;
-}
-
-void ExtruderPlan::setTravelSpeedFactor(Ratio speed_factor)
-{
-    speed_factor = std::max(speed_factor, 1.0_r);
-    travelSpeedFactor = speed_factor;
-}
-
-double ExtruderPlan::getTravelSpeedFactor()
-{
-    return travelSpeedFactor;
 }
 
 void ExtruderPlan::setFanSpeed(double _fan_speed)
@@ -1457,11 +1445,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
-            // Apply the relevant factor
-            if (path.config->isTravelPath())
-                speed *= extruder_plan.getTravelSpeedFactor();
-            else
+            //Apply the extrusion speed factor if it's an extrusion move.
+            if (!path.config->isTravelPath())
+            {
                 speed *= extruder_plan.getExtrudeSpeedFactor();
+            }
 
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
