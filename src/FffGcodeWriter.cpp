@@ -1238,7 +1238,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         const EFillMethod infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
         const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
         const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
-        size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
+        const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
         Polygons infill_polygons;
         Polygons infill_lines;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
