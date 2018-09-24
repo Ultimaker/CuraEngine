@@ -32,15 +32,6 @@ void SettingsTest::addSettingStringTest()
     CPPUNIT_ASSERT_EQUAL(setting_value, settings.get<std::string>("test_setting"));
 }
 
-void SettingsTest::addSettingIntTest()
-{
-    settings.add("test_setting", "42");
-    CPPUNIT_ASSERT_EQUAL(int(42), settings.get<int>("test_setting"));
-
-    settings.add("test_setting", "-1");
-    CPPUNIT_ASSERT_EQUAL(int(-1), settings.get<int>("test_setting"));
-}
-
 void SettingsTest::addSettingDoubleTest()
 {
     settings.add("test_setting", "1234567.890");
@@ -51,12 +42,6 @@ void SettingsTest::addSettingSizeTTest()
 {
     settings.add("test_setting", "666");
     CPPUNIT_ASSERT_EQUAL(size_t(666), settings.get<size_t>("test_setting"));
-}
-
-void SettingsTest::addSettingUnsignedIntTest()
-{
-    settings.add("test_setting", "69");
-    CPPUNIT_ASSERT_EQUAL(unsigned(69), settings.get<unsigned int>("test_setting"));
 }
 
 void SettingsTest::addSettingBoolTest()

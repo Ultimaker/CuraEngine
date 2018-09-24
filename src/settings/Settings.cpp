@@ -62,11 +62,6 @@ template<> std::string Settings::get<std::string>(const std::string& key) const
     std::exit(2);
 }
 
-template<> int Settings::get<int>(const std::string& key) const
-{
-    return atoi(get<std::string>(key).c_str());
-}
-
 template<> double Settings::get<double>(const std::string& key) const
 {
     return atof(get<std::string>(key).c_str());
@@ -75,11 +70,6 @@ template<> double Settings::get<double>(const std::string& key) const
 template<> size_t Settings::get<size_t>(const std::string& key) const
 {
     return std::stoul(get<std::string>(key).c_str());
-}
-
-template<> unsigned int Settings::get<unsigned int>(const std::string& key) const
-{
-    return get<size_t>(key);
 }
 
 template<> bool Settings::get<bool>(const std::string& key) const
@@ -95,7 +85,7 @@ template<> bool Settings::get<bool>(const std::string& key) const
 
 template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
 {
-    int extruder_nr = get<int>(key);
+    int extruder_nr = std::atoi(get<std::string>(key).c_str());
     if (extruder_nr < 0)
     {
         extruder_nr = get<size_t>("extruder_nr");
@@ -105,7 +95,7 @@ template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) 
 
 template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const
 {
-    return get<int>(key) - 1; //For the user we display layer numbers starting from 1, but we start counting from 0. Still it may be negative for Raft layers.
+    return std::atoi(get<std::string>(key).c_str()) - 1; //For the user we display layer numbers starting from 1, but we start counting from 0. Still it may be negative for Raft layers.
 }
 
 template<> coord_t Settings::get<coord_t>(const std::string& key) const

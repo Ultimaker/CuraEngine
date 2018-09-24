@@ -20,10 +20,8 @@ class SettingsTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(SettingsTest);
     CPPUNIT_TEST(addSettingStringTest);
-    CPPUNIT_TEST(addSettingIntTest);
     CPPUNIT_TEST(addSettingDoubleTest);
     CPPUNIT_TEST(addSettingSizeTTest);
-    CPPUNIT_TEST(addSettingUnsignedIntTest);
     CPPUNIT_TEST(addSettingBoolTest);
     CPPUNIT_TEST(addSettingExtruderTrainTest);
     CPPUNIT_TEST(addSettingLayerIndexTest);
