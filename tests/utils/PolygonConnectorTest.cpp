@@ -72,11 +72,11 @@ void PolygonConnectorTest::getBridgeTest()
 
     PolygonConnector::PolygonBridge predicted(
         PolygonConnector::PolygonConnection{
-            ClosestPolygonPoint(Point(0, 500), 2, test_square),
-            ClosestPolygonPoint(Point(-100, 500), 0, test_convex_shape)},
+            ClosestPolygonPoint(Point(0, 500), 2, test_square)
+            , ClosestPolygonPoint(Point(-100, 500), 0, test_convex_shape)},
         PolygonConnector::PolygonConnection{
-            ClosestPolygonPoint(Point(0, 600), 2, test_square),
-            ClosestPolygonPoint(Point(-100, 600), 0, test_convex_shape)});
+            ClosestPolygonPoint(Point(0, 600), 2, test_square)
+            , ClosestPolygonPoint(Point(-100, 600), 0, test_convex_shape)});
     std::vector<Polygon> polys;
     polys.push_back(test_convex_shape);
     getBridgeAssert(predicted, test_square, polys);
