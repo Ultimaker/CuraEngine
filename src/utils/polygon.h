@@ -1155,11 +1155,11 @@ class PolygonsPart : public Polygons
 public:
     PolygonRef outerPolygon()
     {
-        return this->paths[0];
+        return paths[0];
     }
     ConstPolygonRef outerPolygon() const
     {
-        return this->paths[0];
+        return paths[0];
     }
 
     /*!

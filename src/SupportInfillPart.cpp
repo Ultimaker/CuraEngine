@@ -22,7 +22,7 @@ bool SupportInfillPart::generateInsetsAndInfillAreas()
 {
     // generate insets, use the first inset as the wall line, and the second as the infill area
     AreaSupport::generateOutlineInsets(insets, outline, inset_count_to_generate, support_line_width);
-    if (inset_count_to_generate > 0 && this->insets.empty())
+    if (inset_count_to_generate > 0 && insets.empty())
     {
         return false;
     }
@@ -31,7 +31,7 @@ bool SupportInfillPart::generateInsetsAndInfillAreas()
     if (inset_count_to_generate > 0)
     {
         // if there are walls, we use the inner area as the infill area
-        infill_area = this->insets.back().offset(-support_line_width / 2);
+        infill_area = insets.back().offset(-support_line_width / 2);
         // optimize polygons: remove unnecessary verts
         infill_area.simplify();
     }

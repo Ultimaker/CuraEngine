@@ -62,18 +62,20 @@ public:
 
     void addPolygon(PolygonRef polygon)
     {
-        this->polygons.emplace_back(polygon);
+        polygons.emplace_back(polygon);
     }
 
     void addPolygon(ConstPolygonRef polygon)
     {
-        this->polygons.emplace_back(polygon);
+        polygons.emplace_back(polygon);
     }
 
     void addPolygons(const Polygons& polygons)
     {
         for(unsigned int i = 0; i < polygons.size(); i++)
+        {
             this->polygons.emplace_back(polygons[i]);
+        }
     }
 
     void optimize(); //!< sets #polyStart and #polyOrder
@@ -104,18 +106,20 @@ public:
 
     void addPolygon(PolygonRef polygon)
     {
-        this->polygons.push_back(polygon);
+        polygons.push_back(polygon);
     }
 
     void addPolygon(ConstPolygonRef polygon)
     {
-        this->polygons.push_back(polygon);
+        polygons.push_back(polygon);
     }
 
     void addPolygons(Polygons& polygons)
     {
         for(unsigned int i=0;i<polygons.size(); i++)
+        {
             this->polygons.push_back(polygons[i]);
+        }
     }
 
     /*!

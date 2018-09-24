@@ -553,7 +553,7 @@ void Polygons::addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node)
     for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)
     {
         ClipperLib::PolyNode* child = node.Childs[outer_poly_idx];
-        this->paths.push_back(child->Contour);
+        paths.push_back(child->Contour);
         addPolyTreeNodeRecursive(*child);
     }
 }

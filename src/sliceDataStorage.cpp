@@ -579,10 +579,10 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
     // record the indexes that need to be removed and do that after
     std::list<size_t> to_remove_part_indices;  // LIFO for removing
 
-    unsigned int part_count_to_check = this->support_infill_parts.size(); // note that support_infill_parts.size() changes during the computation below
+    unsigned int part_count_to_check = support_infill_parts.size(); // note that support_infill_parts.size() changes during the computation below
     for (size_t part_idx = 0; part_idx < part_count_to_check; ++part_idx)
     {
-        SupportInfillPart& support_infill_part = this->support_infill_parts[part_idx];
+        SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
 
         // if the areas don't overlap, do nothing
         if (!exclude_polygons_boundary_box.hit(support_infill_part.outline_boundary_box))
@@ -609,7 +609,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
             const PolygonsPart& smaller_island = smaller_support_islands[support_island_idx];
-            this->support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width, support_infill_part.inset_count_to_generate);
+            support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width, support_infill_part.inset_count_to_generate);
         }
     }
 
@@ -619,11 +619,11 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         const size_t remove_idx = to_remove_part_indices.back();
         to_remove_part_indices.pop_back();
 
-        if (remove_idx < this->support_infill_parts.size() - 1)
+        if (remove_idx < support_infill_parts.size() - 1)
         { // move last element to the to-be-removed element so that we can erase the last place in the vector
-            this->support_infill_parts[remove_idx] = std::move(this->support_infill_parts.back());
+            support_infill_parts[remove_idx] = std::move(support_infill_parts.back());
         }
-        this->support_infill_parts.pop_back(); // always erase last place in the vector
+        support_infill_parts.pop_back(); // always erase last place in the vector
     }
 }
 

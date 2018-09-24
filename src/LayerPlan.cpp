@@ -35,23 +35,23 @@ ExtruderPlan::ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, con
 
 void ExtruderPlan::setExtrudeSpeedFactor(const Ratio speed_factor)
 {
-    this->extrudeSpeedFactor = speed_factor;
+    extrudeSpeedFactor = speed_factor;
 }
 
 double ExtruderPlan::getExtrudeSpeedFactor()
 {
-    return this->extrudeSpeedFactor;
+    return extrudeSpeedFactor;
 }
 
 void ExtruderPlan::setTravelSpeedFactor(Ratio speed_factor)
 {
     speed_factor = std::max(speed_factor, 1.0_r);
-    this->travelSpeedFactor = speed_factor;
+    travelSpeedFactor = speed_factor;
 }
 
 double ExtruderPlan::getTravelSpeedFactor()
 {
-    return this->travelSpeedFactor;
+    return travelSpeedFactor;
 }
 
 void ExtruderPlan::setFanSpeed(double _fan_speed)
@@ -1160,9 +1160,9 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
 
         if (minTime - (extrudeTime * inv_factor) - travelTime > 0.1)
         {
-            this->extraTime = minTime - (extrudeTime * inv_factor) - travelTime;
+            extraTime = minTime - (extrudeTime * inv_factor) - travelTime;
         }
-        this->totalPrintTime = (extrudeTime * inv_factor) + travelTime;
+        totalPrintTime = (extrudeTime * inv_factor) + travelTime;
     }
 }
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
@@ -1282,7 +1282,7 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     */
     if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer
         && fan_speed_layer_time_settings.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
-        && !this->is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
+        && !is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
     )
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.

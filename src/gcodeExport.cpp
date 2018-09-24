@@ -297,12 +297,12 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
 
 EGCodeFlavor GCodeExport::getFlavor() const
 {
-    return this->flavor;
+    return flavor;
 }
 
 void GCodeExport::setZ(int z)
 {
-    this->current_layer_z = z;
+    current_layer_z = z;
 }
 
 void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor)

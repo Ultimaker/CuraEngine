@@ -43,7 +43,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
                     travel_avoid_distance = std::max(travel_avoid_distance, extruder.settings.get<coord_t>("travel_avoid_distance"));
                 }
             }
-            return this->offset_from_outlines + travel_avoid_distance;
+            return offset_from_outlines + travel_avoid_distance;
         }())
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , boundary_inside_minimum( comb_boundary_inside_minimum ) // copy the boundary, because the partsView_inside will reorder the polygons

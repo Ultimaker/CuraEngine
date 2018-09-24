@@ -41,7 +41,7 @@ public:
 template <typename T>
 void OrderOptimizer<T>::addItem(const Point location, const T item)
 {
-    this->items.emplace_back(location, item);
+    items.emplace_back(location, item);
 }
 
 template <typename T>

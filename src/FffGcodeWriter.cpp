@@ -1006,7 +1006,7 @@ std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtr
         // check if we need prime blob on the first layer
         for (size_t used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
         {
-            if (this->getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
+            if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
             {
                 extruder_is_used_on_this_layer[used_idx] = true;
             }

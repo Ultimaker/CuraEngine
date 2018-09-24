@@ -69,12 +69,12 @@ coord_t GCodePathConfig::getLineWidth() const
 
 coord_t GCodePathConfig::getLayerThickness() const
 {
-    return this->layer_thickness;
+    return layer_thickness;
 }
 
 const PrintFeatureType& GCodePathConfig::getPrintFeatureType() const
 {
-    return this->type;
+    return type;
 }
 
 bool GCodePathConfig::isTravelPath() const

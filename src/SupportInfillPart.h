@@ -50,7 +50,7 @@ private:
 inline const Polygons& SupportInfillPart::getInfillArea() const
 {
     // if there is no wall, we use the original outline as the infill area
-    return (this->inset_count_to_generate == 0) ? this->outline : this->infill_area;
+    return (inset_count_to_generate == 0) ? outline : infill_area;
 }
 
 } // namespace cura
