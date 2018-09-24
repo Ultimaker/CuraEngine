@@ -272,7 +272,7 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
 
     if (prev_extruder != extruder)
     { // set previous extruder to standby temperature
-        const Settings& previous_extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
+        const Settings& previous_extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings;
         extruder_plan.prev_extruder_standby_temp = previous_extruder_settings.get<Temperature>("material_standby_temperature");
     }
     
