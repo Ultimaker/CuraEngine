@@ -106,10 +106,10 @@ private:
      * 
      * \param extruder_plan_before An extruder plan before the extruder plan for which the temperature is computed, in which to insert the preheat command
      * \param time_before_extruder_plan_end The time before the end of the extruder plan, before which to insert the preheat command
-     * \param extruder The extruder for which to set the temperature
+     * \param extruder_nr The extruder for which to set the temperature
      * \param temp The temperature of the preheat command
      */
-    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_before_extruder_plan_end, int extruder, double temp);
+    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp);
 
     /*!
      * Compute the time needed to preheat from standby to required (initial) printing temperature at the start of an extruder plan,
@@ -130,10 +130,10 @@ private:
      * The preheat commands are inserted such that the middle of the temperature change coincides with the start of the next layer.
      * 
      * \param prev_extruder_plan The former extruder plan (of the former layer)
-     * \param extruder The extruder for which too set the temperature
+     * \param extruder_nr The extruder for which too set the temperature
      * \param required_temp The required temperature for the second extruder plan
      */
-    void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp);
+    void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const Temperature required_temp);
 
     /*!
      * Insert the preheat command for an extruder plan which is preceded by an extruder plan with a different extruder.
