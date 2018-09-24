@@ -137,8 +137,10 @@ void CommandLine::sliceNext()
                 switch(argument[1])
                 {
                     case 'v':
+                    {
                         increaseVerboseLevel();
                         break;
+                    }
 #ifdef _OPENMP
                     case 'm':
                     {
@@ -149,9 +151,12 @@ void CommandLine::sliceNext()
                     }
 #endif //_OPENMP
                     case 'p':
+                    {
                         enableProgressLogging();
                         break;
+                    }
                     case 'j':
+                    {
                         argument_index++;
                         if (argument_index >= arguments.size())
                         {
@@ -175,6 +180,7 @@ void CommandLine::sliceNext()
                             }
                         }
                         break;
+                    }
                     case 'e':
                     {
                         size_t extruder_nr = stoul(argument.substr(1));
@@ -209,6 +215,7 @@ void CommandLine::sliceNext()
                         break;
                     }
                     case 'o':
+                    {
                         argument_index++;
                         if (argument_index >= arguments.size())
                         {
@@ -222,9 +229,12 @@ void CommandLine::sliceNext()
                             exit(1);
                         }
                         break;
+                    }
                     case 'g':
+                    {
                         last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
                         /* ... falls through ... */
+                    }
                     case 's':
                     {
                         //Parse the given setting and store it.
@@ -247,11 +257,13 @@ void CommandLine::sliceNext()
                         break;
                     }
                     default:
+                    {
                         logError("Unknown option: -%c\n", argument[1]);
                         Application::getInstance().printCall();
                         Application::getInstance().printHelp();
                         exit(1);
                         break;
+                    }
                 }
             }
         }
