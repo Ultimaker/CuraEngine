@@ -221,7 +221,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     const size_t extruder = extruder_plan.extruder_nr;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
-    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
+    if (!extruder_settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
