@@ -9,8 +9,8 @@ namespace cura
 {
 MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 : extruder_plan(plan)
-, nozzle_size(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder].settings.get<coord_t>("machine_nozzle_size"))
-, maximum_resolution(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder].settings.get<coord_t>("meshfix_maximum_resolution"))
+, nozzle_size(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("machine_nozzle_size"))
+, maximum_resolution(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("meshfix_maximum_resolution"))
     {
         //Just copy the parameters to their fields.
     }

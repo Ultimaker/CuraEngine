@@ -19,7 +19,7 @@ namespace cura {
 ExtruderPlan::ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, const bool is_initial_layer, const bool is_raft_layer, const coord_t layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : heated_pre_travel_time(0)
 , required_start_temperature(-1)
-, extruder(extruder)
+, extruder_nr(extruder)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
 , is_raft_layer(is_raft_layer)
@@ -281,7 +281,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
-        extruder_plans.back().extruder = extruder_nr;
+        extruder_plans.back().extruder_nr = extruder_nr;
     }
     else 
     {
@@ -1336,12 +1336,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-        const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
+        const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder_nr];
 
-        if (extruder_nr != extruder_plan.extruder)
+        if (extruder_nr != extruder_plan.extruder_nr)
         {
             int prev_extruder = extruder_nr;
-            extruder_nr = extruder_plan.extruder;
+            extruder_nr = extruder_plan.extruder_nr;
             gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
@@ -1589,7 +1589,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
         return false; // TODO: check first extruder of the next layer! (generally only on the last layer of the second extruder)
     }
         
-    if (extruder_plans[extruder_plan_idx + 1].extruder != extruder_plans[extruder_plan_idx].extruder)
+    if (extruder_plans[extruder_plan_idx + 1].extruder_nr != extruder_plans[extruder_plan_idx].extruder_nr)
     {
         return true;
     }
@@ -1602,7 +1602,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
 bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness)
 {
     ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-    const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder];
+    const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr];
     const double coasting_volume = extruder.settings.get<double>("coasting_volume");
     if (coasting_volume <= 0)
     { 

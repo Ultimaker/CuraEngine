@@ -65,7 +65,7 @@ protected:
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
 
 public:
-    size_t extruder; //!< The extruder used for this paths in the current plan.
+    size_t extruder_nr; //!< The extruder used for this paths in the current plan.
 
     /*!
      * Simple contructor.
@@ -418,7 +418,7 @@ public:
      */
     size_t getExtruder() const
     {
-        return extruder_plans.back().extruder;
+        return extruder_plans.back().extruder_nr;
     }
 
     /*!
