@@ -291,17 +291,16 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
 
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
-    const unsigned int extruder = extruder_plan.extruder_nr;
-    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
-
     if (!extruder_plan.extrusion_temperature)
     {
         logWarning("Empty extruder plan detected! Discarding extrusion temperature command.\n");
         return;
     }
-
     const double print_temp = *extruder_plan.extrusion_temperature;
-    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
+
+    const unsigned int extruder = extruder_plan.extruder_nr;
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
+    if (!extruder_settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
