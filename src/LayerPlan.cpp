@@ -1611,11 +1611,8 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     const std::vector<GCodePath>& paths = extruder_plan.paths;
     const GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
-        ||
-        ! (!path.isTravelPath() && paths[path_idx + 1].config->isTravelPath()) 
-        ||
-        path.points.size() < 2
-        )
+        || (path.isTravelPath() || !paths[path_idx + 1].config->isTravelPath()) 
+        || path.points.size() < 2)
     {
         return false;
     }
