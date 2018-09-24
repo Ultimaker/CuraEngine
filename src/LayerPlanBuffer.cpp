@@ -329,7 +329,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
     const size_t extruder = last_extruder_plan.extruder_nr;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
-    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
+    if (!extruder_settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
