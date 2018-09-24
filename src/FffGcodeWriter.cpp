@@ -282,17 +282,17 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     {
         ExtruderTrain& train = scene.extruders[extruder_index];
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_index];
-        retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0;
-        retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount");
+        retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0; //Retraction distance in mm.
+        retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount"); //Extra prime volume in mm^3.
         retraction_config.speed = train.settings.get<Velocity>("retraction_retract_speed");
         retraction_config.primeSpeed = train.settings.get<Velocity>("retraction_prime_speed");
         retraction_config.zHop = train.settings.get<coord_t>("retraction_hop");
         retraction_config.retraction_min_travel_distance = train.settings.get<coord_t>("retraction_min_travel");
-        retraction_config.retraction_extrusion_window = train.settings.get<double>("retraction_extrusion_window");
+        retraction_config.retraction_extrusion_window = train.settings.get<double>("retraction_extrusion_window"); //Window to count retractions in in mm of extruded filament.
         retraction_config.retraction_count_max = train.settings.get<size_t>("retraction_count_max");
 
         RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder_index];
-        switch_retraction_config.distance = train.settings.get<double>("switch_extruder_retraction_amount"); 
+        switch_retraction_config.distance = train.settings.get<double>("switch_extruder_retraction_amount"); //Retraction distance in mm.
         switch_retraction_config.prime_volume = 0.0;
         switch_retraction_config.speed = train.settings.get<Velocity>("switch_extruder_retraction_speed");
         switch_retraction_config.primeSpeed = train.settings.get<Velocity>("switch_extruder_prime_speed");

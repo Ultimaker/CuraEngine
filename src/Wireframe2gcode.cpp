@@ -252,7 +252,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; //getSettingInt("retraction_hop");
     retraction_config.retraction_count_max = scene_settings.get<size_t>("retraction_count_max");
-    retraction_config.retraction_extrusion_window = scene_settings.get<double>("retraction_extrusion_window");
+    retraction_config.retraction_extrusion_window = scene_settings.get<double>("retraction_extrusion_window"); //Window in which to count retractions in mm of extruded filament.
     retraction_config.retraction_min_travel_distance = scene_settings.get<coord_t>("retraction_min_travel");
 
     double top_retract_pause = 2.0;
@@ -551,13 +551,13 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode)
     roof_outer_delay = scene_settings.get<Duration>("wireframe_roof_outer_delay");
     
     
-    standard_retraction_config.distance = scene_settings.get<double>("retraction_amount");
+    standard_retraction_config.distance = scene_settings.get<double>("retraction_amount"); //Retraction distance in mm.
     standard_retraction_config.prime_volume = std::max(0.0, scene_settings.get<double>("retraction_extra_prime_amount"));
     standard_retraction_config.speed = scene_settings.get<Velocity>("retraction_retract_speed");
     standard_retraction_config.primeSpeed = scene_settings.get<Velocity>("retraction_prime_speed");
     standard_retraction_config.zHop = scene_settings.get<coord_t>("retraction_hop");
     standard_retraction_config.retraction_count_max = scene_settings.get<size_t>("retraction_count_max");
-    standard_retraction_config.retraction_extrusion_window = scene_settings.get<double>("retraction_extrusion_window");
+    standard_retraction_config.retraction_extrusion_window = scene_settings.get<double>("retraction_extrusion_window"); //Window in which to count retractions in mm of extruded filament.
     standard_retraction_config.retraction_min_travel_distance = scene_settings.get<coord_t>("retraction_min_travel");
 }
 
