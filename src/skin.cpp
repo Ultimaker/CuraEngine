@@ -610,7 +610,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
 
 void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
 {
-    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.settings.get<size_t>("top_layers")) || mesh.settings.get<size_t>("infill_line_distance") == 0) //No infill is even generated.
+    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.settings.get<size_t>("top_layers")) || mesh.settings.get<coord_t>("infill_line_distance") == 0) //No infill is even generated.
     {
         return;
     }
