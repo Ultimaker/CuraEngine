@@ -253,8 +253,9 @@ void SubDivCube::rotatePointInitial(Point& target)
 void SubDivCube::rotatePoint120(Point& target)
 {
     constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0);
-    target.Y = (-0.5) * target.Y + sqrt_three_fourths * target.X;
-    target.X = (-0.5) * target.X - sqrt_three_fourths * target.Y;
+    const coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
+    target.Y = -0.5 * target.Y + sqrt_three_fourths * target.X;
+    target.X = x;
 }
 
 void SubDivCube::addLineAndCombine(Polygons& group, Point from, Point to)
