@@ -767,7 +767,7 @@ void GCodeExport::writeUnretractionAndPrime()
     if (extruder_attr[current_extruder].retraction_e_amount_current)
     {
         const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-        if (!extruder_settings.get<bool>("machine_firmware_retract"))
+        if (extruder_settings.get<bool>("machine_firmware_retract"))
         { // note that BFB is handled differently
             *output_stream << "G11" << new_line;
             //Assume default UM2 retraction settings.
@@ -854,7 +854,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     }
 
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-    if (!extruder_settings.get<bool>("machine_firmware_retract"))
+    if (extruder_settings.get<bool>("machine_firmware_retract"))
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current) 
         {
