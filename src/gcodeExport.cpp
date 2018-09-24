@@ -1014,12 +1014,26 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
 
     if (flavor == EGCodeFlavor::GRIFFIN)
     {
+        bool should_correct_z = false;
+        
         std::string command = "G280";
         if (!extruder_settings.get<bool>("prime_blob_enable"))
         {
             command += " S1";  // use S1 to disable prime blob
+            should_correct_z = true;
         }
         *output_stream << command << new_line;
+
+        // There was an issue with the S1 strategy parameter, where it would only change the material-position,
+        //   as opposed to 'be a prime-blob maneuvre without actually printing the prime blob', as we assumed here.
+        // After a chat, the firmware-team decided to change the S1 strategy behaviour,
+        //   but since people don't update their firmware at each opportunity, it was decided to fix it here as well.
+        if (should_correct_z)
+        {
+            // Can't output via 'writeTravel', since if this is needed, the value saved for 'current height' will not be correct.
+            // For similar reasons, this isn't written to the front-end via command-socket.
+            *output_stream << "G0 Z" << MMtoStream{getPositionZ()} << new_line;
+        }
     }
     else
     {

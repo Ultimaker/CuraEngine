@@ -146,7 +146,6 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
     if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
     {
-        
         //The list should be empty because it will be again filled completely. Otherwise might have double lines.
         result_lines.clear();
         

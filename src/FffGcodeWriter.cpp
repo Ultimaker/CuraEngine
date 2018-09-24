@@ -371,27 +371,21 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
     }
 }
 
-
-
-void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const size_t start_extruder_nr)
+void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     Scene& scene = Application::getInstance().current_slice->scene;
     const size_t num_extruders = scene.extruders.size();
-    if (Application::getInstance().communication->isSequential())
-    {
-        std::string prefix = gcode.getFileHeader(extruder_is_used);
-        gcode.writeCode(prefix.c_str());
-    }
-
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
     if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
-        gcode.writeCode("T0"); // required before any temperature setting commands
+        ExtruderTrain& train = scene.extruders[start_extruder_nr];
+        constexpr bool wait = true;
+        const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
+        const Temperature print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
+        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
     }
-
-    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
+    else if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
         if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
         {
@@ -455,38 +449,58 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             }
         }
     }
+}
+
+void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const size_t start_extruder_nr)
+{
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    if (Application::getInstance().communication->isSequential()) //If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
+    {
+        std::string prefix = gcode.getFileHeader(extruder_is_used);
+        gcode.writeCode(prefix.c_str());
+    }
+
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
+    if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    {
+        gcode.writeCode("T0");
+    }
+    else
+    {
+        processInitialLayerTemperature(storage, start_extruder_nr);
+    }
+
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
     gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
-    gcode.writeCode(scene.current_mesh_group->settings.get<std::string>("machine_start_gcode").c_str());
+    gcode.writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
 
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
-        tmp << "M227 S" << (scene.current_mesh_group->settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (scene.current_mesh_group->settings.get<coord_t>("retraction_amount") * 2560 / 1000);
+        tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
         gcode.writeLine(tmp.str().c_str());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
-        const ExtruderTrain& train = scene.extruders[start_extruder_nr];
-        constexpr bool wait = true;
-        Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
-        Temperature print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
-        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
+        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[start_extruder_nr];
+        processInitialLayerTemperature(storage, start_extruder_nr);
         gcode.writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
         extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min(); // set to most negative number so that layer processing never primes this extruder any more.
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
     }
-    if (scene.current_mesh_group->settings.get<bool>("relative_extrusion"))
+    if (mesh_group_settings.get<bool>("relative_extrusion"))
     {
         gcode.writeExtrusionMode(true);
     }
     if (gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
-        if (scene.current_mesh_group->settings.get<bool>("retraction_enable"))
+        if (mesh_group_settings.get<bool>("retraction_enable"))
         {
             // ensure extruder is zeroed
             gcode.resetExtrusionValue();
@@ -513,6 +527,8 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
         constexpr bool wait = true;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
     }
+
+    processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
     
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
