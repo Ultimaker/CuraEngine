@@ -1515,8 +1515,13 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 }
             }
         }
+
+        const bool bridge_settings_enabled = mesh.getSettingBoolean("bridge_settings_enabled");
+        const double wall_overhang_angle = mesh.getSettingInAngleDegrees("wall_overhang_angle");
+        const bool wall_overhang_detection_enabled = (wall_overhang_angle < 90);
+
         // for non-spiralized layers, determine the shape of the unsupported areas below this part
-        if (!spiralize && gcode_layer.getLayerNr() > 0)
+        if (!spiralize && gcode_layer.getLayerNr() > 0 && (bridge_settings_enabled || wall_overhang_detection_enabled))
         {
             // accumulate the outlines of all of the parts that are on the layer below
 
@@ -1578,7 +1583,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
 
             outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-            if (mesh.getSettingBoolean("bridge_settings_enabled"))
+            if (bridge_settings_enabled)
             {
                 // max_air_gap is the max allowed width of the unsupported region below the wall line
                 // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
@@ -1602,21 +1607,20 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 gcode_layer.setBridgeWallMask(Polygons());
             }
 
-            double overhang_angle = mesh.getSettingInAngleDegrees("wall_overhang_angle");
-            if (overhang_angle >= 90)
-            {
-                // clear to disable overhang detection
-                gcode_layer.setOverhangMask(Polygons());
-            }
-            else
+            if (wall_overhang_detection_enabled)
             {
                 // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
                 // the supported region is made up of those areas that really are supported by either model or support on the layer below
                 // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
                 // considered to be
-                double overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+                double overhang_width = layer_height * std::tan(wall_overhang_angle / (180 / M_PI));
                 Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10+overhang_width-half_outer_wall_width)).offset(10);
                 gcode_layer.setOverhangMask(overhang_region);
+            }
+            else
+            {
+                // clear to disable overhang detection
+                gcode_layer.setOverhangMask(Polygons());
             }
         }
         else
