@@ -97,6 +97,7 @@ void CommandLine::sliceNext()
     size_t mesh_group_index = 0;
     Settings& last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
 
+    slice.scene.extruders.reserve(arguments.size() >> 1); //Allocate enough memory to prevent moves.
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
     ExtruderTrain& last_extruder = slice.scene.extruders[0];
 
