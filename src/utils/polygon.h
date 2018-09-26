@@ -672,8 +672,7 @@ public:
     }
     void add(const Polygons& other)
     {
-        for(unsigned int n=0; n<other.paths.size(); n++)
-            paths.push_back(other.paths[n]);
+        std::copy(other.paths.begin(), other.paths.end(), std::back_inserter(paths));
     }
     /*!
      * Add a 'polygon' consisting of two points
