@@ -72,6 +72,12 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
 
 void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const SliceMeshStorage& mesh) const
 {
+    if (! innermost_walls_cache.empty())
+    {
+        layer_walls.add(innermost_walls_cache);
+        return;
+    }
+
     const coord_t half_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0") / 2;
     const coord_t half_line_width_x = mesh.getSettingInMicrons("wall_line_width_x") / 2;
 
@@ -141,6 +147,8 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
             layer_walls.add(outer);
         }
     }
+
+    innermost_walls_cache.add(layer_walls);
 }
 
 SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count)

@@ -144,6 +144,8 @@ public:
     int thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    mutable Polygons innermost_walls_cache; //!< Cache for the in some cases computationaly expensive calculations in 'getInnermostWalls'.
+        // ^^^^ NOTE: Caching function-results like this, when they don't change but are expensive to calculate, is generally considered one of the few 'acceptable uses' of the 'mutable' keyword.
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
