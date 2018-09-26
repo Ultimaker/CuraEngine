@@ -145,7 +145,7 @@ void CommandLine::sliceNext()
 #ifdef _OPENMP
                     case 'm':
                     {
-                        int threads = stoi(argument.substr(1));
+                        int threads = stoi(argument.substr(2));
                         threads = std::max(1, threads);
                         omp_set_num_threads(threads);
                         break;
