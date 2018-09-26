@@ -95,7 +95,7 @@ void CommandLine::sliceNext()
     Application::getInstance().current_slice = &slice;
 
     size_t mesh_group_index = 0;
-    Settings& last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
+    Settings* last_settings = &slice.scene.settings;
 
     slice.scene.extruders.reserve(arguments.size() >> 1); //Allocate enough memory to prevent moves.
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
@@ -116,7 +116,7 @@ void CommandLine::sliceNext()
 
                         mesh_group_index++;
                         FffProcessor::getInstance()->time_keeper.restart();
-                        last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
+                        last_settings = &slice.scene.mesh_groups[mesh_group_index].settings;
                     }
                     catch(...)
                     {
@@ -165,14 +165,14 @@ void CommandLine::sliceNext()
                             exit(1);
                         }
                         argument = arguments[argument_index];
-                        if (loadJSON(argument, last_settings))
+                        if (loadJSON(argument, *last_settings))
                         {
                             logError("Failed to load JSON file: %s\n", argument.c_str());
                             exit(1);
                         }
 
                         //If this was the global stack, create extruders for the machine_extruder_count setting.
-                        if (&last_settings == &slice.scene.settings)
+                        if (last_settings == &slice.scene.settings)
                         {
                             const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
                             while (slice.scene.extruders.size() < extruder_count)
@@ -189,7 +189,7 @@ void CommandLine::sliceNext()
                         {
                             slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
                         }
-                        last_settings = slice.scene.extruders[extruder_nr].settings;
+                        last_settings = &slice.scene.extruders[extruder_nr].settings;
                         break;
                     }
                     case 'l':
@@ -202,7 +202,7 @@ void CommandLine::sliceNext()
                         }
                         argument = arguments[argument_index];
 
-                        const FMatrix3x3 transformation = last_settings.get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
+                        const FMatrix3x3 transformation = last_settings->get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
 
                         if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
                         {
@@ -211,7 +211,7 @@ void CommandLine::sliceNext()
                         }
                         else
                         {
-                            last_settings = slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
+                            last_settings = &slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
                         }
                         break;
                     }
@@ -233,7 +233,7 @@ void CommandLine::sliceNext()
                     }
                     case 'g':
                     {
-                        last_settings = slice.scene.mesh_groups[mesh_group_index].settings;
+                        last_settings = &slice.scene.mesh_groups[mesh_group_index].settings;
                     }
                     /* ... falls through ... */
                     case 's':
@@ -254,7 +254,7 @@ void CommandLine::sliceNext()
                             exit(1);
                         }
                         std::string value = argument.substr(value_position + 1);
-                        last_settings.add(key, value);
+                        last_settings->add(key, value);
                         break;
                     }
                     default:
