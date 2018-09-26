@@ -13,7 +13,10 @@ Scene::Scene(const size_t num_mesh_groups)
 : mesh_groups(num_mesh_groups)
 , current_mesh_group(mesh_groups.begin())
 {
-    //Do nothing.
+    for (MeshGroup& mesh_group : mesh_groups)
+    {
+        mesh_group.settings.setParent(&settings);
+    }
 }
 
 const std::string Scene::getAllSettingsString() const

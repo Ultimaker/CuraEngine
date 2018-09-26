@@ -81,7 +81,6 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
 
     Scene& scene = Application::getInstance().current_slice->scene;
     MeshGroup& mesh_group = scene.mesh_groups.at(object_count);
-    mesh_group.settings.setParent(&Application::getInstance().current_slice->scene.settings);
 
     //Load the settings in the mesh group.
     for (const cura::proto::Setting& setting : mesh_group_message.settings())
