@@ -70,12 +70,11 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const SliceMeshStorage& mesh) const
+Polygons& SliceLayer::getInnermostWalls(int max_inset, const SliceMeshStorage& mesh) const
 {
     if (! innermost_walls_cache.empty())
     {
-        layer_walls.add(innermost_walls_cache);
-        return;
+        return innermost_walls_cache;
     }
 
     const coord_t half_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0") / 2;
@@ -133,22 +132,22 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
 
-                layer_walls.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                innermost_walls_cache.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
             }
             else
             {
                 // the 2nd wall is complete so use it verbatim
-                layer_walls.add(part.insets[1]);
+                innermost_walls_cache.add(part.insets[1]);
             }
         }
         else
         {
             // fall back to using outer computed above
-            layer_walls.add(outer);
+            innermost_walls_cache.add(outer);
         }
     }
 
-    innermost_walls_cache.add(layer_walls);
+    return innermost_walls_cache;
 }
 
 SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count)
