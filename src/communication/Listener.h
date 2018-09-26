@@ -30,7 +30,7 @@ public:
     /*
      * Log an error when we get one from libArcus.
      */
-    void error(const Arcus::Error & error) override;
+    void error(const Arcus::Error& error) override;
 };
 
 } //namespace cura

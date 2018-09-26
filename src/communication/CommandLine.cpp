@@ -308,7 +308,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
     FILE* file = fopen(json_filename.c_str(), "rb");
     if (!file)
     {
-        logError("Couldn't open JSON file.\n");
+        logError("Couldn't open JSON file: %s\n", json_filename.c_str());
         return 1;
     }
 
@@ -481,6 +481,7 @@ const std::string CommandLine::findDefinitionFile(const std::string& definition_
             return candidate;
         }
     }
+    logError("Couldn't find definition file with ID: %s\n", definition_id.c_str());
     return std::string("");
 }
 
