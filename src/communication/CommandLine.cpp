@@ -323,7 +323,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
         return 2;
     }
 
-    std::unordered_set<std::string> search_directories; //For finding the inheriting JSON files.
+    std::unordered_set<std::string> search_directories = defaultSearchDirectories(); //For finding the inheriting JSON files.
     char filename_copy[json_filename.size()];
     std::strcpy(filename_copy, json_filename.c_str());
     std::string directory = std::string(dirname(filename_copy));
