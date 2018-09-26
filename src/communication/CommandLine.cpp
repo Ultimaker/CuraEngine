@@ -336,7 +336,8 @@ std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
 {
     std::unordered_set<std::string> result;
 
-    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
+    char paths[32 * 1024]; //Maximum length of environment variable.
+    strcpy(paths, getenv("CURA_ENGINE_SEARCH_PATH"));
     if (paths)
     {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
