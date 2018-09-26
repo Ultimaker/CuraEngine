@@ -42,8 +42,8 @@ public:
         static constexpr Node* NO_PARENT = nullptr;
 
         Node() :
-            position(Point(0, 0)),
             distance_to_top(0),
+            position(Point(0, 0)),
             skin_direction(false),
             support_roof_layers_below(0),
             to_buildplate(true),
