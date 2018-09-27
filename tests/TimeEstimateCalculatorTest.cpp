@@ -13,9 +13,24 @@ void TimeEstimateCalculatorTest::setUp()
     calculator = TimeEstimateCalculator();
 }
 
+void TimeEstimateCalculatorTest::addTime()
+{
+    calculator.addTime(2);
+    std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(Duration(2.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]);
+
+    calculator.addTime(3); //Has to add up, not replace.
+    result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(Duration(3.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]);
+
+    calculator.addTime(-7);
+    result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(Duration(-0.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]); //Due to how Duration works, it can never go below 0.
+}
+
 void TimeEstimateCalculatorTest::startWithZero()
 {
-    std::vector<Duration> result = calculator.calculate();
+    const std::vector<Duration> result = calculator.calculate();
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes), result.size());
 

@@ -18,6 +18,7 @@ namespace cura
 class TimeEstimateCalculatorTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(TimeEstimateCalculatorTest);
+    CPPUNIT_TEST(addTime);
     CPPUNIT_TEST(startWithZero);
     CPPUNIT_TEST_SUITE_END();
 
@@ -26,6 +27,11 @@ public:
      * \brief Resets the fixtures for a new test.
      */
     void setUp();
+
+    /*
+     * \brief Tests adding extra time to the calculation.
+     */
+    void addTime();
 
     /*
      * \brief Tests whether the calculator starts with an estimate of 0 seconds.
