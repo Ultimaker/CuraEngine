@@ -72,11 +72,11 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
 
 Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const
 {
-    const size_t cache_index = std::min(1U, max_inset - 1);
-    if (! innermost_walls_cache[cache_index].empty())
+    if (innermost_walls_cache.count(max_inset) > 0)
     {
-        return innermost_walls_cache[cache_index];
+        return innermost_walls_cache[max_inset];
     }
+    Polygons& result = innermost_walls_cache.emplace(std::make_pair(max_inset, Polygons())).first->second;
 
     const coord_t half_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0") / 2;
     const coord_t half_line_width_x = mesh.getSettingInMicrons("wall_line_width_x") / 2;
@@ -133,22 +133,22 @@ Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshS
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
 
-                innermost_walls_cache[cache_index].add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                result.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
             }
             else
             {
                 // the 2nd wall is complete so use it verbatim
-                innermost_walls_cache[cache_index].add(part.insets[1]);
+                result.add(part.insets[1]);
             }
         }
         else
         {
             // fall back to using outer computed above
-            innermost_walls_cache[cache_index].add(outer);
+            result.add(outer);
         }
     }
 
-    return innermost_walls_cache[cache_index];
+    return result;
 }
 
 SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count)
