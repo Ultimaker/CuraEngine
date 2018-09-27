@@ -26,25 +26,12 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
   
-Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, coord_t move_inside_distance)
+Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
-, offset_from_inside_to_outside(
-        [this, &storage]()
-        {
-            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-            coord_t travel_avoid_distance = 0;
-            for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
-            {
-                if (extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts"))
-                {
-                    travel_avoid_distance = std::max(travel_avoid_distance, extruder.settings.get<coord_t>("travel_avoid_distance"));
-                }
-            }
-            return offset_from_outlines + travel_avoid_distance;
-        }())
+, offset_from_inside_to_outside(offset_from_outlines + travel_avoid_distance)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , boundary_inside_minimum( comb_boundary_inside_minimum ) // copy the boundary, because the partsView_inside will reorder the polygons
 , boundary_inside_optimal( comb_boundary_inside_optimal ) // copy the boundary, because the partsView_inside will reorder the polygons
@@ -53,18 +40,13 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , inside_loc_to_line_minimum(PolygonUtils::createLocToLineGrid(boundary_inside_minimum, comb_boundary_offset))
 , inside_loc_to_line_optimal(PolygonUtils::createLocToLineGrid(boundary_inside_optimal, comb_boundary_offset))
 , boundary_outside(
-        [&storage, layer_nr]()
+        [&storage, layer_nr, travel_avoid_distance]()
         {
             const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
             bool travel_avoid_supports = false;
-            coord_t travel_avoid_distance = 0;
             for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
             {
-                if (extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_supports"))
-                {
-                    travel_avoid_supports |= extruder.settings.get<bool>("travel_avoid_supports");
-                    travel_avoid_distance = std::max(travel_avoid_distance, extruder.settings.get<coord_t>("travel_avoid_distance"));
-                }
+                travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
             }
             return storage.getLayerOutlines(layer_nr, travel_avoid_supports).offset(travel_avoid_distance);
         }

@@ -176,11 +176,13 @@ public:
      * which to comb within layer parts.
      * \param offset_from_outlines The offset from the outline polygon, to
      * create the combing boundary in case there is no second wall.
+     * \param travel_avoid_distance The distance by which to avoid other layer
+     * parts when travelling through air.
      * \param move_inside_distance When using comb_boundary_inside_minimum for
      * combing it tries to move points inside by this amount after calculating
      * the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t move_inside_distance);
+    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t travel_avoid_distance, coord_t move_inside_distance);
 
     ~Comb();
 
