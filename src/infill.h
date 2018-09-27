@@ -239,8 +239,9 @@ private:
      * \param first_wall The outer wall from which to start
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
+     * \param offset_type The type of offsets to perform
      */
-    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
+    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value, ClipperLib::JoinType offset_type = ClipperLib::jtMiter);
 
     /*!
      * Generate a rectangular grid of infill lines
