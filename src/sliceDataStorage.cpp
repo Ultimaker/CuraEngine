@@ -70,11 +70,12 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-Polygons& SliceLayer::getInnermostWalls(int max_inset, const SliceMeshStorage& mesh) const
+Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const
 {
-    if (! innermost_walls_cache.empty())
+    const size_t cache_index = std::min(1U, max_inset - 1);
+    if (! innermost_walls_cache[cache_index].empty())
     {
-        return innermost_walls_cache;
+        return innermost_walls_cache[cache_index];
     }
 
     const coord_t half_line_width_0 = mesh.getSettingInMicrons("wall_line_width_0") / 2;
@@ -132,22 +133,22 @@ Polygons& SliceLayer::getInnermostWalls(int max_inset, const SliceMeshStorage& m
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
 
-                innermost_walls_cache.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                innermost_walls_cache[cache_index].add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
             }
             else
             {
                 // the 2nd wall is complete so use it verbatim
-                innermost_walls_cache.add(part.insets[1]);
+                innermost_walls_cache[cache_index].add(part.insets[1]);
             }
         }
         else
         {
             // fall back to using outer computed above
-            innermost_walls_cache.add(outer);
+            innermost_walls_cache[cache_index].add(outer);
         }
     }
 
-    return innermost_walls_cache;
+    return innermost_walls_cache[cache_index];
 }
 
 SliceMeshStorage::SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count)
