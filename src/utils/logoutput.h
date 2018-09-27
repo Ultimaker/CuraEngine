@@ -1,27 +1,59 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef LOGOUTPUT_H
 #define LOGOUTPUT_H
 
 namespace cura {
 
+/*
+ * \brief Increase verbosity level by 1.
+ */
 void increaseVerboseLevel();
+
+/*
+ * \brief Enable logging the current slicing progress to the log.
+ */
 void enableProgressLogging();
 
-//Report an error message (always reported, independed of verbose level)
+/*
+ * \brief Report an error message.
+ *
+ * This is always reported, regardless of verbosity level.
+ */
 void logError(const char* fmt, ...);
-//Report a warning message (always reported, independed of verbose level)
+
+/*
+ * \brief Report a warning message.
+ * 
+ * Always reported, regardless of verbosity level.
+ */
 void logWarning(const char* fmt, ...);
-//Report a message if the verbose level is 1 or higher. (defined as _log to prevent clash with log() function from <math.h>)
+
+/*
+ * \brief Report a message if the verbosity level is 1 or higher.
+ */
 void log(const char* fmt, ...);
-//Report an copyright message (always reported, independed of verbose level)
+
+/*
+ * \brief Log a message, regardless of verbosity level.
+ */
 void logAlways(const char* fmt, ...);
 
-//Report a message if the verbose level is 2 or higher. (defined as _log to prevent clash with log() function from <math.h>)
+/*
+ * \brief Log a debugging message.
+ *
+ * The message is only logged if the verbosity level is 2 or higher.
+ */
 void logDebug(const char* fmt, ...);
 
-//Report engine progress to interface if any. Only if "enableProgressLogging()" has been called.
+/*
+ * \brief Report the progress in the log.
+ *
+ * Only works if ``enableProgressLogging()`` has been called.
+ */
 void logProgress(const char* type, int value, int maxValue, float percent);
 
-}//namespace cura
+} //namespace cura
 
-#endif//LOGOUTPUT_H
+#endif //LOGOUTPUT_H

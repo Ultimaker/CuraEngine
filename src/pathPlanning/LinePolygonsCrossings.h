@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 #define PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 
@@ -33,18 +35,15 @@ private:
      */
     struct Crossing
     {
-        int64_t x; //!< x coordinate of crossings between the polygon and the scanline.
-        unsigned int point_idx; //!< The index of the first point of the line segment which crosses the scanline
+        coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
+        size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
         
         /*!
          * Creates a Crossing with minimal initialization
          * \param x The x-coordinate in transformed space
          * \param point_idx The index of the first point of the line segment which crosses the scanline
          */
-        Crossing(int64_t x, unsigned int point_idx)
-        : x(x), point_idx(point_idx)
-        {
-        }
+        Crossing(const coord_t x, const size_t point_idx);
     };
     
     /*!
@@ -52,20 +51,16 @@ private:
      */
     struct PolyCrossings
     {
-        unsigned int poly_idx; //!< The index of the polygon which crosses the scanline
+        const size_t poly_idx; //!< The index of the polygon which crosses the scanline
         Crossing min; //!< The point where the polygon first crosses the scanline.
         Crossing max; //!< The point where the polygon last crosses the scanline.
-        int n_crossings; //!< The number of times the polygon crossed the scanline.
+        size_t n_crossings; //!< The number of times the polygon crossed the scanline.
+
         /*!
          * Create a PolyCrossings with minimal initialization. PolyCrossings::min and PolyCrossings::max are not yet computed.
          * \param poly_idx The index of the polygon in LinePolygonsCrossings::boundary
          */
-        PolyCrossings(unsigned int poly_idx) 
-        : poly_idx(poly_idx)
-        , min(INT64_MAX, NO_INDEX), max(INT64_MIN, NO_INDEX) 
-        , n_crossings(0)
-        { 
-        }
+        PolyCrossings(const size_t poly_idx);
     };
 
     /*!
