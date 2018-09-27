@@ -23,7 +23,7 @@ void Cross3DTest::debugCheck()
 {
     coord_t line_width = 400;
     AABB3D aabb(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * 8);
-    AABB aabb2d = aabb.getAABB();
+    AABB aabb2d = aabb.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
     //aabb.expand(512);
     SVG bottom_svg("output/bottom.svg", aabb2d);

@@ -6,7 +6,6 @@
 #include "../utils/SVG.h"
 #include "../utils/string.h" // writing loan to svg
 #include "InfillFractal.h"
-#include "SubdivSquare.h"
 
 namespace cura
 {

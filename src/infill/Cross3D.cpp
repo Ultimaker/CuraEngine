@@ -201,6 +201,7 @@ void Cross3D::initialize()
     createTree();
     debugCheckDepths();
     debugCheckVolumeStats();
+    logDebug("Created Cross3D tree with %i nodes and max depth %i\n", cell_data.size(), max_depth);
 }
 
 
@@ -535,12 +536,12 @@ void Cross3D::subdivide(Cell& cell)
                     new_incoming_links.push_back(&*inlink);
                     new_outgoing_links.push_back(&*outlink);
                 }
-                
             }
 //             transferLoans(neighbor.getReverse(), new_incoming_links);
 //             transferLoans(neighbor, new_outgoing_links);
             neighboring_edge_links.erase(*neighbor.reverse);
         }
+        
         cell.adjacent_cells[side].clear();
         
     }

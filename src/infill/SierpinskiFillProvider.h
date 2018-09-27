@@ -8,6 +8,7 @@
 #include "../utils/optional.h"
 
 #include "SierpinskiFill.h"
+#include "Cross3D.h"
 #include "DensityProvider.h"
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
@@ -33,16 +34,22 @@ protected:
     struct FractalConfig
     {
         int depth; //!< max recursion depth
-        AABB aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
+        AABB3D aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
     };
 public:
     FractalConfig fractal_config;
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
+    std::optional<Cross3D> subdivision_structure_3d; //!< The 3D prism subdivision structure from which to generate the patterns with varying density across Z
+    std::optional<Cross3D::SliceWalker> slice_walker_cross3d; //!< An iterator which walks through the slices of the subdivision structure
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width);
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file);
+
+    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, bool this_constructor_is_for_cross3d);
+
+    SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file, bool this_constructor_is_for_cross3d);
 
     Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const;
 
@@ -50,8 +57,9 @@ public:
 protected:
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object
+     * \param make_3d Whether to include z in the calculations for the 3D pattern
      */
-    FractalConfig getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance);
+    FractalConfig getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance, bool make_3d);
 };
 } // namespace cura
 
