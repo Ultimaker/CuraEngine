@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_OPTIONAL_H
 #define UTILS_OPTIONAL_H
 
@@ -168,14 +170,7 @@ public:
     template<class U>
     constexpr bool operator==(const optional<U>& rhs)
     {
-        if (*this && rhs)
-        {
-            return **this == *rhs;
-        }
-        else
-        {
-            return static_cast<bool>(*this) == static_cast<bool>(rhs);
-        }
+        return (*this && rhs) ? (**this == *rhs) : (static_cast<bool>(*this) == static_cast<bool>(rhs));
     }
 };
 
