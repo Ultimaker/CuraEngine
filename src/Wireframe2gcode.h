@@ -1,20 +1,20 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef WIREFRAME2GCODE_H
 #define WIREFRAME2GCODE_H
 
 
 #include <functional> // passing function pointer or lambda as argument to a function
 
-#include "utils/NoCopy.h"
-
-#include "weaveDataStorage.h"
-#include "commandSocket.h"
-#include "settings/settings.h"
-
 #include "MeshGroup.h"
+#include "settings/Settings.h"
 #include "slicer.h"
-
-#include "utils/polygon.h"
+#include "weaveDataStorage.h"
 #include "Weaver.h"
+#include "settings/types/AngleRadians.h" //For the nozzle expansion angle setting.
+#include "utils/polygon.h"
+#include "utils/NoCopy.h"
 
 namespace cura
 {
@@ -22,53 +22,53 @@ namespace cura
 /*!
  * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.
  */
-class Wireframe2gcode : public SettingsMessenger, NoCopy
+class Wireframe2gcode : public NoCopy
 {
 private:
     static const int STRATEGY_COMPENSATE = 0;
     static const int STRATEGY_KNOT = 1;
     static const int STRATEGY_RETRACT = 2;
     
-    int initial_layer_thickness;
-    int filament_diameter;
-    int line_width;
-    double flowConnection;
-    double flowFlat; 
+    coord_t initial_layer_thickness;
+    coord_t filament_diameter;
+    coord_t line_width;
+    Ratio flowConnection;
+    Ratio flowFlat;
     double extrusion_mm3_per_mm_connection;
     double extrusion_mm3_per_mm_flat;
     bool update_extrusion_offset;
-    int nozzle_outer_diameter;
-    int nozzle_head_distance;
-    double nozzle_expansion_angle;
-    int nozzle_clearance;
-    int nozzle_top_diameter;
-    double moveSpeed;
-    double speedBottom;
-    double speedUp;
-    double speedDown;
-    double speedFlat;
-    int connectionHeight;
-    int roof_inset;
-    double flat_delay;
-    double bottom_delay;
-    double top_delay;
-    int up_dist_half_speed;
-    int top_jump_dist;
-    int fall_down;
-    int drag_along;
+    coord_t nozzle_outer_diameter;
+    coord_t nozzle_head_distance;
+    AngleRadians nozzle_expansion_angle;
+    coord_t nozzle_clearance;
+    coord_t nozzle_top_diameter;
+    Velocity moveSpeed;
+    Velocity speedBottom;
+    Velocity speedUp;
+    Velocity speedDown;
+    Velocity speedFlat;
+    coord_t connectionHeight;
+    coord_t roof_inset;
+    Duration flat_delay;
+    Duration bottom_delay;
+    Duration top_delay;
+    coord_t up_dist_half_speed;
+    coord_t top_jump_dist;
+    coord_t fall_down;
+    coord_t drag_along;
     int strategy;
-    double go_back_to_last_top;
-    int straight_first_when_going_down;
-    int roof_fall_down;
-    int roof_drag_along;
-    double roof_outer_delay;
+    bool go_back_to_last_top;
+    Ratio straight_first_when_going_down;
+    coord_t roof_fall_down;
+    coord_t roof_drag_along;
+    Duration roof_outer_delay;
     
     RetractionConfig standard_retraction_config; //!< The standard retraction settings used for moves between parts etc.
     
 public:
     GCodeExport& gcode; //!< Where the result is 'stored'
     
-    Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
+    Wireframe2gcode(Weaver& weaver, GCodeExport& gcode);
     
     void writeGCode();
 

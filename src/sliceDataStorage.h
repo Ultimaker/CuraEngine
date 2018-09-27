@@ -4,18 +4,20 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "utils/IntPoint.h"
-#include "utils/optional.h"
-#include "utils/polygon.h"
-#include "utils/NoCopy.h"
-#include "utils/AABB.h"
+#include "gcodeExport.h" // CoastingConfig
 #include "mesh.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
-#include "TopSurface.h"
-#include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
+#include "TopSurface.h"
 #include "infill/SierpinskiFillProvider.h"
+#include "settings/types/AngleDegrees.h" //Infill angles.
+#include "settings/types/LayerIndex.h"
+#include "utils/AABB.h"
+#include "utils/IntPoint.h"
+#include "utils/NoCopy.h"
+#include "utils/optional.h"
+#include "utils/polygon.h"
 
 namespace cura 
 {
@@ -140,8 +142,8 @@ public:
 class SliceLayer
 {
 public:
-    int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
-    int thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
+    coord_t printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
+    coord_t thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
@@ -221,17 +223,17 @@ public:
 
 class SubDivCube; // forward declaration to prevent dependency loop
 
-class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
+class SliceMeshStorage
 {
 public:
-    SliceDataStorage *p_slice_data_storage;
+    Settings& settings;
     std::vector<SliceLayer> layers;
 
-    int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
+    LayerIndex layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
-    std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
-    std::vector<int> roofing_angles; //!< a list of angle values (in degrees) which is cycled through to determine the roofing angle of each layer
-    std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
+    std::vector<AngleDegrees> infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
+    std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Polygons> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
     std::vector<Polygons> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the areas of the next layers.
     std::vector<std::vector<Polygons>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area, such as a corner pointing downwards.
@@ -240,7 +242,14 @@ public:
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
-    SliceMeshStorage(SliceDataStorage* p_slice_data_storage, Mesh* mesh, unsigned int slice_layer_count);
+    /*!
+     * \brief Creates a storage space for slice results of a mesh.
+     * \param mesh The mesh that the storage space belongs to.
+     * \param slice_layer_count How many layers are needed to store the slice
+     * results of the mesh. This needs to be at least as high as the highest
+     * layer that contains a part of the mesh.
+     */
+    SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count);
 
     virtual ~SliceMeshStorage();
 
@@ -248,14 +257,14 @@ public:
      * \param extruder_nr The extruder for which to check
      * \return whether a particular extruder is used by this mesh
      */
-    bool getExtruderIsUsed(int extruder_nr) const;
+    bool getExtruderIsUsed(const size_t extruder_nr) const;
 
     /*!
      * \param extruder_nr The extruder for which to check
      * \param layer_nr the layer for which to check
      * \return whether a particular extruder is used by this mesh on a particular layer
      */
-    bool getExtruderIsUsed(int extruder_nr, int layer_nr) const;
+    bool getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const;
 
     /*!
      * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
@@ -270,11 +279,9 @@ public:
     Point getZSeamHint() const;
 };
 
-class SliceDataStorage : public SettingsMessenger, NoCopy
+class SliceDataStorage : public NoCopy
 {
 public:
-    MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
-
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
@@ -283,8 +290,6 @@ public:
 
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
-
-    std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
 
     SupportStorage support;
 
@@ -305,15 +310,9 @@ public:
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
-     * specified mesh group.
-     * 
-     * It will obtain the settings from the mesh group too. The mesh group is
-     * not yet sliced in this constructor. If no mesh group is provided, an
-     * empty one will be created.
-     * 
-     * \param meshgroup The mesh group to load into this data storage, if any.
+     * current mesh group.
      */
-    SliceDataStorage(MeshGroup* meshgroup);
+    SliceDataStorage();
 
     ~SliceDataStorage()
     {
@@ -326,17 +325,7 @@ public:
      * \param include_helper_parts whether to include support and prime tower
      * \param external_polys_only whether to disregard all hole polygons
      */
-    Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
-
-    /*!
-     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * 
-     * For helper parts the outlines are used.
-     * 
-     * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
-     * \param include_helper_parts whether to include support and prime tower
-     */
-    Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
 
     /*!
      * Get the extruders used.
@@ -352,7 +341,7 @@ public:
      * \param layer_nr the layer for which to check
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed(int layer_nr) const;
+    std::vector<bool> getExtrudersUsed(LayerIndex layer_nr) const;
 
     /*!
      * Gets whether prime blob is enabled for the given extruder number.
@@ -360,7 +349,7 @@ public:
      * \param extruder_nr the extruder number to check.
      * \return a bool indicating whether prime blob is enabled for the given extruder number.
      */
-    bool getExtruderPrimeBlobEnabled(const unsigned int extruder_nr) const;
+    bool getExtruderPrimeBlobEnabled(const size_t extruder_nr) const;
 
 private:
     /*!

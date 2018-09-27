@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "mesh.h"
@@ -17,8 +17,15 @@ static inline uint32_t pointHash(const Point3& p)
     return ((p.x + vertex_meld_distance/2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance/2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance/2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(SettingsBaseVirtual* parent)
-: SettingsBase(parent)
+Mesh::Mesh(Settings& parent)
+: settings(parent)
+, has_disconnected_faces(false)
+, has_overlapping_faces(false)
+{
+}
+
+Mesh::Mesh()
+: settings()
 , has_disconnected_faces(false)
 , has_overlapping_faces(false)
 {
