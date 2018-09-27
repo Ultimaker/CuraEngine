@@ -36,21 +36,21 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             SupportLayer& support_layer = storage.support.supportLayers[0];
             if (train.settings.get<bool>("brim_replaces_support"))
             {
-            // avoid gap in the middle
-            //    V
-            //  +---+     +----+
-            //  |+-+|     |+--+|
-            //  || ||     ||[]|| > expand to fit an extra brim line
-            //  |+-+|     |+--+|
-            //  +---+     +----+ 
-            const coord_t primary_extruder_skirt_brim_line_width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
-            Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
-            if (external_only)
-            { // don't remove support within empty holes where no brim is generated.
-                model_brim_covered_area.add(first_layer_empty_holes);
-            }
-            AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
-            support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
+                // avoid gap in the middle
+                //    V
+                //  +---+     +----+
+                //  |+-+|     |+--+|
+                //  || ||     ||[]|| > expand to fit an extra brim line
+                //  |+-+|     |+--+|
+                //  +---+     +----+
+                const coord_t primary_extruder_skirt_brim_line_width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
+                Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+                if (external_only)
+                { // don't remove support within empty holes where no brim is generated.
+                    model_brim_covered_area.add(first_layer_empty_holes);
+                }
+                AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
+                support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
             }
             for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
             {
