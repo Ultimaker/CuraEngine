@@ -236,7 +236,35 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    const Polygons* outline = &in_outline;
+    Polygons outline_recomputed;
+    coord_t outline_offset_used;
+    if (speckle_density > 0.0)
+    {
+        Polygons speckles;
+        AABB aabb(in_outline);
+        Point aabb_size = aabb.max - aabb.min;
+        float area = INT2MM2(aabb_size.X * aabb_size.Y);
+        uint_fast64_t speckle_count = speckle_density * area;
+        for (uint_fast8_t speckle_nr = 0; speckle_nr < speckle_count; speckle_nr++)
+        {
+            PolygonRef speckle = speckles.newPoly();
+            Point loc = Point(rand() % aabb_size.X, rand() % aabb_size.Y) + aabb.min;
+            speckle.add(loc);
+            speckle.add(loc + Point(2,0));
+            speckle.add(loc + Point(2,2));
+            speckle.add(loc + Point(0,2));
+        }
+        outline_recomputed = in_outline.offset(outline_offset).difference(speckles);
+        outline = &outline_recomputed;
+        outline_offset_used = 0;
+    }
+    else
+    {
+        outline_offset_used = outline_offset;
+    }
+
+    Polygons first_concentric_wall = outline->offset(outline_offset_used + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
     if (perimeter_gaps)
     {
