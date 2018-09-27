@@ -1,7 +1,8 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "progress/Progress.h"
 
 #include "utils/SVG.h" // debug output
@@ -20,10 +21,11 @@ It's also the first step that stores the result in the "data storage" so all oth
 
 namespace cura {
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool union_layers, bool union_all_remove_holes)
+void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
     storageLayer.openPolyLines = layer->openPolylines;
 
+    const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
     if (union_all_remove_holes)
     {
         for(unsigned int i=0; i<layer->polygons.size(); i++)
@@ -34,6 +36,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
     }
     
     std::vector<PolygonsPart> result;
+    const bool union_layers = settings.get<bool>("meshfix_union_all");
     result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     for(unsigned int i=0; i<result.size(); i++)
     {
@@ -42,22 +45,22 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
+void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
-#pragma omp parallel for default(none) shared(mesh,slicer) firstprivate(union_layers,union_all_remove_holes) schedule(dynamic)
+#pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
     for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
         SlicerLayer& slice_layer = slicer->layers[layer_nr];
-        createLayerWithParts(layer_storage, &slice_layer, union_layers, union_all_remove_holes);
+        createLayerWithParts(mesh.settings, layer_storage, &slice_layer);
     }
 
-    for (unsigned int layer_nr = total_layers - 1; static_cast<int>(layer_nr) != -1; layer_nr--)
+    for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
-        if (layer_storage.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.openPolyLines.size() > 0) )
+        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.openPolyLines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             break;

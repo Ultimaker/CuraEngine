@@ -41,17 +41,23 @@ public:
     {
         static constexpr Node* NO_PARENT = nullptr;
 
-        Node() :
-            position(Point(0, 0)),
-            distance_to_top(0),
-            skin_direction(false),
-            support_roof_layers_below(0),
-            to_buildplate(true),
-            parent(nullptr)
+        Node()
+         : distance_to_top(0)
+         , position(Point(0, 0))
+         , skin_direction(false)
+         , support_roof_layers_below(0)
+         , to_buildplate(true)
+         , parent(nullptr)
         {}
 
         Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate, Node* const parent)
-         : distance_to_top(distance_to_top), position(position), skin_direction(skin_direction), support_roof_layers_below(support_roof_layers_below), to_buildplate(to_buildplate), parent(parent) {}
+         : distance_to_top(distance_to_top)
+         , position(position)
+         , skin_direction(skin_direction)
+         , support_roof_layers_below(support_roof_layers_below)
+         , to_buildplate(to_buildplate)
+         , parent(parent)
+        {}
 
         /*!
          * \brief The number of layers to go to the top of this branch.
@@ -161,7 +167,6 @@ private:
      * causes them to move towards each other as they are copied to lower layers
      * which ultimately results in a 3D tree.
      *
-     * \param storage The settings storage to get settings from.
      * \param contact_nodes[in, out] The nodes in the space that need to be
      * dropped down. The nodes are dropped to lower layers inside the same
      * vector of layers.
@@ -175,7 +180,7 @@ private:
      * with the polygons that must be avoided if the branches wish to go towards
      * the model.
      */
-    void dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
+    void dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
 
     /*!
      * \brief Creates points where support contacts the model.

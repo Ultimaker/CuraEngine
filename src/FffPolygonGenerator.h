@@ -1,17 +1,16 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FFF_AREA_GENERATOR_H
-#define FFF_AREA_GENERATOR_H
+#ifndef FFF_POLYGON_GENERATOR_H
+#define FFF_POLYGON_GENERATOR_H
 
 
 #include "MeshGroup.h"
 #include "utils/polygonUtils.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "commandSocket.h"
 #include "PrintFeature.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
@@ -28,17 +27,9 @@ namespace cura
  * 
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public SettingsMessenger, NoCopy
+class FffPolygonGenerator : public NoCopy
 {
 public:
-    /*!
-     * Basic constructor
-     */
-    FffPolygonGenerator(SettingsBase* settings_)
-    : SettingsMessenger(settings_)
-    {
-    }
-
     /*!
      * Slice the \p object, process the outline information into inset perimeter polygons, support area polygons, etc. 
      * 
@@ -60,7 +51,7 @@ private:
      * of the draft shield if the limit is FULL.
      * \return The actual height of the draft shield.
      */
-    unsigned int getDraftShieldLayerCount(unsigned int total_layers) const;
+    size_t getDraftShieldLayerCount(const size_t total_layers) const;
 
     /*!
      * Slice the \p object and store the outlines in the \p storage.
@@ -89,7 +80,7 @@ private:
      * \param mesh_order The order in which the meshes are processed (used for infill meshes)
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
-    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
+    void processBasicWallsSkinInfill(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate);
 
     /*!
      * Generate areas for the gaps between outer wall and the outline where the first wall doesn't fit.
@@ -114,7 +105,7 @@ private:
      * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed
      */
-    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order);
+    void processInfillMesh(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order);
     
     /*!
      * Process features which are derived from the basic walls, skin, and infill:
@@ -135,15 +126,14 @@ private:
     bool isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx);
     
     /*!
-     * Remove all bottom layers which are empty.
+     * \brief Remove all bottom layers which are empty.
      * 
      * \warning Changes \p total_layers
      * 
-     * \param storage Input and Ouput parameter: stores all layers
-     * \param layer_height The height of each layer
-     * \param total_layers The total number of layers
+     * \param[in, out] storage Stores all layers.
+     * \param[in, out] total_layers The total number of layers.
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, size_t& total_layers);
+    void removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers);
 
     /*!
      * Set \ref SliceDataStorage::max_print_height_per_extruder and \ref SliceDataStorage::max_print_height_order and \ref SliceDataStorage::max_print_height_second_to_last_extruder
@@ -153,12 +143,10 @@ private:
     void computePrintHeightStatistics(SliceDataStorage& storage);
 
     /*!
-     * Generate the inset polygons which form the walls.
-     * \param[in] storage extruder train storage
-     * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \brief Generate the inset polygons which form the walls.
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processInsets(const SliceDataStorage& storage, SliceMeshStorage& mesh, unsigned int layer_nr);
+    void processInsets(SliceMeshStorage& mesh, size_t layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.
@@ -168,12 +156,11 @@ private:
 
     /*!
      * Generate the skin areas.
-     * \param[in] storage extruder train storage
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(const SliceDataStorage& storage, SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill);
+    void processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.
@@ -198,8 +185,8 @@ private:
      * \param[in,out] mesh where the outer wall is retrieved and stored in.
      */
     void processFuzzyWalls(SliceMeshStorage& mesh);
-
-
 };
+
 }//namespace cura
-#endif // FFF_AREA_GENERATOR_H
+
+#endif //FFF_POLYGON_GENERATOR_H

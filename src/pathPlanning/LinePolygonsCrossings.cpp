@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "LinePolygonsCrossings.h"
 
 #include <algorithm>
@@ -9,10 +11,21 @@
 
 namespace cura {
 
+LinePolygonsCrossings::Crossing::Crossing(const coord_t x, const size_t point_idx)
+: x(x)
+, point_idx(point_idx)
+{
+}
+
+LinePolygonsCrossings::PolyCrossings::PolyCrossings(const size_t poly_idx)
+: poly_idx(poly_idx)
+, min(std::numeric_limits<coord_t>::max(), NO_INDEX), max(std::numeric_limits<coord_t>::min(), NO_INDEX)
+, n_crossings(0)
+{
+}
 
 bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obstacles)
 {
-    
     min_crossing_idx = NO_INDEX;
     max_crossing_idx = NO_INDEX;
 
@@ -31,7 +44,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
                     p0 = p1;
                     continue;
                 }
-                int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y); // intersection point between line segment and the scanline
+                const coord_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y); // intersection point between line segment and the scanline
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
