@@ -61,7 +61,7 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
         const int32_t extruder_nr = extruder_message.id(); //Cast from proto::int to int32_t!
         if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
         {
-            logWarning("Received extruder index that is out of range: %i", extruder_nr);
+            logWarning("Received extruder index that is out of range: %i\n", extruder_nr);
             continue;
         }
         ExtruderTrain& extruder = slice->scene.extruders[extruder_nr]; //Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
