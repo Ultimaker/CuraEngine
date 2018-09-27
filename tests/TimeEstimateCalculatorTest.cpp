@@ -7,10 +7,14 @@
 
 namespace cura
 {
+void TimeEstimateCalculatorTest::setUp()
+{
+    //Reset the calculator, but not by using its reset() function. That would be broken if the reset() function is broken.
+    calculator = TimeEstimateCalculator();
+}
 
 void TimeEstimateCalculatorTest::startWithZero()
 {
-    TimeEstimateCalculator calculator;
     std::vector<Duration> result = calculator.calculate();
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes), result.size());

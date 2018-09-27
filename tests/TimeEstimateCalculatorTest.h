@@ -23,9 +23,20 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
 
 public:
     /*
+     * \brief Resets the fixtures for a new test.
+     */
+    void setUp();
+
+    /*
      * \brief Tests whether the calculator starts with an estimate of 0 seconds.
      */
     void startWithZero();
+
+private:
+    /*
+     * Fixture calculator that starts without any time or moves planned.
+     */
+    TimeEstimateCalculator calculator;
 };
 
 } //namespace cura
