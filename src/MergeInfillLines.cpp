@@ -1,13 +1,16 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/linearAlg2D.h" //Distance from point to line.
+#include "Application.h" //To get settings.
 #include "MergeInfillLines.h"
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {
-
-    MergeInfillLines::MergeInfillLines(ExtruderPlan& plan, const coord_t nozzle_size, const coord_t maximum_resolution) : extruder_plan(plan), nozzle_size(nozzle_size), maximum_resolution(maximum_resolution)
+MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
+: extruder_plan(plan)
+, nozzle_size(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("machine_nozzle_size"))
+, maximum_resolution(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("meshfix_maximum_resolution"))
     {
         //Just copy the parameters to their fields.
     }

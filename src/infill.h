@@ -5,7 +5,8 @@
 #define INFILL_H
 
 #include "utils/polygon.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
+#include "settings/types/AngleDegrees.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SubDivCube.h"
@@ -28,17 +29,17 @@ class Infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
     coord_t infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
-    int infill_multiplier; //!< the number of infill lines next to each other
-    double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
+    size_t infill_multiplier; //!< the number of infill lines next to each other
+    AngleDegrees fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z; //!< height of the layer for which we generate infill
     coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
-    int wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
+    size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
-    int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
+    size_t zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     coord_t minimum_zag_line_length; //!< Throw away perimeters that are too small
 
@@ -60,17 +61,17 @@ public:
         , coord_t infill_line_width
         , coord_t line_distance
         , coord_t infill_overlap
-        , int infill_multiplier
-        , double fill_angle
+        , size_t infill_multiplier
+        , AngleDegrees fill_angle
         , coord_t z
         , coord_t shift
-        , int wall_line_count = 0
+        , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
-        , int zag_skip_count = 0
+        , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
         , coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD
     )

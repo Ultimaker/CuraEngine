@@ -67,7 +67,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
 
     // generate walls around infill pattern
-    for (int wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
+    for (size_t wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
     {
         const coord_t distance_from_outline_to_wall = outline_offset_raw - infill_line_width / 2 - wall_idx * infill_line_width;
         result_polygons.add(in_outline.offset(distance_from_outline_to_wall));
@@ -190,7 +190,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     }
     result.add(first_offset);
     Polygons reference_polygons = first_offset;
-    for (int infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
+    for (size_t infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
     {
         Polygons extra_offset = reference_polygons.offset(-infill_line_width);
         result.add(extra_offset);

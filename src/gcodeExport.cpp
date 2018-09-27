@@ -1,10 +1,12 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
 
+#include "Application.h" //To send layer view data.
+#include "communication/Communication.h" //To send layer view data.
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
 #include "PrintFeature.h"
@@ -12,8 +14,6 @@
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura {
-
-double layer_height; //!< report basic layer height in RepRap gcode file.
 
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
@@ -26,7 +26,7 @@ GCodeExport::GCodeExport()
     current_extruder = 0;
     current_fan_speed = -1;
 
-    total_print_times = std::vector<double>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
     currentSpeed = 1;
     current_print_acceleration = -1;
@@ -34,9 +34,8 @@ GCodeExport::GCodeExport()
     current_jerk = -1;
     current_max_z_feedrate = -1;
 
-    isZHopped = 0;
+    is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
-    firmware_retract = false;
     initial_bed_temp = 0;
 
     extruder_count = 0;
@@ -50,42 +49,27 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(const MeshGroup* meshgroup)
+void GCodeExport::preSetup()
 {
-    setFlavor(meshgroup->getSettingAsGCodeFlavor("machine_gcode_flavor"));
-    firmware_retract = meshgroup->getSettingBoolean("machine_firmware_retract");
-    use_extruder_offset_to_offset_coords = meshgroup->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
+    setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
+    use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
+    extruder_count = Application::getInstance().current_slice->scene.extruders.size();
 
-    extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
-
-    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+        setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter"));
 
-        extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
-        extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-        extruder_attr[extruder_nr].use_temp = train->getSettingBoolean("machine_nozzle_temp_enabled");
-        extruder_attr[extruder_nr].is_prime_blob_enabled = train->getSettingBoolean("prime_blob_enable");
-
-        extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-        extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-        extruder_attr[extruder_nr].material_guid = train->getSettingString("material_guid");
-
-        extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
-        extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
-
-        extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        extruder_attr[extruder_nr].nozzle_id = train->getSettingString("machine_nozzle_id");  // nozzle types are "AA 0.4", "BB 0.8", "unknown", etc.
-        extruder_attr[extruder_nr].fan_number = train->getSettingAsCount("machine_extruder_cooling_fan_number");
+        extruder_attr[extruder_nr].last_retraction_prime_speed = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].fan_number = train.settings.get<coord_t>("machine_extruder_cooling_fan_number");
     }
 
-    machine_name = meshgroup->getSettingString("machine_name");
-    machine_buildplate_type = meshgroup->getSettingString("machine_buildplate_type");
+    machine_name = mesh_group->settings.get<std::string>("machine_name");
+    machine_buildplate_type = mesh_group->settings.get<std::string>("machine_buildplate_type");
 
-    layer_height = meshgroup->getSettingInMillimeters("layer_height");
-
-    relative_extrusion = meshgroup->getSettingBoolean("relative_extrusion");
+    relative_extrusion = mesh_group->settings.get<bool>("relative_extrusion");
 
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -99,32 +83,33 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     // initialize current_max_z_feedrate to firmware defaults
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
-        if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") <= 0.0)
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+        if (train.settings.get<Velocity>("max_feedrate_z_override") <= 0.0)
         {
             // only initialize if firmware default for z feedrate is used by any extruder
             // that way we don't omit the M203 if Cura thinks the firmware is already at that feedrate, but it isn't the case
-            current_max_z_feedrate = meshgroup->getSettingInMillimetersPerSecond("machine_max_feedrate_z");
+            current_max_z_feedrate = mesh_group->settings.get<Velocity>("machine_max_feedrate_z");
             break;
         }
     }
 
-    estimateCalculator.setFirmwareDefaults(meshgroup);
+    estimateCalculator.setFirmwareDefaults(mesh_group->settings);
 }
 
-void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr)
+void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
 {
-    for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
-        
-        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-        double temp = (extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
-        setInitialTemp(extr_nr, temp);
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+
+        const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
+        const Temperature print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
+        const Temperature temp = (extruder_nr == start_extruder_nr)? print_temp_here : train.settings.get<Temperature>("material_standby_temperature");
+        setInitialTemp(extruder_nr, temp);
     }
 
-    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature_layer_0");
+    initial_bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -136,8 +121,33 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
     }
 }
 
+const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
+{
+    switch (flavor)
+    {
+        case EGCodeFlavor::BFB:
+            return "BFB";
+        case EGCodeFlavor::MACH3:
+            return "Mach3";
+        case EGCodeFlavor::MAKERBOT:
+            return "Makerbot";
+        case EGCodeFlavor::ULTIGCODE:
+            return "UltiGCode";
+        case EGCodeFlavor::MARLIN_VOLUMATRIC:
+            return "Marlin(Volumetric)";
+        case EGCodeFlavor::GRIFFIN:
+            return "Griffin";
+        case EGCodeFlavor::REPETIER:
+            return "Repetier";
+        case EGCodeFlavor::REPRAP:
+            return "RepRap";
+        case EGCodeFlavor::MARLIN:
+        default:
+            return "Marlin";
+    }
+}
 
-std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
 
@@ -146,13 +156,13 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
     case EGCodeFlavor::GRIFFIN:
         prefix << ";START_OF_HEADER" << new_line;
         prefix << ";HEADER_VERSION:0.1" << new_line;
-        prefix << ";FLAVOR:" << toString(flavor) << new_line;
+        prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
         prefix << ";TARGET_MACHINE.NAME:" << machine_name << new_line;
 
-        for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+        for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
             if (!extruder_is_used[extr_nr])
             {
@@ -167,9 +177,9 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             {
                 prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line;
             }
-            const float nozzle_size = float(INT2MM(getNozzleSize(extr_nr)));
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << nozzle_size << new_line;
-            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_attr[extr_nr].nozzle_id << new_line;
+            const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extr_nr].settings;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << extruder_settings.get<double>("machine_nozzle_size") << new_line;
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_settings.get<std::string>("machine_nozzle_id") << new_line;
         }
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
@@ -194,15 +204,14 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";END_OF_HEADER" << new_line;
         break;
     default:
-        prefix << ";FLAVOR:" << toString(flavor) << new_line;
+        prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
         prefix << ";TIME:" << ((print_time)? static_cast<int>(*print_time) : 6666) << new_line;
         if (flavor == EGCodeFlavor::ULTIGCODE)
         {
             prefix << ";MATERIAL:" << ((filament_used.size() >= 1)? static_cast<int>(filament_used[0]) : 6666) << new_line;
             prefix << ";MATERIAL2:" << ((filament_used.size() >= 2)? static_cast<int>(filament_used[1]) : 0) << new_line;
 
-            prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
-            // TODO: the second nozzle size isn't always initiated! ";NOZZLE_DIAMETER2:"
+            prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice->scene.extruders[0].settings.get<double>("machine_nozzle_size") << new_line;
         }
         else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN)
         {
@@ -223,7 +232,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 prefix << "0m";
             }
             prefix << new_line;
-            prefix << ";Layer height: " << layer_height << new_line;
+            prefix << ";Layer height: " << Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height") << new_line;
         }
     }
 
@@ -248,30 +257,17 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     return extruder_attr[extruder_nr].is_used;
 }
 
-bool GCodeExport::getExtruderUsesTemp(const int extruder_nr) const
+Point GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
 {
-    return extruder_attr[extruder_nr].use_temp;
-}
-
-int GCodeExport::getNozzleSize(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].nozzle_size;
-}
-
-Point GCodeExport::getExtruderOffset(const int id) const
-{
-    return extruder_attr[id].nozzle_offset;
-}
-
-std::string GCodeExport::getMaterialGUID(const int extruder_nr) const
-{
-    return extruder_attr[extruder_nr].material_guid;
-}
-
-Point GCodeExport::getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const
-{
-    if (use_extruder_offset_to_offset_coords) { return Point(x,y) - getExtruderOffset(extruder_train); }
-    else { return Point(x,y); }
+    if (use_extruder_offset_to_offset_coords)
+    {
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_train].settings;
+        return Point(x - extruder_settings.get<coord_t>("machine_nozzle_offset_x"), y - extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+    }
+    else
+    {
+        return Point(x, y);
+    }
 }
 
 
@@ -279,11 +275,19 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor = flavor;
     if (flavor == EGCodeFlavor::MACH3)
+    {
         for(int n=0; n<MAX_EXTRUDERS; n++)
+        {
             extruder_attr[n].extruderCharacter = 'A' + n;
+        }
+    }
     else
+    {
         for(int n=0; n<MAX_EXTRUDERS; n++)
+        {
             extruder_attr[n].extruderCharacter = 'E';
+        }
+    }
     if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
         is_volumatric = true;
@@ -296,12 +300,12 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
 
 EGCodeFlavor GCodeExport::getFlavor() const
 {
-    return this->flavor;
+    return flavor;
 }
 
 void GCodeExport::setZ(int z)
 {
-    this->current_layer_z = z;
+    current_layer_z = z;
 }
 
 void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor)
@@ -329,17 +333,18 @@ int GCodeExport::getExtruderNr() const
     return current_extruder;
 }
 
-void GCodeExport::setFilamentDiameter(unsigned int extruder, int diameter)
+void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diameter)
 {
-    double r = INT2MM(diameter) / 2.0;
-    double area = M_PI * r * r;
+    const double r = INT2MM(diameter) / 2.0;
+    const double area = M_PI * r * r;
     extruder_attr[extruder].filament_area = area;
 }
 
 double GCodeExport::getCurrentExtrudedVolume() const
 {
     double extrusion_amount = current_e_value;
-    if (!firmware_retract)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if (!extruder_settings.get<bool>("machine_firmware_retract"))
     { // no E values are changed to perform a retraction
         extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
         extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
@@ -391,14 +396,14 @@ double GCodeExport::mmToE(double mm)
 }
 
 
-double GCodeExport::getTotalFilamentUsed(int extruder_nr)
+double GCodeExport::getTotalFilamentUsed(size_t extruder_nr)
 {
     if (extruder_nr == current_extruder)
         return extruder_attr[extruder_nr].totalFilament + getCurrentExtrudedVolume();
     return extruder_attr[extruder_nr].totalFilament;
 }
 
-std::vector<double> GCodeExport::getTotalPrintTimePerFeature()
+std::vector<Duration> GCodeExport::getTotalPrintTimePerFeature()
 {
     return total_print_times;
 }
@@ -431,7 +436,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
 
 void GCodeExport::updateTotalPrintTime()
 {
-    std::vector<double> estimates = estimateCalculator.calculate();
+    std::vector<Duration> estimates = estimateCalculator.calculate();
     for(size_t i = 0; i < estimates.size(); i++)
     {
         total_print_times[i] += estimates[i];
@@ -539,32 +544,32 @@ void GCodeExport::resetExtrusionValue()
     extruder_attr[current_extruder].retraction_e_amount_at_e_start = extruder_attr[current_extruder].retraction_e_amount_current;
 }
 
-void GCodeExport::writeDelay(double timeAmount)
+void GCodeExport::writeDelay(const Duration& time_amount)
 {
-    *output_stream << "G4 P" << int(timeAmount * 1000) << new_line;
-    estimateCalculator.addTime(timeAmount);
+    *output_stream << "G4 P" << int(time_amount * 1000) << new_line;
+    estimateCalculator.addTime(time_amount);
 }
 
-void GCodeExport::writeTravel(Point p, double speed)
+void GCodeExport::writeTravel(const Point& p, const Velocity& speed)
 {
     writeTravel(Point3(p.X, p.Y, current_layer_z), speed);
 }
-void GCodeExport::writeExtrusion(Point p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     writeExtrusion(Point3(p.X, p.Y, current_layer_z), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExport::writeTravel(Point3 p, double speed)
+void GCodeExport::writeTravel(const Point3& p, const Velocity& speed)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        writeMoveBFB(p.x, p.y, p.z + isZHopped, speed, 0.0, PrintFeatureType::MoveCombing);
+        writeMoveBFB(p.x, p.y, p.z + is_z_hopped, speed, 0.0, PrintFeatureType::MoveCombing);
         return;
     }
-    writeTravel(p.x, p.y, p.z + isZHopped, speed);
+    writeTravel(p.x, p.y, p.z + is_z_hopped, speed);
 }
 
-void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -574,7 +579,7 @@ void GCodeExport::writeExtrusion(Point3 p, double speed, double extrusion_mm3_pe
     writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (std::isinf(extrusion_mm3_per_mm))
     {
@@ -638,10 +643,12 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
 }
 
-void GCodeExport::writeTravel(int x, int y, int z, double speed)
+void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t& z, const Velocity& speed)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
+    {
         return;
+    }
 
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 400 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
@@ -652,16 +659,19 @@ void GCodeExport::writeTravel(int x, int y, int z, double speed)
 
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
-    CommandSocket::sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
+    const double layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height");
+    Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
     *output_stream << "G0";
     writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
 }
 
-void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
+    {
         return;
+    }
 
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 400 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
@@ -692,7 +702,7 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
-    if (isZHopped > 0)
+    if (is_z_hopped > 0)
     {
         writeZhopEnd();
     }
@@ -703,14 +713,17 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
 
     //flow rate compensation
     double extrusion_offset = 0;
-    if (diff.vSizeMM()) {
+    if (diff.vSizeMM())
+    {
         extrusion_offset = speed * extrusion_mm3_per_mm * extrusion_offset_factor;
-        if (extrusion_offset > max_extrusion_offset) {
+        if (extrusion_offset > max_extrusion_offset)
+        {
             extrusion_offset = max_extrusion_offset;
         }
     }
     // write new value of extrusion_offset, which will be remembered.
-    if ((update_extrusion_offset) && (extrusion_offset != current_e_offset)) {
+    if (update_extrusion_offset && (extrusion_offset != current_e_offset))
+    {
         current_e_offset = extrusion_offset;
         *output_stream << ";FLOW_RATE_COMPENSATED_OFFSET = " << current_e_offset << new_line;
     }
@@ -721,7 +734,7 @@ void GCodeExport::writeExtrusion(int x, int y, int z, double speed, double extru
     writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
-void GCodeExport::writeFXYZE(double speed, int x, int y, int z, double e, PrintFeatureType feature)
+void GCodeExport::writeFXYZE(const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature)
 {
     if (currentSpeed != speed)
     {
@@ -756,7 +769,8 @@ void GCodeExport::writeUnretractionAndPrime()
     current_e_value += prime_volume_e;
     if (extruder_attr[current_extruder].retraction_e_amount_current)
     {
-        if (firmware_retract)
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+        if (extruder_settings.get<bool>("machine_firmware_retract"))
         { // note that BFB is handled differently
             *output_stream << "G11" << new_line;
             //Assume default UM2 retraction settings.
@@ -820,7 +834,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     { // handle retraction limitation
         double current_extruded_volume = getCurrentExtrudedVolume();
         std::deque<double>& extruded_volume_at_previous_n_retractions = extr_attr.extruded_volume_at_previous_n_retractions;
-        while (int(extruded_volume_at_previous_n_retractions.size()) > config.retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
+        while (extruded_volume_at_previous_n_retractions.size() > config.retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
         {
             // extruder switch could have introduced data which falls outside the retraction window
             // also the retraction_count_max could have changed between the last retraction and this
@@ -830,19 +844,20 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         {
             return;
         }
-        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max
+        if (!force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
             && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area) 
         {
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max + 1) 
+        if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1) 
         {
             extruded_volume_at_previous_n_retractions.pop_back();
         }
     }
 
-    if (firmware_retract)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if (extruder_settings.get<bool>("machine_firmware_retract"))
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current) 
         {
@@ -873,23 +888,23 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 
 }
 
-void GCodeExport::writeZhopStart(int hop_height)
+void GCodeExport::writeZhopStart(const coord_t hop_height)
 {
     if (hop_height > 0)
     {
-        isZHopped = hop_height;
+        is_z_hopped = hop_height;
         currentSpeed = current_max_z_feedrate;
-        *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z + isZHopped} << new_line;
-        total_bounding_box.includeZ(current_layer_z + isZHopped);
+        *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z + is_z_hopped} << new_line;
+        total_bounding_box.includeZ(current_layer_z + is_z_hopped);
         assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
     }
 }
 
 void GCodeExport::writeZhopEnd()
 {
-    if (isZHopped)
+    if (is_z_hopped)
     {
-        isZHopped = 0;
+        is_z_hopped = 0;
         currentPosition.z = current_layer_z;
         currentSpeed = current_max_z_feedrate;
         *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
@@ -897,7 +912,7 @@ void GCodeExport::writeZhopEnd()
     }
 }
 
-void GCodeExport::startExtruder(int new_extruder)
+void GCodeExport::startExtruder(const size_t new_extruder)
 {
     extruder_attr[new_extruder].is_used = true;
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
@@ -917,7 +932,7 @@ void GCodeExport::startExtruder(int new_extruder)
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
-    const char *start_code = extruder_attr[new_extruder].start_code.c_str();
+    const char *start_code = Application::getInstance().current_slice->scene.extruders[new_extruder].settings.get<std::string>("machine_extruder_start_code").c_str();
 
     if (*start_code)
     {
@@ -934,8 +949,8 @@ void GCodeExport::startExtruder(int new_extruder)
         }
     }
 
-    CommandSocket::setExtruderForSend(new_extruder);
-    CommandSocket::setSendCurrentPosition( getPositionXY() );
+    Application::getInstance().communication->setExtruderForSend(Application::getInstance().current_slice->scene.extruders[new_extruder]);
+    Application::getInstance().communication->sendCurrentPosition(getPositionXY());
 
     //Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;
@@ -943,20 +958,21 @@ void GCodeExport::startExtruder(int new_extruder)
     setExtruderFanNumber(new_extruder);
 }
 
-void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
+void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
+    {
         return;
+    }
 
-    bool force = true;
-    bool extruder_switch = true;
+    constexpr bool force = true;
+    constexpr bool extruder_switch = true;
     writeRetraction(retraction_config_old_extruder, force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
-    int old_extruder = current_extruder;
-
-    const char *end_code = extruder_attr[old_extruder].end_code.c_str();
+    const size_t old_extruder = current_extruder;
+    const char *end_code = Application::getInstance().current_slice->scene.extruders[old_extruder].settings.get<std::string>("machine_extruder_end_code").c_str();
 
     if (*end_code)
     {
@@ -981,19 +997,20 @@ void GCodeExport::writeCode(const char* str)
     *output_stream << str << new_line;
 }
 
-void GCodeExport::writePrimeTrain(double travel_speed)
+void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
 {
     if (extruder_attr[current_extruder].is_primed)
     { // extruder is already primed once!
         return;
     }
-    if (extruder_attr[current_extruder].is_prime_blob_enabled)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if (extruder_settings.get<bool>("prime_blob_enable"))
     { // only move to prime position if we do a blob/poop
         // ideally the prime position would be respected whether we do a blob or not,
         // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
-        // which is needed to automatically ignore the prime position for the UM3 machine when blob is disabled
-        Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
-        if (!extruder_attr[current_extruder].prime_pos_is_abs)
+        // which is needed to automatically ignore the prime position for the printer when blob is disabled
+        Point3 prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"), extruder_settings.get<coord_t>("extruder_prime_pos_z"));
+        if (!extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
             prime_pos += currentPosition;
         }
@@ -1005,7 +1022,7 @@ void GCodeExport::writePrimeTrain(double travel_speed)
         bool should_correct_z = false;
         
         std::string command = "G280";
-        if (!extruder_attr[current_extruder].is_prime_blob_enabled)
+        if (!extruder_settings.get<bool>("prime_blob_enable"))
         {
             command += " S1";  // use S1 to disable prime blob
             should_correct_z = true;
@@ -1043,7 +1060,9 @@ void GCodeExport::setExtruderFanNumber(int extruder)
 void GCodeExport::writeFanCommand(double speed)
 {
     if (std::abs(current_fan_speed - speed) < 0.1)
+    {
         return;
+    }
     if (speed > 0)
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
@@ -1076,9 +1095,9 @@ void GCodeExport::writeFanCommand(double speed)
     current_fan_speed = speed;
 }
 
-void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool wait)
+void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait)
 {
-    if (!extruder_attr[extruder].use_temp)
+    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
     }
@@ -1118,7 +1137,7 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
     extruder_attr[extruder].currentTemperature = temperature;
 }
 
-void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
+void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, const bool wait)
 {
     if (flavor == EGCodeFlavor::ULTIGCODE)
     { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
@@ -1141,7 +1160,7 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
-void GCodeExport::writePrintAcceleration(double acceleration)
+void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
@@ -1169,7 +1188,7 @@ void GCodeExport::writePrintAcceleration(double acceleration)
     estimateCalculator.setAcceleration(acceleration);
 }
 
-void GCodeExport::writeTravelAcceleration(double acceleration)
+void GCodeExport::writeTravelAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
@@ -1194,7 +1213,7 @@ void GCodeExport::writeTravelAcceleration(double acceleration)
     estimateCalculator.setAcceleration(acceleration);
 }
 
-void GCodeExport::writeJerk(double jerk)
+void GCodeExport::writeJerk(const Velocity& jerk)
 {
     if (current_jerk != jerk)
     {
@@ -1215,7 +1234,7 @@ void GCodeExport::writeJerk(double jerk)
     }
 }
 
-void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
+void GCodeExport::writeMaxZFeedrate(const Velocity& max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {

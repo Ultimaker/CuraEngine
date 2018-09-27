@@ -10,7 +10,7 @@
 namespace cura 
 {
 
-WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int line_width)
+WallOverlapComputation::WallOverlapComputation(Polygons& polygons, const coord_t line_width)
 : overlap_linker(polygons, line_width)
 , line_width(line_width)
 { 
@@ -18,7 +18,7 @@ WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int line_widt
 }
 
 
-float WallOverlapComputation::getFlow(const Point& from, const Point& to)
+Ratio WallOverlapComputation::getFlow(const Point& from, const Point& to)
 {
     using Point2LinkIt = PolygonProximityLinker::Point2Link::iterator;
 
@@ -32,7 +32,7 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         return 1;
     }
 
-    int64_t overlap_area = 0;
+    coord_t overlap_area = 0;
     // note that we don't need to loop over all from_links, because they are handled in the previous getFlow(.) call (or in the very last)
     for (Point2LinkIt to_link_it = to_links.first; to_link_it != to_links.second; ++to_link_it)
     {
@@ -96,14 +96,14 @@ float WallOverlapComputation::getFlow(const Point& from, const Point& to)
         }
     }
 
-    int64_t normal_area = vSize(from - to) * line_width;
-    float ratio = float(normal_area - overlap_area) / normal_area;
+    coord_t normal_area = vSize(from - to) * line_width;
+    Ratio ratio = Ratio(normal_area - overlap_area) / normal_area;
     // clamp the ratio because overlap compensation might be faulty because
     // WallOverlapComputation::getApproxOverlapArea only gives roughly accurate results
-    return std::min(1.0f, std::max(0.0f, ratio));
+    return std::min(1.0_r, std::max(0.0_r, ratio));
 }
 
-int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt from_other_it, const ListPolyIt to_other_it)
+coord_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt from_other_it, const ListPolyIt to_other_it)
 {
     if (from_it == to_other_it && to_it == from_other_it)
     { // don't compute overlap with a line and itself
@@ -122,7 +122,7 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
     return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, to_other_it.p(), from_other_it.p(), from_link->dist);
 }
 
-int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist)
+coord_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const coord_t to_dist, const Point other_from, const Point other_to, const coord_t from_dist)
 {
     // check whether the line segment overlaps with the point if one of the line segments is just a point
     if (from == to)
@@ -160,15 +160,15 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         //         ,,,,,
         //         other_to_proj
         const Point other_vec = other_from - other_to;
-        const int64_t to_proj = dot(to - other_to, other_vec) / vSize(other_vec);
+        const coord_t to_proj = dot(to - other_to, other_vec) / vSize(other_vec);
 
         const Point vec = from - to;
-        const int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
+        const coord_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
 
         // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
         // the line width minus the average distance between the two lines
-        const int64_t overlap_length_2 = to_proj + other_to_proj;
-        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
+        const coord_t overlap_length_2 = to_proj + other_to_proj;
+        const coord_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
     if (to_rel != 0 && to_rel == other_to_rel && from_rel == 0 && other_from_rel == 0)
@@ -183,33 +183,33 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         //           ,,,,,
         // other_from_proj
         const Point other_vec = other_to - other_from;
-        const int64_t from_proj = dot(from - other_from, other_vec) / vSize(other_vec);
+        const coord_t from_proj = dot(from - other_from, other_vec) / vSize(other_vec);
 
         const Point vec = to - from;
-        const int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
+        const coord_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
 
         // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
         // the line width minus the average distance between the two lines
-        const int64_t overlap_length_2 = from_proj + other_from_proj;
-        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to));
+        const coord_t overlap_length_2 = from_proj + other_from_proj;
+        const coord_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to));
         return overlap_length_2 * overlap_width_2 / 4; //Area = width * height.
     }
 
     // shortest segment is overlapped completely - use the length of whichever segment is shortest
-    const int64_t len = vSize(to - from);
-    const int64_t other_len = vSize(other_to - other_from);
+    const coord_t len = vSize(to - from);
+    const coord_t other_len = vSize(other_to - other_from);
     // calculate the overlap area as the length of the region where the lines overlap times the width of that region which is
     // the line width minus the average distance between the two lines
     if (len <= other_len)
     {
-        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
-        const int64_t overlap_length_2 = len * 2;
+        const coord_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, from, other_to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(other_from, to, other_to));
+        const coord_t overlap_length_2 = len * 2;
         return overlap_length_2 * overlap_width_2 / 4;
     }
     else
     {
-        const int64_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to));
-        const int64_t overlap_length_2 = other_len * 2;
+        const coord_t overlap_width_2 = line_width * 2 - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_from, to)) - std::sqrt(LinearAlg2D::getDist2FromLineSegment(from, other_to, to));
+        const coord_t overlap_length_2 = other_len * 2;
         return overlap_length_2 * overlap_width_2 / 4;
     }
 }

@@ -33,7 +33,6 @@ public:
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
 
     SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0);
-    ~SupportInfillPart();
 
     /*!
      * Initializes this SupportInfillPart by generating its insets and infill area.
@@ -51,7 +50,7 @@ private:
 inline const Polygons& SupportInfillPart::getInfillArea() const
 {
     // if there is no wall, we use the original outline as the infill area
-    return (this->inset_count_to_generate == 0) ? this->outline : this->infill_area;
+    return (inset_count_to_generate == 0) ? outline : infill_area;
 }
 
 } // namespace cura

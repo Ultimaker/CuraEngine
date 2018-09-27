@@ -17,6 +17,7 @@
 #include <initializer_list>
 
 #include "IntPoint.h"
+#include "../settings/types/AngleDegrees.h" //For angles between vertices.
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -262,7 +263,7 @@ public:
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \param result The resulting polygon
      */
-    void smooth_outward(float angle, int shortcut_length, PolygonRef result) const;
+    void smooth_outward(const AngleDegrees angle, int shortcut_length, PolygonRef result) const;
 
     /*!
      * Smooth out the polygon and store the result in \p result.
@@ -877,7 +878,7 @@ public:
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \return The resulting polygons
      */
-    Polygons smooth_outward(float angle, int shortcut_length);
+    Polygons smooth_outward(const AngleDegrees angle, int shortcut_length);
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
     
@@ -957,7 +958,7 @@ public:
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
      */
     void removeSmallAreas(double minAreaSize)
-    {               
+    {
         Polygons& thiss = *this;
         for(unsigned int i=0; i<size(); i++)
         {
@@ -1154,11 +1155,11 @@ class PolygonsPart : public Polygons
 public:
     PolygonRef outerPolygon()
     {
-        return this->paths[0];
+        return paths[0];
     }
     ConstPolygonRef outerPolygon() const
     {
-        return this->paths[0];
+        return paths[0];
     }
 
     /*!
