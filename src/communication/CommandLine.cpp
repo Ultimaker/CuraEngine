@@ -337,15 +337,16 @@ std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
 {
     std::unordered_set<std::string> result;
 
-    char paths[32 * 1024]; //Maximum length of environment variable.
-    strcpy(paths, getenv("CURA_ENGINE_SEARCH_PATH"));
-    if (paths)
+    char* search_path_env = getenv("CURA_ENGINE_SEARCH_PATH");
+    if (search_path_env)
     {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
         char delims[] = ":"; //Colon for Unix.
 #else
         char delims[] = ";"; //Semicolon for Windows.
 #endif
+        char paths[32 * 1024]; //Maximum length of environment variable.
+        strcpy(paths, search_path_env); //Necessary because strtok actually modifies the original string, and we don't want to modify the environment variable itself.
         char* path = strtok(paths, delims);
         while (path != nullptr)
         {
