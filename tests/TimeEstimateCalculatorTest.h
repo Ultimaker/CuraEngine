@@ -20,6 +20,7 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(TimeEstimateCalculatorTest);
     CPPUNIT_TEST(addTime);
     CPPUNIT_TEST(startWithZero);
+    CPPUNIT_TEST(singleMoveX);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -37,6 +38,14 @@ public:
      * \brief Tests whether the calculator starts with an estimate of 0 seconds.
      */
     void startWithZero();
+
+    /*
+     * \brief Tests planning one single move along the X axis.
+     *
+     * At the start, the position and velocity are 0. At the end, they must also
+     * be 0. We test how long it would take to execute this move.
+     */
+    void singleMoveX();
 
 private:
     /*
