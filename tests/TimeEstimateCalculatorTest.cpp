@@ -24,11 +24,11 @@ void TimeEstimateCalculatorTest::addTime()
 
     calculator.addTime(3); //Has to add up, not replace.
     result = calculator.calculate();
-    CPPUNIT_ASSERT_EQUAL(Duration(3.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]);
+    CPPUNIT_ASSERT_EQUAL(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]);
 
     calculator.addTime(-7);
     result = calculator.calculate();
-    CPPUNIT_ASSERT_EQUAL(Duration(0.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]); //Due to how Duration works, it can never go below 0.
+    CPPUNIT_ASSERT_EQUAL(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)]); //Due to how Duration works, it can never go lower.
 }
 
 void TimeEstimateCalculatorTest::startWithZero()
