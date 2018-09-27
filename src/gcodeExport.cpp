@@ -63,7 +63,7 @@ void GCodeExport::preSetup()
         setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter"));
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        extruder_attr[extruder_nr].fan_number = train.settings.get<coord_t>("machine_extruder_cooling_fan_number");
+        extruder_attr[extruder_nr].fan_number = train.settings.get<size_t>("machine_extruder_cooling_fan_number");
     }
 
     machine_name = mesh_group->settings.get<std::string>("machine_name");
