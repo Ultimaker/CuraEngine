@@ -27,7 +27,7 @@ struct Duration
     /*
      * \brief Casts the Duration instance to a double.
      */
-    operator double() const
+    constexpr operator double() const
     {
         return value;
     };
