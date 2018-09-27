@@ -1,12 +1,13 @@
-/** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
+//Copyright (c) 2016 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef CONICAL_OVERHANG_H
 #define CONICAL_OVERHANG_H
 
 #include "slicer.h"
 
-
 namespace cura {
-
 
 /*!
  * A class for changing the geometry of a model such that it is printable without support -
@@ -18,11 +19,10 @@ public:
     /*!
      * Change the slice data such that the model becomes more printable
      * 
-     * \param[in,out] slicer The slice data
-     * \param angle The maximum angle which can be printed without generating support (or at least generating least support)
-     * \param layer_thickness The general layer thickness
+     * \param[in,out] slicer The slice data.
+     * \param mesh The mesh to get the settings from.
      */
-    static void apply(Slicer* slicer, double angle, int layer_thickness);
+    static void apply(Slicer* slicer, const Mesh& mesh);
 };
 
 }//namespace cura

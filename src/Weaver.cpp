@@ -1,12 +1,16 @@
-#include "Weaver.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
 #include <fstream> // debug IO
 #include <unistd.h>
 
-#include "progress/Progress.h"
-#include "weaveDataStorage.h"
+#include "Application.h" //To get the communication channel.
 #include "PrintFeature.h"
+#include "weaveDataStorage.h"
+#include "Weaver.h"
+#include "communication/Communication.h" //To send layer view data.
+#include "progress/Progress.h"
 
 namespace cura 
 {
@@ -15,27 +19,28 @@ void Weaver::weave(MeshGroup* meshgroup)
 {   
     wireFrame.meshgroup = meshgroup;
     
-    int maxz = meshgroup->max().z;
+    const coord_t maxz = meshgroup->max().z;
 
-    int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
+    const coord_t connection_height = mesh_group_settings.get<coord_t>("wireframe_height");
+    const size_t layer_count = (maxz - initial_layer_thickness) / connection_height + 1;
     std::vector<AdaptiveLayer> layer_thicknesses;
 
-    std::cerr << "Layer count: " << layer_count << "\n";
+    log("Layer count: %i\n", layer_count);
 
     std::vector<cura::Slicer*> slicerList;
 
     for(Mesh& mesh : meshgroup->meshes)
     {
-        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count,
-                                                mesh.getSettingBoolean("meshfix_keep_open_polygons"),
-                                                mesh.getSettingBoolean("meshfix_extensive_stitching"),
-                                                false, &layer_thicknesses);
+        constexpr bool variable_layer_heights = false;
+        cura::Slicer* slicer = new cura::Slicer(&mesh, connection_height, layer_count, variable_layer_heights, &layer_thicknesses);
         slicerList.push_back(slicer);
     }
 
-    int starting_layer_idx;
+    LayerIndex starting_layer_idx;
     { // find first non-empty layer
-        for (starting_layer_idx = 0; starting_layer_idx < layer_count; starting_layer_idx++)
+        for (starting_layer_idx = 0; starting_layer_idx < LayerIndex(layer_count); starting_layer_idx++)
         {
             Polygons parts;
             for (cura::Slicer* slicer : slicerList)
@@ -49,15 +54,14 @@ void Weaver::weave(MeshGroup* meshgroup)
             logWarning("First %i layers are empty!\n", starting_layer_idx);
         }
     }
-    
-    
-    std::cerr<< "chainifying layers..." << std::endl;
+
+    log("Chainifying layers...\n");
     {
         int starting_z = -1;
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
 
-        CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*0,*/ wireFrame.bottom_outline, 1, 1, 1);
+        Application::getInstance().communication->sendPolygons(PrintFeatureType::OuterWall, wireFrame.bottom_outline, 1, 1, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -70,12 +74,16 @@ void Weaver::weave(MeshGroup* meshgroup)
         
         Point starting_point_in_layer;
         if (wireFrame.bottom_outline.size() > 0)
+        {
             starting_point_in_layer = (wireFrame.bottom_outline.max() + wireFrame.bottom_outline.min()) / 2;
-        else 
+        }
+        else
+        {
             starting_point_in_layer = (Point(0,0) + meshgroup->max() + meshgroup->min()) / 2;
+        }
         
         Progress::messageProgressStage(Progress::Stage::INSET_SKIN, nullptr);
-        for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)
+        for (LayerIndex layer_idx = starting_layer_idx + 1; layer_idx < LayerIndex(layer_count); layer_idx++)
         {
             Progress::messageProgress(Progress::Stage::INSET_SKIN, layer_idx+1, layer_count); // abuse the progress system of the normal mode of CuraEngine
             
@@ -88,7 +96,7 @@ void Weaver::weave(MeshGroup* meshgroup)
 
             chainify_polygons(parts1, starting_point_in_layer, chainified);
 
-            CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*layer_idx - starting_layer_idx,*/ chainified, 1, 1, 1);
+            Application::getInstance().communication->sendPolygons(PrintFeatureType::OuterWall, chainified, 1, 1, 1);
 
             if (chainified.size() > 0)
             {
@@ -105,8 +113,8 @@ void Weaver::weave(MeshGroup* meshgroup)
             }
         }
     }
-    
-    std::cerr<< "finding horizontal parts..." << std::endl;
+
+    log("Finding horizontal parts...\n");
     {
         Progress::messageProgressStage(Progress::Stage::SUPPORT, nullptr);
         for (unsigned int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
@@ -123,8 +131,8 @@ void Weaver::weave(MeshGroup* meshgroup)
     }
     // at this point layer.supported still only contains the polygons to be connected
     // when connecting layers, we further add the supporting polygons created by the roofs
-    
-    std::cerr<< "connecting layers..." << std::endl;
+
+    log("Connecting layers...\n");
     {
         Polygons* lower_top_parts = &wireFrame.bottom_outline;
         int last_z = wireFrame.z_bottom;
@@ -165,7 +173,7 @@ void Weaver::weave(MeshGroup* meshgroup)
 
 void Weaver::createHorizontalFill(WeaveLayer& layer, Polygons& layer_above)
 {
-    int64_t bridgable_dist = connectionHeight;
+    const coord_t bridgable_dist = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("wireframe_height");
     
 //     Polygons& polys_below = lower_top_parts;
     Polygons& polys_here = layer.supported;
@@ -198,7 +206,8 @@ void Weaver::fillRoofs(Polygons& supporting, Polygons& to_be_supported, int dire
     if (supporting.size() == 0) return; // no parts to start the roof from!
     
     Polygons roofs = supporting.difference(to_be_supported);
-    
+
+    const coord_t roof_inset = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("wireframe_roof_inset");
     roofs = roofs.offset(-roof_inset).offset(roof_inset);
     
     if (roofs.size() == 0) return;
@@ -263,7 +272,8 @@ void Weaver::fillFloors(Polygons& supporting, Polygons& to_be_supported, int dir
     if (supporting.size() == 0) return; // no parts to start the floor from!
     
     Polygons floors = to_be_supported.difference(supporting);
-    
+
+    const coord_t roof_inset = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("wireframe_roof_inset");
     floors = floors.offset(-roof_inset).offset(roof_inset);
     
     if (floors.size() == 0) return;
@@ -312,11 +322,10 @@ void Weaver::fillFloors(Polygons& supporting, Polygons& to_be_supported, int dir
 
 void Weaver::connections2moves(WeaveRoofPart& inset)
 {
-    
-    
-    bool include_half_of_last_down = true;
-    
-    
+    const coord_t line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("wall_line_width_x");
+
+    constexpr bool include_half_of_last_down = true;
+
     for (WeaveConnectionPart& part : inset.connections)
     {
         std::vector<WeaveConnectionSegment>& segments = part.connection.segments;
@@ -388,6 +397,13 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveCo
 
 void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons& result)
 {
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t connection_height = mesh_group_settings.get<coord_t>("wireframe_height");
+    const coord_t nozzle_outer_diameter = mesh_group_settings.get<coord_t>("machine_nozzle_tip_outer_diameter");         //  ___     ___
+    const AngleRadians nozzle_expansion_angle = mesh_group_settings.get<AngleRadians>("machine_nozzle_expansion_angle"); //     \_U_/
+    const coord_t nozzle_clearance = mesh_group_settings.get<coord_t>("wireframe_nozzle_clearance");                     // at least line width
+    const coord_t nozzle_top_diameter = tan(nozzle_expansion_angle) * connection_height + nozzle_outer_diameter + nozzle_clearance;
+
     for (unsigned int prt = 0 ; prt < parts1.size(); prt++)
     {
         ConstPolygonRef upperPart = parts1[prt];
