@@ -141,7 +141,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     block.feature = feature;
 
-    block.maxTravel = 0;
+    //block.maxTravel = 0; //Done by memset.
     for(unsigned int n=0; n<NUM_AXIS; n++)
     {
         block.delta[n] = newPos[n] - currentPosition[n];
