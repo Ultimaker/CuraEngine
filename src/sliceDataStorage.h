@@ -174,8 +174,9 @@ public:
 
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * Add those polygons to @p result.
-     * \param result The result: the collection of all polygons thus obtained
+     * \result The collection of all polygons thus obtained.
+     * \param max_inset If <= 1, use (up to) the 1st inner wall, if >= 2, use the 2nd inner wall.
+     * \param mesh Pass mesh to let the function have access to wall-line-width settings.
      */
     Polygons& getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const;
 
