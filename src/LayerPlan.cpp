@@ -1191,7 +1191,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     int extruder = gcode.getExtruderNr();
     bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
     bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
-	std::string current_mesh = "NONMESH";
+    std::string current_mesh = "NONMESH";
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
