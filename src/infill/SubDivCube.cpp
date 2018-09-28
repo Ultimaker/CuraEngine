@@ -252,7 +252,8 @@ void SubDivCube::rotatePointInitial(Point& target)
 
 void SubDivCube::rotatePoint120(Point& target)
 {
-    constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0);
+    //constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0); //TODO: Reactivate once MacOS is upgraded to a more modern compiler.
+#define sqrt_three_fourths 0.86602540378443864676372317
     const coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
     target.Y = -0.5 * target.Y + sqrt_three_fourths * target.X;
     target.X = x;
