@@ -200,7 +200,10 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     {
         return false;
     }
-
+    
+    //assign filename to mesh_name
+    mesh->mesh_name = filename;
+    
     //Skip any whitespace at the beginning of the file.
     unsigned long long num_whitespace = 0; //Number of whitespace characters.
     unsigned char whitespace;

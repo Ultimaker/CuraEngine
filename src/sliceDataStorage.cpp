@@ -145,6 +145,7 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
 
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
 : settings(mesh->settings)
+, mesh_name(mesh->mesh_name)
 , layer_nr_max_filled_layer(0)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
