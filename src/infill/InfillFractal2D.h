@@ -361,6 +361,11 @@ public:
     void createDitheredPattern();
 
     /*!
+     * Create the subdivision structure 
+     */
+    void createBalancedPattern();
+
+    /*!
      * Perform the pure dithering step.
      * This can subdivide each node at most once.
      * 
@@ -510,11 +515,6 @@ protected:
     void setSpecificationAllowance(Cell& sub_tree_root);
 
     // Lower bound sequence:
-
-    /*!
-     * Create the subdivision structure 
-     */
-    void createBalancedPattern();
 
     /*!
      * For each node: subdivide if possible and settle loans in as much as they weren't needed to subdivide this node.
