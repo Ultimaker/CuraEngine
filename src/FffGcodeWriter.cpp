@@ -821,6 +821,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
     const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
     const size_t support_infill_extruder_nr = (layer_nr <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+    bool disable_path_optimisation = false;
 
     for (const size_t& extruder_nr : extruder_order)
     {
@@ -846,6 +847,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
                 {
                     addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
                 }
+
+                // path optimization is currently broken when using gyroid infill
+                disable_path_optimisation = disable_path_optimisation || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::GYROID;
             }
         }
         // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
@@ -859,7 +863,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         addPrimeTower(storage, gcode_layer, prev_extruder);
     }
 
-    gcode_layer.optimizePaths(gcode.getPositionXY());
+    if (!disable_path_optimisation)
+    {
+        gcode_layer.optimizePaths(gcode.getPositionXY());
+    }
 
     return gcode_layer;
 }
