@@ -25,12 +25,6 @@ TopSkinDensityProvider::~TopSkinDensityProvider()
 
 float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) const
 {
-
-    if (aabb.max.z >= mesh_data.bounding_box.max.z - 10 - layer_height) // minus layer_height because the last layer doesn't have to be exactly at the top of the mesh.
-    {
-        return density;
-    }
-
     size_t first_layer_idx = mesh_data.layers.size();
     size_t last_layer_idx = 0;
 
@@ -61,6 +55,38 @@ float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) 
     for (size_t layer_idx = first_layer_idx; layer_idx <= last_layer_idx; layer_idx++)
     {
         const SliceLayer& layer = mesh_data.layers[layer_idx];
+        if (use_skin)
+        {
+            for (const SliceLayerPart& part : layer.parts)
+            {
+                if (part.getOwnInfillArea().inside(middle))
+                {
+                    first_inside_layer_idx = layer_idx;
+                    break;
+                }
+            }
+        }
+        else if (layer.getOutlines().inside(middle))
+        {
+            first_inside_layer_idx = layer_idx;
+            break;
+        }
+    }
+
+    if (first_inside_layer_idx == std::numeric_limits<size_t>::max())
+    {
+        return 0.0;
+    }
+
+    if (aabb.max.z >= mesh_data.bounding_box.max.z - 10 - layer_height) // minus layer_height because the last layer doesn't have to be exactly at the top of the mesh.
+    {
+        return density;
+    }
+
+    // check whether the box is outside above where it was last seen to be inside
+    for (size_t layer_idx = first_inside_layer_idx + 1; layer_idx <= last_layer_idx; layer_idx++)
+    {
+        const SliceLayer& layer = mesh_data.layers[layer_idx];
         Polygons layer_outlines;
         if (use_skin)
         {
@@ -71,30 +97,18 @@ float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) 
                     layer_outlines.add(skin_part.outline);
                 }
             }
+            if (layer_outlines.inside(middle))
+            {
+                return density;
+            }
         }
         else
         {
             layer_outlines = layer.getOutlines();
-        }
-        if (layer_outlines.inside(middle))
-        {
-            first_inside_layer_idx = layer_idx;
-            break;
-        }
-    }
-    if (first_inside_layer_idx == std::numeric_limits<size_t>::max())
-    {
-        return 0.0;
-    }
-
-    // check whether the box is outside above where it was last seen to be inside
-    for (size_t layer_idx = first_inside_layer_idx + 1; layer_idx <= last_layer_idx; layer_idx++)
-    {
-        const SliceLayer& layer = mesh_data.layers[layer_idx];
-        Polygons layer_outlines = layer.getOutlines();
-        if (!layer_outlines.inside(middle))
-        {
-            return density;
+            if (!layer_outlines.inside(middle))
+            {
+                return density;
+            }
         }
     }
     return 0.0;
