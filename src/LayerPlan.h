@@ -536,6 +536,7 @@ public:
      * \param speed_factor This modifies the print speed when accelerating after a bridge line
      * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
      */
+
     void addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
 
     /*!
