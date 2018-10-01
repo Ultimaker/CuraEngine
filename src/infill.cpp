@@ -348,6 +348,10 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
+    // TODO: remove this:
+//     cross_fill_provider.generateSubdivStructureLines(pattern, z, infill_line_width, result_polygons, result_lines, true);
+//     return;
+
     if (zig_zaggify)
     {
         outline_offset += -infill_line_width / 2;

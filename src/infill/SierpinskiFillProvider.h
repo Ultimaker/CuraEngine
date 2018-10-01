@@ -67,6 +67,8 @@ public:
 
     Polygon generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const;
 
+    void generateSubdivStructureLines(EFillMethod pattern, coord_t z, coord_t line_width, Polygons& result_polygons, Polygons& result_lines, bool closed) const;
+
     ~SierpinskiFillProvider();
 protected:
     /*!

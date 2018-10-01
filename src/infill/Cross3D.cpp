@@ -628,6 +628,56 @@ coord_t Cross3D::getCellEdgePosition(const Cell& cell, const coord_t edge_size, 
     return pos;
 }
 
+void Cross3D::generateSubdivisionEdges(const SliceWalker& walker, coord_t z, Polygons& result_polygons, Polygons& result_lines, bool closed) const
+{
+    assert(walker.layer_sequence.size() >= 4); // the dummy root cell should always be subdivided into its 4 children
+
+    const coord_t thickness = MM2INT(0.1);
+    
+    for (const Cell* cell_p: walker.layer_sequence)
+    {
+        const Cell& cell = *cell_p;
+        Range<coord_t> z_range = cell.elem.z_range;
+        Cross3DPrism::Triangle triangle = cell.elem.triangle;
+        Point a = triangle.a;
+        Point b = triangle.b;
+        Point c = triangle.straight_corner;
+        if (closed)
+        {
+            Point ab = b - a;
+            Point bc = c - b;
+            Point ca = a - c;
+            Point a_in = a + normal(ab, thickness) - normal(ca, thickness);
+            Point b_in = b + normal(bc, thickness) - normal(ab, thickness);
+            Point c_in = c + normal(ca, thickness) - normal(bc, thickness);
+            a = a_in;
+            b = b_in;
+            c = c_in;
+        }
+        if (closed != (std::abs(z - z_range.min) < thickness || std::abs(z - z_range.max) < thickness))
+        { // include edges of the triangle
+            PolygonRef poly = result_polygons.newPoly();
+            poly.add(a);
+            poly.add(b);
+            poly.add(c);
+        }
+        else if (!closed)
+        { // include vertical edges
+            Point ab = b - a;
+            Point ca = a - c;
+            Point bc = c - b;
+            PolygonRef line1 = result_lines.newPoly();
+            line1.add(a - normal(ca, thickness));
+            line1.add(a + normal(ab, thickness));
+            PolygonRef line2 = result_lines.newPoly();
+            line2.add(c - normal(bc, thickness));
+            line2.add(c + normal(ca, thickness));
+            PolygonRef line3 = result_lines.newPoly();
+            line3.add(b - normal(ab, thickness));
+            line3.add(b + normal(bc, thickness));
+        }
+    }
+}
 
 bool Cross3D::isOverlapping(const LineSegment edge, const LineSegment segment) const
 {

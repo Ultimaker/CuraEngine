@@ -125,6 +125,20 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
     }
 }
 
+
+void SierpinskiFillProvider::generateSubdivStructureLines(EFillMethod pattern, coord_t z, coord_t line_width, Polygons& result_polygons, Polygons& result_lines, bool closed) const
+{
+    z = std::min(z, aabb_3d.max.z - 1); // limit the z to where the pattern is generated; layer heights can go higher than the model...
+    assert(subdivision_structure_3d);
+    std::map<coord_t, const Cross3D::Cell*>::const_iterator start_cell_iter = z_to_start_cell_cross3d.upper_bound(z);
+    if (start_cell_iter != z_to_start_cell_cross3d.begin())
+    { // don't get a start cell below the bottom one
+        start_cell_iter--; // map.upper_bound always rounds up, while the map contains the min of the z_range of the cells
+    }
+    Cross3D::SliceWalker slicer_walker = subdivision_structure_3d->getSequence(*start_cell_iter->second, z);
+    subdivision_structure_3d->generateSubdivisionEdges(slicer_walker, z, result_polygons, result_lines, closed);
+}
+
 SierpinskiFillProvider::~SierpinskiFillProvider()
 {
     if (average_density_provider)
