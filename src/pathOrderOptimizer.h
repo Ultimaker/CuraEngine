@@ -1,11 +1,13 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATHOPTIMIZER_H
 #define PATHOPTIMIZER_H
 
 #include <stdint.h>
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
-#include "settings/settings.h"
+#include "settings/Settings.h"
 
 namespace cura {
 
@@ -60,18 +62,20 @@ public:
 
     void addPolygon(PolygonRef polygon)
     {
-        this->polygons.emplace_back(polygon);
+        polygons.emplace_back(polygon);
     }
 
     void addPolygon(ConstPolygonRef polygon)
     {
-        this->polygons.emplace_back(polygon);
+        polygons.emplace_back(polygon);
     }
 
     void addPolygons(const Polygons& polygons)
     {
         for(unsigned int i = 0; i < polygons.size(); i++)
+        {
             this->polygons.emplace_back(polygons[i]);
+        }
     }
 
     void optimize(); //!< sets #polyStart and #polyOrder
@@ -102,18 +106,20 @@ public:
 
     void addPolygon(PolygonRef polygon)
     {
-        this->polygons.push_back(polygon);
+        polygons.push_back(polygon);
     }
 
     void addPolygon(ConstPolygonRef polygon)
     {
-        this->polygons.push_back(polygon);
+        polygons.push_back(polygon);
     }
 
     void addPolygons(Polygons& polygons)
     {
         for(unsigned int i=0;i<polygons.size(); i++)
+        {
             this->polygons.push_back(polygons[i]);
+        }
     }
 
     /*!
