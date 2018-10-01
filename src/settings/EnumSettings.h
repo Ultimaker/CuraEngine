@@ -28,6 +28,7 @@ enum class EFillMethod
     ZIG_ZAG,
     CROSS,
     CROSS_3D,
+    GYROID,
     NONE
 };
 
