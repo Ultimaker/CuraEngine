@@ -55,11 +55,11 @@ double ExtruderPlan::getFanSpeed()
 GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor && paths.back().mesh_id == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
-    paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
+    paths.emplace_back(config, current_mesh, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     return ret;
 }
@@ -80,6 +80,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+, current_mesh("NONMESH")
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
@@ -297,6 +298,10 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         }
     }
     return true;
+}
+void LayerPlan::setMesh(const std::string mesh_id)
+{
+    current_mesh = mesh_id;
 }
 
 void LayerPlan::moveInsideCombBoundary(const coord_t distance)
@@ -1437,6 +1442,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     size_t extruder_nr = gcode.getExtruderNr();
     const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
+    std::string current_mesh = "NONMESH";
 
     for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -1567,7 +1573,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 speed *= extruder_plan.getExtrudeSpeedFactor();
             }
-
+            //This seems to be the best location to place this, but still not ideal.
+            if (path.mesh_id != current_mesh)
+            {
+                current_mesh = path.mesh_id;
+                std::stringstream ss;
+                ss << "MESH:" << current_mesh;
+                gcode.writeComment(ss.str());
+            }
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
@@ -1576,7 +1589,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 continue;
             }
-            
+
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {

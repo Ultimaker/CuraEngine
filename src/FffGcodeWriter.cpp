@@ -1164,7 +1164,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     }
 
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-
+    gcode_layer.setMesh(mesh.mesh_name);
 
     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
     const Point layer_start_position(train.settings.get<coord_t>("layer_start_x"), train.settings.get<coord_t>("layer_start_y"));
@@ -1187,6 +1187,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
     }
+    gcode_layer.setMesh("NONMESH");
 }
 
 void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer) const

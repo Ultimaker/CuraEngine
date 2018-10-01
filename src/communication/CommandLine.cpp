@@ -3,6 +3,7 @@
 
 #include <cstring> //For strtok and strcopy.
 #include <fstream> //To check if files exist.
+#include <errno.h> // error number when trying to read file
 #include <libgen.h> //To get the parent directory of a file path.
 #include <numeric> //For std::accumulate.
 #ifdef _OPENMP
@@ -206,7 +207,7 @@ void CommandLine::sliceNext()
 
                         if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
                         {
-                            logError("Failed to load model: %s\n", argument.c_str());
+                            logError("Failed to load model: %s. (error number %d)\n", argument.c_str(), errno);
                             exit(1);
                         }
                         else
