@@ -323,7 +323,7 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::CROSS_3D;
     }
-    if (value == "gyroid")
+    else if (value == "gyroid")
     {
         return EFillMethod::GYROID;
     }
