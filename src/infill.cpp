@@ -13,6 +13,7 @@
 #include "infill/ImageBasedDensityProvider.h"
 #include "utils/PolygonConnector.h"
 #include "infill/UniformDensityProvider.h"
+#include "infill/GyroidInfill.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -136,6 +137,9 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         }
         generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
+    case EFillMethod::GYROID:
+        generateGyroidInfill(result_lines);
+        break;
     default:
         logError("Fill pattern has unknown value.\n");
         break;
@@ -232,6 +236,11 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         }
         result_polygons.clear(); // the output should only contain polylines
     }
+}
+
+void Infill::generateGyroidInfill(Polygons& result_lines)
+{
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, in_outline, z);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
