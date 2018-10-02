@@ -4,20 +4,19 @@
 #ifndef WALL_OVERLAP_H
 #define WALL_OVERLAP_H
 
-#include <vector>
+#include <functional> // hash function object
+#include <list>
 #include <unordered_map>
 #include <unordered_set>
-#include <list>
+#include <vector>
 
-#include <functional> // hash function object
-
+#include "settings/types/Ratio.h" //For flow ratios.
+#include "utils/linearAlg2D.h"
 #include "utils/IntPoint.h"
 #include "utils/polygon.h"
-#include "utils/linearAlg2D.h"
-#include "utils/SymmetricPair.h"
-
-#include "utils/ProximityPointLink.h"
 #include "utils/PolygonProximityLinker.h"
+#include "utils/ProximityPointLink.h"
+#include "utils/SymmetricPair.h"
 
 namespace cura 
 {
@@ -49,7 +48,7 @@ namespace cura
 class WallOverlapComputation
 {
     PolygonProximityLinker overlap_linker;
-    int64_t line_width;
+    coord_t line_width;
 
     std::unordered_set<SymmetricPair<ProximityPointLink>> passed_links;
 public:
@@ -62,13 +61,13 @@ public:
      * \param to The ending of the line segment
      * \return a value between zero and one representing the reduced flow of the line segment
      */
-    float getFlow(const Point& from, const Point& to);
+    Ratio getFlow(const Point& from, const Point& to);
 
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    WallOverlapComputation(Polygons& polygons, int lineWidth);
+    WallOverlapComputation(Polygons& polygons, const coord_t lineWidth);
 
 private:
     /*!
@@ -92,7 +91,7 @@ private:
      * \param to_other_it The second point of \p to_link connected to \p from_other_it
      * \return The overlap area between the two links, or zero if there was no such link
      */
-    int64_t handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt from_other_it, const ListPolyIt to_other_it);
+    coord_t handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt from_other_it, const ListPolyIt to_other_it);
 
     /*!
      * Compute the approximate overlap area between two line segments
@@ -117,7 +116,7 @@ private:
      * \param other_to The end point of the other line segment (across the overlap of \p from)
      * \param from_dist The distance between \p from and \p from_other
      */
-    int64_t getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist);
+    coord_t getApproxOverlapArea(const Point from, const Point to, const coord_t to_dist, const Point other_from, const Point other_to, const coord_t from_dist);
 
     /*!
      * Check whether an overlap segment between two consecutive links is already passed

@@ -1,7 +1,9 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
-#include "Progress.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "../commandSocket.h"
+#include "Progress.h"
+#include "../Application.h" //To get the communication channel to send progress through.
+#include "../communication/Communication.h" //To send progress through the communication channel.
 #include "../utils/gettime.h"
 
 namespace cura {
@@ -66,26 +68,18 @@ void Progress::init()
 void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max)
 {
     float percentage = calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max));
-    if (CommandSocket::getInstance())
-    {
-        CommandSocket::getInstance()->sendProgress(percentage);
-    }
-    
+    Application::getInstance().communication->sendProgress(percentage);
+
     logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max, percentage);
 }
 
 void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper)
 {
-    if (CommandSocket::getInstance())
-    {
-        CommandSocket::getInstance()->sendProgressStage(stage);
-    }
-    
     if (time_keeper)
     {
         if ((int)stage > 0)
         {
-            log("Progress: %s accomplished in %5.3fs\n", names[(int)stage-1].c_str(), time_keeper->restart());
+            log("Progress: %s accomplished in %5.3fs\n", names[(int)stage - 1].c_str(), time_keeper->restart());
         }
         else
         {
@@ -93,7 +87,9 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
         }
         
         if ((int)stage < (int)Stage::FINISH)
+        {
             log("Starting %s...\n", names[(int)stage].c_str());
+        }
     }
 }
 

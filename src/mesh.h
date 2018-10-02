@@ -1,7 +1,10 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef MESH_H
 #define MESH_H
 
-#include "settings/settings.h"
+#include "settings/Settings.h"
 #include "utils/AABB3D.h"
 
 namespace cura
@@ -54,7 +57,7 @@ A Mesh is the most basic representation of a 3D model. It contains all the faces
 
 See MeshFace for the specifics of how/when faces are connected.
 */
-class Mesh : public SettingsBase // inherits settings
+class Mesh
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
@@ -62,8 +65,11 @@ class Mesh : public SettingsBase // inherits settings
 public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
+    Settings settings;
+    std::string mesh_name;
 
-    Mesh(SettingsBaseVirtual* parent); //!< initializes the settings
+    Mesh(Settings& parent);
+    Mesh();
 
     void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data

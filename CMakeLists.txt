@@ -25,7 +25,12 @@ if(USE_SYSTEM_LIBS)
     find_package(Polyclipping REQUIRED)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
+# convert build type to upper case letters
+if(CMAKE_BUILD_TYPE)
+    string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UPPER)
+endif()
+
+if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG")
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_DEBUG_INIT})
 else()
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE_INIT})
@@ -51,7 +56,7 @@ set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 option(BUILD_TESTS OFF)
 
 # Add a compiler flag to check the output for insane values if we are in debug mode.
-if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG" OR CMAKE_BUILD_TYPE_UPPER MATCHES "RELWITHDEBINFO")
     message(STATUS "Building debug release of CuraEngine.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
     add_definitions(-DASSERT_INSANE_OUTPUT)
@@ -90,8 +95,8 @@ else()
 endif()
 
 set(engine_SRCS # Except main.cpp.
+    src/Application.cpp
     src/bridge.cpp
-    src/commandSocket.cpp
     src/ConicalOverhang.cpp
     src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
@@ -113,9 +118,11 @@ set(engine_SRCS # Except main.cpp.
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
+    src/Scene.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
+    src/Slice.cpp
     src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp
@@ -127,6 +134,11 @@ set(engine_SRCS # Except main.cpp.
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
 
+    src/communication/ArcusCommunication.cpp
+    src/communication/ArcusCommunicationPrivate.cpp
+    src/communication/CommandLine.cpp
+    src/communication/Listener.cpp
+
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/ZigzagConnectorProcessor.cpp
@@ -135,6 +147,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
+    src/infill/GyroidInfill.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp
@@ -145,12 +158,10 @@ set(engine_SRCS # Except main.cpp.
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
 
-    src/settings/PathConfigStorage.cpp
-    src/settings/SettingConfig.cpp
-    src/settings/SettingContainer.cpp
-    src/settings/SettingRegistry.cpp
-    src/settings/settings.cpp
     src/settings/AdaptiveLayerHeights.cpp
+    src/settings/FlowTempGraph.cpp
+    src/settings/PathConfigStorage.cpp
+    src/settings/Settings.cpp
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
@@ -172,8 +183,20 @@ set(engine_SRCS # Except main.cpp.
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
+set(engine_TEST
+    TimeEstimateCalculatorTest
+)
 set(engine_TEST_INFILL
 )
+set(engine_TEST_SETTINGS
+    SettingsTest
+)
+if (ENABLE_ARCUS)
+    set(engine_TEST_ARCUS
+        ArcusCommunicationTest
+        ArcusCommunicationPrivateTest
+    )
+endif ()
 set(engine_TEST_UTILS
     SparseGridTest
     IntPointTest
@@ -185,6 +208,11 @@ set(engine_TEST_UTILS
     UnionFindTest
 )
 
+# Helper classes for some tests.
+set(engine_TEST_ARCUS_HELPERS
+    tests/arcus/MockSocket.cpp
+)
+
 # Generating ProtoBuf protocol
 if (ENABLE_ARCUS)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
@@ -193,7 +221,9 @@ endif ()
 # Compiling CuraEngine itself.
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
 
-add_dependencies(_CuraEngine Stb)
+if (CuraEngine_Download_Stb)
+    add_dependencies(_CuraEngine stb)
+endif()
 if(USE_SYSTEM_LIBS)
     target_link_libraries(_CuraEngine ${Polyclipping_LIBRARIES})
 else()
@@ -246,6 +276,18 @@ if (BUILD_TESTS)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
+    foreach (test ${engine_TEST_SETTINGS})
+        add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine cppunit)
+        add_test(${test} ${test})
+    endforeach()
+    if (ENABLE_ARCUS)
+        foreach (test ${engine_TEST_ARCUS})
+            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
+            target_link_libraries(${test} _CuraEngine cppunit)
+            add_test(${test} ${test})
+        endforeach()
+    endif ()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
