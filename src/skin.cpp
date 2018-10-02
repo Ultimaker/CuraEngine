@@ -272,12 +272,17 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
                 not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
             }
         }
+        // Prevent removing top skin layers
+        Polygons upskin_before(upskin.difference(not_air));
+
         const double min_infill_area = mesh.settings.get<double>("min_infill_area");
         if (min_infill_area > 0.0)
         {
             not_air.removeSmallAreas(min_infill_area);
         }
+
         upskin = upskin.difference(not_air); // skin overlaps with the walls
+        upskin = upskin.unionPolygons(upskin_before); // in some cases the top skin layer might be removed. To prevent it add them back
     }
 }
 
