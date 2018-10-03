@@ -25,7 +25,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
-    if (density >= 1.0 || density >= line_width / min_line_distance)
+    if (density >= 1.0 || density >= static_cast<float>(line_width) / static_cast<float>(min_line_distance))
     {
         logDebug("Creating max depth pattern.\n");
         subdivision_structure_3d->createMaxDepthPattern();
