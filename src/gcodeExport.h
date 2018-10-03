@@ -45,6 +45,8 @@ private:
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         Velocity last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
+        unsigned fan_number; // nozzle print cooling fan number
+
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
@@ -60,6 +62,7 @@ private:
         , retraction_e_amount_at_e_start(0.0)
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
+        , fan_number(0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -98,7 +101,8 @@ private:
     coord_t is_z_hopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
     size_t current_extruder;
-    double currentFanSpeed;
+    double current_fan_speed;
+    unsigned fan_number; // current print cooling fan number
     EGCodeFlavor flavor;
 
     std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
@@ -400,6 +404,13 @@ public:
      * \param travel_speed The travel speed when priming involves a movement
      */
     void writePrimeTrain(const Velocity& travel_speed);
+
+    /*!
+     * Set the print cooling fan number (used as P parameter to M10[67]) for the specified extruder
+     *
+     * \param extruder The current extruder
+     */
+    void setExtruderFanNumber(int extruder);
     
     void writeFanCommand(double speed);
     
