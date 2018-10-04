@@ -9,6 +9,7 @@
 #include "utils/SparsePointGridInclusive.h"
 
 #include "slicer.h"
+#include "Application.h"
 
 
 namespace cura {
@@ -377,8 +378,7 @@ void SlicerLayer::planPolylineStitch(
     }
 }
 
-void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1,
-                                const bool reverse[2]) const
+void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1, const bool reverse[2]) const
 {
     if (reverse[0])
     {
@@ -735,7 +735,7 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
     return ret;
 }
 
-void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching, bool is_initial_layer)
+void SlicerLayer::makePolygons(const Mesh* mesh, bool is_initial_layer)
 {
     Polygons open_polylines;
 
@@ -745,17 +745,17 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
+    if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
     { // don't stitch when using (any) mesh surface mode, i.e. also don't stitch when using mixed mesh surface and closed polygons, because then polylines which are supposed to be open will be closed
         stitch(open_polylines);
     }
 
-    if (extensive_stitching)
+    if (mesh->settings.get<bool>("meshfix_extensive_stitching"))
     {
         stitch_extensive(open_polylines);
     }
 
-    if (keep_none_closed)
+    if (mesh->settings.get<bool>("meshfix_keep_open_polygons"))
     {
         for (PolygonRef polyline : open_polylines)
         {
@@ -773,20 +773,20 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    int snapDistance = MM2INT(1.0); // TODO: hardcoded value
-    auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
+    const coord_t snap_distance = mesh->settings.get<coord_t>("minimum_polygon_circumference");
+    auto it = std::remove_if(polygons.begin(), polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
     polygons.erase(it, polygons.end());
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
-    const coord_t line_segment_resolution = mesh->getSettingInMicrons("meshfix_maximum_resolution");
+    const coord_t line_segment_resolution = mesh->settings.get<coord_t>("meshfix_maximum_resolution");
     polygons.simplify(line_segment_resolution, line_segment_resolution / 2); //Maximum error is half of the resolution so it's only a limit when removing really sharp corners.
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
-    int xy_offset = mesh->getSettingInMicrons("xy_offset");
+    coord_t xy_offset = mesh->settings.get<coord_t>("xy_offset");
     if (is_initial_layer)
     {
-        xy_offset = mesh->getSettingInMicrons("xy_offset_layer_0");
+        xy_offset = mesh->settings.get<coord_t>("xy_offset_layer_0");
     }
 
     if (xy_offset != 0)
@@ -795,11 +795,10 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 }
 
-Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t thickness, const size_t slice_layer_count, bool keep_none_closed, bool extensive_stitching,
-               bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
+Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
-    SlicingTolerance slicing_tolerance = mesh->getSettingAsSlicingTolerance("slicing_tolerance");
+    SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
 
     assert(slice_layer_count > 0);
 
@@ -807,15 +806,22 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
 
     layers.resize(slice_layer_count);
 
-    // compensate first layer thickness depending on slicing mode
-    int initial = initial_layer_thickness - thickness;
-    if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    // set (and initialize compensation for) initial layer, depending on slicing mode
+    const coord_t initial_layer_thickness = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height_0");
+    layers[0].z = std::max(0LL, initial_layer_thickness - thickness);
+    coord_t adjusted_layer_offset = initial_layer_thickness;
+    if (use_variable_layer_heights)
     {
-        initial += thickness / 2;
+        layers[0].z = adaptive_layers->at(0).z_position;
+    }
+    else if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    {
+        layers[0].z = initial_layer_thickness / 2;
+        adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
     }
 
-    // define all layer z positions depending on slicing mode
-    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    // define all layer z positions (depending on slicing mode, see above)
+    for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
@@ -823,7 +829,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         }
         else
         {
-            layers[layer_nr].z = initial + (thickness * layer_nr);
+            layers[layer_nr].z = adjusted_layer_offset + (thickness * (layer_nr - 1));
         }
     }
 
@@ -922,11 +928,11 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
 
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
 
-#pragma omp parallel for default(none) shared(mesh,layers_ref) firstprivate(keep_none_closed, extensive_stitching)
+#pragma omp parallel for default(none) shared(mesh, layers_ref)
     // Use a signed type for the loop counter so MSVC compiles
     for (int layer_nr = 0; layer_nr < layers_ref.size(); layer_nr++)
     {
-        layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching, layer_nr == 0);
+        layers_ref[layer_nr].makePolygons(mesh, layer_nr == 0);
     }
 
     switch(slicing_tolerance)
@@ -950,8 +956,16 @@ Slicer::Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t 
         ;
     }
 
-    mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
-    log("slice make polygons took %.3f seconds\n",slice_timer.restart());
+    mesh->expandXY(mesh->settings.get<coord_t>("xy_offset"));
+    log("slice make polygons took %.3f seconds\n", slice_timer.restart());
+}
+
+coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const
+{
+    const coord_t dx_01 = x1 - x0;
+    coord_t num = (y1 - y0) * (x - x0);
+    num += num > 0 ? dx_01 / 2 : -dx_01 / 2; // add in offset to round result
+    return y0 + num / dx_01;
 }
 
 }//namespace cura

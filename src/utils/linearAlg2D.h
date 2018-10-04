@@ -11,18 +11,18 @@ namespace cura
 class LinearAlg2D
 {
 public:
-    static short pointLiesOnTheRightOfLine(Point p, Point p0, Point p1)
+    static short pointLiesOnTheRightOfLine(const Point& p, const Point& p0, const Point& p1)
     {
         // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
         if ( std::max(p0.X, p1.X) >= p.X )
         {
-            int64_t pdY = p1.Y-p0.Y;
-            if (pdY < 0) // p0->p1 is 'falling'
+            const coord_t pd_y = p1.Y - p0.Y;
+            if (pd_y < 0) // p0->p1 is 'falling'
             {
-                if ( p1.Y <= p.Y && p0.Y > p.Y ) // candidate
+                if (p1.Y <= p.Y && p0.Y > p.Y) // candidate
                 {
                     // dx > 0 if intersection is to right of p.X
-                    int64_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X-p.X)*pdY;
+                    const coord_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X - p.X) * pd_y;
                     if (dx == 0) // includes p == p1
                     {
                         return 0;
@@ -38,7 +38,7 @@ public:
                 if (p.Y < p1.Y) // candidate for p0->p1 'rising' and includes p.Y
                 {
                     // dx > 0 if intersection is to right of p.X
-                    int64_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X-p0.X)*pdY;
+                    const coord_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X - p0.X) * pd_y;
                     if (dx == 0) // includes p == p0
                     {
                         return 0;
@@ -55,7 +55,7 @@ public:
                     // - p0->p1 exactly horizontal, and includes p.
                     // (we already tested std::max(p0.X,p1.X) >= p.X )
                     if (p.X == p1.X ||
-                        (pdY==0 && std::min(p0.X,p1.X) <= p.X) )
+                        (pd_y == 0 && std::min(p0.X, p1.X) <= p.X) )
                     {
                         return 0;
                     }
@@ -77,11 +77,11 @@ public:
      * \param b The end point of the line segment
      * \return the sign of the projection wrt the line segment
      */
-    inline static short pointIsProjectedBeyondLine(const Point from, const Point a, const Point b)
+    inline static short pointIsProjectedBeyondLine(const Point& from, const Point& a, const Point& b)
     {
         const Point vec = b - a;
         const Point point_vec = from - a;
-        const int64_t dot_prod = dot(point_vec, vec);
+        const coord_t dot_prod = dot(point_vec, vec);
         if (dot_prod < 0)
         { // point is projected to before ab
             return -1;
@@ -96,18 +96,17 @@ public:
     /*!
     * Find the point closest to \p from on the line from \p p0 to \p p1
     */
-    static Point getClosestOnLineSegment(Point from, Point p0, Point p1)
+    static Point getClosestOnLineSegment(const Point& from, const Point& p0, const Point& p1)
     {
-        Point direction = p1 - p0;
-        Point toFrom = from-p0;
-        int64_t projected_x = dot(toFrom, direction) ;
+        const Point direction = p1 - p0;
+        const Point to_from = from - p0;
+        const coord_t projected_x = dot(to_from, direction) ;
 
-        int64_t x_p0 = 0;
-        int64_t x_p1 = vSize2(direction);
+        const coord_t x_p0 = 0;
+        const coord_t x_p1 = vSize2(direction);
 
         if (x_p1 == 0)
         {
-    //         std::cout << "warning! too small segment" << std::endl;
             return p0;
         }
         if (projected_x <= x_p0)
@@ -121,9 +120,8 @@ public:
         else
         {
             Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
-            return ret ;
+            return ret;
         }
-
     }
 
 
@@ -138,7 +136,7 @@ public:
     * \param c the second point on the line segment
     * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
     */
-    static int64_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, char* b_is_beyond_ac = nullptr)
+    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, char* b_is_beyond_ac = nullptr)
     {
     /* 
     *     a,
@@ -155,13 +153,13 @@ public:
     * xb = ab - ax
     * error = vSize(xb)
     */
-        Point ac = c - a;
-        int64_t ac_size = vSize(ac);
+        const Point ac = c - a;
+        const coord_t ac_size = vSize(ac);
 
-        Point ab = b - a;
+        const Point ab = b - a;
         if (ac_size == 0) 
         {
-            int64_t ab_dist2 = vSize2(ab); 
+            const coord_t ab_dist2 = vSize2(ab); 
             if (ab_dist2 == 0)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
@@ -169,9 +167,9 @@ public:
             // otherwise variable b_is_beyond_ac remains its value; it doesn't make sense to choose between -1 and 1
             return ab_dist2;
         }
-        int64_t projected_x = dot(ab, ac);
-        int64_t ax_size = projected_x / ac_size;
-        
+        const coord_t projected_x = dot(ab, ac);
+        const coord_t ax_size = projected_x / ac_size;
+
         if (ax_size < 0) 
         {// b is 'before' segment ac 
             if (b_is_beyond_ac)
@@ -188,13 +186,13 @@ public:
             }
             return vSize2(b - c);
         }
-        
+
         if (b_is_beyond_ac)
         {
             *b_is_beyond_ac = 0;
         }
-        Point ax = ac * ax_size / ac_size;
-        Point bx = ab - ax;
+        const Point ax = ac * ax_size / ac_size;
+        const Point bx = ab - ax;
         return vSize2(bx);
 //         return vSize2(ab) - ax_size*ax_size; // less accurate
     }
@@ -209,9 +207,9 @@ public:
      * \param d Another end point of the second line segment
      * \param max_dist The maximal distance between the two line segments for which this function will return true.
      */
-    static bool lineSegmentsAreCloserThan(const Point& a, const Point& b, const Point& c, const Point& d, int64_t max_dist)
+    static bool lineSegmentsAreCloserThan(const Point& a, const Point& b, const Point& c, const Point& d, const coord_t max_dist)
     {
-        int64_t max_dist2 = max_dist * max_dist;
+        const coord_t max_dist2 = max_dist * max_dist;
 
         return getDist2FromLineSegment(a, c, b) <= max_dist2
                 || getDist2FromLineSegment(a, d, b) <= max_dist2
@@ -233,7 +231,7 @@ public:
      * \param b_from_transformed The transformed to location of line b
      * \return Whether the two line segments collide
      */
-    static bool lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point b_from_transformed, Point b_to_transformed);
+    static bool lineSegmentsCollide(const Point& a_from_transformed, const Point& a_to_transformed, Point b_from_transformed, Point b_to_transformed);
 
     /*!
      * Compute the angle between two consecutive line segments.
@@ -265,7 +263,7 @@ public:
      * \param b the to point of the line
      * \return a positive value when \p p lies to the left of the line from \p a to \p b
      */
-    static inline int64_t pointIsLeftOfLine(const Point& p, const Point& a, const Point& b)
+    static inline coord_t pointIsLeftOfLine(const Point& p, const Point& a, const Point& b)
     {
         return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
     }
@@ -282,27 +280,18 @@ public:
      * \param[out] result The result (if any was found)
      * \return Whether any such point has been found
      */
-    static bool getPointOnLineWithDist(const Point p, const Point a, const Point b, int64_t dist, Point& result);
+    static bool getPointOnLineWithDist(const Point& p, const Point& a, const Point& b, const coord_t dist, Point& result);
 
     /*!
-     * Get the squared distance from a point \p p to the line on which \p a and \p b lie
+     * Get the squared distance from a point \p p to the line on which \p a and
+     * \p b lie
+     * \param p The point to measure the distance from.
+     * \param a One of the points through which the line goes.
+     * \param b One of the points through which the line goes.
+     * \return The distance between the point and the line, squared.
      */
-    static inline int64_t getDist2FromLine(const Point p, const Point a, const Point b)
-    {
-        //  x.......a------------b
-        //  :
-        //  :
-        //  p
-        // return px_size
-        Point vab = b - a;
-        Point vap = p - a;
-        int64_t dott = dot(vab, vap);
-        int64_t ax_size2 = dott * dott / vSize2(vab);
-        int64_t ap_size2 = vSize2(vap);
-        int64_t px_size2 = std::max(int64_t(0), ap_size2 - ax_size2);
-        return px_size2;
-    }
-    
+    static coord_t getDist2FromLine(const Point& p, const Point& a, const Point& b);
+
     /*!
      * Check whether a corner is acute or obtuse.
      * 
@@ -316,17 +305,17 @@ public:
      * \param c end of second line segment
      * \return positive if acute, negative if obtuse, zero if 90 degree corner
      */
-    static inline int isAcuteCorner(const Point a, const Point b, const Point c)
+    static inline int isAcuteCorner(const Point& a, const Point& b, const Point& c)
     {
-        Point ba = a - b;
-        Point bc = c - b;
+        const Point ba = a - b;
+        const Point bc = c - b;
         return dot(ba, bc);
     }
 
     /*!
      * Get the rotation matrix for rotating around a specific point in place.
      */
-    static Point3Matrix rotateAround(Point middle, double rotation)
+    static Point3Matrix rotateAround(const Point& middle, double rotation)
     {
         PointMatrix rotation_matrix(rotation);
         Point3Matrix rotation_matrix_homogeneous(rotation_matrix);

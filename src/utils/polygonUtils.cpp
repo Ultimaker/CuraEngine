@@ -533,7 +533,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     // The offset is performed on the closest reference polygon in order to save computation time
     else
     {
-        int offset = (is_outside_boundary)? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
+        const coord_t offset = (is_outside_boundary) ? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
         Polygons insetted = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
         if (insetted.size() == 0)
         {
@@ -744,7 +744,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
     int bestPos = 0;
 
     size_t poly_size = polygon.size();
-    for (int p = 0; p < poly_size; p++)
+    for (size_t p = 0; p < poly_size; p++)
     {
         int p1_idx = (poly_size + direction * p + start_idx) % poly_size;
         int p2_idx = (poly_size + direction * (p + 1) + start_idx) % poly_size;
@@ -757,7 +757,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
         {
             best = closest_here;
             closestDist = dist;
-            bestPos = (direction > 0)? p1_idx : p2_idx;
+            bestPos = (direction > 0) ? p1_idx : p2_idx;
         }
         else 
         {
@@ -826,7 +826,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, ConstPolygonRef polygo
 
     int64_t closestDist2_score = vSize2(from - best) + penalty_function(best);
     int bestPos = 0;
-//
+
     for (unsigned int p = 0; p<polygon.size(); p++)
     {
         const Point& p1 = polygon[p];
@@ -1095,7 +1095,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
     for (unsigned int next_point_nr = 0; next_point_nr < poly.size(); next_point_nr++)
     {
         const unsigned int next_point_idx =
-            forward?
+            forward ?
                 (start.point_idx + 1 + next_point_nr) % poly.size()
                 : (static_cast<size_t>(start.point_idx) - next_point_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
         const Point next_vert = poly[next_point_idx];
@@ -1106,17 +1106,17 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
             const Point segment_vector = next_vert - prev_vert;
             const coord_t segment_length = vSize(segment_vector);
             const coord_t projected_segment_length = std::abs(projected - prev_projected);
-            const char sign = (projected > 0)? 1 : -1;
+            const char sign = (projected > 0) ? 1 : -1;
             const coord_t projected_inter_segment_length = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
             const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
 
-            unsigned int vert_before_idx = next_point_idx;
+            size_t vert_before_idx = next_point_idx;
             if (forward)
             {
-                vert_before_idx = (next_point_idx > 0)? vert_before_idx - 1 : poly.size() - 1;
+                vert_before_idx = (next_point_idx > 0) ? vert_before_idx - 1 : poly.size() - 1;
             }
-            assert(vert_before_idx < poly.size() && vert_before_idx >= 0);
+            assert(vert_before_idx < poly.size());
             return ClosestPolygonPoint(intersection, vert_before_idx, poly);
         }
 

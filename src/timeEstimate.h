@@ -1,3 +1,6 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
@@ -6,11 +9,13 @@
 #include <unordered_map>
 
 #include "PrintFeature.h"
+#include "settings/types/Duration.h" //Print time estimates.
+#include "settings/types/Ratio.h" //For speed factors.
+#include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
 
 namespace cura
 {
-
-class SettingsBaseVirtual;
+class Settings;
 
 /*!
  *  The TimeEstimateCalculator class generates a estimate of printing time calculated with acceleration in mind.
@@ -20,11 +25,11 @@ class SettingsBaseVirtual;
 class TimeEstimateCalculator
 {
 public:
-    const static unsigned int NUM_AXIS = 4;
-    const static unsigned int X_AXIS = 0;
-    const static unsigned int Y_AXIS = 1;
-    const static unsigned int Z_AXIS = 2;
-    const static unsigned int E_AXIS = 3;
+    constexpr static unsigned int NUM_AXIS = 4;
+    constexpr static unsigned int X_AXIS = 0;
+    constexpr static unsigned int Y_AXIS = 1;
+    constexpr static unsigned int Z_AXIS = 2;
+    constexpr static unsigned int E_AXIS = 3;
 
 
     class Position
@@ -44,17 +49,17 @@ public:
         
         double accelerate_until;
         double decelerate_after;
-        double initial_feedrate;
-        double final_feedrate;
+        Velocity initial_feedrate;
+        Velocity final_feedrate;
 
-        double entry_speed;
-        double max_entry_speed;
+        Velocity entry_speed;
+        Velocity max_entry_speed;
         bool nominal_length_flag;
         
-        double nominal_feedrate;
+        Velocity nominal_feedrate;
         double maxTravel;
         double distance;
-        double acceleration;
+        Acceleration acceleration;
         Position delta;
         Position absDelta;
 
@@ -62,44 +67,43 @@ public:
     };
 
 private:
-    double max_feedrate[NUM_AXIS] = {600, 600, 40, 25}; // mm/s
-    double minimumfeedrate = 0.01;
-    double acceleration = 3000;
-    double max_acceleration[NUM_AXIS] = {9000, 9000, 100, 10000};
-    double max_xy_jerk = 20.0;
-    double max_z_jerk = 0.4;
-    double max_e_jerk = 5.0;
-    double extra_time = 0.0;
+    Velocity max_feedrate[NUM_AXIS] = {600, 600, 40, 25}; // mm/s
+    Velocity minimumfeedrate = 0.01;
+    Acceleration acceleration = 3000;
+    Acceleration max_acceleration[NUM_AXIS] = {9000, 9000, 100, 10000};
+    Velocity max_xy_jerk = 20.0;
+    Velocity max_z_jerk = 0.4;
+    Velocity max_e_jerk = 5.0;
+    Duration extra_time = 0.0;
     
     Position previous_feedrate;
-    double previous_nominal_feedrate;
+    Velocity previous_nominal_feedrate;
 
     Position currentPosition;
 
     std::vector<Block> blocks;
 public:
     /*!
-     * Set the movement configuration of the firmware.
-     * 
-     * \param settings_base Where to get the settings from
+     * \brief Set the movement configuration of the firmware.
+     * \param settings_base Where to get the settings from.
      */
-    void setFirmwareDefaults(const SettingsBaseVirtual* settings_base);
+    void setFirmwareDefaults(const Settings& settings);
     void setPosition(Position newPos);
-    void plan(Position newPos, double feedRate, PrintFeatureType feature);
-    void addTime(double time);
-    void setAcceleration(double acc); //!< Set the default acceleration to \p acc
-    void setMaxXyJerk(double jerk); //!< Set the max xy jerk to \p jerk
-    void setMaxZFeedrate(double max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
+    void plan(Position newPos, Velocity feedRate, PrintFeatureType feature);
+    void addTime(const Duration& time);
+    void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
+    void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
+    void setMaxZFeedrate(const Velocity& max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
 
     void reset();
     
-    std::vector<double> calculate();
+    std::vector<Duration> calculate();
 private:
     void reverse_pass();
     void forward_pass();
     void recalculate_trapezoids();
-    
-    void calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor);
+
+    void calculate_trapezoid_for_block(Block *block, const Ratio entry_factor, const Ratio exit_factor);
     void planner_reverse_pass_kernel(Block *previous, Block *current, Block *next);
     void planner_forward_pass_kernel(Block *previous, Block *current, Block *next);
 };

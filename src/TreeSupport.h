@@ -4,6 +4,7 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include <forward_list>
 #include <unordered_set>
 
 #include "sliceDataStorage.h"
@@ -38,17 +39,25 @@ public:
      */
     struct Node
     {
-        Node()
-        {
-            position = Point(0, 0);
-            distance_to_top = 0;
-            skin_direction = false;
-            support_roof_layers_below = 0;
-            to_buildplate = true;
-        }
+        static constexpr Node* NO_PARENT = nullptr;
 
-        Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate)
-         : distance_to_top(distance_to_top), position(position), skin_direction(skin_direction), support_roof_layers_below(support_roof_layers_below), to_buildplate(to_buildplate) {}
+        Node()
+         : distance_to_top(0)
+         , position(Point(0, 0))
+         , skin_direction(false)
+         , support_roof_layers_below(0)
+         , to_buildplate(true)
+         , parent(nullptr)
+        {}
+
+        Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate, Node* const parent)
+         : distance_to_top(distance_to_top)
+         , position(position)
+         , skin_direction(skin_direction)
+         , support_roof_layers_below(support_roof_layers_below)
+         , to_buildplate(to_buildplate)
+         , parent(parent)
+        {}
 
         /*!
          * \brief The number of layers to go to the top of this branch.
@@ -86,6 +95,24 @@ public:
          * go towards the build plate to prevent a scar on the surface.
          */
         mutable bool to_buildplate;
+
+        /*!
+         * \brief The originating node for this one, one layer higher.
+         *
+         * In order to prune branches that can't have any support (because they
+         * can't be on the model and the path to the buildplate isn't clear),
+         * the entire branch needs to be known.
+         */
+        Node *const parent;
+
+        /*!
+        * \brief All neighbours (on the same layer) that where merged into this node.
+        *
+        * In order to prune branches that can't have any support (because they
+        * can't be on the model and the path to the buildplate isn't clear),
+        * the entire branch needs to be known.
+        */
+        mutable std::forward_list<Node*> merged_neighbours;
 
         bool operator==(const Node& other) const
         {
@@ -130,7 +157,7 @@ private:
      * \param model_collision The model infill with the X/Y distance already
      * subtracted.
      */
-    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision);
+    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision);
 
     /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
@@ -140,7 +167,6 @@ private:
      * causes them to move towards each other as they are copied to lower layers
      * which ultimately results in a 3D tree.
      *
-     * \param storage The settings storage to get settings from.
      * \param contact_nodes[in, out] The nodes in the space that need to be
      * dropped down. The nodes are dropped to lower layers inside the same
      * vector of layers.
@@ -154,7 +180,7 @@ private:
      * with the polygons that must be avoided if the branches wish to go towards
      * the model.
      */
-    void dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
+    void dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
 
     /*!
      * \brief Creates points where support contacts the model.
@@ -169,14 +195,14 @@ private:
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<Polygons>& collision_areas);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<Polygons>& collision_areas);
 
     /*!
      * \brief Add a node to the next layer.
      *
      * If a node is already at that position in the layer, the nodes are merged.
      */
-    void insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node& node);
+    void insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node* node);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches

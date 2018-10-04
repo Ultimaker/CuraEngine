@@ -1,4 +1,6 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 #define PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 
@@ -33,18 +35,15 @@ private:
      */
     struct Crossing
     {
-        int64_t x; //!< x coordinate of crossings between the polygon and the scanline.
-        unsigned int point_idx; //!< The index of the first point of the line segment which crosses the scanline
+        coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
+        size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
         
         /*!
          * Creates a Crossing with minimal initialization
          * \param x The x-coordinate in transformed space
          * \param point_idx The index of the first point of the line segment which crosses the scanline
          */
-        Crossing(int64_t x, unsigned int point_idx)
-        : x(x), point_idx(point_idx)
-        {
-        }
+        Crossing(const coord_t x, const size_t point_idx);
     };
     
     /*!
@@ -52,20 +51,16 @@ private:
      */
     struct PolyCrossings
     {
-        unsigned int poly_idx; //!< The index of the polygon which crosses the scanline
+        const size_t poly_idx; //!< The index of the polygon which crosses the scanline
         Crossing min; //!< The point where the polygon first crosses the scanline.
         Crossing max; //!< The point where the polygon last crosses the scanline.
-        int n_crossings; //!< The number of times the polygon crossed the scanline.
+        size_t n_crossings; //!< The number of times the polygon crossed the scanline.
+
         /*!
          * Create a PolyCrossings with minimal initialization. PolyCrossings::min and PolyCrossings::max are not yet computed.
          * \param poly_idx The index of the polygon in LinePolygonsCrossings::boundary
          */
-        PolyCrossings(unsigned int poly_idx) 
-        : poly_idx(poly_idx)
-        , min(INT64_MAX, NO_INDEX), max(INT64_MIN, NO_INDEX) 
-        , n_crossings(0)
-        { 
-        }
+        PolyCrossings(const size_t poly_idx);
     };
 
     /*!
@@ -109,16 +104,16 @@ private:
     bool calcScanlineCrossings(bool fail_on_unavoidable_obstacles);
     
     /*! 
-     * Get the basic combing path and optimize it.
+     * Generate the basic combing path and optimize it.
      * 
      * \param combPath Output parameter: the points along the combing path.
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles);
+    bool generateCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles);
     
     /*! 
-     * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
+     * Generate the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
      * 
      * Walk trough the crossings, for every boundary we cross, find the initial cross point and the exit point. Then add all the points in between
      * to the \p combPath and continue with the next boundary we will cross, until there are no more boundaries to cross.
@@ -126,10 +121,10 @@ private:
      * 
      * \param combPath Output parameter: the points along the combing path.
      */
-    void getBasicCombingPath(CombPath& combPath);
+    void generateBasicCombingPath(CombPath& combPath);
     
     /*! 
-     * Get the basic combing path, following a single boundary polygon when it hits it, until it passes the scanline again.
+     * Generate the basic combing path, following a single boundary polygon when it hits it, until it passes the scanline again.
      * 
      * Find the initial cross point and the exit point. Then add all the points in between
      * to the \p combPath and continue with the next boundary we will cross, until there are no more boundaries to cross.
@@ -137,7 +132,7 @@ private:
      * 
      * \param combPath Output parameter: where to add the points along the combing path.
      */
-    void getBasicCombingPath(PolyCrossings& crossings, CombPath& combPath);
+    void generateBasicCombingPath(PolyCrossings& crossings, CombPath& combPath);
     
     /*!
      * Find the first polygon cutting the scanline after \p x.
@@ -190,7 +185,7 @@ public:
     static bool comb(const Polygons& boundary, LocToLineGrid& loc_to_line_grid, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, loc_to_line_grid, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        return linePolygonsCrossings.generateCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     };
 };
 
