@@ -4,11 +4,6 @@
 #include <cstring> //For strtok and strcopy.
 #include <fstream> //To check if files exist.
 #include <errno.h> // error number when trying to read file
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <libgen.h> //To get the parent directory of a file path.
-#endif
 #include <numeric> //For std::accumulate.
 #ifdef _OPENMP
     #include <omp.h> //To change the number of threads to slice with.
@@ -21,6 +16,7 @@
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
 #include "../FffProcessor.h" //To start a slice and get time estimates.
+#include "../utils/getpath.h"
 
 namespace cura
 {
@@ -330,15 +326,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
     }
 
     std::unordered_set<std::string> search_directories = defaultSearchDirectories(); //For finding the inheriting JSON files.
-    char* filename_copy = static_cast<char*>(alloca(sizeof(char) * (json_filename.size() + 1)));
-#ifdef _WIN32
-    char* name_start;
-    GetFullPathNameA(json_filename.c_str(), json_filename.size() + 1, filename_copy, &name_start);
-    std::string directory{filename_copy, name_start};
-#else
-    std::strcpy(filename_copy.data(), json_filename.c_str());
-    std::string directory = std::string(dirname(filename_copy));
-#endif
+    std::string directory = getPathName(json_filename);
     search_directories.emplace(directory);
 
     return loadJSON(json_document, search_directories, settings);

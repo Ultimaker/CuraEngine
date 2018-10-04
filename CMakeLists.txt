@@ -181,6 +181,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
     src/utils/gettime.cpp
+    src/utils/getpath.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
