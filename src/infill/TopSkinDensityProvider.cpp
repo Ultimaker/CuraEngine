@@ -26,7 +26,7 @@ TopSkinDensityProvider::~TopSkinDensityProvider()
 float TopSkinDensityProvider::operator()(const AABB3D& aabb, const int_fast8_t) const
 {
     size_t first_layer_idx = mesh_data.layers.size();
-    size_t last_layer_idx = 0;
+    size_t last_layer_idx = mesh_data.layers.size() - 1;
 
     // determine start and end layer
     for (size_t layer_idx = 0; layer_idx < mesh_data.layers.size(); layer_idx++)
