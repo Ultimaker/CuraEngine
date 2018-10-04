@@ -800,7 +800,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     //Generate the actual areas and store them in the mesh.
     #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
     // Use a signed type for the loop counter so MSVC compiles
-    for (int layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
+    for (int layer_idx = 1; layer_idx < static_cast<int>(storage.print_layer_count); layer_idx++)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
         mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
@@ -857,7 +857,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
     // Use a signed type for the loop counter so MSVC compiles
-    for (int layer_idx = 1; layer_idx < layer_count; layer_idx++)
+    for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, false);
         if (!is_support_mesh_place_holder)
@@ -1053,12 +1053,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         // this is performed after the main support generation loop above, because it affects the joining of polygons
         // if this would be performed in the main loop then some support would not have been generated under the overhangs and consequently no support is generated for that,
         // meaning almost no support would be generated in some cases which definitely need support.
-        const int max_checking_layer_idx = std::min(static_cast<int>(storage.support.supportLayers.size())
-                                                  , static_cast<int>(layer_count - (layer_z_distance_top - 1)));
-        const size_t max_checking_idx_size_t = std::max(0, max_checking_layer_idx);
+        const int max_checking_layer_idx = std::max(0,
+                                                    std::min(static_cast<int>(storage.support.supportLayers.size()),
+                                                             static_cast<int>(layer_count - (layer_z_distance_top - 1))));
 #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
         // Use a signed type for the loop counter so MSVC compiles
-        for (int layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
+        for (int layer_idx = 0; layer_idx < max_checking_layer_idx; layer_idx++)
         {
             support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, false));
         }

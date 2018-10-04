@@ -172,7 +172,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
     // Use a signed type for the loop counter so MSVC compiles
-    for (int radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
+    for (int radius_sample = 0; radius_sample < static_cast<int>(model_collision.size()); radius_sample++)
     {
         const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
@@ -212,7 +212,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(storage, contact_nodes)
     // Use a signed type for the loop counter so MSVC compiles
-    for (int layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
+    for (int layer_nr = 0; layer_nr < static_cast<int>(contact_nodes.size()); layer_nr++)
     {
         Polygons support_layer;
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
@@ -659,7 +659,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
     const coord_t maximum_move_distance = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_avoidance) schedule(dynamic)
-    for (int radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)
+    for (int radius_sample = 0; radius_sample < static_cast<int>(model_avoidance.size()); radius_sample++)
     {
         model_avoidance[radius_sample].push_back(model_collision[radius_sample][0]);
         for (size_t layer_nr = 1; layer_nr < storage.support.supportLayers.size(); layer_nr++)
