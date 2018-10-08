@@ -73,7 +73,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             {
                 average_first_path += point;
             }
-            average_first_path /= (first_path.points.size() + 1);
+            average_first_path = average_first_path / (first_path.points.size() + 1);
         }
 
         coord_t second_path_length = calcPathLength(second_path_start, second_path);
