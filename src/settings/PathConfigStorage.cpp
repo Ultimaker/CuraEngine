@@ -7,6 +7,41 @@
 #include "../raft.h"
 #include "../sliceDataStorage.h" // SliceDataStorage
 
+namespace
+{
+
+// Check whether the given layer_nr is the first layer of support structure that touches the raft or build plate.
+bool isFirstSupportLayer(const cura::LayerIndex& layer_nr)
+{
+    if (layer_nr > 0)
+    {
+        return false;
+    }
+
+    const cura::Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    if (mesh_group_settings.get<cura::EPlatformAdhesion>("adhesion_type") == cura::EPlatformAdhesion::RAFT)
+    {
+        const size_t extruder_nr = mesh_group_settings.get<cura::ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
+        const cura::ExtruderTrain& train = cura::Application::getInstance().current_slice->scene.extruders[extruder_nr];
+        const size_t raft_base_layers = 1;
+        const size_t raft_interface_layers = 1;
+        const size_t raft_surface_layers = train.settings.get<size_t>("raft_surface_layers");
+        const cura::LayerIndex layer_nr_above_raft = -cura::Raft::getTotalExtraLayers() + raft_base_layers + raft_interface_layers + raft_surface_layers;
+        if (layer_nr == layer_nr_above_raft)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+}
+
 namespace cura
 {
 
@@ -242,11 +277,12 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 
     support_infill_config.reserve(MAX_INFILL_COMBINE);
     const float support_infill_line_width_factor = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[support_infill_extruder_nr];
+    const coord_t support_line_width = support_infill_train.settings.get<coord_t>(isFirstSupportLayer(layer_nr) ? "first_layer_support_line_width" : "support_line_width");
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         support_infill_config.emplace_back(
             PrintFeatureType::Support
-            , support_infill_train.settings.get<coord_t>("support_line_width") * (combine_idx + 1) * support_infill_line_width_factor
+            , support_line_width * (combine_idx + 1) * support_infill_line_width_factor
             , layer_thickness
             , (layer_nr == 0) ? support_infill_train.settings.get<Ratio>("material_flow_layer_0") : support_infill_train.settings.get<Ratio>("material_flow")
             , GCodePathConfig::SpeedDerivatives{support_infill_train.settings.get<Velocity>("speed_support_infill"), support_infill_train.settings.get<Acceleration>("acceleration_support_infill"), support_infill_train.settings.get<Velocity>("jerk_support_infill")}
