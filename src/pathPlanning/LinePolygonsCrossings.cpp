@@ -190,11 +190,6 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
         rev_points.push_back(p);
         rev_len += vSize(p - prev);
         prev = p;
-        if (rev_len > fwd_len)
-        {
-            // this path is already longer than the forward path so there's no point in carrying on
-            break;
-        }
     }
 
     const Point last = transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y));
