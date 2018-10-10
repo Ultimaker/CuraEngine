@@ -59,6 +59,12 @@ public:
          , parent(parent)
         {}
 
+        ~Node()
+        {
+            parent = nullptr;
+            merged_neighbours.clear();
+        }
+
         /*!
          * \brief The number of layers to go to the top of this branch.
          */
@@ -103,7 +109,7 @@ public:
          * can't be on the model and the path to the buildplate isn't clear),
          * the entire branch needs to be known.
          */
-        Node *const parent;
+        Node * parent;
 
         /*!
         * \brief All neighbours (on the same layer) that where merged into this node.
