@@ -204,8 +204,8 @@ void ArcusCommunicationPrivateTest::readMeshGroupMessageTest()
 
     auto& vertices = meshes[0].vertices;
     CPPUNIT_ASSERT(! vertices.empty());
-    CPPUNIT_ASSERT_EQUAL(vertices.size(), 8ul); //A cube should have 8 unique vertices.
-    CPPUNIT_ASSERT_EQUAL(meshes[0].faces.size(), 12ul); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
+    CPPUNIT_ASSERT_EQUAL(vertices.size(), std::size_t{8}); //A cube should have 8 unique vertices.
+    CPPUNIT_ASSERT_EQUAL(meshes[0].faces.size(), std::size_t{12}); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
 
     // Distances should be the same:
 
