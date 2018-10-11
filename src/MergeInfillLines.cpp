@@ -70,7 +70,7 @@ namespace cura
             {
                 average_first_path += point;
             }
-            average_first_path /= (first_path.points.size() + 1);
+            average_first_path = average_first_path / (first_path.points.size() + 1);
         }
 
         coord_t second_path_length = calcPathLength(second_path_start, second_path);
@@ -79,8 +79,9 @@ namespace cura
         {
             average_second_path += point;
         }
-        coord_t second_path_length_flow = second_path_length *= second_path.flow;
-        average_second_path /= (coord_t) (second_path.points.size() + 1);
+        second_path_length *= second_path.flow;
+        coord_t second_path_length_flow = second_path_length;
+        average_second_path = average_second_path / (second_path.points.size() + 1);
 
         // predict new length and flow and if the new flow is to big, don't merge. conditions in this part must exactly match the actual merging
         coord_t new_path_length = first_path_length;
