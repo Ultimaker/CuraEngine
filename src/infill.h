@@ -41,6 +41,7 @@ class Infill
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
     size_t zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
+    float speckle_density; //!< average number of speckles per mm^2
     coord_t minimum_zag_line_length; //!< Throw away perimeters that are too small
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
@@ -73,6 +74,7 @@ public:
         , bool skip_some_zags = false
         , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
+        , float speckle_density = 0.0
         , coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD
     )
     : pattern(pattern)
@@ -95,6 +97,7 @@ public:
     , skip_some_zags(skip_some_zags)
     , zag_skip_count(zag_skip_count)
     , pocket_size(pocket_size)
+    , speckle_density(speckle_density)
     , minimum_zag_line_length(minimum_zag_line_length)
     {
     }
@@ -242,8 +245,9 @@ private:
      * \param first_wall The outer wall from which to start
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
+     * \param offset_type The type of offsets to perform
      */
-    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
+    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value, ClipperLib::JoinType offset_type = ClipperLib::jtMiter);
 
     /*!
      * Generate a rectangular grid of infill lines

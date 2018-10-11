@@ -248,7 +248,37 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    const Polygons* outline = &in_outline;
+    Polygons outline_recomputed;
+    coord_t outline_offset_used;
+    ClipperLib::JoinType offset_type = ClipperLib::jtMiter;
+    if (speckle_density > 0.0)
+    {
+        Polygons speckles;
+        AABB aabb(in_outline);
+        Point aabb_size = aabb.max - aabb.min;
+        float area = INT2MM2(aabb_size.X * aabb_size.Y);
+        uint_fast64_t speckle_count = speckle_density * area;
+        for (uint_fast8_t speckle_nr = 0; speckle_nr < speckle_count; speckle_nr++)
+        {
+            PolygonRef speckle = speckles.newPoly();
+            Point loc = Point(rand() % aabb_size.X, rand() % aabb_size.Y) + aabb.min;
+            speckle.add(loc);
+            speckle.add(loc + Point(2,0));
+            speckle.add(loc + Point(2,2));
+            speckle.add(loc + Point(0,2));
+        }
+        outline_recomputed = in_outline.offset(outline_offset).difference(speckles);
+        outline = &outline_recomputed;
+        outline_offset_used = 0;
+        offset_type = ClipperLib::jtRound; // so that the offsets will be concentric circles
+    }
+    else
+    {
+        outline_offset_used = outline_offset;
+    }
+
+    Polygons first_concentric_wall = outline->offset(outline_offset_used + infill_overlap - line_distance + infill_line_width / 2, offset_type); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
     if (perimeter_gaps)
     {
@@ -256,29 +286,31 @@ void Infill::generateConcentricInfill(Polygons& result, int inset_value)
         const Polygons gaps_here = in_outline.difference(inner);
         perimeter_gaps->add(gaps_here);
     }
-    generateConcentricInfill(first_concentric_wall, result, inset_value);
+    generateConcentricInfill(first_concentric_wall, result, inset_value, offset_type);
 }
 
-void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
+void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value, ClipperLib::JoinType offset_type)
 {
     result.add(first_concentric_wall);
-    Polygons* prev_inset = &first_concentric_wall;
-    Polygons next_inset;
-    Polygons new_inset;  // This intermediate inset variable is needed because prev_inset is referencing
-    while (prev_inset->size() > 0)
+    Polygons prev_inset = first_concentric_wall;
+    coord_t inset_amount = inset_value;
+    while (true)
     {
-        new_inset = prev_inset->offset(-inset_value);
-        result.add(new_inset);
+        Polygons new_inset = first_concentric_wall.offset(-inset_amount, offset_type);
         if (perimeter_gaps)
         {
-            const Polygons outer = prev_inset->offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
+            const Polygons outer = prev_inset.offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
             const Polygons inner = new_inset.offset(infill_line_width / 2);
             const Polygons gaps_here = outer.difference(inner);
             perimeter_gaps->add(gaps_here);
         }
-        // This operation helps to prevent the variable "prev_inset" changes whenever next_inset changes
-        next_inset = new_inset;
-        prev_inset = &next_inset;
+        if (new_inset.empty())
+        {
+            break;
+        }
+        result.add(new_inset);
+        inset_amount += inset_value;
+        prev_inset = new_inset;
     }
     std::reverse(std::begin(result), std::end(result));
 }
