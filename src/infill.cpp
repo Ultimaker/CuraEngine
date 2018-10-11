@@ -62,7 +62,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
     else
     {
-        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+        Polygons generated_result_polygons;
+        Polygons generated_result_lines;
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        result_polygons.add(generated_result_polygons);
+        result_lines.add(generated_result_lines);
     }
 
     // generate walls around infill pattern
