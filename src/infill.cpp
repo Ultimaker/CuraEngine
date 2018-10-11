@@ -62,6 +62,8 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
     else
     {
+        //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
+        //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
         _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
