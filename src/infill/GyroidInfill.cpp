@@ -319,8 +319,15 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     }
                     const unsigned point_index = points_on_outline_point_index[nearest_point_index];
                     const unsigned chain_index = points_on_outline_chain_index[nearest_point_index];
+
                     // make the chain end the current point and add it to the connector line
                     cur_point = chains[point_index][chain_index];
+
+                    if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < 100)
+                    {
+                        // this chain end will be too close to the last connector point so throw away the last connector point
+                        connector_points.pop_back();
+                    }
                     connector_points.push_back(cur_point);
 
                     if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
