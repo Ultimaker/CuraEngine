@@ -25,9 +25,6 @@
  * \param x the point to get the scansegment index for
  * \param line_width the width of the scan segments
  */
-static inline int computeScanSegmentIdx(int x, int line_width);
-
-
 static inline int computeScanSegmentIdx(int x, int line_width)
 {
     if (x < 0)
