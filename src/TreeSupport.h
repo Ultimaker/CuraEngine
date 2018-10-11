@@ -109,7 +109,7 @@ public:
          * can't be on the model and the path to the buildplate isn't clear),
          * the entire branch needs to be known.
          */
-        Node * parent;
+        Node *parent;
 
         /*!
         * \brief All neighbours (on the same layer) that where merged into this node.
