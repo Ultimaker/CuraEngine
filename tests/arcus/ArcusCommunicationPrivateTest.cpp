@@ -7,6 +7,8 @@
 #include "../src/Application.h"
 #include "../src/Slice.h"
 
+#include <array>
+
 namespace cura
 {
 
