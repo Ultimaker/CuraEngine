@@ -284,16 +284,22 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     }
                 }
 
-                if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
+                if (outline_point_index == 0 || vSize2(op0 - cur_point) > 100)
                 {
-                    // include the outline point in the path to the first chain
-                    path_to_first_chain.push_back(op0);
-                }
+                    // this is either the first outline point or it is another outline point that is not too close to cur_point
 
-                if (drawing)
-                {
-                    // include the start point of this outline segment in the connector
-                    connector_points.push_back(op0);
+                    if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
+                    {
+                        // include the outline point in the path to the first chain
+                        path_to_first_chain.push_back(op0);
+                    }
+
+                    cur_point = op0;
+                    if (drawing)
+                    {
+                        // include the start point of this outline segment in the connector
+                        connector_points.push_back(op0);
+                    }
                 }
 
                 // iterate through each of the chain ends that meet the current outline segment
