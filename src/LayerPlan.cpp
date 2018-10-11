@@ -231,7 +231,7 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
             }
             else
             {
-                layer.getInnermostWalls(comb_boundary, max_inset, mesh);
+                comb_boundary.add(layer.getInnermostWalls(max_inset, mesh));
             }
         }
         return comb_boundary;
