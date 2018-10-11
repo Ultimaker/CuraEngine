@@ -260,15 +260,17 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
             unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
 
+            Point cur_point; // current point of interest - either an outline point or a chain end
+
             // go round all of the region's outline and find the chain ends that meet it
             // quit the loop early if we have seen all the chain ends and are not currently drawing a connector
             for (unsigned outline_point_index = 0; (chain_ends_remaining > 0 || drawing) && outline_point_index < outline_poly.size(); ++outline_point_index)
             {
                 Point op0 = outline_poly[outline_point_index];
                 Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
-                Point cur_point = op0;
                 std::vector<unsigned> points_on_outline_chain_index;
                 std::vector<unsigned> points_on_outline_point_index;
+
                 // collect the chain ends that meet this segment of the outline
                 for (unsigned chain_index = 0; chain_index < chains[0].size(); ++chain_index)
                 {
