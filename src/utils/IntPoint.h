@@ -65,8 +65,15 @@ INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.
 
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
 INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
-template<typename T> INLINE Point& operator *= (Point& p0, const T i) { p0.X *= i; p0.Y *= i; return p0; }
-template<typename T> INLINE Point& operator /= (Point& p0, const T i) { p0.X /= i; p0.Y /= i; return p0; }
+
+/* ***** NOTE *****
+   TL;DR: DO NOT implement operators *= and /= because of the default values in ClipperLib::IntPoint's constructor.
+
+   We DO NOT implement operators *= and /= because the class Point is essentially a ClipperLib::IntPoint and it has a
+   constructor IntPoint(int x = 0, int y = 0), and this causes problems. If you implement *= as *=(int) and when you
+   do "Point a = a * 5", you probably intend to do "a.x *= 5" and "a.y *= 5", but with that constructor, it will create
+   an IntPoint(5, y = 0) and you end up with wrong results.
+ */
 
 //INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
 //INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
