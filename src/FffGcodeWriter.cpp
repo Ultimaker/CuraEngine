@@ -68,6 +68,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
         setInfillAndSkinAngles(mesh);
     }
+
+    setSupportAngles(storage);
     
     gcode.writeLayerCountComment(total_layers);
 
@@ -369,6 +371,69 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
             mesh.skin_angles.push_back(135);
         }
     }
+}
+
+void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
+{
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+    const size_t extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+    const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    storage.support.support_infill_angles = support_infill_extruder.settings.get<std::vector<AngleDegrees>>("support_infill_angles");
+    if (storage.support.support_infill_angles.empty())
+    {
+        storage.support.support_infill_angles.push_back(0);
+    }
+
+    const size_t extruder_nr_layer_0 = mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr;
+    const ExtruderTrain& support_extruder_nr_layer_0 = Application::getInstance().current_slice->scene.extruders[extruder_nr_layer_0];
+    storage.support.support_infill_angles_layer_0 = support_extruder_nr_layer_0.settings.get<std::vector<AngleDegrees>>("support_infill_angles");
+    if (storage.support.support_infill_angles_layer_0.empty())
+    {
+        storage.support.support_infill_angles_layer_0.push_back(0);
+    }
+
+    auto getInterfaceAngles = [&storage](const ExtruderTrain& extruder, const std::string& interface_angles_setting, const EFillMethod pattern, const std::string& interface_height_setting)
+    {
+        std::vector<AngleDegrees> angles = extruder.settings.get<std::vector<AngleDegrees>>(interface_angles_setting);
+        if (angles.empty())
+        {
+            if (pattern == EFillMethod::CONCENTRIC)
+            {
+                angles.push_back(0); //Concentric has no rotation.
+            }
+            else if (pattern == EFillMethod::TRIANGLES)
+            {
+                angles.push_back(90); //Triangular support interface shouldn't alternate every layer.
+            }
+            else
+            {
+                for (const SliceMeshStorage& mesh : storage.meshes)
+                {
+                    if (mesh.settings.get<coord_t>(interface_height_setting) >= 2 * Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height"))
+                    {
+                        //Some roofs are quite thick.
+                        //Alternate between the two kinds of diagonal: / and \ .
+                        angles.push_back(45);
+                        angles.push_back(135);
+                    }
+                }
+                if (angles.empty())
+                {
+                    angles.push_back(90); //Perpendicular to support lines.
+                }
+            }
+        }
+        return angles;
+    };
+
+    const size_t roof_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
+    const ExtruderTrain& roof_extruder = Application::getInstance().current_slice->scene.extruders[roof_extruder_nr];
+    storage.support.support_roof_angles = getInterfaceAngles(roof_extruder, "support_roof_angles", roof_extruder.settings.get<EFillMethod>("support_roof_pattern"), "support_roof_height");
+
+    const size_t bottom_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
+    const ExtruderTrain& bottom_extruder = Application::getInstance().current_slice->scene.extruders[bottom_extruder_nr];
+    storage.support.support_bottom_angles = getInterfaceAngles(bottom_extruder, "support_bottom_angles", bottom_extruder.settings.get<EFillMethod>("support_bottom_pattern"), "support_bottom_height");
 }
 
 void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
@@ -2247,7 +2312,18 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const coord_t default_support_infill_overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
-    const AngleDegrees support_infill_angle = infill_extruder.settings.get<AngleDegrees>("support_infill_angle");
+    AngleDegrees support_infill_angle = 0;
+    if (gcode_layer.getLayerNr() <= 0)
+    {
+        // handle negative layer numbers
+        int divisor = static_cast<int>(storage.support.support_infill_angles_layer_0.size());
+        int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
+        support_infill_angle = storage.support.support_infill_angles_layer_0.at(index);
+    }
+    else
+    {
+        support_infill_angle = storage.support.support_infill_angles.at(gcode_layer.getLayerNr() % storage.support.support_infill_angles.size());
+    }
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
     constexpr size_t wall_line_count = 0;
     coord_t default_support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
@@ -2380,7 +2456,14 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const ExtruderTrain& roof_extruder = Application::getInstance().current_slice->scene.extruders[roof_extruder_nr];
 
     const EFillMethod pattern = roof_extruder.settings.get<EFillMethod>("support_roof_pattern");
-    const double fill_angle = supportInterfaceFillAngle(storage, pattern, "support_roof_height", gcode_layer.getLayerNr());
+    AngleDegrees fill_angle = 0;
+    if (!storage.support.support_roof_angles.empty())
+    {
+        // handle negative layer numbers
+        int divisor = static_cast<int>(storage.support.support_roof_angles.size());
+        int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
+        fill_angle = storage.support.support_roof_angles.at(index);
+    }
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = false; // connections might happen in mid air in between the infill lines
     constexpr coord_t support_roof_overlap = 0; // the roofs should never be expanded outwards
@@ -2456,7 +2539,14 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     const ExtruderTrain& bottom_extruder = Application::getInstance().current_slice->scene.extruders[bottom_extruder_nr];
 
     const EFillMethod pattern = bottom_extruder.settings.get<EFillMethod>("support_bottom_pattern");
-    const AngleDegrees fill_angle = supportInterfaceFillAngle(storage, pattern, "support_bottom_height", gcode_layer.getLayerNr());
+    AngleDegrees fill_angle = 0;
+    if (!storage.support.support_bottom_angles.empty())
+    {
+        // handle negative layer numbers
+        int divisor = static_cast<int>(storage.support.support_bottom_angles.size());
+        int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
+        fill_angle = storage.support.support_bottom_angles.at(index);
+    }
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = true; // less retractions and less moves only make the bottoms easier to print
     constexpr coord_t support_bottom_overlap = 0; // the bottoms should never be expanded outwards
@@ -2496,31 +2586,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     }
     gcode_layer.addLinesByOptimizer(bottom_lines, gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
-}
-
-AngleDegrees FffGcodeWriter::supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const LayerIndex layer_nr) const
-{
-    if (pattern == EFillMethod::CONCENTRIC)
-    {
-        return 0; //Concentric has no rotation.
-    }
-    if (pattern == EFillMethod::TRIANGLES)
-    {
-        return 90; //Triangular support interface shouldn't alternate every layer.
-    }
-
-    for (const SliceMeshStorage& mesh : storage.meshes)
-    {
-        if (mesh.settings.get<coord_t>(interface_height_setting) >= 2 * Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height"))
-        {
-            //Some roofs are quite thick.
-            //Alternate between the two kinds of diagonal: / and \ .
-            // + 2) % 2 is to handle negative layer numbers.
-            return 45 + (((layer_nr % 2) + 2) % 2) * 90;
-        }
-    }
-
-    return 90; //Perpendicular to support lines.
 }
 
 void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const

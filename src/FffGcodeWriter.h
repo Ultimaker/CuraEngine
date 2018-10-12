@@ -196,6 +196,18 @@ private:
     void setInfillAndSkinAngles(SliceMeshStorage& mesh);
 
     /*!
+     * Set the support and interface infill angles in the SliceDataStorage.
+     *
+     * Default angles depend on which pattern it's using and in certain patterns it
+     * alternates between layers.
+     *
+     * These lists of angles are cycled through to get the support infill angle of a specific layer.
+     *
+     * \param storage The storage for which to determine the support infill angles.
+     */
+    void setSupportAngles(SliceDataStorage& storage);
+
+    /*!
     * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
     *
     * \param[in] storage where the slice data is stored.
@@ -649,22 +661,6 @@ private:
      * \return Whether any support skin was added to the layer plan.
      */
     bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
-
-    /*!
-     * \brief Gives the angle of the infill of support interface.
-     *
-     * The angle depends on which pattern it's using and in certain patterns it
-     * alternates between layers.
-     *
-     * \param storage A storage of meshes and their settings.
-     * \param pattern The pattern of the support interface to get the fill angle
-     * for.
-     * \param interface_height_setting The setting to retrieve from every mesh
-     * to determine whether the support interface should alternate.
-     * \param layer_nr The layer number of the layer for which to determine the interface angle
-     * \return The angle of support interface.
-     */
-    AngleDegrees supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const LayerIndex layer_nr) const;
 
 public:
     /*!
