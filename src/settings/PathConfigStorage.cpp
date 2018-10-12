@@ -219,7 +219,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
                 , train.settings.get<coord_t>("prime_tower_line_width")
                     * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[extruder_nr])
                 , layer_thickness
-                , train.settings.get<Ratio>("prime_tower_flow")
+                , train.settings.get<Ratio>("prime_tower_flow") * ((layer_nr == 0) ? train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
                 , GCodePathConfig::SpeedDerivatives{train.settings.get<Velocity>("speed_prime_tower"), train.settings.get<Acceleration>("acceleration_prime_tower"), train.settings.get<Velocity>("jerk_prime_tower")}
             );
     }
