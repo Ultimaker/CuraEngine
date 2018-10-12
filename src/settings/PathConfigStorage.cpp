@@ -43,7 +43,7 @@ GCodePathConfig createPerimeterGapConfig(const SliceMeshStorage& mesh, int layer
             PrintFeatureType::Skin
             , perimeter_gaps_line_width
             , layer_thickness
-            , (layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : mesh.settings.get<Ratio>("material_flow")
+            , mesh.settings.get<Ratio>("wall_x_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
             , GCodePathConfig::SpeedDerivatives{perimeter_gaps_speed, mesh.settings.get<Velocity>("acceleration_topbottom"), mesh.settings.get<Velocity>("jerk_topbottom")}
         );
 }
@@ -134,23 +134,13 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
 
-    Ratio flow;
-    const std::string flow_setting = (layer_nr == 0) ? "material_flow_layer_0" : "material_flow";
-    if (mesh.settings.has(flow_setting)) //Just for this particular case, the flow is limited to the infill extruder.
-    {
-        flow = mesh.settings.get<Ratio>(flow_setting);
-    }
-    else
-    {
-        flow = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings.get<Ratio>(flow_setting);
-    }
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         infill_config.emplace_back(
                 PrintFeatureType::Infill
                 , mesh.settings.get<coord_t>("infill_line_width") * (combine_idx + 1) * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr]
                 , layer_thickness
-                , flow
+                , mesh.settings.get<Ratio>("wall_x_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
                 , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_infill"), mesh.settings.get<Acceleration>("acceleration_infill"), mesh.settings.get<Velocity>("jerk_infill")}
             );
     }
