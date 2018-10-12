@@ -156,6 +156,7 @@ protected:
     const LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
     SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
     const size_t bottom_layer_count; //!< The number of layers of bottom skin
+    const bool layer_0_skin_enabled; //!< Whether to make bottom skin for the initial layer
     const size_t top_layer_count; //!< The number of layers of top skin
     const size_t wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
     const coord_t skin_line_width; //!< The line width of the skin.
