@@ -119,14 +119,14 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     PrintFeatureType::Skin
     , mesh.settings.get<coord_t>("roofing_line_width")
     , layer_thickness
-    , (layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : mesh.settings.get<Ratio>("material_flow")
+    , mesh.settings.get<Ratio>("roofing_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_roofing"), mesh.settings.get<Acceleration>("acceleration_roofing"), mesh.settings.get<Velocity>("jerk_roofing")}
 )
 , ironing_config(
     PrintFeatureType::Skin
     , mesh.settings.get<coord_t>("skin_line_width")
     , layer_thickness
-    , (layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : mesh.settings.get<Ratio>("material_flow")
+    , mesh.settings.get<Ratio>("ironing_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_ironing"), mesh.settings.get<Acceleration>("acceleration_ironing"), mesh.settings.get<Velocity>("jerk_ironing")}
 )
 
