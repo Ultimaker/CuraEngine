@@ -141,8 +141,8 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     block.feature = feature;
 
-    block.maxTravel = 0;
-    for(unsigned int n=0; n<NUM_AXIS; n++)
+    //block.maxTravel = 0; //Done by memset.
+    for(size_t n = 0; n < NUM_AXIS; n++)
     {
         block.delta[n] = newPos[n] - currentPosition[n];
         block.absDelta[n] = fabs(block.delta[n]);
@@ -166,7 +166,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     Position current_feedrate;
     Position current_abs_feedrate;
     Ratio feedrate_factor = 1.0;
-    for(unsigned int n = 0; n < NUM_AXIS; n++)
+    for(size_t n = 0; n < NUM_AXIS; n++)
     {
         current_feedrate[n] = (block.delta[n] * feedrate) / block.distance;
         current_abs_feedrate[n] = fabs(current_feedrate[n]);
@@ -179,7 +179,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     
     if (feedrate_factor < 1.0)
     {
-        for(unsigned int n=0; n<NUM_AXIS; n++)
+        for(size_t n = 0; n < NUM_AXIS; n++)
         {
             current_feedrate[n] *= feedrate_factor;
             current_abs_feedrate[n] *= feedrate_factor;
@@ -188,10 +188,12 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     }
     
     block.acceleration = acceleration;
-    for(unsigned int n=0; n<NUM_AXIS; n++)
+    for(size_t n = 0; n < NUM_AXIS; n++)
     {
         if (block.acceleration * (block.absDelta[n] / block.distance) > max_acceleration[n])
+        {
             block.acceleration = max_acceleration[n];
+        }
     }
     
     Velocity vmax_junction = max_xy_jerk / 2; 

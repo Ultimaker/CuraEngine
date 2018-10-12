@@ -66,6 +66,7 @@ public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
     Settings settings;
+    std::string mesh_name;
 
     Mesh(Settings& parent);
     Mesh();

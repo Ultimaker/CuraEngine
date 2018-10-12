@@ -17,17 +17,17 @@ struct Velocity
     /*
      * \brief Default constructor setting velocity to 0.
      */
-    Velocity() : value(0.0) {};
+    constexpr Velocity() : value(0.0) {};
 
     /*
      * \brief Casts a double to a Velocity instance.
      */
-    Velocity(double value) : value(value) {};
+    constexpr Velocity(double value) : value(value) {};
 
     /*
      * \brief Casts the Temperature instance to a double.
      */
-    operator double() const
+    constexpr operator double() const
     {
         return value;
     }

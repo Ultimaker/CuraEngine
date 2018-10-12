@@ -25,11 +25,11 @@ class Settings;
 class TimeEstimateCalculator
 {
 public:
-    const static unsigned int NUM_AXIS = 4;
-    const static unsigned int X_AXIS = 0;
-    const static unsigned int Y_AXIS = 1;
-    const static unsigned int Z_AXIS = 2;
-    const static unsigned int E_AXIS = 3;
+    constexpr static unsigned int NUM_AXIS = 4;
+    constexpr static unsigned int X_AXIS = 0;
+    constexpr static unsigned int Y_AXIS = 1;
+    constexpr static unsigned int Z_AXIS = 2;
+    constexpr static unsigned int E_AXIS = 3;
 
 
     class Position
