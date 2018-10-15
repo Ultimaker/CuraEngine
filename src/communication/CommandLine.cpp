@@ -185,7 +185,7 @@ void CommandLine::sliceNext()
                     }
                     case 'e':
                     {
-                        size_t extruder_nr = stoul(argument.substr(1));
+                        size_t extruder_nr = stoul(argument.substr(2));
                         while (slice.scene.extruders.size() <= extruder_nr) //Make sure we have enough extruders up to the extruder_nr that the user wanted.
                         {
                             slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
