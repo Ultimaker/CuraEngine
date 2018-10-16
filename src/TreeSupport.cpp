@@ -397,7 +397,13 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     //Insert a completely new node and let both original nodes fade.
                     Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
 
-                    const coord_t branch_radius_node = ((node.distance_to_top + 1) > tip_layers) ? (branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor) : (branch_radius * (node.distance_to_top + 1) / tip_layers);
+                    const coord_t branch_radius_node = [&]() -> coord_t {
+                        if ((node.distance_to_top + 1) > tip_layers) {
+                             return branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor;
+                         } else {
+                             return branch_radius * (node.distance_to_top + 1) / tip_layers;
+                         }
+                    }();
                     const size_t branch_radius_sample = std::round(static_cast<float>(branch_radius_node) / radius_sample_resolution);
                     if (group_index == 0)
                     {
@@ -460,7 +466,12 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                 //If the branch falls completely inside a collision area (the entire branch would be removed by the X/Y offset), delete it.
                 if (group_index > 0 && model_collision[0][layer_nr].inside(node.position))
                 {
-                    const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
+                    const coord_t branch_radius_node = [&]() -> coord_t {
+                        if (node.distance_to_top > tip_layers) {
+                            return branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor;
+                        } else {
+                            return branch_radius * node.distance_to_top / tip_layers;
+                        }}();
                     const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, model_collision[0][layer_nr]);
                     if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
                     {
@@ -488,7 +499,13 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     }
                 }
 
-                const coord_t branch_radius_node = ((node.distance_to_top + 1) > tip_layers) ? (branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor) : (branch_radius * (node.distance_to_top + 1) / tip_layers);
+                const coord_t branch_radius_node = [&]() -> coord_t {
+                    if ((node.distance_to_top + 1) > tip_layers) {
+                        return branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor;
+                    } else { 
+                        return branch_radius * (node.distance_to_top + 1) / tip_layers;
+                    }
+                }();
                 const size_t branch_radius_sample = std::round(static_cast<float>(branch_radius_node) / radius_sample_resolution);
                 if (group_index == 0)
                 {
@@ -579,7 +596,13 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
-    const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")) : 0; //How many roof layers, if roof is enabled.
+    const size_t support_roof_layers = [&]() -> size_t {
+        if (mesh.settings.get<bool>("support_roof_enable")) {
+            return round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")); //How many roof layers, if roof is enabled.
+        }  else {
+            return 0;
+        }
+    }();
     const coord_t half_overhang_distance = tan(mesh.settings.get<AngleRadians>("support_angle")) * layer_height / 2;
     for (size_t layer_nr = 1; static_cast<int>(layer_nr) < static_cast<int>(mesh.overhang_areas.size()) - static_cast<int>(z_distance_top_layers); layer_nr++)
     {
@@ -645,7 +668,13 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const AngleRadians angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
-    const coord_t maximum_move_distance = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
+    const coord_t maximum_move_distance = [&] {
+        if (angle < TAU / 4) {
+            return static_cast<coord_t>(tan(angle) * layer_height);
+        } else {
+            return std::numeric_limits<coord_t>::max();
+        }
+    }();
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_avoidance) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)
