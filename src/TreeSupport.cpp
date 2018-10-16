@@ -89,20 +89,14 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    bool use_tree_support = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("support_tree_enable");
+    const bool global_use_tree_support = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("support_tree_enable");
 
-    if (!use_tree_support)
-    {
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            if (mesh.settings.get<bool>("support_tree_enable"))
-            {
-                use_tree_support = true;
-                break;
-            }
-        }
-    }
-    if (!use_tree_support)
+    if (!(global_use_tree_support || 
+          std::any_of(storage.meshes.cbegin(),
+                      storage.meshes.cend(),
+                      [](const SliceMeshStorage& m) { 
+                          return m.settings.get<bool>("support_tree_enable");
+                      })))
     {
         return;
     }
@@ -112,15 +106,16 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     collisionAreas(storage, model_collision);
     std::vector<std::vector<Polygons>> model_avoidance; //For every sample of branch radius, the areas that have to be avoided in order to be able to go towards the build plate.
     propagateCollisionAreas(storage, model_collision, model_avoidance);
-    std::vector<std::vector<Polygons>> model_internal_guide; //A model to guide branches that are stuck inside towards the centre of the model while avoiding the model itself.
+    std::vector<std::vector<Polygons>> model_internal_guide(model_avoidance.size()); //A model to guide branches that are stuck inside towards the centre of the model while avoiding the model itself.
     for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)
     {
-        model_internal_guide.emplace_back();
-        for (size_t layer_nr = 0; layer_nr < model_avoidance[radius_sample].size(); layer_nr++)
-        {
-            Polygons layer_internal_guide = model_avoidance[radius_sample][layer_nr].difference(model_collision[radius_sample][layer_nr]);
-            model_internal_guide[radius_sample].push_back(layer_internal_guide);
-        }
+        std::transform(model_avoidance[radius_sample].cbegin(),
+                       model_avoidance[radius_sample].cend(),
+                       model_collision[radius_sample].cbegin(),
+                       std::back_inserter(model_internal_guide[radius_sample]),
+                       [](const Polygons& avoid, const Polygons& collision) { 
+                           return avoid.difference(collision);
+                       });
     }
 
     std::vector<std::unordered_set<Node*>> contact_nodes;
