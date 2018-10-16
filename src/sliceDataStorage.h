@@ -146,6 +146,8 @@ public:
     coord_t thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    mutable std::map<size_t, Polygons> innermost_walls_cache; //!< Cache for the in some cases computationaly expensive calculations in 'getInnermostWalls'.
+        // ^^^^ NOTE: Caching function-results like this, when they don't change but are expensive to calculate, is generally considered one of the few 'acceptable uses' of the 'mutable' keyword.
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -174,10 +176,11 @@ public:
 
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * Add those polygons to @p result.
-     * \param result The result: the collection of all polygons thus obtained
+     * \result The collection of all polygons thus obtained.
+     * \param max_inset If <= 1, use (up to) the 1st inner wall, if >= 2, use the 2nd inner wall.
+     * \param mesh Pass mesh to let the function have access to wall-line-width settings.
      */
-    void getInnermostWalls(Polygons& result, int max_inset, const SliceMeshStorage& mesh) const;
+    Polygons& getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const;
 
     ~SliceLayer();
 };

@@ -13,6 +13,7 @@
 #include "infill/ImageBasedDensityProvider.h"
 #include "utils/PolygonConnector.h"
 #include "infill/UniformDensityProvider.h"
+#include "infill/GyroidInfill.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -24,9 +25,6 @@
  * \param x the point to get the scansegment index for
  * \param line_width the width of the scan segments
  */
-static inline int computeScanSegmentIdx(int x, int line_width);
-
-
 static inline int computeScanSegmentIdx(int x, int line_width)
 {
     if (x < 0)
@@ -62,7 +60,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
     else
     {
-        _generate(result_polygons, result_lines, cross_fill_provider, mesh);
+        //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
+        //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
+        Polygons generated_result_polygons;
+        Polygons generated_result_lines;
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        result_polygons.add(generated_result_polygons);
+        result_lines.add(generated_result_lines);
     }
 
     // generate walls around infill pattern
@@ -82,7 +86,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 
 void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
-    if (in_outline.size() == 0) return;
+    if (in_outline.empty()) return;
     if (line_distance == 0) return;
 
     if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
@@ -135,6 +139,9 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
             break;
         }
         generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
+        break;
+    case EFillMethod::GYROID:
+        generateGyroidInfill(result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -234,6 +241,11 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     }
 }
 
+void Infill::generateGyroidInfill(Polygons& result_lines)
+{
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, in_outline, z);
+}
+
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
     Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
@@ -279,7 +291,7 @@ void Infill::generateGridInfill(Polygons& result)
 
 void Infill::generateCubicInfill(Polygons& result)
 {
-    int64_t shift = one_over_sqrt_2 * z;
+    const coord_t shift = one_over_sqrt_2 * z;
     generateLineInfill(result, line_distance, fill_angle, shift);
     generateLineInfill(result, line_distance, fill_angle + 120, shift);
     generateLineInfill(result, line_distance, fill_angle + 240, shift);
@@ -299,8 +311,8 @@ void Infill::generateQuarterCubicInfill(Polygons& result)
 
 void Infill::generateHalfTetrahedralInfill(float pattern_z_shift, int angle_shift, Polygons& result)
 {
-    coord_t period = line_distance * 2;
-    coord_t shift = int64_t(one_over_sqrt_2 * (z + pattern_z_shift * period * 2)) % period;
+    const coord_t period = line_distance * 2;
+    coord_t shift = coord_t(one_over_sqrt_2 * (z + pattern_z_shift * period * 2)) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
@@ -374,17 +386,17 @@ void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
     ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    for (uint64_t idx = 0; idx < interior_segments.size(); idx++)
+    for (size_t idx = 0; idx < interior_segments.size(); idx++)
     {
         result.addLine(interior_segments[idx][0], interior_segments[idx][1]);
     }
 }
 
-void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t shift)
+void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)
 {
-    auto compare_int64_t = [](const void* a, const void* b)
+    auto compare_coord_t = [](const void* a, const void* b)
     {
-        int64_t n = (*(int64_t*)a) - (*(int64_t*)b);
+        coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
         if (n < 0)
         {
             return -1;
@@ -397,14 +409,14 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
     };
 
     unsigned int scanline_idx = 0;
-    for(int64_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
+    for(coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
     {
         if (scanline_idx >= cut_list.size())
         {
             break;
         }
-        std::vector<int64_t>& crossings = cut_list[scanline_idx];
-        qsort(crossings.data(), crossings.size(), sizeof(int64_t), compare_int64_t);
+        std::vector<coord_t>& crossings = cut_list[scanline_idx];
+        qsort(crossings.data(), crossings.size(), sizeof(coord_t), compare_coord_t);
         for(unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
         {
             if (crossings[crossing_idx + 1] - crossings[crossing_idx] < infill_line_width / 5)
@@ -421,7 +433,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
     }
 }
 
-int64_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation)
+coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation)
 {
     if (infill_origin.X != 0 || infill_origin.Y != 0)
     {
@@ -431,7 +443,7 @@ int64_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_r
     return 0;
 }
 
-void Infill::generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, int64_t shift)
+void Infill::generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, coord_t shift)
 {
     shift += getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
     PointMatrix rotation_matrix(infill_rotation);
@@ -441,9 +453,9 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
 }
 
 
-void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& infill_rotation)
+void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance, const double& infill_rotation)
 {
-    const int64_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+    const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
     PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count, minimum_zag_line_length);
@@ -473,7 +485,7 @@ void Infill::generateZigZagInfill(Polygons& result, const int line_distance, con
  * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment, 
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
-void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t extra_shift)
+void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
 {
     if (line_distance == 0)
     {
@@ -521,11 +533,11 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     int scanline_min_idx = computeScanSegmentIdx(boundary.min.X - shift, line_distance);
     int line_count = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1 - scanline_min_idx;
 
-    std::vector<std::vector<int64_t> > cut_list; // mapping from scanline to all intersections with polygon segments
+    std::vector<std::vector<coord_t>> cut_list; // mapping from scanline to all intersections with polygon segments
 
     for(int scanline_idx = 0; scanline_idx < line_count; scanline_idx++)
     {
-        cut_list.push_back(std::vector<int64_t>());
+        cut_list.push_back(std::vector<coord_t>());
     }
 
     //When we find crossings, keep track of which crossing belongs to which scanline and to which polygon line segment.

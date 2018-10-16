@@ -237,7 +237,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 }
                 else
                 {
-                    corner *= 1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor;
+                    corner = corner * (1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor);
                 }
                 circle.add(node.position + corner);
             }
