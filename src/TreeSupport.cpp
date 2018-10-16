@@ -122,11 +122,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     std::vector<std::unordered_set<Node*>> contact_nodes(storage.support.supportLayers.size());
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (!mesh.settings.get<bool>("support_tree_enable"))
+        if (mesh.settings.get<bool>("support_tree_enable"))
         {
-            continue;
+            generateContactPoints(mesh, contact_nodes, model_collision[0]);
         }
-        generateContactPoints(mesh, contact_nodes, model_collision[0]);
     }
 
     //Drop nodes to lower layers.
