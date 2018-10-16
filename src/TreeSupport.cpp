@@ -39,7 +39,11 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
             constexpr unsigned int circle_resolution = 50;
             for (unsigned int i = 0; i < circle_resolution; i++)
             {
-                actual_border[0].emplace_back(storage.machine_size.getMiddle().x + cos(M_PI * 2 * i / circle_resolution) * width / 2, storage.machine_size.getMiddle().y + sin(M_PI * 2 * i / circle_resolution) * depth / 2);
+                const auto angle = M_PI * 2 * i / circle_resolution;
+                const auto middle = storage.machine_size.getMiddle();
+                const auto x = middle.x + cos(angle) * width / 2;
+                const auto y = middle.y + sin(angle) * depth / 2;
+                actual_border[0].emplace_back(x, y);
             }
             break;
         }
@@ -175,7 +179,8 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, (completed / 2) * PROGRESS_WEIGHT_COLLISION, model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            const auto progress_total = model_collision.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * (PROGRESS_WEIGHT_DROPDOWN + PROGRESS_WEIGHT_AREAS);
+            Progress::messageProgress(Progress::Stage::SUPPORT, (completed / 2) * PROGRESS_WEIGHT_COLLISION, progress_total);
         }
     }
 }
@@ -216,14 +221,9 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             {
                 if (node.distance_to_top < tip_layers) //We're in the tip.
                 {
-                    if (node.skin_direction)
-                    {
-                        corner = Point(corner.X * (0.5 + scale / 2) + corner.Y * (0.5 - scale / 2), corner.X * (0.5 - scale / 2) + corner.Y * (0.5 + scale / 2));
-                    }
-                    else
-                    {
-                        corner = Point(corner.X * (0.5 + scale / 2) - corner.Y * (0.5 - scale / 2), corner.X * (-0.5 + scale / 2) + corner.Y * (0.5 + scale / 2));
-                    }
+                    const auto mul = node.skin_direction ? 1 : -1;
+                    corner = Point(corner.X * (0.5 + scale / 2) + mul * corner.Y * (0.5 - scale / 2),
+                                   mul * corner.X * (0.5 - scale / 2) + corner.Y * (0.5 + scale / 2));
                 }
                 else
                 {
@@ -293,7 +293,10 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + completed * PROGRESS_WEIGHT_AREAS, model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
+            const auto progress_base = model_collision.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN;
+            const auto progress_current = progress_base + completed * PROGRESS_WEIGHT_AREAS;
+            const auto progress_total = progress_base + contact_nodes.size() * PROGRESS_WEIGHT_AREAS;
+            Progress::messageProgress(Progress::Stage::SUPPORT, progress_current, progress_total);
         }
     }
 }
@@ -537,7 +540,10 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
         }
         to_free.clear();
 
-        Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
+        const auto progress_base = model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN;
+        const auto progress_current = progress_base - layer_nr * PROGRESS_WEIGHT_DROPDOWN;
+        const auto progress_total = progress_base + contact_nodes.size() * PROGRESS_WEIGHT_AREAS;
+        Progress::messageProgress(Progress::Stage::SUPPORT, progress_current, progress_total);
     }
 }
 
@@ -655,7 +661,9 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
         completed++;
 #pragma omp critical (progress)
         {
-            Progress::messageProgress(Progress::Stage::SUPPORT, ((model_collision.size() / 2) + (completed / 2)) * PROGRESS_WEIGHT_COLLISION, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS);
+            const auto progress_current = ((model_collision.size() / 2) + (completed / 2)) * PROGRESS_WEIGHT_COLLISION;
+            const auto progress_total = model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + storage.support.supportLayers.size() * PROGRESS_WEIGHT_DROPDOWN + storage.support.supportLayers.size() * PROGRESS_WEIGHT_AREAS;
+            Progress::messageProgress(Progress::Stage::SUPPORT, progress_current, progress_total);
         }
     }
 }
