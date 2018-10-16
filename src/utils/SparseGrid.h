@@ -79,7 +79,7 @@ public:
      * \param[in] radius The search radius.
      * \param[in] process_func Processes each element.  process_func(elem) is
      *    called for each element in the cell. Processing stops if function returns false.
-     * \return Whether we need to continue procesing after this function
+     * \return Whether we need to continue processing after this function
      */
     bool processNearby(const Point &query_pt, coord_t radius,
                        const std::function<bool (const ElemT&)>& process_func) const;
@@ -87,10 +87,9 @@ public:
     /*! \brief Process elements from all cells.
      *
      * Processes all elements.
-     *\
      * \param[in] process_func Processes each element.  process_func(elem) is
      *    called for each element in the cells. Processing stops if function returns false.
-     * \return Whether we need to continue procesing after this function
+     * \return Whether we need to continue processing after this function
      */
     bool processAll(const std::function<bool(const Elem& elem)>& process_elem_func) const;
 
@@ -102,7 +101,7 @@ public:
      * \param[in] query_line The line along which to check each cell
      * \param[in] process_func Processes each element.  process_func(elem) is
      *    called for each element in the cells. Processing stops if function returns false.
-     * \return Whether we need to continue procesing after this function
+     * \return Whether we need to continue processing after this function
      */
     bool processLine(const std::pair<Point, Point> query_line,
                        const std::function<bool (const Elem&)>& process_elem_func) const;
@@ -129,7 +128,7 @@ protected:
      * \param[in] line The line along which to process cells
      * \param[in] process_func Processes each cell.  process_func(elem) is
      *    called for each cell. Processing stops if function returns false.
-     * \return Whether we need to continue procesing after this function
+     * \return Whether we need to continue processing after this function
      */
     bool processLineCells(const std::pair<Point, Point> line,
                          const std::function<bool (GridPoint)>& process_cell_func);
@@ -139,7 +138,7 @@ protected:
      * \param[in] line The line along which to process cells
      * \param[in] process_func Processes each cell.  process_func(elem) is
      *    called for each cell. Processing stops if function returns false.
-     * \return Whether we need to continue procesing after this function
+     * \return Whether we need to continue processing after this function
      */
     bool processLineCells(const std::pair<Point, Point> line,
                          const std::function<bool (GridPoint)>& process_cell_func) const;

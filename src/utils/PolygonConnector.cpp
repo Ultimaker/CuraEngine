@@ -157,7 +157,7 @@ std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Const
     std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findConnection(from_poly, to_polys, line_width - 10, line_width * 3 / 2, can_make_bridge);
 
     if (!connection_points.first.isValid() || !connection_points.second.isValid())
-    { // We didn;t find a connection which can make a bridge
+    { // We didn't find a connection which can make a bridge
         // We might have found a first_connection and a second_connection, but maybe they didn't satisfy all criteria.
         std::optional<PolygonConnector::PolygonBridge> uninitialized;
         return uninitialized;
