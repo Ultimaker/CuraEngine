@@ -128,6 +128,13 @@ char PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, cons
 
 std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
+    // line distance between consecutive polygons should be at least the line_width
+    const coord_t min_connection_length = line_width - 10;
+    // Only connect polygons if they are next to each other
+    // allow for a bit of wiggle room for when the polygons are very curved,
+    // which causes any connection distance to be larger than the offset amount
+    const coord_t max_connection_length = line_width * 3 / 2;
+
     std::optional<PolygonConnector::PolygonConnection> first_connection;
     std::optional<PolygonConnector::PolygonConnection> second_connection;
 
@@ -154,7 +161,7 @@ std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Const
             return true;
         };
 
-    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findConnection(from_poly, to_polys, line_width - 10, line_width * 3 / 2, can_make_bridge);
+    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findConnection(from_poly, to_polys, min_connection_length, max_connection_length, can_make_bridge);
 
     if (!connection_points.first.isValid() || !connection_points.second.isValid())
     { // We didn't find a connection which can make a bridge
