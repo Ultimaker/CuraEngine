@@ -191,6 +191,16 @@ public:
     {
         extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
     }
+
+    /*!
+     * Add extra amount of material to be primed after an unretration.
+     *
+     * \param extra_prime_distance Amount of material in mm.
+     */
+    void addExtraPrimeDistance(double extra_prime_distance)
+    {
+        extruder_attr[current_extruder].prime_volume += extra_prime_distance * extruder_attr[current_extruder].filament_area;
+    }
     
     Point3 getPosition() const;
     

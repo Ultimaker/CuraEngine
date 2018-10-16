@@ -1360,6 +1360,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
+
+            const double extra_prime_distance = extruder.settings.get<bool>("retraction_enable") ? extruder.settings.get<double>("switch_extruder_extra_prime_distance") : 0;
+            gcode.addExtraPrimeDistance(extra_prime_distance);
         }
         else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
         {
