@@ -159,7 +159,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
     const coord_t radius_sample_resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
-    model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
+    model_collision.resize(static_cast<size_t>(std::round(static_cast<float>(maximum_radius) / radius_sample_resolution) + 1));
 
     const coord_t xy_distance = mesh_group_settings.get<coord_t>("support_xy_distance");
     constexpr bool include_helper_parts = false;
@@ -193,7 +193,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
     {
-        const double angle = (double)i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
+        const double angle = static_cast<double>(i) / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
         branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
@@ -216,7 +216,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             const Node& node = *p_node;
 
             Polygon circle;
-            const double scale = (double)(node.distance_to_top + 1) / tip_layers;
+            const double scale = static_cast<double>(node.distance_to_top + 1) / tip_layers;
             for (Point corner : branch_circle)
             {
                 if (node.distance_to_top < tip_layers) //We're in the tip.
@@ -227,7 +227,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 }
                 else
                 {
-                    corner = corner * (1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor);
+                    corner = corner * (1 + static_cast<double>(node.distance_to_top - tip_layers) * diameter_angle_scale_factor);
                 }
                 circle.add(node.position + corner);
             }
@@ -250,7 +250,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             roof_layer = roof_layer.difference(model_collision[0][z_collision_layer]);
         }
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
-        const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
+        const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
 
         //Subtract support floors.
@@ -286,7 +286,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         {
             if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
             {
-                storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_nr);
+                storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, static_cast<int>(layer_nr));
             }
         }
 #pragma omp atomic
@@ -307,7 +307,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const double angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
-    const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
+    const coord_t maximum_move_distance = angle < 90 ? static_cast<coord_t>(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
@@ -398,7 +398,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
 
                     const coord_t branch_radius_node = ((node.distance_to_top + 1) > tip_layers) ? (branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor) : (branch_radius * (node.distance_to_top + 1) / tip_layers);
-                    const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+                    const size_t branch_radius_sample = std::round(static_cast<float>(branch_radius_node) / radius_sample_resolution);
                     if (group_index == 0)
                     {
                         //Avoid collisions.
@@ -489,7 +489,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                 }
 
                 const coord_t branch_radius_node = ((node.distance_to_top + 1) > tip_layers) ? (branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor) : (branch_radius * (node.distance_to_top + 1) / tip_layers);
-                const size_t branch_radius_sample = std::round((float)(branch_radius_node) / radius_sample_resolution);
+                const size_t branch_radius_sample = std::round(static_cast<float>(branch_radius_node) / radius_sample_resolution);
                 if (group_index == 0)
                 {
                     //Avoid collisions.
@@ -581,7 +581,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
     const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")) : 0; //How many roof layers, if roof is enabled.
     const coord_t half_overhang_distance = tan(mesh.settings.get<AngleRadians>("support_angle")) * layer_height / 2;
-    for (size_t layer_nr = 1; (int)layer_nr < (int)mesh.overhang_areas.size() - (int)z_distance_top_layers; layer_nr++)
+    for (size_t layer_nr = 1; static_cast<int>(layer_nr) < static_cast<int>(mesh.overhang_areas.size()) - static_cast<int>(z_distance_top_layers); layer_nr++)
     {
         const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
         if (overhang.empty())
