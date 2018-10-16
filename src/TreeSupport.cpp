@@ -118,12 +118,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                        });
     }
 
-    std::vector<std::unordered_set<Node*>> contact_nodes;
-    contact_nodes.reserve(storage.support.supportLayers.size());
-    for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++) //Generate empty layers to store the points in.
-    {
-        contact_nodes.emplace_back();
-    }
+    // Generate empty layers to store the points in.
+    std::vector<std::unordered_set<Node*>> contact_nodes(storage.support.supportLayers.size());
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         if (!mesh.settings.get<bool>("support_tree_enable"))
@@ -322,12 +318,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
 
         //Group together all nodes for each part.
         std::vector<PolygonsPart> parts = model_avoidance[0][layer_nr].splitIntoParts();
-        std::vector<std::unordered_map<Point, Node*>> nodes_per_part;
-        nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
-        for (size_t part_index = 0; part_index < parts.size(); part_index++)
-        {
-            nodes_per_part.emplace_back();
-        }
+        std::vector<std::unordered_map<Point, Node*>> nodes_per_part(parts.size() + 1); //All nodes that aren't inside a part get grouped together in the 0th part.
         for (Node* p_node : layer_contact_nodes)
         {
             const Node& node = *p_node;
