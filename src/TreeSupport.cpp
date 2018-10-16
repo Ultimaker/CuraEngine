@@ -251,7 +251,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         }
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
-        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
+        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width / 4); //Deviate at most a quarter of a line so that the lines still stack properly.
 
         //Subtract support floors.
         if (mesh_group_settings.get<bool>("support_bottom_enable"))
