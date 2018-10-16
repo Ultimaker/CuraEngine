@@ -706,7 +706,9 @@ public:
     Polygons() {}
 
     Polygons(const Polygons& other) { paths = other.paths; }
+    Polygons(Polygons&& other) { paths = std::move(other.paths); }
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
+    Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
     bool operator==(const Polygons& other) const =delete;
 

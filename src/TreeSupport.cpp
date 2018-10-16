@@ -173,7 +173,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
             Polygons collision = storage.getLayerOutlines(layer_nr, include_helper_parts);
             collision = collision.unionPolygons(machine_volume_border);
             collision = collision.offset(xy_distance + radius, ClipperLib::JoinType::jtRound); //Enough space to avoid the (sampled) width of the branch.
-            model_collision[radius_sample].push_back(collision);
+            model_collision[radius_sample].push_back(std::move(collision));
         }
 #pragma omp atomic
         completed++;
@@ -684,7 +684,7 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
         {
             Polygons previous_layer = model_avoidance[radius_sample][layer_nr - 1].offset(-maximum_move_distance).smooth(5); //Inset previous layer with maximum_move_distance to allow some movement. Smooth to avoid micrometre-segments.
             previous_layer = previous_layer.unionPolygons(model_collision[radius_sample][layer_nr]);
-            model_avoidance[radius_sample].push_back(previous_layer);
+            model_avoidance[radius_sample].push_back(std::move(previous_layer));
         }
 #pragma omp atomic
         completed++;
