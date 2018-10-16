@@ -81,12 +81,6 @@ protected:
         ClosestPolygonPoint from; //!< from location in the source polygon
         ClosestPolygonPoint to; //!< to location in the destination polygon
 
-        /* 
-         * \warning Doesn't properly initialize the members
-         */
-        PolygonConnection()
-        {}
-
         PolygonConnection(ClosestPolygonPoint from, ClosestPolygonPoint to)
         : from(from)
         , to(to)

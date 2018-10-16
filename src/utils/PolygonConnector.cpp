@@ -208,7 +208,7 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
 
     const Point shift = turn90CCW(first.from.p() - first.to.p());
     
-    PolygonConnection best;
+    std::optional<PolygonConnection> best;
     coord_t best_total_distance2 = std::numeric_limits<coord_t>::max();
     for (unsigned int from_idx = 0; from_idx < 2; from_idx++)
     {
@@ -238,8 +238,7 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
             const coord_t total_distance2 = vSize2(from.p() - to.p()) + vSize2(from.p() - first.from.p()) + vSize(to.p() - first.to.p());
             if (total_distance2 < best_total_distance2)
             {
-                best.from = from;
-                best.to = to;
+                best.emplace(from, to);
                 best_total_distance2 = total_distance2;
             }
             
@@ -253,13 +252,13 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
             break;
         }
     }
-    if (best_total_distance2 > max_dist * max_dist + 2 * (line_width + 10) * (line_width + 10))
+    if (!best || best_total_distance2 > max_dist * max_dist + 2 * (line_width + 10) * (line_width + 10))
     {
         return std::optional<PolygonConnector::PolygonConnection>();
     }
     else
     {
-        return best;
+        return *best;
     }
 }
 
