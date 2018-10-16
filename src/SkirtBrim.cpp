@@ -217,10 +217,12 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
 void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
 {
+    constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
+
     Scene& scene = Application::getInstance().current_slice->scene;
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t brim_line_width = support_infill_extruder.settings.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-    unsigned int line_count = support_infill_extruder.settings.get<size_t>("support_brim_line_count");
+    size_t line_count = support_infill_extruder.settings.get<size_t>("support_brim_line_count");
     const coord_t minimal_length = support_infill_extruder.settings.get<coord_t>("skirt_brim_minimal_length");
     if (!storage.support.generated || line_count <= 0 || storage.support.supportLayers.empty())
     {
@@ -237,21 +239,21 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
     {
         support_outline.add(part.outline);
     }
-    Polygons brim_area = support_outline.difference(support_outline.offset(-brim_width));
+    const Polygons brim_area = support_outline.difference(support_outline.offset(-brim_width));
     support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
 
-    int offset_distance = brim_line_width / 2;
-    for (unsigned int skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
+    coord_t offset_distance = brim_line_width / 2;
+    for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
     {
         offset_distance -= brim_line_width;
 
         Polygons brim_line = support_outline.offset(offset_distance, ClipperLib::jtRound);
 
-        //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
-        for (unsigned int n = 0; n < brim_line.size(); n++)
+        //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then multiplier x extrusion "area"
+        for (size_t n = 0; n < brim_line.size(); n++)
         {
-            double area = brim_line[n].area();
-            if (area < 0 && area > -brim_line_width * brim_line_width * 100)
+            const double area = brim_line[n].area();
+            if (area < 0 && area > -brim_line_width * brim_line_width * brim_area_minimum_hole_size_multiplier)
             {
                 brim_line.remove(n--);
             }
@@ -259,7 +261,7 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
 
         skirt_brim.add(brim_line);
 
-        coord_t length = skirt_brim.polygonLength();
+        const coord_t length = skirt_brim.polygonLength();
         if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) //Make brim or skirt have more lines when total length is too small.
         {
             line_count++;
