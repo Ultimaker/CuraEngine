@@ -193,7 +193,7 @@ public:
     }
 
     /*!
-     * Add extra amount of material to be primed after an unretration.
+     * Add extra amount of material to be primed after an unretraction.
      *
      * \param extra_prime_distance Amount of material in mm.
      */
