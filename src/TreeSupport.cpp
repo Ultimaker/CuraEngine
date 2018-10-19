@@ -320,6 +320,9 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t radius_sample_resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
     const bool support_rests_on_model = mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
+
+    std::unordered_set<Node*> to_free_node_set;
+
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         auto& layer_contact_nodes = contact_nodes[layer_nr];
@@ -531,7 +534,6 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
         }
 
         // Prune all branches that couldn't find support on either the model or the buildplate (resulting in 'mid-air' branches).
-        std::set<Node*> to_free;
         for (;! unsupported_branch_leaves.empty(); unsupported_branch_leaves.pop_back())
         {
             const auto& entry = unsupported_branch_leaves.back();
@@ -539,21 +541,22 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
             for (size_t i_layer = entry.first; i_node != nullptr; ++i_layer, i_node = i_node->parent)
             {
                 contact_nodes[i_layer].erase(i_node);
-                to_free.insert(i_node);
+                to_free_node_set.insert(i_node);
                 for (Node* neighbour : i_node->merged_neighbours)
                 {
                     unsupported_branch_leaves.push_front({i_layer, neighbour});
                 }
             }
         }
-        for (Node* old_node : to_free)
-        {
-            delete old_node;
-        }
-        to_free.clear();
 
         Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
+
+    for (Node *node : to_free_node_set)
+    {
+        delete node;
+    }
+    to_free_node_set.clear();
 }
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node*>>& contact_nodes, const std::vector<Polygons>& collision_areas)

@@ -59,6 +59,14 @@ public:
          , parent(parent)
         {}
 
+#ifdef DEBUG // Clear the delete node's data so if there's invalid access after, we may get a clue by inspecting that node.
+        ~Node()
+        {
+            parent = nullptr;
+            merged_neighbours.clear();
+        }
+#endif // DEBUG
+
         /*!
          * \brief The number of layers to go to the top of this branch.
          */
@@ -103,7 +111,7 @@ public:
          * can't be on the model and the path to the buildplate isn't clear),
          * the entire branch needs to be known.
          */
-        Node *const parent;
+        Node *parent;
 
         /*!
         * \brief All neighbours (on the same layer) that where merged into this node.
