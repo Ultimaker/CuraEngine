@@ -59,11 +59,13 @@ public:
          , parent(parent)
         {}
 
+#ifdef DEBUG // Clear the delete node's data so if there's invalid access after, we may get a clue by inspecting that node.
         ~Node()
         {
             parent = nullptr;
             merged_neighbours.clear();
         }
+#endif // DEBUG
 
         /*!
          * \brief The number of layers to go to the top of this branch.
