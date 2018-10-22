@@ -250,21 +250,21 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     {
         return; // don't subtract anything form the downskin
     }
-        LayerIndex bottom_check_start_layer_idx = std::max(LayerIndex(0), layer_nr - bottom_layer_count);
-        Polygons not_air = getWalls(part, bottom_check_start_layer_idx, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
-        if (!no_small_gaps_heuristic)
+    LayerIndex bottom_check_start_layer_idx = std::max(LayerIndex(0), layer_nr - bottom_layer_count);
+    Polygons not_air = getWalls(part, bottom_check_start_layer_idx, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
+    if (!no_small_gaps_heuristic)
+    {
+        for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
         {
-            for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
-            {
-                not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
-            }
+            not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
         }
-        const double min_infill_area = mesh.settings.get<double>("min_infill_area");
-        if (min_infill_area > 0.0)
-        {
-            not_air.removeSmallAreas(min_infill_area);
-        }
-        downskin = downskin.difference(not_air); // skin overlaps with the walls
+    }
+    const double min_infill_area = mesh.settings.get<double>("min_infill_area");
+    if (min_infill_area > 0.0)
+    {
+        not_air.removeSmallAreas(min_infill_area);
+    }
+    downskin = downskin.difference(not_air); // skin overlaps with the walls
 }
 
 void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Polygons& upskin)
