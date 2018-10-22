@@ -662,6 +662,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
     
+    std::vector<AngleDegrees> infill_angles = train.settings.get<std::vector<AngleDegrees>>("raft_surface_angles");
+    if (infill_angles.empty())
+    {
+        infill_angles.push_back(90);
+        infill_angles.push_back(0);
+    }
+
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= train.settings.get<size_t>("raft_surface_layers"); raft_surface_layer++)
@@ -693,7 +700,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr coord_t infill_outline_width = 0;
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
-        AngleDegrees fill_angle = 90 * raft_surface_layer;
+        AngleDegrees fill_angle = infill_angles.at((raft_surface_layer - 1) % infill_angles.size());
         constexpr bool zig_zaggify_infill = true;
 
         constexpr size_t wall_line_count = 0;
