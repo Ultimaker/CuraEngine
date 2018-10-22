@@ -1217,7 +1217,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
     added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (added_something && (!mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers"))))
+    if (added_something && (!mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("initial_bottom_layers"))))
     {
         coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
@@ -1481,12 +1481,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 // nothing to do
                 return false;
             }
-            const size_t bottom_layers = mesh.settings.get<size_t>("bottom_layers");
-            if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(bottom_layers))
+            const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+            if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
             {
                 spiralize = true;
             }
-            if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(bottom_layers) && !part.insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+            if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && !part.insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr);

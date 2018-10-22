@@ -446,21 +446,21 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // skin & infill
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    size_t mesh_max_bottom_layer_count = 0;
+    size_t mesh_max_initial_bottom_layer_count = 0;
     if (mesh_group_settings.get<bool>("magic_spiralize"))
     {
-        mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.settings.get<size_t>("bottom_layers"));
+        mesh_max_initial_bottom_layer_count = std::max(mesh_max_initial_bottom_layer_count, mesh.settings.get<size_t>("initial_bottom_layers"));
     }
 
     processed_layer_count = 0;
-#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
+#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_initial_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
     {
 
 #pragma omp for schedule(dynamic)
         for (size_t layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
         {
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
-            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < mesh_max_initial_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
             }
