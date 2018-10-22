@@ -15,8 +15,7 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
-    bool* picked = static_cast<bool*>(alloca(sizeof(bool) * polygons.size()));
-    memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    std::vector<bool> picked(polygons.size(), false);
     loc_to_line = nullptr;
 
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
@@ -209,7 +208,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
 {
     const int grid_size = 2000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
-    bool* picked = static_cast<bool*>(alloca(sizeof(bool) * polygons.size()));
+    std::vector<bool> picked(polygons.size(), false);
 
     loc_to_line = nullptr;
 
@@ -233,7 +232,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
         line_bucket_grid.insert(poly[0], poly_idx);
         line_bucket_grid.insert(poly[1], poly_idx);
-        picked[poly_idx] = false;
     }
 
     // a map with an entry for each chain end discovered
