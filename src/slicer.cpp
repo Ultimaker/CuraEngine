@@ -721,7 +721,6 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
                     Point q = p0 + pDiff * distOnLine / lineLength;
                     if (shorterThen(q - input, 100))
                     {
-                        ret.intersectionPoint = q;
                         ret.polygonIdx = n;
                         ret.pointIdx = i;
                         return ret;

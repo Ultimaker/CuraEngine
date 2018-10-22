@@ -42,6 +42,8 @@ private:
      */
     static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline);
 
+    static void generateSupportBrim(SliceDataStorage& storage);
+
     /*!
      * \brief Generate the skirt/brim lines around the model.
      * 

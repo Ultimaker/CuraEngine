@@ -133,7 +133,7 @@ Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshS
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
 
-                result.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                result.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0 + 15)).offset(-std::min(half_line_width_0, half_line_width_x)));
             }
             else
             {
