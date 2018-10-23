@@ -1393,7 +1393,8 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         {
             mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
-        Polygons bottoms = generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, minimum_bottom_area);
+        Polygons bottoms;
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottoms, minimum_bottom_area);
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
@@ -1424,22 +1425,22 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         {
             mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }
-        Polygons roofs = generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, minimum_roof_area);
+        Polygons roofs;
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roofs, minimum_roof_area);
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }
 
-Polygons AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, const double minimum_interface_area)
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons, const double minimum_interface_area)
 {
     Polygons model = colliding_mesh_outlines.unionPolygons();
-    Polygons interface_polygons = support_areas.intersection(model);
+    interface_polygons = support_areas.intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
     if (minimum_interface_area > 0.0)
     {
         interface_polygons.removeSmallAreas(minimum_interface_area);
     }
     support_areas = support_areas.difference(interface_polygons);
-    return interface_polygons;
 }
 
 }//namespace cura

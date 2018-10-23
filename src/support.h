@@ -200,10 +200,10 @@ private:
      * going to be filled with the interface.
      * \param safety_offset An offset applied to the result to make sure
      * everything can be printed.
+     * \param[out] interface_polygons The resulting interface layer. Do not use `interface` in windows!
      * \param minimum_interface_area Minimum area size for resulting interface polygons. Do not use `interface` in windows!
-     * \return Generated interface polygons.
      */
-    static Polygons generateSupportInterfaceLayer(Polygons& support_areas, const Polygons mesh_outlines, const coord_t safety_offset, const double minimum_interface_area);
+    static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons, const double minimum_interface_area);
 
     /*!
      * \brief Join current support layer with the support of the layer above,
