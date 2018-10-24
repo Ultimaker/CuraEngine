@@ -316,7 +316,8 @@ void LineOrderOptimizer::optimize(bool find_chains)
             // this will find the next line segment in a chain
             for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx]
+                    || !(pointsAreCoincident(prev_point,(*polygons[close_line_idx])[0]) || pointsAreCoincident(prev_point, (*polygons[close_line_idx])[1])))
                 {
                     continue;
                 }
