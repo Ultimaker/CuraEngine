@@ -62,7 +62,7 @@ public:
         /*!
          * \brief The number of layers to go to the top of this branch.
          */
-        mutable size_t distance_to_top;
+        size_t distance_to_top;
 
         /*!
          * \brief The position of this node on the layer.
@@ -75,7 +75,7 @@ public:
          * This determines in which direction we should reduce the width of the
          * branch.
          */
-        mutable bool skin_direction;
+        bool skin_direction;
 
         /*!
          * \brief The number of support roof layers below this one.
@@ -85,7 +85,7 @@ public:
          * per-mesh setting. This is stored in this variable in order to track
          * how far we need to extend that support roof downwards.
          */
-        mutable int support_roof_layers_below;
+        int support_roof_layers_below;
 
         /*!
          * \brief Whether to try to go towards the build plate.
@@ -94,7 +94,7 @@ public:
          * towards the model. If it is not inside the collision areas, it must
          * go towards the build plate to prevent a scar on the surface.
          */
-        mutable bool to_buildplate;
+        bool to_buildplate;
 
         /*!
          * \brief The originating node for this one, one layer higher.
@@ -112,7 +112,7 @@ public:
         * can't be on the model and the path to the buildplate isn't clear),
         * the entire branch needs to be known.
         */
-        mutable std::forward_list<Node*> merged_neighbours;
+        std::forward_list<Node*> merged_neighbours;
 
         bool operator==(const Node& other) const
         {

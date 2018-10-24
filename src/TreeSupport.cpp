@@ -368,7 +368,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
         }
         //Create a MST for every part.
         std::vector<MinimumSpanningTree> spanning_trees;
-        for (std::unordered_map<Point, Node*>& group : nodes_per_part)
+        for (const std::unordered_map<Point, Node*>& group : nodes_per_part)
         {
             std::unordered_set<Point> points_to_buildplate;
             for (const std::pair<Point, Node*>& entry : group)
@@ -386,7 +386,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
             for (const std::pair<Point, Node*>& entry : nodes_per_part[group_index])
             {
                 Node* p_node = entry.second;
-                const Node& node = *p_node;
+                Node& node = *p_node;
                 if (to_delete.find(p_node) != to_delete.end())
                 {
                     continue; //Delete this node (don't create a new node for it on the next layer).
@@ -432,7 +432,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
 
                     // Make sure the next pass doens't drop down either of these (since that already happened).
-                    Node *const neighbour = nodes_per_part[group_index][neighbours[0]];
+                    Node* neighbour = nodes_per_part[group_index][neighbours[0]];
                     node.merged_neighbours.push_front(neighbour);
                     to_delete.insert(neighbour);
                     to_delete.insert(p_node);
@@ -455,7 +455,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                 }
             }
             //In the second pass, move all middle nodes.
-            for (std::pair<Point, Node*> entry : nodes_per_part[group_index])
+            for (const std::pair<Point, Node*>& entry : nodes_per_part[group_index])
             {
                 Node* p_node = entry.second;
                 const Node& node = *p_node;
@@ -480,12 +480,12 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     }
                 }
                 Point next_layer_vertex = node.position;
-                std::vector<Point> neighbours = mst.adjacentNodes(node.position);
+                const std::vector<Point> neighbours = mst.adjacentNodes(node.position);
                 if (neighbours.size() > 1 || (neighbours.size() == 1 && vSize2(neighbours[0] - node.position) >= maximum_move_distance * maximum_move_distance)) //Only nodes that aren't about to collapse.
                 {
                     //Move towards the average position of all neighbours.
                     Point sum_direction(0, 0);
-                    for (Point neighbour : neighbours)
+                    for (const Point& neighbour : neighbours)
                     {
                         sum_direction += neighbour - node.position;
                     }
