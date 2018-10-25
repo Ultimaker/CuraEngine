@@ -662,6 +662,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
     
+    std::vector<int> infill_shifts = train.settings.get<std::vector<int>>("raft_surface_shifts");
+    if (infill_shifts.empty())
+        infill_shifts.push_back(0);
+
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= train.settings.get<size_t>("raft_surface_layers"); raft_surface_layer++)
@@ -705,10 +709,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool skip_some_zags = false;
         constexpr size_t zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
+        coord_t shift = infill_shifts.at((raft_surface_layer - 1) % infill_shifts.size());
 
         Infill infill_comp(
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.settings.get<coord_t>("raft_surface_line_spacing"),
-            fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            fill_overlap, infill_multiplier, fill_angle, z, shift,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
         infill_comp.generate(raft_polygons, raft_lines);
