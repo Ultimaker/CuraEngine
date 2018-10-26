@@ -4,6 +4,7 @@
 #include "MinimumSpanningTree.h"
 
 #include <iterator>
+#include <algorithm>
 
 namespace cura
 {
@@ -52,18 +53,14 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
         //This search is O(V) right now, which can be made down to O(log(V)). This reduces the overall time complexity from O(V*V) to O(V*log(E)).
         //However that requires an implementation of a heap that supports the decreaseKey operation, which is not in the std library.
         //TODO: Implement this?
-        Point* closest_point = nullptr;
-        coord_t closest_distance = std::numeric_limits<coord_t>::max();
-        for(std::pair<Point*, coord_t> point_and_distance : smallest_distance)
-        {
-            if (point_and_distance.second < closest_distance) //This one's closer!
-            {
-                closest_point = point_and_distance.first;
-                closest_distance = point_and_distance.second;
-            }
-        }
+        using MapValue = std::pair<const Point*, coord_t>;
+        const auto closest = std::min_element(smallest_distance.begin(), smallest_distance.end(),
+                                              [](const MapValue& a, const MapValue& b) {
+                                                  return a.second < b.second;
+                                              });
 
         //Add this point to the graph and remove it from the candidates.
+        Point* closest_point = closest->first;
         Point closest_point_local = *closest_point;
         Point other_end = *smallest_distance_to[closest_point];
         result[closest_point_local].emplace_back(closest_point_local, other_end);
