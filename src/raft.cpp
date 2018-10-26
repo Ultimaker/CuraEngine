@@ -4,6 +4,7 @@
 #include <clipper.hpp>
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "raft.h"
 #include "Slice.h"
 #include "support.h"

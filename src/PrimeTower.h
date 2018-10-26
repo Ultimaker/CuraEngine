@@ -6,18 +6,14 @@
 
 #include <vector>
 
-#include "GCodePathConfig.h"
-#include "MeshGroup.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
 namespace cura 
 {
 
-    
 class SliceDataStorage;
 class LayerPlan;
-class GCodeExport;
 
 /*!
  * Class for everything to do with the prime tower:

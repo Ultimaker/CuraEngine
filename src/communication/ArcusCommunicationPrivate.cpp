@@ -5,6 +5,7 @@
 
 #include "ArcusCommunicationPrivate.h"
 #include "../Application.h"
+#include "../ExtruderTrain.h"
 #include "../Slice.h"
 
 namespace cura

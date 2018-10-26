@@ -4,6 +4,7 @@
 #include "PathConfigStorage.h"
 #include "Settings.h" // MAX_INFILL_COMBINE
 #include "../Application.h"
+#include "../ExtruderTrain.h"
 #include "../raft.h"
 #include "../Slice.h"
 #include "../sliceDataStorage.h" // SliceDataStorage

@@ -6,12 +6,13 @@
 #include <cmath>
 
 #include "Application.h" //To send layer view data.
-#include "communication/Communication.h" //To send layer view data.
+#include "ExtruderTrain.h"
 #include "gcodeExport.h"
-#include "Slice.h"
-#include "utils/logoutput.h"
 #include "PrintFeature.h"
+#include "Slice.h"
+#include "communication/Communication.h" //To send layer view data.
 #include "utils/Date.h"
+#include "utils/logoutput.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura {

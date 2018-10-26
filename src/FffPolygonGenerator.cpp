@@ -11,6 +11,7 @@
 
 #include "Application.h"
 #include "ConicalOverhang.h"
+#include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
 #include "infill.h"
 #include "layerPart.h"

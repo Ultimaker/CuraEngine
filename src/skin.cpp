@@ -4,6 +4,7 @@
 #include <cmath> // std::ceil
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "skin.h"
 #include "settings/types/AngleRadians.h" //For the infill support angle.
 #include "utils/math.h"

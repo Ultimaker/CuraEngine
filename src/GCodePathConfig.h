@@ -4,10 +4,11 @@
 #ifndef G_CODE_PATH_CONFIG_H
 #define G_CODE_PATH_CONFIG_H
 
-#include "RetractionConfig.h"
 #include "PrintFeature.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h" //For flow rate.
+#include "settings/types/Velocity.h"
+#include "utils/Coord_t.h"
 
 namespace cura 
 {

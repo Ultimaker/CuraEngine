@@ -6,6 +6,7 @@
 
 #include "SettingsTest.h"
 #include "../src/Application.h" //To test extruder train settings.
+#include "../src/ExtruderTrain.h"
 #include "../src/Slice.h"
 #include "../src/settings/FlowTempGraph.h"
 #include "../src/settings/types/LayerIndex.h"

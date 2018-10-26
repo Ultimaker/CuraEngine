@@ -8,9 +8,7 @@
 
 #include "gcodeExport.h"
 #include "LayerPlan.h"
-#include "MeshGroup.h"
 #include "Preheat.h"
-#include "settings/Settings.h"
 #include "settings/types/Duration.h"
 
 namespace cura 

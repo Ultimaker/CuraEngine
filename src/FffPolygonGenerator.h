@@ -6,13 +6,9 @@
 
 
 #include "MeshGroup.h"
-#include "utils/polygonUtils.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
-#include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "PrintFeature.h"
-#include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 
 namespace cura

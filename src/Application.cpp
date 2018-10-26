@@ -9,6 +9,7 @@
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
+#include "progress/Progress.h"
 #include "utils/logoutput.h"
 
 namespace cura

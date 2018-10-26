@@ -18,7 +18,6 @@
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/logoutput.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
 
