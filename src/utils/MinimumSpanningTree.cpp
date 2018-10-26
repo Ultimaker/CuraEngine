@@ -50,10 +50,9 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
 
         //Add this point to the graph and remove it from the candidates.
         const Point* closest_point = closest->first;
-        const Point closest_point_local = *closest_point;
         const Point other_end = *smallest_distance_to[closest_point];
-        result[closest_point_local].emplace_back(closest_point_local, other_end);
-        result[other_end].emplace_back(other_end, closest_point_local);
+        result[*closest_point].push_back({*closest_point, other_end});
+        result[other_end].push_back({other_end, *closest_point});
         smallest_distance.erase(closest_point); //Remove it so we don't check for these points again.
         smallest_distance_to.erase(closest_point);
 
