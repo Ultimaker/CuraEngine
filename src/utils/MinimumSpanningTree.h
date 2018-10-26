@@ -45,6 +45,7 @@ class MinimumSpanningTree
         const Point end;
     };
 public:
+    MinimumSpanningTree() = default;
     /*!
      * \brief Constructs a minimum spanning tree that spans all given vertices.
      */
@@ -70,7 +71,7 @@ public:
 
 private:
     using AdjacencyGraph_t = std::unordered_map<Point, std::vector<Edge>>;
-    const AdjacencyGraph_t adjacency_graph;
+    AdjacencyGraph_t adjacency_graph;
 
     /*!
      * \brief Computes the edges of a minimum spanning tree using Prim's

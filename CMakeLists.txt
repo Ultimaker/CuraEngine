@@ -201,6 +201,7 @@ set(engine_TEST_UTILS
     SparseGridTest
     IntPointTest
     LinearAlg2DTest
+    MinimumSpanningTreeTest
     PolygonConnectorTest
     PolygonUtilsTest
     PolygonTest
