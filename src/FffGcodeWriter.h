@@ -6,11 +6,9 @@
 
 
 #include <fstream>
-#include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/NoCopy.h"
 #include "utils/polygonUtils.h"
-#include "sliceDataStorage.h"
 #include "raft.h"
 #include "infill.h"
 #include "bridge.h"
@@ -27,6 +25,8 @@
 
 namespace cura 
 {
+
+class TimeKeeper;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.

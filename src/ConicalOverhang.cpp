@@ -3,6 +3,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ConicalOverhang.h"
+#include "slicer.h"
 #include "settings/types/AngleRadians.h" //To process the overhang angle.
 
 namespace cura {
