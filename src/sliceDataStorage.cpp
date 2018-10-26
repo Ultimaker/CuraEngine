@@ -3,6 +3,7 @@
 
 #include "Application.h" //To get settings.
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
+#include "raft.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
 #include "infill/SubDivCube.h" // For the destructor

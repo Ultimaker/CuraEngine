@@ -4,28 +4,19 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-
 #include <fstream>
-#include "utils/logoutput.h"
 #include "utils/NoCopy.h"
-#include "utils/polygonUtils.h"
-#include "raft.h"
-#include "infill.h"
-#include "bridge.h"
-#include "pathOrderOptimizer.h"
 #include "LayerPlan.h"
-#include "gcodeExport.h"
-#include "PrimeTower.h"
-#include "FanSpeedLayerTime.h"
-#include "PrintFeature.h"
-
-
 #include "LayerPlanBuffer.h"
-
+#include "gcodeExport.h"
+#include "FanSpeedLayerTime.h"
 
 namespace cura 
 {
 
+class SkinPart;
+class SliceLayer;
+class SliceLayerPart;
 class TimeKeeper;
 
 /*!
