@@ -606,6 +606,12 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
 
         std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
 
+        if (smaller_support_islands.empty())
+        { // extra safety guard in case result_polygons consists of too small polygons which are automatically removed in splitIntoParts
+            to_remove_part_indices.push_back(part_idx);
+            continue;
+        }
+
         // there are one or more smaller parts.
         // we first replace the current part with one of the smaller parts,
         // the rest we add to the support_infill_parts (but after part_count_to_check)

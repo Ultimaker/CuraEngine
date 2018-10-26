@@ -11,6 +11,7 @@ namespace cura
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
     if (is_skirt)
@@ -34,7 +35,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         if (storage.support.generated && primary_line_count > 0 && !storage.support.supportLayers.empty())
         { // remove model-brim from support
             SupportLayer& support_layer = storage.support.supportLayers[0];
-            if (train.settings.get<bool>("brim_replaces_support"))
+            if (support_infill_extruder.settings.get<bool>("brim_replaces_support"))
             {
                 // avoid gap in the middle
                 //    V
