@@ -1331,12 +1331,23 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder_nr];
+        coord_t z_hop_height = retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr)
         {
             int prev_extruder = extruder_nr;
             extruder_nr = extruder_plan.extruder_nr;
-            gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+
+            const ExtruderTrain& prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
+            if (prev_extruder_train.settings.get<bool>("retraction_hop_after_extruder_switch"))
+            {
+                z_hop_height = storage.extruder_switch_retraction_config_per_extruder[prev_extruder].zHop;
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], z_hop_height);
+            }
+            else
+            {
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+            }
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             if (extruder.settings.get<Velocity>("max_feedrate_z_override") > 0)
@@ -1424,7 +1435,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config);
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(retraction_config.zHop);
+                    gcode.writeZhopStart(z_hop_height);
+                    z_hop_height = retraction_config.zHop; // back to normal z hop
                 }
                 else
                 {
