@@ -29,20 +29,20 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
     result.reserve(vertices.size());
     std::vector<Point> vertices_list(vertices.begin(), vertices.end());
 
-    Point first_point = vertices_list[0];
+    const Point first_point = vertices_list[0];
 
     if (vertices_list.size() == 1)
     {
         return result; //If there's only one vertex, we can't go creating any edges.
     }
 
-    std::unordered_map<Point*, coord_t> smallest_distance;    //The shortest distance to the current tree.
-    std::unordered_map<Point*, Point*> smallest_distance_to; //Which point the shortest distance goes towards.
+    std::unordered_map<const Point*, coord_t> smallest_distance;    //The shortest distance to the current tree.
+    std::unordered_map<const Point*, const Point*> smallest_distance_to; //Which point the shortest distance goes towards.
     smallest_distance.reserve(vertices_list.size());
     smallest_distance_to.reserve(vertices_list.size());
     for (size_t vertex_index = 1; vertex_index < vertices_list.size(); vertex_index++)
     {
-        auto& vert = vertices_list[vertex_index];
+        const auto& vert = vertices_list[vertex_index];
         smallest_distance[&vert] = vSize2(vert - first_point);
         smallest_distance_to[&vert] = &vertices_list[0];
     }
@@ -60,22 +60,22 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
                                               });
 
         //Add this point to the graph and remove it from the candidates.
-        Point* closest_point = closest->first;
-        Point closest_point_local = *closest_point;
-        Point other_end = *smallest_distance_to[closest_point];
+        const Point* closest_point = closest->first;
+        const Point closest_point_local = *closest_point;
+        const Point other_end = *smallest_distance_to[closest_point];
         result[closest_point_local].emplace_back(closest_point_local, other_end);
         result[other_end].emplace_back(other_end, closest_point_local);
         smallest_distance.erase(closest_point); //Remove it so we don't check for these points again.
         smallest_distance_to.erase(closest_point);
 
         //Update the distances of all points that are not in the graph.
-        for (std::pair<Point*, coord_t> point_and_distance : smallest_distance)
+        for (std::pair<const Point*, coord_t> point_and_distance : smallest_distance)
         {
             const coord_t new_distance = vSize2(*closest_point - *point_and_distance.first);
             const coord_t old_distance = point_and_distance.second;
             if (new_distance < old_distance) //New point is closer.
             {
-                auto* pt =  point_and_distance.first;
+                const auto* pt =  point_and_distance.first;
                 smallest_distance[pt] = new_distance;
                 smallest_distance_to[pt] = closest_point;
             }
