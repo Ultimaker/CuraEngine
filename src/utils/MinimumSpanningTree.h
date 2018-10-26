@@ -28,13 +28,6 @@ class MinimumSpanningTree
      */
     struct Edge {
         /**
-         * Constructs a new edge.
-         * @param start One endpoint of the edge.
-         * @param end The other endpoint of the edge.
-         */
-        Edge(const Point start, const Point end);
-
-        /**
          * The point at which this edge starts.
          */
         const Point start;

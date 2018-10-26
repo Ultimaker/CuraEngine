@@ -14,11 +14,6 @@ MinimumSpanningTree::MinimumSpanningTree(std::unordered_set<Point> vertices) : a
     //Just copy over the fields.
 }
 
-MinimumSpanningTree::Edge::Edge(const Point start, const Point end) : start(start), end(end)
-{
-    //Just copy over the fields.
-}
-
 auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> AdjacencyGraph_t
 {
     AdjacencyGraph_t result;
