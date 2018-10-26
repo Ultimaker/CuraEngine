@@ -40,12 +40,8 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
     smallest_distance.reserve(vertices_list.size());
     std::unordered_map<Point*, Point*> smallest_distance_to; //Which point the shortest distance goes towards.
     smallest_distance_to.reserve(vertices_list.size());
-    for (size_t vertex_index = 0; vertex_index < vertices_list.size(); vertex_index++)
+    for (size_t vertex_index = 1; vertex_index < vertices_list.size(); vertex_index++)
     {
-        if (vertices_list[vertex_index] == first_point)
-        {
-            continue;
-        }
         smallest_distance[&vertices_list[vertex_index]] = vSize2(vertices_list[vertex_index] - first_point);
         smallest_distance_to[&vertices_list[vertex_index]] = &vertices_list[0];
     }
