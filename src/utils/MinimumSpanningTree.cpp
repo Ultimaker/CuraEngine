@@ -3,6 +3,8 @@
 
 #include "MinimumSpanningTree.h"
 
+#include <iterator>
+
 namespace cura
 {
 
@@ -24,11 +26,7 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
         return result; //No vertices, so we can't create edges either.
     }
     result.reserve(vertices.size());
-    std::vector<Point> vertices_list;
-    for (Point vertex : vertices)
-    {
-        vertices_list.push_back(vertex);
-    }
+    std::vector<Point> vertices_list(vertices.begin(), vertices.end());
 
     Point first_point = vertices_list[0];
     result[first_point] = std::vector<MinimumSpanningTree::Edge>(); //Start with one vertex in the tree.
@@ -106,18 +104,9 @@ std::vector<Point> MinimumSpanningTree::adjacentNodes(Point node) const
     AdjacencyGraph_t::const_iterator adjacency_entry = adjacency_graph.find(node);
     if (adjacency_entry != adjacency_graph.end())
     {
-        for (const Edge edge : (*adjacency_entry).second)
-        {
-            //Get the opposite side.
-            if (edge.start == node)
-            {
-                result.push_back(edge.end);
-            }
-            else
-            {
-                result.push_back(edge.start);
-            }
-        }
+        const auto& edges = adjacency_entry->second;
+        std::transform(edges.begin(), edges.end(), std::back_inserter(result),
+                       [&node](const Edge& e) { return (e.start == node) ? e.end : e.start; });
     }
     return result;
 }
@@ -138,10 +127,9 @@ std::vector<Point> MinimumSpanningTree::leaves() const
 std::vector<Point> MinimumSpanningTree::vertices() const
 {
     std::vector<Point> result;
-    for (std::pair<Point, std::vector<Edge>> node : adjacency_graph)
-    {
-        result.push_back(node.first);
-    }
+    using MapValue = std::pair<Point, std::vector<Edge>>; 
+    std::transform(adjacency_graph.begin(), adjacency_graph.end(), std::back_inserter(result),
+                   [](const MapValue& node) { return node.first; });
     return result;
 }
 
