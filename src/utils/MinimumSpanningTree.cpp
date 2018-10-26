@@ -16,9 +16,9 @@ MinimumSpanningTree::Edge::Edge(const Point start, const Point end) : start(star
     //Just copy over the fields.
 }
 
-const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const
+auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> AdjacencyGraph_t
 {
-    std::unordered_map<Point, std::vector<Edge>> result;
+    AdjacencyGraph_t result;
     if (vertices.empty())
     {
         return result; //No vertices, so we can't create edges either.
@@ -100,10 +100,10 @@ const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumS
     return result;
 }
 
-const std::vector<Point> MinimumSpanningTree::adjacentNodes(Point node) const
+std::vector<Point> MinimumSpanningTree::adjacentNodes(Point node) const
 {
     std::vector<Point> result;
-    std::unordered_map<Point, std::vector<Edge>>::const_iterator adjacency_entry = adjacency_graph.find(node);
+    AdjacencyGraph_t::const_iterator adjacency_entry = adjacency_graph.find(node);
     if (adjacency_entry != adjacency_graph.end())
     {
         for (const Edge edge : (*adjacency_entry).second)
