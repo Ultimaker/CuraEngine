@@ -36,17 +36,18 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
         return result; //If there's only one vertex, we can't go creating any edges.
     }
 
-    std::unordered_map<Point*, coord_t> smallest_distance; //The shortest distance to the current tree.
-    smallest_distance.reserve(vertices_list.size());
+    std::unordered_map<Point*, coord_t> smallest_distance;    //The shortest distance to the current tree.
     std::unordered_map<Point*, Point*> smallest_distance_to; //Which point the shortest distance goes towards.
+    smallest_distance.reserve(vertices_list.size());
     smallest_distance_to.reserve(vertices_list.size());
     for (size_t vertex_index = 1; vertex_index < vertices_list.size(); vertex_index++)
     {
-        smallest_distance[&vertices_list[vertex_index]] = vSize2(vertices_list[vertex_index] - first_point);
-        smallest_distance_to[&vertices_list[vertex_index]] = &vertices_list[0];
+        auto& vert = vertices_list[vertex_index];
+        smallest_distance[&vert] = vSize2(vert - first_point);
+        smallest_distance_to[&vert] = &vertices_list[0];
     }
 
-    while(result.size() < vertices_list.size()) //All of the vertices need to be in the tree at the end.
+    while (result.size() < vertices_list.size()) //All of the vertices need to be in the tree at the end.
     {
         //Choose the closest vertex to connect to that is not yet in the tree.
         //This search is O(V) right now, which can be made down to O(log(V)). This reduces the overall time complexity from O(V*V) to O(V*log(E)).
@@ -82,11 +83,13 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
         //Update the distances of all points that are not in the graph.
         for (std::pair<Point*, coord_t> point_and_distance : smallest_distance)
         {
-            coord_t new_distance = vSize2(*closest_point - *point_and_distance.first);
-            if (new_distance < point_and_distance.second) //New point is closer.
+            const coord_t new_distance = vSize2(*closest_point - *point_and_distance.first);
+            const coord_t old_distance = point_and_distance.second;
+            if (new_distance < old_distance) //New point is closer.
             {
-                smallest_distance[point_and_distance.first] = new_distance;
-                smallest_distance_to[point_and_distance.first] = closest_point;
+                auto* pt =  point_and_distance.first;
+                smallest_distance[pt] = new_distance;
+                smallest_distance_to[pt] = closest_point;
             }
         }
     }
