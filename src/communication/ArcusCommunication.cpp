@@ -481,7 +481,7 @@ void ArcusCommunication::setExtruderForSend(const ExtruderTrain& extruder)
 
 void ArcusCommunication::sliceNext()
 {
-    const Arcus::MessagePtr message = private_data->socket->takeNextMessage(true);
+    const Arcus::MessagePtr message = private_data->socket->takeNextMessage();
 
     //Handle the main Slice message.
     const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
