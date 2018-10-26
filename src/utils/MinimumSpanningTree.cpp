@@ -16,11 +16,6 @@ MinimumSpanningTree::Edge::Edge(const Point start, const Point end) : start(star
     //Just copy over the fields.
 }
 
-int MinimumSpanningTree::Edge::length() const
-{
-    return vSize2(start - end);
-}
-
 const std::unordered_map<Point, std::vector<MinimumSpanningTree::Edge>> MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const
 {
     std::unordered_map<Point, std::vector<Edge>> result;

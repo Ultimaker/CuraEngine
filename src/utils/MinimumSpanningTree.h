@@ -43,12 +43,6 @@ class MinimumSpanningTree
          * The point at which this edge ends.
          */
         const Point end;
-
-        /**
-         * Computes the length of this edge.
-         * @return The length of this edge.
-         */
-        int length() const;
     };
 public:
     /*!
