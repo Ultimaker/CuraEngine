@@ -17,19 +17,13 @@ MinimumSpanningTree::MinimumSpanningTree(std::unordered_set<Point> vertices) : a
 auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> AdjacencyGraph_t
 {
     AdjacencyGraph_t result;
-    if (vertices.empty())
+    // If there's only one vertex, we can't go creating any edges.
+    if (vertices.size() < 2)
     {
         return result; //No vertices, so we can't create edges either.
     }
     result.reserve(vertices.size());
     std::vector<Point> vertices_list(vertices.begin(), vertices.end());
-
-    const Point first_point = vertices_list[0];
-
-    if (vertices_list.size() == 1)
-    {
-        return result; //If there's only one vertex, we can't go creating any edges.
-    }
 
     std::unordered_map<const Point*, coord_t> smallest_distance;    //The shortest distance to the current tree.
     std::unordered_map<const Point*, const Point*> smallest_distance_to; //Which point the shortest distance goes towards.
@@ -38,7 +32,7 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
     for (size_t vertex_index = 1; vertex_index < vertices_list.size(); vertex_index++)
     {
         const auto& vert = vertices_list[vertex_index];
-        smallest_distance[&vert] = vSize2(vert - first_point);
+        smallest_distance[&vert] = vSize2(vert - vertices_list[0]);
         smallest_distance_to[&vert] = &vertices_list[0];
     }
 
