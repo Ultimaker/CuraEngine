@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 #include "../Application.h"
+#include "../Slice.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/linearAlg2D.h"
 #include "../utils/PolygonsPointIndex.h"

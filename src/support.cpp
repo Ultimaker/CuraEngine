@@ -12,6 +12,7 @@
 #endif // _OPENMP
 
 #include "Application.h" //To get settings.
+#include "Slice.h"
 #include "support.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"

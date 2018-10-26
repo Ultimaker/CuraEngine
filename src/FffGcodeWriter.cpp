@@ -9,6 +9,7 @@
 #include "FffProcessor.h"
 #include "GcodeLayerThreader.h"
 #include "InsetOrderOptimizer.h"
+#include "Slice.h"
 #include "wallOverlap.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "infill/SpaghettiInfillPathGenerator.h"

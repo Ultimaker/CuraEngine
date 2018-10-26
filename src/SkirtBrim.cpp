@@ -1,9 +1,10 @@
 //Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SkirtBrim.h"
-#include "support.h"
 #include "Application.h"
+#include "SkirtBrim.h"
+#include "Slice.h"
+#include "support.h"
 
 namespace cura 
 {

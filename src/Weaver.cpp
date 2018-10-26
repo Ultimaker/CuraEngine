@@ -7,6 +7,7 @@
 
 #include "Application.h" //To get the communication channel.
 #include "PrintFeature.h"
+#include "Slice.h"
 #include "weaveDataStorage.h"
 #include "Weaver.h"
 #include "communication/Communication.h" //To send layer view data.

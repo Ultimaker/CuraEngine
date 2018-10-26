@@ -5,6 +5,9 @@
 #define FAN_SPEED_LAYER_TIME_H
 
 #include "settings/Settings.h"
+#include "settings/types/Duration.h"
+#include "settings/types/LayerIndex.h"
+#include "settings/types/Velocity.h"
 
 namespace cura 
 {

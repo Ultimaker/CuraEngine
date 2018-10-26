@@ -3,6 +3,7 @@
 
 #include "Application.h" //To get settings.
 #include "Preheat.h"
+#include "Slice.h"
 
 namespace cura 
 {

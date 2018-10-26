@@ -7,8 +7,11 @@
 #include <cassert>
 #include <algorithm> // max
 
-#include "utils/logoutput.h"
 #include "MeshGroup.h"
+#include "settings/types/Duration.h"
+#include "settings/types/Ratio.h"
+#include "settings/types/Temperature.h"
+#include "utils/logoutput.h"
 
 #include "settings/FlowTempGraph.h"
 

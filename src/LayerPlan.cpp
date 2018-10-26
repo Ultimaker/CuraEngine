@@ -8,6 +8,7 @@
 #include "MergeInfillLines.h"
 #include "pathOrderOptimizer.h"
 #include "raft.h" // getTotalExtraLayers
+#include "Slice.h"
 #include "sliceDataStorage.h"
 #include "communication/Communication.h"
 #include "settings/types/Ratio.h"

@@ -3,6 +3,7 @@
 
 #include "Application.h"
 #include "multiVolumes.h"
+#include "Slice.h"
 
 namespace cura 
 {

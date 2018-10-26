@@ -8,9 +8,9 @@
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #include <sstream> // for stream.str()
 
-#include "timeEstimate.h"
-#include "MeshGroup.h"
+#include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "RetractionConfig.h"
+#include "timeEstimate.h"
 #include "settings/Settings.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h" //Bed temperature.

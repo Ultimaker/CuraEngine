@@ -8,6 +8,7 @@
 #include "Application.h" //To send layer view data.
 #include "communication/Communication.h" //To send layer view data.
 #include "gcodeExport.h"
+#include "Slice.h"
 #include "utils/logoutput.h"
 #include "PrintFeature.h"
 #include "utils/Date.h"

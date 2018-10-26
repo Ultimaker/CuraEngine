@@ -17,6 +17,7 @@
 #include "types/Temperature.h" //For temperature settings.
 #include "types/Velocity.h" //For velocity settings.
 #include "../Application.h" //To get the extruders.
+#include "../Slice.h"
 #include "../utils/logoutput.h"
 
 namespace cura

@@ -3,6 +3,8 @@
 
 #include "Application.h" //To get settings.
 #include "Mold.h"
+#include "Scene.h"
+#include "Slice.h"
 #include "utils/IntPoint.h"
 #include "sliceDataStorage.h"
 

@@ -3,6 +3,7 @@
 
 #include "Application.h" //To get settings.
 #include "MergeInfillLines.h"
+#include "Slice.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura

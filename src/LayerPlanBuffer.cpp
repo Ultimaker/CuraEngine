@@ -6,8 +6,9 @@
 #include "FffProcessor.h"
 #include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
-#include "utils/logoutput.h"
 #include "MergeInfillLines.h"
+#include "Slice.h"
+#include "utils/logoutput.h"
 
 namespace cura {
 

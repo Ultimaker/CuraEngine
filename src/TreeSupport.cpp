@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "Slice.h"
 #include "TreeSupport.h"
 #include "progress/Progress.h"
 #include "settings/types/AngleRadians.h" //Creating the correct branch angles.

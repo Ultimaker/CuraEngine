@@ -5,6 +5,7 @@
 
 #include "Application.h" //To get settings.
 #include "raft.h"
+#include "Slice.h"
 #include "support.h"
 #include "utils/math.h"
 

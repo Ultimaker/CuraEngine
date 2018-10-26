@@ -1,15 +1,15 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
-#include <stdio.h>
 
+#include <stdio.h>
 #include <algorithm> // remove_if
 
+#include "Application.h"
+#include "Slice.h"
+#include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
-
-#include "slicer.h"
-#include "Application.h"
 
 
 namespace cura {
