@@ -10,7 +10,9 @@
 #include "raft.h" // getTotalExtraLayers
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "wallOverlap.h"
 #include "communication/Communication.h"
+#include "pathPlanning/Comb.h"
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/polygonUtils.h"

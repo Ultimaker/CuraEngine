@@ -5,10 +5,10 @@
 #ifndef INFILL_DENSITY_PROVIDER_H
 #define INFILL_DENSITY_PROVIDER_H
 
-#include "../utils/AABB3D.h"
-
 namespace cura
 {
+
+class AABB3D;
 
 /*!
  * Parent class of function objects which return the density required for a given region.

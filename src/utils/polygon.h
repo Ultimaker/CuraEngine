@@ -1150,7 +1150,7 @@ public:
  * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
 class PolygonsPart : public Polygons
-{   
+{
 public:
     PolygonRef outerPolygon()
     {

@@ -21,6 +21,7 @@
 #include "../Application.h" //To get the extruders.
 #include "../ExtruderTrain.h"
 #include "../Slice.h"
+#include "../utils/floatpoint.h" //For FMatrix3x3.
 #include "../utils/logoutput.h"
 #include "../utils/string.h" //For Escaped.
 

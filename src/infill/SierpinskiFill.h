@@ -7,15 +7,15 @@
 
 #include <list>
 
-#include "DensityProvider.h"
-#include "../utils/polygon.h"
 #include "../utils/AABB.h"
-#include "../utils/SVG.h"
 
 namespace cura
 {
-    
-class SierpinskiFillTest; 
+
+class DensityProvider;
+class SierpinskiFillTest;
+class SVG;
+
 /*!
  * A class for generating the Cross and Cross 3D infill patterns.
  * 

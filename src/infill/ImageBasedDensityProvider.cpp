@@ -8,6 +8,7 @@
 
 #include "ImageBasedDensityProvider.h"
 #include "SierpinskiFill.h"
+#include "../utils/AABB3D.h"
 #include "../utils/logoutput.h"
 
 namespace cura {

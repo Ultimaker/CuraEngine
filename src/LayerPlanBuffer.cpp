@@ -2,12 +2,14 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To flush g-code through the communication channel.
-#include "communication/Communication.h" //To flush g-code through the communication channel.
+#include "ExtruderTrain.h"
 #include "FffProcessor.h"
 #include "gcodeExport.h"
+#include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "MergeInfillLines.h"
 #include "Slice.h"
+#include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "utils/logoutput.h"
 
 namespace cura {

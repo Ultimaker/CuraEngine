@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SpaghettiInfillPathGenerator.h"
+#include "../ExtruderTrain.h"
 #include "../infill.h"
 #include "../FffGcodeWriter.h"
 #include "../utils/math.h" //For round_divide.

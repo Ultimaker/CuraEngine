@@ -4,13 +4,14 @@
 #ifndef WEAVER_H
 #define WEAVER_H
 
-#include "MeshGroup.h"
 #include "weaveDataStorage.h"
 #include "utils/NoCopy.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
+
+class MeshGroup;
+class Polygons;
 
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.

@@ -8,11 +8,8 @@
 
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
-#include "GCodePathConfig.h"
 #include "pathOrderOptimizer.h"
 #include "SpaceFillType.h"
-#include "wallOverlap.h"
-#include "pathPlanning/Comb.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
@@ -24,10 +21,11 @@
 namespace cura 
 {
 
-class SliceDataStorage;
-
+class Comb;
 class LayerPlan; // forward declaration so that ExtruderPlan can be a friend
 class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
+class SliceDataStorage;
+class WallOverlapComputation;
 
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.

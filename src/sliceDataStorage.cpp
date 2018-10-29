@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
 #include "raft.h"
 #include "Slice.h"

@@ -7,10 +7,11 @@
 #include <forward_list>
 #include <unordered_set>
 
-#include "sliceDataStorage.h"
-
 namespace cura
 {
+
+class SliceDataStorage;
+class SliceMeshStorage;
 
 /*!
  * \brief Generates a tree structure to support your models.

@@ -9,6 +9,7 @@
 #include "ExtruderTrain.h"
 #include "gcodeExport.h"
 #include "PrintFeature.h"
+#include "RetractionConfig.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "utils/Date.h"

@@ -5,12 +5,13 @@
 #define MESH_GROUP_H
 
 #include "mesh.h"
-#include "utils/floatpoint.h" //For FMatrix3x3.
 #include "utils/NoCopy.h"
 
 namespace cura
 {
-    
+
+class FMatrix3x3;
+
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
  * 

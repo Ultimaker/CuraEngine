@@ -4,11 +4,14 @@
 #ifndef BRIDGE_H
 #define BRIDGE_H
 
-#include "sliceDataStorage.h"
+namespace cura
+{
 
-namespace cura {
-    class Polygons;
-    class SliceLayer;
+class Polygons;
+class Settings;
+class SliceDataStorage;
+class SliceLayer;
+class SupportLayer;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape

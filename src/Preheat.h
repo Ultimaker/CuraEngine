@@ -14,6 +14,8 @@
 namespace cura 
 {
 
+class Ratio;
+
 /*!
  * Class for computing heatup and cooldown times used for computing the time the printer needs to heat up to a printing temperature.
  */

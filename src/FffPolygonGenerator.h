@@ -4,15 +4,17 @@
 #ifndef FFF_POLYGON_GENERATOR_H
 #define FFF_POLYGON_GENERATOR_H
 
-
-#include "MeshGroup.h"
 #include "utils/NoCopy.h"
-#include "utils/gettime.h"
-#include "sliceDataStorage.h"
-#include "progress/ProgressStageEstimator.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
+
+class MeshGroup;
+class ProgressStageEstimator;
+class SliceDataStorage;
+class SliceMeshStorage;
+class TimeKeeper;
 
 /*!
  * Primary stage in Fused Filament Fabrication processing: Polygons are generated.

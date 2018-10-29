@@ -9,10 +9,11 @@
 
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
-#include "../settings/types/LayerIndex.h" //Storing layer data by layer number.
 
 namespace cura
 {
+
+class LayerIndex;
 
 class ArcusCommunication::Private
 {

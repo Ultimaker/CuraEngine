@@ -6,6 +6,7 @@
 
 #include "Application.h"
 #include "bridge.h"
+#include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
 #include "GcodeLayerThreader.h"

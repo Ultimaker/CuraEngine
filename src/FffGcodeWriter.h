@@ -5,16 +5,19 @@
 #define GCODE_WRITER_H
 
 #include <fstream>
-#include "utils/NoCopy.h"
-#include "LayerPlan.h"
-#include "LayerPlanBuffer.h"
-#include "gcodeExport.h"
 #include "FanSpeedLayerTime.h"
+#include "gcodeExport.h"
+#include "LayerPlanBuffer.h"
+#include "settings/PathConfigStorage.h"
+#include "utils/NoCopy.h"
+#include "utils/optional.h"
 
 namespace cura 
 {
 
 class SkinPart;
+class SliceDataStorage;
+class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
 class TimeKeeper;

@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SpaghettiInfill.h"
+#include "../sliceDataStorage.h"
 #include "../settings/types/AngleDegrees.h" //For the infill angle.
 #include "../settings/types/AngleRadians.h" //For the infill angle.
 #include "../utils/logoutput.h"

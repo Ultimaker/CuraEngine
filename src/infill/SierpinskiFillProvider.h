@@ -5,13 +5,14 @@
 #ifndef INFILL_SIERPINSKI_FILL_PROVIDER_H
 #define INFILL_SIERPINSKI_FILL_PROVIDER_H
 
-#include "DensityProvider.h"
 #include "SierpinskiFill.h"
 #include "../settings/EnumSettings.h" //For EFillMethod.
 #include "../utils/optional.h"
 
 namespace cura
 {
+
+class DensityProvider;
 
 /*!
  * Class for generating infill patterns using the SierpinskiFill class.

@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "slicer.h"
 #include "settings/types/Ratio.h"
 #include "utils/IntPoint.h"
 

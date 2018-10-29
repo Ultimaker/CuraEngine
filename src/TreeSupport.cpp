@@ -4,8 +4,10 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "sliceDataStorage.h"
 #include "TreeSupport.h"
 #include "progress/Progress.h"
+#include "settings/EnumSettings.h"
 #include "settings/types/AngleRadians.h" //Creating the correct branch angles.
 #include "settings/types/Ratio.h"
 #include "utils/IntPoint.h" //To normalize vectors.

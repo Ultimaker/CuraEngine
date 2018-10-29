@@ -11,6 +11,7 @@
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
 #include "../utils/logoutput.h"
+#include "../utils/SVG.h"
 
 namespace cura {
 

@@ -12,6 +12,7 @@
 #include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
 #include "../Application.h" //To get and set the current slice command.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.

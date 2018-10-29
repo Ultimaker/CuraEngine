@@ -4,17 +4,16 @@
 #ifndef INFILL_H
 #define INFILL_H
 
-#include "utils/polygon.h"
+#include "infill/ZigzagConnectorProcessor.h" //For DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD.
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
-#include "infill/SierpinskiFillProvider.h"
-#include "infill/ZigzagConnectorProcessor.h"
 #include "utils/IntPoint.h"
-#include "utils/AABB.h"
 
 namespace cura
 {
 
+class AABB;
+class SierpinskiFillProvider;
 class SliceMeshStorage;
 
 class Infill 

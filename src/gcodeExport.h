@@ -9,7 +9,6 @@
 #include <sstream> // for stream.str()
 
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
-#include "RetractionConfig.h"
 #include "timeEstimate.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
@@ -18,7 +17,10 @@
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 
-namespace cura {
+namespace cura
+{
+
+class RetractionConfig;
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.

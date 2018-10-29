@@ -4,17 +4,17 @@
 #ifndef WIREFRAME2GCODE_H
 #define WIREFRAME2GCODE_H
 
-
 #include <functional> // passing function pointer or lambda as argument to a function
 
-#include "weaveDataStorage.h"
-#include "Weaver.h"
+#include "RetractionConfig.h"
 #include "settings/types/AngleRadians.h" //For the nozzle expansion angle setting.
 #include "utils/polygon.h"
 #include "utils/NoCopy.h"
 
 namespace cura
 {
+
+class Weaver;
 
 /*!
  * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.
@@ -59,9 +59,8 @@ private:
     coord_t roof_fall_down;
     coord_t roof_drag_along;
     Duration roof_outer_delay;
-    
     RetractionConfig standard_retraction_config; //!< The standard retraction settings used for moves between parts etc.
-    
+
 public:
     GCodeExport& gcode; //!< Where the result is 'stored'
     

@@ -4,10 +4,13 @@
 #ifndef SKIRT_BRIM_H
 #define SKIRT_BRIM_H
 
-#include "sliceDataStorage.h"
+#include "utils/Coord_t.h"
 
 namespace cura 
 {
+
+class Polygons;
+class SliceDataStorage;
 
 class SkirtBrim
 {
