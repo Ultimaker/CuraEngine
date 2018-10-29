@@ -2,8 +2,6 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "../utils/polygon.h"
-#include "../utils/AABB.h"
-#include "../utils/linearAlg2D.h"
 
 namespace cura
 {

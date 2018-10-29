@@ -5,7 +5,6 @@
 #define SUPPORT_H
 
 #include "sliceDataStorage.h"
-#include "MeshGroup.h"
 #include "slicer.h"
 
 namespace cura {

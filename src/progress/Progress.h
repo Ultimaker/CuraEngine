@@ -5,8 +5,6 @@
 #define PROGRESS_H
 
 #include <string>
-
-#include "../utils/logoutput.h"
 #include "../utils/gettime.h"
 
 namespace cura {

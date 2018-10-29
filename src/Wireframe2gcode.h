@@ -7,9 +7,6 @@
 
 #include <functional> // passing function pointer or lambda as argument to a function
 
-#include "MeshGroup.h"
-#include "settings/Settings.h"
-#include "slicer.h"
 #include "weaveDataStorage.h"
 #include "Weaver.h"
 #include "settings/types/AngleRadians.h" //For the nozzle expansion angle setting.

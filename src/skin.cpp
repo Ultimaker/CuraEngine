@@ -7,6 +7,7 @@
 #include "ExtruderTrain.h"
 #include "skin.h"
 #include "settings/types/AngleRadians.h" //For the infill support angle.
+#include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 

@@ -11,6 +11,7 @@
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "progress/Progress.h"
 #include "utils/logoutput.h"
+#include "utils/string.h" //For stringcasecompare.
 
 namespace cura
 {

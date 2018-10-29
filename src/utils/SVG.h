@@ -10,7 +10,6 @@
 #include "IntPoint.h"
 #include "floatpoint.h"
 #include "AABB.h"
-#include "logoutput.h"
 #include "NoCopy.h"
 
 namespace cura {

@@ -6,8 +6,9 @@
 #include "Mold.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "utils/IntPoint.h"
 #include "sliceDataStorage.h"
+#include "settings/types/Ratio.h"
+#include "utils/IntPoint.h"
 
 namespace cura
 {

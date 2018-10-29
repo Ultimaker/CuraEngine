@@ -8,6 +8,7 @@
 #include <regex> // regex parsing for temp flow graph
 #include <string> //Parsing strings (stod, stoul).
 
+#include "EnumSettings.h"
 #include "FlowTempGraph.h"
 #include "Settings.h"
 #include "types/AngleDegrees.h" //For angle settings.
@@ -21,6 +22,7 @@
 #include "../ExtruderTrain.h"
 #include "../Slice.h"
 #include "../utils/logoutput.h"
+#include "../utils/string.h" //For Escaped.
 
 namespace cura
 {

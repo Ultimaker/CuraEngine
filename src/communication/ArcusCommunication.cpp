@@ -22,9 +22,6 @@
 namespace cura
 {
 
-//Forward declarations for compilation speed.
-class MeshGroup;
-
 /*
  * \brief A computation class that formats layer view data in a way that the
  * front-end can understand it.

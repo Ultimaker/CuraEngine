@@ -3,6 +3,7 @@
 
 #include "infill.h"
 #include "LayerPlan.h"
+#include "sliceDataStorage.h"
 #include "TopSurface.h"
 
 namespace cura

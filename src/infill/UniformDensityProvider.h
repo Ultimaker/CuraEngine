@@ -4,11 +4,8 @@
 #ifndef INFILL_UNIFORM_DENSITY_PROVIDER_H
 #define INFILL_UNIFORM_DENSITY_PROVIDER_H
 
-#include "../utils/IntPoint.h"
-#include "../utils/AABB.h"
-#include "../utils/AABB3D.h"
-
 #include "DensityProvider.h"
+#include "../utils/AABB3D.h"
 
 namespace cura
 {

@@ -7,6 +7,7 @@
 #include "Application.h"
 #include "Slice.h"
 #include "slicer.h"
+#include "settings/EnumSettings.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"

@@ -12,6 +12,7 @@
 #include "sliceDataStorage.h"
 #include "communication/Communication.h"
 #include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
 
 namespace cura {

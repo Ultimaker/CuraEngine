@@ -3,7 +3,9 @@
 
 #include "ExtruderTrain.h"
 #include "WallsComputation.h"
+#include "settings/types/Ratio.h"
 #include "utils/polygonUtils.h"
+
 namespace cura {
 
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)

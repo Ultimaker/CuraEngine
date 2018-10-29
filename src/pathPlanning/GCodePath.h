@@ -6,6 +6,7 @@
 
 #include "../SpaceFillType.h"
 #include "../GCodePathConfig.h"
+#include "../utils/IntPoint.h"
 
 #include "TimeMaterialEstimates.h"
 

@@ -8,10 +8,14 @@
 #include "Application.h" //To get the communication channel.
 #include "PrintFeature.h"
 #include "Slice.h"
+#include "slicer.h"
 #include "weaveDataStorage.h"
 #include "Weaver.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "progress/Progress.h"
+#include "utils/logoutput.h"
+#include "settings/AdaptiveLayerHeights.h"
+#include "settings/types/AngleRadians.h"
 
 namespace cura 
 {

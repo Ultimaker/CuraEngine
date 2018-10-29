@@ -6,8 +6,6 @@
 
 #include <list>
 
-#include "../utils/IntPoint.h"
-#include "../utils/polygon.h"
 #include "../sliceDataStorage.h"
 #include "../LayerPlan.h"
 

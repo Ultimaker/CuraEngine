@@ -8,6 +8,7 @@
 #include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

@@ -8,7 +8,7 @@
 
 #include "../GCodePathConfig.h"
 #include "../settings/types/LayerIndex.h"
-#include "../utils/IntPoint.h" // coord_t
+#include "../utils/Coord_t.h"
 
 namespace cura
 {

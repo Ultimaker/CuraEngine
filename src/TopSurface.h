@@ -5,7 +5,6 @@
 #define TOPSURFACE_H
 
 #include "utils/polygon.h" //For the polygon areas.
-#include "sliceDataStorage.h" //For the input mesh.
 
 namespace cura
 {

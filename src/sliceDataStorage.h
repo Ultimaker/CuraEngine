@@ -4,10 +4,9 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "gcodeExport.h" // CoastingConfig
 #include "mesh.h"
-#include "MeshGroup.h"
 #include "PrimeTower.h"
+#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "infill/SierpinskiFillProvider.h"

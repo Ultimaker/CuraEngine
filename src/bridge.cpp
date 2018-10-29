@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge.h"
+#include "settings/types/Ratio.h"
 
 namespace cura {
 

@@ -1,8 +1,8 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATH_PLANNING_TIME_MATERIAL_ESTIMATES_H
 #define PATH_PLANNING_TIME_MATERIAL_ESTIMATES_H
-
-#include "../gcodeExport.h"
 
 namespace cura 
 {

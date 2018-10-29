@@ -5,7 +5,6 @@
 #ifndef INFILL_DENSITY_PROVIDER_H
 #define INFILL_DENSITY_PROVIDER_H
 
-#include "../utils/IntPoint.h"
 #include "../utils/AABB3D.h"
 
 namespace cura

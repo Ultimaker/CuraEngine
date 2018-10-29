@@ -4,15 +4,10 @@
 #ifndef WEAVER_H
 #define WEAVER_H
 
-#include "Application.h" //To get the mesh group settings.
 #include "MeshGroup.h"
-#include "slicer.h"
 #include "weaveDataStorage.h"
-#include "settings/Settings.h"
-#include "settings/types/AngleRadians.h" //For the nozzle angle.
 #include "utils/NoCopy.h"
 #include "utils/polygon.h"
-#include "utils/polygonUtils.h"
 
 namespace cura
 {

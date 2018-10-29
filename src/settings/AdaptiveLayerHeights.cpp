@@ -9,6 +9,7 @@
 #include "AdaptiveLayerHeights.h"
 #include "../Application.h"
 #include "../Slice.h"
+#include "../settings/EnumSettings.h"
 #include "../settings/types/AngleRadians.h"
 
 namespace cura

@@ -5,11 +5,10 @@
 #define INFILL_SUBDIVCUBE_H
 
 #include "../sliceDataStorage.h"
+#include "../settings/types/Ratio.h"
 
 namespace cura
 {
-
-class Infill;
 
 class SubDivCube
 {

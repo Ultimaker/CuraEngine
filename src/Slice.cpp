@@ -3,6 +3,7 @@
 
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

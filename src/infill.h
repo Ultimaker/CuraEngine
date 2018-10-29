@@ -5,17 +5,17 @@
 #define INFILL_H
 
 #include "utils/polygon.h"
-#include "settings/Settings.h"
+#include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
+#include "infill/SierpinskiFillProvider.h"
 #include "infill/ZigzagConnectorProcessor.h"
-#include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/SubDivCube.h"
-#include "infill/DensityProvider.h"
 #include "utils/IntPoint.h"
 #include "utils/AABB.h"
 
 namespace cura
 {
+
+class SliceMeshStorage;
 
 class Infill 
 {

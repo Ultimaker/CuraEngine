@@ -6,9 +6,6 @@
 
 #include <list>
 
-#include "../settings/types/AngleRadians.h" //To compute the inset distance.
-#include "../utils/IntPoint.h"
-#include "../utils/polygon.h"
 #include "../sliceDataStorage.h"
 
 namespace cura {

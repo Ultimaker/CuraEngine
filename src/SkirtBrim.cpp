@@ -6,6 +6,8 @@
 #include "SkirtBrim.h"
 #include "Slice.h"
 #include "support.h"
+#include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 
 namespace cura 
 {

@@ -14,7 +14,6 @@
 #include "../settings/types/LayerIndex.h" //To store the layer on which we comb.
 #include "../utils/optional.h"
 #include "../utils/polygon.h"
-#include "../utils/SparsePointGridInclusive.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/LazyInitialization.h"
 

@@ -4,8 +4,9 @@
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
-#include "utils/NoCopy.h"
 #include "mesh.h"
+#include "utils/floatpoint.h" //For FMatrix3x3.
+#include "utils/NoCopy.h"
 
 namespace cura
 {

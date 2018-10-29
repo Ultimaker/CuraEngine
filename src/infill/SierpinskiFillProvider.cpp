@@ -2,8 +2,10 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "ImageBasedDensityProvider.h"
+#include "UniformDensityProvider.h"
 #include "SierpinskiFillProvider.h"
-
+#include "../utils/logoutput.h"
 #include "../utils/math.h"
 
 namespace cura

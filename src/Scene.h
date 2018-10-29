@@ -10,6 +10,8 @@
 namespace cura
 {
 
+class ExtruderTrain;
+
 /*
  * Represents a scene that should be sliced.
  */

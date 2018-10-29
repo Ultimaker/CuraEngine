@@ -19,6 +19,8 @@
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
 #include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
+#include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 #include "utils/math.h"
 
 namespace cura 
