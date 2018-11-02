@@ -1374,6 +1374,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const coord_t z_distance_bottom = round_up_divide(mesh.settings.get<coord_t>("support_bottom_distance"), layer_height); //Number of layers between support bottom and model.
     const size_t skip_layer_count = std::max(1u, round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support bottoms above model.
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings.get<coord_t>("support_bottom_line_width");
+    const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings.get<coord_t>("support_bottom_offset");
 
     const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1) / skip_layer_count); //How many measurements to take to generate bottom areas.
     const float z_skip = std::max(1.0f, float(bottom_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
@@ -1388,7 +1389,11 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
             mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
         Polygons bottoms;
-        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottoms);
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, bottoms);
+        if (bottom_outline_offset > 0)
+        {
+            bottoms = bottoms.difference(mesh.layers[layer_idx].getOutlines()); // Make sure interface doesn't overlap mesh polygons.
+        }
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
@@ -1405,6 +1410,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const coord_t z_distance_top = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height); //Number of layers between support roof and model.
     const size_t skip_layer_count = std::max(1u, round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support roof below model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings.get<coord_t>("support_roof_line_width");
+    const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings.get<coord_t>("support_roof_offset");
 
     const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1) / skip_layer_count); //How many measurements to take to generate roof areas.
     const float z_skip = std::max(1.0f, float(roof_layer_count - 1) / float(scan_count)); //How many layers to skip between measurements. Using float for better spread, but this is later rounded.
@@ -1419,16 +1425,24 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
             mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }
         Polygons roofs;
-        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roofs);
+        generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, roofs);
+        if (roof_outline_offset > 0)
+        {
+            roofs = roofs.difference(mesh.layers[layer_idx].getOutlines()); // Make sure interface doesn't overlap mesh polygons.
+        }
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }
 
-void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, Polygons& interface_polygons)
+void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, const coord_t outline_offset, Polygons& interface_polygons)
 {
     Polygons model = colliding_mesh_outlines.unionPolygons();
     interface_polygons = support_areas.intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
+    if (outline_offset > 0)
+    {
+        interface_polygons = interface_polygons.offset(outline_offset);
+    }
     interface_polygons.removeSmallAreas(1.0);
     support_areas = support_areas.difference(interface_polygons);
 }
