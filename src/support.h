@@ -233,7 +233,7 @@ private:
      * \param bottom_stair_step_layer_count The max height (in nr of layers) of the support bottom stairs
      * \param support_bottom_stair_step_width The max width of the support bottom stairs
      */
-    static void moveUpFromModel(const SliceDataStorage& storage, const Polygons& xy_disallowed, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
+    static void moveUpFromModel(const SliceDataStorage& storage, const Polygons& xy_disallowed, Polygons& stair_removal, Polygons& support_areas, const size_t layer_idx, const size_t bottom_empty_layer_count, const size_t bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
      * Joins the layer part outlines of all meshes and collects the overhang

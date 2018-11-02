@@ -855,7 +855,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
-    for (unsigned int layer_idx = 1; layer_idx < layer_count; layer_idx++)
+    for (size_t layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, false);
         if (!is_support_mesh_place_holder)
@@ -913,7 +913,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     const int supportMinAreaSqrt = infill_settings.get<coord_t>("support_minimal_diameter");
 
-    for (unsigned int layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != (unsigned int)-1; layer_idx--)
+    for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
     {
         Polygons layer_this = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
 
@@ -982,7 +982,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     
     // Substract x/y-disallowed area from the support.
     // This is done after the main loop, because at least one of the calculations there rely on other layers _without_ the x/y-disallowed area.
-    for (unsigned int layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != (unsigned int)-1; layer_idx--)
+    for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
     {
         Polygons& layer_this = support_areas[layer_idx];
         
@@ -1055,7 +1055,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         }
     }
 
-    for (unsigned int layer_idx = support_areas.size() - 1; layer_idx != (unsigned int)std::max(-1, storage.support.layer_nr_max_filled_layer); layer_idx--)
+    for (size_t layer_idx = support_areas.size() - 1; layer_idx != static_cast<size_t>(std::max(-1, storage.support.layer_nr_max_filled_layer)); layer_idx--)
     {
         if (support_areas[layer_idx].size() > 0)
         {
@@ -1067,7 +1067,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     storage.support.generated = true;
 }
 
-void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygons& xy_disallowed, Polygons& stair_removal, Polygons& support_areas, const int layer_idx, const int bottom_empty_layer_count, const unsigned int bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygons& xy_disallowed, Polygons& stair_removal, Polygons& support_areas, const size_t layer_idx, const size_t bottom_empty_layer_count, const size_t bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
 {
 // The idea behind support bottom stairs:
 //
@@ -1122,7 +1122,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygon
         return;
     }
 
-    int bottom_layer_nr = layer_idx - bottom_empty_layer_count;
+    const size_t bottom_layer_nr = layer_idx - bottom_empty_layer_count;
     const Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
 
     Polygons to_be_removed;
@@ -1138,7 +1138,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygon
             const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, false);
             const Polygons allowed_step_width = support_areas.difference(xy_disallowed).intersection(supporting_bottom).offset(support_bottom_stair_step_width);
 
-            int step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
+            const int64_t step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
             if (step_bottom_layer_nr >= 0)
             {
                 const Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
