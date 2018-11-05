@@ -58,12 +58,7 @@ public:
     /**
      * The base layer height.
      */
-    int layer_height;
-
-    /*!
-     * Stores the initial layer height.
-     */
-    int initial_layer_height;
+    int base_layer_height;
 
     /*!
      * Stores the found layer heights
@@ -89,13 +84,14 @@ public:
 
     /*!
      * \brief Creates a new adaptive layer height calculator.
+     * \param base_layer_height The base layer height to calculate adaptive layers from.
      * \param variation How much variation is allowed in the layer thickness.
      * \param step_size The maximum difference in layer height between two
      * adjacent layers.
      * \param threshold Threshold to compare the tangent of the steepest slope
      * to.
      */
-    AdaptiveLayerHeights(const coord_t variation, const coord_t step_size, const double threshold);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const double threshold);
 
 private:
 

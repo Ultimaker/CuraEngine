@@ -235,6 +235,7 @@ void CommandLine::sliceNext()
                     case 'g':
                     {
                         last_settings = &slice.scene.mesh_groups[mesh_group_index].settings;
+                        break;
                     }
                     /* ... falls through ... */
                     case 's':

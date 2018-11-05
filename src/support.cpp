@@ -646,9 +646,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             continue;
         }
-        Settings& infill_settings = storage.meshes[mesh_idx].settings;
-        Settings& roof_settings = storage.meshes[mesh_idx].settings;
-        Settings& bottom_settings = storage.meshes[mesh_idx].settings;
+        Settings* infill_settings = &storage.meshes[mesh_idx].settings;
+        Settings* roof_settings = &storage.meshes[mesh_idx].settings;
+        Settings* bottom_settings = &storage.meshes[mesh_idx].settings;
         if (mesh.settings.get<bool>("support_mesh"))
         {
             if ((mesh.settings.get<bool>("support_mesh_drop_down") && support_meshes_drop_down_handled) ||
@@ -659,9 +659,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
             // use extruder train settings rather than the per-object settings of the first support mesh encountered.
             // because all support meshes are processed at the same time it doesn't make sense to use the per-object settings of the first support mesh encountered.
             // instead we must use the support extruder settings, which is the settings base common to all support meshes.
-            infill_settings = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
-            roof_settings = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings;
-            bottom_settings = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings;
+            infill_settings = &mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings;
+            roof_settings = &mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings;
+            bottom_settings = &mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings;
             if (mesh.settings.get<bool>("support_mesh_drop_down"))
             {
                 support_meshes_drop_down_handled = true;
@@ -674,7 +674,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         std::vector<Polygons> mesh_support_areas_per_layer;
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
 
-        generateSupportAreasForMesh(storage, infill_settings, roof_settings, bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
+        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
         for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
