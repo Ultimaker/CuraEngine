@@ -254,7 +254,11 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             bool allow_try_merge = true;
             // see if we meet criteria to merge. should be: travel - path1 not travel - (...) - travel - path2 not travel - travel
             // we're checking the travels here
-            if (first_path_index <= 1 || !paths[first_path_index - 1].isTravelPath())  // "<= 1" because we don't want the first travel being changed. That may introduce a hole somewhere
+            if (first_path_index <= 1) //We don't want the first travel being changed. That may introduce a hole somewhere.
+            {
+                allow_try_merge = false;
+            }
+            if (!paths[first_path_index - 1].isTravelPath())
             {
                 allow_try_merge = false;
             }
