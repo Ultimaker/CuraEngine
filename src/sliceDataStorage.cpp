@@ -7,6 +7,7 @@
 #include "raft.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "infill/DensityProvider.h" // for destructor
 

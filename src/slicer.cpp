@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <algorithm> // remove_if
 
+#include "settings/AdaptiveLayerHeights.h"
 #include "Application.h"
 #include "Slice.h"
 #include "slicer.h"

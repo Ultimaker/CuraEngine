@@ -8,6 +8,7 @@
 #include "../raft.h"
 #include "../Slice.h"
 #include "../sliceDataStorage.h" // SliceDataStorage
+#include "../settings/EnumSettings.h" //For EPlatformAdhesion.
 
 namespace cura
 {

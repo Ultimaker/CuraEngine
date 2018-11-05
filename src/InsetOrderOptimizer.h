@@ -5,9 +5,9 @@
 #define INSET_ORDER_OPTIMIZER_H
 
 #include "pathOrderOptimizer.h"
-#include "sliceDataStorage.h"
+#include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 
-namespace cura 
+namespace cura
 {
 
 class FffGcodeWriter;

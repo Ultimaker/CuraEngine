@@ -5,11 +5,11 @@
 #define FFF_POLYGON_GENERATOR_H
 
 #include "utils/NoCopy.h"
-#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
+class LayerIndex;
 class MeshGroup;
 class ProgressStageEstimator;
 class SliceDataStorage;

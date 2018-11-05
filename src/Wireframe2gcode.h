@@ -8,7 +8,6 @@
 
 #include "RetractionConfig.h"
 #include "settings/types/AngleRadians.h" //For the nozzle expansion angle setting.
-#include "utils/polygon.h"
 #include "utils/NoCopy.h"
 
 namespace cura

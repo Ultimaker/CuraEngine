@@ -8,7 +8,6 @@
 #include <algorithm> // max
 
 #include "settings/types/Duration.h"
-#include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
 
 namespace cura 

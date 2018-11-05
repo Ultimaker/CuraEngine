@@ -4,10 +4,14 @@
 #ifndef MULTIVOLUMES_H
 #define MULTIVOLUMES_H
 
-#include "slicer.h"
+#include <vector>
 
 /* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
-namespace cura {
+namespace cura
+{
+
+class Mesh;
+class Slicer;
 
 void carveMultipleVolumes(std::vector<Slicer*> &meshes);
 

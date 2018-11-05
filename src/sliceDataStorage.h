@@ -4,15 +4,16 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "mesh.h"
+#include <map>
 #include "PrimeTower.h"
 #include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
-#include "infill/SierpinskiFillProvider.h"
+#include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/AngleDegrees.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
+#include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "utils/optional.h"
@@ -20,6 +21,9 @@
 
 namespace cura 
 {
+
+class Mesh;
+class SierpinskiFillProvider;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 

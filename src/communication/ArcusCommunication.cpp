@@ -19,6 +19,7 @@
 #include "../settings/types/LayerIndex.h" //To point to layers.
 #include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "../utils/logoutput.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {

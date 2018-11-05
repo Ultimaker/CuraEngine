@@ -4,13 +4,16 @@
 
 #include "SierpinskiFill.h"
 
-#include <algorithm> // swap 
+#include <algorithm> // swap
+#include <assert.h>
 #include <functional> // function
 #include <iterator> // next, prev
 
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
+#include "../utils/AABB3D.h"
 #include "../utils/logoutput.h"
+#include "../utils/polygon.h"
 #include "../utils/SVG.h"
 
 namespace cura {

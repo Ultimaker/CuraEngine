@@ -5,6 +5,7 @@
 #include "ExtruderTrain.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
+#include "sliceDataStorage.h"
 #include "support.h"
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"

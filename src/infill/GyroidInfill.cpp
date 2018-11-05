@@ -4,6 +4,7 @@
 #include "GyroidInfill.h"
 #include "../utils/AABB.h"
 #include "../utils/linearAlg2D.h"
+#include "../utils/polygon.h"
 
 namespace cura {
 

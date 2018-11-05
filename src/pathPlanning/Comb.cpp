@@ -7,7 +7,10 @@
 #include <functional> // function
 #include <unordered_set>
 
+#include "CombPaths.h"
+#include "LinePolygonsCrossings.h"
 #include "../Application.h"
+#include "../ExtruderTrain.h"
 #include "../Slice.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/linearAlg2D.h"

@@ -5,9 +5,11 @@
 #define PROGRESS_H
 
 #include <string>
-#include "../utils/gettime.h"
 
-namespace cura {
+namespace cura
+{
+
+class TimeKeeper;
 
 #define N_PROGRESS_STAGES 7
 

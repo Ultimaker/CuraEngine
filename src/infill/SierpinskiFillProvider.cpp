@@ -5,8 +5,10 @@
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
 #include "SierpinskiFillProvider.h"
+#include "../utils/AABB3D.h"
 #include "../utils/logoutput.h"
 #include "../utils/math.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {

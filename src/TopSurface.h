@@ -10,6 +10,7 @@ namespace cura
 {
 
 class GCodePathConfig;
+class LayerPlan;
 class SliceMeshStorage;
 
 class TopSurface

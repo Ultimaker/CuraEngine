@@ -8,13 +8,19 @@
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
-#include "settings/PathConfigStorage.h"
+#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/NoCopy.h"
-#include "utils/optional.h"
+
+namespace std
+{
+template<typename T> class optional;
+}
 
 namespace cura 
 {
 
+class AngleDegrees;
+class Polygons;
 class SkinPart;
 class SliceDataStorage;
 class SliceMeshStorage;

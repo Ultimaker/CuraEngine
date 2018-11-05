@@ -7,14 +7,15 @@
 #include <queue>
 #include <unordered_map>
 #include "utils/polygon.h"
-#include "settings/AdaptiveLayerHeights.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
 */
-namespace cura {
+namespace cura
+{
 
+class AdaptiveLayer;
 class Mesh;
 class MeshVertex;
 

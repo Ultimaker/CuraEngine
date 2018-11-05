@@ -1,9 +1,10 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <stdarg.h>
-#include <iomanip>
+#include <assert.h>
 #include <cmath>
+#include <iomanip>
+#include <stdarg.h>
 
 #include "Application.h" //To send layer view data.
 #include "ExtruderTrain.h"

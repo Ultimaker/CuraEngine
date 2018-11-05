@@ -3,8 +3,10 @@
 
 #include "SpaghettiInfillPathGenerator.h"
 #include "../ExtruderTrain.h"
-#include "../infill.h"
 #include "../FffGcodeWriter.h"
+#include "../infill.h"
+#include "../LayerPlan.h"
+#include "../sliceDataStorage.h"
 #include "../utils/math.h" //For round_divide.
 
 namespace cura {

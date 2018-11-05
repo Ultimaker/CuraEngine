@@ -12,6 +12,7 @@
 #include "GcodeLayerThreader.h"
 #include "infill.h"
 #include "InsetOrderOptimizer.h"
+#include "LayerPlan.h"
 #include "raft.h"
 #include "Slice.h"
 #include "wallOverlap.h"

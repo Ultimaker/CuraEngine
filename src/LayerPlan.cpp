@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "Application.h" //To communicate layer view data.
+#include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "MergeInfillLines.h"
 #include "pathOrderOptimizer.h"
@@ -13,6 +14,7 @@
 #include "wallOverlap.h"
 #include "communication/Communication.h"
 #include "pathPlanning/Comb.h"
+#include "pathPlanning/CombPaths.h"
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/polygonUtils.h"

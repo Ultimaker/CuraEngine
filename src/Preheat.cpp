@@ -6,6 +6,7 @@
 #include "Preheat.h"
 #include "Slice.h"
 #include "settings/FlowTempGraph.h"
+#include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 
 namespace cura 

@@ -11,6 +11,7 @@
 #include "infill/GyroidInfill.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SierpinskiFill.h"
+#include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/logoutput.h"

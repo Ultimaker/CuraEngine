@@ -12,6 +12,7 @@
 namespace cura
 {
 
+class AABB3D;
 class DensityProvider;
 
 /*!

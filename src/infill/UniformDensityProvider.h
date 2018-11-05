@@ -5,10 +5,11 @@
 #define INFILL_UNIFORM_DENSITY_PROVIDER_H
 
 #include "DensityProvider.h"
-#include "../utils/AABB3D.h"
 
 namespace cura
 {
+
+class AABB3D;
 
 class UniformDensityProvider : public DensityProvider
 {
