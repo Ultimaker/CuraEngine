@@ -679,7 +679,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
-
     }
 
     for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count ; layer_idx++)
@@ -1433,7 +1432,7 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
     Polygons model = colliding_mesh_outlines.unionPolygons();
     interface_polygons = support_areas.intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
-    if (outline_offset > 0)
+    if (outline_offset != 0)
     {
         interface_polygons = interface_polygons.offset(outline_offset);
     }
