@@ -1383,10 +1383,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, bottoms);
-        if (bottom_outline_offset > 0)
-        {
-            bottoms = bottoms.difference(mesh.layers[layer_idx].getOutlines()); // Make sure interface doesn't overlap mesh polygons.
-        }
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
@@ -1419,10 +1415,6 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, roofs);
-        if (roof_outline_offset > 0)
-        {
-            roofs = roofs.difference(mesh.layers[layer_idx].getOutlines()); // Make sure interface doesn't overlap mesh polygons.
-        }
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }
@@ -1435,6 +1427,10 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
     if (outline_offset != 0)
     {
         interface_polygons = interface_polygons.offset(outline_offset);
+        if (outline_offset > 0) //The interface might exceed the area of the normal support.
+        {
+            interface_polygons = interface_polygons.intersection(support_areas);
+        }
     }
     interface_polygons.removeSmallAreas(1.0);
     support_areas = support_areas.difference(interface_polygons);
