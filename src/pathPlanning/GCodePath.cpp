@@ -5,9 +5,9 @@
 
 namespace cura
 {
-
-GCodePath::GCodePath(const GCodePathConfig& config, const SpaceFillType space_fill_type, const Ratio flow, const bool spiralize, const Ratio speed_factor) :
+GCodePath::GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const bool spiralize, const Ratio speed_factor) :
 config(&config),
+mesh_id(mesh_id),
 space_fill_type(space_fill_type),
 flow(flow),
 speed_factor(speed_factor),

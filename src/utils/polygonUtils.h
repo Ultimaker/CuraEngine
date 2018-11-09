@@ -43,6 +43,37 @@ struct ClosestPolygonPoint
     }
 };
 
+} // namespace cura
+
+namespace std
+{
+template <>
+struct hash<cura::ClosestPolygonPoint>
+{
+    size_t operator()(const cura::ClosestPolygonPoint& cpp) const
+    {
+        return std::hash<cura::Point>()(cpp.p());
+    }
+};
+}//namespace std
+
+
+namespace std
+{
+template <typename S, typename T>
+struct hash<std::pair<S, T>>
+{
+    size_t operator()(const std::pair<S, T>& pair) const
+    {
+        return 31 * std::hash<S>()(pair.first) + 59 * std::hash<T>()(pair.second);
+    }
+};
+}//namespace std
+
+
+namespace cura
+{
+
 /*!
  * A point within a polygon and the index of which segment in the polygon the point lies on.
  */
@@ -294,20 +325,18 @@ public:
     static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, const ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, const Polygons* loc_to_line_polygons = nullptr, const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
-    * Find the two points in two polygons with the smallest distance.
-    * 
-    * Note: The amount of preliminary vertex-to-vertex distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
-    * Further convergence time depends on polygon size and shape.
-    * 
-    * From these distance checks the closest pair is chosen and from there we walk to the nearest smallest connection.
-    * 
-    * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
-    * 
-    * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
-    * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
-    * \param sample_size The number of points on each polygon to start the hill climbing search from. Use negative values for checking all combinations of points.
-    */
-    static void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
+     * Find a connecting line segment from one polygon to a collection of other polygons.
+     * 
+     * This implementation uses a sparse grid to get to an accurate result quickly
+     * 
+     * The first connection larger than \p min_connection_length and smaller than \p max_connection_length is returned.
+     * 
+     * \param poly1 The polygon in which to search for a conection
+     * \param polys2 The polygons to which to connect
+     * \param min_connection_length The minimal conection length a connection needs to have in order to stop looking for other connections
+     * \param max_connection_length The largest length of a connection to be found
+     */
+    static std::pair<ClosestPolygonPoint, ClosestPolygonPoint> findConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length, std::function<bool (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>)> precondition);
 
     /*!
     * Find the two points in two polygons with the smallest distance.

@@ -230,8 +230,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
         return 2;
         *distance2 = 0;
     }
-    Polygons collide;
-    mesh.layers[layer_nr].getInnermostWalls(collide, 2, mesh);
+    Polygons& collide = mesh.layers[layer_nr].getInnermostWalls(2, mesh);
     Point centerpoint = location;
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
@@ -252,7 +251,8 @@ void SubDivCube::rotatePointInitial(Point& target)
 
 void SubDivCube::rotatePoint120(Point& target)
 {
-    constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0);
+    //constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0); //TODO: Reactivate once MacOS is upgraded to a more modern compiler.
+#define sqrt_three_fourths 0.86602540378443864676372317
     const coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
     target.Y = -0.5 * target.Y + sqrt_three_fourths * target.X;
     target.X = x;

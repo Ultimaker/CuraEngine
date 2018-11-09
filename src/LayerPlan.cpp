@@ -55,11 +55,11 @@ double ExtruderPlan::getFanSpeed()
 GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor && paths.back().mesh_id == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
-    paths.emplace_back(config, space_fill_type, flow, spiralize, speed_factor);
+    paths.emplace_back(config, current_mesh, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     return ret;
 }
@@ -80,6 +80,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
 , layer_thickness(layer_thickness)
 , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+, current_mesh("NONMESH")
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
@@ -230,7 +231,7 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
             }
             else
             {
-                layer.getInnermostWalls(comb_boundary, max_inset, mesh);
+                comb_boundary.add(layer.getInnermostWalls(max_inset, mesh));
             }
         }
         return comb_boundary;
@@ -297,6 +298,10 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         }
     }
     return true;
+}
+void LayerPlan::setMesh(const std::string mesh_id)
+{
+    current_mesh = mesh_id;
 }
 
 void LayerPlan::moveInsideCombBoundary(const coord_t distance)
@@ -567,7 +572,7 @@ static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulat
 
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start)
 {
-    const double min_line_len = 5; // we ignore lines less than 5um long
+    const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = 1000; // accelerate using segments of this length
     const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
@@ -586,7 +591,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
     auto addNonBridgeLine = [&](const Point& line_end)
     {
-        double distance_to_line_end = vSize(cur_point - line_end);
+        coord_t distance_to_line_end = vSize(cur_point - line_end);
 
         while (distance_to_line_end > min_line_len)
         {
@@ -614,7 +619,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
                     segment_end = line_end;
                 }
 
-                const double len = vSize(cur_point - segment_end);
+                const coord_t len = vSize(cur_point - segment_end);
                 if (coast_dist > 0 && ((distance_to_bridge_start - len) <= coast_dist))
                 {
                     if ((len - coast_dist) > min_line_len)
@@ -752,7 +757,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
     float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
-    double distance_to_bridge_start = 0; // will be updated before each line is processed
+    coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
     const coord_t min_bridge_line_len = mesh.settings.get<coord_t>("bridge_wall_min_length");
     const Ratio wall_min_flow = mesh.settings.get<Ratio>("wall_min_flow");
@@ -1320,6 +1325,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     size_t extruder_nr = gcode.getExtruderNr();
     const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
+    std::string current_mesh = "NONMESH";
 
     for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -1450,7 +1456,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 speed *= extruder_plan.getExtrudeSpeedFactor();
             }
-
+            //This seems to be the best location to place this, but still not ideal.
+            if (path.mesh_id != current_mesh)
+            {
+                current_mesh = path.mesh_id;
+                std::stringstream ss;
+                ss << "MESH:" << current_mesh;
+                gcode.writeComment(ss.str());
+            }
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
@@ -1459,7 +1472,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 continue;
             }
-            
+
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {

@@ -124,7 +124,18 @@ public:
         }
     }
 
-
+    /*!
+     * Find the two points on two line segments closest to each other.
+     * 
+     * Find the smallest line segment connecting the two line segments a and b.
+     * 
+     * \param a1 first point on line a
+     * \param a2 second point on line a
+     * \param b1 first point on line b
+     * \param b2 second point on line b
+     * \return A pair: the first point on line a and the second pouint on line b
+     */
+    static std::pair<Point, Point> getClosestConnection(Point a1, Point a2, Point b1, Point b2);
 
     /*!
     * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
@@ -215,6 +226,24 @@ public:
                 || getDist2FromLineSegment(a, d, b) <= max_dist2
                 || getDist2FromLineSegment(c, a, d) <= max_dist2
                 || getDist2FromLineSegment(c, b, d) <= max_dist2;
+    }
+
+    /*!
+     * Get the minimal distance between two line segments
+     * The first line semgent is given by end points \p a and \p b, the second by \p c and \p d.
+     * 
+     * \param a One end point of the first line segment
+     * \param b Another end point of the first line segment
+     * \param c One end point of the second line segment
+     * \param d Another end point of the second line segment
+     */
+    static coord_t getDist2BetweenLineSegments(const Point& a, const Point& b, const Point& c, const Point& d)
+    {
+        return
+            std::min(getDist2FromLineSegment(a, c, b), 
+            std::min(getDist2FromLineSegment(a, d, b),
+            std::min(getDist2FromLineSegment(c, a, d),
+                     getDist2FromLineSegment(c, b, d))));
     }
 
     /*!

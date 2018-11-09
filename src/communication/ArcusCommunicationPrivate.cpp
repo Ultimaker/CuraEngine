@@ -123,6 +123,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
             mesh.addFace(verts[0], verts[1], verts[2]);
         }
 
+        mesh.mesh_name = object.name();
         mesh.finish();
     }
     object_count++;

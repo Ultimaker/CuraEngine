@@ -147,6 +147,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/SpaghettiInfill.cpp
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
+    src/infill/GyroidInfill.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp
@@ -182,6 +183,9 @@ set(engine_SRCS # Except main.cpp.
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
+set(engine_TEST
+    TimeEstimateCalculatorTest
+)
 set(engine_TEST_INFILL
 )
 set(engine_TEST_SETTINGS

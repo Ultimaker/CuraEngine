@@ -70,8 +70,14 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const SliceMeshStorage& mesh) const
+Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const
 {
+    if (innermost_walls_cache.count(max_inset) > 0)
+    {
+        return innermost_walls_cache[max_inset];
+    }
+    Polygons& result = innermost_walls_cache.emplace(std::make_pair(max_inset, Polygons())).first->second;
+
     const coord_t half_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0") / 2;
     const coord_t half_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x") / 2;
 
@@ -127,24 +133,27 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
 
-                layer_walls.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                result.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0 + 15)).offset(-std::min(half_line_width_0, half_line_width_x)));
             }
             else
             {
                 // the 2nd wall is complete so use it verbatim
-                layer_walls.add(part.insets[1]);
+                result.add(part.insets[1]);
             }
         }
         else
         {
             // fall back to using outer computed above
-            layer_walls.add(outer);
+            result.add(outer);
         }
     }
+
+    return result;
 }
 
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
 : settings(mesh->settings)
+, mesh_name(mesh->mesh_name)
 , layer_nr_max_filled_layer(0)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
@@ -600,6 +609,12 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         }
 
         std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
+
+        if (smaller_support_islands.empty())
+        { // extra safety guard in case result_polygons consists of too small polygons which are automatically removed in splitIntoParts
+            to_remove_part_indices.push_back(part_idx);
+            continue;
+        }
 
         // there are one or more smaller parts.
         // we first replace the current part with one of the smaller parts,

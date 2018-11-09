@@ -251,6 +251,8 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
+    std::string current_mesh; //<! A unique ID for the mesh of the last planned move.
+
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
      * for each extruder train.
@@ -423,6 +425,12 @@ public:
     }
 
     /*!
+     * Track the currently printing mesh.
+     * \param mesh_id A unique ID indicating the current mesh.
+     */
+    void setMesh(const std::string mesh_id);
+
+    /*!
      * Set bridge_wall_mask.
      *
      * \param polys The unsupported areas of the part currently being processed that will require bridges.
@@ -528,6 +536,7 @@ public:
      * \param speed_factor This modifies the print speed when accelerating after a bridge line
      * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
      */
+
     void addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
 
     /*!
