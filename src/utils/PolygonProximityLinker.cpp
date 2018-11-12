@@ -189,6 +189,22 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_point_it, Li
         return;
     }
 
+    if (dist2 > proximity_distance_2 * 0.9)
+    {
+        // avoid generating a new point for each of the small overlaps that can occur when curved walls lie next to each other
+        // and the vertices of the wall with the smaller radius protrude into the line segments of the wall with the larger radius
+
+        // doing this provides a double win in that (a) less points need to be processed from here on and, more importantly, (b) it reduces the
+        // likelyhood of very short line segments being created which can produce poor print quality
+
+        // extra tests could be done here to try and ensure that the overlap doesn't cover a wider area than just a point contact but, really,
+        // is it worth the complexity and extra processing time to do that given the small amount of overlap that could possibly occur?
+
+        // lastly, this doesn't help when the walls actually overlap completely - in that situation, the extra points will be created
+        // along with short line segments and so print quality may still suffer
+        return;
+    }
+
     int64_t dist = sqrt(dist2);
 
     // increased these distances - previously they were 10 and that had the effect of creating very short
