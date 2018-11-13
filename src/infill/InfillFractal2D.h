@@ -542,7 +542,7 @@ protected:
     bool handOutLoansPhase();
 
     /*!
-     * Order the cells on depth.
+     * Order the actualized cells on depth.
      */
     std::vector<std::vector<Cell*>> getDepthOrdered();
     void getDepthOrdered(Cell& sub_tree_root, std::vector<std::vector<Cell*>>& output);
