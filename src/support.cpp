@@ -1453,7 +1453,6 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
     {
         interface_polygons.removeSmallAreas(minimum_interface_area);
     }
-    interface_polygons.removeSmallAreas(1.0);
     support_areas = support_areas.difference(interface_polygons);
 }
 
