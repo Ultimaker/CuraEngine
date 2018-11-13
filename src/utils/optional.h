@@ -11,11 +11,17 @@
 namespace cura
 {
 
+struct nullopt_t {
+    explicit constexpr nullopt_t(int) {}
+};
+
 struct in_place_t {
     explicit in_place_t() = default;
 };
 
 constexpr in_place_t in_place{};
+constexpr nullopt_t nullopt{0};
+
 /*!
  * optional value
  * 
@@ -32,6 +38,10 @@ protected:
 public:
     optional() //!< create an optional value which is not instantiated
     : instance(nullptr)
+    {
+    }
+    optional(nullopt_t) //!< create an optional value which is not instantiated
+    : optional()
     {
     }
     optional(const optional& other) //!< copy construction

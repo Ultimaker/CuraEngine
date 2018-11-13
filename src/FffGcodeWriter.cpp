@@ -1691,7 +1691,7 @@ cura::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fi
 {
     if (filling_part.empty())
     {
-        return cura::optional<Point>();
+        return cura::nullopt;
     }
     // start with the BB of the outline
     AABB skin_part_bb(filling_part);
@@ -1707,7 +1707,7 @@ cura::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fi
     const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
     if (!pa.initialized() || !pb.initialized())
     {
-        return cura::optional<Point>();
+        return cura::nullopt;
     }
     // now go to whichever of those vertices that is closest to where we are now
     if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))

@@ -184,7 +184,7 @@ cura::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Cons
     }
     else
     { // we couldn't find a connection; maybe the polygon was too small or maybe it is just too far away from other polygons.
-        return cura::optional<PolygonConnector::PolygonBridge>();
+        return cura::nullopt;
     }
 }
 
@@ -194,14 +194,14 @@ cura::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondC
     cura::optional<ClosestPolygonPoint> from_a = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), line_width, forward);
     if (!from_a)
     { // then there's also not going to be a b
-        return cura::optional<PolygonConnector::PolygonConnection>();
+        return cura::nullopt;
     }
     cura::optional<ClosestPolygonPoint> from_b = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), line_width, !forward);
 
     cura::optional<ClosestPolygonPoint> to_a = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), line_width, forward);
     if (!to_a)
     {
-        return cura::optional<PolygonConnector::PolygonConnection>();
+        return cura::nullopt;
     }
     cura::optional<ClosestPolygonPoint> to_b = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), line_width, !forward);
 
@@ -254,7 +254,7 @@ cura::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondC
     }
     if (!best || best_total_distance2 > max_dist * max_dist + 2 * (line_width + 10) * (line_width + 10))
     {
-        return cura::optional<PolygonConnector::PolygonConnection>();
+        return cura::nullopt;
     }
     else
     {

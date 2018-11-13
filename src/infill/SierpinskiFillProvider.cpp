@@ -9,7 +9,6 @@
 namespace cura
 {
 
-
 constexpr bool SierpinskiFillProvider::use_dithering;
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)

@@ -491,7 +491,7 @@ void PolygonUtilsTest::getNextParallelIntersectionTest9()
     Point line_to = Point(200, 200);
     bool forward = true;
     coord_t dist = 80;
-    getNextParallelIntersectionAssert(cura::optional<Point>(), start_point, line_to, forward, dist);
+    getNextParallelIntersectionAssert(cura::nullopt, start_point, line_to, forward, dist);
 }
 
 void PolygonUtilsTest::getNextParallelIntersectionTest10()

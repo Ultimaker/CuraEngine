@@ -980,7 +980,7 @@ cura::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     }
     if (best_point_poly_idx.poly_idx == NO_INDEX)
     {
-        return cura::optional<ClosestPolygonPoint>();
+        return cura::nullopt;
     }
     else
     {
@@ -1160,7 +1160,7 @@ cura::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(co
         prev_projected = projected;
     }
 
-    return cura::optional<ClosestPolygonPoint>();
+    return cura::nullopt;
 }
 
 

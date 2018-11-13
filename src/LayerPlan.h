@@ -578,7 +578,7 @@ public:
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      * \param fan_speed optional fan speed override for this path
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, cura::optional<Point> near_start_location = cura::optional<Point>(), double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, cura::optional<Point> near_start_location = cura::nullopt, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
