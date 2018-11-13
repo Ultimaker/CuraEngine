@@ -21,6 +21,14 @@ AABB3D::AABB3D(Point3 min, Point3 max)
 {
 }
 
+
+bool AABB3D::contains(const Point3& point) const
+{
+    return point.x >= min.x && point.x <= max.x
+        && point.y >= min.y && point.y <= max.y
+        && point.z >= min.z && point.z <= max.z;
+}
+
 Point3 AABB3D::getMiddle() const
 {
     return (min + max) / 2;

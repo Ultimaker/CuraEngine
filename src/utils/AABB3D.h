@@ -31,6 +31,14 @@ struct AABB3D
     AABB3D(Point3 min, Point3 max);
 
     /*!
+     * Whether the bounding box contains the specified point.
+     * \param point The point to check whether it is inside the bounding box.
+     * \return ``true`` if the bounding box contains the specified point, or
+     * ``false`` otherwise.
+     */
+    bool contains(const Point3& point) const;
+
+    /*!
      * Get the middle of the bounding box
      */
     Point3 getMiddle() const;
