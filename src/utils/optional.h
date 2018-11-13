@@ -142,12 +142,22 @@ public:
         }
         return *this;
     }
-    constexpr T* operator->() const
+    T* operator->()
     {
         assert(instance && "Instance should be instantiated!");
         return instance;
     }
-    constexpr T& operator*() const&
+    constexpr const T* operator->() const
+    {
+        assert(instance && "Instance should be instantiated!");
+        return instance;
+    }
+    T& operator*() &
+    {
+        assert(instance && "Instance should be instantiated!");
+        return *instance;
+    }
+    constexpr const T& operator*() const&
     {
         assert(instance && "Instance should be instantiated!");
         return *instance;
@@ -156,7 +166,11 @@ public:
     {
         return instance;
     }
-    constexpr T& value() const&
+    const T& value() &
+    {
+        return *instance;
+    }
+    constexpr const T& value() const&
     {
         return *instance;
     }
@@ -182,7 +196,7 @@ public:
         }
     }
     template<class U>
-    constexpr bool operator==(const optional<U>& rhs)
+    constexpr bool operator==(const optional<U>& rhs) const
     {
         return (*this && rhs) ? (**this == *rhs) : (static_cast<bool>(*this) == static_cast<bool>(rhs));
     }
