@@ -62,7 +62,7 @@ public:
     }
     template<class... Args>
     constexpr explicit optional(cura::in_place_t, Args&&... args) //!< construct the value in place
-    : instance(new T(args...))
+    : instance(new T(std::forward<Args>(args)...))
     {
     }
     template<class U = T
@@ -70,7 +70,7 @@ public:
         >
     optional(U&& value)
     {
-        instance = new T(value);
+        instance = new T(std::forward<U>(value));
     }
     virtual ~optional() //!< simple destructor
     {
@@ -138,7 +138,7 @@ public:
         }
         else
         {
-            instance = new T(value);
+            instance = new T(std::forward<U>(value));
         }
         return *this;
     }
@@ -163,7 +163,7 @@ public:
     template<class U> 
     constexpr T value_or(U&& default_value) const&
     {
-        return instance ? *instance : default_value;
+        return instance ? *instance : std::forward<U>(default_value);
     }
     void swap(optional& other)
     {
@@ -174,11 +174,11 @@ public:
     {
         if (instance)
         {
-            *instance = T(args...);
+            *instance = T(std::forward<Args>(args)...);
         }
         else
         {
-            instance = new T(args...);
+            instance = new T(std::forward<Args>(args)...);
         }
     }
     template<class U>
