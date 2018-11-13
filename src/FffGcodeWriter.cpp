@@ -1712,13 +1712,11 @@ cura::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fi
     // now go to whichever of those vertices that is closest to where we are now
     if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
     {
-        bool bs_arg = true;
-        return cura::optional<Point>(bs_arg, pa.p());
+        return cura::optional<Point>(cura::in_place, pa.p());
     }
     else
     {
-        bool bs_arg = true;
-        return cura::optional<Point>(bs_arg, pb.p());
+        return cura::optional<Point>(cura::in_place, pb.p());
     }
 }
 

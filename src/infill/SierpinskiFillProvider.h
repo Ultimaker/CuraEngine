@@ -26,7 +26,6 @@ namespace cura
  */
 class SierpinskiFillProvider
 {
-    static constexpr bool get_constructor = true;
     static constexpr bool use_dithering = true; // !< Whether to employ dithering and error propagation
 protected:
     //! Basic parameters from which to start constructing the sierpinski fractal

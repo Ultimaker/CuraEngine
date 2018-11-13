@@ -984,8 +984,7 @@ cura::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     }
     else
     {
-        bool bs_arg = true; // doesn't mean anything. Just to make clear we call the variable arguments of the constructor.
-        return cura::optional<ClosestPolygonPoint>(bs_arg, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
+        return cura::optional<ClosestPolygonPoint>(cura::in_place, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
     }
 }
 

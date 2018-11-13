@@ -11,7 +11,11 @@
 namespace cura
 {
 
+struct in_place_t {
+    explicit in_place_t() = default;
+};
 
+constexpr in_place_t in_place{};
 /*!
  * optional value
  * 
@@ -47,7 +51,7 @@ public:
         other.instance = nullptr;
     }
     template<class... Args>
-    constexpr explicit optional(bool, Args&&... args ) //!< construct the value in place
+    constexpr explicit optional(cura::in_place_t, Args&&... args) //!< construct the value in place
     : instance(new T(args...))
     {
     }
