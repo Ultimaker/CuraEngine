@@ -48,7 +48,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
             {
                 travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
             }
-            return storage.getLayerOutlines(layer_nr, travel_avoid_supports).offset(travel_avoid_distance);
+            return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports).offset(travel_avoid_distance);
         }
     )
 , outside_loc_to_line(

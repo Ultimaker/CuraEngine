@@ -16,15 +16,17 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     const LayerIndex layer_nr = 0;
     if (is_skirt)
     {
-        const bool include_helper_parts = true;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        constexpr bool include_support = true;
+        constexpr bool include_prime_tower = true;
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only);
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        constexpr bool include_helper_parts = false; // include manually below
+        constexpr bool include_support = false; //Include manually below.
+        constexpr bool include_prime_tower = false; //Include manually below.
         constexpr bool external_outlines_only = false; //Remove manually below.
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_outlines_only);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)

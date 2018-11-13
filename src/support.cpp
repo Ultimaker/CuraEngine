@@ -679,7 +679,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
-
     }
 
     for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count ; layer_idx++)
@@ -852,12 +851,14 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const bool use_xy_distance_overhang = infill_settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
     const AngleRadians angle = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<AngleRadians>("support_angle");
     const double tan_angle = tan(angle) - 0.01;  // the XY-component of the supportAngle
-    xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(xy_distance);
+    constexpr bool no_support = false;
+    constexpr bool no_prime_tower = false;
+    xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
     for (size_t layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
-        Polygons outlines = storage.getLayerOutlines(layer_idx, false);
+        Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
         if (!is_support_mesh_place_holder)
         { // don't compute overhang for support meshes
             if (use_xy_distance_overhang) //Z overrides XY distance.
@@ -956,7 +957,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                         const Polygons& layer_above = support_areas[layer_idx + tower_top_layer_count];
                         const Point middle = AABB(poly).getMiddle();
                         const bool has_support_above = layer_above.inside(middle);
-                        const bool has_model_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, false).inside(middle);
+                        constexpr bool no_support = false;
+                        constexpr bool no_prime_tower = false;
+                        const bool has_model_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower).inside(middle);
                         if (has_support_above && !has_model_below)
                         {
                             Polygons tiny_tower_here;
@@ -1051,7 +1054,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
         for (size_t layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
         {
-            support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, false));
+            constexpr bool no_support = false;
+            constexpr bool no_prime_tower = false;
+            support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, no_support, no_prime_tower));
         }
     }
 
@@ -1123,7 +1128,9 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygon
     }
 
     const size_t bottom_layer_nr = layer_idx - bottom_empty_layer_count;
-    const Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, false);
+    constexpr bool no_support = false;
+    constexpr bool no_prime_tower = false;
+    const Polygons bottom_outline = storage.getLayerOutlines(bottom_layer_nr, no_support, no_prime_tower);
 
     Polygons to_be_removed;
     if (bottom_stair_step_layer_count <= 1)
@@ -1135,13 +1142,13 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygon
         to_be_removed = stair_removal.unionPolygons(bottom_outline);
         if (layer_idx % bottom_stair_step_layer_count == 0)
         { // update stairs for next step
-            const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, false);
+            const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, no_support, no_prime_tower);
             const Polygons allowed_step_width = support_areas.difference(xy_disallowed).intersection(supporting_bottom).offset(support_bottom_stair_step_width);
 
             const int64_t step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
             if (step_bottom_layer_nr >= 0)
             {
-                const Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, false);
+                const Polygons step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, no_support, no_prime_tower);
                 stair_removal = step_bottom_outline.intersection(allowed_step_width);
             }
             else
@@ -1168,7 +1175,9 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, const Polygon
 std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx)
 {
     Polygons supportLayer_supportee = mesh.layers[layer_idx].getOutlines();
-    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1, false);
+    constexpr bool no_support = false;
+    constexpr bool no_prime_tower = false;
+    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1, no_support, no_prime_tower);
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
@@ -1384,10 +1393,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, bottoms);
-        if (bottom_outline_offset > 0)
-        {
-            bottoms = bottoms.difference(mesh.layers[layer_idx].getOutlines()); // Make sure interface doesn't overlap mesh polygons.
-        }
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
@@ -1420,10 +1425,6 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, roofs);
-        if (roof_outline_offset > 0)
-        {
-            roofs = roofs.difference(mesh.layers[layer_idx].getOutlines()); // Make sure interface doesn't overlap mesh polygons.
-        }
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }
@@ -1433,9 +1434,13 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
     Polygons model = colliding_mesh_outlines.unionPolygons();
     interface_polygons = support_areas.intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); //Make sure we don't generate any models that are not printable.
-    if (outline_offset > 0)
+    if (outline_offset != 0)
     {
         interface_polygons = interface_polygons.offset(outline_offset);
+        if (outline_offset > 0) //The interface might exceed the area of the normal support.
+        {
+            interface_polygons = interface_polygons.intersection(support_areas);
+        }
     }
     interface_polygons.removeSmallAreas(1.0);
     support_areas = support_areas.difference(interface_polygons);
