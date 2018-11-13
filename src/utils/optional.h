@@ -36,11 +36,11 @@ class optional
 protected:
     T* instance;
 public:
-    optional() //!< create an optional value which is not instantiated
+    constexpr optional() //!< create an optional value which is not instantiated
     : instance(nullptr)
     {
     }
-    optional(nullopt_t) //!< create an optional value which is not instantiated
+    constexpr optional(nullopt_t) //!< create an optional value which is not instantiated
     : optional()
     {
     }
@@ -61,7 +61,7 @@ public:
         other.instance = nullptr;
     }
     template<class... Args>
-    constexpr explicit optional(cura::in_place_t, Args&&... args) //!< construct the value in place
+    explicit optional(cura::in_place_t, Args&&... args) //!< construct the value in place
     : instance(new T(std::forward<Args>(args)...))
     {
     }
