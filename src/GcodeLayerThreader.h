@@ -185,7 +185,7 @@ void GcodeLayerThreader<T>::act()
             if (to_be_consumed_item_idx && consume_lock.test_lock())
             {
                 item_idx = *to_be_consumed_item_idx;
-                to_be_consumed_item_idx = nullptr;
+                to_be_consumed_item_idx = cura::nullopt;
             }
         }
         if (item_idx >= 0)

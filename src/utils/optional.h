@@ -82,10 +82,10 @@ public:
     /*!
      * Assign none to this optional value.
      * 
-     * \param null_ptr exactly [nullptr]
+     * \param nullopt object of type nullopt_t
      * \return this
      */
-    optional& operator=(std::nullptr_t)
+    optional& operator=(cura::nullopt_t)
     {
         if (instance)
         {
