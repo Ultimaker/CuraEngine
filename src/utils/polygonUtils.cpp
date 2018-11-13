@@ -152,7 +152,7 @@ unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, in
 
 ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, const int distance, const int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    std::optional<ClosestPolygonPoint> closest_polygon_point;
+    cura::optional<ClosestPolygonPoint> closest_polygon_point;
     if (loc_to_line_grid)
     {
         closest_polygon_point = findClose(from, *loc_to_line_polygons, *loc_to_line_grid, penalty_function);
@@ -166,7 +166,7 @@ ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& f
 
 ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& loc_to_line_polygons, ConstPolygonRef polygon, Point& from, const int distance, const int64_t max_dist2, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    std::optional<ClosestPolygonPoint> closest_polygon_point;
+    cura::optional<ClosestPolygonPoint> closest_polygon_point;
     if (loc_to_line_grid)
     {
         closest_polygon_point = findClose(from, loc_to_line_polygons, *loc_to_line_grid, penalty_function);
@@ -951,7 +951,7 @@ LocToLineGrid* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int s
  * We could skip the duplication by keeping a vector of vectors of bools.
  *
  */
-std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
+cura::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     Point from, const Polygons& polygons,
     const LocToLineGrid& loc_to_line,
     const std::function<int(Point)>& penalty_function)
@@ -980,12 +980,12 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     }
     if (best_point_poly_idx.poly_idx == NO_INDEX)
     {
-        return std::optional<ClosestPolygonPoint>();
+        return cura::optional<ClosestPolygonPoint>();
     }
     else
     {
         bool bs_arg = true; // doesn't mean anything. Just to make clear we call the variable arguments of the constructor.
-        return std::optional<ClosestPolygonPoint>(bs_arg, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
+        return cura::optional<ClosestPolygonPoint>(bs_arg, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
     }
 }
 
@@ -1002,7 +1002,7 @@ std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::f
     for (unsigned int p1_idx = 0; p1_idx < from.size(); p1_idx++)
     {
         const Point& p1 = from[p1_idx];
-        std::optional<ClosestPolygonPoint> best_here = findClose(p1, destination, destination_loc_to_line, penalty_function);
+        cura::optional<ClosestPolygonPoint> best_here = findClose(p1, destination, destination_loc_to_line, penalty_function);
         if (best_here)
         {
             ret.push_back(std::make_pair(ClosestPolygonPoint(p1, p1_idx, from), *best_here));
@@ -1014,7 +1014,7 @@ std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::f
             Point x = p0 + normal(p0p1, middle_point_nr * grid_size);
             dist_to_p1 -= grid_size;
 
-            std::optional<ClosestPolygonPoint> best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
+            cura::optional<ClosestPolygonPoint> best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
             if (best_here)
             {
                 ret.push_back(std::make_pair(ClosestPolygonPoint(x, p0_idx, from), *best_here));
@@ -1106,7 +1106,7 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, ConstPolyg
 }
 
 
-std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward)
+cura::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward)
 {
     // <--o--t-----y----< poly 1
     //       :     :
@@ -1161,7 +1161,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
         prev_projected = projected;
     }
 
-    return std::optional<ClosestPolygonPoint>();
+    return cura::optional<ClosestPolygonPoint>();
 }
 
 

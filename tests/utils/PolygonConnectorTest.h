@@ -65,7 +65,7 @@ private:
     /*!
      * cppunit assert for PolygonUtils::getNextParallelIntersection
      */
-    void getBridgeAssert(std::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons);
+    void getBridgeAssert(cura::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons);
 };
 
 }

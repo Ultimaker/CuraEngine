@@ -435,7 +435,7 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparsePointGridInclusive
      */
-    static std::optional<ClosestPolygonPoint> findClose(Point from, const Polygons& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static cura::optional<ClosestPolygonPoint> findClose(Point from, const Polygons& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparsePointGridInclusive \p destination_loc_to_line
@@ -491,7 +491,7 @@ public:
      * \param forward Whether to look forward from \p start in the direction of the polygon, or go in the other direction.
      * \return The earliest point on the polygon in the given direction which crosses a line parallel to the given one at the distance \p dist - if any
      */
-    static std::optional<ClosestPolygonPoint> getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward);
+    static cura::optional<ClosestPolygonPoint> getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).

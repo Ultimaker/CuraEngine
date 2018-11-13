@@ -92,7 +92,7 @@ private:
     std::vector<T*> produced; //!< ordered list for every item to be produced; contains pointers to produced items which aren't consumed yet; rest is nullptr
     int last_produced_argument_index; //!< Counter to see which item next to produce
 
-    std::optional<int> to_be_consumed_item_idx; //!< The index into \ref GcodeLayerThreader::produced where to find the next item ready to be consumed (if any)
+    cura::optional<int> to_be_consumed_item_idx; //!< The index into \ref GcodeLayerThreader::produced where to find the next item ready to be consumed (if any)
     Lock consume_lock; //!< Lock to make sure no two threads consume at the same time
     int last_consumed_idx = -1; //!< The index into \ref GcodeLayerThreader::produced for the last item consumed
 
@@ -197,7 +197,7 @@ void GcodeLayerThreader<T>::act()
     }
 
     {
-        std::optional<int> item_argument_index;
+        cura::optional<int> item_argument_index;
         #pragma omp critical
         {
             if (active_task_count < max_task_count)

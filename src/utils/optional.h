@@ -8,7 +8,7 @@
 #include <type_traits> // enable_if  is_same
 #include <cassert> // assert
 
-namespace std
+namespace cura
 {
 
 

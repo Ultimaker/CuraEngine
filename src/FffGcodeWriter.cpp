@@ -1687,11 +1687,11 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     return added_something;
 }
 
-std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
+cura::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
 {
     if (filling_part.empty())
     {
-        return std::optional<Point>();
+        return cura::optional<Point>();
     }
     // start with the BB of the outline
     AABB skin_part_bb(filling_part);
@@ -1707,18 +1707,18 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
     const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
     if (!pa.initialized() || !pb.initialized())
     {
-        return std::optional<Point>();
+        return cura::optional<Point>();
     }
     // now go to whichever of those vertices that is closest to where we are now
     if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
     {
         bool bs_arg = true;
-        return std::optional<Point>(bs_arg, pa.p());
+        return cura::optional<Point>(bs_arg, pa.p());
     }
     else
     {
         bool bs_arg = true;
-        return std::optional<Point>(bs_arg, pb.p());
+        return cura::optional<Point>(bs_arg, pb.p());
     }
 }
 
@@ -2115,7 +2115,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
         }
 
-        std::optional<Point> near_start_location;
+        cura::optional<Point> near_start_location;
         const EFillMethod pattern = (gcode_layer.getLayerNr() == 0) ?
             mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
             mesh.settings.get<EFillMethod>("top_bottom_pattern");

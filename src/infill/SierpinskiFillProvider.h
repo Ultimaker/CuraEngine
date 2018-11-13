@@ -38,7 +38,7 @@ protected:
 public:
     FractalConfig fractal_config;
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
-    std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
+    cura::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
 
     SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width);
 

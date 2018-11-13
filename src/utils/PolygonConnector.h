@@ -162,7 +162,7 @@ protected:
      * - the first connection at a whole line distance away
      * So as to try and find a bridge which is centered around the initiall found first connection
      */
-    std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
+    cura::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
 
     /*!
      * Get a connection parallel to a given \p first connection at an orthogonal distance line_width from the \p first connection.
@@ -175,7 +175,7 @@ protected:
      * - check whether they are both on the same side of the \p first connection
      * - choose the connection which woukd form the smalles bridge
      */
-    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
+    cura::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
 };
 
 

@@ -162,7 +162,7 @@ private:
     /*!
      * cppunit assert for PolygonUtils::getNextParallelIntersection
      */
-    void getNextParallelIntersectionAssert(std::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist);
+    void getNextParallelIntersectionAssert(cura::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist);
 };
 
 }

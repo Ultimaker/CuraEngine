@@ -332,9 +332,9 @@ void LayerPlan::setPrimeTowerIsPlanned(unsigned int extruder_nr)
     has_prime_tower_planned_per_extruder[extruder_nr] = true;
 }
 
-std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const
+cura::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const
 {
-    std::optional<std::pair<Point, bool>> ret;
+    cura::optional<std::pair<Point, bool>> ret;
     if (first_travel_destination)
     {
         ret = std::make_pair(*first_travel_destination, first_travel_destination_is_inside);
@@ -977,7 +977,7 @@ unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsig
     }
 }
 
-void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
+void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, cura::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
     if (enable_travel_optimization && comb_boundary_inside2.size() > 0)

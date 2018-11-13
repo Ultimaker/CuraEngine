@@ -18,7 +18,7 @@ namespace cura
  * \tparam Args The types of the arguments to the constructor or constructor function object
  */
 template <typename T, typename... Args>
-class LazyInitialization : public std::optional<T>
+class LazyInitialization : public cura::optional<T>
 {
 public:
 
@@ -29,7 +29,7 @@ public:
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
     LazyInitialization(Args... args)
-    : std::optional<T>()
+    : cura::optional<T>()
     , constructor(
             [args...]()
             {
@@ -47,7 +47,7 @@ public:
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
     LazyInitialization(const std::function<T (Args...)>& f, Args... args)
-    : std::optional<T>()
+    : cura::optional<T>()
     , constructor(
             [f, args...]()
             {
@@ -63,7 +63,7 @@ public:
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
     LazyInitialization(const std::function<T* (Args...)>& f, Args... args)
-    : std::optional<T>()
+    : cura::optional<T>()
     , constructor(
             [f, args...]()
             {
@@ -74,13 +74,13 @@ public:
     }
 
     LazyInitialization(LazyInitialization<T, Args...>& other) //!< copy constructor
-    : std::optional<T>(other)
+    : cura::optional<T>(other)
     , constructor(other.constructor)
     {
     }
 
     LazyInitialization(LazyInitialization<T, Args...>&& other) //!< move constructor
-    : std::optional<T>(other)
+    : cura::optional<T>(other)
     {
         constructor = std::move(other.constructor);
     }
@@ -92,32 +92,32 @@ public:
      */
     T& operator*()
     {
-        if (!std::optional<T>::instance)
+        if (!cura::optional<T>::instance)
         {
-            std::optional<T>::instance = constructor();
+            cura::optional<T>::instance = constructor();
         }
-        return std::optional<T>::operator*();
+        return cura::optional<T>::operator*();
     }
 
     T* operator->() const
     {
-        if (!std::optional<T>::instance)
+        if (!cura::optional<T>::instance)
         {
-            std::optional<T>::instance = constructor();
+            cura::optional<T>::instance = constructor();
         }
-        return std::optional<T>::operator->();
+        return cura::optional<T>::operator->();
     }
 
     LazyInitialization<T, Args...>& operator=(LazyInitialization<T, Args...>&& other)
     {
-        std::optional<T>::operator=(other);
+        cura::optional<T>::operator=(other);
         constructor = other.constructor;
         return *this;
     }
 
     void swap(LazyInitialization<T, Args...>& other)
     {
-        std::optional<T>::swap(other);
+        cura::optional<T>::swap(other);
         std::swap(constructor, other.constructor);
     }
 

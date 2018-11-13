@@ -58,9 +58,9 @@ protected:
      * In this case this member is only used as a way to convey information between different calls of \ref LayerPlanBuffer::processBuffer
      */
     double required_start_temperature;
-    std::optional<double> extrusion_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp (none if extruder plan has no extrusion moves)
-    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
-    std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
+    cura::optional<double> extrusion_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp (none if extruder plan has no extrusion moves)
+    cura::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
+    cura::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
 
@@ -249,7 +249,7 @@ private:
 
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
-    std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
+    cura::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
     std::string current_mesh; //<! A unique ID for the mesh of the last planned move.
 
@@ -264,7 +264,7 @@ private:
     size_t last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
     ExtruderTrain* last_planned_extruder; //!< The extruder for which a move has most recently been planned.
 
-    std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
+    cura::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
     bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
@@ -398,7 +398,7 @@ public:
      * 
      * Returns nothing if the layer is empty and no travel move was ever made.
      */
-    std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
+    cura::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
 
     /*!
     * Set whether the next destination is inside a layer part or not.
@@ -578,7 +578,7 @@ public:
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      * \param fan_speed optional fan speed override for this path
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>(), double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, cura::optional<Point> near_start_location = cura::optional<Point>(), double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

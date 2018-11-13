@@ -70,7 +70,7 @@ public:
      * 
      * If these polygons are not initialized, simply use the normal infill area.
      */
-    std::optional<Polygons> infill_area_own;
+    cura::optional<Polygons> infill_area_own;
 
     /*!
      * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.

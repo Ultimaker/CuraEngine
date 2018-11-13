@@ -250,7 +250,7 @@ void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Po
     polys.add(poly);
     SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
     
-    std::optional<ClosestPolygonPoint> cpp;
+    cura::optional<ClosestPolygonPoint> cpp;
     if (penalty_function)
     {
         cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line, *penalty_function);
@@ -491,7 +491,7 @@ void PolygonUtilsTest::getNextParallelIntersectionTest9()
     Point line_to = Point(200, 200);
     bool forward = true;
     coord_t dist = 80;
-    getNextParallelIntersectionAssert(std::optional<Point>(), start_point, line_to, forward, dist);
+    getNextParallelIntersectionAssert(cura::optional<Point>(), start_point, line_to, forward, dist);
 }
 
 void PolygonUtilsTest::getNextParallelIntersectionTest10()
@@ -503,10 +503,10 @@ void PolygonUtilsTest::getNextParallelIntersectionTest10()
     getNextParallelIntersectionAssert(Point(0, 45), start_point, line_to, forward, dist);
 }
 
-void PolygonUtilsTest::getNextParallelIntersectionAssert(std::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist)
+void PolygonUtilsTest::getNextParallelIntersectionAssert(cura::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist)
 {
     ClosestPolygonPoint start = PolygonUtils::findClosest(start_point, test_squares);
-    std::optional<ClosestPolygonPoint> computed = PolygonUtils::getNextParallelIntersection(start, line_to, dist, forward);
+    cura::optional<ClosestPolygonPoint> computed = PolygonUtils::getNextParallelIntersection(start, line_to, dist, forward);
 
     std::stringstream ss;
     ss << "PolygonUtils::getNextParallelIntersection(" << start_point << ", " << line_to << ", " << dist << ", " << forward << ") ";

@@ -596,7 +596,7 @@ private:
      * \param last_position The position the print head is in before going to fill the part
      * \return The location near where to start filling the part
      */
-    std::optional<Point> getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const;
+    cura::optional<Point> getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const;
 
     /*!
      * Add the g-code for ironing the top surface.

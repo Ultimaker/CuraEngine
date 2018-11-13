@@ -82,9 +82,9 @@ void PolygonConnectorTest::getBridgeTest()
     getBridgeAssert(predicted, test_square, polys);
 }
 
-void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
+void PolygonConnectorTest::getBridgeAssert(cura::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
-    std::optional<PolygonConnector::PolygonBridge> computed = pc->getBridge(from_poly, to_polygons);
+    cura::optional<PolygonConnector::PolygonBridge> computed = pc->getBridge(from_poly, to_polygons);
     
     std::stringstream ss;
     ss << "PolygonConnector::getBridge(test_square, test_triangle) ";
