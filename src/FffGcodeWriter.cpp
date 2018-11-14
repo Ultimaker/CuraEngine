@@ -851,6 +851,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
                 
                 // path optimization is currently broken when using gyroid infill
                 disable_path_optimisation = disable_path_optimisation || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::GYROID;
+                // path optimizer merges ironing lines with infill lines. Result of this the ironing skips some parts.
+                disable_path_optimisation = disable_path_optimisation || (mesh.settings.get<bool>("ironing_enabled") && !mesh.layers[gcode_layer.getLayerNr()].top_surface.areas.empty());
             }
         }
         // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
