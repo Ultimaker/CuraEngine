@@ -2405,6 +2405,10 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         support_roof_line_distance *= roof_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
+    const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const size_t closest_layers_count = roof_extruder.settings.get<size_t>("support_roof_closest_layers_count");
+    const coord_t support_roof_closest_layers_line_distance = roof_extruder.settings.get<coord_t>("support_roof_closest_layers_line_distance");
+
     Polygons infill_outline = support_layer.support_roof;
     Polygons wall;
     // make sure there is a wall if this is on the first layer
@@ -2414,13 +2418,35 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         infill_outline = wall.offset(-support_roof_line_width / 2);
     }
 
+    Polygons roof_polygons;
+    Polygons roof_lines;
+
+    Polygons support_roof_closest_to_part;
+    for (const SliceMeshStorage& mesh : storage.meshes)
+    {
+        const int layers_to_part = std::max(0u, round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height)) + 1;
+        for (int i = 0; i < static_cast<int>(closest_layers_count); ++i)
+        {
+            LayerIndex layer_above_nr = std::max(0, gcode_layer.getLayerNr() + layers_to_part + i);
+            if (layer_above_nr > mesh.layer_nr_max_filled_layer)
+                continue;
+            support_roof_closest_to_part = support_roof_closest_to_part.unionPolygons(infill_outline.intersection(mesh.layers[layer_above_nr].getOutlines()));
+        }
+    }
+
+    infill_outline = infill_outline.difference(support_roof_closest_to_part);
+    Infill separate_roof_computation(
+        pattern, zig_zaggify_infill, connect_polygons, support_roof_closest_to_part, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(),
+        support_roof_closest_layers_line_distance, support_roof_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
+        wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
+    );
+    separate_roof_computation.generate(roof_polygons, roof_lines);
+
     Infill roof_computation(
         pattern, zig_zaggify_infill, connect_polygons, infill_outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(),
         support_roof_line_distance, support_roof_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
         wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
         );
-    Polygons roof_polygons;
-    Polygons roof_lines;
     roof_computation.generate(roof_polygons, roof_lines);
     if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_polygons.empty() && roof_lines.empty()))
     {
@@ -2474,14 +2500,41 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr coord_t pocket_size = 0;
     const coord_t maximum_resolution = bottom_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
 
+    Polygons infill_outline = support_layer.support_bottom;
     const coord_t support_bottom_line_distance = bottom_extruder.settings.get<coord_t>("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
+    const size_t closest_layers_count = bottom_extruder.settings.get<size_t>("support_bottom_closest_layers_count");
+    const coord_t support_bottom_closest_layers_line_distance = bottom_extruder.settings.get<coord_t>("support_bottom_closest_layers_line_distance");
+
+    Polygons bottom_polygons;
+    Polygons bottom_lines;
+
+    Polygons support_bottom_closest_to_support;
+    for (int i = 0; i < static_cast<int>(closest_layers_count); ++i)
+    {
+        LayerIndex layer_above_nr = std::max(0, gcode_layer.getLayerNr() + 1 + i);
+        if (layer_above_nr > storage.support.layer_nr_max_filled_layer)
+            continue;
+
+        const SupportLayer& support_layer_above = storage.support.supportLayers[layer_above_nr];
+        for (const SupportInfillPart& support_part : support_layer_above.support_infill_parts)
+        {
+            support_bottom_closest_to_support = support_bottom_closest_to_support.unionPolygons(infill_outline.intersection(support_part.getInfillArea()));
+        }
+    }
+
+    infill_outline = infill_outline.difference(support_bottom_closest_to_support);
+    Infill separate_bottom_computation(
+        pattern, zig_zaggify_infill, connect_polygons, support_bottom_closest_to_support, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
+        support_bottom_closest_layers_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
+        wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
+    );
+    separate_bottom_computation.generate(bottom_polygons, bottom_lines);
+
     Infill bottom_computation(
-        pattern, zig_zaggify_infill, connect_polygons, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
+        pattern, zig_zaggify_infill, connect_polygons, infill_outline, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
         support_bottom_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
         wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
         );
-    Polygons bottom_polygons;
-    Polygons bottom_lines;
     bottom_computation.generate(bottom_polygons, bottom_lines);
     if (bottom_polygons.empty() && bottom_lines.empty())
     {
