@@ -790,11 +790,6 @@ void GCodeExport::writeUnretractionAndPrime()
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         }
-//        if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB && flavor != EGCodeFlavor::MAKERBOT) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
-//        {
-//            resetExtrusionValue();
-//        }
-//        extruder_attr[current_extruder].retraction_e_amount_current = 0.0;
     }
     else if (prime_volume != 0.0)
     {
