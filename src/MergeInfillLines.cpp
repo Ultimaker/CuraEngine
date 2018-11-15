@@ -144,7 +144,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             error_area = 0;
         }
 
-        first_path.flow = static_cast<double>(first_path_length_flow + second_path_length_flow) / new_path_length;
+        first_path.flow = new_flow;
 
         return true;
     }
