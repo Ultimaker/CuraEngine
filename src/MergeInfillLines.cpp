@@ -69,7 +69,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         else
         {
             average_first_path += first_path_start;
-            for (const Point point : first_path.points)
+            for (const Point& point : first_path.points)
             {
                 average_first_path += point;
             }
@@ -78,7 +78,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
         coord_t second_path_length = calcPathLength(second_path_start, second_path);
         Point average_second_path = second_path_start;
-        for (const Point point : second_path.points)
+        for (const Point& point : second_path.points)
         {
             average_second_path += point;
         }
