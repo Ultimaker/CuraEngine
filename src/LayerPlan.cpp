@@ -377,7 +377,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         CombPaths combPaths;
 
         //Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
-        coord_t max_distance_ignored = extruder->settings.get<coord_t>("line_width") * 2;
+        const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_size") * 2;
 
         combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored);
         if (combed)
