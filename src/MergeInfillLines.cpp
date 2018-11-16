@@ -255,7 +255,8 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
             // Use the first non-travel path as the first path that can be used for merging. After we encounter
             // a travel path, we need to find another first non-travel path for merging.
-            if (!has_first_path) {
+            if (!has_first_path)
+            {
                 first_path_index = second_path_index;
                 first_path_start = second_path_start;
                 has_first_path = true;
