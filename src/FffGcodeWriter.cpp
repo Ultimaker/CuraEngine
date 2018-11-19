@@ -2211,10 +2211,7 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
                 mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
                 widths.push_back(vSize(lines[0][1] - lines[0][0]));
                 // calculate whether this segment is adjacent to a hole
-                Polygons poly_with_holes;
-                poly_with_holes.add(poly);
-                poly_with_holes = perimeter_gaps.intersection(poly_with_holes);
-                adjacent_to_hole.push_back(poly_with_holes.size() > 1 && perimeters_sans_holes.inside(point_inside, false));
+                adjacent_to_hole.push_back(!perimeter_gaps.inside(point_inside, false) && perimeters_sans_holes.inside(point_inside, false));
 #endif
             }
         }
