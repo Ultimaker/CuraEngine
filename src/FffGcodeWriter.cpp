@@ -2193,6 +2193,12 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     const Polygons perimeters_sans_holes(perimeter_gaps.getOutsidePolygons());
     for (ConstPolygonRef poly : perimeters_sans_holes)
     {
+        if (poly.area() < (500 * 500))
+        {
+            // ignore areas smaller than 0.25 mm^2
+            continue;
+        }
+
         std::vector<Point> mid_points;
         std::vector<coord_t> widths;
         std::vector<bool> adjacent_to_hole;
