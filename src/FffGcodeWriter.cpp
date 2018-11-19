@@ -2154,6 +2154,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
 void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const
 {
+#if 0
     const coord_t perimeter_gaps_line_width = perimeter_gap_config.getLineWidth();
 
     assert(mesh.roofing_angles.size() > 0);
@@ -2187,6 +2188,139 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addLinesByOptimizer(gap_lines, perimeter_gap_config, SpaceFillType::Lines);
     }
+#else
+    const coord_t max_width = std::max(mesh.settings.get<coord_t>("wall_line_width_0"), mesh.settings.get<coord_t>("wall_line_width_x"));
+    const Polygons perimeters_sans_holes(perimeter_gaps.getOutsidePolygons());
+    for (ConstPolygonRef poly : perimeters_sans_holes)
+    {
+        std::vector<Point> mid_points;
+        std::vector<coord_t> widths;
+        std::vector<bool> adjacent_to_hole;
+        for (unsigned n = 0; n < poly.size(); ++n)
+        {
+            Polygons lines;
+            Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -(max_width + 10)));
+            lines.addLine(poly[n], point_inside);
+            lines = perimeter_gaps.intersectionPolyLines(lines);
+            if (lines.size() > 0)
+            {
+#if 0
+                gcode_layer.addTravel(lines[0][0]);
+                gcode_layer.addExtrusionMove(lines[0][1], perimeter_gap_config, SpaceFillType::Lines);
+#else
+                mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
+                widths.push_back(vSize(lines[0][1] - lines[0][0]));
+                // calculate whether this segment is adjacent to a hole
+                Polygons poly_with_holes;
+                poly_with_holes.add(poly);
+                poly_with_holes = perimeter_gaps.intersection(poly_with_holes);
+                adjacent_to_hole.push_back(poly_with_holes.size() > 1 && perimeters_sans_holes.inside(point_inside, false));
+#endif
+            }
+        }
+        if (mid_points.size() > 1)
+        {
+            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+            const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+            const coord_t filament_radius = train.settings.get<coord_t>("material_diameter")/2;
+            const double filament_area = M_PI * filament_radius * filament_radius;
+
+            coord_t low_extrusion_rate_distance = 0;
+            coord_t total_distance = 1; // avoid divide by zero later
+
+            for (unsigned point_index = 0; point_index < mid_points.size(); ++point_index)
+            {
+                const unsigned next_point_index = (point_index + 1) % mid_points.size();
+
+                const coord_t segment_length = vSize(mid_points[next_point_index] - mid_points[point_index]);
+
+                if (segment_length > 50)
+                {
+                    const coord_t segment_width = (widths[next_point_index] + widths[point_index]) / 2;
+                    // divide the length by 2 here because when the fill is printed every layer, we use half the normal extrusion rate
+                    const double filament_length = (segment_length * segment_width * layer_height) / filament_area / 2;
+                    const unsigned extruder_steps_per_mm = 100; // all extruders should be able to manage this, surely?
+                    if (INT2MM(filament_length) * extruder_steps_per_mm < 1)
+                    {
+                        low_extrusion_rate_distance += segment_length;
+                    }
+                    total_distance += segment_length;
+                }
+            }
+
+            // if more than 5% of the fill would be below the min extrusion rate threshold when
+            // filling at half the normal extrusion rate, fill every other layer at 100% flow
+            const bool fill_alternate_layers = (double)low_extrusion_rate_distance / total_distance > 0.05;
+
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+
+            const float min_flow = 0.1;
+            const Point origin(gcode_layer.getLastPlannedPositionOrStartingPosition());
+            coord_t min_dist2 = vSize2(origin - mid_points[0]);
+            unsigned start_point_index = 0;
+            for (unsigned n = 1; n < mid_points.size(); ++n)
+            {
+                coord_t dist2 = vSize2(origin - mid_points[n]);
+                if (dist2 < min_dist2)
+                {
+                    min_dist2 = dist2;
+                    start_point_index = n;
+                }
+            }
+
+            Point start(mid_points[start_point_index]);
+            bool travel_needed = true;
+
+            for (unsigned n = 0; n < mid_points.size(); ++n)
+            {
+                const unsigned point_index = (start_point_index + n) % mid_points.size();
+                const unsigned next_point_index = (point_index + 1) % mid_points.size();
+
+                const Point& next_mid_point(mid_points[next_point_index]);
+                float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * perimeter_gap_config.getLineWidth());
+                bool do_fill = adjacent_to_hole[point_index];
+
+                if (!do_fill)
+                {
+                    if (fill_alternate_layers)
+                    {
+                        // fill alternate layers with full extrusion amount
+                        do_fill = gcode_layer.getLayerNr() & 1;
+                    }
+                    else
+                    {
+                        // fill every layer with 1/2 the extrusion amount
+                        do_fill = true;
+                        flow /= 2;
+                    }
+                }
+                if (do_fill)
+                {
+                    if (flow > min_flow)
+                    {
+                        if (travel_needed)
+                        {
+                            gcode_layer.addTravel(start);
+                            travel_needed = false;
+                        }
+                        gcode_layer.addExtrusionMove(next_mid_point, perimeter_gap_config, SpaceFillType::Lines, flow);
+                    }
+                    else
+                    {
+                        travel_needed = true;
+                    }
+                }
+                else
+                {
+                    travel_needed = true;
+                }
+                start = next_mid_point;
+            }
+        }
+    }
+#endif
 }
 
 bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
