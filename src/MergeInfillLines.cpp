@@ -238,7 +238,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         size_t first_path_index = 0;
         Point first_path_start = Point(starting_position.X, starting_position.Y);  // this one is not going to be overwritten
         size_t second_path_index = 1;
-        bool has_first_path = !paths[0].config->isTravelPath();  // in case the first path is not an extrusion path.
+        bool has_first_path = paths.empty() ? false : !paths[0].config->isTravelPath();  // in case the first path is not an extrusion path.
         coord_t error_area = 0;
 
         for (; second_path_index < paths.size(); second_path_index++)
