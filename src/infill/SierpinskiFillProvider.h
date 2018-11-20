@@ -7,6 +7,7 @@
 
 #include "../utils/optional.h"
 #include "../utils/math.h"
+#include "../utils/MappingFunction.h"
 
 #include "../settings/Settings.h"
 
@@ -16,6 +17,7 @@
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
 #include "CombinedDensityProvider.h"
+#include "CompensatedDensityProvider.h"
 #include "TopSkinDensityProvider.h"
 
 namespace cura
@@ -47,6 +49,8 @@ public:
 
     TopSkinDensityProvider* skin_density_provider; //!< The object which determines the minimal density based on being at the surface 
     CombinedDensityProvider* combined_density_provider; //!< The combination of the average density provider and the minimal density provider in a single density provider
+    MappingFunction in_out_density_correction; //!< Function mapping realistic output density to naive input density to compensate for naive density estimation
+    CompensatedDensityProvider* compensated_density_provider; //!< The density provider compensated for differences between in and output density due to non-overlap and continuity alterations to the homogeneous cross pattern
 
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
 
@@ -76,6 +80,8 @@ protected:
      * \param make_3d Whether to include z in the calculations for the 3D pattern
      */
     FractalConfig getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance, bool make_3d);
+private:
+    MappingFunction getMappingFunction();
 };
 } // namespace cura
 
