@@ -176,6 +176,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
+    src/utils/MappingFunction.cpp
     src/utils/MinimumSpanningTree.cpp
     src/utils/Point3.cpp
     src/utils/PolygonConnector.cpp
@@ -210,6 +211,7 @@ set(engine_TEST_UTILS
     SparseGridTest
     IntPointTest
     LinearAlg2DTest
+    MappingFunctionTest
     PolygonConnectorTest
     PolygonUtilsTest
     PolygonTest
