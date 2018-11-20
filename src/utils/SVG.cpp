@@ -23,10 +23,10 @@ std::string SVG::toString(Color color)
 
 
 
-SVG::SVG(const std::string filename_str, AABB aabb, Point canvas_size, Color background)
+SVG::SVG(const std::string filename_str, AABB aabb, Point canvas_size, Color background, size_t flags)
 : aabb(aabb)
 , aabb_size(aabb.max - aabb.min)
-, border(canvas_size.X / 5, canvas_size.Y / 10)
+, border(((flags & OMIT_BORDERS) == OMIT_BORDERS)? Point(0,0) : Point(canvas_size.X / 5, canvas_size.Y / 10))
 , canvas_size(canvas_size)
 , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
 , background(background)
@@ -47,7 +47,7 @@ SVG::SVG(const std::string filename_str, AABB aabb, Point canvas_size, Color bac
     {
         fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     }
-    fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
+    fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%lli\" height=\"%lli\">\n", canvas_size.X, canvas_size.Y);
     
     if(background != Color::NONE)
     {

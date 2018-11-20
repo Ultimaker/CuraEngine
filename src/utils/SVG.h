@@ -30,6 +30,8 @@ public:
         NONE
     };
 
+    static constexpr size_t OMIT_BORDERS = 1;
+
 private:
 
     std::string toString(Color color);
@@ -46,7 +48,7 @@ private:
     bool output_is_html;
 
 public:
-    SVG(const std::string filename, AABB aabb, Point canvas_size = Point(1024, 1024), Color background = Color::NONE);
+    SVG(const std::string filename, AABB aabb, Point canvas_size = Point(1024, 1024), Color background = Color::NONE, size_t flags = 0);
 
     ~SVG();
 
