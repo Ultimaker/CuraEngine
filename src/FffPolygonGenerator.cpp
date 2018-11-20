@@ -247,15 +247,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             // add the raft offset to each layer
             if (has_raft)
             {
-                const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
                 layer.printZ +=
                     Raft::getTotalThickness()
-                    + train.settings.get<coord_t>("raft_airgap")
-                    - train.settings.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
+                    + mesh_group_settings.get<coord_t>("raft_airgap")
+                    - mesh_group_settings.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
                 {
-                    layer.printZ += train.settings.get<coord_t>("layer_0_z_overlap"); // undo shifting down of first layer
+                    layer.printZ += mesh_group_settings.get<coord_t>("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
         }
@@ -904,7 +903,20 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
                      storage.support.layer_nr_max_filled_layer);
 
         //Height of where the platform adhesion reaches.
-        if (scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
+        const EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
+        if (adhesion_type == EPlatformAdhesion::RAFT)
+        {
+            const size_t raft_base_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[raft_base_extruder_nr] =
+                std::max(0, max_print_height_per_extruder[raft_base_extruder_nr]);
+            const size_t raft_interface_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[raft_interface_extruder_nr] =
+                std::max(0, max_print_height_per_extruder[raft_interface_extruder_nr]);
+            const size_t raft_surface_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[raft_surface_extruder_nr] =
+                std::max(0, max_print_height_per_extruder[raft_surface_extruder_nr]);
+        }
+        else if (adhesion_type != EPlatformAdhesion::NONE)
         {
             const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
             max_print_height_per_extruder[adhesion_extruder_nr] =

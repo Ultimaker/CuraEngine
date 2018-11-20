@@ -54,6 +54,27 @@ public:
      */
     static size_t getTotalExtraLayers();
 
+    /*!
+     * \brief Check whether the given layer_nr is the raft base layer.
+     * \param layer_nr The layer number to check.
+     * \return True if layer_nr is the raft base layer, false otherwise.
+     */
+    static bool isRaftBaseLayer(LayerIndex layer_nr);
+
+    /*!
+     * \brief Check whether the given layer_nr is the raft interface layer.
+     * \param layer_nr The layer number to check.
+     * \return True if layer_nr is the raft interface layer, false otherwise.
+     */
+    static bool isRaftMiddleLayer(LayerIndex layer_nr);
+
+    /*!
+     * \brief Check whether the given layer_nr is one of the raft surface layers.
+     * \param layer_nr The layer number to check.
+     * \return True if layer_nr is one of the raft surface layers, false otherwise.
+     */
+    static bool isRaftTopLayer(LayerIndex layer_nr);
+
 };
 
 }//namespace cura

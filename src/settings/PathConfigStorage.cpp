@@ -160,31 +160,33 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 : support_infill_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr)
 , support_roof_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr)
 , support_bottom_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr)
-, adhesion_extruder_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr"))
+, raft_base_extruder_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr"))
+, raft_interface_extruder_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr"))
+, raft_surface_extruder_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr"))
 , support_infill_train(Application::getInstance().current_slice->scene.extruders[support_infill_extruder_nr])
 , support_roof_train(Application::getInstance().current_slice->scene.extruders[support_roof_extruder_nr])
 , support_bottom_train(Application::getInstance().current_slice->scene.extruders[support_bottom_extruder_nr])
 , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
 , raft_base_config(
             PrintFeatureType::SupportInterface
-            , adhesion_extruder_train.settings.get<coord_t>("raft_base_line_width")
-            , adhesion_extruder_train.settings.get<coord_t>("raft_base_thickness")
-            , (layer_nr == 0) ? adhesion_extruder_train.settings.get<Ratio>("material_flow_layer_0") : adhesion_extruder_train.settings.get<Ratio>("material_flow")
-            , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train.settings.get<Velocity>("raft_base_speed"), adhesion_extruder_train.settings.get<Acceleration>("raft_base_acceleration"), adhesion_extruder_train.settings.get<Velocity>("raft_base_jerk")}
+            , raft_base_extruder_train.settings.get<coord_t>("raft_base_line_width")
+            , raft_base_extruder_train.settings.get<coord_t>("raft_base_thickness")
+            , (layer_nr == 0) ? raft_base_extruder_train.settings.get<Ratio>("material_flow_layer_0") : raft_base_extruder_train.settings.get<Ratio>("material_flow")
+            , GCodePathConfig::SpeedDerivatives{raft_base_extruder_train.settings.get<Velocity>("raft_base_speed"), raft_base_extruder_train.settings.get<Acceleration>("raft_base_acceleration"), raft_base_extruder_train.settings.get<Velocity>("raft_base_jerk")}
         )
 , raft_interface_config(
             PrintFeatureType::Support
-            , adhesion_extruder_train.settings.get<coord_t>("raft_interface_line_width")
-            , adhesion_extruder_train.settings.get<coord_t>("raft_interface_thickness")
-            , (layer_nr == 0) ? adhesion_extruder_train.settings.get<Ratio>("material_flow_layer_0") : adhesion_extruder_train.settings.get<Ratio>("material_flow")
-            , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train.settings.get<Velocity>("raft_interface_speed"), adhesion_extruder_train.settings.get<Acceleration>("raft_interface_acceleration"), adhesion_extruder_train.settings.get<Velocity>("raft_interface_jerk")}
+            , raft_interface_extruder_train.settings.get<coord_t>("raft_interface_line_width")
+            , raft_interface_extruder_train.settings.get<coord_t>("raft_interface_thickness")
+            , (layer_nr == 0) ? raft_interface_extruder_train.settings.get<Ratio>("material_flow_layer_0") : raft_interface_extruder_train.settings.get<Ratio>("material_flow")
+            , GCodePathConfig::SpeedDerivatives{raft_interface_extruder_train.settings.get<Velocity>("raft_interface_speed"), raft_interface_extruder_train.settings.get<Acceleration>("raft_interface_acceleration"), raft_interface_extruder_train.settings.get<Velocity>("raft_interface_jerk")}
         )
 , raft_surface_config(
             PrintFeatureType::SupportInterface
-            , adhesion_extruder_train.settings.get<coord_t>("raft_surface_line_width")
-            , adhesion_extruder_train.settings.get<coord_t>("raft_surface_thickness")
-            , (layer_nr == 0) ? adhesion_extruder_train.settings.get<Ratio>("material_flow_layer_0") : adhesion_extruder_train.settings.get<Ratio>("material_flow")
-            , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train.settings.get<Velocity>("raft_surface_speed"), adhesion_extruder_train.settings.get<Acceleration>("raft_surface_acceleration"), adhesion_extruder_train.settings.get<Velocity>("raft_surface_jerk")}
+            , raft_surface_extruder_train.settings.get<coord_t>("raft_surface_line_width")
+            , raft_surface_extruder_train.settings.get<coord_t>("raft_surface_thickness")
+            , (layer_nr == 0) ? raft_surface_extruder_train.settings.get<Ratio>("material_flow_layer_0") : raft_surface_extruder_train.settings.get<Ratio>("material_flow")
+            , GCodePathConfig::SpeedDerivatives{raft_surface_extruder_train.settings.get<Velocity>("raft_surface_speed"), raft_surface_extruder_train.settings.get<Acceleration>("raft_surface_acceleration"), raft_surface_extruder_train.settings.get<Velocity>("raft_surface_jerk")}
         )
 , support_roof_config(
             PrintFeatureType::SupportInterface

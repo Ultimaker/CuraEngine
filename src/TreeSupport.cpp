@@ -68,7 +68,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
             adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::RAFT:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
+            adhesion_size = mesh_group_settings.get<coord_t>("raft_margin");
             break;
         case EPlatformAdhesion::SKIRT:
             adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;

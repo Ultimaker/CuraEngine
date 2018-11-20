@@ -26,7 +26,9 @@ private:
     const size_t support_infill_extruder_nr;
     const size_t support_roof_extruder_nr;
     const size_t support_bottom_extruder_nr;
-    const ExtruderTrain& adhesion_extruder_train;
+    const ExtruderTrain& raft_base_extruder_train;
+    const ExtruderTrain& raft_interface_extruder_train;
+    const ExtruderTrain& raft_surface_extruder_train;
     const ExtruderTrain& support_infill_train;
     const ExtruderTrain& support_roof_train;
     const ExtruderTrain& support_bottom_train;
