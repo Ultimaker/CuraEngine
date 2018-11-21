@@ -240,6 +240,7 @@ private:
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
     int z;
+    bool mode_add_ironing;
 
 private:
     const LayerIndex layer_nr; //!< The layer number of this layer plan

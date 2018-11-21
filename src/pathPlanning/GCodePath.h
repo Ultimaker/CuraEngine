@@ -33,6 +33,7 @@ public:
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)
+    bool is_ironing; //!< Wheter this path represents ironing. Should maybe be handled by `config.type`/`PrintFeatureType`, but that may mean heavier refactoring than this mandates.
     std::vector<Point> points; //!< The points constituting this path.
     bool done; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
