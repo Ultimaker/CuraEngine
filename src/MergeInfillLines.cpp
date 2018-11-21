@@ -3,6 +3,7 @@
 
 #include "Application.h" //To get settings.
 #include "MergeInfillLines.h"
+#include "PrintFeature.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura
@@ -219,7 +220,6 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         return mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start, error_area);
     }
 
-
     bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Point& starting_position) const
     {
         /* Algorithm overview:
@@ -255,7 +255,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
             // Use the first non-travel path as the first path that can be used for merging. After we encounter
             // a travel path, we need to find another first non-travel path for merging.
-            if (!has_first_path)
+            if ((first_path.config->type == PrintFeatureType::Infill || first_path.config->type == PrintFeatureType::SupportInfill) && !has_first_path)
             {
                 first_path_index = second_path_index;
                 first_path_start = second_path_start;
