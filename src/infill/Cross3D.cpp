@@ -71,7 +71,9 @@ void Cross3D::createTree()
     initialConnection(cell_data[root.children[2]], cell_data[root.children[3]], Direction::RIGHT);
     initialConnection(cell_data[root.children[3]], cell_data[root.children[0]], Direction::RIGHT);
     
+    TimeKeeper tk;
     setSpecificationAllowance(cell_data[0]);
+    logDebug("Completed volumetric specification allowance info in %5.2fs.\n", tk.restart());
 }
 
 void Cross3D::createTree(const Triangle& triangle, size_t root_child_number)

@@ -128,6 +128,13 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     // process all layers, process buffer for preheating and minimal layer time etc, write layers to gcode:
     threader.run();
 
+    if (!storage.meshes.empty() && storage.meshes[0].cross_fill_provider)
+    {
+        log("polygon_creation_time in %5.2fs\n", storage.meshes[0].cross_fill_provider->polygon_creation_time);
+    }
+    log("limit_polygon_infill_time in %5.2fs\n", Infill::limit_polygon_infill_time);
+    log("connect_polygon_time in %5.2fs\n", Infill::connect_polygon_time);
+
     layer_plan_buffer.flush();
 
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);

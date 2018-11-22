@@ -74,6 +74,8 @@ public:
     void generateSubdivStructureLines(EFillMethod pattern, coord_t z, coord_t line_width, Polygons& result_polygons, Polygons& result_lines, bool closed) const;
 
     ~SierpinskiFillProvider();
+    
+    double polygon_creation_time = 0;
 protected:
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object

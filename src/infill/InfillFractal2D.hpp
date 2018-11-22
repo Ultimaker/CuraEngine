@@ -297,11 +297,14 @@ void InfillFractal2D<CellGeometry>::createMaximalDensityPattern(idx_t starting_i
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::createDitheredPattern()
 {
+    TimeKeeper tk;
     createBalancedPattern();
 
     settleLoans();
+    logDebug("Created balanced pattern in %5.2fs.\n", tk.restart());
 
     dither(cell_data[0]);
+    logDebug("Dithering finished in %5.2fs.\n", tk.restart());
 
     // debug check for total actualized volume
     float total_actualized_volume = getTotalActualizedVolume(cell_data[0]);

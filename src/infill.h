@@ -98,6 +98,9 @@ public:
     , minimum_zag_line_length(minimum_zag_line_length)
     {
     }
+    
+    static double limit_polygon_infill_time;
+    static double connect_polygon_time;
 
     /*!
      * Generate the infill.

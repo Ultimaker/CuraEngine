@@ -5,6 +5,8 @@
 #include "SierpinskiFillProvider.h"
 
 #include "../utils/math.h"
+#include "../utils/SVG.h"
+#include "../Application.h"
 
 namespace cura
 {
@@ -95,23 +97,27 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
 //     subdivision_structure_3d->sanitize();
     if (dense_at_top)
     {
+        TimeKeeper tk;
         subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
+        logDebug("Top skin density minimum enforced in %5.2fs.\n", tk.restart());
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
 {
+    TimeKeeper tk;
+    Polygon ret;
     z = std::min(z, aabb_3d.max.z - 1); // limit the z to where the pattern is generated; layer heights can go higher than the model...
     if (fill_pattern_for_all_layers)
     {
         if (pattern == EFillMethod::CROSS_3D)
         {
-            return fill_pattern_for_all_layers->generateCross(z, line_width / 2, pocket_size);
+            ret = fill_pattern_for_all_layers->generateCross(z, line_width / 2, pocket_size);
         }
         else
         {
-            return fill_pattern_for_all_layers->generateCross();
+            ret = fill_pattern_for_all_layers->generateCross();
         }
     }
     else if (subdivision_structure_3d)
@@ -124,20 +130,29 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
         Cross3D::SliceWalker slicer_walker = subdivision_structure_3d->getSequence(*start_cell_iter->second, z);
         if (pattern == EFillMethod::CROSS_3D)
         {
-            return subdivision_structure_3d->generateCross3D(slicer_walker, z);
+            ret = subdivision_structure_3d->generateCross3D(slicer_walker, z);
         }
         else
         {
-            return subdivision_structure_3d->generateCross(slicer_walker);
+            ret = subdivision_structure_3d->generateCross(slicer_walker);
         }
     }
     else
     {
-        Polygon ret;
         logError("Different density sierpinski fill for different layers is not implemented yet!\n");
         std::exit(-1);
-        return ret;
     }
+    const_cast<SierpinskiFillProvider*>(this)->polygon_creation_time += tk.restart();
+    if (false)
+    {
+        char filename[1024];
+        coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+        std::sprintf(filename, "output/fractal_dithering_layers/overview/layer_%lli.svg", z / layer_height);
+        SVG svg(filename, aabb_3d.flatten(), /*Point canvas_size =*/ Point(512, 512), /*Color background =*/ SVG::Color::WHITE, SVG::OMIT_BORDERS);
+        float drawing_line_width = line_width * svg.getScale();
+        svg.writePolygon(ret, SVG::Color::BLACK, drawing_line_width);
+    }
+    return ret;
 }
 
 
