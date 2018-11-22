@@ -259,7 +259,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
                 (
                   first_path.config->type == PrintFeatureType::Infill ||
                   first_path.config->type == PrintFeatureType::SupportInfill ||
-                  first_path.is_ironing
+                  first_path.skip_agressive_merge_hint
                 ) && !has_first_path)
             {
                 first_path_index = second_path_index;

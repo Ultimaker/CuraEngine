@@ -49,7 +49,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);
 
-    layer.mode_add_ironing = true;
+    layer.mode_skip_agressive_merge = true;
 
     if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
     {
@@ -87,7 +87,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         added = true;
     }
 
-    layer.mode_add_ironing = false;
+    layer.mode_skip_agressive_merge = false;
     return added;
 }
 
