@@ -1816,6 +1816,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 {
     bool added_something = false;
 
+    gcode_layer.mode_skip_agressive_merge = true;
+
     // add roofing
     Polygons roofing_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
     processRoofing(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, roofing_concentric_perimeter_gaps, added_something);
@@ -1836,6 +1838,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 
         processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, perimeter_gaps, mesh_config.perimeter_gap_config, added_something);
     }
+
+    gcode_layer.mode_skip_agressive_merge = false;
     return added_something;
 }
 
@@ -2164,6 +2168,8 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     constexpr coord_t pocket_size = 0;
     const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
 
+    gcode_layer.mode_skip_agressive_merge = false;
+
     Infill infill_comp(
         EFillMethod::LINES, zig_zaggify_infill, connect_polygons, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, infill_multiplier, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift,
         wall_line_count, infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
@@ -2175,6 +2181,8 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addLinesByOptimizer(gap_lines, perimeter_gap_config, SpaceFillType::Lines);
     }
+
+    gcode_layer.mode_skip_agressive_merge = true;
 }
 
 bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
