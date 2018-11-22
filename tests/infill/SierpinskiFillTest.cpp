@@ -20,19 +20,19 @@ void SierpinskiFillTest::tearDown()
 
 void SierpinskiFillTest::debugCheck()
 {
-    coord_t line_width = 400;
+    coord_t line_width = 350;
     AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * 128);
     AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
     //aabb.expand(512);
-    Point canvas_size = Point(1024, 1024);
-    SVG svg("output/sierpinski.svg", aabb, canvas_size, SVG::Color::NONE, SVG::OMIT_BORDERS);
+    Point canvas_size = Point(512, 512);
+    SVG svg("/home/t.kuipers/Development/CuraEngine/output/fractal_dithering_layers/gradient_2d.svg", aabb, canvas_size, SVG::Color::NONE, SVG::OMIT_BORDERS);
     
     
     float drawing_line_width = line_width * svg.getScale();
     
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/lena.png", aabb_3d,  0.0, 0.8, 0.4);
-    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gradient.png", aabb_3d,  0.0, 0.8, 0.4);
+    DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gradient.png", aabb_3d,  0.1, 0.4, 0.4);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/slight_gradient.png", aabb_3d,  0.0, 0.8, 0.4);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/simple.png", aabb_3d,  0.0, 0.8, 0.4);
 //     DensityProvider* subdivider = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/gray.png", aabb_3d,  0.0, 0.8, 0.4);
@@ -74,14 +74,6 @@ void SierpinskiFillTest::debugCheck()
     {
         SierpinskiFill f(*subdivider, aabb, max_depth, line_width, dithering);
         SVG::Color color = SVG::Color::GREEN;
-        switch (max_depth % 4)
-        {
-            default:
-            case 0: color = SVG::Color::GREEN; break;
-            case 1: color = SVG::Color::RED; break;
-            case 2: color = SVG::Color::BLUE; break;
-            case 3: color = SVG::Color::YELLOW; break;
-        }
 //         color = SVG::Color::RAINBOW;
         color = SVG::Color::BLACK;
 //         svg.writePolygon(f.generateCross(1200, 16), color, 4);
