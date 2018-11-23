@@ -92,4 +92,24 @@ void TimeEstimateCalculatorTest::moveToCurrentLocation()
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Moving to the same location as where you already were should not cost any time.", Duration(0.0), estimate);
 }
 
+void TimeEstimateCalculatorTest::singleLineOnlyJerk()
+{
+    calculator.setFirmwareDefaults(always_50);
+
+    const TimeEstimateCalculator::Position destination(1000, 0, 0, 0);
+
+    /* This line:
+     * Accelerate instantly from 0 to 50 mm/s because of jerk.
+     * Travel at 50 mm/s throughout the line.
+     * Decelerate instantly from 50 to 0 mm/s because of jerk at the end.
+     */
+    calculator.plan(destination, 50.0, PrintFeatureType::Infill);
+
+    std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(
+        Duration(1000 / 50.0), //1000mm at 50mm/s.
+        result[static_cast<size_t>(PrintFeatureType::Infill)]
+    );
+}
+
 } //namespace cura

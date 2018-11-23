@@ -45,6 +45,14 @@ public:
      */
     void moveToCurrentLocation();
 
+    /*
+     * \brief Time estimate of a single line without acceleration.
+     *
+     * Jerk is causing 'instant' acceleration here, so only the maximum speed
+     * has an influence (apart from additional effects in the planner itself).
+     */
+    void singleLineOnlyJerk();
+
 private:
     /*
      * Fixture calculator that starts without any time or moves planned.
