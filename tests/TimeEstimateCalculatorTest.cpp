@@ -1,6 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numeric>
+
 #include "TimeEstimateCalculatorTest.h"
 #include "../src/PrintFeature.h" //We get time estimates per print feature.
 #include "../src/settings/types/Duration.h"
@@ -41,6 +43,22 @@ void TimeEstimateCalculatorTest::startWithZero()
     {
         CPPUNIT_ASSERT_EQUAL_MESSAGE("Time estimates must be zero before anything has been planned.", Duration(0.0), estimate);
     }
+}
+
+void TimeEstimateCalculatorTest::moveToCurrentLocation()
+{
+    const TimeEstimateCalculator::Position position(1000, 2000, 3000, 4000);
+    calculator.setPosition(position);
+
+    std::vector<Duration> result = calculator.calculate();
+    Duration estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("setPosition should not add any time to the estimate.", Duration(0.0), estimate);
+
+    calculator.plan(position, Velocity(10), PrintFeatureType::Infill);
+
+    result = calculator.calculate();
+    estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Moving to the same location as where you already were should not cost any time.", Duration(0.0), estimate);
 }
 
 } //namespace cura

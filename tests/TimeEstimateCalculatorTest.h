@@ -38,6 +38,12 @@ public:
      */
     void startWithZero();
 
+    /*
+     * \brief Tests whether moving to the current location doesn't incur any
+     * time cost.
+     */
+    void moveToCurrentLocation();
+
 private:
     /*
      * Fixture calculator that starts without any time or moves planned.
