@@ -46,6 +46,7 @@ void TimeEstimateCalculatorTest::setUp()
     always_50.add("machine_acceleration", "50");
 
     calculator.setFirmwareDefaults(um3);
+    calculator.setPosition(TimeEstimateCalculator::Position(0, 0, 0, 0));
 }
 
 void TimeEstimateCalculatorTest::addTime()
