@@ -16,6 +16,36 @@ void TimeEstimateCalculatorTest::setUp()
 {
     //Reset the calculator, but not by using its reset() function. That would be broken if the reset() function is broken.
     calculator = TimeEstimateCalculator();
+
+    um3.add("machine_max_feedrate_x", "300");
+    um3.add("machine_max_feedrate_y", "300");
+    um3.add("machine_max_feedrate_z", "40");
+    um3.add("machine_max_feedrate_e", "45");
+    um3.add("machine_max_acceleration_x", "9000");
+    um3.add("machine_max_acceleration_y", "9000");
+    um3.add("machine_max_acceleration_z", "100");
+    um3.add("machine_max_acceleration_e", "10000");
+    um3.add("machine_max_jerk_xy", "20");
+    um3.add("machine_max_jerk_z", "0.4");
+    um3.add("machine_max_jerk_e", "5");
+    um3.add("machine_minimum_feedrate", "0");
+    um3.add("machine_acceleration", "3000");
+
+    always_50.add("machine_max_feedrate_x", "50");
+    always_50.add("machine_max_feedrate_y", "50");
+    always_50.add("machine_max_feedrate_z", "50");
+    always_50.add("machine_max_feedrate_e", "50");
+    always_50.add("machine_max_acceleration_x", "50");
+    always_50.add("machine_max_acceleration_y", "50");
+    always_50.add("machine_max_acceleration_z", "50");
+    always_50.add("machine_max_acceleration_e", "50");
+    always_50.add("machine_max_jerk_xy", "1000");
+    always_50.add("machine_max_jerk_z", "1000");
+    always_50.add("machine_max_jerk_e", "1000");
+    always_50.add("machine_minimum_feedrate", "0");
+    always_50.add("machine_acceleration", "50");
+
+    calculator.setFirmwareDefaults(um3);
 }
 
 void TimeEstimateCalculatorTest::addTime()
