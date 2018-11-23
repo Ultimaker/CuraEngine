@@ -10,6 +10,8 @@
 namespace cura
 {
 
+#define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
+
 CPPUNIT_TEST_SUITE_REGISTRATION(TimeEstimateCalculatorTest);
 
 void TimeEstimateCalculatorTest::setUp()
@@ -116,13 +118,18 @@ void TimeEstimateCalculatorTest::singleLineOnlyJerk()
      * This line:
      * Accelerate instantly from 0 to 50 mm/s because of jerk.
      * Travel at 50 mm/s throughout the line.
-     * Decelerate instantly from 50 to 0 mm/s because of jerk at the end.
+     * Decelerate to minimum planner speed because at the end of the planner, jerk is not used.
      */
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
+    //Deceleration distance is 1/2 at² + vt. We decelerate at 50mm/s for almost a second, ending at a speed of MINIMUM_PLANNER_SPEED.
+    const double t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
+    const double decelerate_distance = 0.5 * 50.0 * t * t + MINIMUM_PLANNER_SPEED * t;
+    const double cruise_distance = 1000.0 - decelerate_distance;
+
     const std::vector<Duration> result = calculator.calculate();
     CPPUNIT_ASSERT_EQUAL(
-        Duration(1000 / 50.0), //1000mm at 50mm/s.
+        Duration(cruise_distance / 50.0 + t), //1000mm at 50mm/s, then decelerate for almost one second.
         result[static_cast<size_t>(PrintFeatureType::Infill)]
     );
 }
@@ -137,17 +144,23 @@ void TimeEstimateCalculatorTest::doubleLineOnlyJerk()
      * Travel at 50 mm/s throughout the first line.
      * At the end of the first line, continue at 50 mm/s with the second line. No acceleration is needed.
      * Travel at 50 mm/s throughout the second line.
-     * Decelerate instantly from 50 to 0 mm/s because of jerk at the end.
+     * Decelerate to minimum planner speed because at the end of the planner, jerk is not used.
      */
     const TimeEstimateCalculator::Position destination_1(1000, 0, 0, 0);
     calculator.plan(destination_1, 50.0, PrintFeatureType::Infill);
     const TimeEstimateCalculator::Position destination_2(2000, 0, 0, 0);
     calculator.plan(destination_2, 50.0, PrintFeatureType::Infill);
 
+    //Deceleration distance is 1/2 at² + vt. We decelerate at 50mm/s for almost a second, ending at a speed of MINIMUM_PLANNER_SPEED.
+    const double t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
+    const double decelerate_distance = 0.5 * 50.0 * t * t + MINIMUM_PLANNER_SPEED * t;
+    const double cruise_distance = 2000.0 - decelerate_distance;
+
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_EQUAL(
-        Duration(2000 / 50.0), //2000mm at 50mm/s.
-        result[static_cast<size_t>(PrintFeatureType::Infill)]
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+        Duration(cruise_distance / 50.0 + t), //2000mm at 50mm/s, then decelerate for almost one second.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        0.000001
     );
 }
 

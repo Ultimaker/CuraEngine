@@ -14,7 +14,7 @@
 namespace cura
 {
 
-#define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
+#define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
 
 void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
 {
