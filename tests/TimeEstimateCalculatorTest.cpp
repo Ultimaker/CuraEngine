@@ -160,7 +160,7 @@ void TimeEstimateCalculatorTest::doubleLineOnlyJerk()
     CPPUNIT_ASSERT_DOUBLES_EQUAL(
         Duration(cruise_distance / 50.0 + t), //2000mm at 50mm/s, then decelerate for almost one second.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
-        0.000001
+        0.00001
     );
 }
 
@@ -214,9 +214,37 @@ void TimeEstimateCalculatorTest::doubleLineNoJerk()
 
     const std::vector<Duration> result = calculator.calculate();
     CPPUNIT_ASSERT_DOUBLES_EQUAL(
-        Duration(1.0 + cruise_distance / 50 + decelerate_t), //Accelerate, cruise, decelerate.
+        Duration(1.0 + cruise_distance / 50.0 + decelerate_t), //Accelerate, cruise, decelerate.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
-        0.000001
+        0.00001
+    );
+}
+
+void TimeEstimateCalculatorTest::diagonalLineNoJerk()
+{
+    calculator.setFirmwareDefaults(jerkless);
+
+    /*
+     * This line:
+     * Total acceleration will be 50mm/s, since the minimum of X and Y acceleration is 50 (both are 50 in fact).
+     * Accelerate the X and Y axes from 0 to 50mm/s in 1 second.
+     * Cruise at 50mm/s towards the destination.
+     * Decelerate the X and Y axes from 50mm/s to the minimum planner speed in less than one second.
+     */
+    const TimeEstimateCalculator::Position destination(1000, 1000, 0, 0);
+    calculator.plan(destination, 50.0, PrintFeatureType::Infill);
+
+    //Distance needed to accelerate: 1/2 at² + vt. We accelerate at 50mm/s². No initial velocity, but we decelerate to MINIMUM_PLANNER_SPEED.
+    const double accelerate_distance = 0.5 * 50.0 * 1.0 * 1.0 + 0.0 * 1.0;
+    const double decelerate_t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
+    const double decelerate_distance = 0.5 * 50.0 * decelerate_t * decelerate_t + MINIMUM_PLANNER_SPEED * decelerate_t;
+    const double cruise_distance = std::sqrt(2.0) * 1000.0 - accelerate_distance - decelerate_distance; //Thank you Mr. Pythagoras.
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+        Duration(1.0 + cruise_distance / 50.0 + decelerate_t), //Accelerate, cruise, decelerate.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        0.00001
     );
 }
 

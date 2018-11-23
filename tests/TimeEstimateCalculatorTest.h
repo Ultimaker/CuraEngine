@@ -25,6 +25,7 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(doubleLineOnlyJerk);
     CPPUNIT_TEST(singleLineNoJerk);
     CPPUNIT_TEST(doubleLineNoJerk);
+    CPPUNIT_TEST(diagonalLineNoJerk);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -80,6 +81,14 @@ public:
      * lengthwise, it will not need to decelerate in the middle.
      */
     void doubleLineNoJerk();
+
+    /*
+     * \brief Tests printing a diagonal line without jerk.
+     *
+     * This line can accelerate in two axes at once, so the acceleration will
+     * actually be greater than when the line is straight in one dimension.
+     */
+    void diagonalLineNoJerk();
 
 private:
     /*

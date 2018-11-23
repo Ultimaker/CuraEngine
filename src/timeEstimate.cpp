@@ -104,7 +104,7 @@ static inline double acceleration_time_from_distance(const Velocity& initial_fee
     discriminant = std::max(0.0, discriminant);
     return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
-    
+
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
 void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const Ratio entry_factor, const Ratio exit_factor)
 {
