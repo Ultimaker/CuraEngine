@@ -23,6 +23,8 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(startWithZero);
     CPPUNIT_TEST(singleLineOnlyJerk);
     CPPUNIT_TEST(doubleLineOnlyJerk);
+    CPPUNIT_TEST(singleLineNoJerk);
+    CPPUNIT_TEST(doubleLineNoJerk);
     CPPUNIT_TEST_SUITE_END();
 
 public:
