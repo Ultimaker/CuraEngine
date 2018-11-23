@@ -69,6 +69,14 @@ public:
      */
     void singleLineNoJerk();
 
+    /*
+     * \brief Tests printing two lengthwise line segments without jerk.
+     *
+     * There is now a joint between these lines, but since the lines are exactly
+     * lengthwise, it will not need to decelerate in the middle.
+     */
+    void doubleLineNoJerk();
+
 private:
     /*
      * Fixture calculator that starts without any time or moves planned.

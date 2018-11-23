@@ -164,13 +164,40 @@ void TimeEstimateCalculatorTest::singleLineNoJerk()
     const TimeEstimateCalculator::Position destination(1000, 0, 0, 0);
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
-    //Distance needed to accelerate: a²t + vt. We accelerate at 50mm/s². No initial velocity.
-    const double accelerate_distance = 50 * 50 * 1 + 0 * 1;
+    //Distance needed to accelerate: 1/2 at² + vt. We accelerate at 50mm/s². No initial velocity.
+    const double accelerate_distance = 0.5 * 50 * 1 * 1 + 0 * 1;
     const double cruise_distance = 1000.0 - accelerate_distance * 2; //Decelerate distance is the same as accelerate distance.
 
     const std::vector<Duration> result = calculator.calculate();
     CPPUNIT_ASSERT_EQUAL(
         Duration(1.0 + cruise_distance / 50.0 + 1.0), //Accelerate, cruise, decelerate.
+        result[static_cast<size_t>(PrintFeatureType::Infill)]
+    );
+}
+
+void TimeEstimateCalculatorTest::doubleLineNoJerk()
+{
+    calculator.setFirmwareDefaults(jerkless);
+
+    /*
+     * These lines:
+     * Accelerate from 0 to 50mm/s in one second.
+     * Cruise at 50mm/s to the halfway point. It won't need to decelerate since the next line is in the same direction.
+     * Cruise at 50mm/s to just before the end.
+     * Decelerate from 50 to 0mm/s in one second.
+     */
+    const TimeEstimateCalculator::Position destination_1(1000, 0, 0, 0);
+    calculator.plan(destination_1, 50.0, PrintFeatureType::Infill);
+    const TimeEstimateCalculator::Position destination_2(2000, 0, 0, 0);
+    calculator.plan(destination_2, 50.0, PrintFeatureType::Infill);
+
+    //Distance needed to accelerate: 1/2 at² + vt. We accelerate at 50mm/s². No initial velocity.
+    const double accelerate_distance = 0.5 * 50 * 1 * 1 + 0 * 1;
+    const double cruise_distance = 2000.0 - accelerate_distance * 2; //Decelerate distance is the same as accelerate distance.
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(
+        Duration(1.0 + cruise_distance / 50 + 1.0), //Accelerate, cruise, decelerate.
         result[static_cast<size_t>(PrintFeatureType::Infill)]
     );
 }
