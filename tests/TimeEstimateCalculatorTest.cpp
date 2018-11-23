@@ -45,6 +45,20 @@ void TimeEstimateCalculatorTest::setUp()
     always_50.add("machine_minimum_feedrate", "0");
     always_50.add("machine_acceleration", "50");
 
+    jerkless.add("machine_max_feedrate_x", "50");
+    jerkless.add("machine_max_feedrate_y", "50");
+    jerkless.add("machine_max_feedrate_z", "50");
+    jerkless.add("machine_max_feedrate_e", "50");
+    jerkless.add("machine_max_acceleration_x", "50");
+    jerkless.add("machine_max_acceleration_y", "50");
+    jerkless.add("machine_max_acceleration_z", "50");
+    jerkless.add("machine_max_acceleration_e", "50");
+    jerkless.add("machine_max_jerk_xy", "0");
+    jerkless.add("machine_max_jerk_z", "0");
+    jerkless.add("machine_max_jerk_e", "0");
+    jerkless.add("machine_minimum_feedrate", "0");
+    jerkless.add("machine_acceleration", "50");
+
     calculator.setFirmwareDefaults(um3);
     calculator.setPosition(TimeEstimateCalculator::Position(0, 0, 0, 0));
 }
@@ -98,7 +112,8 @@ void TimeEstimateCalculatorTest::singleLineOnlyJerk()
 
     const TimeEstimateCalculator::Position destination(1000, 0, 0, 0);
 
-    /* This line:
+    /*
+     * This line:
      * Accelerate instantly from 0 to 50 mm/s because of jerk.
      * Travel at 50 mm/s throughout the line.
      * Decelerate instantly from 50 to 0 mm/s because of jerk at the end.
@@ -132,6 +147,30 @@ void TimeEstimateCalculatorTest::doubleLineOnlyJerk()
     const std::vector<Duration> result = calculator.calculate();
     CPPUNIT_ASSERT_EQUAL(
         Duration(2000 / 50.0), //2000mm at 50mm/s.
+        result[static_cast<size_t>(PrintFeatureType::Infill)]
+    );
+}
+
+void TimeEstimateCalculatorTest::singleLineNoJerk()
+{
+    calculator.setFirmwareDefaults(jerkless);
+
+    /*
+     * This line:
+     * Accelerate from 0 to 50mm/s in one second.
+     * At the end, decelerate from 50 to 0mm/s in one second again.
+     * In the middle, cruise at 50mm/s.
+     */
+    const TimeEstimateCalculator::Position destination(1000, 0, 0, 0);
+    calculator.plan(destination, 50.0, PrintFeatureType::Infill);
+
+    //Distance needed to accelerate: a²t + vt. We accelerate at 50mm/s². No initial velocity.
+    const double accelerate_distance = 50 * 50 * 1 + 0 * 1;
+    const double cruise_distance = 1000.0 - accelerate_distance * 2; //Decelerate distance is the same as accelerate distance.
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(
+        Duration(1.0 + cruise_distance / 50.0 + 1.0), //Accelerate, cruise, decelerate.
         result[static_cast<size_t>(PrintFeatureType::Infill)]
     );
 }

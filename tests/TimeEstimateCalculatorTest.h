@@ -62,6 +62,13 @@ public:
      */
     void doubleLineOnlyJerk();
 
+    /*
+     * \brief Tests printing a single line with only acceleration.
+     *
+     * There is no jerk, so acceleration is the only factor in this line.
+     */
+    void singleLineNoJerk();
+
 private:
     /*
      * Fixture calculator that starts without any time or moves planned.
@@ -88,6 +95,15 @@ private:
      * calculate).
      */
     Settings always_50;
+
+    /*
+     * Firmware settings to print without any jerk. Only acceleration has any
+     * effect.
+     *
+     * Acceleration is set to accelerate at 50 mm/s², so it will take one second
+     * to reach the maximum velocity of 50 mm/s.
+     */
+    Settings jerkless;
 };
 
 } //namespace cura
