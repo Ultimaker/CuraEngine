@@ -48,10 +48,19 @@ public:
     /*
      * \brief Time estimate of a single line without acceleration.
      *
-     * Jerk is causing 'instant' acceleration here, so only the maximum speed
-     * has an influence (apart from additional effects in the planner itself).
+     * Jerk is causing "instant" acceleration here, so only the maximum speed
+     * has an influence.
      */
     void singleLineOnlyJerk();
+
+    /*
+     * \brief Time estimate of two lengthwise line segments without
+     * acceleration.
+     *
+     * Jerk is causing an "instant" acceleration here, so only the maximum speed
+     * has an influence.
+     */
+    void doubleLineOnlyJerk();
 
 private:
     /*

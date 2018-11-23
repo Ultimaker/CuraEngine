@@ -105,9 +105,33 @@ void TimeEstimateCalculatorTest::singleLineOnlyJerk()
      */
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
-    std::vector<Duration> result = calculator.calculate();
+    const std::vector<Duration> result = calculator.calculate();
     CPPUNIT_ASSERT_EQUAL(
         Duration(1000 / 50.0), //1000mm at 50mm/s.
+        result[static_cast<size_t>(PrintFeatureType::Infill)]
+    );
+}
+
+void TimeEstimateCalculatorTest::doubleLineOnlyJerk()
+{
+    calculator.setFirmwareDefaults(always_50);
+
+    /*
+     * These lines:
+     * Accelerate instantly from 0 to 50mm/s because of jerk.
+     * Travel at 50 mm/s throughout the first line.
+     * At the end of the first line, continue at 50 mm/s with the second line. No acceleration is needed.
+     * Travel at 50 mm/s throughout the second line.
+     * Decelerate instantly from 50 to 0 mm/s because of jerk at the end.
+     */
+    const TimeEstimateCalculator::Position destination_1(1000, 0, 0, 0);
+    calculator.plan(destination_1, 50.0, PrintFeatureType::Infill);
+    const TimeEstimateCalculator::Position destination_2(2000, 0, 0, 0);
+    calculator.plan(destination_2, 50.0, PrintFeatureType::Infill);
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_EQUAL(
+        Duration(2000 / 50.0), //2000mm at 50mm/s.
         result[static_cast<size_t>(PrintFeatureType::Infill)]
     );
 }
