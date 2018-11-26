@@ -2183,9 +2183,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
         {
             Polygons lines;
             Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -(max_width + 10)));
-            // reduce the length of the resulting vector when point_inside isn't normal to the direction of the next line segment
-            // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
-            point_inside = (point_inside - poly[n]) * std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()]))) + poly[n];
             lines.addLine(poly[n], point_inside);
             lines = gaps.intersectionPolyLines(lines);
             if (lines.size() > 0)
@@ -2195,7 +2192,9 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                 gcode_layer.addExtrusionMove(lines[0][1], gap_config, SpaceFillType::Lines);
 #else
                 mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
-                widths.push_back(vSize(lines[0][1] - lines[0][0]));
+                // reduce the width when point_inside isn't normal to the direction of the next line segment
+                // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
+                widths.push_back(vSize(lines[0][1] - lines[0][0]) * std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()]))));
                 // calculate whether this segment is adjacent to a hole
                 adjacent_to_hole.push_back(!is_outline && !gaps.inside(point_inside, false) && gaps_sans_holes.inside(point_inside, false));
 #endif
