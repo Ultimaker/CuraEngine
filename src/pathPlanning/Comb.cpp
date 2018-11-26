@@ -48,7 +48,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
             {
                 travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
             }
-            return storage.getLayerOutlines(layer_nr, travel_avoid_supports).offset(travel_avoid_distance);
+            return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports).offset(travel_avoid_distance);
         }
     )
 , outside_loc_to_line(
@@ -260,8 +260,8 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
 //  Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comp_path_output
 void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output)
 {
-    int dist = move_inside_distance;
-    int dist2 = dist * dist;
+    const coord_t dist = move_inside_distance;
+    const coord_t dist2 = dist * dist;
 
     if (comb_path_input.size() == 0)
     {
