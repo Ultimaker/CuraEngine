@@ -291,6 +291,16 @@ public:
 };
 
 
+inline Point toPoint(const Point3& p)
+{
+    return Point(p.x, p.y);
+}
+
+inline Point3 toPoint3(const Point& p, coord_t z)
+{
+    return Point3(p.X, p.Y, z);
+}
+
 inline Point3 operator+(const Point3& p3, const Point& p2) {
     return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);
 }
