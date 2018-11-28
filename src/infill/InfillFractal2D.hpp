@@ -108,14 +108,16 @@ void InfillFractal2D<CellGeometry>::initialize()
 {
     TimeKeeper tk;
     createTree();
+#ifdef DEBUG
     debugCheckDepths();
     debugCheckVolumeStats();
+#endif
     logDebug("Created InfillFractal2D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
 }
 
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_root)
+void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_root, int_fast8_t averaging_statistic)
 {
     bool has_children = sub_tree_root.children[0] >= 0;
     if (has_children)
@@ -128,16 +130,40 @@ void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_roo
             }
             Cell& child = cell_data[child_idx];
             setSpecificationAllowance(child);
-            sub_tree_root.filled_volume_allowance += child.filled_volume_allowance;
-            sub_tree_root.minimally_required_density = std::max(sub_tree_root.minimally_required_density, child.minimally_required_density);
-            sub_tree_root.maximally_allowed_density = std::min(sub_tree_root.maximally_allowed_density, child.maximally_allowed_density);
+            switch (averaging_statistic)
+            {
+                case 0:
+                    sub_tree_root.filled_volume_allowance += child.filled_volume_allowance;
+                break;
+                case -1:
+                    sub_tree_root.minimally_required_density = std::max(sub_tree_root.minimally_required_density, child.minimally_required_density);
+                break;
+                case 1:
+                    sub_tree_root.maximally_allowed_density = std::min(sub_tree_root.maximally_allowed_density, child.maximally_allowed_density);
+                break;
+                default:
+                    logError("Undefined averaging statistic used in InfillFractal2D\n");
+                    std::exit(-1);
+            }
         }
     }
     else
     {
-        sub_tree_root.minimally_required_density = getDensity(sub_tree_root, /* averaging_statistic = */ -1);
-        sub_tree_root.maximally_allowed_density = getDensity(sub_tree_root, /* averaging_statistic = */ 1);
-        sub_tree_root.filled_volume_allowance = sub_tree_root.volume * getDensity(sub_tree_root, /* averaging_statistic = */ 0);
+        switch (averaging_statistic)
+        {
+            case 0:
+                sub_tree_root.filled_volume_allowance = sub_tree_root.volume * getDensity(sub_tree_root, /* averaging_statistic = */ 0);
+            break;
+            case -1:
+                sub_tree_root.minimally_required_density = getDensity(sub_tree_root, /* averaging_statistic = */ -1);
+            break;
+            case 1:
+                sub_tree_root.maximally_allowed_density = getDensity(sub_tree_root, /* averaging_statistic = */ 1);
+            break;
+            default:
+                logError("Undefined averaging statistic used in InfillFractal2D\n");
+                std::exit(-1);
+        }
     }
 }
 
@@ -177,7 +203,8 @@ void InfillFractal2D<CellGeometry>::createMaxDepthPattern()
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_step_less_dense)
 {
-    TimeKeeper tk;
+    setSpecificationAllowance(cell_data[0], /*averaging_statistic =*/ -1);
+
     std::list<idx_t> all_to_be_subdivided;
     
     std::function<bool(const Cell&)> shouldBeSubdivided;
@@ -252,7 +279,6 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_s
             }
         }
     }
-    logDebug("InfillFractal2D::createMinimalDensityPattern finished in %5.2fs.\n", tk.restart());
 #ifdef DEBUG
     debugCheckConstraint(cell_data[0]);
 #endif
@@ -263,6 +289,7 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_s
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::createMaximalDensityPattern(idx_t starting_idx)
 {
+    setSpecificationAllowance(cell_data[0], /*averaging_statistic =*/ 1);
     Cell& parent = cell_data[starting_idx];
     if (parent.depth >= max_depth)
     {
@@ -1233,11 +1260,6 @@ void InfillFractal2D<CellGeometry>::debugCheckVolumeStats() const
         {
             problems++;
             logError("Cell with depth %i has incorrect filled_volume_allowance  %f!\n", cell.depth, cell.filled_volume_allowance );
-        }
-        if (cell.minimally_required_density < 0)
-        {
-            problems++;
-            logError("Cell with depth %i has incorrect minimally_required_density %f!\n", cell.depth, cell.minimally_required_density);
         }
         float child_filled_volume_allowance = 0;
         for (idx_t child_idx : cell.children)

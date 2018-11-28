@@ -512,7 +512,7 @@ protected:
     // Tree creation:
     virtual void createTree() = 0;
     virtual void setVolume(Cell& sub_tree_root) = 0;
-    void setSpecificationAllowance(Cell& sub_tree_root);
+    void setSpecificationAllowance(Cell& sub_tree_root, int_fast8_t averaging_statistic = 0);
 
     // Lower bound sequence:
 
