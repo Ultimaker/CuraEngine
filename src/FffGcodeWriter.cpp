@@ -2164,8 +2164,13 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
 
     coord_t avg_width = 2 * gaps.area() / gaps.polygonLength();
 
-    for (ConstPolygonRef poly : gaps)
+    Polygons gap_polygons(gaps);
+    unsigned next_poly_index = 0;
+
+    while (gap_polygons.size() > 0)
     {
+        ConstPolygonRef poly = gap_polygons[next_poly_index];
+
         if (std::abs(poly.area()) < (500 * 500))
         {
             // ignore areas smaller than 0.25 mm^2
@@ -2276,6 +2281,18 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     travel_needed = true;
                 }
                 start = next_mid_point;
+            }
+        }
+
+        gap_polygons.remove(next_poly_index);
+        next_poly_index = 0;
+
+        if (gap_polygons.size() > 1)
+        {
+            ClosestPolygonPoint cpp = PolygonUtils::findClosest(gcode_layer.getLastPlannedPositionOrStartingPosition(), gap_polygons);
+            if (cpp.isValid())
+            {
+                next_poly_index = cpp.poly_idx;
             }
         }
     }
