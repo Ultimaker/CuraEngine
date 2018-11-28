@@ -13,6 +13,7 @@
 
 #include "SierpinskiFill.h"
 #include "Cross3D.h"
+#include "Cross3DPrismEdgeNetwork.h"
 #include "DensityProvider.h"
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
@@ -55,8 +56,10 @@ public:
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
 
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
+
     std::optional<Cross3D> subdivision_structure_3d; //!< The 3D prism subdivision structure from which to generate the patterns with varying density across Z
     std::map<coord_t, const Cross3D::Cell*> z_to_start_cell_cross3d; //!< Sierpinski sequence start cell for each z coord
+    std::optional<Cross3DPrismEdgeNetwork> edge_network;
 
     SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width, float density,
                            bool dense_at_top, float cross_infill_top_density, bool use_skin);

@@ -53,6 +53,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
         }
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
+    edge_network.emplace(*subdivision_structure_3d);
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width,
@@ -77,6 +78,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
         subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
+    edge_network.emplace(*subdivision_structure_3d);
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width,
@@ -102,6 +104,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
         logDebug("Top skin density minimum enforced in %5.2fs.\n", tk.restart());
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
+    edge_network.emplace(*subdivision_structure_3d);
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
@@ -130,7 +133,7 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
         Cross3D::SliceWalker slicer_walker = subdivision_structure_3d->getSequence(*start_cell_iter->second, z);
         if (pattern == EFillMethod::CROSS_3D)
         {
-            ret = subdivision_structure_3d->generateCross3D(slicer_walker, z);
+            ret = subdivision_structure_3d->generateCross3D(slicer_walker, *edge_network, z);
         }
         else
         {

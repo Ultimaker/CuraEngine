@@ -143,6 +143,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/CompensatedDensityProvider.cpp
     src/infill/Cross3D.cpp
     src/infill/Cross3DPrism.cpp
+    src/infill/Cross3DPrismEdgeNetwork.cpp
     src/infill/GyroidInfill.cpp
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp

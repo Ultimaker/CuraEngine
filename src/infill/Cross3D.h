@@ -23,6 +23,7 @@ namespace cura
 {
 
 class Cross3DTest; // fwd decl
+class Cross3DPrismEdgeNetwork; // fwd decl
 /*!
  * Cross3D is a class for generating the Cross 3D infill pattern with varying density accross X, Y and Z.
  * Each layer is a space filling curve and across the layers the pattern forms a space filling surface,
@@ -117,6 +118,7 @@ class Cross3DTest; // fwd decl
 class Cross3D : public InfillFractal2D<Cross3DPrism>
 {
     friend class Cross3DTest;
+    friend class Cross3DPrismEdgeNetwork;
     using idx_t = int_fast32_t;
 public:
     using Cell = InfillFractal2D<Cross3DPrism>::Cell;
@@ -156,7 +158,7 @@ public:
 
     Polygon generateCross(const SliceWalker& sequence) const;
 
-    Polygon generateCross3D(const SliceWalker& sequence, coord_t z) const;
+    Polygon generateCross3D(const SliceWalker& sequence, const Cross3DPrismEdgeNetwork& edge_network, coord_t z) const;
 
     /*!
      * Generate line segments to show the subdivision structure underlying the fractal.
@@ -236,45 +238,25 @@ private:
      * Add line segments for the space filling surface patch in this \p cell.
      * This depends on neighboring cells and their upstairs and downstrairs neighbors.
      * 
+     * \param edge_network TODO
      * \param cell The cell to slice
      * \param after The cell after/right of the cell to slice at the slicing height
      * \param z The height at which to slice the cell
      * \param[in,out] from The to-location of the previous cell (input) and the from-location of the next cell (output)
      * \param[out] output Where to add the points
      */
-    void sliceCell(const Cell& cell, const Cell& after, const coord_t z, Point& from, PolygonRef output) const;
+    void sliceCell(const Cross3DPrismEdgeNetwork& edge_network, const Cell& cell, const Cell& after, const coord_t z, Point& from, PolygonRef output) const;
 
     /*!
      * Get the location of a vertex of the space filling curve lying on the edge in between two cells.
-     * This function applies XY neighboring pattern constraints (highest recursion dpeth decides oscillation pattern)
-     * and Z oscillation continuity constraints (oscillation pattern is altered to fit higher recursion cells above and below).
+     * This function applies XY neighboring pattern constraints:
+     * For horizontally neighboring cells the highest recursion depth decides the oscillation pattern
+     * and Z oscillation continuity constraints:
+     * oscillation pattern is altered to fit higher recursion cells above and below.
      * 
      * Also the points are generated not too close to the cell boundary so as not to cause line overlap problems.
      */
-    Point getCellEdgeLocation(const Cell& before, const Cell& after, const coord_t z) const;
-
-    /*!
-     * Change the vertex position of the space filling curve along an edge
-     * in order to make the oscillation pattern fit with more dense cells either above or below.
-     * 
-     * The input and output vertex position is/should not be corrected to not lie too close to the borders yet.
-     * 
-     * \param before The cell left of the edge at this height
-     * \param after The cell right of the edge at this height
-     * \param z The z height at which we are slicing the cell
-     * \param densest_cell Either \p before or \p after; whichever is deeper recursed
-     * \param edge The edge of the \p densest_cell; i.e. the shortest edge in common to both \p before and \p after.
-     * \param edge_size Precomputed length of \p edge
-     * \param checking_direction Either UP or DOWN, to specify in which direction to check for constraints
-     * \param[in,out] pos The position along the edge to be altered by this function
-     */
-    void applyZOscillationConstraint(const Cell& before, const Cell& after, coord_t z, const Cell& densest_cell, const LineSegment edge, const coord_t edge_size, const Direction checking_direction, coord_t& pos) const;
-
-    /*!
-     * Get the position in the oscillation pattern based on the two cells on both sides of the edge,
-     * without taking the edges above and below into account.
-     */
-    coord_t getCellEdgePosition(const Cell& cell, const coord_t edge_size, coord_t z) const;
+    Point getCellEdgeLocation(const Cross3DPrismEdgeNetwork& edge_network, const Cell& before, const Cell& after, const coord_t z) const;
 
     /*!
      * Whether the space filling curve \p segment is overlapping beyond the \p edge
