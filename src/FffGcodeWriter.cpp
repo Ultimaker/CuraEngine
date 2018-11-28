@@ -1738,10 +1738,7 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
 {
     if (true)
     {
-        const coord_t max_width = mesh.settings.get<coord_t>("wall_line_width_0");
-        const bool use_alternate_layers = false;
-        const bool is_outline = true;
-        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, part.outline_gaps, mesh_config.perimeter_gap_config, max_width, use_alternate_layers, is_outline, added_something);
+        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, part.outline_gaps, mesh_config.perimeter_gap_config, added_something);
         return;
     }
 
@@ -2161,14 +2158,13 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     }
 }
 
-void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, const coord_t max_width, const bool use_alternate_layers, const bool is_outline, bool& added_something) const
+void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, bool& added_something) const
 {
-    Polygons gaps_sans_holes;
-    if (!is_outline)
-    {
-        gaps_sans_holes = gaps.getOutsidePolygons();
-    }
-    for (ConstPolygonRef poly : (is_outline) ? gaps : gaps_sans_holes)
+    Polygons all_filled_segments;
+
+    coord_t avg_width = 2 * gaps.area() / gaps.polygonLength();
+
+    for (ConstPolygonRef poly : gaps)
     {
         if (std::abs(poly.area()) < (500 * 500))
         {
@@ -2176,13 +2172,18 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
             continue;
         }
 
+        std::vector<Point> begin_points;
+        std::vector<Point> end_points;
         std::vector<Point> mid_points;
         std::vector<coord_t> widths;
-        std::vector<bool> adjacent_to_hole;
         for (unsigned n = 0; n < poly.size(); ++n)
         {
             Polygons lines;
-            Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -(max_width + 10)));
+            Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -avg_width * 2));
+            // adjust the width when point_inside isn't normal to the direction of the next line segment
+            // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
+            const double len_scale = std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()])));
+            point_inside = poly[n] + normal(point_inside - poly[n], std::min(avg_width * (1 / (len_scale + 0.01)), 1.414 * avg_width));
             lines.addLine(poly[n], point_inside);
             lines = gaps.intersectionPolyLines(lines);
             if (lines.size() > 0)
@@ -2191,54 +2192,33 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                 gcode_layer.addTravel(lines[0][0]);
                 gcode_layer.addExtrusionMove(lines[0][1], gap_config, SpaceFillType::Lines);
 #else
+                const coord_t line_len = vSize(lines[0][1] - lines[0][0]) * len_scale;
+                widths.push_back(line_len);
+                begin_points.emplace_back(poly[n]);
+                end_points.emplace_back(poly[n] + normal(turn90CCW(poly[(n + 1) % poly.size()] - poly[n]), line_len));
                 mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
-                // reduce the width when point_inside isn't normal to the direction of the next line segment
-                // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
-                widths.push_back(vSize(lines[0][1] - lines[0][0]) * std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()]))));
-                // calculate whether this segment is adjacent to a hole
-                adjacent_to_hole.push_back(!is_outline && !gaps.inside(point_inside, false) && gaps_sans_holes.inside(point_inside, false));
 #endif
             }
         }
         if (mid_points.size() > 1)
         {
-            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-            const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-            const coord_t filament_radius = train.settings.get<coord_t>("material_diameter")/2;
-            const double filament_area = M_PI * filament_radius * filament_radius;
-
-            coord_t low_extrusion_rate_distance = 0;
-            coord_t total_distance = 1; // avoid divide by zero later
-
-            for (unsigned point_index = 0; point_index < mid_points.size(); ++point_index)
+            std::vector<Polygon> areas;
+            std::vector<bool> filled;
+            for (unsigned point_index = 0; point_index < begin_points.size(); ++point_index)
             {
-                const unsigned next_point_index = (point_index + 1) % mid_points.size();
-
-                const coord_t segment_length = vSize(mid_points[next_point_index] - mid_points[point_index]);
-
-                if (use_alternate_layers && segment_length > 50)
-                {
-                    const coord_t segment_width = (widths[next_point_index] + widths[point_index]) / 2;
-                    // divide the length by 2 here because when the fill is printed every layer, we use half the normal extrusion rate
-                    const double filament_length = (segment_length * segment_width * layer_height) / filament_area / 2;
-                    const unsigned extruder_steps_per_mm = 100; // all extruders should be able to manage this, surely?
-                    if (INT2MM(filament_length) * extruder_steps_per_mm < 1)
-                    {
-                        low_extrusion_rate_distance += segment_length;
-                    }
-                    total_distance += segment_length;
-                }
+                const unsigned next_point_index = (point_index + 1) % begin_points.size();
+                areas.emplace_back();
+                areas.back().add(begin_points[point_index]);
+                areas.back().add(begin_points[next_point_index]);
+                areas.back().add(begin_points[next_point_index] + (end_points[point_index] - begin_points[point_index]));
+                areas.back().add(end_points[point_index]);
+                filled.push_back(false);
             }
-
-            // if more than 5% of the fill would be below the min extrusion rate threshold when
-            // filling at half the normal extrusion rate, fill every other layer at 100% flow
-            const bool fill_alternate_layers = use_alternate_layers && (double)low_extrusion_rate_distance / total_distance > 0.05;
 
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
 
-            const float min_flow = 0.1;
             const Point origin(gcode_layer.getLastPlannedPositionOrStartingPosition());
             coord_t min_dist2 = vSize2(origin - mid_points[0]);
             unsigned start_point_index = 0;
@@ -2259,40 +2239,37 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
             {
                 const unsigned point_index = (start_point_index + n) % mid_points.size();
                 const unsigned next_point_index = (point_index + 1) % mid_points.size();
-
                 const Point& next_mid_point(mid_points[next_point_index]);
-                float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
-                bool do_fill = adjacent_to_hole[point_index];
 
-                if (!do_fill)
+                Polygons segment;
+                segment.add(areas[point_index]);
+                Polygons overlap(segment.intersection(all_filled_segments));
+
+#if 0
+                if (gcode_layer.getLayerNr() == 0)
                 {
-                    if (fill_alternate_layers)
-                    {
-                        // fill alternate layers with full extrusion amount
-                        do_fill = gcode_layer.getLayerNr() & 1;
-                    }
-                    else
-                    {
-                        // fill every layer with 1/2 the extrusion amount
-                        do_fill = true;
-                        flow /= 2;
-                    }
+                    std::cerr << point_index << ": overlap % = " << 100 * overlap.area() / segment.area() << "\n";
                 }
-                if (do_fill)
+#endif
+
+                if (overlap.size() > 0 && overlap.area() > segment.area() * 0.15)
                 {
-                    if (flow > min_flow)
+                    start = next_mid_point;
+                    travel_needed = true;
+                    continue;
+                }
+
+                const float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
+                if (flow > 0.1)
+                {
+                    if (travel_needed)
                     {
-                        if (travel_needed)
-                        {
-                            gcode_layer.addTravel(start);
-                            travel_needed = false;
-                        }
-                        gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
+                        gcode_layer.addTravel(start);
+                        travel_needed = false;
                     }
-                    else
-                    {
-                        travel_needed = true;
-                    }
+                    gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
+                    filled[point_index] = true;
+                    all_filled_segments = all_filled_segments.unionPolygons(segment);
                 }
                 else
                 {
@@ -2308,10 +2285,7 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
 {
     if (true)
     {
-        const coord_t max_width = std::max(mesh.settings.get<coord_t>("wall_line_width_0"), mesh.settings.get<coord_t>("wall_line_width_x"));
-        const bool use_alternate_layers = true;
-        const bool is_outline = false;
-        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, perimeter_gaps, perimeter_gap_config, max_width, use_alternate_layers, is_outline, added_something);
+        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, perimeter_gaps, perimeter_gap_config, added_something);
         return;
     }
 
