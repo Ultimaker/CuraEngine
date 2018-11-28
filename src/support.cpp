@@ -19,6 +19,25 @@
 #include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
 #include "utils/math.h"
 
+namespace
+{
+
+/*
+ * If support_wall_count > 0, then the actual outermost contour of the printed support polygons will be the outer inset of support infill part, offset from the outline on a half of line width.
+ * This function returns the actual offset value.
+ */
+static cura::coord_t getActualSupportOffset()
+{
+    const cura::Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const cura::ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
+    const cura::coord_t support_line_width = infill_extruder.settings.get<cura::coord_t>("support_line_width");
+    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
+    const cura::coord_t support_offset = wall_line_count > 0 ? -support_line_width / 2 : 0;
+    return support_offset;
+}
+
+}
+
 namespace cura 
 {
 
@@ -1389,7 +1408,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const double minimum_bottom_area = mesh.settings.get<double>("minimum_bottom_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
+    for (unsigned int layer_idx = support_layers.size() - 1; static_cast<int>(layer_idx) >= static_cast<int>(z_distance_bottom); layer_idx--)
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         Polygons mesh_outlines;
@@ -1399,7 +1418,30 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
-        support_layers[layer_idx].support_bottom.add(bottoms);
+
+        if (mesh_group_settings.get<bool>("build_interface_if_support_present") && layer_idx < support_layers.size() - 1)
+        {
+            Polygons support_bottoms;
+            const coord_t actual_support_offset = getActualSupportOffset();
+            const std::vector<PolygonsPart> bottom_parts = bottoms.splitIntoParts();
+            for (const PolygonsPart& bottom_part : bottom_parts)
+            {
+                // check if:
+                // - any interface polygons are printed above;
+                // - any support polygons are printed above, because some support could be pushed away by large XY distance or support could be so tiny that it skipped by offset due to support walls.
+                const bool is_any_support_present = !bottom_part.intersection(support_layers[layer_idx + 1].support_bottom).empty()
+                        || !bottom_part.intersection(global_support_areas_per_layer[layer_idx + 1].offset(actual_support_offset).offset(-actual_support_offset)).empty();
+                if (is_any_support_present)
+                {
+                    support_bottoms.add(bottom_part);
+                }
+            }
+            support_layers[layer_idx].support_bottom.add(support_bottoms);
+        }
+        else
+        {
+            support_layers[layer_idx].support_bottom.add(bottoms);
+        }
     }
 }
 
@@ -1432,7 +1474,30 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
-        support_layers[layer_idx].support_roof.add(roofs);
+
+        if (mesh_group_settings.get<bool>("build_interface_if_support_present") && layer_idx > 0)
+        {
+            Polygons support_roofs;
+            const coord_t actual_support_offset = getActualSupportOffset();
+            const std::vector<PolygonsPart> roof_parts = roofs.splitIntoParts();
+            for (const PolygonsPart& roof_part : roof_parts)
+            {
+                // check if:
+                // - any interface polygons are printed below;
+                // - any support polygons are printed below, because some support could be pushed away by large XY distance or support could be so tiny that it skipped by offset due to support walls.
+                const bool is_any_support_present = !roof_part.intersection(support_layers[layer_idx - 1].support_roof).empty()
+                        || !roof_part.intersection(global_support_areas_per_layer[layer_idx - 1].offset(actual_support_offset).offset(-actual_support_offset)).empty();
+                if (is_any_support_present)
+                {
+                    support_roofs.add(roof_part);
+                }
+            }
+            support_layers[layer_idx].support_roof.add(support_roofs);
+        }
+        else
+        {
+           support_layers[layer_idx].support_roof.add(roofs);
+        }
     }
 }
 
