@@ -2215,8 +2215,19 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                 areas.emplace_back();
                 areas.back().add(begin_points[point_index]);
                 areas.back().add(begin_points[next_point_index]);
-                areas.back().add(begin_points[next_point_index] + (end_points[point_index] - begin_points[point_index]));
+                // add the next mid point if it makes the area bigger
+                if (LinearAlg2D::getAngleLeft(begin_points[point_index], begin_points[next_point_index], mid_points[next_point_index]) > M_PI * 0.55)
+                {
+                    areas.back().add(mid_points[next_point_index]);
+                }
+                Point next_end_point(begin_points[next_point_index] + (end_points[point_index] - begin_points[point_index]));
+                areas.back().add(next_end_point);
                 areas.back().add(end_points[point_index]);
+                // add the current mid point if it makes the area bigger
+                if (LinearAlg2D::getAngleLeft(next_end_point, end_points[point_index], mid_points[point_index]) > M_PI * 0.55)
+                {
+                    areas.back().add(mid_points[point_index]);
+                }
                 filled.push_back(false);
             }
 
