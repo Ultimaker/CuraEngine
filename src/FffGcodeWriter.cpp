@@ -2208,7 +2208,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
         if (mid_points.size() > 1)
         {
             std::vector<Polygon> areas;
-            std::vector<bool> filled;
             for (unsigned point_index = 0; point_index < begin_points.size(); ++point_index)
             {
                 const unsigned next_point_index = (point_index + 1) % begin_points.size();
@@ -2228,7 +2227,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                 {
                     areas.back().add(mid_points[point_index]);
                 }
-                filled.push_back(false);
             }
 
             added_something = true;
@@ -2284,7 +2282,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                         travel_needed = false;
                     }
                     gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
-                    filled[point_index] = true;
                     all_filled_segments = all_filled_segments.unionPolygons(segment);
                 }
                 else
