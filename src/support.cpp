@@ -26,7 +26,7 @@ namespace
  * If support_wall_count > 0, then the actual outermost contour of the printed support polygons will be the outer inset of support infill part, offset from the outline on a half of line width.
  * This function returns the actual offset value.
  */
-static cura::coord_t getActualSupportOffset()
+cura::coord_t getActualSupportOffset()
 {
     const cura::Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const cura::ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
