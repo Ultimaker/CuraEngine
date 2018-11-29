@@ -114,11 +114,6 @@ void Cross3DPrismEdgeNetwork::adjustEdgeEnd(std::vector<Point3>& edge_locations,
     const coord_t edge_direction_vector_length = vSize(toPoint(edge_direction_vector));
     const Point3 bending_point = to_be_moved + edge_direction_vector * move_length / 2 / edge_direction_vector_length;
 
-    { // check whether the bending_point and the move_destination are on the edge
-        assert(vSize(toPoint(bending_point - to_be_moved)) + vSize(toPoint(bending_point - lower_edge_location)) < 10 + vSize(toPoint(to_be_moved - lower_edge_location)));
-        assert(vSize(toPoint(move_destination - to_be_moved)) + vSize(toPoint(move_destination - lower_edge_location)) < 10 + vSize(toPoint(to_be_moved - lower_edge_location)));
-    }
-
     if ((bending_point - lower_edge_location).vSize2() > 10 * 10
         && (bending_point - move_destination).vSize2() > 10 * 10)
     {
