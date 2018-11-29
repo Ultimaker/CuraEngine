@@ -86,11 +86,14 @@ namespace cura
  * but because an edge is always in between two prisms,
  * we only map the prism with the higher density (or the left one) to the edge.
  * We say that that cell is the *owner* of the edge.
+ * 
+ * We process mor edense cells first so that we can adjsut any lower density edge to existing edges.
  */
 class Cross3DPrismEdgeNetwork
 {
 public:
     using Cell = Cross3D::Cell;
+    using Direction = Cross3D::Direction;
     /*!
      * Build the network of all edges in between horizontally neighboring cells.
      */
@@ -120,11 +123,40 @@ protected:
      */
     void applyOscillationConstraints(const Cell& cell, Cross3D::Direction edge_side, Cross3D::Direction up_down, std::vector<Point3>& edge_locations);
     /*!
+     * If the cells above/below this cell are subdivided more, then let those cells have their endpoint in the crossfill line segment where this cell ends.
+     * 
+     * See ascii art at in the documentation of this class.
+     */
+    void preventZdiscontinuityProblem(const Cell& cell, Cross3D::Direction up_down);
+    /*!
      * Adjust the end (top or bottom) of an edge to match a given point
      */
     void adjustEdgeEnd(std::vector<Point3>& edge_locations, Cross3D::Direction up_down, Point3 move_destination);
     // aux:
     char getNeighborDepth(const Cell& cell, Cross3D::Direction direction); //!< Get the depth of the neighboring cell(s) (any will do because neighboring cells cannot have different depths)
+    /*!
+     * Get the already stored edge on one side of a cell.
+     * 
+     * We get the edge via the owner, which might be this cell or it's neihgbor.
+     * 
+     * Because the neighbor can be subdivided more we need to specify whether we want the upper or lower edge.
+     * 
+     * \warning all edges must already been created before this function can be called.
+     * It assumes an edge exists in between two cells.
+     */
+    std::vector<Point3>& getEdge(const Cell& cell, Cross3D::Direction edge_side, Cross3D::Direction up_down);
+    //debug:
+    /*!
+     * check whether overhang constraints are not violated in all recorded edges
+     * 
+     * Note that the overhang constraint for edge overhang is more lenient.
+     * We assume that an edge crossing the prism side connected to the diagonal of a half-cubic cell determines the overhang angle.
+     * That is an inclination of 1 unit up over a horizontal ditance of sqrt(2).
+     * Which is an angle of 35,264389683.
+     * To account for rounding errors we accept inclinations as low as 35.0
+     */
+    void debugCheckInclinations() const;
+    static void debugCheckInclination(const std::vector<Point3>& edge); //!< Check the overhang constraints of a single edge.
 };
 
 } // namespace cura
