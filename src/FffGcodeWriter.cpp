@@ -2272,6 +2272,9 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                         continue;
                     }
 
+                    // consider the segment filled even if the flow is too low to actually do the fill
+                    all_filled_segments = all_filled_segments.unionPolygons(segment);
+
                     const float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
                     if (flow > 0.1)
                     {
@@ -2281,7 +2284,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                             travel_needed = false;
                         }
                         gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
-                        all_filled_segments = all_filled_segments.unionPolygons(segment);
                     }
                     else
                     {
