@@ -2161,9 +2161,21 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
 void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, bool& added_something) const
 {
+    const Ratio min_flow = std::max(Ratio(0.2), mesh.settings.get<Ratio>("wall_min_flow"));
+
     Polygons all_filled_segments;
 
+    if (!gaps.polyLineLength())
+    {
+        return;
+    }
+
     coord_t avg_width = 2 * gaps.area() / gaps.polygonLength();
+
+    if ((float)avg_width / gap_config.getLineWidth() < min_flow)
+    {
+        return;
+    }
 
     Polygons gap_polygons(gaps);
     unsigned next_poly_index = 0;
@@ -2276,7 +2288,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     all_filled_segments = all_filled_segments.unionPolygons(segment);
 
                     const float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
-                    if (flow > 0.1)
+                    if (flow > min_flow)
                     {
                         if (travel_needed)
                         {
