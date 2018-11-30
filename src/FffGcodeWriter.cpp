@@ -2172,124 +2172,123 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
     {
         ConstPolygonRef poly = gap_polygons[next_poly_index];
 
-        if (std::abs(poly.area()) < (500 * 500))
+        if (std::abs(poly.area()) > (500 * 500))
         {
-            // ignore areas smaller than 0.25 mm^2
-            continue;
-        }
+            // fill areas greater than 0.25 mm^2
 
-        std::vector<Point> begin_points;
-        std::vector<Point> end_points;
-        std::vector<Point> mid_points;
-        std::vector<coord_t> widths;
-        for (unsigned n = 0; n < poly.size(); ++n)
-        {
-            Polygons lines;
-            Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -avg_width * 2));
-            // adjust the width when point_inside isn't normal to the direction of the next line segment
-            // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
-            const double len_scale = std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()])));
-            point_inside = poly[n] + normal(point_inside - poly[n], std::min(avg_width * (1 / (len_scale + 0.01)), 1.414 * avg_width));
-            lines.addLine(poly[n], point_inside);
-            lines = gaps.intersectionPolyLines(lines);
-            if (lines.size() > 0)
+            std::vector<Point> begin_points;
+            std::vector<Point> end_points;
+            std::vector<Point> mid_points;
+            std::vector<coord_t> widths;
+            for (unsigned n = 0; n < poly.size(); ++n)
             {
-#if 0
-                gcode_layer.addTravel(lines[0][0]);
-                gcode_layer.addExtrusionMove(lines[0][1], gap_config, SpaceFillType::Lines);
-#else
-                const coord_t line_len = vSize(lines[0][1] - lines[0][0]) * len_scale;
-                widths.push_back(line_len);
-                begin_points.emplace_back(poly[n]);
-                end_points.emplace_back(poly[n] + normal(turn90CCW(poly[(n + 1) % poly.size()] - poly[n]), line_len));
-                mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
-#endif
-            }
-        }
-        if (mid_points.size() > 1)
-        {
-            std::vector<Polygon> areas;
-            for (unsigned point_index = 0; point_index < begin_points.size(); ++point_index)
-            {
-                const unsigned next_point_index = (point_index + 1) % begin_points.size();
-                areas.emplace_back();
-                areas.back().add(begin_points[point_index]);
-                areas.back().add(begin_points[next_point_index]);
-                // add the next mid point if it makes the area bigger
-                if (LinearAlg2D::getAngleLeft(begin_points[point_index], begin_points[next_point_index], mid_points[next_point_index]) > M_PI * 0.55)
+                Polygons lines;
+                Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -avg_width * 2));
+                // adjust the width when point_inside isn't normal to the direction of the next line segment
+                // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
+                const double len_scale = std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()])));
+                point_inside = poly[n] + normal(point_inside - poly[n], std::min(avg_width * (1 / (len_scale + 0.01)), 1.414 * avg_width));
+                lines.addLine(poly[n], point_inside);
+                lines = gaps.intersectionPolyLines(lines);
+                if (lines.size() > 0)
                 {
-                    areas.back().add(mid_points[next_point_index]);
-                }
-                Point next_end_point(begin_points[next_point_index] + (end_points[point_index] - begin_points[point_index]));
-                areas.back().add(next_end_point);
-                areas.back().add(end_points[point_index]);
-                // add the current mid point if it makes the area bigger
-                if (LinearAlg2D::getAngleLeft(next_end_point, end_points[point_index], mid_points[point_index]) > M_PI * 0.55)
-                {
-                    areas.back().add(mid_points[point_index]);
+    #if 0
+                    gcode_layer.addTravel(lines[0][0]);
+                    gcode_layer.addExtrusionMove(lines[0][1], gap_config, SpaceFillType::Lines);
+    #else
+                    const coord_t line_len = vSize(lines[0][1] - lines[0][0]) * len_scale;
+                    widths.push_back(line_len);
+                    begin_points.emplace_back(poly[n]);
+                    end_points.emplace_back(poly[n] + normal(turn90CCW(poly[(n + 1) % poly.size()] - poly[n]), line_len));
+                    mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
+    #endif
                 }
             }
-
-            added_something = true;
-            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-            gcode_layer.setIsInside(true); // going to print stuff inside print object
-
-            const Point origin(gcode_layer.getLastPlannedPositionOrStartingPosition());
-            coord_t min_dist2 = vSize2(origin - mid_points[0]);
-            unsigned start_point_index = 0;
-            for (unsigned n = 1; n < mid_points.size(); ++n)
+            if (mid_points.size() > 1)
             {
-                coord_t dist2 = vSize2(origin - mid_points[n]);
-                if (dist2 < min_dist2)
+                std::vector<Polygon> areas;
+                for (unsigned point_index = 0; point_index < begin_points.size(); ++point_index)
                 {
-                    min_dist2 = dist2;
-                    start_point_index = n;
-                }
-            }
-
-            Point start(mid_points[start_point_index]);
-            bool travel_needed = true;
-
-            for (unsigned n = 0; n < mid_points.size(); ++n)
-            {
-                const unsigned point_index = (start_point_index + n) % mid_points.size();
-                const unsigned next_point_index = (point_index + 1) % mid_points.size();
-                const Point& next_mid_point(mid_points[next_point_index]);
-
-                Polygons segment;
-                segment.add(areas[point_index]);
-                Polygons overlap(segment.intersection(all_filled_segments));
-
-#if 0
-                if (gcode_layer.getLayerNr() == 0)
-                {
-                    std::cerr << point_index << ": overlap % = " << 100 * overlap.area() / segment.area() << "\n";
-                }
-#endif
-
-                if (overlap.size() > 0 && overlap.area() > segment.area() * 0.3)
-                {
-                    start = next_mid_point;
-                    travel_needed = true;
-                    continue;
-                }
-
-                const float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
-                if (flow > 0.1)
-                {
-                    if (travel_needed)
+                    const unsigned next_point_index = (point_index + 1) % begin_points.size();
+                    areas.emplace_back();
+                    areas.back().add(begin_points[point_index]);
+                    areas.back().add(begin_points[next_point_index]);
+                    // add the next mid point if it makes the area bigger
+                    if (LinearAlg2D::getAngleLeft(begin_points[point_index], begin_points[next_point_index], mid_points[next_point_index]) > M_PI * 0.55)
                     {
-                        gcode_layer.addTravel(start);
-                        travel_needed = false;
+                        areas.back().add(mid_points[next_point_index]);
                     }
-                    gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
-                    all_filled_segments = all_filled_segments.unionPolygons(segment);
+                    Point next_end_point(begin_points[next_point_index] + (end_points[point_index] - begin_points[point_index]));
+                    areas.back().add(next_end_point);
+                    areas.back().add(end_points[point_index]);
+                    // add the current mid point if it makes the area bigger
+                    if (LinearAlg2D::getAngleLeft(next_end_point, end_points[point_index], mid_points[point_index]) > M_PI * 0.55)
+                    {
+                        areas.back().add(mid_points[point_index]);
+                    }
                 }
-                else
+
+                added_something = true;
+                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+
+                const Point origin(gcode_layer.getLastPlannedPositionOrStartingPosition());
+                coord_t min_dist2 = vSize2(origin - mid_points[0]);
+                unsigned start_point_index = 0;
+                for (unsigned n = 1; n < mid_points.size(); ++n)
                 {
-                    travel_needed = true;
+                    coord_t dist2 = vSize2(origin - mid_points[n]);
+                    if (dist2 < min_dist2)
+                    {
+                        min_dist2 = dist2;
+                        start_point_index = n;
+                    }
                 }
-                start = next_mid_point;
+
+                Point start(mid_points[start_point_index]);
+                bool travel_needed = true;
+
+                for (unsigned n = 0; n < mid_points.size(); ++n)
+                {
+                    const unsigned point_index = (start_point_index + n) % mid_points.size();
+                    const unsigned next_point_index = (point_index + 1) % mid_points.size();
+                    const Point& next_mid_point(mid_points[next_point_index]);
+
+                    Polygons segment;
+                    segment.add(areas[point_index]);
+                    Polygons overlap(segment.intersection(all_filled_segments));
+
+    #if 0
+                    if (gcode_layer.getLayerNr() == 0)
+                    {
+                        std::cerr << point_index << ": overlap % = " << 100 * overlap.area() / segment.area() << "\n";
+                    }
+    #endif
+
+                    if (overlap.size() > 0 && overlap.area() > segment.area() * 0.3)
+                    {
+                        start = next_mid_point;
+                        travel_needed = true;
+                        continue;
+                    }
+
+                    const float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
+                    if (flow > 0.1)
+                    {
+                        if (travel_needed)
+                        {
+                            gcode_layer.addTravel(start);
+                            travel_needed = false;
+                        }
+                        gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
+                        all_filled_segments = all_filled_segments.unionPolygons(segment);
+                    }
+                    else
+                    {
+                        travel_needed = true;
+                    }
+                    start = next_mid_point;
+                }
             }
         }
 
