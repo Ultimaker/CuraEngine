@@ -1736,17 +1736,18 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
 
 void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, bool& added_something) const
 {
+    size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+    if (extruder_nr != wall_0_extruder_nr || !mesh.settings.get<bool>("fill_outline_gaps"))
+    {
+        return;
+    }
+
     if (true)
     {
         fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, part.outline_gaps, mesh_config.perimeter_gap_config, added_something);
         return;
     }
 
-    size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
-    if (extruder_nr != wall_0_extruder_nr || !mesh.settings.get<bool>("fill_outline_gaps"))
-    {
-        return;
-    }
     const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
     int skin_angle = 45;
     if (mesh.skin_angles.size() > 0)
