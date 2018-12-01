@@ -1450,7 +1450,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
             last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
         }
     }
-    const bool is_bottom_layer = (layer_nr == mesh.getSettingAsCount("bottom_layers"));
+    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("bottom_layers"));
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.capacity() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     ConstPolygonRef wall_outline = part.insets[0][0]; // current layer outer wall outline
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
