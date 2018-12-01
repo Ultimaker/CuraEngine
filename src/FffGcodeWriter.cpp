@@ -175,7 +175,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
         // and if it isn't, we move forward
 
-        if (vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.getSettingInMicrons("meshfix_maximum_resolution"))
+        if (vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             // get the inward normal of the last layer seam vertex
             Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);

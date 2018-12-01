@@ -1059,7 +1059,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
 
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
 {
-    const bool smooth_contours = storage.getSettingBoolean("smooth_spiralized_contours");
+    const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
 
     // we always start at the point the last layer (if any) ended
     const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
@@ -1100,7 +1100,6 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
     // the last point is the seam vertex as the polygon is a loop
     double wall_length = 0.0;
     p0 = origin;
-    const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
     for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
         // p is a point from the current wall polygon
