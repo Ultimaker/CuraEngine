@@ -41,6 +41,11 @@ class AdaptiveLayerHeights
 {
 public:
     /**
+     * The base layer height.
+     */
+    int base_layer_height;
+
+    /**
      * The maximum deviation from the base layer height.
      */
     int max_variation;
@@ -54,11 +59,6 @@ public:
      * Threshold to compare the tan of the steepest slope to.
      */
     double threshold;
-
-    /**
-     * The base layer height.
-     */
-    int base_layer_height;
 
     /*!
      * Stores the found layer heights
