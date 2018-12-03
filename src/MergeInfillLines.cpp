@@ -253,6 +253,13 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
                 continue; //Skip travel paths, we're looking for the first non-travel path.
             }
 
+            // FIXME: This is difficult to fix, need to put extra effort into it.
+            // CURA-5776:  This works in some cases but it is not exactly correct, because what this will avoid merging
+            // lines are kind like in parallel but with a travel move in between, which is a case mergeLinesSideBySide()
+            // tries to handle. We found that something can go wrong when it tries to merge some pattern like those
+            // parallel lines, and we think that the current merging method is not suitable for that. In short, we
+            // probably need treat different patterns with different methods.
+            //
             // Use the first non-travel path as the first path that can be used for merging. After we encounter
             // a travel path, we need to find another first non-travel path for merging.
             if (
