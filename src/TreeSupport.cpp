@@ -1,14 +1,15 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h" //To get settings.
+#include "TreeSupport.h"
 #include "progress/Progress.h"
+#include "settings/types/AngleRadians.h" //Creating the correct branch angles.
 #include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
 #include "utils/polygonUtils.h" //For moveInside.
-
-#include "TreeSupport.h"
 
 #define SQRT_2 1.4142135623730950488 //Square root of 2.
 #define CIRCLE_RESOLUTION 10 //The number of vertices in each circle.
@@ -24,9 +25,10 @@ namespace cura
 
 TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     //Compute the border of the build volume.
     Polygons actual_border;
-    switch (storage.getSettingAsBuildPlateShape("machine_shape"))
+    switch(mesh_group_settings.get<BuildPlateShape>("machine_shape"))
     {
         case BuildPlateShape::ELLIPTIC:
         {
@@ -48,29 +50,28 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     }
 
     coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
-    unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
-    const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
+    const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     coord_t extra_skirt_line_width = 0;
     const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-    for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
-        if (extruder == adhesion_extruder_nr || !is_extruder_used[extruder]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+        if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
         {
             continue;
         }
-        const ExtruderTrain* other_extruder = storage.meshgroup->getExtruderTrain(extruder);
-        extra_skirt_line_width += other_extruder->getSettingInMicrons("skirt_brim_line_width") * other_extruder->getSettingAsRatio("initial_layer_line_width_factor");
+        const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+        extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
     }
-    switch (storage.getSettingAsPlatformAdhesion("adhesion_type"))
+    switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
     {
         case EPlatformAdhesion::BRIM:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("brim_line_count") + extra_skirt_line_width;
+            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::RAFT:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("raft_margin");
+            adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
             break;
         case EPlatformAdhesion::SKIRT:
-            adhesion_size = adhesion_extruder->getSettingInMicrons("skirt_gap") + adhesion_extruder->getSettingInMicrons("skirt_brim_line_width") * adhesion_extruder->getSettingAsRatio("initial_layer_line_width_factor") * adhesion_extruder->getSettingAsCount("skirt_line_count") + extra_skirt_line_width;
+            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
             break;
         case EPlatformAdhesion::NONE:
             adhesion_size = 0;
@@ -88,13 +89,13 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    bool use_tree_support = storage.getSettingBoolean("support_tree_enable");
+    bool use_tree_support = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("support_tree_enable");
 
     if (!use_tree_support)
     {
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            if (mesh.getSettingBoolean("support_tree_enable"))
+            if (mesh.settings.get<bool>("support_tree_enable"))
             {
                 use_tree_support = true;
                 break;
@@ -130,7 +131,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (!mesh.getSettingBoolean("support_tree_enable"))
+        if (!mesh.settings.get<bool>("support_tree_enable"))
         {
             continue;
         }
@@ -138,7 +139,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     //Drop nodes to lower layers.
-    dropNodes(storage, contact_nodes, model_collision, model_avoidance, model_internal_guide);
+    dropNodes(contact_nodes, model_collision, model_avoidance, model_internal_guide);
 
     //Generate support areas.
     drawCircles(storage, contact_nodes, model_collision);
@@ -158,15 +159,17 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
 void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision)
 {
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t maximum_radius = branch_radius + storage.support.supportLayers.size() * branch_radius * diameter_angle_scale_factor;
-    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
+    const coord_t radius_sample_resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
 
-    const coord_t xy_distance = storage.getSettingInMicrons("support_xy_distance");
-    constexpr bool include_helper_parts = false;
+    const coord_t xy_distance = mesh_group_settings.get<coord_t>("support_xy_distance");
+    constexpr bool no_support = false;
+    constexpr bool no_prime_tower = false;
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample < model_collision.size(); radius_sample++)
@@ -174,7 +177,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            Polygons collision = storage.getLayerOutlines(layer_nr, include_helper_parts);
+            Polygons collision = storage.getLayerOutlines(layer_nr, no_support, no_prime_tower);
             collision = collision.unionPolygons(machine_volume_border);
             collision = collision.offset(xy_distance + radius, ClipperLib::JoinType::jtRound); //Enough space to avoid the (sampled) width of the branch.
             model_collision[radius_sample].push_back(collision);
@@ -190,8 +193,9 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
 
 void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision)
 {
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
-    const unsigned int wall_count = storage.getSettingAsCount("support_tree_wall_count");
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
+    const size_t wall_count = mesh_group_settings.get<size_t>("support_tree_wall_count");
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
     {
@@ -199,12 +203,12 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
     }
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
-    const coord_t z_distance_bottom = storage.getSettingInMicrons("support_bottom_distance");
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
+    const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const size_t z_distance_bottom_layers = std::max(0U, round_up_divide(z_distance_bottom, layer_height));
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
-    const coord_t line_width = storage.getSettingInMicrons("support_line_width");
+    const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(storage, contact_nodes)
     for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
@@ -234,7 +238,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 }
                 else
                 {
-                    corner *= 1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor;
+                    corner = corner * (1 + (double)(node.distance_to_top - tip_layers) * diameter_angle_scale_factor);
                 }
                 circle.add(node.position + corner);
             }
@@ -261,23 +265,25 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
 
         //Subtract support floors.
-        if (storage.getSettingBoolean("support_bottom_enable"))
+        if (mesh_group_settings.get<bool>("support_bottom_enable"))
         {
             Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
-            const coord_t support_interface_resolution = storage.getSettingInMicrons("support_interface_skip_height");
+            const coord_t support_interface_resolution = mesh_group_settings.get<coord_t>("support_interface_skip_height");
             const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
-            const coord_t support_bottom_height = storage.getSettingInMicrons("support_bottom_height");
+            const coord_t support_bottom_height = mesh_group_settings.get<coord_t>("support_bottom_height");
             const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
             for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
             {
                 const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
-                constexpr bool include_helper_parts = false;
-                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+                constexpr bool no_support = false;
+                constexpr bool no_prime_tower = false;
+                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
             { //One additional sample at the complete bottom height.
                 const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(support_bottom_height_layers) - static_cast<int>(z_distance_bottom_layers)));
-                constexpr bool include_helper_parts = false;
-                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+                constexpr bool no_support = false;
+                constexpr bool no_prime_tower = false;
+                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
             floor_layer.unionPolygons();
             support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
@@ -305,17 +311,21 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     }
 }
 
-void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
+void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide)
 {
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-    const double angle = storage.getSettingInAngleRadians("support_tree_angle");
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const double angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
     const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
-    const coord_t branch_radius = storage.getSettingInMicrons("support_tree_branch_diameter") / 2;
+    const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
-    const double diameter_angle_scale_factor = sin(storage.getSettingInAngleRadians("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
-    const coord_t radius_sample_resolution = storage.getSettingInMicrons("support_tree_collision_resolution");
-    const bool support_rests_on_model = storage.getSettingAsSupportType("support_type") == ESupportType::EVERYWHERE;
+    const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t radius_sample_resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
+    const bool support_rests_on_model = mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
+
+    std::unordered_set<Node*> to_free_node_set;
+
     for (size_t layer_nr = contact_nodes.size() - 1; layer_nr > 0; layer_nr--) //Skip layer 0, since we can't drop down the vertices there.
     {
         auto& layer_contact_nodes = contact_nodes[layer_nr];
@@ -527,7 +537,6 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
         }
 
         // Prune all branches that couldn't find support on either the model or the buildplate (resulting in 'mid-air' branches).
-        std::set<Node*> to_free;
         for (;! unsupported_branch_leaves.empty(); unsupported_branch_leaves.pop_back())
         {
             const auto& entry = unsupported_branch_leaves.back();
@@ -535,26 +544,27 @@ void TreeSupport::dropNodes(const SliceDataStorage& storage, std::vector<std::un
             for (size_t i_layer = entry.first; i_node != nullptr; ++i_layer, i_node = i_node->parent)
             {
                 contact_nodes[i_layer].erase(i_node);
-                to_free.insert(i_node);
+                to_free_node_set.insert(i_node);
                 for (Node* neighbour : i_node->merged_neighbours)
                 {
                     unsupported_branch_leaves.push_front({i_layer, neighbour});
                 }
             }
         }
-        for (Node* old_node : to_free)
-        {
-            delete old_node;
-        }
-        to_free.clear();
 
         Progress::messageProgress(Progress::Stage::SUPPORT, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + (contact_nodes.size() - layer_nr) * PROGRESS_WEIGHT_DROPDOWN, model_avoidance.size() * PROGRESS_WEIGHT_COLLISION + contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN + contact_nodes.size() * PROGRESS_WEIGHT_AREAS);
     }
+
+    for (Node *node : to_free_node_set)
+    {
+        delete node;
+    }
+    to_free_node_set.clear();
 }
 
 void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<TreeSupport::Node*>>& contact_nodes, const std::vector<Polygons>& collision_areas)
 {
-    const coord_t point_spread = mesh.getSettingInMicrons("support_tree_branch_distance");
+    const coord_t point_spread = mesh.settings.get<coord_t>("support_tree_branch_distance");
 
     //First generate grid points to cover the entire area of the print.
     AABB bounding_box = mesh.bounding_box.flatten();
@@ -581,11 +591,11 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
         }
     }
 
-    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
-    const coord_t z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
     const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
-    const size_t support_roof_layers = mesh.getSettingBoolean("support_roof_enable") ? round_divide(mesh.getSettingInMicrons("support_roof_height"), mesh.getSettingInMicrons("layer_height")) : 0; //How many roof layers, if roof is enabled.
-    const coord_t half_overhang_distance = tan(mesh.getSettingInAngleRadians("support_angle")) * layer_height / 2;
+    const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")) : 0; //How many roof layers, if roof is enabled.
+    const coord_t half_overhang_distance = tan(mesh.settings.get<AngleRadians>("support_angle")) * layer_height / 2;
     for (size_t layer_nr = 1; (int)layer_nr < (int)mesh.overhang_areas.size() - (int)z_distance_top_layers; layer_nr++)
     {
         const Polygons& overhang = mesh.overhang_areas[layer_nr + z_distance_top_layers];
@@ -647,9 +657,10 @@ void TreeSupport::propagateCollisionAreas(const SliceDataStorage& storage, const
 {
     model_avoidance.resize(model_collision.size());
 
-    const coord_t layer_height = storage.getSettingInMicrons("layer_height");
-    const double angle = storage.getSettingInAngleRadians("support_tree_angle");
-    const coord_t maximum_move_distance = angle < 90 ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const AngleRadians angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
+    const coord_t maximum_move_distance = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_avoidance) schedule(dynamic)
     for (size_t radius_sample = 0; radius_sample < model_avoidance.size(); radius_sample++)

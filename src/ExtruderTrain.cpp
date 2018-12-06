@@ -3,14 +3,10 @@
 
 namespace cura 
 {
-int ExtruderTrain::getExtruderNr()
+
+ExtruderTrain::ExtruderTrain(const size_t extruder_nr, Settings* parent_settings) : extruder_nr(extruder_nr)
 {
-    return extruder_nr;
-}
-ExtruderTrain::ExtruderTrain(SettingsBaseVirtual* settings, int extruder_nr)
-: SettingsBase(settings)
-, extruder_nr(extruder_nr)
-{
+    settings.setParent(parent_settings);
 }
 
 }//namespace cura

@@ -207,8 +207,8 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 */
 void LineOrderOptimizer::optimize(bool find_chains)
 {
-    int gridSize = 5000; // the size of the cells in the hash grid. TODO
-    SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
+    const int grid_size = 2000; // the size of the cells in the hash grid. TODO
+    SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
     bool picked[polygons.size()];
 
     loc_to_line = nullptr;
@@ -260,7 +260,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 num_joined_lines[point_idx] = 0;
                 const Point& p = (*polygons[poly_idx])[point_idx];
                 // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
-                for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
+                for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, 10))
                 {
                     if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
                     {
@@ -306,14 +306,31 @@ void LineOrderOptimizer::optimize(bool find_chains)
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
+        const int close_point_radius = 5000;
+        
         // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
         // so we only consider the closest line when looking for the second line onwards
         if (order_idx > 0)
         {
-            /// check if single-line-polygon is close to last point
-            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, gridSize))
+            // first check if a line segment starts (really) close to last point
+            // this will find the next line segment in a chain
+            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx]
+                    || !(pointsAreCoincident(prev_point,(*polygons[close_line_idx])[0]) || pointsAreCoincident(prev_point, (*polygons[close_line_idx])[1])))
+                {
+                    continue;
+                }
+                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
+            }
+        }
+        
+        if (best_line_idx == -1)
+        {
+            // we didn't find a chained line segment so now look for any lines that start within close_point_radius
+            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, close_point_radius))
+            {
+                if (picked[close_line_idx])
                 {
                     continue;
                 }
@@ -321,7 +338,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
             }
         }
 
-        if (best_line_idx != -1 && best_score > (2 * gridSize * gridSize))
+        if (best_line_idx != -1 && best_score > (2 * close_point_radius * close_point_radius))
         {
             // we found a point that is close to prev_point as the crow flies but the score is high so it must have been
             // penalised due to the part boundary clashing with the straight line path so let's forget it and find something closer
@@ -382,11 +399,10 @@ void LineOrderOptimizer::optimize(bool find_chains)
         {
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
-                if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
+                if (picked[poly_idx])
                 {
                     continue;
                 }
-                assert(polygons[poly_idx]->size() == 2);
 
                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
 
@@ -396,11 +412,9 @@ void LineOrderOptimizer::optimize(bool find_chains)
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
             ConstPolygonRef best_line = *polygons[best_line_idx];
-            assert(best_line.size() == 2);
 
             int line_start_point_idx = polyStart[best_line_idx];
             int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
-            const Point& line_start = best_line[line_start_point_idx];
             const Point& line_end = best_line[line_end_point_idx];
             prev_point = line_end;
 

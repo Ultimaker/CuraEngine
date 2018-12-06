@@ -1,4 +1,4 @@
-//Copyright (c) 2016 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PRIME_TOWER_H
@@ -65,21 +65,17 @@ public:
      *
      * \param storage A storage where it retrieves the prime tower settings.
      */
-    PrimeTower(const SliceDataStorage& storage);
+    PrimeTower();
 
     /*!
      * Generate the prime tower area to be used on each layer
      * 
      * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
-     * 
-     * \param storage Where to retrieve prime tower settings from
      */
-    void generateGroundpoly(const SliceDataStorage& storage);
+    void generateGroundpoly();
 
     /*!
      * Generate the area where the prime tower should be.
-     * 
-     * \param storage where to get settings from
      */
     void generatePaths(const SliceDataStorage& storage);
 
@@ -91,7 +87,7 @@ public:
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const;
+    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -108,10 +104,8 @@ private:
      * 
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
-     * 
-     * \param storage where to get settings from
      */
-    void generatePaths_denseInfill(const SliceDataStorage& storage);
+    void generatePaths_denseInfill();
 
     /*!
      * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
@@ -125,18 +119,19 @@ private:
      *
      * Add path plans for the prime tower to the \p gcode_layer
      *
-     * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
+     * \param[in,out] gcode_layer Where to get the current extruder from. Where
+     * to store the generated layer paths.
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
+    void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
      * This function picks a start location for this extruder on the prime tower's perimeter and travels there to avoid
      * starting at the location everytime which can result in z-seam blobs.
      */
-    void gotoStartLocation(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder) const;
+    void gotoStartLocation(LayerPlan& gcode_layer, const int extruder) const;
 };
 
 

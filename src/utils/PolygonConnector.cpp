@@ -3,6 +3,7 @@
 #include "PolygonConnector.h"
 
 #include "linearAlg2D.h"
+#include "AABB.h"
 
 namespace cura 
 {
@@ -10,7 +11,12 @@ namespace cura
 Polygons PolygonConnector::connect()
 {
     Polygons ret;
-    
+
+    if (input_polygons.empty())
+    {
+        return ret;
+    }
+
     std::vector<Polygon> to_connect;
     to_connect.reserve(input_polygons.size());
     for (ConstPolygonPointer poly : input_polygons)
@@ -20,6 +26,11 @@ Polygons PolygonConnector::connect()
 
     while (!to_connect.empty())
     {
+        if (to_connect.size() == 1)
+        {
+            ret.add(std::move(to_connect.back()));
+            break;
+        }
         Polygon current = std::move(to_connect.back());
         to_connect.pop_back();
 
@@ -117,28 +128,51 @@ char PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, cons
 
 std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
 {
-    std::optional<PolygonConnector::PolygonConnection> connection = getConnection(from_poly, to_polygons);
-    if (!connection || connection->getDistance2() > max_dist * max_dist)
+    // line distance between consecutive polygons should be at least the line_width
+    const coord_t min_connection_length = line_width - 10;
+    // Only connect polygons if they are next to each other
+    // allow for a bit of wiggle room for when the polygons are very curved,
+    // which causes any connection distance to be larger than the offset amount
+    const coord_t max_connection_length = line_width * 3 / 2;
+
+    std::optional<PolygonConnector::PolygonConnection> first_connection;
+    std::optional<PolygonConnector::PolygonConnection> second_connection;
+
+    Polygons to_polys;
+    for (const Polygon& poly : to_polygons)
     {
-        return std::optional<PolygonConnector::PolygonBridge>();
+        to_polys.add(poly);
     }
 
-    // try to get the other connection forward
-    std::optional<PolygonConnector::PolygonConnection> second_connection = PolygonConnector::getSecondConnection(*connection, line_width);
-    if (!second_connection)
-    {
-        // try to get a bridge with the connections on both sides of the initially calculated connection
-        second_connection = PolygonConnector::getSecondConnection(*connection, line_width / 2);
-        if (second_connection)
+    std::function<bool (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>)> can_make_bridge =
+        [&, this](std::pair<ClosestPolygonPoint, ClosestPolygonPoint> candidate)
         {
-            connection = PolygonConnector::getSecondConnection(*connection, line_width);
-        }
+            first_connection.emplace(candidate.first, candidate.second);
+            first_connection->to.poly = &to_polygons[first_connection->to.poly_idx]; // because it still refered to the local variable [to_polys]
+            if (first_connection->getDistance2() > max_dist * max_dist)
+            {
+                return false;
+            }
+            second_connection = PolygonConnector::getSecondConnection(*first_connection);
+            if (!second_connection)
+            {
+                return false;
+            }
+            return true;
+        };
+
+    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> connection_points = PolygonUtils::findConnection(from_poly, to_polys, min_connection_length, max_connection_length, can_make_bridge);
+
+    if (!connection_points.first.isValid() || !connection_points.second.isValid())
+    { // We didn't find a connection which can make a bridge
+        // We might have found a first_connection and a second_connection, but maybe they didn't satisfy all criteria.
+        std::optional<PolygonConnector::PolygonBridge> uninitialized;
+        return uninitialized;
     }
-    if (connection && second_connection)
+
+    if (first_connection && second_connection)
     {
-        PolygonBridge result;
-        result.a = *connection;
-        result.b = *second_connection;
+        PolygonBridge result(*first_connection, *second_connection);
         // ensure that b is always the right connection and a the left
         Point a_vec = result.a.to.p() - result.a.from.p();
         Point shift = turn90CCW(a_vec);
@@ -149,33 +183,32 @@ std::optional<PolygonConnector::PolygonBridge> PolygonConnector::getBridge(Const
         return result;
     }
     else
-    { // the polygon is too small to have a bridge attached from [connection]
-        // TODO: try fitting the bridge from the extrema of the poly
+    { // we couldn't find a connection; maybe the polygon was too small or maybe it is just too far away from other polygons.
         return std::optional<PolygonConnector::PolygonBridge>();
     }
 }
 
-std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondConnection(PolygonConnection& first, coord_t shift_distance)
+std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondConnection(PolygonConnection& first)
 {
     bool forward = true;
-    std::optional<ClosestPolygonPoint> from_a = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), shift_distance, forward);
+    std::optional<ClosestPolygonPoint> from_a = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), line_width, forward);
     if (!from_a)
     { // then there's also not going to be a b
         return std::optional<PolygonConnector::PolygonConnection>();
     }
-    std::optional<ClosestPolygonPoint> from_b = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), shift_distance, !forward);
+    std::optional<ClosestPolygonPoint> from_b = PolygonUtils::getNextParallelIntersection(first.from, first.to.p(), line_width, !forward);
 
-    std::optional<ClosestPolygonPoint> to_a = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), shift_distance, forward);
+    std::optional<ClosestPolygonPoint> to_a = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), line_width, forward);
     if (!to_a)
     {
         return std::optional<PolygonConnector::PolygonConnection>();
     }
-    std::optional<ClosestPolygonPoint> to_b = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), shift_distance, !forward);
+    std::optional<ClosestPolygonPoint> to_b = PolygonUtils::getNextParallelIntersection(first.to, first.from.p(), line_width, !forward);
 
 
     const Point shift = turn90CCW(first.from.p() - first.to.p());
     
-    PolygonConnection best;
+    std::optional<PolygonConnection> best;
     coord_t best_total_distance2 = std::numeric_limits<coord_t>::max();
     for (unsigned int from_idx = 0; from_idx < 2; from_idx++)
     {
@@ -205,8 +238,7 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
             const coord_t total_distance2 = vSize2(from.p() - to.p()) + vSize2(from.p() - first.from.p()) + vSize(to.p() - first.to.p());
             if (total_distance2 < best_total_distance2)
             {
-                best.from = from;
-                best.to = to;
+                best.emplace(from, to);
                 best_total_distance2 = total_distance2;
             }
             
@@ -220,50 +252,13 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
             break;
         }
     }
-    if (best_total_distance2 > max_dist * max_dist + 2 * (shift_distance + 10) * (shift_distance + 10))
+    if (!best || best_total_distance2 > max_dist * max_dist + 2 * (line_width + 10) * (line_width + 10))
     {
         return std::optional<PolygonConnector::PolygonConnection>();
     }
     else
     {
-        return best;
-    }
-}
-
-
-std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getConnection(ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
-{
-    PolygonConnection best_connection;
-    coord_t best_connection_distance2 = std::numeric_limits<coord_t>::max();
-    ClosestPolygonPoint from_location(from_poly);
-    for (ConstPolygonRef to_poly : to_polygons)
-    {
-        if (to_poly.data() == from_poly.data())
-        { // don't connect a polygon to itself
-            continue;
-        }
-        ClosestPolygonPoint to_location(to_poly);
-        PolygonUtils::findSmallestConnection(from_location, to_location);
-
-        coord_t connection_distance2 = vSize2(to_location.p() - from_location.p());
-        if (connection_distance2 < best_connection_distance2)
-        {
-            best_connection.from = from_location;
-            best_connection.to = to_location;
-            best_connection_distance2 = connection_distance2;
-            if (connection_distance2 < (line_width + 10) * (line_width + 10))
-            {
-                return best_connection;
-            }
-        }
-    }
-    if (best_connection_distance2 == std::numeric_limits<coord_t>::max())
-    {
-        return std::optional<PolygonConnector::PolygonConnection>();
-    }
-    else
-    {
-        return best_connection;
+        return *best;
     }
 }
 

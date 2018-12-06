@@ -80,6 +80,12 @@ void AABB::include(Point point)
     max.Y = std::max(max.Y,point.Y);
 }
 
+void AABB::include(const AABB other)
+{
+    include(other.min);
+    include(other.max);
+}
+
 void AABB::expand(int dist)
 {
     if (min == Point(POINT_MAX, POINT_MAX) || max == Point(POINT_MIN, POINT_MIN))
