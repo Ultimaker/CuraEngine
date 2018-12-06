@@ -2196,24 +2196,41 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
             for (unsigned n = 0; n < poly.size(); ++n)
             {
                 Polygons lines;
-                Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -avg_width * 2));
+                Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -avg_width * 5));
                 // adjust the width when point_inside isn't normal to the direction of the next line segment
                 // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
                 const double len_scale = std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()])));
-                point_inside = poly[n] + normal(point_inside - poly[n], std::min(avg_width * (1 / (len_scale + 0.01)), 1.414 * avg_width));
+                if (is_outline)
+                {
+                    // constrain point_inside so that the resulting wall thickness is close to avg_width
+                    point_inside = poly[n] + normal(point_inside - poly[n], std::min(avg_width * (1 / (len_scale + 0.01)), 1.414 * avg_width));
+                }
                 lines.addLine(poly[n], point_inside);
                 lines = gaps.intersectionPolyLines(lines);
                 if (lines.size() > 0)
                 {
+                    Point clipped(lines[0][1]);
+                    coord_t line_len = vSize(lines[0][1] - lines[0][0]) * len_scale;
+                    if (!is_outline)
+                    {
+                        if (line_len > 3 * avg_width)
+                        {
+                            // this should only be true when we have a vertex whose normal is directly lined up
+                            // with another part of the gap polygon, i.e. a T shaped gap where the horizontal
+                            // feature contains a vertex that is directly above the vertical feature and so the normal
+                            // for that vertex is located somewhere down the length of the vertical feature.
+                            line_len = avg_width;
+                            clipped = lines[0][0] + normal(lines[0][1] - lines[0][0], line_len);
+                        }
+                    }
     #if 0
                     gcode_layer.addTravel(lines[0][0]);
-                    gcode_layer.addExtrusionMove(lines[0][1], gap_config, SpaceFillType::Lines);
+                    gcode_layer.addExtrusionMove(clipped, gap_config, SpaceFillType::Lines);
     #else
-                    const coord_t line_len = vSize(lines[0][1] - lines[0][0]) * len_scale;
                     widths.push_back(line_len);
                     begin_points.emplace_back(poly[n]);
                     end_points.emplace_back(poly[n] + normal(turn90CCW(poly[(n + 1) % poly.size()] - poly[n]), line_len));
-                    mid_points.emplace_back((lines[0][0] + lines[0][1]) / 2);
+                    mid_points.emplace_back((lines[0][0] + clipped) / 2);
     #endif
                 }
             }
