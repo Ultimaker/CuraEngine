@@ -444,9 +444,10 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param gaps The narrow gaps to fill
      * \param gap_config the line config with which to print the gaps print feature
+     * \param is_outline true when the gap being filled is a part outline (aka "thin wall")
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, bool& added_something) const;
+    void fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, const bool is_outline, bool& added_something) const;
 
     /*!
      * Add the gcode of the outline gaps: the areas for thin parts in which a single perimter doesnt fit.

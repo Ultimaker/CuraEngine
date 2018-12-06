@@ -1744,7 +1744,8 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
 
     if (true)
     {
-        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, part.outline_gaps, mesh_config.perimeter_gap_config, added_something);
+        const bool is_outline = true;
+        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, part.outline_gaps, mesh_config.perimeter_gap_config, is_outline, added_something);
         return;
     }
 
@@ -2159,7 +2160,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     }
 }
 
-void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, bool& added_something) const
+void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& gaps, const GCodePathConfig& gap_config, const bool is_outline, bool& added_something) const
 {
     const Ratio min_flow = std::max(Ratio(0.2), mesh.settings.get<Ratio>("wall_min_flow"));
 
@@ -2324,7 +2325,8 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
 {
     if (true)
     {
-        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, perimeter_gaps, perimeter_gap_config, added_something);
+        const bool is_outline = false;
+        fillNarrowGaps(storage, gcode_layer, mesh, extruder_nr, perimeter_gaps, perimeter_gap_config, is_outline, added_something);
         return;
     }
 
