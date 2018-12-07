@@ -110,6 +110,8 @@ message PrintTimeMaterialEstimates { // The print time for each feature and mate
     float time_support_interface = 11;
 
     repeated MaterialEstimates materialEstimates = 12; // materialEstimates data
+
+    float time_prime_tower = 13;
 }
 
 message MaterialEstimates {
