@@ -314,7 +314,8 @@ void LineOrderOptimizer::optimize(bool find_chains)
             // this will find the next line segment in a chain
             for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx]
+                    || !(pointsAreCoincident(prev_point,(*polygons[close_line_idx])[0]) || pointsAreCoincident(prev_point, (*polygons[close_line_idx])[1])))
                 {
                     continue;
                 }
@@ -327,7 +328,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
             // we didn't find a chained line segment so now look for any lines that start within close_point_radius
             for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, close_point_radius))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx])
                 {
                     continue;
                 }
@@ -396,11 +397,10 @@ void LineOrderOptimizer::optimize(bool find_chains)
         {
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
-                if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
+                if (picked[poly_idx])
                 {
                     continue;
                 }
-                assert(polygons[poly_idx]->size() == 2);
 
                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
 
@@ -410,7 +410,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
             ConstPolygonRef best_line = *polygons[best_line_idx];
-            assert(best_line.size() == 2);
 
             int line_start_point_idx = polyStart[best_line_idx];
             int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1

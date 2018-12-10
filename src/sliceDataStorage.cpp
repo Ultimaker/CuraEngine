@@ -361,11 +361,11 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only) const
+Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only) const
 {
     if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
-        if (include_helper_parts)
+        if (include_support)
         {
             if (external_polys_only)
             {
@@ -408,7 +408,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool incl
                 maximum_resolution = std::min(maximum_resolution, mesh.settings.get<coord_t>("meshfix_maximum_resolution"));
             }
         }
-        if (include_helper_parts)
+        if (include_support)
         {
             const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
             if (support.generated) 
@@ -420,6 +420,9 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool incl
                 total.add(support_layer.support_bottom);
                 total.add(support_layer.support_roof);
             }
+        }
+        if (include_prime_tower)
+        {
             if (primeTower.enabled)
             {
                 total.add(primeTower.outer_poly);
@@ -609,6 +612,12 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         }
 
         std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
+
+        if (smaller_support_islands.empty())
+        { // extra safety guard in case result_polygons consists of too small polygons which are automatically removed in splitIntoParts
+            to_remove_part_indices.push_back(part_idx);
+            continue;
+        }
 
         // there are one or more smaller parts.
         // we first replace the current part with one of the smaller parts,

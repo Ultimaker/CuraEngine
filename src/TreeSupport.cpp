@@ -168,7 +168,8 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
     model_collision.resize((size_t)std::round((float)maximum_radius / radius_sample_resolution) + 1);
 
     const coord_t xy_distance = mesh_group_settings.get<coord_t>("support_xy_distance");
-    constexpr bool include_helper_parts = false;
+    constexpr bool no_support = false;
+    constexpr bool no_prime_tower = false;
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(model_collision, storage) schedule(dynamic)
     // Use a signed type for the loop counter so MSVC compiles
@@ -177,7 +178,7 @@ void TreeSupport::collisionAreas(const SliceDataStorage& storage, std::vector<st
         const coord_t radius = radius_sample * radius_sample_resolution;
         for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
         {
-            Polygons collision = storage.getLayerOutlines(layer_nr, include_helper_parts);
+            Polygons collision = storage.getLayerOutlines(layer_nr, no_support, no_prime_tower);
             collision = collision.unionPolygons(machine_volume_border);
             collision = collision.offset(xy_distance + radius, ClipperLib::JoinType::jtRound); //Enough space to avoid the (sampled) width of the branch.
             model_collision[radius_sample].push_back(collision);
@@ -276,13 +277,15 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
             {
                 const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
-                constexpr bool include_helper_parts = false;
-                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+                constexpr bool no_support = false;
+                constexpr bool no_prime_tower = false;
+                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
             { //One additional sample at the complete bottom height.
                 const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(support_bottom_height_layers) - static_cast<int>(z_distance_bottom_layers)));
-                constexpr bool include_helper_parts = false;
-                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, include_helper_parts)));
+                constexpr bool no_support = false;
+                constexpr bool no_prime_tower = false;
+                floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
             floor_layer.unionPolygons();
             support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.

@@ -78,6 +78,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 
     if (connect_polygons)
     {
+        // remove too small polygons
+        coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
+        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+        result_polygons.erase(it, result_polygons.end());
+
         PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
         connector.add(result_polygons);
         result_polygons = connector.connect();

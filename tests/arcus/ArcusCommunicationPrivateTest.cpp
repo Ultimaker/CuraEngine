@@ -49,7 +49,7 @@ void loadTestSettings(const std::string& filename, T* p_settings, std::unordered
         {
             continue;
         }
-        
+
         const std::string key = line.substr(0, pos);
         const std::string value = line.substr(pos + 1, std::string::npos);
 
@@ -74,7 +74,7 @@ void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
 
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
-    
+
     // Check if they are equal in general:
     const auto& settings = Application::getInstance().current_slice->scene.settings;
     for (const auto& entry : raw_settings)
@@ -197,15 +197,15 @@ void ArcusCommunicationPrivateTest::readMeshGroupMessageTest()
 
     // Checks:
     auto& scene = Application::getInstance().current_slice->scene;
-    CPPUNIT_ASSERT(! scene.mesh_groups.empty());
+    CPPUNIT_ASSERT(!scene.mesh_groups.empty());
 
     auto& meshes = scene.mesh_groups[0].meshes;
-    CPPUNIT_ASSERT(! meshes.empty());
+    CPPUNIT_ASSERT(!meshes.empty());
 
     auto& vertices = meshes[0].vertices;
-    CPPUNIT_ASSERT(! vertices.empty());
-    CPPUNIT_ASSERT_EQUAL(vertices.size(), std::size_t{8}); //A cube should have 8 unique vertices.
-    CPPUNIT_ASSERT_EQUAL(meshes[0].faces.size(), std::size_t{12}); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
+    CPPUNIT_ASSERT(!vertices.empty());
+    CPPUNIT_ASSERT_EQUAL(vertices.size(), size_t(8)); //A cube should have 8 unique vertices.
+    CPPUNIT_ASSERT_EQUAL(meshes[0].faces.size(), size_t(12)); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
 
     // Distances should be the same:
 

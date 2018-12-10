@@ -11,19 +11,22 @@ namespace cura
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
     if (is_skirt)
     {
-        const bool include_helper_parts = true;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        constexpr bool include_support = true;
+        constexpr bool include_prime_tower = true;
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only);
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        constexpr bool include_helper_parts = false; // include manually below
+        constexpr bool include_support = false; //Include manually below.
+        constexpr bool include_prime_tower = false; //Include manually below.
         constexpr bool external_outlines_only = false; //Remove manually below.
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_outlines_only);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)
@@ -34,7 +37,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         if (storage.support.generated && primary_line_count > 0 && !storage.support.supportLayers.empty())
         { // remove model-brim from support
             SupportLayer& support_layer = storage.support.supportLayers[0];
-            if (train.settings.get<bool>("brim_replaces_support"))
+            if (support_infill_extruder.settings.get<bool>("brim_replaces_support"))
             {
                 // avoid gap in the middle
                 //    V
