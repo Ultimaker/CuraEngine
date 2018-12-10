@@ -623,7 +623,7 @@ ModelVolumes::ModelVolumes(const SliceDataStorage& storage, Polygons machine_bor
     }
 }
 
-const Polygons& ModelVolumes::getCollision(coord_t radius, int layer_idx) const
+const Polygons& ModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx) const
 {
     radius = ceilRadius(radius);
     RadiusLayerPair key{radius, layer_idx};
@@ -638,7 +638,7 @@ const Polygons& ModelVolumes::getCollision(coord_t radius, int layer_idx) const
     }
 }
 
-const Polygons& ModelVolumes::getAvoidance(coord_t radius, int layer_idx) const
+const Polygons& ModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx) const
 {
     radius = ceilRadius(radius);
     RadiusLayerPair key{radius, layer_idx};
@@ -653,7 +653,7 @@ const Polygons& ModelVolumes::getAvoidance(coord_t radius, int layer_idx) const
     }
 }
 
-const Polygons& ModelVolumes::getInternalModel(coord_t radius, int layer_idx) const
+const Polygons& ModelVolumes::getInternalModel(coord_t radius, LayerIndex layer_idx) const
 {
     radius = ceilRadius(radius);
     RadiusLayerPair key{radius, layer_idx};

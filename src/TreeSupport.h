@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include "sliceDataStorage.h"
+#include "settings/types/LayerIndex.h"
 
 
 namespace cura
@@ -45,7 +46,7 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& getCollision(coord_t radius, int layer_idx) const;
+    const Polygons& getCollision(coord_t radius, LayerIndex layer_idx) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches
@@ -61,7 +62,7 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& getAvoidance(coord_t radius, int layer_idx) const;
+    const Polygons& getAvoidance(coord_t radius, LayerIndex layer_idx) const;
 
     /*!
      * \brief Generates the area of a given layer that must be avoided if the
@@ -74,10 +75,10 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& getInternalModel(coord_t radius, int layer_idx) const;
+    const Polygons& getInternalModel(coord_t radius, LayerIndex layer_idx) const;
 
 private:
-    using RadiusLayerPair = std::pair<coord_t, int>;
+    using RadiusLayerPair = std::pair<coord_t, LayerIndex>;
     coord_t ceilRadius(coord_t radius) const;
 
     const Polygons& calculateCollision(const RadiusLayerPair& key) const;
