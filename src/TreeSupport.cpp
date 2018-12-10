@@ -575,6 +575,9 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     // Calculate the dimensions of the AABB of the mesh AABB after being rotated
     // by `rotate_angle`. Halve the dimensions since we'll be using it as a +-
     // offset from the centre of `bounding_box`.
+    // This formulation will only work with rotation angles <90 degrees. If the
+    // rotation angle becomes a user-configurable value then this will need to
+    // be changed
     const auto rotated_dims = Point(
         bounding_box_size.X * cos_angle + bounding_box_size.Y * sin_angle,
         bounding_box_size.X * sin_angle + bounding_box_size.Y * cos_angle) / 2;
