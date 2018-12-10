@@ -93,7 +93,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
         = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     const coord_t radius_sample_resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
 
-    volumes_ = ModelVolumes(storage, machine_volume_border, xy_distance, maximum_move_distance, radius_sample_resolution);
+    volumes_ = ModelVolumes(storage, std::move(machine_volume_border), xy_distance, maximum_move_distance, radius_sample_resolution);
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -612,7 +612,7 @@ void TreeSupport::insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node
 
 ModelVolumes::ModelVolumes(const SliceDataStorage& storage, Polygons machine_border, coord_t xy_distance,
                            coord_t max_move, coord_t radius_sample_resolution) :
-    machine_border_{machine_border},
+    machine_border_{std::move(machine_border)},
     xy_distance_{xy_distance},
     max_move_{max_move},
     radius_sample_resolution_{radius_sample_resolution}
