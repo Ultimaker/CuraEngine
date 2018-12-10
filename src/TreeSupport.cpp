@@ -214,8 +214,8 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         roof_layer = roof_layer.unionPolygons();
         support_layer = support_layer.difference(roof_layer);
         const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
-        support_layer = support_layer.difference(volumes_.collision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
-        roof_layer = roof_layer.difference(volumes_.collision(0, z_collision_layer));
+        support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+        roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
@@ -289,7 +289,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
         std::deque<std::pair<size_t, Node*>> unsupported_branch_leaves; // All nodes that are leaves on this layer that would result in unsupported ('mid-air') branches.
 
         //Group together all nodes for each part.
-        std::vector<PolygonsPart> parts = volumes_.avoidance(0, layer_nr).splitIntoParts();
+        std::vector<PolygonsPart> parts = volumes_.getAvoidance(0, layer_nr).splitIntoParts();
         std::vector<std::unordered_map<Point, Node*>> nodes_per_part;
         nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
         for (size_t part_index = 0; part_index < parts.size(); part_index++)
@@ -377,16 +377,16 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     {
                         //Avoid collisions.
                         const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                        PolygonUtils::moveOutside(volumes_.avoidance(branch_radius_node, layer_nr - 1), next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
+                        PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
                     }
                     else
                     {
                         //Move towards centre of polygon.
-                        const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, volumes_.internal_model(branch_radius_node, layer_nr - 1));
+                        const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, volumes_.getInternalModel(branch_radius_node, layer_nr - 1));
                         const coord_t distance = vSize(node.position - closest_point_on_border.location);
                         //Try moving a bit further inside: Current distance + 1 step.
                         Point moved_inside = next_position;
-                        PolygonUtils::ensureInsideOrOutside(volumes_.internal_model(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
+                        PolygonUtils::ensureInsideOrOutside(volumes_.getInternalModel(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
                         Point difference = moved_inside - node.position;
                         if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
                         {
@@ -395,7 +395,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                         next_position = node.position + difference;
                     }
 
-                    const bool to_buildplate = !volumes_.avoidance(branch_radius_node, layer_nr - 1).inside(next_position);
+                    const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_position);
                     Node* next_node = new Node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
                     insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
 
@@ -432,10 +432,10 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     continue;
                 }
                 //If the branch falls completely inside a collision area (the entire branch would be removed by the X/Y offset), delete it.
-                if (group_index > 0 && volumes_.collision(0, layer_nr).inside(node.position))
+                if (group_index > 0 && volumes_.getCollision(0, layer_nr).inside(node.position))
                 {
                     const coord_t branch_radius_node = (node.distance_to_top > tip_layers) ? (branch_radius + branch_radius * node.distance_to_top * diameter_angle_scale_factor) : (branch_radius * node.distance_to_top / tip_layers);
-                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, volumes_.collision(0, layer_nr));
+                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, volumes_.getCollision(0, layer_nr));
                     if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
                     {
                         unsupported_branch_leaves.push_front({layer_nr, p_node});
@@ -467,16 +467,16 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                 {
                     //Avoid collisions.
                     const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                    PolygonUtils::moveOutside(volumes_.avoidance(branch_radius_node, layer_nr - 1), next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
+                    PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
                 }
                 else
                 {
                     //Move towards centre of polygon.
-                    const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(next_layer_vertex, volumes_.internal_model(branch_radius_node, layer_nr - 1));
+                    const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(next_layer_vertex, volumes_.getInternalModel(branch_radius_node, layer_nr - 1));
                     const coord_t distance = vSize(node.position - closest_point_on_border.location);
                     //Try moving a bit further inside: Current distance + 1 step.
                     Point moved_inside = next_layer_vertex;
-                    PolygonUtils::ensureInsideOrOutside(volumes_.internal_model(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
+                    PolygonUtils::ensureInsideOrOutside(volumes_.getInternalModel(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
                     Point difference = moved_inside - node.position;
                     if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
                     {
@@ -485,7 +485,7 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     next_layer_vertex = node.position + difference;
                 }
 
-                const bool to_buildplate = !volumes_.avoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
+                const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
                 Node* next_node = new Node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
                 insertDroppedNode(contact_nodes[layer_nr - 1], next_node);
             }
@@ -573,7 +573,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                     constexpr coord_t distance_inside = 0; //Move point towards the border of the polygon if it is closer than half the overhang distance: Catch points that fall between overhang areas on constant surfaces.
                     PolygonUtils::moveInside(overhang_part, candidate, distance_inside, half_overhang_distance * half_overhang_distance);
                     constexpr bool border_is_inside = true;
-                    if (overhang_part.inside(candidate, border_is_inside) && !volumes_.collision(0, layer_nr).inside(candidate, border_is_inside))
+                    if (overhang_part.inside(candidate, border_is_inside) && !volumes_.getCollision(0, layer_nr).inside(candidate, border_is_inside))
                     {
                         constexpr size_t distance_to_top = 0;
                         constexpr bool to_buildplate = true;
@@ -617,16 +617,16 @@ ModelVolumes::ModelVolumes(const SliceDataStorage& storage, Polygons machine_bor
     max_move_{max_move},
     radius_sample_resolution_{radius_sample_resolution}
 {
-    for (auto i = 0; i < static_cast<int>(storage.support.supportLayers.size()); ++i)
+    for (std::size_t layer_idx  = 0; layer_idx < storage.support.supportLayers.size(); ++layer_idx)
     {
-        layer_outlines_.push_back(storage.getLayerOutlines(i, false));
+        layer_outlines_.push_back(storage.getLayerOutlines(layer_idx, false));
     }
 }
 
-const Polygons& ModelVolumes::collision(coord_t radius, int layer) const
+const Polygons& ModelVolumes::getCollision(coord_t radius, int layer_idx) const
 {
-    radius = roundRadius(radius);
-    RadiusLayerPair key{radius, layer};
+    radius = ceilRadius(radius);
+    RadiusLayerPair key{radius, layer_idx};
     const auto it = collision_cache_.find(key);
     if (it != collision_cache_.end())
     {
@@ -638,10 +638,10 @@ const Polygons& ModelVolumes::collision(coord_t radius, int layer) const
     }
 }
 
-const Polygons& ModelVolumes::avoidance(coord_t radius, int layer) const
+const Polygons& ModelVolumes::getAvoidance(coord_t radius, int layer_idx) const
 {
-    radius = roundRadius(radius);
-    RadiusLayerPair key{radius, layer};
+    radius = ceilRadius(radius);
+    RadiusLayerPair key{radius, layer_idx};
     const auto it = avoidance_cache_.find(key);
     if (it != avoidance_cache_.end())
     {
@@ -653,10 +653,10 @@ const Polygons& ModelVolumes::avoidance(coord_t radius, int layer) const
     }
 }
 
-const Polygons& ModelVolumes::internal_model(coord_t radius, int layer) const
+const Polygons& ModelVolumes::getInternalModel(coord_t radius, int layer_idx) const
 {
-    radius = roundRadius(radius);
-    RadiusLayerPair key{radius, layer};
+    radius = ceilRadius(radius);
+    RadiusLayerPair key{radius, layer_idx};
     const auto it = internal_model_cache_.find(key);
     if (it != internal_model_cache_.end())
     {
@@ -667,7 +667,8 @@ const Polygons& ModelVolumes::internal_model(coord_t radius, int layer) const
         return calculateInternalModel(key);
     }
 }
-coord_t ModelVolumes::roundRadius(coord_t radius) const
+
+coord_t ModelVolumes::ceilRadius(coord_t radius) const
 {
     const auto remainder = radius % radius_sample_resolution_;
     const auto delta = remainder != 0 ? radius_sample_resolution_- remainder : 0;
@@ -677,11 +678,12 @@ coord_t ModelVolumes::roundRadius(coord_t radius) const
 const Polygons& ModelVolumes::calculateCollision(const RadiusLayerPair& key) const
 {
     const auto& radius = key.first;
-    const auto& layer = key.second;
+    const auto& layer_idx = key.second;
 
     auto collision_areas = machine_border_;
-    if (layer < static_cast<int>(layer_outlines_.size())) {
-        collision_areas = collision_areas.unionPolygons(layer_outlines_[layer]);
+    if (layer_idx < static_cast<int>(layer_outlines_.size()))
+    {
+        collision_areas = collision_areas.unionPolygons(layer_outlines_[layer_idx]);
     }
     collision_areas = collision_areas.offset(xy_distance_ + radius, ClipperLib::JoinType::jtRound);
     const auto ret = collision_cache_.insert({key, std::move(collision_areas)});
@@ -692,24 +694,24 @@ const Polygons& ModelVolumes::calculateCollision(const RadiusLayerPair& key) con
 const Polygons& ModelVolumes::calculateAvoidance(const RadiusLayerPair& key) const
 {
     const auto& radius = key.first;
-    const auto& layer = key.second;
+    const auto& layer_idx = key.second;
 
-    if (layer == 0)
+    if (layer_idx == 0)
     {
-        avoidance_cache_[key] = collision(radius, 0);
+        avoidance_cache_[key] = getCollision(radius, 0);
         return avoidance_cache_[key];
     }
 
     // Avoidance for a given layer depends on all layers beneath it so could have very deep recursion depths if
     // called at high layer heights
     constexpr auto max_recursion_depth = 100;
-    if (layer >= max_recursion_depth
-        && avoidance_cache_.find({radius, layer - max_recursion_depth}) == avoidance_cache_.end())
+    if (layer_idx >= max_recursion_depth
+        && avoidance_cache_.find({radius, layer_idx - max_recursion_depth}) == avoidance_cache_.end())
     {
-        avoidance(radius, layer - max_recursion_depth);
+        getAvoidance(radius, layer_idx - max_recursion_depth);
     }
-    auto avoidance_areas = avoidance(radius, layer - 1).offset(-max_move_).smooth(5);
-    avoidance_areas = avoidance_areas.unionPolygons(collision(radius, layer));
+    auto avoidance_areas = getAvoidance(radius, layer_idx - 1).offset(-max_move_).smooth(5);
+    avoidance_areas = avoidance_areas.unionPolygons(getCollision(radius, layer_idx));
     const auto ret = avoidance_cache_.insert({key, std::move(avoidance_areas)});
     assert(ret.second);
     return ret.first->second;
@@ -718,9 +720,9 @@ const Polygons& ModelVolumes::calculateAvoidance(const RadiusLayerPair& key) con
 const Polygons& ModelVolumes::calculateInternalModel(const RadiusLayerPair& key) const
 {
     const auto& radius = key.first;
-    const auto& layer = key.second;
+    const auto& layer_idx = key.second;
 
-    const auto& internal_areas = avoidance(radius, layer).difference(collision(radius, layer));
+    const auto& internal_areas = getAvoidance(radius, layer_idx).difference(getCollision(radius, layer_idx));
     const auto ret = internal_model_cache_.insert({key, internal_areas});
     assert(ret.second);
     return ret.first->second;

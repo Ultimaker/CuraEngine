@@ -45,7 +45,7 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& collision(coord_t radius, int layer) const;
+    const Polygons& getCollision(coord_t radius, int layer_idx) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches
@@ -61,7 +61,7 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& avoidance(coord_t radius, int layer) const;
+    const Polygons& getAvoidance(coord_t radius, int layer_idx) const;
 
     /*!
      * \brief Generates the area of a given layer that must be avoided if the
@@ -74,12 +74,12 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& internal_model(coord_t radius, int layer) const;
+    const Polygons& getInternalModel(coord_t radius, int layer_idx) const;
 
 private:
     using RadiusLayerPair = std::pair<coord_t, int>;
+    coord_t ceilRadius(coord_t radius) const;
 
-    coord_t roundRadius(coord_t radius) const;
     const Polygons& calculateCollision(const RadiusLayerPair& key) const;
     const Polygons& calculateAvoidance(const RadiusLayerPair& key) const;
     const Polygons& calculateInternalModel(const RadiusLayerPair& key) const;
