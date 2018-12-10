@@ -703,11 +703,16 @@ const Polygons& ModelVolumes::calculateAvoidance(const RadiusLayerPair& key) con
     }
 
     // Avoidance for a given layer depends on all layers beneath it so could have very deep recursion depths if
-    // called at high layer heights
+    // called at high layer heights. We can limit the reqursion depth to N by checking if the if the layer N
+    // below the current one exists and if not, forcing the calculation of that layer. This may cause another recursion
+    // if the layer at 2N below the current one but we won't exceed our limit unless there are N*N uncalculated layers
+    // below our current one.
     constexpr auto max_recursion_depth = 100;
+    // Check if we would exceed the recursion limit by trying to process this layer
     if (layer_idx >= max_recursion_depth
         && avoidance_cache_.find({radius, layer_idx - max_recursion_depth}) == avoidance_cache_.end())
     {
+        // Force the calculation of the layer `max_recursion_depth` below our current one, ignoring the result.
         getAvoidance(radius, layer_idx - max_recursion_depth);
     }
     auto avoidance_areas = getAvoidance(radius, layer_idx - 1).offset(-max_move_).smooth(5);

@@ -21,12 +21,25 @@ namespace cura
 /*!
  * \brief Lazily generates tree guidance volumes.
  *
- * NOTE: This class is not currently thread-safe and should not be accessed in OpenMP blocks
+ * \warning This class is not currently thread-safe and should not be accessed in OpenMP blocks
  */
 class ModelVolumes
 {
 public:
     ModelVolumes() = default;
+    /*!
+     * \brief Construct the ModelVolumes object
+     *
+     * \param storage The slice data storage object to extract the model
+     * contours from.
+     * \param machine_border The polygons representing the limits of the
+     * printable area of the machine.
+     * \param xy_distance The required clearance between the model and the
+     * tree branches.
+     * \param max_move The maximum allowable movement between nodes on
+     * adjacent layers
+     * \param radius_sample_resolution Sample size used to round requested node radii.
+     */
     ModelVolumes(const SliceDataStorage& storage, Polygons machine_border, coord_t xy_distance, coord_t max_move,
                  coord_t radius_sample_resolution);
 
@@ -78,18 +91,82 @@ public:
     const Polygons& getInternalModel(coord_t radius, LayerIndex layer_idx) const;
 
 private:
+    /*!
+     * \brief Convenience typedef for the keys to the caches
+     */
     using RadiusLayerPair = std::pair<coord_t, LayerIndex>;
+
+    /*!
+     * \brief Round \p radius upwards to a multiple of radius_sample_resolution_
+     *
+     * \param radius The radius of the node of interest
+     */
     coord_t ceilRadius(coord_t radius) const;
 
+    /*!
+     * \brief Calculate the collision areas at the radius and layer indicated
+     * by \p key.
+     *
+     * \param key The radius and layer of the node of interest
+     */
     const Polygons& calculateCollision(const RadiusLayerPair& key) const;
+
+    /*!
+     * \brief Calculate the avoidance areas at the radius and layer indicated
+     * by \p key.
+     *
+     * \param key The radius and layer of the node of interest
+     */
     const Polygons& calculateAvoidance(const RadiusLayerPair& key) const;
+
+    /*!
+     * \brief Calculate the internal model areas at the radius and layer
+     * indicated by \p key.
+     *
+     * \param key The radius and layer of the node of interest
+     */
     const Polygons& calculateInternalModel(const RadiusLayerPair& key) const;
 
+    /*!
+     * \brief Polygons representing the limits of the printable area of the
+     * machine
+     */
     Polygons machine_border_;
+
+    /*!
+     * \brief The required clearance between the model and the tree branches
+     */
     coord_t xy_distance_;
+
+    /*!
+     * \brief The maximum distance that the centrepoint of a tree branch may
+     * move in consequtive layers
+     */
     coord_t max_move_;
+
+    /*!
+     * \brief Sample resolution for radius values.
+     *
+     * The radius will be rounded (upwards) to multiples of this value before
+     * calculations are done when collision, avoidance and internal model
+     * Polygons are requested.
+     */
     coord_t radius_sample_resolution_;
+
+    /*!
+     * \brief Storage for layer outlines of the meshes.
+     */
     std::vector<Polygons> layer_outlines_;
+
+    /*!
+     * \brief Caches for the collision, avoidance and internal model polygons
+     * at given radius and layer indices.
+     *
+     * These are mutable to allow modification from const function. This is
+     * generally considered OK as the functions are still logically const
+     * (ie there is no difference in behaviour for the user betweeen
+     * calculating the values each time vs caching the results).
+     */
     mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_;
     mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_;
     mutable std::unordered_map<RadiusLayerPair, Polygons> internal_model_cache_;
@@ -216,7 +293,7 @@ private:
      * \brief Generator for model collision, avoidance and internal guide volumes
      *
      * Lazily computes volumes as needed.
-     *  Note: This class is NOT currently thread-safe and should not be accessed in OpenMP blocks
+     *  \warning This class is NOT currently thread-safe and should not be accessed in OpenMP blocks
      */
     ModelVolumes volumes_;
 
