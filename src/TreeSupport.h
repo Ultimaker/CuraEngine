@@ -40,7 +40,7 @@ public:
      * adjacent layers
      * \param radius_sample_resolution Sample size used to round requested node radii.
      */
-    ModelVolumes(const SliceDataStorage& storage, Polygons machine_border, coord_t xy_distance, coord_t max_move,
+    ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,
                  coord_t radius_sample_resolution);
 
     ModelVolumes(ModelVolumes&&) = default;
