@@ -355,6 +355,15 @@ public:
      */
     bool getExtruderPrimeBlobEnabled(const size_t extruder_nr) const;
 
+    /*!
+     * Gets the border of the usable print area for this machine.
+     *
+     * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
+     * rafts, if present.
+     * \return a Polygon representing the usable area of the print bed.
+     */
+    Polygon getMachineBorder(bool adhesion_offset = false) const;
+
 private:
     /*!
      * Construct the retraction_config_per_extruder

@@ -22,75 +22,6 @@
 namespace cura
 {
 
-namespace {
-Polygons calculateMachineBorderCollision(const SliceDataStorage& storage)
-{
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-
-    Polygons actual_border;
-    switch(mesh_group_settings.get<BuildPlateShape>("machine_shape"))
-    {
-        case BuildPlateShape::ELLIPTIC:
-        {
-            actual_border.emplace_back();
-            //Construct an ellipse to approximate the build volume.
-            const coord_t width = storage.machine_size.max.x - storage.machine_size.min.x;
-            const coord_t depth = storage.machine_size.max.y - storage.machine_size.min.y;
-            constexpr unsigned int circle_resolution = 50;
-            for (unsigned int i = 0; i < circle_resolution; i++)
-            {
-                actual_border[0].emplace_back(storage.machine_size.getMiddle().x + cos(M_PI * 2 * i / circle_resolution) * width / 2,
-                                              storage.machine_size.getMiddle().y + sin(M_PI * 2 * i / circle_resolution) * depth / 2);
-            }
-            break;
-        }
-        case BuildPlateShape::RECTANGULAR:
-        default:
-            actual_border.add(storage.machine_size.flatten().toPolygon());
-            break;
-    }
-
-    coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
-    const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-    coord_t extra_skirt_line_width = 0;
-    const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
-    {
-        if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
-        {
-            continue;
-        }
-        const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-    }
-    switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
-    {
-        case EPlatformAdhesion::BRIM:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
-            break;
-        case EPlatformAdhesion::RAFT:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
-            break;
-        case EPlatformAdhesion::SKIRT:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
-            break;
-        case EPlatformAdhesion::NONE:
-            adhesion_size = 0;
-            break;
-        default: //Also use 0.
-            log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
-            break;
-    }
-    actual_border = actual_border.offset(-adhesion_size);
-
-    Polygons machine_volume_border;
-    machine_volume_border.add(actual_border.offset(1000000)); //Put a border of 1m around the print volume so that we don't collide.
-    actual_border[0].reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
-    machine_volume_border.add(actual_border);
-    return machine_volume_border;
-}
-}
-
 TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -621,7 +552,7 @@ void TreeSupport::insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node
 
 ModelVolumes::ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,
                            coord_t radius_sample_resolution) :
-    machine_border_{calculateMachineBorderCollision(storage)},
+    machine_border_{calculateMachineBorderCollision(storage.getMachineBorder())},
     xy_distance_{xy_distance},
     max_move_{max_move},
     radius_sample_resolution_{radius_sample_resolution}
@@ -740,5 +671,14 @@ const Polygons& ModelVolumes::calculateInternalModel(const RadiusLayerPair& key)
     const auto ret = internal_model_cache_.insert({key, internal_areas});
     assert(ret.second);
     return ret.first->second;
+}
+
+Polygons ModelVolumes::calculateMachineBorderCollision(Polygon machine_border)
+{
+    Polygons machine_volume_border;
+    machine_volume_border.add(machine_border.offset(1000000)); //Put a border of 1m around the print volume so that we don't collide.
+    machine_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
+    machine_volume_border.add(machine_border);
+    return machine_volume_border;
 }
 }

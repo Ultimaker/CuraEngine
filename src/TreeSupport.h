@@ -32,8 +32,6 @@ public:
      *
      * \param storage The slice data storage object to extract the model
      * contours from.
-     * \param machine_border The polygons representing the limits of the
-     * printable area of the machine.
      * \param xy_distance The required clearance between the model and the
      * tree branches.
      * \param max_move The maximum allowable movement between nodes on
@@ -126,6 +124,13 @@ private:
      * \param key The radius and layer of the node of interest
      */
     const Polygons& calculateInternalModel(const RadiusLayerPair& key) const;
+
+    /*!
+     * \brief Calculate the collision area around the printable area of the machine.
+     *
+     * \param a Polygons object representing the non-printable areas on and around the build platform
+     */
+    static Polygons calculateMachineBorderCollision(Polygon machine_border);
 
     /*!
      * \brief Polygons representing the limits of the printable area of the
