@@ -27,7 +27,7 @@ public:
 
     //Catch these functions so that we can see whether they are called.
     void sendMessage(Arcus::MessagePtr message) override;
-    Arcus::MessagePtr takeNextMessage(bool blocking = false) override;
+    Arcus::MessagePtr takeNextMessage() override;
 
     //Helpers to store the sent and received messages.
     void pushMessageToReceivedQueue(Arcus::MessagePtr message);
