@@ -129,7 +129,7 @@ void InfillFractal2D<CellGeometry>::setSpecificationAllowance(Cell& sub_tree_roo
                 break;
             }
             Cell& child = cell_data[child_idx];
-            setSpecificationAllowance(child);
+            setSpecificationAllowance(child, averaging_statistic);
             switch (averaging_statistic)
             {
                 case 0:

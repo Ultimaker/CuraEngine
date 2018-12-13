@@ -73,7 +73,7 @@ void Cross3D::createTree()
     initialConnection(cell_data[root.children[3]], cell_data[root.children[0]], Direction::RIGHT);
     
     TimeKeeper tk;
-    setSpecificationAllowance(cell_data[0]);
+    setSpecificationAllowance(cell_data[0], /* averaging_statistic =*/ 0);
     logDebug("Completed volumetric specification allowance info in %5.2fs.\n", tk.restart());
 }
 

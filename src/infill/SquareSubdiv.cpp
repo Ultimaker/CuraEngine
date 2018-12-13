@@ -43,7 +43,7 @@ void SquareSubdiv::createTree()
 
     setVolume(cell_data[0]);
 
-    setSpecificationAllowance(cell_data[0]);
+    setSpecificationAllowance(cell_data[0], /* averaging_statistic =*/ 0);
 }
 
 void SquareSubdiv::createTree(Cell& sub_tree_root)
