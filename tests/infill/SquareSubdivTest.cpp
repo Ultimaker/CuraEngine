@@ -64,46 +64,48 @@ void SquareSubdivTest::debugCheck()
 //     for (int do_dither = 0; do_dither < 3; do_dither++)
     {
         {
-            DensityProvider* density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d, 0.8, 0.05, 0.25);
-//             DensityProvider* min_density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/rubber_duck_v4_min_density.png"), aabb_3d, 0.8, 0.05, 0.25);
+//             DensityProvider* density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d, 0.8, 0.05, 0.25);
+            DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/paper/image_sources/algorithm_overview_3d/try3/overview_gradient.svg.png"), aabb_3d, 1.0, 0.0, 0.25);
+            DensityProvider* min_density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/rubber_duck_v4_min_density.png"), aabb_3d, 1.0, 0.0, 0.0);
 
-//             DensityProvider* subdivider = new CombinedDensityProvider(*density, *min_density);
+            DensityProvider* density = new CombinedDensityProvider(*subdivider, *min_density);
             
             bool space_filling_curve = true;
             SquareSubdiv ss(*density, aabb_3d, max_depth, line_width, space_filling_curve);
             ss.initialize();
-        //     ss.createMinimalDensityPattern();
+//             ss.createMinimalDensityPattern();
     //         ss.createMinimalErrorPattern(true);
-//             ss.createBalancedPattern();
-            if (false)
+//             if (false)
             {
-                SVG svg(std::string("output/square_subdiv/") + img_name + "_subdiv_structure_balanced.svg", aabb);
+                ss.createBalancedPattern();
+                SVG svg(std::string("output/square_subdiv/") + img_name + "_subdiv_structure_balanced.svg", aabb, Point(512,512), SVG::Color::NONE, SVG::OMIT_BORDERS);
                 bool draw_arrows = false;
                 float drawing_line_width = static_cast<float>(line_width) * svg.getScale() / 2;
                 if (draw_arrows) drawing_line_width *= .2;
                 ss.debugOutput(svg, drawing_line_width, draw_arrows);
             }
             ss.createDitheredPattern();
-            if (false)
+//             if (false)
             {
-                SVG svg(std::string("output/square_subdiv/") + img_name + "_subdiv_structure_dithered.svg", aabb);
+                SVG svg(std::string("output/square_subdiv/") + img_name + "_subdiv_structure_dithered.svg", aabb, Point(512,512), SVG::Color::NONE, SVG::OMIT_BORDERS);
                 bool draw_arrows = false;
                 float drawing_line_width = static_cast<float>(line_width) * svg.getScale() / 2;
                 if (draw_arrows) drawing_line_width *= .2;
                 ss.debugOutput(svg, drawing_line_width, draw_arrows);
             }
-//             ss.createMinimalDensityPattern();
 //             if (do_dither) ss.dither();
         //     ss.debugCheck();
 
-            if (false)
+            ss.createMinimalDensityPattern();
+//             if (false)
             {
-                SVG svg(std::string("output/square_subdiv/") + img_name + "_subdiv_structure_top_density.svg", aabb);
+                SVG svg(std::string("output/square_subdiv/") + img_name + "_subdiv_structure_top_density.svg", aabb, Point(512,512), SVG::Color::NONE, SVG::OMIT_BORDERS);
                 bool draw_arrows = false;
                 float drawing_line_width = static_cast<float>(line_width) * svg.getScale() / 2;
                 if (draw_arrows) drawing_line_width *= .2;
                 ss.debugOutput(svg, drawing_line_width, draw_arrows);
             }
+//             if (false)
             {
                 SVG svg(std::string("output/square_subdiv/") + img_name + "_fractal.svg", aabb, Point(512,512), SVG::Color::NONE, SVG::OMIT_BORDERS);
                 Polygon poly = ss.createMooreLine();
