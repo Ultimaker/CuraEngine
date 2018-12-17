@@ -187,6 +187,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
+    src/utils/STL.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
 )
