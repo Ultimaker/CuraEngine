@@ -79,6 +79,13 @@ public:
     ~SierpinskiFillProvider();
     
     double polygon_creation_time = 0;
+
+    /*!
+     * output the generated space filling surface to an stl file
+     * 
+     * The generated stl doesn't take overlapping lines into account, but it does ensure vertical and horizontal continuity of the surface.
+     */
+    void writeToSTL(const std::string filename);
 protected:
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object

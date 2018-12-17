@@ -18,6 +18,8 @@
 namespace cura
 {
 
+class Cross3DPrismEdgeNetwork; // fwd decl
+
 /*!
  * InfillFractal2D is an abstract class for generating subdivisiong structures with varying levels of subdivision,
  * according to some requested density distribution given by a \ref DensityProvider
@@ -324,6 +326,7 @@ class InfillFractal2D
 {
 //     friend class Cross3DTest;
     using idx_t = int_fast32_t;
+    friend class Cross3DPrismEdgeNetwork;
 protected:
     struct Cell; // forward decl
 public:

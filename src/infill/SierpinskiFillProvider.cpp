@@ -6,6 +6,7 @@
 
 #include "../utils/math.h"
 #include "../utils/SVG.h"
+#include "../utils/STL.h"
 #include "../Application.h"
 
 namespace cura
@@ -105,6 +106,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
+//     writeToSTL("output/generated.stl");
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
@@ -221,6 +223,112 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
     return FractalConfig{depth, aabb};
 }
 
+
+void SierpinskiFillProvider::writeToSTL(const std::string filename)
+{
+    STL stl(filename);
+    
+    using Cell = Cross3D::Cell;
+    for (const auto& cells : subdivision_structure_3d->getDepthOrdered())
+    {
+        for (const Cell* cell : cells)
+        {
+            Range<coord_t> z_range = cell->elem.z_range;
+            coord_t bottom_quarter_z = (z_range.middle() + z_range.min) / 2;
+            coord_t top_quarter_z = (z_range.middle() + z_range.max) / 2;
+            const Cell* left_neighbors[2] = {nullptr, nullptr};
+            const Cell* right_neighbors[2] = {nullptr, nullptr};
+            { // set left_neighbors and right_neighbors
+                for (const Cross3D::Link& left_neighbor_link : cell->adjacent_cells[static_cast<size_t>(Cross3D::InfillFractal2D::Direction::LEFT)])
+                {
+                    const Cell& neighbor = subdivision_structure_3d->cell_data[left_neighbor_link.to_index];
+                    if (neighbor.elem.z_range.inside(bottom_quarter_z))
+                    {
+                        left_neighbors[0] = &neighbor;
+                    }
+                    if (neighbor.elem.z_range.inside(top_quarter_z))
+                    {
+                        left_neighbors[1] = &neighbor;
+                    }
+                }
+                for (const Cross3D::Link& right_neighbor_link : cell->adjacent_cells[static_cast<size_t>(Cross3D::InfillFractal2D::Direction::RIGHT)])
+                {
+                    const Cell& neighbor = subdivision_structure_3d->cell_data[right_neighbor_link.to_index];
+                    if (neighbor.elem.z_range.inside(bottom_quarter_z))
+                    {
+                        right_neighbors[0] = &neighbor;
+                    }
+                    if (neighbor.elem.z_range.inside(top_quarter_z))
+                    {
+                        right_neighbors[1] = &neighbor;
+                    }
+                }
+            }
+            assert(left_neighbors[0]);
+            assert(left_neighbors[1]);
+            assert(right_neighbors[0]);
+            assert(right_neighbors[1]);
+            
+            for (int half = 0; half <= 1; half++)
+            {
+                coord_t z_min = z_range.min + half * z_range.size() / 2;
+                coord_t z_max = z_range.middle() + half * z_range.size() / 2;
+                Point3 tlb =     toPoint3(edge_network->getCellEdgeLocation(*left_neighbors[half], *cell, z_min), z_min);
+                Point3 tlt =        toPoint3(edge_network->getCellEdgeLocation(*left_neighbors[half], *cell, z_max), z_max);
+                Point3 trb =    toPoint3(edge_network->getCellEdgeLocation(*cell, *right_neighbors[half], z_min), z_min);
+                Point3 trt =       toPoint3(edge_network->getCellEdgeLocation(*cell, *right_neighbors[half], z_max), z_max);
+                bool coplanar = false;
+                {
+                    coord_t a1 = tlt.x - tlb.x;
+                    coord_t b1 = tlt.y - tlb.y;
+                    coord_t c1 = tlt.z - tlb.z;
+                    coord_t a2 = trb.x - tlb.x;
+                    coord_t b2 = trb.y - tlb.y;
+                    coord_t c2 = trb.z - tlb.z;
+                    coord_t a = b1 * c2 - b2 * c1;
+                    coord_t b = a2 * c1 - a1 * c2;
+                    coord_t c = a1 * b2 - b1 * a2;
+                    coord_t d = (- a * tlb.x - b * tlb.y - c * tlb.z);
+                    if (std::abs(a * trt.x + b * trt.y + c * trt.z + d) <= 100)
+                    {
+                        coplanar = true;
+                    }
+                }
+                
+                if (coplanar)
+                {
+                    stl.writeFace(tlb, tlt, trb);
+                    stl.writeFace(trb, tlt, trt);
+                }
+                else
+                { // make double curved surface
+                    float vertical_step_size = (static_cast<float>(z_range.max) - static_cast<float>(z_range.min)) / 8;
+                    for (float z = z_min; z < z_max - 10; z += vertical_step_size)
+                    {
+                        coord_t z_bottom = static_cast<coord_t>(z);
+                        coord_t z_top = static_cast<coord_t>(z + vertical_step_size);
+                        Point3 left_bottom =     toPoint3(edge_network->getCellEdgeLocation(*left_neighbors[half], *cell, z_bottom), z_bottom);
+                        Point3 left_top =        toPoint3(edge_network->getCellEdgeLocation(*left_neighbors[half], *cell, z_top), z_top);
+                        Point3 right_bottom =    toPoint3(edge_network->getCellEdgeLocation(*cell, *right_neighbors[half], z_bottom), z_bottom);
+                        Point3 right_top =       toPoint3(edge_network->getCellEdgeLocation(*cell, *right_neighbors[half], z_top), z_top);
+                        Point3 bottom_dir = right_bottom - left_bottom;
+                        Point3 top_dir = right_top - left_top;
+                        float horizontal_step_size = 1.0 / 4.0;
+                        for (float horizontal_part = 0; horizontal_part < .99; horizontal_part += horizontal_step_size)
+                        {
+                            Point3 lb = left_bottom + bottom_dir * horizontal_part;
+                            Point3 lt = left_top + top_dir * horizontal_part;
+                            Point3 rb = left_bottom + bottom_dir * (horizontal_part + horizontal_step_size);
+                            Point3 rt = left_top + top_dir * (horizontal_part + horizontal_step_size);
+                            stl.writeFace(lb, lt, rb);
+                            stl.writeFace(rb, lt, rt);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 }; // namespace cura

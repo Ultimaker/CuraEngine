@@ -24,6 +24,8 @@ namespace cura
 
 class Cross3DTest; // fwd decl
 class Cross3DPrismEdgeNetwork; // fwd decl
+class SierpinskiFillProvider; // fwd decl
+
 /*!
  * Cross3D is a class for generating the Cross 3D infill pattern with varying density accross X, Y and Z.
  * Each layer is a space filling curve and across the layers the pattern forms a space filling surface,
@@ -119,6 +121,7 @@ class Cross3D : public InfillFractal2D<Cross3DPrism>
 {
     friend class Cross3DTest;
     friend class Cross3DPrismEdgeNetwork;
+    friend class SierpinskiFillProvider;
     using idx_t = int_fast32_t;
 public:
     using Cell = InfillFractal2D<Cross3DPrism>::Cell;
