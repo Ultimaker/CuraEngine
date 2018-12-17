@@ -106,7 +106,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
-//     writeToSTL("output/generated.stl");
+    writeToSTL("output/generated.stl");
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
