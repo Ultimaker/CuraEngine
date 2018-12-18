@@ -67,6 +67,7 @@ GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, Spa
     }
     paths.emplace_back(config, current_mesh, space_fill_type, flow, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
+    ret->skip_agressive_merge_hint = mode_skip_agressive_merge;
     return ret;
 }
 
@@ -81,6 +82,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
+, mode_skip_agressive_merge(false)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
 , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
