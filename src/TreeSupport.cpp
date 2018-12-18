@@ -380,7 +380,10 @@ void TreeSupport::dropNodes(std::vector<std::unordered_set<Node*>>& contact_node
                     const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, volumes_.getCollision(0, layer_nr));
                     if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
                     {
-                        unsupported_branch_leaves.push_front({layer_nr, p_node});
+                        if (! support_rests_on_model)
+                        {
+                            unsupported_branch_leaves.push_front({ layer_nr, p_node });
+                        }
                         continue;
                     }
                 }
