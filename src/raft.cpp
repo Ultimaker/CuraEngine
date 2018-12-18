@@ -20,7 +20,9 @@ void Raft::generate(SliceDataStorage& storage)
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
     const coord_t distance = settings.get<coord_t>("raft_margin");
-    storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
+    constexpr bool include_support = true;
+    constexpr bool include_prime_tower = true;
+    storage.raftOutline = storage.getLayerOutlines(0, include_support, include_prime_tower).offset(distance, ClipperLib::jtRound);
     const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
