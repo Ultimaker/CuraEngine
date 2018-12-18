@@ -325,11 +325,14 @@ public:
     /*!
      * Get all outlines within a given layer.
      * 
-     * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
-     * \param include_helper_parts whether to include support and prime tower
-     * \param external_polys_only whether to disregard all hole polygons
+     * \param layer_nr The index of the layer for which to get the outlines
+     * (negative layer numbers indicate the raft).
+     * \param include_support Whether to include support in the outline.
+     * \param include_prime_tower Whether to include the prime tower in the
+     * outline.
+     * \param external_polys_only Whether to disregard all hole polygons.
      */
-    Polygons getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false) const;
 
     /*!
      * Get the extruders used.
@@ -354,6 +357,15 @@ public:
      * \return a bool indicating whether prime blob is enabled for the given extruder number.
      */
     bool getExtruderPrimeBlobEnabled(const size_t extruder_nr) const;
+
+    /*!
+     * Gets the border of the usable print area for this machine.
+     *
+     * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
+     * rafts, if present.
+     * \return a Polygon representing the usable area of the print bed.
+     */
+    Polygon getMachineBorder(bool adhesion_offset = false) const;
 
 private:
     /*!

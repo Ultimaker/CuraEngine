@@ -937,7 +937,9 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 
     for (int layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist, ClipperLib::jtRound));
+        constexpr bool around_support = true;
+        constexpr bool around_prime_tower = false;
+        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound));
     }
 
     const AngleDegrees angle = mesh_group_settings.get<AngleDegrees>("ooze_shield_angle");
@@ -976,7 +978,9 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
-        draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
+        constexpr bool around_support = true;
+        constexpr bool around_prime_tower = false;
+        draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower));
     }
 
     const int draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
