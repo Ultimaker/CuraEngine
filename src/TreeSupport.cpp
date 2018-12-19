@@ -104,7 +104,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-    const size_t z_distance_bottom_layers = std::max(0U, round_up_divide(z_distance_bottom, layer_height));
+    const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height);
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
@@ -165,9 +165,9 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         {
             Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
             const coord_t support_interface_resolution = mesh_group_settings.get<coord_t>("support_interface_skip_height");
-            const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
+            const size_t support_interface_skip_layers = round_up_divide(support_interface_resolution, layer_height);
             const coord_t support_bottom_height = mesh_group_settings.get<coord_t>("support_bottom_height");
-            const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
+            const size_t support_bottom_height_layers = round_up_divide(support_bottom_height, layer_height);
             for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
             {
                 const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
@@ -495,7 +495,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-    const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
+    const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1; //Support must always be 1 layer below overhang.
     const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")) : 0; //How many roof layers, if roof is enabled.
     const coord_t half_overhang_distance = tan(mesh.settings.get<AngleRadians>("support_angle")) * layer_height / 2;
     for (size_t layer_nr = 1; (int)layer_nr < (int)mesh.overhang_areas.size() - (int)z_distance_top_layers; layer_nr++)

@@ -785,7 +785,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     coord_t max_inner_wall_width = 0;
     for (const SliceMeshStorage& mesh : storage.meshes)
     {
-        max_inner_wall_width = std::max(max_inner_wall_width, mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
+        max_inner_wall_width = std::max(max_inner_wall_width, mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0"));
         if (layer_nr == 0)
         {
             const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
@@ -1525,7 +1525,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
             {
                 const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-                const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+                const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
                 const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
                 if (support_layer_nr > 0)
@@ -1937,7 +1937,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+        const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
         support_layer_nr = layer_nr - z_distance_top_layers;
     }
 

@@ -787,7 +787,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     //Don't generate overhang areas if the Z distance is higher than the objects we're generating support for.
     const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-    const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
+    const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1; //Support must always be 1 layer below overhang.
     if (z_distance_top_layers + 1 > storage.print_layer_count)
     {
         return;
@@ -841,7 +841,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // early out
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<coord_t>("support_top_distance");
-    const size_t layer_z_distance_top = std::max(0U, round_up_divide(z_distance_top, layer_thickness)) + 1; // support must always be 1 layer below overhang
+    const size_t layer_z_distance_top = round_up_divide(z_distance_top, layer_thickness) + 1; // support must always be 1 layer below overhang
     if (layer_z_distance_top + 1 > layer_count)
     {
         return;
@@ -913,7 +913,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     }
 
     const coord_t z_distance_bottom = ((mesh.settings.get<bool>("support_bottom_enable")) ? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
-    const size_t bottom_empty_layer_count = std::max(0U, round_up_divide(z_distance_bottom, layer_thickness)); // number of empty layers between support and model
+    const size_t bottom_empty_layer_count = round_up_divide(z_distance_bottom, layer_thickness); // number of empty layers between support and model
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
