@@ -53,8 +53,20 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
             subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
         }
     }
+    {
+        char filename[1024];
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_discontinuous_mesh_density_%f.stl", density * 100.0);
+        subdivision_structure_3d->writeDisconnectedSequenceToSTL(filename);
+    }
+
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
+
+    {
+        char filename[1024];
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_mesh_density_%f.stl", density * 100.0);
+        writeToSTL(filename);
+    }
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data, const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width,
@@ -106,7 +118,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     }
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
-//     writeToSTL("output/generated.stl");
+//     writeToSTL("/home/t.kuipers/Development/CuraEngine/output/generated.stl");
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const

@@ -170,6 +170,8 @@ public:
      * \param closed Whether to draw the faces of the cells rather than the edges only
      */
     void generateSubdivisionEdges(const SliceWalker& walker, coord_t z, Polygons& result_polygons, Polygons& result_lines, bool closed = true) const;
+
+    void writeDisconnectedSequenceToSTL(const std::string filename) const;
 protected:
     coord_t min_dist_to_cell_bound; //!< The minimal distance between a triangle vertex and the space filling surface oscillating vertex for a straight corner or straight edge
     coord_t min_dist_to_cell_bound_diag; //!< The minimal diagonal distance between a triangle vertex and the space filling surface oscillating vertex

@@ -7,6 +7,7 @@
 #include "../utils/math.h"
 #include "../utils/linearAlg2D.h"
 #include "../utils/gettime.h"
+#include "../utils/STL.h"
 
 #include "Cross3DPrismEdgeNetwork.h"
 
@@ -35,9 +36,9 @@ float Cross3D::getDensity(const Cell& cell, const int_fast8_t averaging_statisti
 void Cross3D::createTree()
 {
     assert(cell_data.empty());
-    size_t to_be_reserved = 1.05 * sqrt2 * (2 << (max_depth * 3 / 2)); // magic formula predicting nr of cells in the tree. Overestimates to prevent reallocation.
-    logDebug("Cross3D reserved %i nodes\n", to_be_reserved);
-    cell_data.reserve(to_be_reserved);
+//     size_t to_be_reserved = 1.05 * sqrt2 * (2 << (max_depth * 3 / 2)); // magic formula predicting nr of cells in the tree. Overestimates to prevent reallocation.
+//     logDebug("Cross3D reserved %i nodes\n", to_be_reserved);
+//     cell_data.reserve(to_be_reserved);
     Prism root_prism; // initialized with invalid data
     cell_data.emplace_back(root_prism, /*index =*/ 0, /* depth =*/ 0);
 
@@ -705,6 +706,39 @@ void Cross3D::debugOutputSequence(const Cell& cell, SVG& svg, float drawing_line
     else
     {
         debugOutputCell(cell, svg, drawing_line_width, draw_arrows, false);
+    }
+}
+
+
+void Cross3D::writeDisconnectedSequenceToSTL(const std::string filename) const
+{
+    STL stl(filename);
+
+    for (const auto& cells : const_cast<Cross3D*>(this)->getDepthOrdered())
+    {
+        for (const Cell* cell : cells)
+        {
+            const LineSegment from_edge = cell->elem.triangle.getFromEdge();
+            const LineSegment to_edge = cell->elem.triangle.getToEdge();
+            coord_t inner_z = cell->elem.z_range.min;
+            coord_t outer_z = cell->elem.z_range.max;
+            if (!cell->elem.is_expanding)
+            {
+                std::swap(inner_z, outer_z);
+            }
+            const Point3 from_inner = toPoint3(from_edge.from, inner_z);
+            const Point3 from_outer = toPoint3(from_edge.to, outer_z);
+            const Point3 to_inner = toPoint3(to_edge.from, inner_z);
+            const Point3 to_outer = toPoint3(to_edge.to, outer_z);
+            if ((from_inner - to_inner).vSize2() < (from_outer - to_outer).vSize2())
+            {
+                stl.writeFace(from_inner, from_outer, to_outer);
+            }
+            else
+            {
+                stl.writeFace(from_inner, to_inner, from_outer);
+            }
+        }
     }
 }
 
