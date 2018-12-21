@@ -85,7 +85,7 @@ public:
      * 
      * The generated stl doesn't take overlapping lines into account, but it does ensure vertical and horizontal continuity of the surface.
      */
-    void writeToSTL(const std::string filename);
+    void writeToSTL(const std::string filename, const char resolution = 8);
 protected:
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object

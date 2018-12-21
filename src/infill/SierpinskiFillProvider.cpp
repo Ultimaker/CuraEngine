@@ -53,19 +53,19 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
             subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
         }
     }
-    {
-        char filename[1024];
-        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_discontinuous_mesh_density_%f.stl", density * 100.0);
-        subdivision_structure_3d->writeDisconnectedSequenceToSTL(filename);
-    }
 
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
 
     {
         char filename[1024];
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_discontinuous_mesh_density_%f.stl", density * 100.0);
+        subdivision_structure_3d->writeDisconnectedSequenceToSTL(filename);
+    }
+    {
+        char filename[1024];
         std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_mesh_density_%f.stl", density * 100.0);
-        writeToSTL(filename);
+        writeToSTL(filename, 8);
     }
 }
 
@@ -119,6 +119,16 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
 //     writeToSTL("/home/t.kuipers/Development/CuraEngine/output/generated.stl");
+    {
+        char filename[1024];
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_discontinuous_mesh_density_h%f.stl", INT2MM(aabb_3d.max.z - aabb_3d.min.z));
+        subdivision_structure_3d->writeDisconnectedSequenceToSTL(filename);
+    }
+    {
+        char filename[1024];
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_mesh_density_h%f.stl", INT2MM(aabb_3d.max.z - aabb_3d.min.z));
+        writeToSTL(filename, 16);
+    }
 }
 
 Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t line_width, coord_t pocket_size) const
@@ -236,7 +246,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
 }
 
 
-void SierpinskiFillProvider::writeToSTL(const std::string filename)
+void SierpinskiFillProvider::writeToSTL(const std::string filename, const char resolution)
 {
     STL stl(filename);
     
@@ -314,7 +324,7 @@ void SierpinskiFillProvider::writeToSTL(const std::string filename)
                 }
                 else
                 { // make double curved surface
-                    float vertical_step_size = (static_cast<float>(z_range.max) - static_cast<float>(z_range.min)) / 8;
+                    float vertical_step_size = (static_cast<float>(z_range.max) - static_cast<float>(z_range.min)) / resolution;
                     for (float z = z_min; z < z_max - 10; z += vertical_step_size)
                     {
                         coord_t z_bottom = static_cast<coord_t>(z);
@@ -325,7 +335,7 @@ void SierpinskiFillProvider::writeToSTL(const std::string filename)
                         Point3 right_top =       toPoint3(edge_network->getCellEdgeLocation(*cell, *right_neighbors[half], z_top), z_top);
                         Point3 bottom_dir = right_bottom - left_bottom;
                         Point3 top_dir = right_top - left_top;
-                        float horizontal_step_size = 1.0 / 4.0;
+                        float horizontal_step_size = 1.0 / (resolution / 2);
                         for (float horizontal_part = 0; horizontal_part < .99; horizontal_part += horizontal_step_size)
                         {
                             Point3 lb = left_bottom + bottom_dir * horizontal_part;
