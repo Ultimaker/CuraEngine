@@ -20,9 +20,9 @@ STL::STL(const std::string filename_str)
 
 void STL::writeFace(FPoint3 a, FPoint3 b, FPoint3 c)
 {
-    if ((a - b).vSize2() < INT2MM(1)
-        || (a - c).vSize2() < INT2MM(1)
-        || (b - c).vSize2() < INT2MM(1))
+    if ((a - b).vSize2() < INT2MM(10) * INT2MM(10)
+        || (a - c).vSize2() < INT2MM(10) * INT2MM(10)
+        || (b - c).vSize2() < INT2MM(10) * INT2MM(10))
     {
         return;
     }
