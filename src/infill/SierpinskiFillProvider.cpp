@@ -311,7 +311,7 @@ void SierpinskiFillProvider::writeToSTL(const std::string filename, const char r
                     coord_t b = a2 * c1 - a1 * c2;
                     coord_t c = a1 * b2 - b1 * a2;
                     coord_t d = (- a * tlb.x - b * tlb.y - c * tlb.z);
-                    if (std::abs(a * trt.x + b * trt.y + c * trt.z + d) <= 100)
+                    if (std::abs(a * trt.x + b * trt.y + c * trt.z + d) <= 1000)
                     {
                         coplanar = true;
                     }
