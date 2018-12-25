@@ -100,7 +100,6 @@ void CommandLine::sliceNext()
 
     slice.scene.extruders.reserve(arguments.size() >> 1); //Allocate enough memory to prevent moves.
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
-    ExtruderTrain& last_extruder = slice.scene.extruders[0];
 
     for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
     {
@@ -205,7 +204,7 @@ void CommandLine::sliceNext()
 
                         const FMatrix3x3 transformation = last_settings->get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
 
-                        if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
+                        if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, *last_settings))
                         {
                             logError("Failed to load model: %s. (error number %d)\n", argument.c_str(), errno);
                             exit(1);
