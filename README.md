@@ -70,7 +70,7 @@ CURA_ENGINE_SEARCH_PATH=/path/to/Cura/resources/definitions:/user/defined/path
 Internals
 =========
 
-The Cura Engine is structured as mainly .h files. This is not standard for a C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partialy a result of lazyness but comes in handy for optimalizations.
+The Cura Engine is structured as mainly .h files. This is not standard for a C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partialy a result of lazyness but comes in handy for optimizations.
 
 The .h files contain different steps called from the main.cpp file. The main.cpp file contains the global slicing logic.
 
