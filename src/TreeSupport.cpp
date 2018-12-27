@@ -470,26 +470,39 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
 
     //First generate grid points to cover the entire area of the print.
     AABB bounding_box = mesh.bounding_box.flatten();
-    //We want to create the grid pattern at an angle, so compute the bounding box required to cover that angle.
-    constexpr double rotate_angle = 22.0 / 180.0 * M_PI; //Rotation of 22 degrees provides better support of diagonal lines.
+    // We want to create the grid pattern at an angle, so compute the bounding
+    // box required to cover that angle.
+    // Rotation of 22 degrees provides better support of diagonal lines.
+    constexpr double rotate_angle = 22.0 / 180.0 * M_PI;
     const Point bounding_box_size = bounding_box.max - bounding_box.min;
-    AABB rotated_bounding_box; //Bounding box is rotated around the lower left corner of the original bounding box, so translate everything to 0,0 and rotate.
-    rotated_bounding_box.include(Point(0, 0));
-    rotated_bounding_box.include(rotate(bounding_box_size, -rotate_angle));
-    rotated_bounding_box.include(rotate(Point(0, bounding_box_size.Y), -rotate_angle));
-    rotated_bounding_box.include(rotate(Point(bounding_box_size.X, 0), -rotate_angle));
-    AABB unrotated_bounding_box; //Take the AABB of that and rotate back around the lower left corner of the original bounding box (still 0,0 coordinate).
-    unrotated_bounding_box.include(rotate(rotated_bounding_box.min, rotate_angle));
-    unrotated_bounding_box.include(rotate(rotated_bounding_box.max, rotate_angle));
-    unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.min.X, rotated_bounding_box.max.Y), rotate_angle));
-    unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.max.X, rotated_bounding_box.min.Y), rotate_angle));
+
+    // Store centre of AABB so we can relocate the generated points
+    const auto centre = bounding_box.getMiddle();
+    const auto sin_angle = std::sin(rotate_angle);
+    const auto cos_angle = std::cos(rotate_angle);
+    // Calculate the dimensions of the AABB of the mesh AABB after being rotated
+    // by `rotate_angle`. Halve the dimensions since we'll be using it as a +-
+    // offset from the centre of `bounding_box`.
+    // This formulation will only work with rotation angles <90 degrees. If the
+    // rotation angle becomes a user-configurable value then this will need to
+    // be changed
+    const auto rotated_dims = Point(
+        bounding_box_size.X * cos_angle + bounding_box_size.Y * sin_angle,
+        bounding_box_size.X * sin_angle + bounding_box_size.Y * cos_angle) / 2;
 
     std::vector<Point> grid_points;
-    for (coord_t x = unrotated_bounding_box.min.X; x <= unrotated_bounding_box.max.X; x += point_spread)
+    for (auto x = -rotated_dims.X; x <= rotated_dims.X; x += point_spread)
     {
-        for (coord_t y = unrotated_bounding_box.min.Y; y <= unrotated_bounding_box.max.Y; y += point_spread)
+        for (auto y = -rotated_dims.Y; y <= rotated_dims.Y; y += point_spread)
         {
-            grid_points.push_back(rotate(Point(x, y), rotate_angle) + bounding_box.min); //Make the points absolute again by adding the position of the lower left corner of the original bounding box.
+            // Construct a point as an offset from the mesh AABB centre, rotated
+            // about the mesh AABB centre
+            const auto pt = rotate(Point(x, y), rotate_angle) + centre;
+            // Only add to grid points if we have a chance to collide with the
+            // mesh
+            if (bounding_box.contains(pt)) {
+                grid_points.push_back(pt);
+            }
         }
     }
 
