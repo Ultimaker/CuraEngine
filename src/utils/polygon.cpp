@@ -340,7 +340,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     }
 
     //For the last/first vertex, we didn't check the connection that closes the polygon yet. Add the first vertex back if this connection is too long.
-    if(vSize2(new_path.back() - new_path.at(0)) > smallest_line_segment_squared)
+    if(!new_path.empty() && vSize2(new_path.back() - new_path[0]) > smallest_line_segment_squared)
     {
         new_path.push_back(path->at(0));
     }
