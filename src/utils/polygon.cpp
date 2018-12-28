@@ -337,12 +337,14 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
         }
         accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
-        const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
 
-        if ((length2 < smallest_line_segment_squared && area_removed_so_far <= allowed_error_distance_squared)
-                || area_removed_so_far <= 100) //Also remove vertex if it's (almost) exactly on a straight line.
+        if (length2 < smallest_line_segment_squared)
         {
-            continue; //Remove the vertex.
+            const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
+            if (area_removed_so_far <= allowed_error_distance_squared)
+            {
+                continue; //Remove the vertex.
+            }
         }
 
         //Don't remove the vertex.
