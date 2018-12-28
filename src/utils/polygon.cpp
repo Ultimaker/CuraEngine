@@ -346,8 +346,18 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 continue; //Remove the vertex.
             }
         }
-
         //Don't remove the vertex.
+
+        //But we may need to remove the previous vertex if it happens to be almost exactly in line with the new vertex.
+        if (new_path.size() >= 2)
+        {
+            const coord_t distance = LinearAlg2D::getDist2FromLineSegment(new_path[new_path.size() - 2], new_path[new_path.size() - 1], current);
+            if (distance < 25) //Less than 5 microns off, so this falls within our rounding error range.
+            {
+                new_path.pop_back(); //Remove the previous vertex then.
+            }
+        }
+
         accumulated_area_removed = previous.X * current.Y - previous.Y * current.X;
         previous = current; //Note that "previous" is only updated if we actually remove the vertex.
         new_path.push_back(current);

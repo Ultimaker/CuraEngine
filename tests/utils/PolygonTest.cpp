@@ -233,7 +233,7 @@ void PolygonTest::simplifyZigzag()
 
     std::stringstream ss;
     ss << "Zigzag should be removed since the total error compensates with each zag, but size was " << zigzag.size() << ".";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 3);
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 4);
 }
 
 }
