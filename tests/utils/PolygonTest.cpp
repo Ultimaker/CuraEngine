@@ -183,5 +183,33 @@ void PolygonTest::getEmptyHolesTest()
     }
 }
 
+void PolygonTest::simplifyCircle()
+{
+    Polygons circle;
+    PolygonRef circle_polygon = circle.newPoly();
+    constexpr double radius = 100000;
+    constexpr double segment_length = 1000;
+    constexpr double tau = 6.283185307179586476925286766559; //2 * pi.
+    constexpr double increment = segment_length / radius; //Segments of 1000 units.
+    for (double angle = 0; angle < tau; angle += increment)
+    {
+        circle_polygon.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+    }
+
+    constexpr coord_t minimum_segment_length = segment_length + 10;
+    circle.simplify(minimum_segment_length, 999999999); //With segments of 1000, we need to remove exactly half of the vertices to meet the requirement that all segments are >1010.
+    constexpr coord_t maximum_segment_length = segment_length * 2 + 20; //+20 for some error margin due to rounding.
+
+    for (size_t point_index = 1; point_index <= circle_polygon.size(); point_index++)
+    {
+        coord_t segment_length = vSize(circle_polygon[point_index % circle_polygon.size()] - circle_polygon[point_index - 1]);
+        std::stringstream ss_short;
+        ss_short << "Segment " << (point_index - 1) << " - " << point_index << " is too short! " << segment_length << " < " << minimum_segment_length;
+        CPPUNIT_ASSERT_MESSAGE(ss_short.str(), segment_length >= minimum_segment_length);
+        std::stringstream ss_long;
+        ss_long << "Segment " << (point_index - 1) << " - " << point_index << " is too long! " << segment_length << " > " << maximum_segment_length;
+        CPPUNIT_ASSERT_MESSAGE(ss_long.str(), segment_length <= maximum_segment_length);
+    }
+}
 
 }
