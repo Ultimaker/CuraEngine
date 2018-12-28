@@ -200,7 +200,7 @@ void PolygonTest::simplifyCircle()
     circle.simplify(minimum_segment_length, 999999999); //With segments of 1000, we need to remove exactly half of the vertices to meet the requirement that all segments are >1010.
     constexpr coord_t maximum_segment_length = segment_length * 2 + 20; //+20 for some error margin due to rounding.
 
-    for (size_t point_index = 1; point_index <= circle_polygon.size(); point_index++)
+    for (size_t point_index = 1; point_index < circle_polygon.size() - 1; point_index++) //Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
         coord_t segment_length = vSize(circle_polygon[point_index % circle_polygon.size()] - circle_polygon[point_index - 1]);
         std::stringstream ss_short;
