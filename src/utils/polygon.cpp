@@ -321,16 +321,16 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
         current = path->at(point_idx % size());
 
         const coord_t length2 = vSize2(current - previous);
-        if (length2 < smallest_line_segment_squared)
+
+        //Check if the accumulated area doesn't exceed the maximum.
+        const Point& next = (point_idx + 1 < size()) ? path->at(point_idx + 1) : new_path[point_idx - size()]; //Spill over to new polygon for checking removed area.
+        accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
+        const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
+
+        if ((length2 < smallest_line_segment_squared && area_removed_so_far <= allowed_error_distance_squared)
+                || area_removed_so_far <= 100) //Also remove vertex if it's (almost) exactly on a straight line.
         {
-            //Check if the accumulated area doesn't exceed the maximum.
-            const Point& next = (point_idx + 1 < size()) ? path->at(point_idx + 1) : new_path[point_idx - size()]; //Spill over to new polygon for checking removed area.
-            accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
-            const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
-            if (area_removed_so_far <= allowed_error_distance_squared)
-            {
-                continue; //Remove the vertex.
-            }
+            continue; //Remove the vertex.
         }
 
         //Don't remove the vertex.
