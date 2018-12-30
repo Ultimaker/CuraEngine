@@ -1,17 +1,17 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
 #include <list>
 
-#include "settings/settings.h"
-#include "commandSocket.h"
-
 #include "gcodeExport.h"
 #include "LayerPlan.h"
 #include "MeshGroup.h"
-
 #include "Preheat.h"
+#include "settings/Settings.h"
+#include "settings/types/Duration.h"
 
 namespace cura 
 {
@@ -29,16 +29,16 @@ namespace cura
  * \image latex assets/precool.png "Temperature Regulation" width=10cm
  * 
  */
-class LayerPlanBuffer : SettingsMessenger
+class LayerPlanBuffer
 {
     GCodeExport& gcode;
-    
+
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
-    
-    static constexpr unsigned int buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
+
+    static constexpr size_t buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
 
-    static constexpr const double extra_preheat_time = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
+    static constexpr Duration extra_preheat_time = 1.0_s; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
     std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the extrusion_temperature
 
@@ -50,13 +50,12 @@ class LayerPlanBuffer : SettingsMessenger
      */
     std::list<LayerPlan*> buffer;
 public:
-    LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
-    : SettingsMessenger(settings)
-    , gcode(gcode)
+    LayerPlanBuffer(GCodeExport& gcode)
+    : gcode(gcode)
     , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
 
-    void setPreheatConfig(MeshGroup& settings);
+    void setPreheatConfig();
 
     /*!
      * Push a new layer plan into the buffer
@@ -107,10 +106,10 @@ private:
      * 
      * \param extruder_plan_before An extruder plan before the extruder plan for which the temperature is computed, in which to insert the preheat command
      * \param time_before_extruder_plan_end The time before the end of the extruder plan, before which to insert the preheat command
-     * \param extruder The extruder for which to set the temperature
+     * \param extruder_nr The extruder for which to set the temperature
      * \param temp The temperature of the preheat command
      */
-    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_before_extruder_plan_end, int extruder, double temp);
+    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp);
 
     /*!
      * Compute the time needed to preheat from standby to required (initial) printing temperature at the start of an extruder plan,
@@ -131,10 +130,10 @@ private:
      * The preheat commands are inserted such that the middle of the temperature change coincides with the start of the next layer.
      * 
      * \param prev_extruder_plan The former extruder plan (of the former layer)
-     * \param extruder The extruder for which too set the temperature
+     * \param extruder_nr The extruder for which too set the temperature
      * \param required_temp The required temperature for the second extruder plan
      */
-    void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp);
+    void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const Temperature required_temp);
 
     /*!
      * Insert the preheat command for an extruder plan which is preceded by an extruder plan with a different extruder.

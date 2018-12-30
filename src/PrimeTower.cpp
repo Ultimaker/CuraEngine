@@ -1,49 +1,67 @@
-#include "PrimeTower.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <algorithm>
 #include <limits>
 
+#include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "sliceDataStorage.h"
 #include "gcodeExport.h"
-#include "LayerPlan.h"
 #include "infill.h"
+#include "LayerPlan.h"
+#include "PrimeTower.h"
 #include "PrintFeature.h"
 #include "raft.h"
+#include "sliceDataStorage.h"
 
 #define CIRCLE_RESOLUTION 32 //The number of vertices in each circle.
+
 
 namespace cura 
 {
 
-PrimeTower::PrimeTower(const SliceDataStorage& storage)
-: is_hollow(false)
-, wipe_from_middle(false)
+PrimeTower::PrimeTower()
+: wipe_from_middle(false)
 {
-    enabled = storage.getSettingBoolean("prime_tower_enable")
-           && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
-           && storage.getSettingInMicrons("prime_tower_size") > 10;
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
+           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
+           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+
+    extruder_count = scene.extruders.size();
+    extruder_order.resize(extruder_count);
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        extruder_order[extruder_nr] = extruder_nr; //Start with default order, then sort.
+    }
+    //Sort from high adhesion to low adhesion.
+    const Scene* scene_pointer = &scene; //Communicate to lambda via pointer to prevent copy.
+    std::stable_sort(extruder_order.begin(), extruder_order.end(), [scene_pointer](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
+    {
+        const Ratio adhesion_a = scene_pointer->extruders[extruder_nr_a].settings.get<Ratio>("material_adhesion_tendency");
+        const Ratio adhesion_b = scene_pointer->extruders[extruder_nr_b].settings.get<Ratio>("material_adhesion_tendency");
+        return adhesion_a < adhesion_b;
+    });
 }
 
-void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
+void PrimeTower::generateGroundpoly()
 {
     if (!enabled)
     {
         return;
     }
 
-    extruder_count = storage.meshgroup->getExtruderCount();
-
-    int64_t prime_tower_wall_thickness = storage.getSettingInMicrons("prime_tower_wall_thickness");
-    int64_t tower_size = storage.getSettingInMicrons("prime_tower_size");
-    bool circular_prime_tower = storage.getSettingBoolean("prime_tower_circular");
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
+    const bool circular_prime_tower = mesh_group_settings.get<bool>("prime_tower_circular");
 
     PolygonRef p = outer_poly.newPoly();
     int tower_distance = 0; 
-    int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
-    int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     if (circular_prime_tower)
     {
-        double_t tower_radius = tower_size / 2;
+        const coord_t tower_radius = tower_size / 2;
         for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
         {
             const double angle = (double) i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
@@ -60,13 +78,6 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     }
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
-    inner_poly = outer_poly;  // for the first layer, we always generate a non-hollow prime tower
-    if (prime_tower_wall_thickness * 2 < tower_size)
-    {
-        is_hollow = true;
-        inner_poly = outer_poly.difference(outer_poly.offset(-prime_tower_wall_thickness));
-    }
-
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
 }
 
@@ -75,275 +86,131 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (enabled)
     {
-        generatePaths_denseInfill(storage);
-        generateWipeLocations(storage);
+        generatePaths_denseInfill();
+        generateStartLocations();
     }
 }
 
-void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
+void PrimeTower::generatePaths_denseInfill()
 {
-    int n_patterns = 2; // alternating patterns between layers
-    int infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
-    int extra_infill_shift = 0;
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    pattern_per_extruder.resize(extruder_count);
 
-    int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
-    EFillMethod first_layer_infill_method;
-    for (int extruder = 0; extruder < extruder_count; extruder++)
+    coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
+    for (size_t extruder_nr : extruder_order)
     {
-        int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
-        int wall_thickness = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_wall_thickness");
-        patterns_per_extruder.emplace_back(n_patterns);
-        std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
-        patterns.resize(n_patterns);
+        const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
+        const coord_t required_volume = scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume") * 1000000000; //To cubic microns.
+        const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
+        coord_t current_volume = 0;
+        ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
 
-        // If the prime tower is circular, instead of creating a concentric infill in the normal layers, the tower is
-        // built as walls, in order to keep always the same direction while printing
-        if (storage.getSettingBoolean("prime_tower_circular"))
+        //Create the walls of the prime tower.
+        unsigned int wall_nr = 0;
+        for (; current_volume < required_volume; wall_nr++)
         {
-            first_layer_infill_method = EFillMethod::CONCENTRIC;
-            const int walls = std::ceil(wall_thickness / line_width);
-            for (int wall_nr = 0; wall_nr < walls; wall_nr++)
+            //Create a new polygon with an offset from the outer polygon.
+            Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
+            pattern.polygons.add(polygons);
+            current_volume += polygons.polygonLength() * line_width * layer_height * flow;
+            if (polygons.empty()) //Don't continue. We won't ever reach the required volume because it doesn't fit.
             {
-                // Create a new polygon with an offset from the outer polygon. The polygon is copied in the n_patterns,
-                // since printing walls will be the same in each layer.
-                Polygons polygons = outer_poly.offset(-wall_nr * line_width - line_width / 2);
-                for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
-                {
-                    patterns[pattern_idx].polygons.add(polygons);
-                }
+                break;
             }
         }
-        else
+        cumulative_inset += wall_nr * line_width;
+
+        //Generate the pattern for the first layer.
+        coord_t line_width_layer0 = line_width;
+        if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
         {
-            first_layer_infill_method = EFillMethod::LINES;
-            for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
-            {
-                patterns[pattern_idx].polygons = inner_poly.offset(-line_width / 2);
-                Polygons& result_lines = patterns[pattern_idx].lines;
-                int outline_offset = -line_width;
-                int line_distance = line_width;
-                double fill_angle = 45 + pattern_idx * 90;
-                Polygons& result_polygons = patterns[pattern_idx].polygons; // should remain empty, since we generate lines pattern!
-                constexpr bool zig_zaggify_infill = false;
-                Infill infill_comp(EFillMethod::LINES, zig_zaggify_infill, inner_poly, outline_offset, line_width,
-                                   line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-                infill_comp.generate(result_polygons, result_lines);
-            }
-        }
-        int line_width_layer0 = line_width;
-        if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
-        {
-            line_width_layer0 *= storage.meshgroup->getExtruderTrain(extruder)->getSettingAsRatio("initial_layer_line_width_factor");
+            line_width_layer0 *= scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
         }
         pattern_per_extruder_layer0.emplace_back();
-        ExtrusionMoves& pattern = pattern_per_extruder_layer0.back();
-        pattern.polygons = outer_poly.offset(-line_width_layer0 / 2);
-        int outline_offset = -line_width_layer0;
-        int line_distance = line_width_layer0;
-        double fill_angle = 45;
-        constexpr bool zig_zaggify_infill = false;
-        Infill infill_comp(first_layer_infill_method, zig_zaggify_infill, outer_poly, outline_offset, line_width_layer0, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
-        infill_comp.generate(pattern.polygons, pattern.lines);
+
+        ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
+
+        // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
+        // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
+        // first layer of the prime tower to not stick well.
+        Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
+        while (!inset.empty())
+        {
+            pattern_layer0.polygons.add(inset);
+            inset = inset.offset(-line_width_layer0);
+        }
     }
 }
 
+void PrimeTower::generateStartLocations()
+{
+    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
+    // so use the same start and end segments for this.
+    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly, 0, 0);
+    PolygonsPointIndex segment_end = segment_start;
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const GCodeExport& gcode, const int prev_extruder, const int new_extruder) const
+    PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
+}
+
+void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const
 {
     if (!enabled)
     {
         return;
     }
-    if (gcode_layer.getPrimeTowerIsPlanned())
-    { // don't print the prime tower if it has been printed already
+    if (gcode_layer.getPrimeTowerIsPlanned(new_extruder))
+    { // don't print the prime tower if it has been printed already with this extruder.
         return;
     }
 
-    if (gcode_layer.getLayerNr() > storage.max_print_height_second_to_last_extruder + 1)
+    const LayerIndex layer_nr = gcode_layer.getLayerNr();
+    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }
 
-    bool pre_wipe = storage.meshgroup->getExtruderTrain(new_extruder)->getSettingBoolean("dual_pre_wipe");
-    bool post_wipe = storage.meshgroup->getExtruderTrain(prev_extruder)->getSettingBoolean("prime_tower_wipe_enabled");
+    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings.get<bool>("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
-    const int layer_nr = gcode_layer.getLayerNr();
     if (prev_extruder == new_extruder || layer_nr == 0)
     {
-        pre_wipe = false;
         post_wipe = false;
     }
-    // pre-wipe:
-    if (pre_wipe)
+
+    // Go to the start location if it's not the first layer
+    if (layer_nr != 0)
     {
-        preWipeAndPurge(storage, gcode_layer, new_extruder);
+        gotoStartLocation(gcode_layer, new_extruder);
     }
 
-    addToGcode_denseInfill(storage, gcode_layer, new_extruder);
+    addToGcode_denseInfill(gcode_layer, new_extruder);
 
     // post-wipe:
     if (post_wipe)
-    { //Make sure we wipe the old extruder on the prime tower.
-        gcode_layer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
+    {
+        //Make sure we wipe the old extruder on the prime tower.
+        const Settings& previous_settings = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings;
+        const Point previous_nozzle_offset = Point(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
+        const Settings& new_settings = Application::getInstance().current_slice->scene.extruders[new_extruder].settings;
+        const Point new_nozzle_offset = Point(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
+        gcode_layer.addTravel(post_wipe_point - previous_nozzle_offset + new_nozzle_offset);
     }
 
-    gcode_layer.setPrimeTowerIsPlanned();
+    gcode_layer.setPrimeTowerIsPlanned(new_extruder);
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
+void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -Raft::getFillerLayerCount(storage))
+    const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
         ? pattern_per_extruder_layer0[extruder_nr]
-        : patterns_per_extruder[extruder_nr][((gcode_layer.getLayerNr() % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+        : pattern_per_extruder[extruder_nr];
 
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
     gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
-}
-
-Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) const
-{
-    Point ret(0, 0);
-    int absolute_starting_points = 0;
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
-    {
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
-        if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
-        {
-            ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
-            absolute_starting_points++;
-        }
-    }
-    if (absolute_starting_points > 0)
-    { // take the average over all absolute starting positions
-        ret /= absolute_starting_points;
-    }
-    else
-    { // use the middle of the bed
-        if (!storage.getSettingBoolean("machine_center_is_zero"))
-        {
-            ret = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
-        }
-        // otherwise keep (0, 0)
-    }
-    return ret;
-}
-
-void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
-{
-    wipe_from_middle = is_hollow;
-    // only wipe from the middle of the prime tower if we have a z hop already on the first move after the layer switch
-    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
-    {
-        const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
-        wipe_from_middle &= train.getSettingBoolean("retraction_hop_enabled") 
-                        && (!train.getSettingBoolean("retraction_hop_only_when_collides") || train.getSettingBoolean("retraction_hop_after_extruder_switch"));
-    }
-
-    PolygonsPointIndex segment_start; // from where to start the sequence of wipe points
-    PolygonsPointIndex segment_end; // where to end the sequence of wipe points
-
-    if (wipe_from_middle)
-    {
-        // take the same start as end point so that the whole poly os covered.
-        // find the inner polygon.
-        segment_start = segment_end = PolygonUtils::findNearestVert(middle, inner_poly);
-    }
-    else
-    {
-        // take the closer corner of the wipe tower and generate wipe locations on that side only:
-        //
-        //     |
-        //     |
-        //     +-----
-        //  .
-        //  ^ nozzle switch location
-        Point from = getLocationBeforePrimeTower(storage);
-
-        // find the single line segment closest to [from] pointing most toward [from]
-        PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, outer_poly);
-        PolygonsPointIndex prev = closest_vert.prev();
-        PolygonsPointIndex next = closest_vert.next();
-        int64_t prev_dot_score = dot(from - closest_vert.p(), turn90CCW(prev.p() - closest_vert.p()));
-        int64_t next_dot_score = dot(from - closest_vert.p(), turn90CCW(closest_vert.p() - next.p()));
-        if (prev_dot_score > next_dot_score)
-        {
-            segment_start = prev;
-            segment_end = closest_vert;
-        }
-        else
-        {
-            segment_start = closest_vert;
-            segment_end = next;
-        }
-    }
-
-    PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
-}
-
-void PrimeTower::preWipeAndPurge(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int extruder_nr) const
-{
-    int current_pre_wipe_location_idx = (pre_wipe_location_skip * gcode_layer.getLayerNr()) % number_of_pre_wipe_locations;
-    const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
-
-    const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-    const coord_t inward_dist = train->getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
-    const coord_t start_dist = train->getSettingInMicrons("machine_nozzle_size") * 2;
-    const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-    const Point outward_dir = wipe_location.location - prime_end;
-    const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
-
-    const double purge_volume = std::max(0.0, train->getSettingInCubicMillimeters("prime_tower_purge_volume")); // Volume to be primed
-    if (wipe_from_middle)
-    {
-        // for hollow wipe tower:
-        // start from above
-        // go to wipe start
-        // go to the Z height of the previous/current layer
-        // wipe
-        // go to normal layer height (automatically on the next extrusion move)...
-        GCodePath& toward_middle = gcode_layer.addTravel(middle);
-        toward_middle.perform_z_hop = true;
-        gcode_layer.forceNewPathStart();
-
-        if (purge_volume > 0)
-        {
-            // start purging away from middle to prevent tower in the middle of the purge tower
-            const Point purge_move = prime_start - middle;
-            const coord_t purge_dist = vSize(purge_move);
-            coord_t pre_move_dist = purge_dist / 4; // shorten the purge move by a third
-            Point purge_start = middle + normal(purge_move, pre_move_dist);
-            gcode_layer.addTravel(purge_start);
-
-            addPurgeMove(gcode_layer, extruder_nr, train, middle, prime_start, purge_volume);
-        }
-        else
-        {
-            // Normal move behavior to wipe start location.
-            GCodePath& toward_wipe_start = gcode_layer.addTravel_simple(prime_start);
-            toward_wipe_start.perform_z_hop = false;
-            toward_wipe_start.retract = true;
-        }
-    }
-    else
-    {
-        if (purge_volume > 0)
-        {
-            // Find location to start purge (we're purging right outside of the tower)
-            const Point purge_start = prime_start + normal(outward_dir, start_dist);
-            gcode_layer.addTravel(purge_start);
-
-            addPurgeMove(gcode_layer, extruder_nr, train, purge_start, prime_start, purge_volume);
-        }
-        gcode_layer.addTravel(prime_start);
-    }
-
-    float flow = 0.0001; // Force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
-    gcode_layer.addExtrusionMove(prime_end, gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
-    // Explicitly add a travel move to the wipe location to force the planner to start from the inner_poly.
-    gcode_layer.addTravel(wipe_location.location);
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
@@ -358,36 +225,21 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     }
 }
 
-void PrimeTower::addPurgeMove(LayerPlan& gcode_layer, int extruder_nr, const ExtruderTrain *train, const Point& start_pos, const Point& end_pos, double purge_volume) const
+void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    // Find out how much purging needs to be done.
-    const GCodePathConfig& current_gcode_path_config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-    const coord_t purge_move_length = vSize(start_pos - end_pos);
-    const unsigned int line_width = current_gcode_path_config.getLineWidth();
-    const double layer_height_mm = (gcode_layer.getLayerNr() == 0) ? train->getSettingInMillimeters("layer_height_0") : train->getSettingInMillimeters("layer_height");
-    const double normal_volume = INT2MM(INT2MM(purge_move_length * line_width)) * layer_height_mm; // Volume extruded on the "normal" move
-    float purge_flow = purge_volume / normal_volume;
+    int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations)
+            + number_of_prime_tower_start_locations) % number_of_prime_tower_start_locations;
 
-    const double purge_move_length_mm = INT2MM(purge_move_length);
-    const double purge_move_time = purge_move_length_mm / current_gcode_path_config.getSpeed();
-    const double purge_extrusion_speed_mm3_per_sec = purge_volume / purge_move_time;
-    const double max_possible_extursion_speed_mm3_per_sec = 3.0;
+    const ClosestPolygonPoint wipe_location = prime_tower_start_locations[current_start_location_idx];
 
-    const double speed = current_gcode_path_config.getSpeed();
-    double speed_factor = 1.0;
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const coord_t inward_dist = train.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 ;
+    const coord_t start_dist = train.settings.get<coord_t>("machine_nozzle_size") * 2;
+    const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+    const Point outward_dir = wipe_location.location - prime_end;
+    const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
 
-    if (purge_extrusion_speed_mm3_per_sec > max_possible_extursion_speed_mm3_per_sec)
-    {
-        // compensate the travel speed for the large extrusion amount
-        const double min_time_needed_for_extrusion = purge_volume / max_possible_extursion_speed_mm3_per_sec;
-        const double compensated_speed = purge_move_length_mm / min_time_needed_for_extrusion;
-        speed_factor = compensated_speed / speed;
-    }
-
-    // As we need a plan, which can't have a stationary extrusion, we use an extrusion move to prime.
-    // This has the added benefit that it will evenly spread the primed material inside the tower.
-    gcode_layer.addExtrusionMove(end_pos, current_gcode_path_config, SpaceFillType::None, purge_flow, false, speed_factor);
+    gcode_layer.addTravel(prime_start);
 }
-
 
 }//namespace cura

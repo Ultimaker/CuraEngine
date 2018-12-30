@@ -1,23 +1,25 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "linearAlg2D.h"
 
 #include <cmath> // atan2
 #include <cassert>
 #include <algorithm> // swap
 
-#include "intpoint.h" // dot
+#include "IntPoint.h" // dot
 
 namespace cura 
 {
 
 float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
 {
-    Point ba = a - b;
-    Point bc = c - b;
-    int64_t dott = dot(ba, bc); // dot product
-    int64_t det = ba.X * bc.Y - ba.Y * bc.X; // determinant
-    float angle = -atan2(det, dott); // from -pi to pi
-    if (angle >= 0 )
+    const Point ba = a - b;
+    const Point bc = c - b;
+    const coord_t dott = dot(ba, bc); // dot product
+    const coord_t det = ba.X * bc.Y - ba.Y * bc.X; // determinant
+    const float angle = -atan2(det, dott); // from -pi to pi
+    if (angle >= 0)
     {
         return angle;
     }
@@ -28,7 +30,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
 }
 
 
-bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Point b, int64_t dist, Point& result)
+bool LinearAlg2D::getPointOnLineWithDist(const Point& p, const Point& a, const Point& b, const coord_t dist, Point& result)
 {
     //         result
     //         v
@@ -37,19 +39,19 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
     //              '-.    :
     //                  '-.p
     const Point ab = b - a;
-    const int64_t ab_size = vSize(ab);
+    const coord_t ab_size = vSize(ab);
     const Point ap = p - a;
-    const int64_t ax_size = (ab_size < 50)? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
-    const int64_t ap_size2 = vSize2(ap);
-    const int64_t px_size = sqrt(std::max(int64_t(0), ap_size2 - ax_size * ax_size));
+    const coord_t ax_size = (ab_size < 50)? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
+    const coord_t ap_size2 = vSize2(ap);
+    const coord_t px_size = sqrt(std::max(coord_t(0), ap_size2 - ax_size * ax_size));
     if (px_size > dist)
     {
         return false;
     }
-    const int64_t xr_size = sqrt(dist * dist - px_size * px_size);
+    const coord_t xr_size = sqrt(dist * dist - px_size * px_size);
     if (ax_size <= 0)
     { // x lies before ab
-        const int64_t ar_size = xr_size + ax_size;
+        const coord_t ar_size = xr_size + ax_size;
         if (ar_size < 0 || ar_size > ab_size)
         { // r lies outisde of ab
             return false;
@@ -68,7 +70,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
         //          '-.        :
         //              '-.    :
         //                  '-.p
-        const int64_t ar_size = ax_size - xr_size;
+        const coord_t ar_size = ax_size - xr_size;
         if (ar_size < 0 || ar_size > ab_size)
         { // r lies outisde of ab
             return false;
@@ -94,13 +96,13 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
         //              '-.    :    .-'
         //                  '-.p.-'
         // try r in both directions
-        const int64_t ar1_size = ax_size - xr_size;
+        const coord_t ar1_size = ax_size - xr_size;
         if (ar1_size >= 0)
         {
             result = a + normal(ab, ar1_size);
             return true;
         }
-        const int64_t ar2_size = ax_size + xr_size;
+        const coord_t ar2_size = ax_size + xr_size;
         if (ar2_size < ab_size)
         {
             result = a + normal(ab, ar2_size);
@@ -110,7 +112,36 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
     }
 }
 
-bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point b_from_transformed, Point b_to_transformed)
+
+std::pair<Point, Point> LinearAlg2D::getClosestConnection(Point a1, Point a2, Point b1, Point b2)
+{
+    Point b1_on_a = getClosestOnLineSegment(b1, a1, a2);
+    coord_t b1_on_a_dist2 = vSize2(b1_on_a - b1);
+    Point b2_on_a = getClosestOnLineSegment(b2, a1, a2);
+    coord_t b2_on_a_dist2 = vSize2(b2_on_a - b2);
+    Point a1_on_b = getClosestOnLineSegment(a1, b1, b2);
+    coord_t a1_on_b_dist2 = vSize2(a1_on_b - a1);
+    Point a2_on_b = getClosestOnLineSegment(a1, b1, b2);
+    coord_t a2_on_b_dist2 = vSize2(a2_on_b - a2);
+    if (b1_on_a_dist2 < b2_on_a_dist2 && b1_on_a_dist2 < a1_on_b_dist2 && b1_on_a_dist2 < a2_on_b_dist2)
+    {
+        return std::make_pair(b1_on_a, b1);
+    }
+    else if (b2_on_a_dist2 < a1_on_b_dist2 && b2_on_a_dist2 < a2_on_b_dist2)
+    {
+        return std::make_pair(b2_on_a, b2);
+    }
+    else if (a1_on_b_dist2 < a2_on_b_dist2)
+    {
+        return std::make_pair(a1, a1_on_b);
+    }
+    else
+    {
+        return std::make_pair(a2, a2_on_b);
+    }
+}
+
+bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Point& a_to_transformed, Point b_from_transformed, Point b_to_transformed)
 {
     assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
     assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
@@ -134,7 +165,7 @@ bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_trans
         }
         else
         {
-            int64_t x = b_from_transformed.X + (b_to_transformed.X - b_from_transformed.X) * (a_from_transformed.Y - b_from_transformed.Y) / (b_to_transformed.Y - b_from_transformed.Y);
+            const coord_t x = b_from_transformed.X + (b_to_transformed.X - b_from_transformed.X) * (a_from_transformed.Y - b_from_transformed.Y) / (b_to_transformed.Y - b_from_transformed.Y);
             if (x >= a_from_transformed.X && x <= a_to_transformed.X)
             {
                 return true;
@@ -142,6 +173,23 @@ bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_trans
         }
     }
     return false;
+}
+
+coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Point& b)
+{
+    //  x.......a------------b
+    //  :
+    //  :
+    //  p
+    // return px_size
+    assert(a != b);  // the line can't be a point
+    const Point vab = b - a;
+    const Point vap = p - a;
+    const coord_t dott = dot(vab, vap);
+    const coord_t ax_size2 = dott * dott / vSize2(vab);
+    const coord_t ap_size2 = vSize2(vap);
+    const coord_t px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
+    return px_size2;
 }
 
 } // namespace cura

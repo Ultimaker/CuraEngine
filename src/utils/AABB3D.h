@@ -1,14 +1,16 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_AABB3D_H
 #define UTILS_AABB3D_H
 
-#include "intpoint.h"
+#include "IntPoint.h"
 #include "AABB.h"
 
 namespace cura
 {
+
+class AABB; // forward decl
 
 /*!
 An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
@@ -69,7 +71,7 @@ struct AABB3D
      * This is for including a point of which the X and Y coordinates are
      * unknown but known to already be included in the bounding box.
      */
-    void includeZ(int32_t z);
+    void includeZ(coord_t z);
 
     /*!
      * Offset the coordinates of the bounding box.

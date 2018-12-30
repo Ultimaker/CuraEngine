@@ -1,7 +1,6 @@
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SVG.h"
 
-
 namespace cura {
 
 
@@ -17,18 +16,20 @@ std::string SVG::toString(Color color)
         case SVG::Color::BLUE: return "blue";
         case SVG::Color::GREEN: return "green";
         case SVG::Color::YELLOW: return "yellow";
+        case SVG::Color::NONE: return "none";
         default: return "black";
     }
 }
 
 
 
-SVG::SVG(const char* filename, AABB aabb, Point canvas_size)
+SVG::SVG(const char* filename, AABB aabb, Point canvas_size, Color background)
 : aabb(aabb)
 , aabb_size(aabb.max - aabb.min)
-, border(200,100)
+, border(canvas_size.X / 5, canvas_size.Y / 10)
 , canvas_size(canvas_size)
 , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
+, background(background)
 {
     output_is_html = strcmp(filename + strlen(filename) - 4, "html") == 0;
     out = fopen(filename, "w");
@@ -45,6 +46,12 @@ SVG::SVG(const char* filename, AABB aabb, Point canvas_size)
         fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     }
     fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
+    
+    if(background != Color::NONE)
+    {
+        fprintf(out, "<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n", toString(background).c_str());
+    }
+
 }
 
 SVG::~SVG()

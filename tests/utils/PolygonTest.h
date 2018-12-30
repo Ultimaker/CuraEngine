@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef POLYGON_TEST_H
@@ -9,7 +9,7 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "../src/utils/intpoint.h"
+#include "../src/utils/IntPoint.h"
 #include "../src/utils/polygon.h"
 
 namespace cura
@@ -25,6 +25,7 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(splitIntoPartsWithHoleTest);
     CPPUNIT_TEST(differenceContainsOriginalPointTest);
     CPPUNIT_TEST(differenceClockwiseTest);
+    CPPUNIT_TEST(getEmptyHolesTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -52,6 +53,7 @@ public:
     void splitIntoPartsWithHoleTest();
     void differenceContainsOriginalPointTest();
     void differenceClockwiseTest();
+    void getEmptyHolesTest();
 
 
 private:

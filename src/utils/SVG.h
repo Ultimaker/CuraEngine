@@ -1,10 +1,13 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SVG_H
 #define SVG_H
 
 #include <stdio.h> // for file output
 
 #include "polygon.h"
-#include "intpoint.h"
+#include "IntPoint.h"
 #include "floatpoint.h"
 #include "AABB.h"
 #include "logoutput.h"
@@ -23,7 +26,8 @@ public:
         BLUE,
         GREEN,
         YELLOW,
-        RAINBOW
+        RAINBOW,
+        NONE
     };
 
 private:
@@ -36,11 +40,12 @@ private:
     const Point border;
     const Point canvas_size;
     const double scale;
+    Color background;
 
     bool output_is_html;
 
 public:
-    SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024, 1024));
+    SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024, 1024), Color background = Color::NONE);
 
     ~SVG();
 

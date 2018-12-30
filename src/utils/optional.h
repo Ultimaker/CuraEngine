@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_OPTIONAL_H
 #define UTILS_OPTIONAL_H
 
@@ -48,6 +50,13 @@ public:
     constexpr explicit optional(bool, Args&&... args ) //!< construct the value in place
     : instance(new T(args...))
     {
+    }
+    template<class U = T
+        , typename = typename std::enable_if<std::is_assignable<T&, U>::value>::type // type U is T, T& or T&&
+        >
+    optional(U&& value)
+    {
+        instance = new T(value);
     }
     virtual ~optional() //!< simple destructor
     {
@@ -157,6 +166,11 @@ public:
         {
             instance = new T(args...);
         }
+    }
+    template<class U>
+    constexpr bool operator==(const optional<U>& rhs)
+    {
+        return (*this && rhs) ? (**this == *rhs) : (static_cast<bool>(*this) == static_cast<bool>(rhs));
     }
 };
 

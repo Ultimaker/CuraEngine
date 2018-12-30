@@ -4,12 +4,178 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include <forward_list>
 #include <unordered_set>
 
+#include <memory>
+#include <vector>
+#include <utility>
+#include <unordered_map>
+
 #include "sliceDataStorage.h"
+#include "settings/types/LayerIndex.h"
+
 
 namespace cura
 {
+/*!
+ * \brief Lazily generates tree guidance volumes.
+ *
+ * \warning This class is not currently thread-safe and should not be accessed in OpenMP blocks
+ */
+class ModelVolumes
+{
+public:
+    ModelVolumes() = default;
+    /*!
+     * \brief Construct the ModelVolumes object
+     *
+     * \param storage The slice data storage object to extract the model
+     * contours from.
+     * \param xy_distance The required clearance between the model and the
+     * tree branches.
+     * \param max_move The maximum allowable movement between nodes on
+     * adjacent layers
+     * \param radius_sample_resolution Sample size used to round requested node radii.
+     */
+    ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,
+                 coord_t radius_sample_resolution);
+
+    ModelVolumes(ModelVolumes&&) = default;
+    ModelVolumes& operator=(ModelVolumes&&) = default;
+
+    ModelVolumes(const ModelVolumes&) = delete;
+    ModelVolumes& operator=(const ModelVolumes&) = delete;
+
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model.
+     *
+     * \param radius The radius of the node of interest
+     * \param layer The layer of interest
+     * \return Polygons object
+     */
+    const Polygons& getCollision(coord_t radius, LayerIndex layer_idx) const;
+
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches
+     * in order to reach the build plate.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model or be unable to reach the build platform.
+     *
+     * The input collision areas are inset by the maximum move distance and
+     * propagated upwards.
+     *
+     * \param radius The radius of the node of interest
+     * \param layer The layer of interest
+     * \return Polygons object
+     */
+    const Polygons& getAvoidance(coord_t radius, LayerIndex layer_idx) const;
+
+    /*!
+     * \brief Generates the area of a given layer that must be avoided if the
+     * branches wish to go towards the model
+     *
+     * The area represents the areas that do not collide with the model but
+     * are unable to reach the build platform
+     *
+     * \param radius The radius of the node of interest
+     * \param layer The layer of interest
+     * \return Polygons object
+     */
+    const Polygons& getInternalModel(coord_t radius, LayerIndex layer_idx) const;
+
+private:
+    /*!
+     * \brief Convenience typedef for the keys to the caches
+     */
+    using RadiusLayerPair = std::pair<coord_t, LayerIndex>;
+
+    /*!
+     * \brief Round \p radius upwards to a multiple of radius_sample_resolution_
+     *
+     * \param radius The radius of the node of interest
+     */
+    coord_t ceilRadius(coord_t radius) const;
+
+    /*!
+     * \brief Calculate the collision areas at the radius and layer indicated
+     * by \p key.
+     *
+     * \param key The radius and layer of the node of interest
+     */
+    const Polygons& calculateCollision(const RadiusLayerPair& key) const;
+
+    /*!
+     * \brief Calculate the avoidance areas at the radius and layer indicated
+     * by \p key.
+     *
+     * \param key The radius and layer of the node of interest
+     */
+    const Polygons& calculateAvoidance(const RadiusLayerPair& key) const;
+
+    /*!
+     * \brief Calculate the internal model areas at the radius and layer
+     * indicated by \p key.
+     *
+     * \param key The radius and layer of the node of interest
+     */
+    const Polygons& calculateInternalModel(const RadiusLayerPair& key) const;
+
+    /*!
+     * \brief Calculate the collision area around the printable area of the machine.
+     *
+     * \param a Polygons object representing the non-printable areas on and around the build platform
+     */
+    static Polygons calculateMachineBorderCollision(Polygon machine_border);
+
+    /*!
+     * \brief Polygons representing the limits of the printable area of the
+     * machine
+     */
+    Polygons machine_border_;
+
+    /*!
+     * \brief The required clearance between the model and the tree branches
+     */
+    coord_t xy_distance_;
+
+    /*!
+     * \brief The maximum distance that the centrepoint of a tree branch may
+     * move in consequtive layers
+     */
+    coord_t max_move_;
+
+    /*!
+     * \brief Sample resolution for radius values.
+     *
+     * The radius will be rounded (upwards) to multiples of this value before
+     * calculations are done when collision, avoidance and internal model
+     * Polygons are requested.
+     */
+    coord_t radius_sample_resolution_;
+
+    /*!
+     * \brief Storage for layer outlines of the meshes.
+     */
+    std::vector<Polygons> layer_outlines_;
+
+    /*!
+     * \brief Caches for the collision, avoidance and internal model polygons
+     * at given radius and layer indices.
+     *
+     * These are mutable to allow modification from const function. This is
+     * generally considered OK as the functions are still logically const
+     * (ie there is no difference in behaviour for the user betweeen
+     * calculating the values each time vs caching the results).
+     */
+    mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> internal_model_cache_;
+};
 
 /*!
  * \brief Generates a tree structure to support your models.
@@ -19,8 +185,10 @@ class TreeSupport
 public:
     /*!
      * \brief Creates an instance of the tree support generator.
+     *
+     * \param storage The data storage to get global settings from.
      */
-    TreeSupport();
+    TreeSupport(const SliceDataStorage& storage);
 
     /*!
      * \brief Create the areas that need support.
@@ -36,17 +204,33 @@ public:
      */
     struct Node
     {
-        Node()
-        {
-            position = Point(0, 0);
-            distance_to_top = 0;
-            skin_direction = false;
-            support_roof_layers_below = 0;
-            to_buildplate = true;
-        }
+        static constexpr Node* NO_PARENT = nullptr;
 
-        Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate)
-         : distance_to_top(distance_to_top), position(position), skin_direction(skin_direction), support_roof_layers_below(support_roof_layers_below), to_buildplate(to_buildplate) {}
+        Node()
+         : distance_to_top(0)
+         , position(Point(0, 0))
+         , skin_direction(false)
+         , support_roof_layers_below(0)
+         , to_buildplate(true)
+         , parent(nullptr)
+        {}
+
+        Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate, Node* const parent)
+         : distance_to_top(distance_to_top)
+         , position(position)
+         , skin_direction(skin_direction)
+         , support_roof_layers_below(support_roof_layers_below)
+         , to_buildplate(to_buildplate)
+         , parent(parent)
+        {}
+
+#ifdef DEBUG // Clear the delete node's data so if there's invalid access after, we may get a clue by inspecting that node.
+        ~Node()
+        {
+            parent = nullptr;
+            merged_neighbours.clear();
+        }
+#endif // DEBUG
 
         /*!
          * \brief The number of layers to go to the top of this branch.
@@ -85,6 +269,24 @@ public:
          */
         mutable bool to_buildplate;
 
+        /*!
+         * \brief The originating node for this one, one layer higher.
+         *
+         * In order to prune branches that can't have any support (because they
+         * can't be on the model and the path to the buildplate isn't clear),
+         * the entire branch needs to be known.
+         */
+        Node *parent;
+
+        /*!
+        * \brief All neighbours (on the same layer) that where merged into this node.
+        *
+        * In order to prune branches that can't have any support (because they
+        * can't be on the model and the path to the buildplate isn't clear),
+        * the entire branch needs to be known.
+        */
+        mutable std::forward_list<Node*> merged_neighbours;
+
         bool operator==(const Node& other) const
         {
             return position == other.position;
@@ -93,21 +295,12 @@ public:
 
 private:
     /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches.
+     * \brief Generator for model collision, avoidance and internal guide volumes
      *
-     * The result is a vector of 3D volumes that have to be avoided, where each
-     * volume consists of a number of layers where the branch would collide with
-     * the model.
-     * There will be a volume for each sample of branch radius. The radii of the
-     * branches are unknown at this point (there will be several radii at any
-     * given layer too), so a collision area is generated for every possible
-     * radius.
-     *
-     * \param storage The settings storage to get settings from.
-     * \param model_collision[out] A vector to fill with the output collision
-     * areas.
+     * Lazily computes volumes as needed.
+     *  \warning This class is NOT currently thread-safe and should not be accessed in OpenMP blocks
      */
-    void collisionAreas(const SliceDataStorage& storage, std::vector<std::vector<Polygons>>& model_collision);
+    ModelVolumes volumes_;
 
     /*!
      * \brief Draws circles around each node of the tree into the final support.
@@ -118,10 +311,8 @@ private:
      * \param storage[in, out] The settings storage to get settings from and to
      * save the resulting support polygons to.
      * \param contact_nodes The nodes to draw as support.
-     * \param model_collision The model infill with the X/Y distance already
-     * subtracted.
      */
-    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision);
+    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node*>>& contact_nodes);
 
     /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
@@ -131,21 +322,11 @@ private:
      * causes them to move towards each other as they are copied to lower layers
      * which ultimately results in a 3D tree.
      *
-     * \param storage The settings storage to get settings from.
      * \param contact_nodes[in, out] The nodes in the space that need to be
      * dropped down. The nodes are dropped to lower layers inside the same
      * vector of layers.
-     * \param model_collision For each sample of radius, a list of layers with
-     * the polygons of the collision areas of the model. Any node in there will
-     * collide with the model.
-     * \param model_avoidance For each sample of radius, a list of layers with
-     * the polygons that must be avoided if the branches wish to go towards the
-     * build plate.
-     * \param model_internal_guide For each sample of radius, a list of layers
-     * with the polygons that must be avoided if the branches wish to go towards
-     * the model.
      */
-    void dropNodes(const SliceDataStorage& storage, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<std::vector<Polygons>>& model_collision, const std::vector<std::vector<Polygons>>& model_avoidance, const std::vector<std::vector<Polygons>>& model_internal_guide);
+    void dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes);
 
     /*!
      * \brief Creates points where support contacts the model.
@@ -160,38 +341,14 @@ private:
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node>>& contact_nodes, const std::vector<Polygons>& collision_areas);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node*>>& contact_nodes);
 
     /*!
      * \brief Add a node to the next layer.
      *
      * If a node is already at that position in the layer, the nodes are merged.
      */
-    void insertDroppedNode(std::unordered_set<Node>& nodes_layer, Node& node);
-
-    /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches
-     * in order to reach the build plate.
-     *
-     * The result is a vector of 3D volumes that have to be avoided, where each
-     * volume consists of a number of layers where the branch would collide with
-     * the model.
-     * There will be a volume for each sample of branch radius. The radii of the
-     * branches are unknown at this point (there will be several radii at any
-     * given layer too), so a collision area is generated for every possible
-     * radius.
-     *
-     * The input collision areas are inset by the maximum move distance and
-     * propagated upwards. This generates volumes so that the branches can
-     * predict in time when they need to be moving away in order to avoid
-     * hitting the model.
-     * \param storage The settings storage to get settings from.
-     * \param model_collision The collision areas that may not be hit by the
-     * model.
-     * \param model_avoidance[out] A vector to fill with the output avoidance
-     * areas.
-     */
-    void propagateCollisionAreas(const SliceDataStorage& storage, const std::vector<std::vector<Polygons>>& model_collision, std::vector<std::vector<Polygons>>& model_avoidance);
+    void insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node* node);
 };
 
 }
@@ -208,4 +365,3 @@ namespace std
 }
 
 #endif /* TREESUPPORT_H */
-

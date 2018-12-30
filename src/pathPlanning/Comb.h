@@ -1,18 +1,22 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATH_PLANNING_COMB_H
 #define PATH_PLANNING_COMB_H
 
 #include <memory> // shared_ptr
+#include <limits> //To find the maximum for coord_t.
 
+#include "LinePolygonsCrossings.h"
+#include "CombPath.h"
+#include "CombPaths.h"
+#include "../ExtruderTrain.h" //To get settings from an extruder.
+#include "../settings/types/LayerIndex.h" //To store the layer on which we comb.
 #include "../utils/optional.h"
 #include "../utils/polygon.h"
 #include "../utils/SparsePointGridInclusive.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/LazyInitialization.h"
-
-#include "LinePolygonsCrossings.h"
-#include "CombPath.h"
-#include "CombPaths.h"
 
 namespace cura 
 {
@@ -20,17 +24,25 @@ namespace cura
 class SliceDataStorage;
 
 /*!
- * Class for generating a full combing actions from a travel move from a start point to an end point.
+ * \brief Class for generating a full combing actions from a travel move from a start
+ * point to an end point.
+ *
  * A single Comb object is used for each layer.
- * 
+ *
  * Comb::calc is the main function of this class.
- * 
- * Typical output: A combing path to the boundary of the polygon + a move through air avoiding other parts in the layer + a combing path from the boundary of the ending polygon to the end point.
- * Each of these three is a CombPath; the first and last are within Comb::boundary_inside while the middle is outside of Comb::boundary_outside.
- * Between these there is a little gap where the nozzle crosses the boundary of an object approximately perpendicular to its boundary.
- * 
- * As an optimization, the combing paths inside are calculated on specifically those PolygonsParts within which to comb, while the coundary_outside isn't split into outside parts, 
- * because generally there is only one outside part; encapsulated holes occur less often.
+ *
+ * Typical output: A combing path to the boundary of the polygon + a move
+ * through air avoiding other parts in the layer + a combing path from the
+ * boundary of the ending polygon to the end point. Each of these three is a
+ * CombPath; the first and last are within Comb::boundary_inside while the
+ * middle is outside of Comb::boundary_outside. Between these there is a little
+ * gap where the nozzle crosses the boundary of an object approximately
+ * perpendicular to its boundary.
+ *
+ * As an optimisation, the combing paths inside are calculated on specifically
+ * those PolygonsParts within which to comb, while the boundary_outside isn't
+ * split into outside parts, because generally there is only one outside part;
+ * encapsulated holes occur less often.
  */
 class Comb
 {
@@ -74,10 +86,14 @@ private:
         /*!
          * Find the outside location (Combing::out)
          * 
-         * \param outside The outside boundary polygons
-         * \param close_to A point to get closer to when there are multiple candidates on the outside boundary which are almost equally close to the Crossing::in_or_mid
-         * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
-         * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
+         * \param outside The outside boundary polygons.
+         * \param close_to A point to get closer to when there are multiple
+         * candidates on the outside boundary which are almost equally close to
+         * the `Crossing::in_or_mid`.
+         * \param fail_on_unavoidable_obstacles When moving over other parts is
+         * unavoidable, stop calculation early and return false.
+         * \param comber[in] The combing calculator which has references to the
+         * offsets and boundaries to use in combing.
          */
         bool findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
 
@@ -102,19 +118,16 @@ private:
 
 
     const SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
-    const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
-    
-    const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
-    const int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    const int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
-    const int64_t offset_from_inside_to_outside; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
-    const int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
-    static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
-    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
-    static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
+    const LayerIndex layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
 
-    const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
-    
+    const coord_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
+    const coord_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const coord_t offset_from_inside_to_outside; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
+    const coord_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
+    static const coord_t max_moveOutside_distance2 = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.
+    static constexpr coord_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
+    static constexpr coord_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
+
     Polygons boundary_inside_minimum; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_minimum)
     Polygons boundary_inside_optimal; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_optimal)
     const PartsView partsView_inside_minimum; //!< Structured indices onto boundary_inside_minimum which shows which polygons belong to which part.
@@ -122,7 +135,7 @@ private:
     LocToLineGrid* inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LocToLineGrid* inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+    LazyInitialization<LocToLineGrid, Comb*, const coord_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
 
     /*!
@@ -145,42 +158,49 @@ private:
      */
     bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& start_inside_poly);
 
-    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, LocToLineGrid* inside_loc_to_line, CombPath& comb_path_input, CombPath& comb_path_output);
+    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!
-     * Initializes the combing areas for every mesh in the layer (not support)
+     * Initialises the combing areas for every mesh in the layer (not support).
      * 
-     * \warning \ref Comb::calc changes the order of polygons in \p Comb::comb_boundary_inside
+     * \warning \ref Comb::calc changes the order of polygons in
+     * \p Comb::comb_boundary_inside
      * 
-     * \param storage Where the layer polygon data is stored
-     * \param layer_nr The number of the layer for which to generate the combing areas.
-     * \param comb_boundary_inside_optimal The better comb boundary within which to comb within layer parts.
-     * \param comb_boundary_inside_minimum The minimum comb boundary within which to comb within layer parts.
-     * \param offset_from_outlines The offset from the outline polygon, to create the combing boundary in case there is no second wall.
-     * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
-     * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
-     * \param move_inside_distance When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
+     * \param storage Where the layer polygon data is stored.
+     * \param layer_nr The number of the layer for which to generate the combing
+     * areas.
+     * \param comb_boundary_inside_optimal The better comb boundary within which
+     * to comb within layer parts.
+     * \param comb_boundary_inside_minimum The minimum comb boundary within
+     * which to comb within layer parts.
+     * \param offset_from_outlines The offset from the outline polygon, to
+     * create the combing boundary in case there is no second wall.
+     * \param travel_avoid_distance The distance by which to avoid other layer
+     * parts when travelling through air.
+     * \param move_inside_distance When using comb_boundary_inside_minimum for
+     * combing it tries to move points inside by this amount after calculating
+     * the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, bool travel_avoid_other_parts, coord_t travel_avoid_distance, coord_t move_inside_distance);
+    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t travel_avoid_distance, coord_t move_inside_distance);
 
     ~Comb();
 
     /*!
-     * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
+     * \brief Calculate the comb paths (if any), one for each polygon combed
+     * alternated with travel paths.
      * 
      * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
-     * 
-     * \param startPoint Where to start moving from
-     * \param endPoint Where to move to
-     * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
-     * \param startInside Whether we want to start inside the comb boundary
-     * \param endInside Whether we want to end up inside the comb boundary
-     * \param via_outside_makes_combing_fail When going through air is inavoidable, stop calculation early and return false.
-     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
+     * \param train The extruder train to calculate the comb path for.
+     * \param startPoint Where to start moving from.
+     * \param endPoint Where to move to.
+     * \param[out] combPoints The points along the combing path, excluding the
+     * \p startPoint (?) and \p endPoint.
+     * \param startInside Whether we want to start inside the comb boundary.
+     * \param endInside Whether we want to end up inside the comb boundary.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles);
+    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored);
 };
 
 }//namespace cura
