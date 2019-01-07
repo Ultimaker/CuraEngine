@@ -494,6 +494,10 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
             break;
         case PrintFeatureType::SupportInterface:
             *output_stream << ";TYPE:SUPPORT-INTERFACE" << new_line;
+            break;
+        case PrintFeatureType::PrimeTower:
+            *output_stream << ";TYPE:PRIME-TOWER" << new_line;
+            break;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
         default:
