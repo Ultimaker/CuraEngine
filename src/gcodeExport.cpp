@@ -874,7 +874,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             return; 
         }
         *output_stream << "G10";
-        if (extruder_switch)
+        if (extruder_switch && flavor == EGCodeFlavor::REPETIER)
         {
             *output_stream << " S1";
         }
