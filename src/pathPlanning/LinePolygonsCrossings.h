@@ -35,9 +35,9 @@ private:
      */
     struct Crossing
     {
-        const size_t poly_idx; //!< The index of the polygon which crosses the scanline
-        const coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
-        const size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
+        size_t poly_idx; //!< The index of the polygon which crosses the scanline
+        coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
+        size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
         
         /*!
          * Creates a Crossing with minimal initialization
