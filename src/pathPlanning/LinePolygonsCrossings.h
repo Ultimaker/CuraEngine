@@ -35,46 +35,20 @@ private:
      */
     struct Crossing
     {
-        coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
-        size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
+        const size_t poly_idx; //!< The index of the polygon which crosses the scanline
+        const coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
+        const size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
         
         /*!
          * Creates a Crossing with minimal initialization
+         * \param poly_idx The index of the polygon in LinePolygonsCrossings::boundary
          * \param x The x-coordinate in transformed space
          * \param point_idx The index of the first point of the line segment which crosses the scanline
          */
-        Crossing(const coord_t x, const size_t point_idx);
+        Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx);
     };
     
-    /*!
-     * A PolyCrossings holds data on where a polygon crosses the scanline. Only the Crossing with lowest Crossing::x and highest are recorded.
-     */
-    struct PolyCrossings
-    {
-        const size_t poly_idx; //!< The index of the polygon which crosses the scanline
-        Crossing min; //!< The point where the polygon first crosses the scanline.
-        Crossing max; //!< The point where the polygon last crosses the scanline.
-        size_t n_crossings; //!< The number of times the polygon crossed the scanline.
-
-        /*!
-         * Create a PolyCrossings with minimal initialization. PolyCrossings::min and PolyCrossings::max are not yet computed.
-         * \param poly_idx The index of the polygon in LinePolygonsCrossings::boundary
-         */
-        PolyCrossings(const size_t poly_idx);
-    };
-
-    /*!
-     * A PolyCrossings list: for every polygon a PolyCrossings.
-     */
-    struct PartCrossings : public std::vector<PolyCrossings>
-    {
-        //unsigned int part_idx;
-    };
-    
-    
-    PartCrossings crossings; //!< All crossings of polygons in the LinePolygonsCrossings::boundary with the scanline.
-    unsigned int min_crossing_idx; //!< The index into LinePolygonsCrossings::crossings to the crossing with the minimal PolyCrossings::min crossing of all PolyCrossings's.
-    unsigned int max_crossing_idx; //!< The index into LinePolygonsCrossings::crossings to the crossing with the maximal PolyCrossings::max crossing of all PolyCrossings's.
+    std::vector<Crossing> crossings; //!< All crossings of polygons in the LinePolygonsCrossings::boundary with the scanline.
     
     const Polygons& boundary; //!< The boundary not to cross during combing.
     LocToLineGrid& loc_to_line_grid; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
@@ -97,7 +71,7 @@ private:
     bool lineSegmentCollidesWithBoundary();
     
     /*!
-     * Calculate Comb::crossings, Comb::min_crossing_idx and Comb::max_crossing_idx.
+     * Calculate Comb::crossings.
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. when fail_on_unavoidable_obstacles: we didn't cross any gaps/other parts
      */
@@ -132,19 +106,8 @@ private:
      * 
      * \param combPath Output parameter: where to add the points along the combing path.
      */
-    void generateBasicCombingPath(PolyCrossings& crossings, CombPath& combPath);
-    
-    /*!
-     * Find the first polygon cutting the scanline after \p x.
-     * 
-     * Note that this function only looks at the first segment cutting the scanline (see Comb::minX)!
-     * It doesn't return the next polygon which crosses the scanline, but the first polygon crossing the scanline for the first time.
-     * 
-     * \param x The point on the scanline from where to look.
-     * \return The next PolyCrossings fully beyond \p x or one with PolyCrossings::poly_idx set to NO_INDEX if there's none left.
-     */
-    PolyCrossings* getNextPolygonAlongScanline(int64_t x);
-    
+    void generateBasicCombingPath(const Crossing& min, const Crossing& max, CombPath& combPath);
+
     /*!
      * Optimize the \p comb_path: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip some unneeded corners.
      * 
