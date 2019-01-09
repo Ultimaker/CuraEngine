@@ -119,14 +119,16 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     z_to_start_cell_cross3d = subdivision_structure_3d->getSequenceStarts();
     edge_network.emplace(*subdivision_structure_3d);
 //     writeToSTL("/home/t.kuipers/Development/CuraEngine/output/generated.stl");
+    if (false)
     {
         char filename[1024];
-        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_discontinuous_mesh_density_h%f.stl", INT2MM(aabb_3d.max.z - aabb_3d.min.z));
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_discontinuous_mesh_h%f.stl", INT2MM(aabb_3d.max.z - aabb_3d.min.z));
         subdivision_structure_3d->writeDisconnectedSequenceToSTL(filename);
     }
+    if (false)
     {
         char filename[1024];
-        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_mesh_density_h%f.stl", INT2MM(aabb_3d.max.z - aabb_3d.min.z));
+        std::sprintf(filename, "/home/t.kuipers/Development/CuraEngine/output/generated_mesh_h%f.stl", INT2MM(aabb_3d.max.z - aabb_3d.min.z));
         writeToSTL(filename, 16);
     }
 }
