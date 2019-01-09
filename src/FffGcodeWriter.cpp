@@ -33,7 +33,7 @@ FffGcodeWriter::FffGcodeWriter()
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    gcode.preSetup();
+    gcode.preSetup(getStartExtruder(storage));
 
     Scene& scene = Application::getInstance().current_slice->scene;
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
