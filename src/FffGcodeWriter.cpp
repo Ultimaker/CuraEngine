@@ -33,13 +33,14 @@ FffGcodeWriter::FffGcodeWriter()
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    gcode.preSetup(getStartExtruder(storage));
+    size_t start_extruder_nr = getStartExtruder(storage);
+    gcode.preSetup(start_extruder_nr);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialTemps(getStartExtruder(storage));
+        gcode.setInitialTemps(start_extruder_nr);
     }
 
     Application::getInstance().communication->beginGCode();
@@ -50,7 +51,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
-        unsigned int start_extruder_nr = getStartExtruder(storage);
         processStartingCode(storage, start_extruder_nr);
     }
     else
