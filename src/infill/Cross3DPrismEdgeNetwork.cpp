@@ -212,6 +212,7 @@ Point Cross3DPrismEdgeNetwork::getCellEdgeLocation(const Cross3D::Cell& before, 
         }
     }
     assert(false && "this function should only be called when z coord lies somewhere on the edge!");
+    return no_point;
 }
 
 
