@@ -220,8 +220,14 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
                             inner = part.insets[num_insets - 1].offset(-10 - mesh.settings.get<coord_t>("wall_line_width_x") / 2);
                         }
 
+                        Polygons infill(part.infill_area);
+                        if (part.perimeter_gaps.size() > 0)
+                        {
+                            infill = infill.unionPolygons(part.perimeter_gaps.offset(10)); // ensure polygons overlap slightly
+                        }
+
                         // combine the wall combing region (outer - inner) with the infill (if any)
-                        comb_boundary.add(part.infill_area.unionPolygons(outer.difference(inner)));
+                        comb_boundary.add(infill.unionPolygons(outer.difference(inner)));
                     }
                 }
             }
