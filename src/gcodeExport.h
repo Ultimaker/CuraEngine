@@ -447,7 +447,7 @@ public:
     /*!
      * Set member variables using the settings in \p settings.
      */
-    void preSetup();
+    void preSetup(const size_t start_extruder);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
