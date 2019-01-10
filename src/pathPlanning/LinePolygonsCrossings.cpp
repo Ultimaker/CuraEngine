@@ -3,12 +3,6 @@
 
 #include "LinePolygonsCrossings.h"
 
-#include <algorithm>
-
-#include "../utils/polygonUtils.h"
-#include "../sliceDataStorage.h"
-#include "../utils/SVG.h"
-
 namespace cura {
 
 LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx)
