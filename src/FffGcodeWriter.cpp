@@ -2287,7 +2287,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     }
                 }
 
-                Point start(mid_points[start_point_index]);
+                Point start_mid_point(mid_points[start_point_index]);
                 bool travel_needed = true;
 
                 for (unsigned n = 0; n < mid_points.size(); ++n)
@@ -2309,7 +2309,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
 
                     if (overlap.size() > 0 && overlap.area() > segment.area() * 0.5)
                     {
-                        start = next_mid_point;
+                        start_mid_point = next_mid_point;
                         travel_needed = true;
                         continue;
                     }
