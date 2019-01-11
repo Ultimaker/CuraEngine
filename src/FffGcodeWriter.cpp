@@ -2222,18 +2222,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                 {
                     Point clipped(lines[0][1]);
                     coord_t line_len = vSize(lines[0][1] - lines[0][0]) * len_scale;
-                    if (!is_outline)
-                    {
-                        if (line_len > 3 * avg_width)
-                        {
-                            // this should only be true when we have a vertex whose normal is directly lined up
-                            // with another part of the gap polygon, i.e. a T shaped gap where the horizontal
-                            // feature contains a vertex that is directly above the vertical feature and so the normal
-                            // for that vertex is located somewhere down the length of the vertical feature.
-                            line_len = avg_width;
-                            clipped = lines[0][0] + normal(lines[0][1] - lines[0][0], line_len);
-                        }
-                    }
     #if 0
                     gcode_layer.addTravel(lines[0][0]);
                     gcode_layer.addExtrusionMove(clipped, gap_config, SpaceFillType::Lines);
