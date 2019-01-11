@@ -2201,6 +2201,11 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
             std::vector<coord_t> widths;
             for (unsigned n = 0; n < poly.size(); ++n)
             {
+#if 0
+                gcode_layer.addTravel(poly[(n + poly.size() - 1) % poly.size()]);
+                gcode_layer.addExtrusionMove(poly[n], gap_config, SpaceFillType::Lines);
+                continue;
+#endif
                 Polygons lines;
                 Point point_inside(PolygonUtils::getBoundaryPointWithOffset(poly, n, -avg_width * 5));
                 // adjust the width when point_inside isn't normal to the direction of the next line segment
