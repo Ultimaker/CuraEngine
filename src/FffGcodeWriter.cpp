@@ -2314,7 +2314,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     {
                         const coord_t avg_width = (start_width + end_width) / 2;
                         // split the line if it is longer than a min length and the flow required at each end differs appreciably
-                        const coord_t min_len = 2000;
+                        const coord_t min_len = 500;
                         const float max_flow_ratio = 1.2;
                         const float flow_ratio = (float)std::max(start_width, end_width) / std::min(start_width, end_width);
                         if (vSize2(end - start) >= min_len * min_len && flow_ratio >= max_flow_ratio)
