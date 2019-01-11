@@ -2171,7 +2171,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
         return;
     }
 
-    coord_t avg_width = 2 * gaps.area() / gaps.polygonLength();
+    const coord_t avg_width = 2 * gaps.area() / gaps.polygonLength();
 
     if ((float)avg_width / gap_config.getLineWidth() < min_flow)
     {
