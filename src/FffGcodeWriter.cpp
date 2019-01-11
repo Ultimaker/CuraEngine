@@ -2307,7 +2307,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     }
     #endif
 
-                    if (overlap.size() > 0 && overlap.area() > segment.area() * 0.5)
+                    if (overlap.size() > 0 && overlap.area() > segment.area() * 0.4)
                     {
                         start_mid_point = next_mid_point;
                         travel_needed = true;
