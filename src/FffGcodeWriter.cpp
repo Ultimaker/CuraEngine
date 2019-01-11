@@ -2312,7 +2312,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
 
                     std::function<void(const Point&, const Point&, const coord_t, const coord_t)> addLine = [&](const Point& start, const Point& end, const coord_t start_width, const coord_t end_width) -> void
                     {
-                        const coord_t avg_width = (start_width + end_width) / 2;
+                        const coord_t estimated_width = (start_width + end_width) / 2;
                         // split the line if it is longer than a min length and the flow required at each end differs appreciably
                         const coord_t min_len = 500;
                         const float max_flow_ratio = 1.2;
@@ -2320,11 +2320,11 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                         if (vSize2(end - start) >= min_len * min_len && flow_ratio >= max_flow_ratio)
                         {
                             const Point split_point(start + (end - start) / 2);
-                            coord_t split_width = avg_width;
+                            coord_t split_width = estimated_width;
                             if (!is_outline)
                             {
-                                // measure the gap width at split_point and use that rather than avg_width
-                                const Point half_line(normal(turn90CCW(end - start), avg_width * 2));
+                                // measure the gap width at split_point and use that rather than estimated_width
+                                const Point half_line(normal(turn90CCW(end - start), estimated_width * 2));
                                 Polygons lines;
                                 lines.addLine(split_point + half_line, split_point - half_line);
                                 lines = gaps.intersectionPolyLines(lines);
@@ -2338,7 +2338,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                         }
                         else
                         {
-                            const float flow = (float)avg_width / gap_config.getLineWidth();
+                            const float flow = (float)estimated_width / gap_config.getLineWidth();
                             if (flow > min_flow)
                             {
                                 if (travel_needed)
