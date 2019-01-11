@@ -2242,6 +2242,7 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
             }
             if (mid_points.size() > 1)
             {
+                // create an area polygon for each segment, it's a hull like shape formed from the begin, end and mid points at each end of the segment
                 std::vector<Polygon> areas;
                 for (unsigned point_index = 0; point_index < begin_points.size(); ++point_index)
                 {
@@ -2254,11 +2255,16 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     {
                         areas.back().add(mid_points[next_point_index]);
                     }
-                    Point next_end_point(begin_points[next_point_index] + (end_points[point_index] - begin_points[point_index]));
+                    // make the width constant based on the maximum width of the two ends
+                    const coord_t hull_width = std::max(vSize(end_points[point_index] - begin_points[point_index]), vSize(end_points[next_point_index] - begin_points[next_point_index]));
+//                    const coord_t hull_width = (vSize(end_points[point_index] - begin_points[point_index]) + vSize(end_points[next_point_index] - begin_points[next_point_index])) / 2;
+                    const Point seg_width_vec(normal(end_points[point_index] - begin_points[point_index], hull_width));
+                    const Point next_end_point(begin_points[next_point_index] + seg_width_vec);
                     areas.back().add(next_end_point);
-                    areas.back().add(end_points[point_index]);
+                    const Point end_point(begin_points[point_index] + seg_width_vec);
+                    areas.back().add(end_point);
                     // add the current mid point if it makes the area bigger
-                    if (LinearAlg2D::getAngleLeft(next_end_point, end_points[point_index], mid_points[point_index]) > M_PI * 0.55)
+                    if (LinearAlg2D::getAngleLeft(next_end_point, end_point, mid_points[point_index]) > M_PI * 0.55)
                     {
                         areas.back().add(mid_points[point_index]);
                     }
