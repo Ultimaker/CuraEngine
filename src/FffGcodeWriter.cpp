@@ -2330,7 +2330,8 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                                 lines = gaps.intersectionPolyLines(lines);
                                 if (lines.size() > 0)
                                 {
-                                    split_width = vSize(lines[0][1] - lines[0][0]);
+                                    // don't allow the gap to grow too much
+                                    split_width = std::min(vSize(lines[0][1] - lines[0][0]), (coord_t)(estimated_width * (max_flow_ratio / 2 + 0.5f)));
                                 }
                             }
                             addLine(start, split_point, start_width, split_width);
