@@ -2183,6 +2183,12 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
 
     while (gap_polygons.size() > 0)
     {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(gcode_layer.getLastPlannedPositionOrStartingPosition(), gap_polygons);
+        if (cpp.isValid())
+        {
+            next_poly_index = cpp.poly_idx;
+        }
+
         ConstPolygonRef poly = gap_polygons[next_poly_index];
 
         if (std::abs(poly.area()) > (500 * 500))
@@ -2326,15 +2332,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
 
         gap_polygons.remove(next_poly_index);
         next_poly_index = 0;
-
-        if (gap_polygons.size() > 1)
-        {
-            ClosestPolygonPoint cpp = PolygonUtils::findClosest(gcode_layer.getLastPlannedPositionOrStartingPosition(), gap_polygons);
-            if (cpp.isValid())
-            {
-                next_poly_index = cpp.poly_idx;
-            }
-        }
     }
 }
 
