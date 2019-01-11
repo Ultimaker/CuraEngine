@@ -2317,21 +2317,42 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     // consider the segment filled even if the flow is too low to actually do the fill
                     all_filled_segments = all_filled_segments.unionPolygons(segment);
 
-                    const float flow = (widths[point_index] + widths[next_point_index]) / (2.0f * gap_config.getLineWidth());
-                    if (flow > min_flow)
+                    std::function<void(const Point&, const Point&, const coord_t, const coord_t)> addLine = [&](const Point& start, const Point& end, const coord_t start_width, const coord_t end_width) -> void
                     {
-                        if (travel_needed)
+                        const coord_t avg_width = (start_width + end_width) / 2;
+                        // split the line if it is longer than a min length and the flow required at each end differs appreciably
+                        const coord_t min_len = 2000;
+                        const float max_flow_ratio = 1.2;
+                        const float flow_ratio = (float)std::max(start_width, end_width) / std::min(start_width, end_width);
+                        if (vSize2(end - start) >= min_len * min_len && flow_ratio >= max_flow_ratio)
                         {
-                            gcode_layer.addTravel(start);
-                            travel_needed = false;
+                            std::cerr << gcode_layer.getLayerNr() << ": len = " << vSize(end-start) << ", start_width = " << start_width << ", end_width = " << end_width << "\n";
+                            const Point avg_point(start + (end - start) / 2);
+                            addLine(start, avg_point, start_width, avg_width);
+                            addLine(avg_point, end, avg_width, end_width);
                         }
-                        gcode_layer.addExtrusionMove(next_mid_point, gap_config, SpaceFillType::Lines, flow);
-                    }
-                    else
-                    {
-                        travel_needed = true;
-                    }
-                    start = next_mid_point;
+                        else
+                        {
+                            const float flow = (float)avg_width / gap_config.getLineWidth();
+                            if (flow > min_flow)
+                            {
+                                if (travel_needed)
+                                {
+                                    gcode_layer.addTravel(start);
+                                    travel_needed = false;
+                                }
+                                gcode_layer.addExtrusionMove(end, gap_config, SpaceFillType::Lines, flow);
+                            }
+                            else
+                            {
+                                travel_needed = true;
+                            }
+                        }
+                    };
+
+                    addLine(start_mid_point, next_mid_point, widths[point_index], widths[next_point_index]);
+
+                    start_mid_point = next_mid_point;
                 }
             }
         }
