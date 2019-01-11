@@ -2319,9 +2319,22 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                         const float flow_ratio = (float)std::max(start_width, end_width) / std::min(start_width, end_width);
                         if (vSize2(end - start) >= min_len * min_len && flow_ratio >= max_flow_ratio)
                         {
-                            const Point avg_point(start + (end - start) / 2);
-                            addLine(start, avg_point, start_width, avg_width);
-                            addLine(avg_point, end, avg_width, end_width);
+                            const Point split_point(start + (end - start) / 2);
+                            coord_t split_width = avg_width;
+                            if (!is_outline)
+                            {
+                                // measure the gap width at split_point and use that rather than avg_width
+                                const Point half_line(normal(turn90CCW(end - start), avg_width * 2));
+                                Polygons lines;
+                                lines.addLine(split_point + half_line, split_point - half_line);
+                                lines = gaps.intersectionPolyLines(lines);
+                                if (lines.size() > 0)
+                                {
+                                    split_width = vSize(lines[0][1] - lines[0][0]);
+                                }
+                            }
+                            addLine(start, split_point, start_width, split_width);
+                            addLine(split_point, end, split_width, end_width);
                         }
                         else
                         {
