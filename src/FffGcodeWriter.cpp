@@ -2326,7 +2326,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                         const float flow_ratio = (float)std::max(start_width, end_width) / std::min(start_width, end_width);
                         if (vSize2(end - start) >= min_len * min_len && flow_ratio >= max_flow_ratio)
                         {
-                            std::cerr << gcode_layer.getLayerNr() << ": len = " << vSize(end-start) << ", start_width = " << start_width << ", end_width = " << end_width << "\n";
                             const Point avg_point(start + (end - start) / 2);
                             addLine(start, avg_point, start_width, avg_width);
                             addLine(avg_point, end, avg_width, end_width);
