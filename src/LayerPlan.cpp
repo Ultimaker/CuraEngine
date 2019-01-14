@@ -372,6 +372,10 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
+        if (comb == nullptr)
+        {
+            path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");;
+        }
     }
 
     if (comb != nullptr && !bypass_combing)
@@ -485,6 +489,7 @@ void LayerPlan::planPrime()
     constexpr float prime_blob_wipe_length = 10.0;
     GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + Point(0, MM2INT(prime_blob_wipe_length)));
     prime_travel.retract = false;
+    prime_travel.perform_z_hop = false;
     prime_travel.perform_prime = true;
     forceNewPathStart();
 }
