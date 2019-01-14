@@ -236,4 +236,30 @@ void PolygonTest::simplifyZigzag()
     CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 4);
 }
 
+void PolygonTest::simplifyLimitedLength()
+{
+    //Generate a spiral with segments that gradually increase in length.
+    Polygons spiral_polygons;
+    PolygonRef spiral = spiral_polygons.newPoly();
+    spiral.add(Point());
+
+    coord_t segment_length = 1000;
+    double angle = 0;
+    Point last_position;
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        const coord_t dx = std::cos(angle) * segment_length;
+        const coord_t dy = std::sin(angle) * segment_length;
+        last_position += Point(dx, dy);
+        spiral.add(last_position);
+        segment_length += 100;
+        angle += 1;
+    }
+
+    spiral_polygons.simplify(1550, 999999999); //Remove segments smaller than 1550 (infinite area error).
+
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200 and 1300 with 1400. Not beyond."), spiral.size() == 11 - 2);
+}
+
 }
