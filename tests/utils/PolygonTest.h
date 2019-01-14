@@ -29,6 +29,7 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(simplifyCircle);
     CPPUNIT_TEST(simplifyZigzag);
     CPPUNIT_TEST(simplifyLimitedLength);
+    CPPUNIT_TEST(simplifyLimitedError);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -60,6 +61,7 @@ public:
     void simplifyCircle();
     void simplifyZigzag();
     void simplifyLimitedLength();
+    void simplifyLimitedError();
 
 
 private:

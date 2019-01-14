@@ -254,10 +254,44 @@ void PolygonTest::simplifyLimitedLength()
         last_position += Point(dx, dy);
         spiral.add(last_position);
         segment_length += 100;
-        angle += 1;
+        angle += 0.1;
     }
 
     spiral_polygons.simplify(1550, 999999999); //Remove segments smaller than 1550 (infinite area error).
+
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200 and 1300 with 1400. Not beyond."), spiral.size() == 11 - 2);
+}
+
+void PolygonTest::simplifyLimitedError()
+{
+    //Generate a square spiral with increasingly large corners until the area exceeds the limit.
+    Polygons spiral_polygons;
+    PolygonRef spiral = spiral_polygons.newPoly();
+    spiral.add(Point());
+
+    //Generate a square spiral, 90 degree corners to make it easy to compute the area loss while retaining a positive area per corner.
+    coord_t segment_length = 1000;
+    Point last_position;
+    double angle = 0;
+    for (size_t i = 0; i < 10; i++)
+    {
+        const coord_t dx = std::cos(angle) * segment_length;
+        const coord_t dy = std::sin(angle) * segment_length;
+        last_position += Point(dx, dy);
+        spiral.add(last_position);
+        segment_length += 100;
+        angle += M_PI / 2;
+    }
+
+    //We want it to not merge the lines 1400 and 1500 any more, but do merge all lines before it.
+    //Take the area of the 1400 by 1500 and plug it into the formula for the height to get at the baseline height, which is our allowed error.
+    constexpr coord_t area = 1400 * 1500 / 2;
+    constexpr coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
+    //A = 0.5 * b * h. diagonal_length is the base line in this case.
+    //2A = b * h
+    //2A / b = h
+    constexpr coord_t height = 2 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
+    spiral_polygons.simplify(999999999, height - 10);
 
     CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200 and 1300 with 1400. Not beyond."), spiral.size() == 11 - 2);
 }
