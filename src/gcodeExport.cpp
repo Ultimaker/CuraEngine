@@ -49,8 +49,10 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup()
+void GCodeExport::preSetup(const size_t start_extruder)
 {
+    current_extruder = start_extruder;
+
     const Scene& scene = Application::getInstance().current_slice->scene;
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
