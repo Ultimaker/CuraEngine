@@ -374,7 +374,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         path->retract = true;
         if (comb == nullptr)
         {
-            path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");;
+            path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");
         }
     }
 
