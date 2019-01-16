@@ -341,7 +341,15 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         if (length2 < smallest_line_segment_squared)
         {
             const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
-            if (area_removed_so_far <= allowed_error_distance_squared)
+            const coord_t base_length_2 = vSize2(next - previous);
+            //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
+            //A = 1/2 * b * h     [triangle area formula]
+            //2A = b * h          [multiply by 2]
+            //h = 2A / b          [divide by b]
+            //h^2 = (2A / b)^2    [square it]
+            //h^2 = (2A)^2 / b^2  [factor the divisor]
+            //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
+            if (base_length_2 == 0 || 4 * area_removed_so_far * area_removed_so_far / base_length_2 <= allowed_error_distance_squared)
             {
                 continue; //Remove the vertex.
             }
