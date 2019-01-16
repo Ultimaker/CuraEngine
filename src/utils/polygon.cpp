@@ -366,7 +366,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             }
         }
 
-        accumulated_area_removed = previous.X * current.Y - previous.Y * current.X;
+        accumulated_area_removed = current.X * next.Y - current.Y * next.X;
         previous = current; //Note that "previous" is only updated if we actually remove the vertex.
         new_path.push_back(current);
     }
