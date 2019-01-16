@@ -296,7 +296,7 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
-void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_distance_squared)
+void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
 {
     if (size() < 3)
     {
