@@ -338,33 +338,26 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         }
         accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
-        if (length2 < smallest_line_segment_squared)
+        const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
+        const coord_t base_length_2 = vSize2(next - previous);
+        //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
+        //A = 1/2 * b * h     [triangle area formula]
+        //2A = b * h          [multiply by 2]
+        //h = 2A / b          [divide by b]
+        //h^2 = (2A / b)^2    [square it]
+        //h^2 = (2A)^2 / b^2  [factor the divisor]
+        //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
+        const coord_t height_2 = 4 * area_removed_so_far * area_removed_so_far / base_length_2;
+        if (base_length_2 == 0 //Two line segments form a line back and forth with no area.
+                || (length2 >= smallest_line_segment_squared && height_2 <= 1) //Line segments are almost exactly straight.
+                || (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared)) //Line is small and removing it doesn't introduce too much error.
         {
-            const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
-            const coord_t base_length_2 = vSize2(next - previous);
-            //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
-            //A = 1/2 * b * h     [triangle area formula]
-            //2A = b * h          [multiply by 2]
-            //h = 2A / b          [divide by b]
-            //h^2 = (2A / b)^2    [square it]
-            //h^2 = (2A)^2 / b^2  [factor the divisor]
-            //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
             if (base_length_2 == 0 || 4 * area_removed_so_far * area_removed_so_far / base_length_2 <= allowed_error_distance_squared)
             {
                 continue; //Remove the vertex.
             }
         }
         //Don't remove the vertex.
-
-        //But we may need to remove the previous vertex if it happens to be almost exactly in line with the new vertex.
-        if (new_path.size() >= 2)
-        {
-            const coord_t distance = LinearAlg2D::getDist2FromLineSegment(new_path[new_path.size() - 2], new_path[new_path.size() - 1], current);
-            if (distance < 25) //Less than 5 microns off, so this falls within our rounding error range.
-            {
-                new_path.pop_back(); //Remove the previous vertex then.
-            }
-        }
 
         accumulated_area_removed = current.X * next.Y - current.Y * next.X;
         previous = current; //Note that "previous" is only updated if we actually remove the vertex.
