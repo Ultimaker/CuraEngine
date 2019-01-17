@@ -340,6 +340,10 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
 
         const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
         const coord_t base_length_2 = vSize2(next - previous);
+        if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
+        {
+            continue; //Remove the vertex.
+        }
         //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
         //A = 1/2 * b * h     [triangle area formula]
         //2A = b * h          [multiply by 2]
@@ -348,14 +352,10 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (2A)^2 / b^2  [factor the divisor]
         //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
         const coord_t height_2 = 4 * area_removed_so_far * area_removed_so_far / base_length_2;
-        if (base_length_2 == 0 //Two line segments form a line back and forth with no area.
-                || (length2 >= smallest_line_segment_squared && height_2 <= 1) //Line segments are almost exactly straight.
-                || (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared)) //Line is small and removing it doesn't introduce too much error.
+        if ((length2 >= smallest_line_segment_squared && height_2 <= 1) //Line segments are almost exactly straight.
+         || (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared)) //Line is small and removing it doesn't introduce too much error.
         {
-            if (base_length_2 == 0 || 4 * area_removed_so_far * area_removed_so_far / base_length_2 <= allowed_error_distance_squared)
-            {
-                continue; //Remove the vertex.
-            }
+            continue; //Remove the vertex.
         }
         //Don't remove the vertex.
 
