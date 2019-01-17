@@ -55,10 +55,11 @@ void PrimeTower::generateGroundpoly()
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
     const bool circular_prime_tower = mesh_group_settings.get<bool>("prime_tower_circular");
 
+    const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
     const coord_t offset = (! mesh_group_settings.get<bool>("prime_tower_brim_enable")) ? 0 :
-        mesh_group_settings.get<size_t>("brim_line_count") *
-        mesh_group_settings.get<coord_t>("skirt_brim_line_width") *
-        mesh_group_settings.get<Ratio>("initial_layer_line_width_factor");
+        brim_extruder_settings.get<size_t>("brim_line_count") *
+        brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
+        brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
 
     PolygonRef p = outer_poly.newPoly();
     int tower_distance = 0; 
