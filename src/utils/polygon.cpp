@@ -352,10 +352,13 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (2A)^2 / b^2  [factor the divisor]
         //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
         const coord_t height_2 = 4 * area_removed_so_far * area_removed_so_far / base_length_2;
-        if ((length2 >= smallest_line_segment_squared && height_2 <= 1) //Line segments are almost exactly straight.
-         || (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared)) //Line is small and removing it doesn't introduce too much error.
+        if (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared) //Line is small and removing it doesn't introduce too much error.
         {
             continue; //Remove the vertex.
+        }
+        else if (length2 >= smallest_line_segment_squared && new_path.size() > 2 && LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path[new_path.size() - 1]) <= 1) //Almost exactly straight (barring micron rounding errors).
+        {
+            new_path.pop_back(); //Remove the previous vertex but still add the new one.
         }
         //Don't remove the vertex.
 
