@@ -91,7 +91,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
     // regular layers
-    size_t slice_layer_count = 0;
+    int slice_layer_count = 0; //Use signed int because we need to subtract the initial layer in a calculation temporarily.
 
     // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
     coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
