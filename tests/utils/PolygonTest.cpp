@@ -228,12 +228,12 @@ void PolygonTest::simplifyZigzag()
         x = 0 - x;
     }
 
-    constexpr coord_t maximum_area_error = segment_length * segment_length / 2 + 400; //Area of right triangle with isosceles sides of 1000 (and 400 error margin).
-    zigzag_polygons.simplify(segment_length + 10, maximum_area_error);
+    constexpr coord_t maximum_error = 2 * segment_length * segment_length + 100; //Squared offset from baseline (and some margin for rounding).
+    zigzag_polygons.simplify(segment_length + 10, maximum_error);
 
     std::stringstream ss;
     ss << "Zigzag should be removed since the total error compensates with each zag, but size was " << zigzag.size() << ".";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 4);
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 5);
 }
 
 void PolygonTest::simplifyLimitedLength()
@@ -290,10 +290,10 @@ void PolygonTest::simplifyLimitedError()
     //A = 0.5 * b * h. diagonal_length is the base line in this case.
     //2A = b * h
     //2A / b = h
-    constexpr coord_t height = 2 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
+    constexpr coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
     spiral_polygons.simplify(999999999, height - 10);
 
-    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200 and 1300 with 1400. Not beyond."), spiral.size() == 11 - 2);
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1000 through 1400. Not beyond."), spiral.size() == 11 - 4);
 }
 
 }
