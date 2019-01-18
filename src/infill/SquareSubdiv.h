@@ -76,6 +76,7 @@ public:
     Polygon createMooreLine() const;
 
     void debugOutput(SVG& svg, float drawing_line_width, bool draw_arrows) const;
+    void debugOutputDensities(SVG& svg, idx_t starting_idx = 0) const;
 protected:
 
     float getDensity(const Cell& cell, const int_fast8_t averaging_statistic) const;

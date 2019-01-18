@@ -340,9 +340,28 @@ void SquareSubdiv::debugOutput(SVG& svg, const Cell& sub_tree_root, float drawin
                 os << PrecisionedDouble{2, actualized_volume}
                 << " / "
                 << PrecisionedDouble{2, requested_volume};
-                svg.writeText(sub_tree_root.elem.getMiddle(), os.str(), (actualized_volume > requested_volume)? SVG::Color::RED : SVG::Color::GREEN, 6);
+                svg.writeText(sub_tree_root.elem.getMiddle(), os.str(), (actualized_volume > requested_volume)? SVG::NamedColor::RED : SVG::NamedColor::GREEN, 6);
             }
         }
+    }
+}
+
+void SquareSubdiv::debugOutputDensities(SVG& svg, idx_t starting_idx) const
+{
+    assert(!cell_data.empty());
+    const Cell& sub_tree_root = cell_data[starting_idx];
+    if (sub_tree_root.is_subdivided)
+    {
+        for (idx_t child_idx : sub_tree_root.children)
+        {
+            assert(child_idx >= 0);
+            debugOutputDensities(svg, child_idx);
+        }
+    }
+    else
+    {
+        Polygon square = sub_tree_root.elem.toPolygon();
+        svg.writeAreas(square, SVG::Color(1.0 - getActualizedVolume(sub_tree_root) / INT2MM2(square.area())), SVG::Color(), 0.0);
     }
 }
 
