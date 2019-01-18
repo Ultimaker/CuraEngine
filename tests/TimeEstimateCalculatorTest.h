@@ -27,6 +27,7 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(doubleLineNoJerk);
     CPPUNIT_TEST(diagonalLineNoJerk);
     CPPUNIT_TEST(straightAngleOnlyJerk);
+    CPPUNIT_TEST(straightAngleNoJerk);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -98,6 +99,14 @@ public:
      * It should not slow down in the corner here.
      */
     void straightAngleOnlyJerk();
+
+    /*
+     * \brief Tests printing two lines with a 90 degree angle without jerk.
+     *
+     * This means that the nozzle will have to decelerate completely to 0 and
+     * then accelerate in a different axis to maximum speed again.
+     */
+    void straightAngleNoJerk();
 
 private:
     /*

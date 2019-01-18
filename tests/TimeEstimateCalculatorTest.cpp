@@ -287,4 +287,42 @@ void TimeEstimateCalculatorTest::straightAngleOnlyJerk()
     );
 }
 
+void TimeEstimateCalculatorTest::straightAngleNoJerk()
+{
+    calculator.setFirmwareDefaults(jerkless);
+
+    /*
+     * This line:
+     * Accelerate from 0 to 50mm/s in one second.
+     * Cruise for a while at 50mm/s.
+     * Decelerate from 50mm/s to 0 in one second.
+     */
+    const TimeEstimateCalculator::Position apex(1000, 0, 0, 0);
+    calculator.plan(apex, 50.0, PrintFeatureType::Infill);
+    /*
+     * The second line:
+     * Accelerate from 0 to 50mm/s in one second.
+     * Cruise at 50mm/s for most of the line.
+     * Decelerate from 50mm/s to minimum planner speed in almost one second.
+     */
+    const TimeEstimateCalculator::Position destination(1000, 1000, 0, 0);
+    calculator.plan(destination, 50.0, PrintFeatureType::Infill);
+
+    //Distance needed to accelerate: 1/2 at² + vt. We accelerate at 50mm/s². No initial velocity.
+    const double first_accelerate_distance = 0.5 * 50.0 * 1.0 * 1.0 + 0.0 * 1.0;
+    const double first_decelerate_distance = first_accelerate_distance; //The same but decelerating.
+    const double first_cruise_distance = 1000.0 - first_accelerate_distance - first_decelerate_distance;
+    const double second_accelerate_distance = first_accelerate_distance;
+    const double second_decelerate_t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
+    const double second_decelerate_distance = 0.5 * 50.0 * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t; //This time there is an initial speed: The minimum planner speed.
+    const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+        Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t),
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON
+    );
+}
+
 } //namespace cura
