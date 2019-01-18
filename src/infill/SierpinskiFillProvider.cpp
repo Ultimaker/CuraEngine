@@ -16,6 +16,7 @@ namespace cura
 constexpr bool SierpinskiFillProvider::get_constructor;
 constexpr bool SierpinskiFillProvider::use_dithering;
 
+constexpr bool use_balancing = false;
 
 MappingFunction SierpinskiFillProvider::getMappingFunction()
 {
@@ -47,7 +48,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
     else
     {
         logDebug("Creating dithered pattern.\n");
-        subdivision_structure_3d->createDitheredPattern();
+        subdivision_structure_3d->createDitheredPattern(use_balancing);
         if (dense_at_top)
         {
             subdivision_structure_3d->createMinimalDensityPattern(); // based on minimal required density based on top skin
@@ -84,7 +85,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
-    subdivision_structure_3d->createDitheredPattern();
+    subdivision_structure_3d->createDitheredPattern(use_balancing);
 //     subdivision_structure_3d->sanitize();
     if (dense_at_top)
     {
@@ -108,7 +109,7 @@ SierpinskiFillProvider::SierpinskiFillProvider(const SliceMeshStorage* mesh_data
 , subdivision_structure_3d(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width)
 {
     subdivision_structure_3d->initialize();
-    subdivision_structure_3d->createDitheredPattern();
+    subdivision_structure_3d->createDitheredPattern(use_balancing);
 //     subdivision_structure_3d->sanitize();
     if (dense_at_top)
     {

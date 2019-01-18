@@ -360,8 +360,10 @@ public:
      * Create a dithered pattern matching the input distribution from scratch.
      * 
      * Perform balancing first to create a well behaved dithered pattern.
+     * 
+     * \param balancing if not enabled, use the minimal density pattern
      */
-    void createDitheredPattern();
+    void createDitheredPattern(bool balancing);
 
     /*!
      * Create the subdivision structure 

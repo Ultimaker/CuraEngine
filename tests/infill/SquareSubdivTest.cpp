@@ -82,7 +82,7 @@ void SquareSubdivTest::debugCheck()
             {
                 case 0:
                     continue;
-                    ss.createDitheredPattern(); method_str = "_dit";
+                    ss.createDitheredPattern(true); method_str = "_dit";
                 break;
                 case 1:
                     ss.createMinimalDensityPattern(/* one_step_less_dense = */ true); method_str = "_min";

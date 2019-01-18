@@ -322,10 +322,17 @@ void InfillFractal2D<CellGeometry>::createMaximalDensityPattern(idx_t starting_i
 
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::createDitheredPattern()
+void InfillFractal2D<CellGeometry>::createDitheredPattern(bool balancing)
 {
     TimeKeeper tk;
-    createBalancedPattern();
+    if (balancing)
+    {
+        createBalancedPattern();
+    }
+    else
+    {
+        createMinimalDensityPattern();
+    }
 
     settleLoans();
     logDebug("Created balanced pattern in %5.2fs.\n", tk.restart());
