@@ -26,6 +26,7 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(singleLineNoJerk);
     CPPUNIT_TEST(doubleLineNoJerk);
     CPPUNIT_TEST(diagonalLineNoJerk);
+    CPPUNIT_TEST(straightAngleOnlyJerk);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -89,6 +90,14 @@ public:
      * actually be greater than when the line is straight in one dimension.
      */
     void diagonalLineNoJerk();
+
+    /*
+     * \brief Tests printing two lines with a 90 degree angle where jerk governs
+     * all acceleration.
+     *
+     * It should not slow down in the corner here.
+     */
+    void straightAngleOnlyJerk();
 
 private:
     /*

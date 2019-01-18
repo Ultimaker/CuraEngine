@@ -123,7 +123,7 @@ void TimeEstimateCalculatorTest::singleLineOnlyJerk()
      */
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
-    //Deceleration distance is 1/2 at² + vt. We decelerate at 50mm/s for almost a second, ending at a speed of MINIMUM_PLANNER_SPEED.
+    //Deceleration distance is 1/2 at² + vt. We decelerate at 50mm/s² for almost a second, ending at a speed of MINIMUM_PLANNER_SPEED.
     const double t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
     const double decelerate_distance = 0.5 * 50.0 * t * t + MINIMUM_PLANNER_SPEED * t;
     const double cruise_distance = 1000.0 - decelerate_distance;
@@ -246,6 +246,42 @@ void TimeEstimateCalculatorTest::diagonalLineNoJerk()
     const std::vector<Duration> result = calculator.calculate();
     CPPUNIT_ASSERT_DOUBLES_EQUAL(
         Duration(1.0 + cruise_distance / 50.0 + decelerate_t), //Accelerate, cruise, decelerate.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON
+    );
+}
+
+void TimeEstimateCalculatorTest::straightAngleOnlyJerk()
+{
+    calculator.setFirmwareDefaults(always_50);
+
+    /*
+     * This line:
+     * Accelerate instantly from 0 to 50mm/s because of jerk.
+     * Travel at 50mm/s throughout the first line.
+     */
+    const TimeEstimateCalculator::Position apex(1000, 0, 0, 0);
+    calculator.plan(apex, 50.0, PrintFeatureType::Infill);
+    /*
+     * The second line:
+     * Decelerate the X axis instantly from 50mm/s to 0mm/s because of jerk.
+     * Accelerate the Y axis instantly from 0mm/s to 50mm/s because of jerk.
+     * Cruise at 50mm/s for most of the line.
+     * Decelerate the Y axis from 50mm/s to the minimum planner speed in less than one second.
+     */
+    const TimeEstimateCalculator::Position destination(1000, 1000, 0, 0);
+    calculator.plan(destination, 50.0, PrintFeatureType::Infill);
+
+    const double first_cruise_time = 1000.0 / 50.0;
+    //Deceleration distance is 1/2 at² + vt. We decelerate at 50mm/s² for almost a second, ending at a speed of MINIMUM_PLANNER_SPEED.
+    const double t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
+    const double decelerate_distance = 0.5 * 50.0 * t * t + MINIMUM_PLANNER_SPEED * t;
+    const double cruise_distance = 1000.0 - decelerate_distance;
+    const double second_cruise_time = cruise_distance / 50.0;
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+        Duration(first_cruise_time + second_cruise_time + t), //First line, second line cruise, and decelerate at the end.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
