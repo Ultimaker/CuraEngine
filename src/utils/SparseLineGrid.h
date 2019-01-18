@@ -113,15 +113,15 @@ void SGI_THIS::debugHTML(std::string filename)
             rb.Y = -SparseGrid<ElemT>::m_cell_size;
         }
 //         svg.writePoint(lb, true, 1);
-        svg.writeLine(lb, lt, SVG::Color::GRAY);
-        svg.writeLine(lt, rt, SVG::Color::GRAY);
-        svg.writeLine(rt, rb, SVG::Color::GRAY);
-        svg.writeLine(rb, lb, SVG::Color::GRAY);
+        svg.writeLine(lb, lt, SVG::NamedColor::GRAY);
+        svg.writeLine(lt, rt, SVG::NamedColor::GRAY);
+        svg.writeLine(rt, rb, SVG::NamedColor::GRAY);
+        svg.writeLine(rb, lb, SVG::NamedColor::GRAY);
 
         std::pair<Point, Point> line = m_locator(cell.second);
         svg.writePoint(line.first, true);
         svg.writePoint(line.second, true);
-        svg.writeLine(line.first, line.second, SVG::Color::BLACK);
+        svg.writeLine(line.first, line.second, SVG::NamedColor::BLACK);
     }
 }
 

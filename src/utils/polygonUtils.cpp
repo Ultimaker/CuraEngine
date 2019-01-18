@@ -561,7 +561,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                         aabb.expand(std::abs(preferred_dist_inside) * 2);
                         SVG svg("debug.html", aabb);
                         svg.writeComment("Original polygon in black");
-                        svg.writePolygons(polygons, SVG::Color::BLACK);
+                        svg.writePolygons(polygons, SVG::NamedColor::BLACK);
                         for (auto poly : polygons)
                         {
                             for (auto point : poly)
@@ -571,10 +571,10 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                         }
                         std::stringstream ss;
                         svg.writeComment("Reference polygon in yellow");
-                        svg.writePolygon(closest_poly, SVG::Color::YELLOW);
+                        svg.writePolygon(closest_poly, SVG::NamedColor::YELLOW);
                         ss << "Offsetted polygon in blue with offset " << offset_performed;
                         svg.writeComment(ss.str());
-                        svg.writePolygons(insetted, SVG::Color::BLUE);
+                        svg.writePolygons(insetted, SVG::NamedColor::BLUE);
                         for (auto poly : insetted)
                         {
                             for (auto point : poly)
@@ -583,9 +583,9 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                             }
                         }
                         svg.writeComment("From location");
-                        svg.writePoint(from, true, 5, SVG::Color::GREEN);
+                        svg.writePoint(from, true, 5, SVG::NamedColor::GREEN);
                         svg.writeComment("Location computed to be inside the black polygon");
-                        svg.writePoint(inside.location, true, 5, SVG::Color::RED);
+                        svg.writePoint(inside.location, true, 5, SVG::NamedColor::RED);
                     }
                     catch(...)
                     {

@@ -18,7 +18,7 @@ namespace cura {
 class SVG : NoCopy
 {
 public:
-    enum class Color {
+    enum class NamedColor {
         BLACK,
         WHITE,
         GRAY,
@@ -29,12 +29,34 @@ public:
         RAINBOW,
         NONE
     };
+    struct Color
+    {
+        float rgb[3];
+        NamedColor named_color;
+        Color()
+        : rgb{0.0, 0.0, 0.0}
+        , named_color(NamedColor::NONE)
+        {}
+        Color(NamedColor named_color)
+        : rgb{0.0, 0.0, 0.0}
+        , named_color(named_color)
+        {}
+        Color(float intensity)
+        : rgb{intensity, intensity, intensity}
+        , named_color(NamedColor::NONE)
+        {}
+        Color(float red, float green, float blue)
+        : rgb{red, green, blue}
+        , named_color(NamedColor::NONE)
+        {}
+    };
 
     static constexpr size_t OMIT_BORDERS = 1;
 
 private:
 
-    std::string toString(Color color);
+    static std::string toString(NamedColor color);
+    static std::string toString(Color color);
 
     FILE* out; // the output file
     char filename[1024];
@@ -48,7 +70,7 @@ private:
     bool output_is_html;
 
 public:
-    SVG(const std::string filename, AABB aabb, Point canvas_size = Point(1024, 1024), Color background = Color::NONE, size_t flags = 0);
+    SVG(const std::string filename, AABB aabb, Point canvas_size = Point(1024, 1024), Color background = NamedColor::NONE, size_t flags = 0);
 
     ~SVG();
 
@@ -69,15 +91,15 @@ public:
 
     void writeComment(std::string comment);
 
-    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK, float stroke_width = 1);
+    void writeAreas(const Polygons& polygons, Color color = NamedColor::GRAY, Color outline_color = NamedColor::BLACK, float stroke_width = 1);
 
-    void writeAreas(ConstPolygonRef polygon, Color color = Color::GRAY, Color outline_color = Color::BLACK, float stroke_width = 1);
+    void writeAreas(ConstPolygonRef polygon, Color color = NamedColor::GRAY, Color outline_color = NamedColor::BLACK, float stroke_width = 1);
 
-    void writePoint(const Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK);
+    void writePoint(const Point& p, bool write_coords=false, int size = 5, Color color = NamedColor::BLACK);
 
-    void writePoints(ConstPolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK);
+    void writePoints(ConstPolygonRef poly, bool write_coords=false, int size = 5, Color color = NamedColor::BLACK);
 
-    void writePoints(Polygons& polygons, bool write_coords=false, int size = 5, Color color = Color::BLACK);
+    void writePoints(Polygons& polygons, bool write_coords=false, int size = 5, Color color = NamedColor::BLACK);
 
     /*!
      * \brief Draws a polyline on the canvas.
@@ -90,9 +112,9 @@ public:
      * \param color The colour of the line segments. If this is not specified,
      * black will be used.
      */
-    void writeLines(std::vector<Point> polyline, Color color = Color::BLACK, float stroke_width = 1);
+    void writeLines(std::vector<Point> polyline, Color color = NamedColor::BLACK, float stroke_width = 1);
 
-    void writeLine(const Point& a, const Point& b, Color color = Color::BLACK, float stroke_width = 1);
+    void writeLine(const Point& a, const Point& b, Color color = NamedColor::BLACK, float stroke_width = 1);
 
     void writeLineRGB(const Point& from, const Point& to, int r = 0, int g = 0, int b = 0, float stroke_width = 1);
 
@@ -105,16 +127,16 @@ public:
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
      */
-    void writeDashedLine(const Point& a,const Point& b,Color color = Color::BLACK);
+    void writeDashedLine(const Point& a,const Point& b, Color color = NamedColor::BLACK);
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args);
 
-    void writeText(Point p, std::string txt, Color color = Color::BLACK, coord_t font_size = 10);
+    void writeText(Point p, std::string txt, Color color = NamedColor::BLACK, coord_t font_size = 10);
 
-    void writePolygons(const Polygons& polys, Color color = Color::BLACK, float stroke_width = 1);
+    void writePolygons(const Polygons& polys, Color color = NamedColor::BLACK, float stroke_width = 1);
 
-    void writePolygon(ConstPolygonRef poly, Color color = Color::BLACK, float stroke_width = 1);
+    void writePolygon(ConstPolygonRef poly, Color color = NamedColor::BLACK, float stroke_width = 1);
 
 };
 

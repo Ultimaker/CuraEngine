@@ -281,7 +281,7 @@ void SquareSubdiv::debugOutput(SVG& svg, float drawing_line_width, bool draw_arr
 {
     assert(!cell_data.empty());
     const Cell& root = cell_data[0];
-    svg.writePolygon(root.elem.toPolygon(), SVG::Color::BLACK, drawing_line_width);
+    svg.writePolygon(root.elem.toPolygon(), SVG::NamedColor::BLACK, drawing_line_width);
     debugOutput(svg, root, drawing_line_width, draw_arrows);
 }
 
@@ -298,8 +298,8 @@ void SquareSubdiv::debugOutput(SVG& svg, const Cell& sub_tree_root, float drawin
     else
     {
         AABB square = sub_tree_root.elem;
-        svg.writeLine(square.min, Point(square.max.X, square.min.Y), SVG::Color::BLACK, drawing_line_width);
-        svg.writeLine(square.max, Point(square.max.X, square.min.Y), SVG::Color::BLACK, drawing_line_width);
+        svg.writeLine(square.min, Point(square.max.X, square.min.Y), SVG::NamedColor::BLACK, drawing_line_width);
+        svg.writeLine(square.max, Point(square.max.X, square.min.Y), SVG::NamedColor::BLACK, drawing_line_width);
         
         const Point from_middle = sub_tree_root.elem.getMiddle();
         
@@ -317,10 +317,10 @@ void SquareSubdiv::debugOutput(SVG& svg, const Cell& sub_tree_root, float drawin
                     
                     Point arrow_head_back_l = arrow_to - link_vector / 15 + turn90CCW(link_vector / 30);
                     Point arrow_head_back_r = arrow_to - link_vector / 15 - turn90CCW(link_vector / 30);
-                    svg.writeLine(arrow_from, arrow_to, SVG::Color::BLUE);
-                    svg.writeLine(arrow_to, arrow_head_back_l, SVG::Color::BLUE);
-                    svg.writeLine(arrow_to, arrow_head_back_r, SVG::Color::BLUE);
-                    svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::Color::BLUE);
+                    svg.writeLine(arrow_from, arrow_to, SVG::NamedColor::BLUE);
+                    svg.writeLine(arrow_to, arrow_head_back_l, SVG::NamedColor::BLUE);
+                    svg.writeLine(arrow_to, arrow_head_back_r, SVG::NamedColor::BLUE);
+                    svg.writeLine(arrow_head_back_l, arrow_head_back_r, SVG::NamedColor::BLUE);
 
                     assert(std::isfinite(link.loan));
                     if (link.loan > allowed_volume_error)
@@ -328,7 +328,7 @@ void SquareSubdiv::debugOutput(SVG& svg, const Cell& sub_tree_root, float drawin
                         std::ostringstream os;
                         os << PrecisionedDouble{ 2, link.loan};
 //                         svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 10) + link_vector / 10, os.str(), SVG::Color::BLACK, 5);
-                        svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 200) + link_vector / 200, os.str(), SVG::Color::BLACK, 6);
+                        svg.writeText((arrow_from + arrow_to) / 2 + turn90CCW(link_vector / 200) + link_vector / 200, os.str(), SVG::NamedColor::BLACK, 6);
                     }
                 }
             }
@@ -365,7 +365,7 @@ void SquareSubdiv::debugOutputSquare(const AABB& square, SVG& svg, float drawing
     Polygons polys;
     polys.add(tri);
     polys = polys.offset(-80);
-    svg.writePolygons(polys, SVG::Color::GRAY);
+    svg.writePolygons(polys, SVG::NamedColor::GRAY);
 
 //     svg.writeLine(triangle.getFromEdge().middle(), triangle.getToEdge().middle(), SVG::Color::RED, drawing_line_width);
 }
@@ -380,8 +380,8 @@ void SquareSubdiv::debugOutputLink(const Link& link, SVG& svg) const
     // draw arrow body
     Point c = a + shift + normal(ab, shortening);
     Point d = a + shift + normal(ab, vSize(ab) - shortening);
-    svg.writeLine(c, d, SVG::Color::BLUE);
-    svg.writePoint(c, false, 3, SVG::Color::BLUE);
+    svg.writeLine(c, d, SVG::NamedColor::BLUE);
+    svg.writePoint(c, false, 3, SVG::NamedColor::BLUE);
 }
 
 void SquareSubdiv::debugOutputTree(SVG& svg, float drawing_line_width) const

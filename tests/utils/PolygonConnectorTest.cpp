@@ -100,17 +100,17 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
             aabb.include(AABB(poly).max);
         }
         SVG svg("output/bs.svg", aabb, Point(500, 500));
-        svg.writePolygon(from_poly, SVG::Color::YELLOW, 4);
+        svg.writePolygon(from_poly, SVG::NamedColor::YELLOW, 4);
         for (PolygonRef poly : to_polygons)
         {
-            svg.writePolygon(poly, SVG::Color::GRAY, 4);
+            svg.writePolygon(poly, SVG::NamedColor::GRAY, 4);
         }
         if (computed)
         {
-            svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::Color::BLUE, 4);
-            svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::Color::GREEN, 4);
+            svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::NamedColor::BLUE, 4);
+            svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::NamedColor::GREEN, 4);
             Polygon connected = pc->connectPolygonsAlongBridge(*computed);
-            svg.writePolygon(connected, SVG::Color::RED, 1);
+            svg.writePolygon(connected, SVG::NamedColor::RED, 1);
 //             svg.writePoints(connected, true, 5, SVG::Color::YELLOW);
 //             int c = 0;
 //             for (Point p : connected)
@@ -166,12 +166,12 @@ void PolygonConnectorTest::connectionLengthTest()
     if (draw_problem_scenario)
     {
         SVG svg("output/bs2.svg", AABB(test_shapes), Point(500, 500));
-        svg.writePolygons(test_shapes, SVG::Color::YELLOW);
-        svg.writePolygons(connecteds, SVG::Color::RED);
+        svg.writePolygons(test_shapes, SVG::NamedColor::YELLOW);
+        svg.writePolygons(connecteds, SVG::NamedColor::RED);
         for (PolygonConnector::PolygonBridge bridge : pc->all_bridges)
         {
-            svg.writeLine(bridge.a.from.p(), bridge.a.to.p(), SVG::Color::BLUE);
-            svg.writeLine(bridge.b.from.p(), bridge.b.to.p(), SVG::Color::GREEN);
+            svg.writeLine(bridge.a.from.p(), bridge.a.to.p(), SVG::NamedColor::BLUE);
+            svg.writeLine(bridge.b.from.p(), bridge.b.to.p(), SVG::NamedColor::GREEN);
         }
         std::cerr << "written\n";\
     }

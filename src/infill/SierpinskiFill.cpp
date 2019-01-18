@@ -612,15 +612,15 @@ float SierpinskiFill::getSubdivisionError(std::list<SierpinskiTriangle*>::iterat
 
 void SierpinskiFill::debugOutput(SVG& svg)
 {
-    svg.writePolygon(aabb.toPolygon(), SVG::Color::RED);
+    svg.writePolygon(aabb.toPolygon(), SVG::NamedColor::RED);
 
     // draw triangles
     for (SierpinskiTriangle* node : sequence)
     {
         SierpinskiTriangle& triangle = *node;
-        svg.writeLine(triangle.a, triangle.b, SVG::Color::GRAY);
-        svg.writeLine(triangle.a, triangle.straight_corner, SVG::Color::GRAY);
-        svg.writeLine(triangle.b, triangle.straight_corner, SVG::Color::GRAY);
+        svg.writeLine(triangle.a, triangle.b, SVG::NamedColor::GRAY);
+        svg.writeLine(triangle.a, triangle.straight_corner, SVG::NamedColor::GRAY);
+        svg.writeLine(triangle.b, triangle.straight_corner, SVG::NamedColor::GRAY);
     }
 }
 

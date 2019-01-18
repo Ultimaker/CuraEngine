@@ -472,8 +472,8 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
         // output normal links
         for (const ProximityPointLink& link : copy.proximity_point_links)
         {
-            svg.writePoint(link.a.p(), false, 3, SVG::Color::GRAY);
-            svg.writePoint(link.b.p(), false, 3, SVG::Color::GRAY);
+            svg.writePoint(link.a.p(), false, 3, SVG::NamedColor::GRAY);
+            svg.writePoint(link.b.p(), false, 3, SVG::NamedColor::GRAY);
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);

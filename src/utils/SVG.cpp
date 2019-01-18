@@ -1,23 +1,40 @@
 /** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "SVG.h"
 
+#include <sstream>
+
+
 namespace cura {
 
 
 
-std::string SVG::toString(Color color)
+std::string SVG::toString(NamedColor color)
 {
     switch (color)
     {
-        case SVG::Color::BLACK: return "black";
-        case SVG::Color::WHITE: return "white";
-        case SVG::Color::GRAY: return "gray";
-        case SVG::Color::RED: return "red";
-        case SVG::Color::BLUE: return "blue";
-        case SVG::Color::GREEN: return "green";
-        case SVG::Color::YELLOW: return "yellow";
-        case SVG::Color::NONE: return "none";
+        case SVG::NamedColor::BLACK: return "black";
+        case SVG::NamedColor::WHITE: return "white";
+        case SVG::NamedColor::GRAY: return "gray";
+        case SVG::NamedColor::RED: return "red";
+        case SVG::NamedColor::BLUE: return "blue";
+        case SVG::NamedColor::GREEN: return "green";
+        case SVG::NamedColor::YELLOW: return "yellow";
+        case SVG::NamedColor::NONE: return "none";
         default: return "black";
+    }
+}
+
+std::string SVG::toString(Color color)
+{
+    if (color.named_color != NamedColor::NONE)
+    {
+        return SVG::toString(color.named_color);
+    }
+    else
+    {
+        std::stringstream sstream;
+        sstream << '#' << std::hex << static_cast<int>(color.rgb[0] * 255) << static_cast<int>(color.rgb[1] * 255) << static_cast<int>(color.rgb[2] * 255);
+        return sstream.str();
     }
 }
 
@@ -49,7 +66,7 @@ SVG::SVG(const std::string filename_str, AABB aabb, Point canvas_size, Color bac
     }
     fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%lli\" height=\"%lli\">\n", canvas_size.X, canvas_size.Y);
     
-    if(background != Color::NONE)
+    if (background.named_color != NamedColor::NONE)
     {
         fprintf(out, "<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n", toString(background).c_str());
     }
@@ -205,7 +222,7 @@ void SVG::writePolygon(ConstPolygonRef poly, Color color, float stroke_width)
     int size = poly.size();
     Point p0 = poly.back();
     int i = 0;
-    if (color == Color::RAINBOW)
+    if (color.named_color == NamedColor::RAINBOW)
     {
         for (Point p1 : poly)
         {

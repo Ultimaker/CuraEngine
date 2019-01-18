@@ -521,19 +521,19 @@ void PolygonUtilsTest::getNextParallelIntersectionAssert(std::optional<Point> pr
             }
             SVG svg("output/bs.svg", AABB(test_squares), Point(500,500));
             svg.writePolygons(test_squares);
-            svg.writeLine(start.p(), line_to, SVG::Color::BLUE);
+            svg.writeLine(start.p(), line_to, SVG::NamedColor::BLUE);
             svg.writePoint(start.p(), true);
             Point vec = line_to - start.p();
             Point shift = normal(turn90CCW(vec), dist);
-            svg.writeLine(start.p() - vec + shift, line_to + vec + shift, SVG::Color::GREEN);
-            svg.writeLine(start.p() - vec - shift, line_to + vec - shift, SVG::Color::GREEN);
+            svg.writeLine(start.p() - vec + shift, line_to + vec + shift, SVG::NamedColor::GREEN);
+            svg.writeLine(start.p() - vec - shift, line_to + vec - shift, SVG::NamedColor::GREEN);
             if (computed)
             {
-                svg.writePoint(computed->p(), true, 5, SVG::Color::RED);
+                svg.writePoint(computed->p(), true, 5, SVG::NamedColor::RED);
             }
             if (predicted)
             {
-                svg.writePoint(*predicted, true, 5, SVG::Color::GREEN);
+                svg.writePoint(*predicted, true, 5, SVG::NamedColor::GREEN);
             }
         };
 

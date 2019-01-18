@@ -26,7 +26,7 @@ void SierpinskiFillTest::debugCheck()
     std::cerr << "AABB: " << aabb.max << "\n";
     //aabb.expand(512);
     Point canvas_size = Point(512, 512);
-    SVG svg("/home/t.kuipers/Development/CuraEngine/output/fractal_dithering_layers/gradient_2d.svg", aabb, canvas_size, SVG::Color::NONE, SVG::OMIT_BORDERS);
+    SVG svg("/home/t.kuipers/Development/CuraEngine/output/fractal_dithering_layers/gradient_2d.svg", aabb, canvas_size, SVG::NamedColor::NONE, SVG::OMIT_BORDERS);
     
     
     float drawing_line_width = line_width * svg.getScale();
@@ -73,9 +73,9 @@ void SierpinskiFillTest::debugCheck()
     bool dithering = true;
     {
         SierpinskiFill f(*subdivider, aabb, max_depth, line_width, dithering);
-        SVG::Color color = SVG::Color::GREEN;
+        SVG::NamedColor color = SVG::NamedColor::GREEN;
 //         color = SVG::Color::RAINBOW;
-        color = SVG::Color::BLACK;
+        color = SVG::NamedColor::BLACK;
 //         svg.writePolygon(f.generateCross(1200, 16), color, 4);
         svg.writePolygon(f.generateCross(), color, drawing_line_width);
 //         svg.writeAreas(f.generateCross(), SVG::Color::WHITE, color, drawing_line_width);

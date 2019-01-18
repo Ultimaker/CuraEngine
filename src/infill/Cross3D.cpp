@@ -651,7 +651,7 @@ void Cross3D::debugOutputTriangle(const Triangle& triangle, SVG& svg, float draw
     polys.add(tri);
     polys = polys.offset(-80);
 //     svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::BLACK);
-    svg.writePolygons(polys, SVG::Color::GRAY);
+    svg.writePolygons(polys, SVG::NamedColor::GRAY);
 
 //     svg.writeLine(triangle.getFromEdge().middle(), triangle.getToEdge().middle(), SVG::Color::RED, drawing_line_width);
 }
@@ -666,8 +666,8 @@ void Cross3D::debugOutputLink(const Link& link, SVG& svg) const
     // draw arrow body
     Point c = a + shift + normal(ab, shortening);
     Point d = a + shift + normal(ab, vSize(ab) - shortening);
-    svg.writeLine(c, d, SVG::Color::BLUE);
-    svg.writePoint(c, false, 3, SVG::Color::BLUE);
+    svg.writeLine(c, d, SVG::NamedColor::BLUE);
+    svg.writePoint(c, false, 3, SVG::NamedColor::BLUE);
 }
 
 void Cross3D::debugOutput(const SliceWalker& walker, SVG& svg, float drawing_line_width) const
