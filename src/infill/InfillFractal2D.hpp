@@ -896,7 +896,9 @@ void InfillFractal2D<CellGeometry>::subdivide(Cell& cell, bool redistribute_erro
             {
                 break;
             }
-            debugCheckLoans(cell_data[child_idx]);
+            const Cell& child = cell_data[child_idx];
+            debugCheckLoans(child);
+            assert(getValueError(child) > -allowed_volume_error);
         }
     }
 
@@ -1089,18 +1091,6 @@ void InfillFractal2D<CellGeometry>::solveChildDebts(const Cell& parent)
                 }
             }
         }
-    }
-
-    // debug check:
-    for (idx_t child_idx : parent.children)
-    {
-        if (child_idx < 0)
-        {
-            break;
-        }
-        const Cell& child = cell_data[child_idx];
-        debugCheckLoans(child);
-        assert(getValueError(child) > -allowed_volume_error);
     }
 }
 
