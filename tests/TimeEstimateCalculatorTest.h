@@ -28,6 +28,7 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(diagonalLineNoJerk);
     CPPUNIT_TEST(straightAngleOnlyJerk);
     CPPUNIT_TEST(straightAngleNoJerk);
+    CPPUNIT_TEST(straightAnglePartialJerk);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -107,6 +108,13 @@ public:
      * then accelerate in a different axis to maximum speed again.
      */
     void straightAngleNoJerk();
+
+    /*
+     * \brief Tests printing two lines with a 90 degree angle where part of the
+     * speed is instantaneous by jerk, but it also has to decelerate to make the
+     * corner at a limited jerk rate.
+     */
+    void straightAnglePartialJerk();
 
 private:
     /*

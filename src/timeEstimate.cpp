@@ -196,8 +196,8 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
     }
     
-    Velocity vmax_junction = max_xy_jerk / 2; 
-    Ratio vmax_junction_factor = 1.0; 
+    Velocity vmax_junction = max_xy_jerk / 2;
+    Ratio vmax_junction_factor = 1.0;
     if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
     {
         vmax_junction = std::min(vmax_junction, max_z_jerk / 2);
@@ -227,7 +227,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }
-    
+
     block.max_entry_speed = vmax_junction;
 
     const Velocity v_allowable = max_allowable_speed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
@@ -296,7 +296,7 @@ void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block 
 void TimeEstimateCalculator::reverse_pass()
 {
     Block* block[3] = {nullptr, nullptr, nullptr};
-    for(unsigned int n = blocks.size() - 1; int(n) >= 0; n--)
+    for(size_t n = blocks.size() - 1; int(n) >= 0; n--)
     {
         block[2]= block[1];
         block[1]= block[0];
@@ -337,7 +337,7 @@ void TimeEstimateCalculator::planner_forward_pass_kernel(Block *previous, Block 
 void TimeEstimateCalculator::forward_pass()
 {
     Block* block[3] = {nullptr, nullptr, nullptr};
-    for(unsigned int n=0; n<blocks.size(); n++)
+    for(size_t n = 0; n < blocks.size(); n++)
     {
         block[0]= block[1];
         block[1]= block[2];
