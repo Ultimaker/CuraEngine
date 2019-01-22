@@ -27,7 +27,7 @@ void SquareSubdivTest::debugCheck()
     increaseVerboseLevel();
 
     coord_t line_width = 350;
-    int max_depth = 7;
+    int max_depth = 8;
     AABB3D aabb_3d(Point3(0, 0, 0), Point3(line_width, line_width, line_width) * (1 << max_depth));
     AABB aabb = aabb_3d.flatten();
     std::cerr << "AABB: " << aabb.max << "\n";
@@ -102,6 +102,13 @@ void SquareSubdivTest::debugCheck()
                 if (draw_arrows) drawing_line_width *= .2;
 //                 ss.debugOutput(svg, drawing_line_width, draw_arrows);
                 ss.debugOutputDensities(svg);
+            }
+            {
+                SVG svg(std::string("output/square_subdiv/") + img_name + method_str + "_grid.svg", aabb, Point(512,512), SVG::NamedColor::NONE, SVG::OMIT_BORDERS);
+                bool draw_arrows = false;
+                float drawing_line_width = static_cast<float>(line_width) * svg.getScale();
+                if (draw_arrows) drawing_line_width *= .2;
+                ss.debugOutput(svg, drawing_line_width, draw_arrows);
             }
             ss.dither();
 //             if (false)
