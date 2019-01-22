@@ -106,13 +106,11 @@ InfillFractal2D<CellGeometry>::~InfillFractal2D()
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::initialize()
 {
-    TimeKeeper tk;
     createTree();
 #ifdef DEBUG
     debugCheckDepths();
     debugCheckVolumeStats();
 #endif
-    logDebug("Created InfillFractal2D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
 }
 
 
@@ -320,7 +318,10 @@ void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_s
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::createMaximalDensityPattern(idx_t starting_idx)
 {
+    TimeKeeper tk;
     setSpecificationAllowance(cell_data[0], /*averaging_statistic =*/ 1);
+    logDebug("Completed volumetric specification allowance info in %5.2fs.\n", tk.restart());
+
     Cell& parent = cell_data[starting_idx];
     if (parent.depth >= max_depth)
     {

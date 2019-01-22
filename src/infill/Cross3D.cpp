@@ -35,6 +35,7 @@ float Cross3D::getDensity(const Cell& cell, const int_fast8_t averaging_statisti
 
 void Cross3D::createTree()
 {
+    TimeKeeper tk;
     assert(cell_data.empty());
 //     size_t to_be_reserved = 1.05 * sqrt2 * (2 << (max_depth * 3 / 2)); // magic formula predicting nr of cells in the tree. Overestimates to prevent reallocation.
 //     logDebug("Cross3D reserved %i nodes\n", to_be_reserved);
@@ -72,8 +73,9 @@ void Cross3D::createTree()
     initialConnection(cell_data[root.children[1]], cell_data[root.children[2]], Direction::RIGHT);
     initialConnection(cell_data[root.children[2]], cell_data[root.children[3]], Direction::RIGHT);
     initialConnection(cell_data[root.children[3]], cell_data[root.children[0]], Direction::RIGHT);
-    
-    TimeKeeper tk;
+
+    logDebug("Created InfillFractal2D tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
+
     setSpecificationAllowance(cell_data[0], /* averaging_statistic =*/ 0);
     logDebug("Completed volumetric specification allowance info in %5.2fs.\n", tk.restart());
 }

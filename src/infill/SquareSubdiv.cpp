@@ -30,6 +30,7 @@ float SquareSubdiv::getDensity(const Cell& cell, const int_fast8_t averaging_sta
 
 void SquareSubdiv::createTree()
 {
+    TimeKeeper tk;
     assert(cell_data.empty());
     size_t to_be_reserved = std::pow(4, max_depth); // note: total tree size equals leaf_count*2-1
     logDebug("Cross3D reserved %i nodes\n", to_be_reserved);
@@ -43,7 +44,10 @@ void SquareSubdiv::createTree()
 
     setVolume(cell_data[0]);
 
+    logDebug("Created SquareSubdiv tree with %i nodes and max depth %i in %5.2fs.\n", cell_data.size(), max_depth, tk.restart());
+
     setSpecificationAllowance(cell_data[0], /* averaging_statistic =*/ 0);
+    logDebug("Completed volumetric specification allowance info in %5.2fs.\n", tk.restart());
 }
 
 void SquareSubdiv::createTree(Cell& sub_tree_root)
