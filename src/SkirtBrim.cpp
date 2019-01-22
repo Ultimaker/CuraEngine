@@ -8,7 +8,7 @@
 namespace cura 
 {
 
-void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
+void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, const bool add_prime_tower_if_enabled, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -17,8 +17,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     if (is_skirt)
     {
         constexpr bool include_support = true;
-        constexpr bool include_prime_tower = true;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, add_prime_tower_if_enabled, external_only);
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
@@ -62,7 +61,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
         }
-        if (storage.primeTower.enabled)
+        if (storage.primeTower.enabled && add_prime_tower_if_enabled)
         {
             first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
         }

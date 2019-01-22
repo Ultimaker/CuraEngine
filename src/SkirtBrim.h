@@ -39,7 +39,7 @@ public:
      * \param is_skirt Whether a skirt is being generated vs a brim
      * \param[out] first_layer_outline The resulting reference polygons
      */
-    static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline);
+    static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, const bool add_prime_tower_if_enabled, Polygons& first_layer_outline);
 
 private:
     static void generateSupportBrim(SliceDataStorage& storage);
