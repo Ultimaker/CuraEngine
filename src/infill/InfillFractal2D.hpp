@@ -1310,6 +1310,7 @@ void InfillFractal2D<CellGeometry>::debugCheckVolumeStats() const
 template<typename CellGeometry>
 void InfillFractal2D<CellGeometry>::debugCheckLoans(const Cell& cell) const
 {
+#ifdef DEBUG
     for (const std::list<Link>& side_links : cell.adjacent_cells)
     {
         for (const Link& link : side_links)
@@ -1319,6 +1320,7 @@ void InfillFractal2D<CellGeometry>::debugCheckLoans(const Cell& cell) const
             assert(link.loan < allowed_volume_error || link.getReverse().loan < allowed_volume_error); //  "two cells can't be loaning to each other!"
         }
     }
+#endif
 }
 
 

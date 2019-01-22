@@ -263,6 +263,7 @@ void SquareSubdiv::createHilbertPattern(const Cell& sub_tree_root, std::vector<c
 
 void SquareSubdiv::debugCheckChildrenOverlap(const Cell& cell) const
 {
+#ifdef DEBUG
     for (idx_t child_idx : cell.children)
     {
         if (child_idx < 0) continue;
@@ -278,6 +279,7 @@ void SquareSubdiv::debugCheckChildrenOverlap(const Cell& cell) const
 //             }
 //         }
     }
+#endif
 }
 
 
