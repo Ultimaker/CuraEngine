@@ -201,28 +201,59 @@ void InfillFractal2D<CellGeometry>::createMaxDepthPattern()
 
 
 template<typename CellGeometry>
-void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_step_less_dense)
+void InfillFractal2D<CellGeometry>::createMinimalDensityPattern(const bool one_step_less_dense, const int_fast8_t averaging_statistic)
 {
-    setSpecificationAllowance(cell_data[0], /*averaging_statistic =*/ -1);
+    if (averaging_statistic != 0)
+    {
+        TimeKeeper tk;
+        setSpecificationAllowance(cell_data[0], averaging_statistic);
+        logDebug("Completed volumetric specification allowance info in %5.2fs.\n", tk.restart());
+    }
 
     std::list<idx_t> all_to_be_subdivided;
     
     std::function<bool(const Cell&)> shouldBeSubdivided;
+    std::function<float(const Cell&)> getVolume;
     if (one_step_less_dense)
     {
-        shouldBeSubdivided =
+        getVolume =
             [this](const Cell& cell)
             {
-                return getChildrenActualizedVolume(cell) / cell.volume < cell.minimally_required_density;
+                return getChildrenActualizedVolume(cell);
             };
     }
     else
     {
-        shouldBeSubdivided =
+        getVolume =
             [this](const Cell& cell)
             {
-                return getActualizedVolume(cell) / cell.volume < cell.minimally_required_density;
+                return getActualizedVolume(cell);
             };
+    }
+    switch (averaging_statistic)
+    {
+        case -1:
+        default:
+            shouldBeSubdivided =
+                [this,&getVolume](const Cell& cell)
+                {
+                    return getVolume(cell) / cell.volume < cell.minimally_required_density;
+                };
+            break;
+        case 1:
+            shouldBeSubdivided =
+                [this,&getVolume](const Cell& cell)
+                {
+                    return getVolume(cell) / cell.volume < cell.maximally_allowed_density;
+                };
+            break;
+        case 0:
+            shouldBeSubdivided =
+                [this,&getVolume](const Cell& cell)
+                {
+                    return getVolume(cell) < cell.filled_volume_allowance;
+                };
+            break;
     }
     
     assert(cell_data.size() > 0);
@@ -331,7 +362,7 @@ void InfillFractal2D<CellGeometry>::createDitheredPattern(bool balancing)
     }
     else
     {
-        createMinimalDensityPattern();
+        createMinimalDensityPattern(/* one_step_less_dense = */ true, /* averaging_statistic = */ 0);
     }
 
     settleLoans();

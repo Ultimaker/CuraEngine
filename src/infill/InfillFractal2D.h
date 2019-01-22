@@ -349,7 +349,7 @@ public:
      * 
      * \param one_step_less_dense Whether we want to to subdivide to one recursion step less than the minimally required density. This might be used in combination with dithering.
      */
-    void createMinimalDensityPattern(const bool one_step_less_dense = false);
+    void createMinimalDensityPattern(const bool one_step_less_dense = false, const int_fast8_t averaging_statistic = -1);
 
     /*!
      * Create a pattern with the required density or less at each location.
