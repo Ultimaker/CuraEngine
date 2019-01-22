@@ -177,7 +177,7 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
     {
         char filename[1024];
         coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-        std::sprintf(filename, "output/fractal_dithering_layers/overview/layer_%lli.svg", z / layer_height);
+        std::sprintf(filename, "output/fractal_dithering_layers/temp/layer_%lli.svg", z / layer_height);
         SVG svg(filename, aabb_3d.flatten(), /*Point canvas_size =*/ Point(512, 512), /*Color background =*/ SVG::NamedColor::WHITE, SVG::OMIT_BORDERS);
         float drawing_line_width = line_width * svg.getScale();
         svg.writePolygon(ret, SVG::NamedColor::BLACK, drawing_line_width);

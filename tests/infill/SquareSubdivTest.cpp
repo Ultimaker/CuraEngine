@@ -60,7 +60,7 @@ void SquareSubdivTest::debugCheck()
         , "rubber_duck_v4.png"   // 24
         , "line.png"};           // 25
 
-    std::string img_name = img_names[25];
+    std::string img_name = img_names[1];
 //     for (std::string img_name : img_names)
 //     for (int do_dither = 0; do_dither < 3; do_dither++)
     for (int method = 0; method < 3; method++)
@@ -68,7 +68,8 @@ void SquareSubdivTest::debugCheck()
         {
 //             DensityProvider* density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d, 0.8, 0.05, 0.25);
 //             DensityProvider* density = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/paper/image_sources/balance_vs_min_req/rubber_duck_input_v2.png", aabb_3d, 1.0, 0.0, 0.25);
-            DensityProvider* density = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/line.png", aabb_3d, 1.0, 0.0, 0.25);
+            DensityProvider* density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/") + img_name, aabb_3d, 1.0, 0.0, 0.25);
+//             DensityProvider* density = new ImageBasedDensityProvider("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/line.png", aabb_3d, 1.0, 0.0, 0.25);
 //             DensityProvider* subdivider = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/paper/image_sources/algorithm_overview_3d/try3/overview_gradient.svg.png"), aabb_3d, 1.0, 0.0, 0.25);
 //             DensityProvider* min_density = new ImageBasedDensityProvider(std::string("/home/t.kuipers/Documents/PhD/Fractal Dithering project/input images/rubber_duck_v4_min_density.png"), aabb_3d, 1.0, 0.0, 0.0);
 
