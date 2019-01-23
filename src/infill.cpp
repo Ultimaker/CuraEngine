@@ -388,7 +388,8 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
-    ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
+	ClipperLib::PolyTree interior_segments_tree;
+	in_outline.lineSegmentIntersection(input, interior_segments_tree);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
     for (size_t idx = 0; idx < interior_segments.size(); idx++)
