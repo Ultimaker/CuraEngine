@@ -92,6 +92,35 @@ static inline double intersection_distance(const Velocity& initial_rate, const V
     {
         return 0.0;
     }
+
+    /*
+     * Calculate the intersection point of two time-velocity formulas: One for
+     * accelerating and one for decelerating.
+     * Imagine a graph that plots velocity [v] against position [d] (different
+     * from the other code in this class, which compares velocity with time).
+     * In this graph, the accelerating part will have the formula:
+     * v = sqrt(2ad + v_i²)
+     * Where:
+     * * v := velocity
+     * * a := acceleration
+     * * d := distance (the unknown variable)
+     * * v_i := initial velocity
+     * Similarly, the decelerating part will have the formula:
+     * v = sqrt(2a(D - d) + v_f²)
+     * Where:
+     * * D := total line length
+     * * v_f := final velocity at the end of the line
+     * To find the position where we need to start decelerating, simply find the
+     * position where the velocity in these formulas is the same. In other words
+     * solve this formula for d:
+     * sqrt(2ad + v_i²) = sqrt(2a(D - d) + v_f²)
+     * 2ad + v_i² = 2a(D - d) + v_f² [square both sides]
+     * 2ad - 2a(D - d) = v_f² - v_i² [+v_i², -2a(D - d) on both sides]
+     * d - (D - d) = (v_f² - v_i²) / 2a [divide by 2a on both sides, expand brackets]
+     * 2d - D = (v_f² - v_i²) / 2a [expand brackets on the left]
+     * 2d = (2aD + v_f² - v_i²) / 2a [+D on both sides, but on the right multiply it by 2a to put it in the brackets]
+     * d = (2aD + v_f² - v_i²) / 4a [divide by 2 on both sides]
+     */
     return (2.0 * acceleration * distance - square(initial_rate) + square(final_rate)) / (4.0 * acceleration);
 }
 
