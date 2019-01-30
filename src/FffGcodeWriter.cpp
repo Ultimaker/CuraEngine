@@ -2211,11 +2211,6 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                 // adjust the width when point_inside isn't normal to the direction of the next line segment
                 // if we don't do this, the resulting line width is too big where the gap polygon has sharp(ish) corners
                 const double len_scale = std::abs(std::sin(LinearAlg2D::getAngleLeft(point_inside, poly[n], poly[(n + 1) % poly.size()])));
-                if (is_outline)
-                {
-                    // constrain point_inside so that the resulting wall thickness is close to avg_width
-                    point_inside = poly[n] + normal(point_inside - poly[n], std::min(avg_width * (1 / (len_scale + 0.01)), 1.414 * avg_width));
-                }
                 lines.addLine(poly[n], point_inside);
                 lines = gaps.intersectionPolyLines(lines);
                 if (lines.size() > 0)
@@ -2230,6 +2225,72 @@ void FffGcodeWriter::fillNarrowGaps(const SliceDataStorage& storage, LayerPlan& 
                     begin_points.emplace_back(poly[n]);
                     end_points.emplace_back(poly[n] + normal(turn90CCW(poly[(n + 1) % poly.size()] - poly[n]), line_len));
                     mid_points.emplace_back((lines[0][0] + clipped) / 2);
+    #endif
+                }
+            }
+            if (is_outline && widths.size() > 1) {
+                // filter out spikes that can occur when an outline point is positioned opposite to a wide area
+                // an example of this is when the walls are shaped like a T. A point on the bar of the T that lies
+                // directly above the stem will have a much bigger width than points on either side.
+                // So here we try and determine what would be a sensible width to use instead
+                for (unsigned n = 0; n < widths.size(); ++n)
+                {
+                    if (widths[n] > 2 * avg_width)
+                    {
+                        const unsigned prev_index = ((n + widths.size()) - 1) % widths.size();
+                        const unsigned next_index = (n + 1) % widths.size();
+                        coord_t prev_width = widths[prev_index];
+                        coord_t next_width = widths[next_index];
+                        // first we determine what we think are the widths at the next and previous points so we can compare the current
+                        // point's width
+                        if (prev_width > 2 * avg_width)
+                        {
+                            // the width at the previous point is also large so see what the width is half way between that point and the current point
+                            const Point split((mid_points[prev_index] + mid_points[n]) / 2);
+                            const Point vec(normal(turn90CCW(mid_points[n] - mid_points[prev_index]), prev_width * 2));
+                            Polygons lines;
+                            lines.addLine(split + vec, split - vec);
+                            lines = gaps.intersectionPolyLines(lines);
+                            if (lines.size() > 0)
+                            {
+                                const coord_t width = vSize(lines[0][1] - lines[0][0]);
+                                // if the width is more reasonable, use it instead
+                                if (width < 2 * avg_width)
+                                {
+                                    prev_width = width;
+                                }
+                            }
+                        }
+                        if (next_width > 2 * avg_width)
+                        {
+                            // the width at the next point is also large so see what the width is half way between that point and the current point
+                            const Point split((mid_points[next_index] + mid_points[n]) / 2);
+                            const Point vec(normal(turn90CCW(mid_points[next_index] - mid_points[n]), next_width * 2));
+                            Polygons lines;
+                            lines.addLine(split + vec, split - vec);
+                            lines = gaps.intersectionPolyLines(lines);
+                            if (lines.size() > 0)
+                            {
+                                const coord_t width = vSize(lines[0][1] - lines[0][0]);
+                                // if the width is more reasonable, use it instead
+                                if (width < 2 * avg_width)
+                                {
+                                    next_width = width;
+                                }
+                            }
+                        }
+                        // now see if the current width is much different to the neighbouring points' widths and
+                        // if it is, use the average of the neighbours' widths and recalculate the end and mid points
+                        if (widths[n] > 2 * prev_width && widths[n] > 2 * next_width)
+                        {
+                            widths[n] = (prev_width + next_width) / 2;
+                            end_points[n] = begin_points[n] + normal(turn90CCW(begin_points[next_index] - begin_points[n]), widths[n]);
+                            mid_points[n] = begin_points[n] + normal(mid_points[n] - begin_points[n], widths[n] / 2);
+                        }
+                    }
+    #if 0
+                    gcode_layer.addTravel(begin_points[n]);
+                    gcode_layer.addExtrusionMove(mid_points[n] + (mid_points[n] - begin_points[n]), gap_config, SpaceFillType::Lines);
     #endif
                 }
             }
