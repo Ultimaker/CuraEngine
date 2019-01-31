@@ -356,7 +356,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             continue; //Remove the vertex.
         }
-        else if (length2 >= smallest_line_segment_squared && new_path.size() > 2 && LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path[new_path.size() - 1]) <= 1) //Almost exactly straight (barring micron rounding errors).
+        else if (length2 >= smallest_line_segment_squared && new_path.size() > 2 &&
+                (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 1)) //Almost exactly straight (barring micron rounding errors).
         {
             new_path.pop_back(); //Remove the previous vertex but still add the new one.
         }
