@@ -466,7 +466,7 @@ void GCodeExport::writeComment(const std::string& comment)
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTimeComment(const double time)
+void GCodeExport::writeTimeComment(const Duration time)
 {
     *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
@@ -512,12 +512,12 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
 }
 
 
-void GCodeExport::writeLayerComment(int layer_nr)
+void GCodeExport::writeLayerComment(const LayerIndex layer_nr)
 {
     *output_stream << ";LAYER:" << layer_nr << new_line;
 }
 
-void GCodeExport::writeLayerCountComment(int layer_count)
+void GCodeExport::writeLayerCountComment(const size_t layer_count)
 {
     *output_stream << ";LAYER_COUNT:" << layer_count << new_line;
 }
