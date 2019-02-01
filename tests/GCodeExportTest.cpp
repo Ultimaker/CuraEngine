@@ -128,4 +128,10 @@ void GCodeExportTest::commentLayer()
         std::string(";LAYER:9\n"), output.str());
 }
 
+void GCodeExportTest::commentLayerNegative()
+{
+    gcode.writeLayerComment(-3);
+    CPPUNIT_ASSERT_EQUAL(std::string(";LAYER:-3\n"), output.str());
+}
+
 } //namespace cura
