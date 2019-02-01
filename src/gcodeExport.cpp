@@ -504,7 +504,8 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
             break;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
-        default:
+        case PrintFeatureType::NoneType:
+        case PrintFeatureType::NumPrintFeatureTypes:
             // do nothing
             break;
     }
