@@ -29,6 +29,7 @@ class GCodeExportTest : public CppUnit::TestFixture
     CPPUNIT_TEST(commentLayer);
     CPPUNIT_TEST(commentLayerNegative);
     CPPUNIT_TEST(commentLayerCount);
+    CPPUNIT_TEST(headerGriffinFormatNoExtruders);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -36,6 +37,11 @@ public:
      * Resets the fixtures for a new test.
      */
     void setUp();
+
+    /*
+     * Removes the current slice that was created for testing.
+     */
+    void tearDown();
 
     /*
      * Tests for writing comments.
@@ -52,6 +58,11 @@ public:
     void commentLayerNegative(); //Printing negative layer numbers correctly too.
     void commentLayerCount(); //Printing the total number of layers.
 
+    /*
+     * G-code header formatting.
+     */
+    void headerGriffinFormatNoExtruders(); //Basic Griffin header format.
+
 private:
     /*
      * An export class to test with.
@@ -62,6 +73,13 @@ private:
      * A stream to capture the output of the g-code export.
      */
     std::stringstream output;
+
+    /*
+     * Helper function to check the format of the Griffin header for various
+     * numbers of extruders.
+     * \param num_extruders The number of extruders to test for.
+     */
+    void headerGriffinFormatCheck(const size_t num_extruders);
 };
 
 } //namespace cura

@@ -3,6 +3,9 @@
 
 #include "GCodeExportTest.h"
 #include "../src/settings/types/LayerIndex.h"
+#include "../src/utils/Date.h" //To check the Griffin header.
+#include "../src/Application.h" //To set up a slice with settings.
+#include "../src/Slice.h" //To set up a slice with settings.
 
 namespace cura
 {
@@ -33,6 +36,16 @@ void GCodeExportTest::setUp()
     gcode.total_bounding_box = AABB3D();
 
     gcode.new_line = "\n"; //Not BFB flavour by default.
+    gcode.machine_name = "Your favourite 3D printer";
+    gcode.machine_buildplate_type = "Your favourite build plate";
+
+    //Set up a scene so that we may request settings.
+    Application::getInstance().current_slice = new Slice(0);
+}
+
+void GCodeExportTest::tearDown()
+{
+    delete Application::getInstance().current_slice;
 }
 
 void GCodeExportTest::commentEmpty()
@@ -138,6 +151,77 @@ void GCodeExportTest::commentLayerCount()
 {
     gcode.writeLayerCountComment(5);
     CPPUNIT_ASSERT_EQUAL(std::string(";LAYER_COUNT:5\n"), output.str());
+}
+
+void GCodeExportTest::headerGriffinFormatNoExtruders()
+{
+    headerGriffinFormatCheck(0);
+}
+
+void GCodeExportTest::headerGriffinFormatCheck(const size_t num_extruders)
+{
+    gcode.flavor = EGCodeFlavor::GRIFFIN;
+    gcode.extruder_count = num_extruders;
+
+    const std::vector<bool> extruder_is_used(num_extruders, true);
+    std::istringstream result(gcode.getFileHeader(extruder_is_used));
+    std::string token;
+
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";START_OF_HEADER"), token);
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";HEADER_VERSION:"), token.substr(0, 16)); //Actual version doesn't matter in this test.
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";FLAVOR:Griffin"), token);
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";GENERATOR.NAME:Cura_SteamEngine"), token);
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";GENERATOR.VERSION:"), token.substr(0, 19));
+    CPPUNIT_ASSERT_EQUAL(std::string("master"), token.substr(19));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";GENERATOR.BUILD_DATE:"), token.substr(0, 22));
+    CPPUNIT_ASSERT_EQUAL(Date::getDate().toStringDashed(), token.substr(22));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";TARGET_MACHINE.NAME:"), token.substr(0, 21));
+    CPPUNIT_ASSERT_EQUAL(gcode.machine_name, token.substr(21));
+
+    for (size_t extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
+    {
+        std::getline(result, token, '\n');
+        CPPUNIT_ASSERT_EQUAL(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
+        CPPUNIT_ASSERT_EQUAL(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
+        CPPUNIT_ASSERT_EQUAL(std::string(".INITIAL_TEMPERATURE:"), token.substr(17, 21)); //Actual temperature doesn't matter.
+        std::getline(result, token, '\n');
+        CPPUNIT_ASSERT_EQUAL(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
+        CPPUNIT_ASSERT_EQUAL(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
+        CPPUNIT_ASSERT_EQUAL(std::string(".NOZZLE.DIAMETER:"), token.substr(17, 17)); //Actual nozzle diameter doesn't matter.
+        std::getline(result, token, '\n');
+        CPPUNIT_ASSERT_EQUAL(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
+        CPPUNIT_ASSERT_EQUAL(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
+        CPPUNIT_ASSERT_EQUAL(std::string(".NOZZLE.NAME:"), token.substr(17, 13)); //Actual nozzle name doesn't matter.
+    }
+
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";BUILD_PLATE.TYPE:"), token.substr(0, 18));
+    CPPUNIT_ASSERT_EQUAL(gcode.machine_buildplate_type, token.substr(18));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";BUILD_PLATE.INITIAL_TEMPERATURE:"), token.substr(0, 33)); //Actual temperature doesn't matter in this test.
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.GROUPS:0"), token);
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.SIZE.MIN.X:"), token.substr(0, 18)); //Actual bounds don't matter in this test.
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.SIZE.MIN.Y:"), token.substr(0, 18));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.SIZE.MIN.Z:"), token.substr(0, 18));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.SIZE.MAX.X:"), token.substr(0, 18));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.SIZE.MAX.Y:"), token.substr(0, 18));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";PRINT.SIZE.MAX.Z:"), token.substr(0, 18));
+    std::getline(result, token, '\n');
+    CPPUNIT_ASSERT_EQUAL(std::string(";END_OF_HEADER"), token);
 }
 
 } //namespace cura
