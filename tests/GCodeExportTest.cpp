@@ -134,4 +134,10 @@ void GCodeExportTest::commentLayerNegative()
     CPPUNIT_ASSERT_EQUAL(std::string(";LAYER:-3\n"), output.str());
 }
 
+void GCodeExportTest::commentLayerCount()
+{
+    gcode.writeLayerCountComment(5);
+    CPPUNIT_ASSERT_EQUAL(std::string(";LAYER_COUNT:5\n"), output.str());
+}
+
 } //namespace cura

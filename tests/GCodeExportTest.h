@@ -28,6 +28,7 @@ class GCodeExportTest : public CppUnit::TestFixture
     CPPUNIT_TEST(commentTypeAllTypesCovered);
     CPPUNIT_TEST(commentLayer);
     CPPUNIT_TEST(commentLayerNegative);
+    CPPUNIT_TEST(commentLayerCount);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -49,6 +50,7 @@ public:
     void commentTypeAllTypesCovered(); //Tests if all feature types can be printed.
     void commentLayer(); //Printing layer numbers.
     void commentLayerNegative(); //Printing negative layer numbers correctly too.
+    void commentLayerCount(); //Printing the total number of layers.
 
 private:
     /*
