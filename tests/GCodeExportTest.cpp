@@ -65,7 +65,21 @@ void GCodeExportTest::commentMultiLine()
 void GCodeExportTest::commentTimeZero()
 {
     gcode.writeTimeComment(0);
-    CPPUNIT_ASSERT_EQUAL(std::string(";TIME_ELAPSED:0"), output.str());
+    CPPUNIT_ASSERT_EQUAL(std::string(";TIME_ELAPSED:0.000000"), output.str());
+}
+
+void GCodeExportTest::commentTimeInteger()
+{
+    gcode.writeTimeComment(42);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("The time must be fixed-radix to the microsecond.",
+        std::string(";TIME_ELAPSED:42.000000"), output.str());
+}
+
+void GCodeExportTest::commentTimeFloatRoundingError()
+{
+    gcode.writeTimeComment(0.3);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Don't output up to the precision of rounding errors.",
+        std::string(";TIME_ELAPSED:0.300000"), output.str());
 }
 
 } //namespace cura
