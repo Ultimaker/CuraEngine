@@ -24,6 +24,7 @@ namespace cura {
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport : public NoCopy
 {
+    friend class GCodeExportTest;
 private:
     struct ExtruderTrainAttributes
     {

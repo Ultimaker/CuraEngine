@@ -1,4 +1,4 @@
-#Copyright (c) 2018 Ultimaker B.V.
+#Copyright (c) 2019 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 project(CuraEngine)
@@ -184,6 +184,7 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
+    GCodeExportTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
@@ -198,12 +199,12 @@ if (ENABLE_ARCUS)
     )
 endif ()
 set(engine_TEST_UTILS
-    SparseGridTest
     IntPointTest
     LinearAlg2DTest
     PolygonConnectorTest
     PolygonUtilsTest
     PolygonTest
+    SparseGridTest
     StringTest
     UnionFindTest
 )
