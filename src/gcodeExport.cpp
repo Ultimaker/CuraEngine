@@ -456,7 +456,7 @@ void GCodeExport::writeComment(const std::string& comment)
     {
         if (comment[i] == '\n')
         {
-            *output_stream << "\n;";
+            *output_stream << new_line << ";";
         }
         else
         {
