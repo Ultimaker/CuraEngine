@@ -94,4 +94,30 @@ void GCodeExportTest::commentTimeFloatRoundingError()
         std::string(";TIME_ELAPSED:0.300000\n"), output.str());
 }
 
+void GCodeExportTest::commentTypeAllTypesCovered()
+{
+    for (PrintFeatureType type = PrintFeatureType(0); type < PrintFeatureType::NumPrintFeatureTypes; type = PrintFeatureType(static_cast<size_t>(type) + 1))
+    {
+        gcode.writeTypeComment(type);
+        if (type == PrintFeatureType::MoveCombing || type == PrintFeatureType::MoveRetraction)
+        {
+            CPPUNIT_ASSERT_EQUAL_MESSAGE("Travel moves shouldn't output a type.",
+                std::string(""), output.str());
+        }
+        else if (type == PrintFeatureType::NoneType)
+        {
+            CPPUNIT_ASSERT_EQUAL_MESSAGE("NoneType shouldn't output a type.",
+                std::string(""), output.str());
+        }
+        else
+        {
+            std::stringstream ss;
+            ss << "Type " << static_cast<size_t>(type) << " is not implemented.";
+            CPPUNIT_ASSERT_EQUAL_MESSAGE(ss.str(), std::string(";TYPE:"), output.str().substr(0, 6));
+        }
+        output.str(""); //Reset so that our next measurement is clean again.
+        output << std::fixed;
+    }
+}
+
 } //namespace cura
