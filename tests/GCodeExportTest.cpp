@@ -39,4 +39,11 @@ void GCodeExportTest::commentEmpty()
         std::string(";"), output.str());
 }
 
+void GCodeExportTest::commentSimple()
+{
+    gcode.writeComment("extrude harder");
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Message must be preceded by a semicolon.",
+        std::string(";extrude harder"), output.str());
+}
+
 } //namespace cura

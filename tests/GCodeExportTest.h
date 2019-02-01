@@ -19,6 +19,7 @@ class GCodeExportTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(GCodeExportTest);
     CPPUNIT_TEST(commentEmpty);
+    CPPUNIT_TEST(commentSimple);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -28,9 +29,10 @@ public:
     void setUp();
 
     /*
-     * Tests writing an empty comment line.
+     * Tests for writing comments.
      */
     void commentEmpty();
+    void commentSimple();
 
 private:
     /*
