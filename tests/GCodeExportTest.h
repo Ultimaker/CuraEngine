@@ -20,6 +20,7 @@ class GCodeExportTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(GCodeExportTest);
     CPPUNIT_TEST(commentEmpty);
     CPPUNIT_TEST(commentSimple);
+    CPPUNIT_TEST(commentMultiLine);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -33,6 +34,7 @@ public:
      */
     void commentEmpty();
     void commentSimple();
+    void commentMultiLine();
 
 private:
     /*

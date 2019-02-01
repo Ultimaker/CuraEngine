@@ -46,4 +46,19 @@ void GCodeExportTest::commentSimple()
         std::string(";extrude harder"), output.str());
 }
 
+void GCodeExportTest::commentMultiLine()
+{
+    gcode.writeComment("If you catch a chinchilla in Chile\n"
+        "And cut off its beard, willy-nilly\n"
+        "You can honestly say\n"
+        "You made on that day\n"
+        "A Chilean chinchilla's chin chilly");
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Each line must be preceded by a semicolon.",
+        std::string(";If you catch a chinchilla in Chile\n"
+        ";And cut off its beard, willy-nilly\n"
+        ";You can honestly say\n"
+        ";You made on that day\n"
+        ";A Chilean chinchilla's chin chilly"), output.str());
+}
+
 } //namespace cura
