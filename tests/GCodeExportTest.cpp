@@ -31,20 +31,22 @@ void GCodeExportTest::setUp()
     gcode.extruder_count = 0;
     gcode.fan_number = 0;
     gcode.total_bounding_box = AABB3D();
+
+    gcode.new_line = "\n"; //Not BFB flavour by default.
 }
 
 void GCodeExportTest::commentEmpty()
 {
     gcode.writeComment("");
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Semicolon must exist but it must be empty for the rest.",
-        std::string(";"), output.str());
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Semicolon and newline must exist but it must be empty for the rest.",
+        std::string(";\n"), output.str());
 }
 
 void GCodeExportTest::commentSimple()
 {
     gcode.writeComment("extrude harder");
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Message must be preceded by a semicolon.",
-        std::string(";extrude harder"), output.str());
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Message must be preceded by a semicolon and ends with a newline..",
+        std::string(";extrude harder\n"), output.str());
 }
 
 void GCodeExportTest::commentMultiLine()
@@ -65,21 +67,21 @@ void GCodeExportTest::commentMultiLine()
 void GCodeExportTest::commentTimeZero()
 {
     gcode.writeTimeComment(0);
-    CPPUNIT_ASSERT_EQUAL(std::string(";TIME_ELAPSED:0.000000"), output.str());
+    CPPUNIT_ASSERT_EQUAL(std::string(";TIME_ELAPSED:0.000000\n"), output.str());
 }
 
 void GCodeExportTest::commentTimeInteger()
 {
     gcode.writeTimeComment(42);
     CPPUNIT_ASSERT_EQUAL_MESSAGE("The time must be fixed-radix to the microsecond.",
-        std::string(";TIME_ELAPSED:42.000000"), output.str());
+        std::string(";TIME_ELAPSED:42.000000\n"), output.str());
 }
 
 void GCodeExportTest::commentTimeFloatRoundingError()
 {
     gcode.writeTimeComment(0.3);
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Don't output up to the precision of rounding errors.",
-        std::string(";TIME_ELAPSED:0.300000"), output.str());
+        std::string(";TIME_ELAPSED:0.300000\n"), output.str());
 }
 
 } //namespace cura
