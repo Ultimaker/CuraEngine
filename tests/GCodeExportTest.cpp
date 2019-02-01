@@ -9,7 +9,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION(GCodeExportTest);
 
 void GCodeExportTest::setUp()
 {
-    output.clear();
     output << std::fixed;
     gcode.output_stream = &output;
 
