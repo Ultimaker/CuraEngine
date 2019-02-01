@@ -24,6 +24,7 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(singleLineOnlyJerk);
     CPPUNIT_TEST(doubleLineOnlyJerk);
     CPPUNIT_TEST(singleLineNoJerk);
+    CPPUNIT_TEST(shortLine);
     CPPUNIT_TEST(doubleLineNoJerk);
     CPPUNIT_TEST(diagonalLineNoJerk);
     CPPUNIT_TEST(straightAngleOnlyJerk);
@@ -76,6 +77,13 @@ public:
      * There is no jerk, so acceleration is the only factor in this line.
      */
     void singleLineNoJerk();
+
+    /*
+     * \brief Tests printing a line that is too short to reach maximum velocity.
+     *
+     * It only uses acceleration for this, no jerk, to keep it simple.
+     */
+    void shortLine();
 
     /*
      * \brief Tests printing two lengthwise line segments without jerk.

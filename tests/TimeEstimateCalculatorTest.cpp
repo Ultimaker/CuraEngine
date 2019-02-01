@@ -193,6 +193,43 @@ void TimeEstimateCalculatorTest::singleLineNoJerk()
     );
 }
 
+void TimeEstimateCalculatorTest::shortLine()
+{
+    calculator.setFirmwareDefaults(jerkless);
+
+    /*
+     * This line:
+     * Accelerate from 0mm/s up to slightly further than half the line distance.
+     * Decelerate from slightly beyond half the line distance down to minimum planner speed.
+     */
+    const TimeEstimateCalculator::Position destination(25.0, 0, 0, 0); //25mm just enough to reach full speed, but it must decelerate to minimum planner speed in that same distance too.
+    calculator.plan(destination, 50.0, PrintFeatureType::Infill);
+
+    //Calculate the intersection point of two position-velocity formulas: One for accelerating and one for decelerating.
+    //v_acc = sqrt(2ad + v_i²)
+    //v_dec = sqrt(2a(D - d) + v_f²)
+    //To find d, solve v_acc = v_dec:
+    //sqrt(2ad + v_i²) = sqrt(2a(D - d) + v_f²)
+    //2ad + v_i² = 2a(D - d) + v_f² [square both sides]
+    //2ad = 2a(D - d) + v_f²        [v_i = 0]
+    //d = D - d + v_f² / 2a         [divide by 2a]
+    //2d = D + v_f² / 2a            [add d]
+    //d = D / 2 + v_f² / 4a         [divide by 2]
+    const double d_apex = 25.0 / 2.0 + MINIMUM_PLANNER_SPEED * MINIMUM_PLANNER_SPEED / (4.0 * 50.0);
+    const double t_apex = std::sqrt(2.0 * 50.0 * d_apex) / 50.0;
+    //Accelerate until t_apex. How fast will we be going?
+    const double max_speed = 50.0 * t_apex;
+    //Then how long do we decelerate?
+    const double decelerate_t = (max_speed - MINIMUM_PLANNER_SPEED) / 50.0;
+
+    const std::vector<Duration> result = calculator.calculate();
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+        Duration(t_apex + decelerate_t),
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON
+    );
+}
+
 void TimeEstimateCalculatorTest::doubleLineNoJerk()
 {
     calculator.setFirmwareDefaults(jerkless);
