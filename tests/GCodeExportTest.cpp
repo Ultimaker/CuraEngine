@@ -61,7 +61,18 @@ void GCodeExportTest::commentMultiLine()
         ";And cut off its beard, willy-nilly\n"
         ";You can honestly say\n"
         ";You made on that day\n"
-        ";A Chilean chinchilla's chin chilly"), output.str());
+        ";A Chilean chinchilla's chin chilly\n"), output.str());
+}
+
+void GCodeExportTest::commentMultiple()
+{
+    gcode.writeComment("Thunderbolt and lightning");
+    gcode.writeComment("Very very frightening");
+    gcode.writeComment(" - Galileo (1638)");
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Semicolon before each line, and newline in between.",
+        std::string(";Thunderbolt and lightning\n"
+        ";Very very frightening\n"
+        "; - Galileo (1638)\n"), output.str());
 }
 
 void GCodeExportTest::commentTimeZero()

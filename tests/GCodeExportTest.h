@@ -21,6 +21,7 @@ class GCodeExportTest : public CppUnit::TestFixture
     CPPUNIT_TEST(commentEmpty);
     CPPUNIT_TEST(commentSimple);
     CPPUNIT_TEST(commentMultiLine);
+    CPPUNIT_TEST(commentMultiple);
     CPPUNIT_TEST(commentTimeZero);
     CPPUNIT_TEST(commentTimeInteger);
     CPPUNIT_TEST(commentTimeFloatRoundingError);
@@ -38,6 +39,7 @@ public:
     void commentEmpty(); //Empty message.
     void commentSimple(); //Just a normal message.
     void commentMultiLine(); //Contains newlines.
+    void commentMultiple(); //Multiple comments in a row.
     void commentTimeZero(); //Simplest printing time.
     void commentTimeInteger(); //Printing a simple number of seconds.
     void commentTimeFloatRoundingError(); //Tests hardness against rounding errors in time estimates.
