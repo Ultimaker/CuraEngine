@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GCodeExportTest.h"
+#include "../src/settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -118,6 +119,13 @@ void GCodeExportTest::commentTypeAllTypesCovered()
         output.str(""); //Reset so that our next measurement is clean again.
         output << std::fixed;
     }
+}
+
+void GCodeExportTest::commentLayer()
+{
+    gcode.writeLayerComment(9);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Put the correct prefix and a newline afterwards.",
+        std::string(";LAYER:9\n"), output.str());
 }
 
 } //namespace cura

@@ -26,6 +26,7 @@ class GCodeExportTest : public CppUnit::TestFixture
     CPPUNIT_TEST(commentTimeInteger);
     CPPUNIT_TEST(commentTimeFloatRoundingError);
     CPPUNIT_TEST(commentTypeAllTypesCovered);
+    CPPUNIT_TEST(commentLayer);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -45,6 +46,7 @@ public:
     void commentTimeInteger(); //Printing a simple number of seconds.
     void commentTimeFloatRoundingError(); //Tests hardness against rounding errors in time estimates.
     void commentTypeAllTypesCovered(); //Tests if all feature types can be printed.
+    void commentLayer(); //Printing layer numbers.
 
 private:
     /*
