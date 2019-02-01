@@ -21,6 +21,7 @@ class GCodeExportTest : public CppUnit::TestFixture
     CPPUNIT_TEST(commentEmpty);
     CPPUNIT_TEST(commentSimple);
     CPPUNIT_TEST(commentMultiLine);
+    CPPUNIT_TEST(commentTimeZero);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -32,9 +33,10 @@ public:
     /*
      * Tests for writing comments.
      */
-    void commentEmpty();
-    void commentSimple();
-    void commentMultiLine();
+    void commentEmpty(); //Empty message.
+    void commentSimple(); //Just a normal message.
+    void commentMultiLine(); //Contains newlines.
+    void commentTimeZero(); //Printing time as a whole number.
 
 private:
     /*

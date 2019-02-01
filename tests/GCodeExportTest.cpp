@@ -10,6 +10,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(GCodeExportTest);
 void GCodeExportTest::setUp()
 {
     output.clear();
+    output << std::fixed;
     gcode.output_stream = &output;
 
     //Since GCodeExport doesn't support copying, we have to reset everything in-place.
@@ -59,6 +60,12 @@ void GCodeExportTest::commentMultiLine()
         ";You can honestly say\n"
         ";You made on that day\n"
         ";A Chilean chinchilla's chin chilly"), output.str());
+}
+
+void GCodeExportTest::commentTimeZero()
+{
+    gcode.writeTimeComment(0);
+    CPPUNIT_ASSERT_EQUAL(std::string(";TIME_ELAPSED:0"), output.str());
 }
 
 } //namespace cura
