@@ -555,7 +555,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
         {
             if (overhang_part.area() < 0)
             {
-                for (auto iter = contact_nodes[layer_nr].begin(); iter != contact_nodes[layer_nr].end();)
+                for (auto iter = contact_nodes[layer_nr].begin(); iter != contact_nodes[layer_nr].end(); )
                 {
                     if (overhang_part.inside((*iter)->position))
                     {
