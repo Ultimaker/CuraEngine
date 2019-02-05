@@ -259,7 +259,7 @@ void PolygonTest::simplifyLimitedLength()
 
     spiral_polygons.simplify(1550, 999999999); //Remove segments smaller than 1550 (infinite area error).
 
-    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200 and 1300 with 1400. Not beyond."), spiral.size() == 11 - 2);
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200, 1300 with 1400 and first with last."), spiral.size() == 11 - 3);
 }
 
 void PolygonTest::simplifyLimitedError()
@@ -293,7 +293,7 @@ void PolygonTest::simplifyLimitedError()
     constexpr coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
     spiral_polygons.simplify(999999999, height - 10);
 
-    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1000 through 1400. Not beyond."), spiral.size() == 11 - 4);
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1000 through 1400 and first with last."), spiral.size() == 11 - 5);
 }
 
 }

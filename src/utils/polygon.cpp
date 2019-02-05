@@ -368,10 +368,16 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         new_path.push_back(current);
     }
 
-    //For the last/first vertex, we didn't check the connection that closes the polygon yet. Add the first vertex back if this connection is too long.
-    if(!new_path.empty() && vSize2(new_path.back() - new_path[0]) > smallest_line_segment_squared)
+    //For the last/first vertex, we didn't check the connection that closes the polygon yet. Add the first vertex back if this connection is too long, or remove it if it's too short.
+    if(!new_path.empty() && vSize2(new_path.back() - new_path[0]) > smallest_line_segment_squared
+        && vSize2(new_path.back() - path->at(0)) >= smallest_line_segment_squared
+        && vSize2(new_path[0] - path->at(0)) >= smallest_line_segment_squared)
     {
         new_path.push_back(path->at(0));
+    }
+    if(new_path.size() >= 2 && (vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared || vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared))
+    {
+        new_path.pop_back();
     }
 
     *path = new_path;
