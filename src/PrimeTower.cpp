@@ -27,6 +27,7 @@ PrimeTower::PrimeTower()
     enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+    specific_brim = scene.current_mesh_group->settings.get<bool>("prime_tower_brim_enable");
 
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
@@ -85,6 +86,8 @@ void PrimeTower::generateGroundpoly()
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
+
+    outer_poly_first_layer = outer_poly.offset(offset);
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)

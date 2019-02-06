@@ -37,12 +37,9 @@ public:
      * \param primary_line_count Number of offsets / brim lines of the primary
      * extruder.
      * \param is_skirt Whether a skirt is being generated vs a brim
-     * \param add_prime_tower_if_enabled Whether to add prime tower is enabled. This is used for "brim for prime tower".
-     * If skirt is used, then we want to explicitly add brim to the prime tower, so we need to exclude the prime tower
-     * from the first layout outline, preventing it from being processed by skirt later.
      * \param[out] first_layer_outline The resulting reference polygons
      */
-    static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, const bool add_prime_tower_if_enabled, Polygons& first_layer_outline);
+    static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline);
 
 private:
     static void generateSupportBrim(SliceDataStorage& storage);

@@ -999,12 +999,12 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     {
     case EPlatformAdhesion::SKIRT:
         primary_line_count = train.settings.get<size_t>("skirt_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, !should_brim_prime_tower, first_layer_outline);
+        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, first_layer_outline);
         SkirtBrim::generate(storage, first_layer_outline, train.settings.get<coord_t>("skirt_gap"), primary_line_count);
         break;
     case EPlatformAdhesion::BRIM:
         primary_line_count = train.settings.get<size_t>("brim_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, false, !should_brim_prime_tower, first_layer_outline);
+        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, false, first_layer_outline);
         SkirtBrim::generate(storage, first_layer_outline, 0, primary_line_count);
         break;
     case EPlatformAdhesion::RAFT:
