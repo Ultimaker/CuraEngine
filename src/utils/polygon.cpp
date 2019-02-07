@@ -303,6 +303,10 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         clear();
         return;
     }
+    if (size() == 3)
+    {
+        return;
+    }
 
     ClipperLib::Path new_path;
     Point previous = path->at(0);
@@ -364,7 +368,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //Don't remove the vertex.
 
         accumulated_area_removed = current.X * next.Y - current.Y * next.X;
-        previous = current; //Note that "previous" is only updated if we actually remove the vertex.
+        previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
 
