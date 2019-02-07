@@ -48,7 +48,6 @@ private:
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
-    bool specific_brim; //<! Whether the 'brim for prime tower' option is enabled (as opposed to brim in general).
     Polygons outer_poly; //!< The outline of the outermost prime tower.
     Polygons outer_poly_first_layer; //!< The outermost outline, plus optional brim on 'brim for prime tower' is enabled.
 

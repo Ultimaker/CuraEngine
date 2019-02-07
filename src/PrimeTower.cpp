@@ -27,7 +27,6 @@ PrimeTower::PrimeTower()
     enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
-    specific_brim = scene.current_mesh_group->settings.get<bool>("prime_tower_brim_enable");
 
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
