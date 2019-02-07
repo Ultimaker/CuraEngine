@@ -991,19 +991,33 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+
+    Polygons first_layer_outline;
+    coord_t primary_line_count;
+    bool should_brim_prime_tower = storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable");
     switch(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
-        SkirtBrim::generate(storage, train.settings.get<coord_t>("skirt_gap"), train.settings.get<size_t>("skirt_line_count"));
+        primary_line_count = train.settings.get<size_t>("skirt_line_count");
+        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, first_layer_outline);
+        SkirtBrim::generate(storage, first_layer_outline, train.settings.get<coord_t>("skirt_gap"), primary_line_count);
         break;
     case EPlatformAdhesion::BRIM:
-        SkirtBrim::generate(storage, 0, train.settings.get<size_t>("brim_line_count"));
+        primary_line_count = train.settings.get<size_t>("brim_line_count");
+        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, false, first_layer_outline);
+        SkirtBrim::generate(storage, first_layer_outline, 0, primary_line_count);
         break;
     case EPlatformAdhesion::RAFT:
         Raft::generate(storage);
+        should_brim_prime_tower = false;
         break;
     case EPlatformAdhesion::NONE:
         break;
+    }
+    // If brim for prime tower is used, add the brim for prime tower separately.
+    if (should_brim_prime_tower)
+    {
+        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"));
     }
 }
 

@@ -55,10 +55,16 @@ void PrimeTower::generateGroundpoly()
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
     const bool circular_prime_tower = mesh_group_settings.get<bool>("prime_tower_circular");
 
+    const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
+    const coord_t offset = (! mesh_group_settings.get<bool>("prime_tower_brim_enable")) ? 0 :
+        brim_extruder_settings.get<size_t>("brim_line_count") *
+        brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
+        brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
+
     PolygonRef p = outer_poly.newPoly();
     int tower_distance = 0; 
-    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
-    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x") - offset;
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y") - offset;
     if (circular_prime_tower)
     {
         const coord_t tower_radius = tower_size / 2;
@@ -79,6 +85,8 @@ void PrimeTower::generateGroundpoly()
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
+
+    outer_poly_first_layer = outer_poly.offset(offset);
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)

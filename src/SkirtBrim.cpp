@@ -64,7 +64,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         }
         if (storage.primeTower.enabled)
         {
-            first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
+            first_layer_outline.add(storage.primeTower.outer_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }
     }
     constexpr coord_t join_distance = 20;
@@ -110,7 +110,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count)
+void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count)
 {
     const bool is_skirt = start_distance > 0;
 
@@ -121,9 +121,6 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     const coord_t primary_extruder_minimal_length = adhesion_settings.get<coord_t>("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
-
-    Polygons first_layer_outline;
-    getFirstLayerOutline(storage, primary_line_count, is_skirt, first_layer_outline);
 
     const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
