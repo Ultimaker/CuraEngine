@@ -359,7 +359,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     // whether the first point has to be removed is checked separately afterwards
     skipped_verts.emplace_back(result_list_poly, result_list_poly.begin());
 
-    char here_is_beyond_line = 0;
+    short here_is_beyond_line = 0;
     { // stage I: convert to a ListPolygon and remove verts, but don't remove verts just after removed verts (i.e. skip them)
         Point prev = this_path[0];
         auto skip = [this, &result_list_poly, &this_path, &prev, &skipped_verts](unsigned int& poly_idx)
