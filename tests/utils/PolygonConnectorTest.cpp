@@ -88,41 +88,6 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
     
     std::stringstream ss;
     ss << "PolygonConnector::getBridge(test_square, test_triangle) ";
-
-    constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
-
-    if (draw_problem_scenario)
-    {
-        AABB aabb(from_poly);
-        for (PolygonRef poly : to_polygons)
-        {
-            aabb.include(AABB(poly).min);
-            aabb.include(AABB(poly).max);
-        }
-        SVG svg("output/bs.svg", aabb, Point(500, 500));
-        svg.writePolygon(from_poly, SVG::Color::YELLOW, 4);
-        for (PolygonRef poly : to_polygons)
-        {
-            svg.writePolygon(poly, SVG::Color::GRAY, 4);
-        }
-        if (computed)
-        {
-            svg.writeLine(computed->a.from.p(), computed->a.to.p(), SVG::Color::BLUE, 4);
-            svg.writeLine(computed->b.from.p(), computed->b.to.p(), SVG::Color::GREEN, 4);
-            Polygon connected = pc->connectPolygonsAlongBridge(*computed);
-            svg.writePolygon(connected, SVG::Color::RED, 1);
-//             svg.writePoints(connected, true, 5, SVG::Color::YELLOW);
-//             int c = 0;
-//             for (Point p : connected)
-//                 svg.writeText(p, std::to_string(c++));
-            std::cerr << "written\n";
-        }
-        else
-        {
-            std::cerr << "Couldn't find any connection!\n";
-        }
-        
-    }
     
     if (predicted && computed)
     {
@@ -152,9 +117,6 @@ void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::Polyg
 
 void PolygonConnectorTest::connectionLengthTest()
 {
-
-    constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
-
     std::unordered_set<Point> input_verts;
     for (ConstPolygonRef poly : test_shapes)
     {
@@ -163,19 +125,7 @@ void PolygonConnectorTest::connectionLengthTest()
             input_verts.emplace(p);
         }
     }
-    if (draw_problem_scenario)
-    {
-        SVG svg("output/bs2.svg", AABB(test_shapes), Point(500, 500));
-        svg.writePolygons(test_shapes, SVG::Color::YELLOW);
-        svg.writePolygons(connecteds, SVG::Color::RED);
-        for (PolygonConnector::PolygonBridge bridge : pc->all_bridges)
-        {
-            svg.writeLine(bridge.a.from.p(), bridge.a.to.p(), SVG::Color::BLUE);
-            svg.writeLine(bridge.b.from.p(), bridge.b.to.p(), SVG::Color::GREEN);
-        }
-        std::cerr << "written\n";\
-    }
-    
+
     coord_t longest_connection_dist = 0;
     size_t too_long_connection_count = 0;
     for (PolygonConnector::PolygonBridge bridge : pc->all_bridges)
