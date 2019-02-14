@@ -11,6 +11,7 @@ option (ENABLE_ARCUS
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
+    find_package(Protobuf REQUIRED)
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
 endif ()
