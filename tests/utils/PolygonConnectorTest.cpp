@@ -1,75 +1,89 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PolygonConnectorTest.h"
-
+#include <gtest/gtest.h>
 #include <unordered_set>
+
+#include <../src/utils/polygon.h> //To create polygons to test with.
+#include <../src/utils/PolygonConnector.h> //The class under test.
 
 namespace cura
 {
-    CPPUNIT_TEST_SUITE_REGISTRATION(PolygonConnectorTest);
 
-void PolygonConnectorTest::setUp()
+class PolygonConnectorTest : public testing::Test
 {
-    
-    test_square.emplace_back(0, 0);
-    test_square.emplace_back(1000, 0);
-    test_square.emplace_back(1000, 1000);
-    test_square.emplace_back(0, 1000);
-    test_shapes.add(test_square);
-    
-    test_square2.emplace_back(1100, 1500);
-    test_square2.emplace_back(2000, 1500);
-    test_square2.emplace_back(2000, -500);
-    test_square2.emplace_back(1100, -500);
-    test_shapes.add(test_square2);
+public:
+    Polygon test_square;
+    Polygon test_square2; //Larger and more to the right.
+    Polygon test_triangle;
+    Polygon test_circle;
+    Polygon test_convex_shape;
+    Polygons test_shapes; //All above polygons! As well as an inset of 100 microns of them.
 
-    test_triangle.emplace_back(0, 2100);
-    test_triangle.emplace_back(500, 1100);
-    test_triangle.emplace_back(1500, 2100);
-    test_shapes.add(test_triangle);
-    
-    for (double a = 0; a < 1.0; a += .05)
+    PolygonConnector* pc;
+    Polygons connecteds;
+
+    virtual void SetUp()
     {
-        test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
+        test_square.emplace_back(0, 0);
+        test_square.emplace_back(1000, 0);
+        test_square.emplace_back(1000, 1000);
+        test_square.emplace_back(0, 1000);
+        test_shapes.add(test_square);
+    
+        test_square2.emplace_back(1100, 1500);
+        test_square2.emplace_back(2000, 1500);
+        test_square2.emplace_back(2000, -500);
+        test_square2.emplace_back(1100, -500);
+        test_shapes.add(test_square2);
+
+        test_triangle.emplace_back(0, 2100);
+        test_triangle.emplace_back(500, 1100);
+        test_triangle.emplace_back(1500, 2100);
+        test_shapes.add(test_triangle);
+
+        for (double a = 0; a < 1.0; a += 0.05)
+        {
+            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
+        }
+        test_shapes.add(test_circle);
+
+        test_convex_shape.emplace_back(-300, 0);
+        test_convex_shape.emplace_back(-100, 500);
+        test_convex_shape.emplace_back(-100, 600);
+        test_convex_shape.emplace_back(-200, 1000);
+        test_convex_shape.emplace_back(-500, 1500);
+        test_convex_shape.emplace_back(-1500, 1500);
+        test_convex_shape.emplace_back(-1500, 1500);
+        test_convex_shape.emplace_back(-1600, 1100);
+        test_convex_shape.emplace_back(-700, 200);
+        test_shapes.add(test_convex_shape);
+
+        Polygons inset = test_shapes;
+        while (!inset.empty())
+        {
+            inset = inset.offset(-100);
+            test_shapes.add(inset);
+        }
+
+        constexpr coord_t line_width = 100;
+        constexpr coord_t max_dist = 170;
+        pc = new PolygonConnector(line_width, max_dist);
+        pc->add(test_shapes);
+        connecteds = pc->connect();
+
+        ASSERT_LT(connecteds.size(), 0) << "PolygonConnector gave no output polygons!";
     }
-    test_shapes.add(test_circle);
 
-    test_convex_shape.emplace_back(-300, 0);
-    test_convex_shape.emplace_back(-100, 500);
-    test_convex_shape.emplace_back(-100, 600);
-    test_convex_shape.emplace_back(-200, 1000);
-    test_convex_shape.emplace_back(-500, 1500);
-    test_convex_shape.emplace_back(-1500, 1500);
-    test_convex_shape.emplace_back(-1500, 1500);
-    test_convex_shape.emplace_back(-1600, 1100);
-    test_convex_shape.emplace_back(-700, 200);
-    test_shapes.add(test_convex_shape);
-
-    Polygons inset = test_shapes;
-    while (!inset.empty())
+    void TearDown()
     {
-        inset = inset.offset(-100);
-        test_shapes.add(inset);
-//         break;
+        delete pc;
     }
 
-    line_width = 100;
-    max_dist = 170;
-    pc = new PolygonConnector(line_width, max_dist);
-    pc->add(test_shapes);
-    connecteds = pc->connect();
-    CPPUNIT_ASSERT_MESSAGE("PolygonConnector gave no output polygons!!", connecteds.size() > 0);
-}
+};
 
-void PolygonConnectorTest::tearDown()
+TEST_F(PolygonConnectorTest, getBridgeTest)
 {
-    delete pc;
-}
-
-void PolygonConnectorTest::getBridgeTest()
-{
-
     PolygonConnector::PolygonBridge predicted(
         PolygonConnector::PolygonConnection{
             ClosestPolygonPoint(Point(0, 500), 2, test_square),
@@ -79,44 +93,28 @@ void PolygonConnectorTest::getBridgeTest()
             ClosestPolygonPoint(Point(-100, 600), 0, test_convex_shape)});
     std::vector<Polygon> polys;
     polys.push_back(test_convex_shape);
-    getBridgeAssert(predicted, test_square, polys);
-}
 
-void PolygonConnectorTest::getBridgeAssert(std::optional<PolygonConnector::PolygonBridge> predicted, ConstPolygonRef from_poly, std::vector<Polygon>& to_polygons)
-{
-    std::optional<PolygonConnector::PolygonBridge> computed = pc->getBridge(from_poly, to_polygons);
-    
-    std::stringstream ss;
-    ss << "PolygonConnector::getBridge(test_square, test_triangle) ";
-    
-    if (predicted && computed)
+    std::optional<PolygonConnector::PolygonBridge> computed = pc->getBridge(test_square, polys);
+
+    ASSERT_TRUE(bool(computed)) << "An answer is expected.";
+    if (computed)
     {
-        coord_t a_from_error = vSize(predicted->a.from.p() - computed->a.from.p());
-        coord_t a_to_error = vSize(predicted->a.to.p() - computed->a.to.p());
-        coord_t b_from_error = vSize(predicted->b.from.p() - computed->b.from.p());
-        coord_t b_to_error = vSize(predicted->b.to.p() - computed->b.to.p());
-        ss << " computed to something different from what was predicted!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), 
-            a_from_error < maximum_error
-            && a_to_error < maximum_error
-            && b_from_error < maximum_error
-            && b_to_error < maximum_error
-        );
-    }
-    else if (predicted && !computed)
-    {
-        ss << " didn't give an answer, but it was predicted to give one!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
-    }
-    else if (!predicted && computed)
-    {
-        ss << " gave an answer, but it was predicted to not be possible!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+        const coord_t a_from_error = vSize(predicted.a.from.p() - computed->a.from.p());
+        const coord_t a_to_error = vSize(predicted.a.to.p() - computed->a.to.p());
+        const coord_t b_from_error = vSize(predicted.b.from.p() - computed->b.from.p());
+        const coord_t b_to_error = vSize(predicted.b.to.p() - computed->b.to.p());
+
+        constexpr coord_t maximum_error = 10;
+        EXPECT_LT(a_from_error, maximum_error) << "a.from was computed to something different from what was predicted!";
+        EXPECT_LT(a_to_error, maximum_error) << "a.to was computed to something different from what was predicted!";
+        EXPECT_LT(b_from_error, maximum_error) << "b.from was computed to something different from what was predicted!";
+        EXPECT_LT(b_to_error, maximum_error) << "b.to was computed to something different from what was predicted!";
     }
 }
 
-void PolygonConnectorTest::connectionLengthTest()
+TEST_F(PolygonConnectorTest, connectionLengthTest)
 {
+    constexpr coord_t maximum_error = 10;
     std::unordered_set<Point> input_verts;
     for (ConstPolygonRef poly : test_shapes)
     {
@@ -132,8 +130,8 @@ void PolygonConnectorTest::connectionLengthTest()
     {
         for (auto connection : {bridge.a, bridge.b})
         {
-            coord_t connection_dist = vSize(connection.to.p() - connection.from.p());
-            if (connection_dist > max_dist)
+            const coord_t connection_dist = vSize(connection.to.p() - connection.from.p());
+            if (connection_dist > maximum_error)
             {
                 too_long_connection_count++;
                 longest_connection_dist = std::max(longest_connection_dist, connection_dist);
@@ -141,9 +139,7 @@ void PolygonConnectorTest::connectionLengthTest()
         }
     }
 
-    std::stringstream ss;
-    ss << "PolygonConnector::connect() obtained " << too_long_connection_count << " too long bridge connections! Longest is " << INT2MM(longest_connection_dist) << "\n";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), too_long_connection_count == 0);
+    ASSERT_EQ(too_long_connection_count, 0) << "PolygonConnector::connect() obtained " << too_long_connection_count << " too long bridge connections! Longest is " << INT2MM(longest_connection_dist) << "\n";
 }
 
 
