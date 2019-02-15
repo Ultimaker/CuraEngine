@@ -114,7 +114,7 @@ TEST_F(PolygonConnectorTest, getBridgeTest)
 
 TEST_F(PolygonConnectorTest, connectionLengthTest)
 {
-    constexpr coord_t maximum_error = 10;
+    constexpr coord_t maximum_distance = 170;
     std::unordered_set<Point> input_verts;
     for (ConstPolygonRef poly : test_shapes)
     {
@@ -131,7 +131,7 @@ TEST_F(PolygonConnectorTest, connectionLengthTest)
         for (auto connection : {bridge.a, bridge.b})
         {
             const coord_t connection_dist = vSize(connection.to.p() - connection.from.p());
-            if (connection_dist > maximum_error)
+            if (connection_dist > maximum_distance)
             {
                 too_long_connection_count++;
                 longest_connection_dist = std::max(longest_connection_dist, connection_dist);
