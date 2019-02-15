@@ -184,29 +184,29 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
-    GCodeExportTest
-    TimeEstimateCalculatorTest
+    #GCodeExportTest
+    #TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
 )
 set(engine_TEST_SETTINGS
-    SettingsTest
+    #SettingsTest
 )
 if (ENABLE_ARCUS)
     set(engine_TEST_ARCUS
-        ArcusCommunicationTest
-        ArcusCommunicationPrivateTest
+        #ArcusCommunicationTest
+        #ArcusCommunicationPrivateTest
     )
 endif ()
 set(engine_TEST_UTILS
     IntPointTest
     LinearAlg2DTest
     PolygonConnectorTest
-    PolygonUtilsTest
     PolygonTest
-    SparseGridTest
-    StringTest
-    UnionFindTest
+    #PolygonUtilsTest
+    #SparseGridTest
+    #StringTest
+    #UnionFindTest
 )
 
 # Helper classes for some tests.
