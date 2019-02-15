@@ -72,7 +72,7 @@ public:
         pc->add(test_shapes);
         connecteds = pc->connect();
 
-        ASSERT_LT(connecteds.size(), 0) << "PolygonConnector gave no output polygons!";
+        ASSERT_GT(connecteds.size(), 0) << "PolygonConnector gave no output polygons!";
     }
 
     void TearDown()
