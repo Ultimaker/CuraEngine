@@ -203,7 +203,7 @@ set(engine_TEST_UTILS
     LinearAlg2DTest
     PolygonConnectorTest
     PolygonTest
-    #PolygonUtilsTest
+    PolygonUtilsTest
     #SparseGridTest
     #StringTest
     #UnionFindTest
