@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TIMEESTIMATECALCULATORTEST_H
@@ -24,8 +24,12 @@ class TimeEstimateCalculatorTest : public CppUnit::TestFixture
     CPPUNIT_TEST(singleLineOnlyJerk);
     CPPUNIT_TEST(doubleLineOnlyJerk);
     CPPUNIT_TEST(singleLineNoJerk);
+    CPPUNIT_TEST(shortLine);
     CPPUNIT_TEST(doubleLineNoJerk);
     CPPUNIT_TEST(diagonalLineNoJerk);
+    CPPUNIT_TEST(straightAngleOnlyJerk);
+    CPPUNIT_TEST(straightAngleNoJerk);
+    CPPUNIT_TEST(straightAnglePartialJerk);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -75,6 +79,13 @@ public:
     void singleLineNoJerk();
 
     /*
+     * \brief Tests printing a line that is too short to reach maximum velocity.
+     *
+     * It only uses acceleration for this, no jerk, to keep it simple.
+     */
+    void shortLine();
+
+    /*
      * \brief Tests printing two lengthwise line segments without jerk.
      *
      * There is now a joint between these lines, but since the lines are exactly
@@ -89,6 +100,29 @@ public:
      * actually be greater than when the line is straight in one dimension.
      */
     void diagonalLineNoJerk();
+
+    /*
+     * \brief Tests printing two lines with a 90 degree angle where jerk governs
+     * all acceleration.
+     *
+     * It should not slow down in the corner here.
+     */
+    void straightAngleOnlyJerk();
+
+    /*
+     * \brief Tests printing two lines with a 90 degree angle without jerk.
+     *
+     * This means that the nozzle will have to decelerate completely to 0 and
+     * then accelerate in a different axis to maximum speed again.
+     */
+    void straightAngleNoJerk();
+
+    /*
+     * \brief Tests printing two lines with a 90 degree angle where part of the
+     * speed is instantaneous by jerk, but it also has to decelerate to make the
+     * corner at a limited jerk rate.
+     */
+    void straightAnglePartialJerk();
 
 private:
     /*

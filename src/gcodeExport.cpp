@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdarg.h>
@@ -49,8 +49,10 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup()
+void GCodeExport::preSetup(const size_t start_extruder)
 {
+    current_extruder = start_extruder;
+
     const Scene& scene = Application::getInstance().current_slice->scene;
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
@@ -454,15 +456,17 @@ void GCodeExport::writeComment(const std::string& comment)
     {
         if (comment[i] == '\n')
         {
-            *output_stream << "\\n";
-        }else{
+            *output_stream << new_line << ";";
+        }
+        else
+        {
             *output_stream << comment[i];
         }
     }
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTimeComment(const double time)
+void GCodeExport::writeTimeComment(const Duration time)
 {
     *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
@@ -494,21 +498,26 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
             break;
         case PrintFeatureType::SupportInterface:
             *output_stream << ";TYPE:SUPPORT-INTERFACE" << new_line;
+            break;
+        case PrintFeatureType::PrimeTower:
+            *output_stream << ";TYPE:PRIME-TOWER" << new_line;
+            break;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
-        default:
+        case PrintFeatureType::NoneType:
+        case PrintFeatureType::NumPrintFeatureTypes:
             // do nothing
             break;
     }
 }
 
 
-void GCodeExport::writeLayerComment(int layer_nr)
+void GCodeExport::writeLayerComment(const LayerIndex layer_nr)
 {
     *output_stream << ";LAYER:" << layer_nr << new_line;
 }
 
-void GCodeExport::writeLayerCountComment(int layer_count)
+void GCodeExport::writeLayerCountComment(const size_t layer_count)
 {
     *output_stream << ";LAYER_COUNT:" << layer_count << new_line;
 }
@@ -870,7 +879,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             return; 
         }
         *output_stream << "G10";
-        if (extruder_switch)
+        if (extruder_switch && flavor == EGCodeFlavor::REPETIER)
         {
             *output_stream << " S1";
         }

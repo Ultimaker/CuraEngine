@@ -3,6 +3,7 @@
 
 #include "Application.h" //To get settings.
 #include "MergeInfillLines.h"
+#include "PrintFeature.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura
@@ -69,7 +70,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         else
         {
             average_first_path += first_path_start;
-            for (const Point point : first_path.points)
+            for (const Point& point : first_path.points)
             {
                 average_first_path += point;
             }
@@ -78,7 +79,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
         coord_t second_path_length = calcPathLength(second_path_start, second_path);
         Point average_second_path = second_path_start;
-        for (const Point point : second_path.points)
+        for (const Point& point : second_path.points)
         {
             average_second_path += point;
         }
@@ -144,7 +145,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             error_area = 0;
         }
 
-        first_path.flow = static_cast<double>(first_path_length_flow + second_path_length_flow) / new_path_length;
+        first_path.flow = new_flow;
 
         return true;
     }
@@ -219,7 +220,6 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         return mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start, error_area);
     }
 
-
     bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Point& starting_position) const
     {
         /* Algorithm overview:
@@ -238,6 +238,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         size_t first_path_index = 0;
         Point first_path_start = Point(starting_position.X, starting_position.Y);  // this one is not going to be overwritten
         size_t second_path_index = 1;
+        bool has_first_path = paths.empty() ? false : !paths[0].config->isTravelPath();  // in case the first path is not an extrusion path.
         coord_t error_area = 0;
 
         for (; second_path_index < paths.size(); second_path_index++)
@@ -248,7 +249,30 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
             if (second_path.config->isTravelPath())
             {
+                has_first_path = false;
                 continue; //Skip travel paths, we're looking for the first non-travel path.
+            }
+
+            // FIXME: This is difficult to fix, need to put extra effort into it.
+            // CURA-5776:  This works in some cases but it is not exactly correct, because what this will avoid merging
+            // lines are kind like in parallel but with a travel move in between, which is a case mergeLinesSideBySide()
+            // tries to handle. We found that something can go wrong when it tries to merge some pattern like those
+            // parallel lines, and we think that the current merging method is not suitable for that. In short, we
+            // probably need treat different patterns with different methods.
+            //
+            // Use the first non-travel path as the first path that can be used for merging. After we encounter
+            // a travel path, we need to find another first non-travel path for merging.
+            if (
+                (
+                  first_path.config->type == PrintFeatureType::Infill ||
+                  first_path.config->type == PrintFeatureType::SupportInfill ||
+                  first_path.skip_agressive_merge_hint
+                ) && !has_first_path)
+            {
+                first_path_index = second_path_index;
+                first_path_start = second_path_start;
+                has_first_path = true;
+                continue;
             }
 
             bool allow_try_merge = true;

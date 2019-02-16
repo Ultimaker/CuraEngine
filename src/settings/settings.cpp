@@ -252,7 +252,7 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     {
         return EGCodeFlavor::BFB;
     }
-    else if (value == "Mach3")
+    else if (value == "MACH3")
     {
         return EGCodeFlavor::MACH3;
     }

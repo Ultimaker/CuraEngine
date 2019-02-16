@@ -440,6 +440,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
     message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
     message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
+    message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
