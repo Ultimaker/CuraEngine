@@ -56,7 +56,9 @@ void PrimeTower::generateGroundpoly()
     const bool circular_prime_tower = mesh_group_settings.get<bool>("prime_tower_circular");
 
     const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
-    const coord_t offset = (! mesh_group_settings.get<bool>("prime_tower_brim_enable")) ? 0 :
+    const bool has_raft = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT);
+    const bool has_prime_brim = mesh_group_settings.get<bool>("prime_tower_brim_enable");
+    const coord_t offset = (has_raft || ! has_prime_brim) ? 0 :
         brim_extruder_settings.get<size_t>("brim_line_count") *
         brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
         brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
