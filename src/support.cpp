@@ -1,10 +1,9 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <cmath> // sqrt
+#include <cmath> // sqrt, round
 #include <utility> // pair
 #include <deque>
-#include <cmath> // round
 #include <fstream> // ifstream.good()
 
 #ifdef _OPENMP

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
@@ -7,7 +7,6 @@
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "MergeInfillLines.h"
-#include "pathOrderOptimizer.h"
 #include "raft.h" // getTotalExtraLayers
 #include "Slice.h"
 #include "sliceDataStorage.h"

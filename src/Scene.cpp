@@ -1,8 +1,7 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h"
-#include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
 #include "Scene.h"
 #include "sliceDataStorage.h"
