@@ -20,12 +20,14 @@
 namespace cura
 {
 
+class LayerIndex;
 class RetractionConfig;
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport : public NoCopy
 {
+    friend class GCodeExportTest;
 private:
     struct ExtruderTrainAttributes
     {
@@ -246,9 +248,17 @@ public:
      * 
      * \param time The time passed up till this point
      */
-    void writeTimeComment(const double time);
-    void writeLayerComment(int layer_nr);
-    void writeLayerCountComment(int layer_count);
+    void writeTimeComment(const Duration time);
+
+    /*!
+     * Write a comment saying that we're starting a certain layer.
+     */
+    void writeLayerComment(const LayerIndex layer_nr);
+
+    /*!
+     * Write a comment saying that the print has a certain number of layers.
+     */
+    void writeLayerCountComment(const size_t layer_count);
     
     void writeLine(const char* line);
     
@@ -449,7 +459,7 @@ public:
     /*!
      * Set member variables using the settings in \p settings.
      */
-    void preSetup();
+    void preSetup(const size_t start_extruder);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.

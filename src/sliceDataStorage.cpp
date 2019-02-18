@@ -431,7 +431,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
         {
             if (primeTower.enabled)
             {
-                total.add(primeTower.outer_poly);
+                total.add(layer_nr == 0 ? primeTower.outer_poly_first_layer : primeTower.outer_poly);
             }
         }
         total.simplify(maximum_resolution, maximum_resolution);

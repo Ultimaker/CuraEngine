@@ -110,7 +110,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-    const size_t z_distance_bottom_layers = std::max(0U, round_up_divide(z_distance_bottom, layer_height));
+    const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height);
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
@@ -171,9 +171,9 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         {
             Polygons& floor_layer = storage.support.supportLayers[layer_nr].support_bottom;
             const coord_t support_interface_resolution = mesh_group_settings.get<coord_t>("support_interface_skip_height");
-            const size_t support_interface_skip_layers = std::max(0U, round_up_divide(support_interface_resolution, layer_height));
+            const size_t support_interface_skip_layers = round_up_divide(support_interface_resolution, layer_height);
             const coord_t support_bottom_height = mesh_group_settings.get<coord_t>("support_bottom_height");
-            const size_t support_bottom_height_layers = std::max(0U, round_up_divide(support_bottom_height, layer_height));
+            const size_t support_bottom_height_layers = round_up_divide(support_bottom_height, layer_height);
             for(size_t layers_below = 0; layers_below < support_bottom_height_layers; layers_below += support_interface_skip_layers)
             {
                 const size_t sample_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(layers_below) - static_cast<int>(z_distance_bottom_layers)));
@@ -476,32 +476,45 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
 
     //First generate grid points to cover the entire area of the print.
     AABB bounding_box = mesh.bounding_box.flatten();
-    //We want to create the grid pattern at an angle, so compute the bounding box required to cover that angle.
-    constexpr double rotate_angle = 22.0 / 180.0 * M_PI; //Rotation of 22 degrees provides better support of diagonal lines.
+    // We want to create the grid pattern at an angle, so compute the bounding
+    // box required to cover that angle.
+    // Rotation of 22 degrees provides better support of diagonal lines.
+    constexpr double rotate_angle = 22.0 / 180.0 * M_PI;
     const Point bounding_box_size = bounding_box.max - bounding_box.min;
-    AABB rotated_bounding_box; //Bounding box is rotated around the lower left corner of the original bounding box, so translate everything to 0,0 and rotate.
-    rotated_bounding_box.include(Point(0, 0));
-    rotated_bounding_box.include(rotate(bounding_box_size, -rotate_angle));
-    rotated_bounding_box.include(rotate(Point(0, bounding_box_size.Y), -rotate_angle));
-    rotated_bounding_box.include(rotate(Point(bounding_box_size.X, 0), -rotate_angle));
-    AABB unrotated_bounding_box; //Take the AABB of that and rotate back around the lower left corner of the original bounding box (still 0,0 coordinate).
-    unrotated_bounding_box.include(rotate(rotated_bounding_box.min, rotate_angle));
-    unrotated_bounding_box.include(rotate(rotated_bounding_box.max, rotate_angle));
-    unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.min.X, rotated_bounding_box.max.Y), rotate_angle));
-    unrotated_bounding_box.include(rotate(Point(rotated_bounding_box.max.X, rotated_bounding_box.min.Y), rotate_angle));
+
+    // Store centre of AABB so we can relocate the generated points
+    const auto centre = bounding_box.getMiddle();
+    const auto sin_angle = std::sin(rotate_angle);
+    const auto cos_angle = std::cos(rotate_angle);
+    // Calculate the dimensions of the AABB of the mesh AABB after being rotated
+    // by `rotate_angle`. Halve the dimensions since we'll be using it as a +-
+    // offset from the centre of `bounding_box`.
+    // This formulation will only work with rotation angles <90 degrees. If the
+    // rotation angle becomes a user-configurable value then this will need to
+    // be changed
+    const auto rotated_dims = Point(
+        bounding_box_size.X * cos_angle + bounding_box_size.Y * sin_angle,
+        bounding_box_size.X * sin_angle + bounding_box_size.Y * cos_angle) / 2;
 
     std::vector<Point> grid_points;
-    for (coord_t x = unrotated_bounding_box.min.X; x <= unrotated_bounding_box.max.X; x += point_spread)
+    for (auto x = -rotated_dims.X; x <= rotated_dims.X; x += point_spread)
     {
-        for (coord_t y = unrotated_bounding_box.min.Y; y <= unrotated_bounding_box.max.Y; y += point_spread)
+        for (auto y = -rotated_dims.Y; y <= rotated_dims.Y; y += point_spread)
         {
-            grid_points.push_back(rotate(Point(x, y), rotate_angle) + bounding_box.min); //Make the points absolute again by adding the position of the lower left corner of the original bounding box.
+            // Construct a point as an offset from the mesh AABB centre, rotated
+            // about the mesh AABB centre
+            const auto pt = rotate(Point(x, y), rotate_angle) + centre;
+            // Only add to grid points if we have a chance to collide with the
+            // mesh
+            if (bounding_box.contains(pt)) {
+                grid_points.push_back(pt);
+            }
         }
     }
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-    const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1; //Support must always be 1 layer below overhang.
+    const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1; //Support must always be 1 layer below overhang.
     const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), mesh.settings.get<coord_t>("layer_height")) : 0; //How many roof layers, if roof is enabled.
     const coord_t half_overhang_distance = tan(mesh.settings.get<AngleRadians>("support_angle")) * layer_height / 2;
     for (size_t layer_nr = 1; (int)layer_nr < (int)mesh.overhang_areas.size() - (int)z_distance_top_layers; layer_nr++)

@@ -455,7 +455,7 @@ public:
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(int smallest_line_segment_squared = 100, int allowed_error_distance_squared = 25);
+    void simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
 
     void pop_back()
     { 
@@ -887,12 +887,12 @@ public:
      * \param smallest_line_segment maximal length of removed line segments
      * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5) 
+    void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
     {
-        int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
-        int smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
+        const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
+        const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
         Polygons& thiss = *this;
-        for (unsigned int p = 0; p < size(); p++)
+        for (size_t p = 0; p < size(); p++)
         {
             thiss[p].simplify(smallest_line_segment_squared, allowed_error_distance_squared);
             if (thiss[p].size() < 3)

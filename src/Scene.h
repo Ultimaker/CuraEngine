@@ -4,13 +4,12 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include "ExtruderTrain.h" //To store the extruders in the scene.
 #include "MeshGroup.h" //To store the mesh groups in the scene.
 #include "settings/Settings.h" //To store the global settings.
 
 namespace cura
 {
-
-class ExtruderTrain;
 
 /*
  * Represents a scene that should be sliced.
