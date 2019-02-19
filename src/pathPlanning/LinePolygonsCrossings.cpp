@@ -5,7 +5,6 @@
 
 #include <algorithm>
 
-#include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
 #include "../utils/SVG.h"
 
@@ -176,6 +175,13 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
         prev = p;
     }
 
+    const Point last = transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y));
+
+    if (fwd_points.size() > 0)
+    {
+        fwd_len += vSize(last - fwd_points.back());
+    }
+
     // follow the path in the opposite direction of the winding order of the boundary polygon
     std::vector<Point> rev_points;
     prev = combPath.back();
@@ -197,12 +203,6 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
         }
     }
 
-    const Point last = transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y));
-
-    if (fwd_points.size() > 0)
-    {
-        fwd_len += vSize(last - fwd_points.back());
-    }
     if (rev_points.size() > 0)
     {
         rev_len += vSize(last - rev_points.back());

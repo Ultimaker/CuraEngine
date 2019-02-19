@@ -1,16 +1,21 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <stdarg.h>
-#include <iomanip>
+#include <assert.h>
 #include <cmath>
+#include <iomanip>
+#include <stdarg.h>
 
 #include "Application.h" //To send layer view data.
-#include "communication/Communication.h" //To send layer view data.
+#include "ExtruderTrain.h"
 #include "gcodeExport.h"
-#include "utils/logoutput.h"
 #include "PrintFeature.h"
+#include "RetractionConfig.h"
+#include "Slice.h"
+#include "communication/Communication.h" //To send layer view data.
+#include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
+#include "utils/logoutput.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura {
@@ -49,8 +54,10 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup()
+void GCodeExport::preSetup(const size_t start_extruder)
 {
+    current_extruder = start_extruder;
+
     const Scene& scene = Application::getInstance().current_slice->scene;
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
@@ -188,6 +195,8 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         {
             prefix << ";PRINT.TIME:" << static_cast<int>(*print_time) << new_line;
         }
+
+        prefix << ";PRINT.GROUPS:" << Application::getInstance().current_slice->scene.mesh_groups.size() << new_line;
 
         if (total_bounding_box.min.x > total_bounding_box.max.x) //We haven't encountered any movement (yet). This probably means we're command-line slicing.
         {
@@ -452,15 +461,17 @@ void GCodeExport::writeComment(const std::string& comment)
     {
         if (comment[i] == '\n')
         {
-            *output_stream << "\\n";
-        }else{
+            *output_stream << new_line << ";";
+        }
+        else
+        {
             *output_stream << comment[i];
         }
     }
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTimeComment(const double time)
+void GCodeExport::writeTimeComment(const Duration time)
 {
     *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
@@ -492,21 +503,26 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
             break;
         case PrintFeatureType::SupportInterface:
             *output_stream << ";TYPE:SUPPORT-INTERFACE" << new_line;
+            break;
+        case PrintFeatureType::PrimeTower:
+            *output_stream << ";TYPE:PRIME-TOWER" << new_line;
+            break;
         case PrintFeatureType::MoveCombing:
         case PrintFeatureType::MoveRetraction:
-        default:
+        case PrintFeatureType::NoneType:
+        case PrintFeatureType::NumPrintFeatureTypes:
             // do nothing
             break;
     }
 }
 
 
-void GCodeExport::writeLayerComment(int layer_nr)
+void GCodeExport::writeLayerComment(const LayerIndex layer_nr)
 {
     *output_stream << ";LAYER:" << layer_nr << new_line;
 }
 
-void GCodeExport::writeLayerCountComment(int layer_count)
+void GCodeExport::writeLayerCountComment(const size_t layer_count)
 {
     *output_stream << ";LAYER_COUNT:" << layer_count << new_line;
 }
@@ -790,11 +806,6 @@ void GCodeExport::writeUnretractionAndPrime()
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         }
-        if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB && flavor != EGCodeFlavor::MAKERBOT) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
-        {
-            resetExtrusionValue();
-        }
-        extruder_attr[current_extruder].retraction_e_amount_current = 0.0;
     }
     else if (prime_volume != 0.0)
     {
@@ -805,6 +816,15 @@ void GCodeExport::writeUnretractionAndPrime()
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::NoneType);
     }
     extruder_attr[current_extruder].prime_volume = 0.0;
+    
+    if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB && flavor != EGCodeFlavor::MAKERBOT) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+    {
+        resetExtrusionValue();
+    }
+    if (extruder_attr[current_extruder].retraction_e_amount_current)
+    {
+        extruder_attr[current_extruder].retraction_e_amount_current = 0.0;
+    }
 }
 
 void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch)
@@ -864,7 +884,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             return; 
         }
         *output_stream << "G10";
-        if (extruder_switch)
+        if (extruder_switch && flavor == EGCodeFlavor::REPETIER)
         {
             *output_stream << " S1";
         }

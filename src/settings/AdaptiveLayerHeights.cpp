@@ -7,20 +7,24 @@
 #include <limits>
 
 #include "AdaptiveLayerHeights.h"
+#include "EnumSettings.h"
+#include "types/AngleRadians.h"
 #include "../Application.h"
-#include "../settings/types/AngleRadians.h"
+#include "../Slice.h"
+#include "../utils/floatpoint.h"
 
 namespace cura
 {
 
 AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height(layer_height) { }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t variation, const coord_t step_size, const double threshold)
+AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation,
+                                           const coord_t step_size, const double threshold)
+    : base_layer_height(base_layer_height)
+    , max_variation(variation)
+    , step_size(step_size)
+    , threshold(threshold)
 {
-    // store the required parameters
-    max_variation = variation;
-    this->step_size = step_size;
-    this->threshold = threshold;
     layers = {};
 
     calculateAllowedLayerHeights();
@@ -42,7 +46,7 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
 {
     // calculate the allowed layer heights from variation and step size
     // note: the order is from thickest to thinnest height!
-    for (int allowed_layer_height = layer_height + max_variation; allowed_layer_height >= layer_height - max_variation; allowed_layer_height -= step_size)
+    for (int allowed_layer_height = base_layer_height + max_variation; allowed_layer_height >= base_layer_height - max_variation; allowed_layer_height -= step_size)
     {
         // we should only consider using layer_heights that are > 0
         if (allowed_layer_height <= 0)

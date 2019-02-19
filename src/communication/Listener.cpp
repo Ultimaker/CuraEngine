@@ -25,11 +25,11 @@ void Listener::error(const Arcus::Error& error)
 {
     if (error.getErrorCode() == Arcus::ErrorCode::Debug)
     {
-        log("%s\n", error.toString().c_str());
+        log("%s\n", error.getErrorMessage().c_str());
     }
     else
     {
-        logError("%s\n", error.toString().c_str());
+        logError("%s\n", error.getErrorMessage().c_str());
     }
 }
 

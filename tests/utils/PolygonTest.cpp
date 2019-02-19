@@ -183,5 +183,117 @@ void PolygonTest::getEmptyHolesTest()
     }
 }
 
+void PolygonTest::simplifyCircle()
+{
+    Polygons circle_polygons;
+    PolygonRef circle = circle_polygons.newPoly();
+    constexpr coord_t radius = 100000;
+    constexpr double segment_length = 1000;
+    constexpr double tau = 6.283185307179586476925286766559; //2 * pi.
+    constexpr double increment = segment_length / radius; //Segments of 1000 units.
+    for (double angle = 0; angle < tau; angle += increment)
+    {
+        circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+    }
+
+    constexpr coord_t minimum_segment_length = segment_length + 10;
+    circle_polygons.simplify(minimum_segment_length, 999999999); //With segments of 1000, we need to remove exactly half of the vertices to meet the requirement that all segments are >1010.
+    constexpr coord_t maximum_segment_length = segment_length * 2 + 20; //+20 for some error margin due to rounding.
+
+    for (size_t point_index = 1; point_index < circle.size() - 1; point_index++) //Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
+    {
+        coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
+        std::stringstream ss_short;
+        ss_short << "Segment " << (point_index - 1) << " - " << point_index << " is too short! " << segment_length << " < " << minimum_segment_length;
+        CPPUNIT_ASSERT_MESSAGE(ss_short.str(), segment_length >= minimum_segment_length);
+        std::stringstream ss_long;
+        ss_long << "Segment " << (point_index - 1) << " - " << point_index << " is too long! " << segment_length << " > " << maximum_segment_length;
+        CPPUNIT_ASSERT_MESSAGE(ss_long.str(), segment_length <= maximum_segment_length);
+    }
+}
+
+void PolygonTest::simplifyZigzag()
+{
+    //Tests a zigzag line: /\/\/\/\/\/\/
+    //If all line segments are short, they can all be removed and turned into one long line: -------------------
+    Polygons zigzag_polygons;
+    PolygonRef zigzag = zigzag_polygons.newPoly();
+    constexpr coord_t segment_length = 1000;
+    constexpr coord_t y_increment = segment_length / sqrt(2);
+    coord_t x = y_increment / 2;
+
+    for (size_t i = 0; i < 100; i++)
+    {
+        zigzag.add(Point(x, i * y_increment));
+        x = 0 - x;
+    }
+
+    constexpr coord_t maximum_error = 2 * segment_length * segment_length + 100; //Squared offset from baseline (and some margin for rounding).
+    zigzag_polygons.simplify(segment_length + 10, maximum_error);
+
+    std::stringstream ss;
+    ss << "Zigzag should be removed since the total error compensates with each zag, but size was " << zigzag.size() << ".";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 5);
+}
+
+void PolygonTest::simplifyLimitedLength()
+{
+    //Generate a spiral with segments that gradually increase in length.
+    Polygons spiral_polygons;
+    PolygonRef spiral = spiral_polygons.newPoly();
+    spiral.add(Point());
+
+    coord_t segment_length = 1000;
+    double angle = 0;
+    Point last_position;
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        const coord_t dx = std::cos(angle) * segment_length;
+        const coord_t dy = std::sin(angle) * segment_length;
+        last_position += Point(dx, dy);
+        spiral.add(last_position);
+        segment_length += 100;
+        angle += 0.1;
+    }
+
+    spiral_polygons.simplify(1550, 999999999); //Remove segments smaller than 1550 (infinite area error).
+
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200, 1300 with 1400 and first with last."), spiral.size() == 11 - 3);
+}
+
+void PolygonTest::simplifyLimitedError()
+{
+    //Generate a square spiral with increasingly large corners until the area exceeds the limit.
+    Polygons spiral_polygons;
+    PolygonRef spiral = spiral_polygons.newPoly();
+    spiral.add(Point());
+
+    //Generate a square spiral, 90 degree corners to make it easy to compute the area loss while retaining a positive area per corner.
+    coord_t segment_length = 1000;
+    Point last_position;
+    double angle = 0;
+    for (size_t i = 0; i < 10; i++)
+    {
+        const coord_t dx = std::cos(angle) * segment_length;
+        const coord_t dy = std::sin(angle) * segment_length;
+        last_position += Point(dx, dy);
+        spiral.add(last_position);
+        segment_length += 100;
+        angle += M_PI / 2;
+    }
+
+    //We want it to not merge the lines 1400 and 1500 any more, but do merge all lines before it.
+    //Take the area of the 1400 by 1500 and plug it into the formula for the height to get at the baseline height, which is our allowed error.
+    constexpr coord_t area = 1400 * 1500 / 2;
+    constexpr coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
+    //A = 0.5 * b * h. diagonal_length is the base line in this case.
+    //2A = b * h
+    //2A / b = h
+    constexpr coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
+    spiral_polygons.simplify(999999999, height - 10);
+
+    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1000 through 1400 and first with last."), spiral.size() == 11 - 5);
+}
 
 }

@@ -4,18 +4,17 @@
 #ifndef INFILL_H
 #define INFILL_H
 
-#include "utils/polygon.h"
-#include "settings/Settings.h"
+#include "infill/ZigzagConnectorProcessor.h" //For DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD.
+#include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
-#include "infill/ZigzagConnectorProcessor.h"
-#include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/SubDivCube.h"
-#include "infill/DensityProvider.h"
 #include "utils/IntPoint.h"
-#include "utils/AABB.h"
 
 namespace cura
 {
+
+class AABB;
+class SierpinskiFillProvider;
+class SliceMeshStorage;
 
 class Infill 
 {
@@ -316,7 +315,7 @@ private:
      * \param cut_list A mapping of each scanline to all y-coordinates (in the space transformed by rotation_matrix) where the polygons are crossing the scanline
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
-    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t total_shift);
+    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t total_shift);
 
     /*!
      * Crop line segments by the infill polygon using Clipper
@@ -336,7 +335,7 @@ private:
      * \param infill_rotation The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the infill_rotation
      */
-    void generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, int64_t extra_shift);
+    void generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, coord_t extra_shift);
     
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -354,7 +353,7 @@ private:
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t extra_shift);
+    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift);
 
     /*!
      * 
@@ -403,7 +402,7 @@ private:
      * \param line_distance The distance between two lines which are in the same direction
      * \param infill_rotation The angle of the generated lines
      */
-    void generateZigZagInfill(Polygons& result, const int line_distance, const double& infill_rotation);
+    void generateZigZagInfill(Polygons& result, const coord_t line_distance, const double& infill_rotation);
 
     /*!
      * determine how far the infill pattern should be shifted based on the values of infill_origin and \p infill_rotation
@@ -412,7 +411,7 @@ private:
      *
      * \return the distance the infill pattern should be shifted
      */
-    int64_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+    coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
 
     /*!
      * Connects infill lines together so that they form polylines.

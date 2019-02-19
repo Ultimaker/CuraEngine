@@ -16,7 +16,11 @@
 
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice and get time estimates.
+#include "../Slice.h"
+#include "../utils/floatpoint.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {
@@ -185,7 +189,7 @@ void CommandLine::sliceNext()
                     }
                     case 'e':
                     {
-                        size_t extruder_nr = stoul(argument.substr(1));
+                        size_t extruder_nr = stoul(argument.substr(2));
                         while (slice.scene.extruders.size() <= extruder_nr) //Make sure we have enough extruders up to the extruder_nr that the user wanted.
                         {
                             slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
@@ -235,6 +239,7 @@ void CommandLine::sliceNext()
                     case 'g':
                     {
                         last_settings = &slice.scene.mesh_groups[mesh_group_index].settings;
+                        break;
                     }
                     /* ... falls through ... */
                     case 's':

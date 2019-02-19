@@ -1,17 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   GyroidInfill.cpp
- * Author: asasin
- * 
- * Created on October 1, 2018, 11:59 AM
- */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GyroidInfill.h"
+#include "../utils/AABB.h"
+#include "../utils/linearAlg2D.h"
+#include "../utils/polygon.h"
 
 namespace cura {
 
@@ -420,7 +413,6 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     }
 
     result_lines = result;
-
 }
 
 } // namespace cura

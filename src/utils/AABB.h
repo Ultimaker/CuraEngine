@@ -4,15 +4,15 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-
 #include "IntPoint.h"
-#include "polygon.h"
-
 
 namespace cura
 {
-    
-    
+
+class ConstPolygonRef;
+class Polygon;
+class Polygons;
+
 /* Axis aligned boundary box */
 class AABB
 {
@@ -58,6 +58,17 @@ public:
      * \param point The point to include in the bounding box.
      */
     void include(Point point);
+
+    /*!
+     * \brief Includes the specified bounding box in the bounding box.
+     * 
+     * The bounding box is expanded to include the other bounding box.
+     * 
+     * This performs a union on two bounding boxes.
+     * 
+     * \param other The bounding box to include in this one.
+     */
+    void include(const AABB other);
 
     /*!
      * Expand the borders of the bounding box in each direction with the given amount

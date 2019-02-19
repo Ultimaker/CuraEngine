@@ -2,10 +2,16 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
+#include "raft.h"
+#include "Slice.h"
 #include "sliceDataStorage.h"
+#include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "infill/DensityProvider.h" // for destructor
+#include "utils/math.h" //For PI.
+#include "utils/logoutput.h"
 
 
 namespace cura
@@ -70,8 +76,14 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const SliceMeshStorage& mesh) const
+Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const
 {
+    if (innermost_walls_cache.count(max_inset) > 0)
+    {
+        return innermost_walls_cache[max_inset];
+    }
+    Polygons& result = innermost_walls_cache.emplace(std::make_pair(max_inset, Polygons())).first->second;
+
     const coord_t half_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0") / 2;
     const coord_t half_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x") / 2;
 
@@ -127,20 +139,22 @@ void SliceLayer::getInnermostWalls(Polygons& layer_walls, int max_inset, const S
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
 
-                layer_walls.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0+15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                result.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0 + 15)).offset(-std::min(half_line_width_0, half_line_width_x)));
             }
             else
             {
                 // the 2nd wall is complete so use it verbatim
-                layer_walls.add(part.insets[1]);
+                result.add(part.insets[1]);
             }
         }
         else
         {
             // fall back to using outer computed above
-            layer_walls.add(outer);
+            result.add(outer);
         }
     }
+
+    return result;
 }
 
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
@@ -353,11 +367,11 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only) const
+Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only) const
 {
     if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
-        if (include_helper_parts)
+        if (include_support)
         {
             if (external_polys_only)
             {
@@ -400,7 +414,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool incl
                 maximum_resolution = std::min(maximum_resolution, mesh.settings.get<coord_t>("meshfix_maximum_resolution"));
             }
         }
-        if (include_helper_parts)
+        if (include_support)
         {
             const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
             if (support.generated) 
@@ -412,9 +426,12 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, bool incl
                 total.add(support_layer.support_bottom);
                 total.add(support_layer.support_roof);
             }
+        }
+        if (include_prime_tower)
+        {
             if (primeTower.enabled)
             {
-                total.add(primeTower.outer_poly);
+                total.add(layer_nr == 0 ? primeTower.outer_poly_first_layer : primeTower.outer_poly);
             }
         }
         total.simplify(maximum_resolution, maximum_resolution);
@@ -574,6 +591,70 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings.get<bool>("prime_blob_enable");
 }
 
+Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
+{
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+    Polygon border{};
+    switch(mesh_group_settings.get<BuildPlateShape>("machine_shape"))
+    {
+        case BuildPlateShape::ELLIPTIC:
+        {
+            //Construct an ellipse to approximate the build volume.
+            const coord_t width = machine_size.max.x - machine_size.min.x;
+            const coord_t depth = machine_size.max.y - machine_size.min.y;
+            constexpr unsigned int circle_resolution = 50;
+            for (unsigned int i = 0; i < circle_resolution; i++)
+            {
+                const double angle = M_PI * 2 * i / circle_resolution;
+                border.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2,
+                                    machine_size.getMiddle().y + std::sin(angle) * depth / 2);
+            }
+            break;
+        }
+        case BuildPlateShape::RECTANGULAR:
+        default:
+            border = machine_size.flatten().toPolygon();
+            break;
+    }
+    if (!adhesion_offset) {
+        return border;
+    }
+
+    coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
+    const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    coord_t extra_skirt_line_width = 0;
+    const std::vector<bool> is_extruder_used = getExtrudersUsed();
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+    {
+        if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+        {
+            continue;
+        }
+        const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+        extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+    }
+    switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
+    {
+        case EPlatformAdhesion::BRIM:
+            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
+            break;
+        case EPlatformAdhesion::RAFT:
+            adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
+            break;
+        case EPlatformAdhesion::SKIRT:
+            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
+            break;
+        case EPlatformAdhesion::NONE:
+            adhesion_size = 0;
+            break;
+        default: //Also use 0.
+            log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
+            break;
+    }
+    return border.offset(-adhesion_size)[0];
+}
+
 
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
@@ -601,6 +682,12 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
         }
 
         std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
+
+        if (smaller_support_islands.empty())
+        { // extra safety guard in case result_polygons consists of too small polygons which are automatically removed in splitIntoParts
+            to_remove_part_indices.push_back(part_idx);
+            continue;
+        }
 
         // there are one or more smaller parts.
         // we first replace the current part with one of the smaller parts,

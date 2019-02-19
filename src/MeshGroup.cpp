@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "MeshGroup.h"
+#include "utils/floatpoint.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"

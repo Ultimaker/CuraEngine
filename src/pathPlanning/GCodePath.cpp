@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GCodePath.h"
+#include "../GCodePathConfig.h"
 
 namespace cura
 {
@@ -11,15 +12,16 @@ mesh_id(mesh_id),
 space_fill_type(space_fill_type),
 flow(flow),
 speed_factor(speed_factor),
+retract(false),
+perform_z_hop(false),
+perform_prime(false),
+skip_agressive_merge_hint(false),
+points(std::vector<Point>()),
+done(false),
 spiralize(spiralize),
-fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT)
+fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT),
+estimates(TimeMaterialEstimates())
 {
-    retract = false;
-    perform_z_hop = false;
-    perform_prime = false;
-    points = std::vector<Point>();
-    done = false;
-    estimates = TimeMaterialEstimates();
 }
 
 bool GCodePath::isTravelPath() const

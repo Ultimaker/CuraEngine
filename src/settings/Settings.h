@@ -18,13 +18,8 @@
 #include <unordered_map>
 #include <sstream>
 
-#include "EnumSettings.h"
-#include "../utils/string.h"
-
 namespace cura
 {
-
-class ExtruderTrain; //Forward declaration to save compilation time.
 
 /*!
  * \brief Container for a set of settings.

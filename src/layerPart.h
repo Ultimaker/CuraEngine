@@ -4,9 +4,6 @@
 #ifndef LAYERPART_H
 #define LAYERPART_H
 
-#include "sliceDataStorage.h"
-#include "slicer.h"
-
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
 It takes the result of the Slice step, which is an unordered list of polygons, and makes groups of polygons,
@@ -19,7 +16,14 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
-namespace cura {
+namespace cura
+{
+
+class Settings;
+class SliceLayer;
+class Slicer;
+class SlicerLayer;
+class SliceMeshStorage;
 
 /*!
  * \brief Split a layer into parts.
