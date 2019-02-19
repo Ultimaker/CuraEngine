@@ -2,7 +2,10 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
+#include "LayerPlan.h"
 #include "MergeInfillLines.h"
+#include "Slice.h"
 #include "PrintFeature.h"
 #include "utils/linearAlg2D.h"
 

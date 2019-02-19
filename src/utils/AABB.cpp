@@ -1,8 +1,9 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
-
-#include "AABB.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <limits>
+#include "AABB.h"
+#include "polygon.h" //To create the AABB of a polygon.
 
 namespace cura
 {
@@ -39,9 +40,9 @@ void AABB::calculate(const Polygons& polys)
 {
     min = Point(POINT_MAX, POINT_MAX);
     max = Point(POINT_MIN, POINT_MIN);
-    for(unsigned int i=0; i<polys.size(); i++)
+    for (unsigned int i = 0; i < polys.size(); i++)
     {
-        for(unsigned int j=0; j<polys[i].size(); j++)
+        for (unsigned int j = 0; j < polys[i].size(); j++)
         {
             include(polys[i][j]);
         }

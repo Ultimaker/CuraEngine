@@ -5,10 +5,16 @@
 #include <limits> // numeric_limits
 
 #include "Application.h"
+#include "bridge.h"
+#include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
 #include "GcodeLayerThreader.h"
+#include "infill.h"
 #include "InsetOrderOptimizer.h"
+#include "LayerPlan.h"
+#include "raft.h"
+#include "Slice.h"
 #include "wallOverlap.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "infill/SpaghettiInfillPathGenerator.h"
@@ -33,13 +39,14 @@ FffGcodeWriter::FffGcodeWriter()
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    gcode.preSetup();
+    const size_t start_extruder_nr = getStartExtruder(storage);
+    gcode.preSetup(start_extruder_nr);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialTemps(getStartExtruder(storage));
+        gcode.setInitialTemps(start_extruder_nr);
     }
 
     Application::getInstance().communication->beginGCode();
@@ -50,7 +57,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
-        unsigned int start_extruder_nr = getStartExtruder(storage);
         processStartingCode(storage, start_extruder_nr);
     }
     else
@@ -464,7 +470,9 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
-        gcode.writeCode("T0");
+        std::ostringstream tmp;
+        tmp << "T" << start_extruder_nr;
+        gcode.writeLine(tmp.str().c_str());
     }
     else
     {
@@ -547,6 +555,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
+    std::optional<Point> last_planned_position = std::optional<Point>();
 
     unsigned int current_extruder_nr = extruder_nr;
 
@@ -608,6 +617,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
     { // raft interface layer
@@ -657,9 +667,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
         infill_comp.generate(raft_polygons, raftLines);
-        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
     
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
@@ -712,7 +723,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
         infill_comp.generate(raft_polygons, raft_lines);
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
@@ -848,9 +859,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
                 {
                     addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
                 }
-                
-                // path optimization is currently broken when using gyroid infill
-                disable_path_optimisation = disable_path_optimisation || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::GYROID;
             }
         }
         // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!

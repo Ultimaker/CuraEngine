@@ -18,8 +18,6 @@ namespace Arcus
 
 namespace cura
 {
-//Forward declarations to speed up compilation.
-class Slice;
 
 /*
  * \brief Communication class that connects via libArcus to Cura's front-end.

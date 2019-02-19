@@ -2,11 +2,16 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
+#include "raft.h"
+#include "Slice.h"
 #include "sliceDataStorage.h"
+#include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "infill/DensityProvider.h" // for destructor
 #include "utils/math.h" //For PI.
+#include "utils/logoutput.h"
 
 
 namespace cura
@@ -426,7 +431,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
         {
             if (primeTower.enabled)
             {
-                total.add(primeTower.outer_poly);
+                total.add(layer_nr == 0 ? primeTower.outer_poly_first_layer : primeTower.outer_poly);
             }
         }
         total.simplify(maximum_resolution, maximum_resolution);

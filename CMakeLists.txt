@@ -1,4 +1,4 @@
-#Copyright (c) 2018 Ultimaker B.V.
+#Copyright (c) 2019 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 project(CuraEngine)
@@ -11,6 +11,11 @@ option (ENABLE_ARCUS
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
+    # We want to have access to protobuf_generate_cpp and other FindProtobuf features.
+    # However, if ProtobufConfig is used instead, there is a CMake option that controls
+    # this, which defaults to OFF. We need to force this option to ON instead.
+    set(protobuf_MODULE_COMPATIBLE ON CACHE "" INTERNAL FORCE)
+    find_package(Protobuf 3.0.0 REQUIRED)
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
 endif ()
@@ -184,6 +189,7 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
+    GCodeExportTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
@@ -198,12 +204,12 @@ if (ENABLE_ARCUS)
     )
 endif ()
 set(engine_TEST_UTILS
-    SparseGridTest
     IntPointTest
     LinearAlg2DTest
     PolygonConnectorTest
     PolygonUtilsTest
     PolygonTest
+    SparseGridTest
     StringTest
     UnionFindTest
 )
@@ -269,29 +275,29 @@ if (BUILD_TESTS)
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
-        add_test(${test} ${test})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
     endforeach()
     foreach (test ${engine_TEST_INFILL})
         add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
-        add_test(${test} ${test})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
     endforeach()
     foreach (test ${engine_TEST_SETTINGS})
         add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
-        add_test(${test} ${test})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
     endforeach()
     if (ENABLE_ARCUS)
         foreach (test ${engine_TEST_ARCUS})
             add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
             target_link_libraries(${test} _CuraEngine cppunit)
-            add_test(${test} ${test})
+            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
         endforeach()
     endif ()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
-        add_test(${test} ${test})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
     endforeach()
 endif()
 
