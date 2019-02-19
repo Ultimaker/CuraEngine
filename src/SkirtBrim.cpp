@@ -1,9 +1,14 @@
 //Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SkirtBrim.h"
-#include "support.h"
 #include "Application.h"
+#include "ExtruderTrain.h"
+#include "SkirtBrim.h"
+#include "Slice.h"
+#include "sliceDataStorage.h"
+#include "support.h"
+#include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 
 namespace cura 
 {
@@ -16,15 +21,17 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     const LayerIndex layer_nr = 0;
     if (is_skirt)
     {
-        const bool include_helper_parts = true;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        constexpr bool include_support = true;
+        constexpr bool include_prime_tower = true;
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only);
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        constexpr bool include_helper_parts = false; // include manually below
+        constexpr bool include_support = false; //Include manually below.
+        constexpr bool include_prime_tower = false; //Include manually below.
         constexpr bool external_outlines_only = false; //Remove manually below.
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_outlines_only);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)
@@ -62,7 +69,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         }
         if (storage.primeTower.enabled)
         {
-            first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
+            first_layer_outline.add(storage.primeTower.outer_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }
     }
     constexpr coord_t join_distance = 20;
@@ -72,7 +79,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
     if (first_layer_outline.size() == 0)
     {
-        logError("Couldn't generate skirt / brim! No polygons on first layer.");
+        logError("Couldn't generate skirt / brim! No polygons on first layer.\n");
     }
 }
 
@@ -108,7 +115,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count)
+void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count)
 {
     const bool is_skirt = start_distance > 0;
 
@@ -119,9 +126,6 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     const coord_t primary_extruder_minimal_length = adhesion_settings.get<coord_t>("skirt_brim_minimal_length");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
-
-    Polygons first_layer_outline;
-    getFirstLayerOutline(storage, primary_line_count, is_skirt, first_layer_outline);
 
     const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;

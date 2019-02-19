@@ -5,7 +5,6 @@
 
 #include <algorithm>
 
-#include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
 #include "../utils/SVG.h"
 

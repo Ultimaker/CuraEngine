@@ -4,12 +4,8 @@
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
-#include "settings/Settings.h"
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
-#include "Weaver.h"
-#include "Wireframe2gcode.h"
-#include "progress/Progress.h"
 #include "utils/gettime.h"
 #include "utils/NoCopy.h"
 

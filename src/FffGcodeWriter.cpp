@@ -5,10 +5,16 @@
 #include <limits> // numeric_limits
 
 #include "Application.h"
+#include "bridge.h"
+#include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
 #include "GcodeLayerThreader.h"
+#include "infill.h"
 #include "InsetOrderOptimizer.h"
+#include "LayerPlan.h"
+#include "raft.h"
+#include "Slice.h"
 #include "wallOverlap.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "infill/SpaghettiInfillPathGenerator.h"
@@ -33,13 +39,14 @@ FffGcodeWriter::FffGcodeWriter()
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    gcode.preSetup();
+    const size_t start_extruder_nr = getStartExtruder(storage);
+    gcode.preSetup(start_extruder_nr);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialTemps(getStartExtruder(storage));
+        gcode.setInitialTemps(start_extruder_nr);
     }
 
     Application::getInstance().communication->beginGCode();
@@ -50,7 +57,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
-        unsigned int start_extruder_nr = getStartExtruder(storage);
         processStartingCode(storage, start_extruder_nr);
     }
     else
@@ -464,7 +470,9 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     {
-        gcode.writeCode("T0");
+        std::ostringstream tmp;
+        tmp << "T" << start_extruder_nr;
+        gcode.writeLine(tmp.str().c_str());
     }
     else
     {
@@ -547,6 +555,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
+    std::optional<Point> last_planned_position = std::optional<Point>();
 
     unsigned int current_extruder_nr = extruder_nr;
 
@@ -608,6 +617,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
     { // raft interface layer
@@ -657,9 +667,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
         infill_comp.generate(raft_polygons, raftLines);
-        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
     
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
@@ -712,7 +723,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution
             );
         infill_comp.generate(raft_polygons, raft_lines);
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
@@ -785,7 +796,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     coord_t max_inner_wall_width = 0;
     for (const SliceMeshStorage& mesh : storage.meshes)
     {
-        max_inner_wall_width = std::max(max_inner_wall_width, mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
+        max_inner_wall_width = std::max(max_inner_wall_width, mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0"));
         if (layer_nr == 0)
         {
             const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
@@ -848,9 +859,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
                 {
                     addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
                 }
-                
-                // path optimization is currently broken when using gyroid infill
-                disable_path_optimisation = disable_path_optimisation || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::GYROID;
             }
         }
         // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
@@ -1525,7 +1533,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
             {
                 const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-                const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+                const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
                 const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
                 if (support_layer_nr > 0)
@@ -1816,6 +1824,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 {
     bool added_something = false;
 
+    gcode_layer.mode_skip_agressive_merge = true;
+
     // add roofing
     Polygons roofing_concentric_perimeter_gaps; // the perimeter gaps of the insets of concentric skin pattern of this skin part
     processRoofing(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, roofing_concentric_perimeter_gaps, added_something);
@@ -1836,6 +1846,8 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 
         processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, perimeter_gaps, mesh_config.perimeter_gap_config, added_something);
     }
+
+    gcode_layer.mode_skip_agressive_merge = false;
     return added_something;
 }
 
@@ -1933,7 +1945,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = std::max(0U, round_up_divide(z_distance_top, layer_height)) + 1;
+        const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
         support_layer_nr = layer_nr - z_distance_top_layers;
     }
 
@@ -2164,6 +2176,8 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     constexpr coord_t pocket_size = 0;
     const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
 
+    gcode_layer.mode_skip_agressive_merge = false;
+
     Infill infill_comp(
         EFillMethod::LINES, zig_zaggify_infill, connect_polygons, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, infill_multiplier, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift,
         wall_line_count, infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
@@ -2175,6 +2189,8 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         gcode_layer.addLinesByOptimizer(gap_lines, perimeter_gap_config, SpaceFillType::Lines);
     }
+
+    gcode_layer.mode_skip_agressive_merge = true;
 }
 
 bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const

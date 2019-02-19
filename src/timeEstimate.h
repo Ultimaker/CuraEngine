@@ -10,11 +10,12 @@
 
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
-#include "settings/types/Ratio.h" //For speed factors.
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
 
 namespace cura
 {
+
+class Ratio;
 class Settings;
 
 /*!

@@ -2,6 +2,9 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
+#include "sliceDataStorage.h"
+#include "slicer.h"
+#include "settings/EnumSettings.h" //For ESurfaceMode.
 #include "settings/Settings.h"
 #include "progress/Progress.h"
 

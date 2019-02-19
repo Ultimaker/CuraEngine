@@ -8,27 +8,24 @@
 
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
-#include "GCodePathConfig.h"
 #include "pathOrderOptimizer.h"
 #include "SpaceFillType.h"
-#include "wallOverlap.h"
-#include "pathPlanning/Comb.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/logoutput.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
 
 namespace cura 
 {
 
-class SliceDataStorage;
-
+class Comb;
 class LayerPlan; // forward declaration so that ExtruderPlan can be a friend
 class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
+class SliceDataStorage;
+class WallOverlapComputation;
 
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
@@ -240,6 +237,7 @@ private:
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
     int z;
+    bool mode_skip_agressive_merge; //!< Wheter to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
     const LayerIndex layer_nr; //!< The layer number of this layer plan

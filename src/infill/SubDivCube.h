@@ -4,12 +4,16 @@
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
-#include "../sliceDataStorage.h"
+#include "../settings/types/Ratio.h"
+#include "../utils/IntPoint.h"
+#include "../utils/Point3.h"
 
 namespace cura
 {
 
-class Infill;
+class LayerIndex;
+class Polygons;
+class SliceMeshStorage;
 
 class SubDivCube
 {

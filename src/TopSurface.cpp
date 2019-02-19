@@ -3,6 +3,7 @@
 
 #include "infill.h"
 #include "LayerPlan.h"
+#include "sliceDataStorage.h"
 #include "TopSurface.h"
 
 namespace cura
@@ -49,6 +50,8 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);
 
+    layer.mode_skip_agressive_merge = true;
+
     if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
     {
         //Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
@@ -84,6 +87,8 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, false, 0, ironing_flow);
         added = true;
     }
+
+    layer.mode_skip_agressive_merge = false;
     return added;
 }
 

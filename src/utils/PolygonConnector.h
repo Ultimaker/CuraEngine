@@ -1,13 +1,13 @@
-/** Copyright (C) 2018 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_POLYGON_CONNECTOR_H
 #define UTILS_POLYGON_CONNECTOR_H
 
 #include <vector>
 
-#include "optional.h"
-
-#include "polygon.h"
 #include "IntPoint.h"
+#include "polygon.h"
 #include "polygonUtils.h"
 
 namespace cura 
