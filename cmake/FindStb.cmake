@@ -44,6 +44,7 @@ else()
         include(ExternalProject)
         ExternalProject_Add(stb
             GIT_REPOSITORY "https://github.com/nothings/stb.git"
+            UPDATE_DISCONNECTED TRUE
             CONFIGURE_COMMAND "" #We don't want to actually go and build/test/generate it. Just need to download the headers.
             BUILD_COMMAND ""
             INSTALL_COMMAND "" #Assume that the user doesn't want to install all dependencies on his system. We just need to get them for building the application.

@@ -4,29 +4,29 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-
 #include <fstream>
-#include "utils/gettime.h"
-#include "utils/logoutput.h"
-#include "utils/NoCopy.h"
-#include "utils/polygonUtils.h"
-#include "sliceDataStorage.h"
-#include "raft.h"
-#include "infill.h"
-#include "bridge.h"
-#include "pathOrderOptimizer.h"
-#include "LayerPlan.h"
-#include "gcodeExport.h"
-#include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
-#include "PrintFeature.h"
-
-
+#include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
+#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
+#include "utils/NoCopy.h"
 
+namespace std
+{
+template<typename T> class optional;
+}
 
 namespace cura 
 {
+
+class AngleDegrees;
+class Polygons;
+class SkinPart;
+class SliceDataStorage;
+class SliceMeshStorage;
+class SliceLayer;
+class SliceLayerPart;
+class TimeKeeper;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.

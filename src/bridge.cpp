@@ -2,8 +2,13 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge.h"
+#include "sliceDataStorage.h"
+#include "settings/types/Ratio.h"
+#include "utils/AABB.h"
+#include "utils/polygon.h"
 
-namespace cura {
+namespace cura
+{
 
 int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions)
 {

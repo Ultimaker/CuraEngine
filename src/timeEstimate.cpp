@@ -14,7 +14,7 @@
 namespace cura
 {
 
-#define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
+#define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
 
 void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
 {
@@ -92,6 +92,35 @@ static inline double intersection_distance(const Velocity& initial_rate, const V
     {
         return 0.0;
     }
+
+    /*
+     * Calculate the intersection point of two time-velocity formulas: One for
+     * accelerating and one for decelerating.
+     * Imagine a graph that plots velocity [v] against position [d] (different
+     * from the other code in this class, which compares velocity with time).
+     * In this graph, the accelerating part will have the formula:
+     * v = sqrt(2ad + v_i²)
+     * Where:
+     * * v := velocity
+     * * a := acceleration
+     * * d := distance (the unknown variable)
+     * * v_i := initial velocity
+     * Similarly, the decelerating part will have the formula:
+     * v = sqrt(2a(D - d) + v_f²)
+     * Where:
+     * * D := total line length
+     * * v_f := final velocity at the end of the line
+     * To find the position where we need to start decelerating, simply find the
+     * position where the velocity in these formulas is the same. In other words
+     * solve this formula for d:
+     * sqrt(2ad + v_i²) = sqrt(2a(D - d) + v_f²)
+     * 2ad + v_i² = 2a(D - d) + v_f² [square both sides]
+     * 2ad - 2a(D - d) = v_f² - v_i² [+v_i², -2a(D - d) on both sides]
+     * d - (D - d) = (v_f² - v_i²) / 2a [divide by 2a on both sides, expand brackets]
+     * 2d - D = (v_f² - v_i²) / 2a [expand brackets on the left]
+     * 2d = (2aD + v_f² - v_i²) / 2a [+D on both sides, but on the right multiply it by 2a to put it in the brackets]
+     * d = (2aD + v_f² - v_i²) / 4a [divide by 2 on both sides]
+     */
     return (2.0 * acceleration * distance - square(initial_rate) + square(final_rate)) / (4.0 * acceleration);
 }
 
@@ -104,7 +133,7 @@ static inline double acceleration_time_from_distance(const Velocity& initial_fee
     discriminant = std::max(0.0, discriminant);
     return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
-    
+
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
 void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, const Ratio entry_factor, const Ratio exit_factor)
 {
@@ -196,8 +225,8 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
     }
     
-    Velocity vmax_junction = max_xy_jerk / 2; 
-    Ratio vmax_junction_factor = 1.0; 
+    Velocity vmax_junction = max_xy_jerk / 2;
+    Ratio vmax_junction_factor = 1.0;
     if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
     {
         vmax_junction = std::min(vmax_junction, max_z_jerk / 2);
@@ -227,7 +256,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }
-    
+
     block.max_entry_speed = vmax_junction;
 
     const Velocity v_allowable = max_allowable_speed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
@@ -296,7 +325,7 @@ void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block 
 void TimeEstimateCalculator::reverse_pass()
 {
     Block* block[3] = {nullptr, nullptr, nullptr};
-    for(unsigned int n = blocks.size() - 1; int(n) >= 0; n--)
+    for(size_t n = blocks.size() - 1; int(n) >= 0; n--)
     {
         block[2]= block[1];
         block[1]= block[0];
@@ -337,7 +366,7 @@ void TimeEstimateCalculator::planner_forward_pass_kernel(Block *previous, Block 
 void TimeEstimateCalculator::forward_pass()
 {
     Block* block[3] = {nullptr, nullptr, nullptr};
-    for(unsigned int n=0; n<blocks.size(); n++)
+    for(size_t n = 0; n < blocks.size(); n++)
     {
         block[0]= block[1];
         block[1]= block[2];

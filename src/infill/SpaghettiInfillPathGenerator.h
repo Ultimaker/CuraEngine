@@ -5,15 +5,16 @@
 #define INFILL_SPAGHETTI_INFILL_PATH_GENERATOR_H
 
 #include <list>
+#include "../settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 
-#include "../utils/IntPoint.h"
-#include "../utils/polygon.h"
-#include "../sliceDataStorage.h"
-#include "../LayerPlan.h"
-
-namespace cura {
+namespace cura
+{
 
 class FffGcodeWriter;
+class LayerPlan;
+class SliceDataStorage;
+class SliceLayerPart;
+class SliceMeshStorage;
 
 /*!
  * Spaghetti infill is a type of infill which fills every so many layers, but extrudes as much filament corresponding to the total unfilled volume under the filling area.
@@ -36,7 +37,7 @@ public:
      * 
      * Move over the infill region with a zigzag pattern and
      * extrude as much material as needed for the current part
-     * and all parts below which should be filled withthis spaghetti.
+     * and all parts below which should be filled with this spaghetti.
      * 
      * \param storage Where to get the secondary brim lines from if we are
      * adding spaghetti on the very first layer and we need to prime first.

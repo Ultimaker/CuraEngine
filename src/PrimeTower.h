@@ -6,18 +6,14 @@
 
 #include <vector>
 
-#include "GCodePathConfig.h"
-#include "MeshGroup.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
 namespace cura 
 {
 
-    
 class SliceDataStorage;
 class LayerPlan;
-class GCodeExport;
 
 /*!
  * Class for everything to do with the prime tower:
@@ -49,6 +45,7 @@ private:
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     Polygons outer_poly; //!< The outline of the outermost prime tower.
+    Polygons outer_poly_first_layer; //!< The outermost outline, plus optional brim on 'brim for prime tower' is enabled.
 
     /*
      * In which order, from outside to inside, will we be printing the prime

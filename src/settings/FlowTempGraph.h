@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "types/Temperature.h"
-#include "../utils/logoutput.h"
 
 namespace cura
 {

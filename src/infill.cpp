@@ -2,18 +2,22 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
+#include <functional>
 #include <unordered_set>
 
 #include "infill.h"
-#include "functional"
-#include "utils/polygonUtils.h"
-#include "utils/logoutput.h"
-#include "utils/UnionFind.h"
-#include "infill/SierpinskiFill.h"
+#include "sliceDataStorage.h"
 #include "infill/ImageBasedDensityProvider.h"
-#include "utils/PolygonConnector.h"
-#include "infill/UniformDensityProvider.h"
 #include "infill/GyroidInfill.h"
+#include "infill/NoZigZagConnectorProcessor.h"
+#include "infill/SierpinskiFill.h"
+#include "infill/SierpinskiFillProvider.h"
+#include "infill/SubDivCube.h"
+#include "infill/UniformDensityProvider.h"
+#include "utils/logoutput.h"
+#include "utils/PolygonConnector.h"
+#include "utils/polygonUtils.h"
+#include "utils/UnionFind.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
