@@ -4,8 +4,6 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
-#include "pathPlanning/GCodePath.h" //To accept and generate g-code paths.
-
 namespace cura
 {
 

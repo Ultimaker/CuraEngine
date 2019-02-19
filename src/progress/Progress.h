@@ -6,10 +6,10 @@
 
 #include <string>
 
-#include "../utils/logoutput.h"
-#include "../utils/gettime.h"
+namespace cura
+{
 
-namespace cura {
+class TimeKeeper;
 
 #define N_PROGRESS_STAGES 7
 

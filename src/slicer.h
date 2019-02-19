@@ -1,18 +1,23 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SLICER_H
 #define SLICER_H
 
 #include <queue>
-
-#include "mesh.h"
+#include <unordered_map>
 #include "utils/polygon.h"
-#include "settings/AdaptiveLayerHeights.h"
+
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
 */
-namespace cura {
+namespace cura
+{
+
+class AdaptiveLayer;
+class Mesh;
+class MeshVertex;
 
 class SlicerSegment
 {
@@ -23,7 +28,7 @@ public:
     int endOtherFaceIdx = -1;
     // If end corresponds to a vertex of the mesh, then this is populated
     // with the vertex that it ended on.
-    const MeshVertex *endVertex = nullptr;
+    const MeshVertex* endVertex = nullptr;
     bool addedToPolygon = false;
 };
 
@@ -31,7 +36,6 @@ class ClosePolygonResult
 {   //The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
     //The line on which the point lays is between pointIdx-1 and pointIdx
 public:
-    Point intersectionPoint;
     int polygonIdx = -1;
     unsigned int pointIdx = -1;
 };

@@ -1,7 +1,12 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "ExtruderTrain.h"
+#include "FffGcodeWriter.h"
 #include "InsetOrderOptimizer.h"
+#include "LayerPlan.h"
+#include "wallOverlap.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {
@@ -67,7 +72,7 @@ void InsetOrderOptimizer::processHoleInsets()
     const coord_t max_gap = std::max(wall_line_width_0, wall_line_width_x) * 1.1f; // if polys are closer than this, they are considered adjacent
     const coord_t wall_0_wipe_dist = mesh.settings.get<coord_t>("wall_0_wipe_dist");
     const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
-    const bool outer_inset_first = mesh.settings.get<coord_t>("outer_inset_first")
+    const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first")
         || (layer_nr == 0 && mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM);
     const unsigned int num_insets = part.insets.size();
     constexpr float flow = 1.0;

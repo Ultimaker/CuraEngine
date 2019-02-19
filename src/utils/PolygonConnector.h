@@ -1,13 +1,13 @@
-/** Copyright (C) 2018 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_POLYGON_CONNECTOR_H
 #define UTILS_POLYGON_CONNECTOR_H
 
 #include <vector>
 
-#include "optional.h"
-
-#include "polygon.h"
 #include "IntPoint.h"
+#include "polygon.h"
 #include "polygonUtils.h"
 
 namespace cura 
@@ -81,6 +81,11 @@ protected:
         ClosestPolygonPoint from; //!< from location in the source polygon
         ClosestPolygonPoint to; //!< to location in the destination polygon
 
+        PolygonConnection(ClosestPolygonPoint from, ClosestPolygonPoint to)
+        : from(from)
+        , to(to)
+        {}
+
         coord_t getDistance2()
         {
             return vSize2(to.p() - from.p());
@@ -101,6 +106,9 @@ protected:
     {
         PolygonConnection a; //!< first connection
         PolygonConnection b; //!< second connection
+        PolygonBridge(PolygonConnection a, PolygonConnection b)
+        : a(a), b(b)
+        {}
     };
 
     std::vector<PolygonBridge> all_bridges; //!< All bridges generated during any call to \ref PolygonConnector::connect(). This is just for keeping scores for debugging etc.
@@ -157,22 +165,17 @@ protected:
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
 
     /*!
-     * Find the smallest single connection between a polygon \p poly and all \p polygons
-     */
-    std::optional<PolygonConnection> getConnection(ConstPolygonRef poly, std::vector<Polygon>& polygons);
-
-    /*!
-     * Get a connection parallel to a given \p first connection at an orthogonal distance \p shift from the \p first connection.
+     * Get a connection parallel to a given \p first connection at an orthogonal distance line_width from the \p first connection.
      * 
      * From a given \p first connection,
      * walk along both polygons in each direction
-     * until we are at a distance of \p shift away orthogonally from the line segment of the \p first connection.
+     * until we are at a distance of line_width away orthogonally from the line segment of the \p first connection.
      * 
      * For all combinations of such found points:
      * - check whether they are both on the same side of the \p first connection
      * - choose the connection which woukd form the smalles bridge
      */
-    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first, coord_t shift);
+    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
 };
 
 

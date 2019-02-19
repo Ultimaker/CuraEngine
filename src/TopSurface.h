@@ -1,15 +1,16 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TOPSURFACE_H
 #define TOPSURFACE_H
 
 #include "utils/polygon.h" //For the polygon areas.
-#include "sliceDataStorage.h" //For the input mesh.
 
 namespace cura
 {
 
+class GCodePathConfig;
+class LayerPlan;
 class SliceMeshStorage;
 
 class TopSurface
