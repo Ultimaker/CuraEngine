@@ -349,8 +349,16 @@ std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
     return ret;
 }
 
+std::vector<WipeScriptConfig> SliceDataStorage::initializeWipeConfigs()
+{
+    std::vector<WipeScriptConfig> ret;
+    ret.resize(Application::getInstance().current_slice->scene.extruders.size());
+    return ret;
+}
+
 SliceDataStorage::SliceDataStorage()
 : print_layer_count(0)
+, wipe_config_per_extruder(initializeWipeConfigs())
 , retraction_config_per_extruder(initializeRetractionConfigs())
 , extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs())
 , max_print_height_second_to_last_extruder(-1)
