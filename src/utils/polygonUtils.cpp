@@ -1,12 +1,14 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
-#include "polygonUtils.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
 #include <sstream>
 #include <unordered_set>
 
 #include "linearAlg2D.h"
+#include "polygonUtils.h"
 #include "SparsePointGridInclusive.h"
+#include "../utils/logoutput.h"
 
 #ifdef DEBUG
 #include "AABB.h"

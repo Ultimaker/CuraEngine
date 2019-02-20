@@ -2,10 +2,16 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "sliceDataStorage.h"
 #include "TreeSupport.h"
 #include "progress/Progress.h"
+#include "settings/EnumSettings.h"
 #include "settings/types/AngleRadians.h" //Creating the correct branch angles.
+#include "settings/types/Ratio.h"
 #include "utils/IntPoint.h" //To normalize vectors.
+#include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.

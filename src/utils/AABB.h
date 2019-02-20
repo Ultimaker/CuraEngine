@@ -4,15 +4,15 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-
 #include "IntPoint.h"
-#include "polygon.h"
-
 
 namespace cura
 {
-    
-    
+
+class ConstPolygonRef;
+class Polygon;
+class Polygons;
+
 /* Axis aligned boundary box */
 class AABB
 {

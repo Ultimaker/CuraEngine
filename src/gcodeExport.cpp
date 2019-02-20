@@ -1,16 +1,21 @@
 //Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <stdarg.h>
-#include <iomanip>
+#include <assert.h>
 #include <cmath>
+#include <iomanip>
+#include <stdarg.h>
 
 #include "Application.h" //To send layer view data.
-#include "communication/Communication.h" //To send layer view data.
+#include "ExtruderTrain.h"
 #include "gcodeExport.h"
-#include "utils/logoutput.h"
 #include "PrintFeature.h"
+#include "RetractionConfig.h"
+#include "Slice.h"
+#include "communication/Communication.h" //To send layer view data.
+#include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
+#include "utils/logoutput.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura {

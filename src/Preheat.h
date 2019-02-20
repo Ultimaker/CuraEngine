@@ -7,16 +7,13 @@
 #include <cassert>
 #include <algorithm> // max
 
-#include "utils/logoutput.h"
-#include "MeshGroup.h"
-
-#include "settings/FlowTempGraph.h"
-
+#include "settings/types/Duration.h"
+#include "settings/types/Temperature.h"
 
 namespace cura 
 {
 
-
+class Ratio;
 
 /*!
  * Class for computing heatup and cooldown times used for computing the time the printer needs to heat up to a printing temperature.

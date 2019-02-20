@@ -1,16 +1,21 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
 
 #include "Application.h" //To communicate layer view data.
+#include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "MergeInfillLines.h"
-#include "pathOrderOptimizer.h"
 #include "raft.h" // getTotalExtraLayers
+#include "Slice.h"
 #include "sliceDataStorage.h"
+#include "wallOverlap.h"
 #include "communication/Communication.h"
+#include "pathPlanning/Comb.h"
+#include "pathPlanning/CombPaths.h"
 #include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
 
 namespace cura {

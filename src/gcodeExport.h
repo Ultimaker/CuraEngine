@@ -8,11 +8,10 @@
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #include <sstream> // for stream.str()
 
+#include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "timeEstimate.h"
-#include "MeshGroup.h"
-#include "RetractionConfig.h"
-#include "settings/Settings.h"
-#include "settings/types/Ratio.h"
+#include "settings/EnumSettings.h"
+#include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
 #include "utils/IntPoint.h"
@@ -22,6 +21,7 @@ namespace cura
 {
 
 class LayerIndex;
+class RetractionConfig;
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.

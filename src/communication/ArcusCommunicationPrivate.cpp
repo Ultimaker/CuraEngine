@@ -5,6 +5,11 @@
 
 #include "ArcusCommunicationPrivate.h"
 #include "../Application.h"
+#include "../ExtruderTrain.h"
+#include "../Slice.h"
+#include "../settings/types/LayerIndex.h"
+#include "../utils/floatpoint.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {

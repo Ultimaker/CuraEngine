@@ -5,12 +5,15 @@
 #define PATH_PLANNING_G_CODE_PATH_H
 
 #include "../SpaceFillType.h"
-#include "../GCodePathConfig.h"
+#include "../settings/types/Ratio.h"
+#include "../utils/IntPoint.h"
 
 #include "TimeMaterialEstimates.h"
 
 namespace cura 
 {
+
+class GCodePathConfig;
 
 /*!
  * A class for representing a planned path.

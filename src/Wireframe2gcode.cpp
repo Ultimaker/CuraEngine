@@ -5,9 +5,12 @@
 #include <fstream> // debug IO
 
 #include "Application.h" //To get the communication channel.
+#include "ExtruderTrain.h"
 #include "pathOrderOptimizer.h" //For skirt/brim.
 #include "PrintFeature.h"
+#include "Slice.h"
 #include "weaveDataStorage.h"
+#include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To write g-code output.
 #include "progress/Progress.h"
