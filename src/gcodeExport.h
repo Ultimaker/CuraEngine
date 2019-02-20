@@ -20,7 +20,7 @@
 namespace cura
 {
 
-class LayerIndex;
+struct LayerIndex;
 class RetractionConfig;
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.

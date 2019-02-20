@@ -13,7 +13,7 @@ namespace cura
 {
 
 class ExtruderTrain;
-class LayerIndex;
+struct LayerIndex;
 class SliceDataStorage;
 class SliceMeshStorage;
 

@@ -8,7 +8,7 @@
 namespace cura
 {
 
-class AABB3D;
+struct AABB3D;
 
 /*!
  * Parent class of function objects which return the density required for a given region.
