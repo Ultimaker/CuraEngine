@@ -9,6 +9,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 option (ENABLE_ARCUS
     "Enable support for ARCUS" ON)
 
+if (MSVC)
+    option(MSVC_STATIC_RUNTIME "Link the MSVC runtime statically" OFF)
+endif()
+
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
     find_package(Arcus REQUIRED)
@@ -68,6 +72,19 @@ endif()
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:twoPhase- /EHsc /W3")
+    if (MSVC_STATIC_RUNTIME)
+        foreach(flag_var
+            CMAKE_CXX_FLAGS
+            CMAKE_CXX_FLAGS_DEBUG
+            CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL
+            CMAKE_CXX_FLAGS_RELWITHDEBINFO
+            )
+            if(${flag_var} MATCHES "/MD")
+                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+            endif()
+        endforeach()
+    endif()
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
 endif()
