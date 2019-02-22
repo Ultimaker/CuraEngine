@@ -276,19 +276,40 @@ INSTANTIATE_TEST_SUITE_P(FindCloseInstantiation, FindCloseTest, testing::Values(
     FindCloseParameters(Point(50, 50), Point(50, 0), 60, &testPenalty) //Using a penalty function.
 ));
 
-/*
-void PolygonUtilsTest::spreadDotsTestSegment()
+class PolygonUtilsTest : public testing::Test
+{
+public:
+    Polygons test_squares;
+
+    PolygonUtilsTest()
+    {
+        Polygon test_square;
+        test_square.emplace_back(0, 0);
+        test_square.emplace_back(100, 0);
+        test_square.emplace_back(100, 100);
+        test_square.emplace_back(0, 100);
+        test_squares.add(test_square);
+    }
+};
+
+TEST_F(PolygonUtilsTest, spreadDotsSegment)
 {
     std::vector<ClosestPolygonPoint> supposed;
     supposed.emplace_back(Point(50, 0), 0, test_squares[0], 0);
     supposed.emplace_back(Point(100, 0), 1, test_squares[0], 0);
     supposed.emplace_back(Point(100, 50), 1, test_squares[0], 0);
 
-    spreadDotsAssert(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, supposed);
+    std::vector<ClosestPolygonPoint> result;
+    PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, result);
+
+    ASSERT_EQ(result.size(), supposed.size());
+    for (size_t point_idx = 0; point_idx < result.size(); point_idx++)
+    {
+        EXPECT_EQ(result[point_idx].p(), supposed[point_idx].p());
+    }
 }
 
-
-void PolygonUtilsTest::spreadDotsTestFull()
+TEST_F(PolygonUtilsTest, spreadDotsFull)
 {
     std::vector<ClosestPolygonPoint> supposed;
     supposed.emplace_back(Point(0, 0), 0, test_squares[0], 0);
@@ -300,29 +321,17 @@ void PolygonUtilsTest::spreadDotsTestFull()
     supposed.emplace_back(Point(0, 100), 3, test_squares[0], 0);
     supposed.emplace_back(Point(0, 50), 3, test_squares[0], 0);
 
-    spreadDotsAssert(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, supposed);
-
-}
-
-
-
-void PolygonUtilsTest::spreadDotsAssert(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, const std::vector<ClosestPolygonPoint>& supposed)
-{
     std::vector<ClosestPolygonPoint> result;
-    PolygonUtils::spreadDots(start, end, n_dots, result);
+    PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, result);
 
-    std::stringstream ss;
-    ss << "PolygonUtils::spreadDots(" << start.point_idx << ", " << end.point_idx << ", " << n_dots << ") generated " << result.size() << " points, rather than " << supposed.size() << "!\n";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), result.size() == supposed.size());
-
-    for (unsigned int point_idx = 0 ; point_idx < result.size(); point_idx++)
+    ASSERT_EQ(result.size(), supposed.size());
+    for (size_t point_idx = 0; point_idx < result.size(); point_idx++)
     {
-        std::stringstream ss;
-        ss << point_idx << "nd point of PolygonUtils::spreadDots(" << start.point_idx << ", " << end.point_idx << ", " << n_dots << ") was " << result[point_idx].p() << ", rather than " << supposed[point_idx].p() << "!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), result[point_idx].p() == supposed[point_idx].p());
+        EXPECT_EQ(result[point_idx].p(), supposed[point_idx].p());
     }
 }
 
+/*
 void PolygonUtilsTest::getNextParallelIntersectionTest1()
 {
     Point start_point(20, 100);
