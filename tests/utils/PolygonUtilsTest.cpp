@@ -379,16 +379,16 @@ TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
 }
 
 INSTANTIATE_TEST_SUITE_P(GetNextParallelIntersectionInstantiation, GetNextParallelIntersectionTest, testing::Values(
-        GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
-        GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
-        GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),
-        GetNextParallelIntersectionParameters(Point(0, 0), Point(50, 100), Point(150, 200), true, 35),
-        GetNextParallelIntersectionParameters(Point(60, 0), Point(10, 0), Point(-90, -100), true, 35),
-        GetNextParallelIntersectionParameters(Point(0, 40), Point(10, 0), Point(-90, -100), false, 35),
-        GetNextParallelIntersectionParameters(Point(0, 75), Point(50, 100), Point(150, 100), true, 25),
-        GetNextParallelIntersectionParameters(Point(25, 100), Point(50, 100), Point(50, 200), true, 25),
-        GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
-        GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)
+    GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
+    GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
+    GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),
+    GetNextParallelIntersectionParameters(Point(0, 0), Point(50, 100), Point(150, 200), true, 35),
+    GetNextParallelIntersectionParameters(Point(60, 0), Point(10, 0), Point(-90, -100), true, 35),
+    GetNextParallelIntersectionParameters(Point(0, 40), Point(10, 0), Point(-90, -100), false, 35),
+    GetNextParallelIntersectionParameters(Point(0, 75), Point(50, 100), Point(150, 100), true, 25),
+    GetNextParallelIntersectionParameters(Point(25, 100), Point(50, 100), Point(50, 200), true, 25),
+    GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
+    GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)
 ));
 
 }
