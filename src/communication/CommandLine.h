@@ -6,6 +6,7 @@
 
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
+#include <unordered_set>
 #include <vector> //To store the command line arguments.
 
 #include "Communication.h" //The class we're implementing.

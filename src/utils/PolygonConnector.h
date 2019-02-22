@@ -7,10 +7,8 @@
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #include <vector>
 
-#include "optional.h"
-
-#include "polygon.h"
 #include "IntPoint.h"
+#include "polygon.h"
 #include "polygonUtils.h"
 
 namespace cura 

@@ -4,7 +4,7 @@
 #ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
-#include "../utils/polygon.h"
+#include "../utils/polygon.h" //TODO: We have implementation in this header file!
 
 namespace cura
 {

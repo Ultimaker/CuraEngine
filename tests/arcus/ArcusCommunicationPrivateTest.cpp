@@ -5,6 +5,7 @@
 #include "MockSocket.h"
 
 #include "../src/Application.h"
+#include "../src/ExtruderTrain.h"
 #include "../src/Slice.h"
 
 namespace cura

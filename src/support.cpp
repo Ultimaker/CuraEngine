@@ -1,10 +1,9 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <cmath> // sqrt
+#include <cmath> // sqrt, round
 #include <utility> // pair
 #include <deque>
-#include <cmath> // round
 #include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
@@ -12,11 +11,19 @@
 #endif // _OPENMP
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "slicer.h"
+#include "sliceDataStorage.h"
 #include "support.h"
 #include "infill/ImageBasedDensityProvider.h"
+#include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
+#include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
+#include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 #include "utils/math.h"
 
 namespace cura 

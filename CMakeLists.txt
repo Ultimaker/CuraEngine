@@ -11,6 +11,11 @@ option (ENABLE_ARCUS
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
+    # We want to have access to protobuf_generate_cpp and other FindProtobuf features.
+    # However, if ProtobufConfig is used instead, there is a CMake option that controls
+    # this, which defaults to OFF. We need to force this option to ON instead.
+    set(protobuf_MODULE_COMPATIBLE ON CACHE "" INTERNAL FORCE)
+    find_package(Protobuf 3.0.0 REQUIRED)
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
 endif ()

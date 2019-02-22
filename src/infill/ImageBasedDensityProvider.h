@@ -5,14 +5,14 @@
 #ifndef INFILL_IMAGE_BASED_DENSITY_PROVIDER_H
 #define INFILL_IMAGE_BASED_DENSITY_PROVIDER_H
 
-#include "../utils/IntPoint.h"
 #include "../utils/AABB.h"
-#include "../utils/AABB3D.h"
 
 #include "DensityProvider.h"
 
 namespace cura
 {
+
+class AABB3D;
 
 class ImageBasedDensityProvider : public DensityProvider
 {

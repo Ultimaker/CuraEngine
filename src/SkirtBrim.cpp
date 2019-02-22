@@ -1,9 +1,14 @@
 //Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SkirtBrim.h"
-#include "support.h"
 #include "Application.h"
+#include "ExtruderTrain.h"
+#include "SkirtBrim.h"
+#include "Slice.h"
+#include "sliceDataStorage.h"
+#include "support.h"
+#include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 
 namespace cura 
 {
@@ -74,7 +79,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
     if (first_layer_outline.size() == 0)
     {
-        logError("Couldn't generate skirt / brim! No polygons on first layer.");
+        logError("Couldn't generate skirt / brim! No polygons on first layer.\n");
     }
 }
 

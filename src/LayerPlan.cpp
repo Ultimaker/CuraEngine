@@ -1,16 +1,21 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
 
 #include "Application.h" //To communicate layer view data.
+#include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "MergeInfillLines.h"
-#include "pathOrderOptimizer.h"
 #include "raft.h" // getTotalExtraLayers
+#include "Slice.h"
 #include "sliceDataStorage.h"
+#include "wallOverlap.h"
 #include "communication/Communication.h"
+#include "pathPlanning/Comb.h"
+#include "pathPlanning/CombPaths.h"
 #include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
 
 namespace cura {
@@ -203,25 +208,34 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
                         outer = outer.offset(outer_to_outline_dist/2+10).unionPolygons(outline_where_outer_is_missing.offset(outer_to_outline_dist/2+10)).offset(-(outer_to_outline_dist/2+10));
                     }
 
-                    Polygons inner; // inner boundary of wall combing region
-
-                    // the inside of the wall combing region is just inside the wall's inner edge so it can meet up with the infill (if any)
-
                     if (num_insets == 0)
                     {
-                        inner = part.outline.offset(-10);
+                        comb_boundary.add(outer);
                     }
-                    else if (num_insets == 1)
+                    else
                     {
-                        inner = part.insets[0].offset(-10-line_width_0/2);
-                    }
-                    else if(num_insets > 1)
-                    {
-                        inner = part.insets[num_insets - 1].offset(-10 - mesh.settings.get<coord_t>("wall_line_width_x") / 2);
-                    }
+                        Polygons inner; // inner boundary of wall combing region
 
-                    // combine the wall combing region (outer - inner) with the infill (if any)
-                    comb_boundary.add(part.infill_area.unionPolygons(outer.difference(inner)));
+                        // the inside of the wall combing region is just inside the wall's inner edge so it can meet up with the infill (if any)
+
+                        if (num_insets == 1)
+                        {
+                            inner = part.insets[0].offset(-10-line_width_0/2);
+                        }
+                        else
+                        {
+                            inner = part.insets[num_insets - 1].offset(-10 - mesh.settings.get<coord_t>("wall_line_width_x") / 2);
+                        }
+
+                        Polygons infill(part.infill_area);
+                        if (part.perimeter_gaps.size() > 0)
+                        {
+                            infill = infill.unionPolygons(part.perimeter_gaps.offset(10)); // ensure polygons overlap slightly
+                        }
+
+                        // combine the wall combing region (outer - inner) with the infill (if any)
+                        comb_boundary.add(infill.unionPolygons(outer.difference(inner)));
+                    }
                 }
             }
             else if (combing_mode == CombingMode::INFILL)

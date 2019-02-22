@@ -4,13 +4,17 @@
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
-#include "sliceDataStorage.h"
-#include "MeshGroup.h"
-#include "slicer.h"
+namespace cura
+{
 
-namespace cura {
+class LayerIndex;
+class Settings;
+class SliceDataStorage;
+class SliceMeshStorage;
+class Slicer;
 
-class AreaSupport {
+class AreaSupport
+{
 public:
     /*!
      * \brief Move support mesh outlines from slicer data into the support

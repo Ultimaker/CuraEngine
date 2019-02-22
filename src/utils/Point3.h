@@ -16,8 +16,6 @@
 namespace cura
 {
 
-using coord_t = ClipperLib::cInt;
-
 class Point3
 {
 public:

@@ -16,7 +16,11 @@
 
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice and get time estimates.
+#include "../Slice.h"
+#include "../utils/floatpoint.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {
