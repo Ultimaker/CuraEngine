@@ -136,54 +136,77 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
         << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2 << ".";
 }
 
-/*void PolygonUtilsTest::cornerFindCloseTest()
+struct FindCloseParameters
 {
-    findCloseAssert(test_square, Point(110,110), Point(100,100), 15);
-}
+    Point close_to;
+    Point supposed;
+    coord_t cell_size;
+    std::function<int(Point)>* penalty_function;
 
-void PolygonUtilsTest::edgeFindCloseTest()
-{
-    findCloseAssert(test_square, Point(50,110), Point(50,100), 15);
-}
-
-void PolygonUtilsTest::middleEdgeFindCloseTest()
-{
-    std::function<int(Point)> penalty_function([](Point candidate){ return -vSize2(candidate - Point(50,100)); }); // further from 50,100 is less penalty
-    findCloseAssert(test_square, Point(50,50), Point(50,0), 60, &penalty_function);
-}
-
-
-void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size, const std::function<int(Point)>* penalty_function)
-{
-    Polygons polys;
-    polys.add(poly);
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
-    
-    std::optional<ClosestPolygonPoint> cpp;
-    if (penalty_function)
+    FindCloseParameters(const Point close_to, const Point supposed, const coord_t cell_size, std::function<int(Point)>* penalty_function = nullptr)
+    : close_to(close_to)
+    , supposed(supposed)
+    , cell_size(cell_size)
+    , penalty_function(penalty_function)
     {
-        cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line, *penalty_function);
+    }
+};
+
+class FindCloseTest : public testing::TestWithParam<FindCloseParameters>
+{
+public:
+    Polygon test_square;
+
+    void SetUp()
+    {
+        test_square.emplace_back(0, 0);
+        test_square.emplace_back(100, 0);
+        test_square.emplace_back(100, 100);
+        test_square.emplace_back(0, 100);
+    }
+};
+
+TEST_P(FindCloseTest, FindClose)
+{
+    const FindCloseParameters parameters = GetParam();
+    Polygons polygons;
+    polygons.add(test_square);
+    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
+
+    std::optional<ClosestPolygonPoint> cpp;
+    if (parameters.penalty_function)
+    {
+        cpp = PolygonUtils::findClose(parameters.close_to, polygons, *loc_to_line, *parameters.penalty_function);
     }
     else
     {
-        cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line);
+        cpp = PolygonUtils::findClose(parameters.close_to, polygons, *loc_to_line);
     }
+
     if (cpp)
     {
-        std::stringstream ss;
-        Point result = cpp->location;
-        ss << "Close to " << close_to << " we found " << result << " rather than " << supposed << ".\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
+        const Point result = cpp->location;
+        ASSERT_LE(vSize(result - parameters.supposed), 10) << "Close to " << parameters.close_to << " we found " << result << " rather than " << parameters.supposed << ".\n";
     }
-    else 
+    else
     {
-        std::stringstream ss;
-        ss << "Couldn't find anything close to " << close_to << " ( should have been " << supposed << ").\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+        FAIL() << "Couldn't find anything close to " << parameters.close_to << " (should have been " << parameters.supposed << ").\n";
     }
-    
-    delete loc_to_line;
 }
+
+/*
+ * Test penalty function to use with findClose.
+ */
+std::function<int(Point)> testPenalty([](Point candidate)
+{
+   return -vSize2(candidate - Point(50, 100)); //The further from 50, 100, the lower the penalty.
+});
+
+INSTANTIATE_TEST_SUITE_P(FindCloseInstantiation, FindCloseTest, testing::Values(
+    FindCloseParameters(Point(110, 110), Point(100, 100), 15), //Near a corner.
+    FindCloseParameters(Point(50, 110), Point(50, 100), 15), //Near a side.
+    FindCloseParameters(Point(50, 50), Point(50, 0), 60, &testPenalty) //Using a penalty function.
+));
 
 void PolygonUtilsTest::moveInsidePointyCornerTest()
 {
