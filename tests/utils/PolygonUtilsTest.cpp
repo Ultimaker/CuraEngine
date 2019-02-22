@@ -28,6 +28,7 @@ class MoveInsideTest : public testing::TestWithParam<MoveInsideParameters>
 {
 public:
     Polygon test_square;
+    Polygon pointy_square;
 
     void SetUp()
     {
@@ -35,6 +36,17 @@ public:
         test_square.emplace_back(100, 0);
         test_square.emplace_back(100, 100);
         test_square.emplace_back(0, 100);
+
+        pointy_square.emplace_back(0, 0);
+        pointy_square.emplace_back(47, 0);
+        pointy_square.emplace_back(50, 80);
+        pointy_square.emplace_back(53, 0);
+        pointy_square.emplace_back(100, 0);
+        pointy_square.emplace_back(100, 100);
+        pointy_square.emplace_back(55, 100);
+        pointy_square.emplace_back(50, 180);
+        pointy_square.emplace_back(45, 100);
+        pointy_square.emplace_back(0, 100);
     }
 };
 
@@ -136,6 +148,62 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
         << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2 << ".";
 }
 
+TEST_F(MoveInsideTest, pointyCorner)
+{
+    const Point from(55, 100); //Above pointy bit.
+    Point result(from);
+    Polygons inside;
+    inside.add(pointy_square);
+    ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
+
+    ASSERT_NE(cpp.point_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_TRUE(inside.inside(result)) << from << " couldn't be moved inside.";
+}
+
+TEST_F(MoveInsideTest, pointyCornerFail)
+{
+    //Should fail with normal moveInside2 (and the like).
+    const Point from(55, 170); //Above pointy bit.
+    Point result(from);
+    Polygons inside;
+    inside.add(pointy_square);
+    
+    ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
+    ASSERT_NE(cpp.point_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_FALSE(inside.inside(result)) << from << " could be moved inside, while it was designed to fail.";
+}
+
+TEST_F(MoveInsideTest, outsidePointyCorner)
+{
+    const Point from(60, 70); //Above pointy bit.
+    Point result(from);
+    const Point supposed(50, 70); //10 below pointy bit.
+    Polygons inside;
+    inside.add(pointy_square);
+
+    const ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
+    ASSERT_NE(cpp.point_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_TRUE(!inside.inside(result)) << from << " couldn't be moved outside.";
+}
+
+TEST_F(MoveInsideTest, outsidePointyCornerFail)
+{
+    //Should fail with normal moveInside2 (and the like).
+    const Point from(60, 70); //Above pointy bit.
+    Point result(from);
+    const Point supposed(50, 70); //10 below pointy bit.
+    Polygons inside;
+    inside.add(pointy_square);
+
+    const ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
+    ASSERT_NE(cpp.point_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_FALSE(!inside.inside(result)) << from << " could be moved outside to " << result << ", while it was designed to fail.";
+}
+
 struct FindCloseParameters
 {
     Point close_to;
@@ -208,105 +276,7 @@ INSTANTIATE_TEST_SUITE_P(FindCloseInstantiation, FindCloseTest, testing::Values(
     FindCloseParameters(Point(50, 50), Point(50, 0), 60, &testPenalty) //Using a penalty function.
 ));
 
-void PolygonUtilsTest::moveInsidePointyCornerTest()
-{
-    Point from(55, 170); // above pointy bit
-    Point result(from);
-    Polygons inside;
-    inside.add(pointy_square);
-    ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
-    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
-    {
-        std::stringstream ss;
-        ss << "Couldn't ensure point inside close to " << from << ".\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
-    }
-    else
-    {
-        std::stringstream ss;
-        ss << from << " couldn't be moved inside.\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result));
-    }
-}
-
-void PolygonUtilsTest::moveInsidePointyCornerTestFail()
-{ // should fail with normal moveInside2 (and the like)
-    Point from(55, 170); // above pointy bit
-    Point result(from);
-    Polygons inside;
-    inside.add(pointy_square);
-    ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
-    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
-    {
-        std::stringstream ss;
-        ss << "Couldn't ensure point inside close to " << from << ".\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
-    }
-    else
-    {
-        std::stringstream ss;
-        ss << from << " could be moved inside, while it was designed to fail.\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), !inside.inside(result));
-    }
-}
-
-void PolygonUtilsTest::moveOutsidePointyCornerTest()
-{
-    Point from(60, 70); // above pointy bit
-    Point result(from);
-    Point supposed(50, 70); // 10 below pointy bit
-    Polygons inside;
-    inside.add(pointy_square);
-//     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
-    ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
-    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
-    {
-        std::stringstream ss;
-        ss << "Couldn't ensure point inside close to " << from << ".\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
-    }
-    else
-    {
-        std::stringstream ss;
-        ss << from << " couldn't be moved inside.\n";
-//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
-    }
-}
-
-void PolygonUtilsTest::moveOutsidePointyCornerTestFail()
-{ // should fail with normal moveInside2 (and the like)
-    Point from(60, 70); // above pointy bit
-    Point result(from);
-    Point supposed(50, 70); // 10 below pointy bit
-    Polygons inside;
-    inside.add(pointy_square);
-    ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
-//     ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
-    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
-    {
-        std::stringstream ss;
-        ss << "Couldn't ensure point inside close to " << from << ".\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
-    }
-    else
-    {
-        std::stringstream ss;
-        ss << from << " could be moved inside to " << result << ", while it was designed to fail.\n";
-//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
-    }
-}
-
-
-
-
-
-
-
-
-
-
+/*
 void PolygonUtilsTest::spreadDotsTestSegment()
 {
     std::vector<ClosestPolygonPoint> supposed;
