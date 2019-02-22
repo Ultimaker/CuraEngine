@@ -331,141 +331,64 @@ TEST_F(PolygonUtilsTest, spreadDotsFull)
     }
 }
 
-/*
-void PolygonUtilsTest::getNextParallelIntersectionTest1()
+struct GetNextParallelIntersectionParameters
 {
-    Point start_point(20, 100);
-    Point line_to = Point(150, 200);
-    bool forward = true;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(0, 40), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest2()
-{
-    Point start_point(80, 100);
-    Point line_to = Point(150, 200);
-    bool forward = true;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(37, 100), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest3()
-{
-    Point start_point(20, 100);
-    Point line_to = Point(120, 200);
-    bool forward = false;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(70, 100), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest4()
-{
-    Point start_point(50, 100);
-    Point line_to = Point(150, 200);
-    bool forward = true;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(0, 0), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest5()
-{
-    Point start_point(10, 0);
-    Point line_to = Point(-90, -100);
-    bool forward = true;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(60, 0), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest6()
-{
-    Point start_point(10, 0);
-    Point line_to = Point(-90, -100);
-    bool forward = false;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(0, 40), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest7()
-{
-    Point start_point(50, 100);
-    Point line_to = Point(150, 100);
-    bool forward = true;
-    coord_t dist = 25;
-    getNextParallelIntersectionAssert(Point(0, 75), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest8()
-{
-    Point start_point(50, 100);
-    Point line_to = Point(50, 200);
-    bool forward = true;
-    coord_t dist = 25;
-    getNextParallelIntersectionAssert(Point(25, 100), start_point, line_to, forward, dist);
-}
-void PolygonUtilsTest::getNextParallelIntersectionTest9()
-{
-    Point start_point(100, 100);
-    Point line_to = Point(200, 200);
-    bool forward = true;
-    coord_t dist = 80;
-    getNextParallelIntersectionAssert(std::optional<Point>(), start_point, line_to, forward, dist);
-}
+    std::optional<Point> predicted;
+    Point start_point;
+    Point line_to;
+    bool forward;
+    coord_t dist;
 
-void PolygonUtilsTest::getNextParallelIntersectionTest10()
-{
-    Point start_point(5, 100);
-    Point line_to = Point(105, 200);
-    bool forward = true;
-    coord_t dist = 35;
-    getNextParallelIntersectionAssert(Point(0, 45), start_point, line_to, forward, dist);
-}
-
-void PolygonUtilsTest::getNextParallelIntersectionAssert(std::optional<Point> predicted, Point start_point, Point line_to, bool forward, coord_t dist)
-{
-    ClosestPolygonPoint start = PolygonUtils::findClosest(start_point, test_squares);
-    std::optional<ClosestPolygonPoint> computed = PolygonUtils::getNextParallelIntersection(start, line_to, dist, forward);
-
-    std::stringstream ss;
-    ss << "PolygonUtils::getNextParallelIntersection(" << start_point << ", " << line_to << ", " << dist << ", " << forward << ") ";
-
-    constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
-
-    auto draw = [this, predicted, start, line_to, dist, computed]()
-        {
-            if (!draw_problem_scenario)
-            {
-                return;
-            }
-            SVG svg("output/bs.svg", AABB(test_squares), Point(500,500));
-            svg.writePolygons(test_squares);
-            svg.writeLine(start.p(), line_to, SVG::Color::BLUE);
-            svg.writePoint(start.p(), true);
-            Point vec = line_to - start.p();
-            Point shift = normal(turn90CCW(vec), dist);
-            svg.writeLine(start.p() - vec + shift, line_to + vec + shift, SVG::Color::GREEN);
-            svg.writeLine(start.p() - vec - shift, line_to + vec - shift, SVG::Color::GREEN);
-            if (computed)
-            {
-                svg.writePoint(computed->p(), true, 5, SVG::Color::RED);
-            }
-            if (predicted)
-            {
-                svg.writePoint(*predicted, true, 5, SVG::Color::GREEN);
-            }
-        };
-
-    if (!predicted && computed)
+    GetNextParallelIntersectionParameters(const std::optional<Point> predicted, const Point start_point, const Point line_to, const bool forward, const coord_t dist)
+    : predicted(predicted)
+    , start_point(start_point)
+    , line_to(line_to)
+    , forward(forward)
+    , dist(dist)
     {
-        draw();
-        ss << "gave a result (" << computed->p() << ") rather than the predicted no result!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
     }
-    if (predicted && !computed)
+};
+
+class GetNextParallelIntersectionTest : public testing::TestWithParam<GetNextParallelIntersectionParameters>
+{
+public:
+    Polygons test_squares;
+
+    GetNextParallelIntersectionTest()
     {
-        draw();
-        ss << "gave no result rather than the predicted " << *predicted << "!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+        Polygon test_square;
+        test_square.emplace_back(0, 0);
+        test_square.emplace_back(100, 0);
+        test_square.emplace_back(100, 100);
+        test_square.emplace_back(0, 100);
+        test_squares.add(test_square);
     }
-    if (predicted && computed)
+};
+
+TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
+{
+    const GetNextParallelIntersectionParameters parameters = GetParam();
+    const ClosestPolygonPoint start = PolygonUtils::findClosest(parameters.start_point, test_squares);
+    std::optional<ClosestPolygonPoint> computed = PolygonUtils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
+
+    ASSERT_EQ(bool(parameters.predicted), bool(computed)) << "An answer was predicted but not computed, or computed but not predicted.";
+    if (parameters.predicted)
     {
-        draw();
-        ss << "gave " << computed->p() << " while it was predicted to be " << *predicted << "!\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(*predicted - computed->p()) < maximum_error);
+        ASSERT_LT(vSize(*parameters.predicted - computed->p()), 10) << "Result was " << computed->p() << " while it was predicted to be " << *parameters.predicted << "!";
     }
-}*/
+}
+
+INSTANTIATE_TEST_SUITE_P(GetNextParallelIntersectionInstantiation, GetNextParallelIntersectionTest, testing::Values(
+        GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
+        GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
+        GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),
+        GetNextParallelIntersectionParameters(Point(0, 0), Point(50, 100), Point(150, 200), true, 35),
+        GetNextParallelIntersectionParameters(Point(60, 0), Point(10, 0), Point(-90, -100), true, 35),
+        GetNextParallelIntersectionParameters(Point(0, 40), Point(10, 0), Point(-90, -100), false, 35),
+        GetNextParallelIntersectionParameters(Point(0, 75), Point(50, 100), Point(150, 100), true, 25),
+        GetNextParallelIntersectionParameters(Point(25, 100), Point(50, 100), Point(50, 200), true, 25),
+        GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
+        GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)
+));
 
 }
