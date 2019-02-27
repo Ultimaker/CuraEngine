@@ -182,6 +182,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
         return false;
     }
 
+    // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
     std::vector<int64_t> min_x(size(), std::numeric_limits<int64_t>::max());
     std::vector<int64_t> crossings(size());
 

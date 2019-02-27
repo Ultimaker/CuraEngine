@@ -18,6 +18,7 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
+    // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
     std::vector<bool> picked(polygons.size(), false);
     loc_to_line = nullptr;
 
@@ -211,6 +212,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
 {
     const int grid_size = 2000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
+    // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
     std::vector<bool> picked(polygons.size(), false);
 
     loc_to_line = nullptr;
