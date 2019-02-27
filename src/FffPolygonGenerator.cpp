@@ -408,7 +408,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // walls
     size_t processed_layer_count = 0;
 #pragma omp parallel for default(none) shared(mesh_layer_count, storage, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
-    for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
         processInsets(mesh, layer_number);
@@ -417,7 +418,11 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 #endif
         { // progress estimation is done only in one thread so that no two threads message progress at the same time
             int _processed_layer_count;
+#if _OPENMP < 201107
+#pragma omp critical
+#else
 #pragma omp atomic read
+#endif
                 _processed_layer_count = processed_layer_count;
             double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
             Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
@@ -462,10 +467,11 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
 
 #pragma omp for schedule(dynamic)
-        for (size_t layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
+        // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+        for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
         {
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
-            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < static_cast<int>(mesh_max_bottom_layer_count))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
             }
@@ -474,7 +480,11 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 #endif
             { // progress estimation is done only in one thread so that no two threads message progress at the same time
                 int _processed_layer_count;
+#if _OPENMP < 201107
+#pragma omp critical
+#else
 #pragma omp atomic read
+#endif
                     _processed_layer_count = processed_layer_count;
                 double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
                 Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);

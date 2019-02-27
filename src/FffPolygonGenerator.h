@@ -9,7 +9,7 @@
 namespace cura
 {
 
-class LayerIndex;
+struct LayerIndex;
 class MeshGroup;
 class ProgressStageEstimator;
 class SliceDataStorage;
