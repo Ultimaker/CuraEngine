@@ -21,6 +21,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include "Point3.h" //For applying Point3Matrices.
 
 
+#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
+
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__ ((deprecated))
 #elif defined(_MSC_VER)

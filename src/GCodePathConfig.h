@@ -12,7 +12,7 @@
 namespace cura 
 {
 
-class LayerIndex;
+struct LayerIndex;
 
 /*!
  * The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
