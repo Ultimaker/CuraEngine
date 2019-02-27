@@ -36,7 +36,15 @@ Project files generation:
 2. ```cmake . -G "CodeBlocks - Unix Makefiles"```
 3. (for a list of supported IDE's see http://www.cmake.org/Wiki/CMake_Generator_Specific_Information#Code::Blocks_Generator)
 
-Installing Protobuf
+Building with MSVC
+------------------
+Building CuraEngine with the MSVC toolchain is similar to the cmake instructions above with a couple of extra options.
+- If libArcus is not installed to a location on your PATH you will need to pass the install location of the library using ```-DCMAKE_PREFIX_PATH```.
+- If you wish to statically link the C runtime pass ```-DMSVC_STATIC_RUNTIME=ON``` when configuring using cmake.
+    - Note that libArcus should also be built with this option as well or you will get linker errors.
+- Vcpkg may be used to install protobuf and cppunit (only required if you would like to build the CuraEngine test suite).
+
+Installing Protobuf (Linux)
 -------------------
 1. Be sure to have libtool installed.
 2. Download protobuf from https://github.com/google/protobuf/releases (download ZIP and unZIP at desired location, or clone the repo). The protocol buffer is used for communication between the CuraEngine and the GUI.

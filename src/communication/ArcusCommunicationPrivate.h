@@ -13,7 +13,7 @@
 namespace cura
 {
 
-class LayerIndex;
+struct LayerIndex;
 
 class ArcusCommunication::Private
 {

@@ -3,7 +3,6 @@
 
 #include <cmath> // sqrt
 #include <fstream> // debug IO
-#include <unistd.h>
 
 #include "Application.h" //To get the communication channel.
 #include "PrintFeature.h"
