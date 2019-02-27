@@ -408,7 +408,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // walls
     size_t processed_layer_count = 0;
 #pragma omp parallel for default(none) shared(mesh_layer_count, storage, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
-    // Use a signed type for the loop counter so MSVC compiles
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
@@ -467,7 +467,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
 
 #pragma omp for schedule(dynamic)
-        // Use a signed type for the loop counter so MSVC compiles
+        // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
         for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
         {
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);

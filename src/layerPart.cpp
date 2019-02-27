@@ -53,7 +53,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 #pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
-    // Use a signed type for the loop counter so MSVC compiles
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_nr = 0; layer_nr < static_cast<int>(total_layers); layer_nr++)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];

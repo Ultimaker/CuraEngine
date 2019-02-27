@@ -810,7 +810,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
 
     //Generate the actual areas and store them in the mesh.
     #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
-    // Use a signed type for the loop counter so MSVC compiles
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_idx = 1; layer_idx < static_cast<int>(storage.print_layer_count); layer_idx++)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
@@ -869,7 +869,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
-    // Use a signed type for the loop counter so MSVC compiles
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
@@ -1066,7 +1066,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                                                     std::min(static_cast<int>(storage.support.supportLayers.size()),
                                                              static_cast<int>(layer_count - (layer_z_distance_top - 1))));
 #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
-        // Use a signed type for the loop counter so MSVC compiles
+        // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
         for (int layer_idx = 0; layer_idx < max_checking_layer_idx; layer_idx++)
         {
             constexpr bool no_support = false;
