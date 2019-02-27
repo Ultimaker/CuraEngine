@@ -19,11 +19,6 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
 
-    if (zig_zaggify)
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
-
     const Polygons outline = in_outline.offset(outline_offset);
     const AABB aabb(outline);
 
