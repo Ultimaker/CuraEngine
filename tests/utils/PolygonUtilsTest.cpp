@@ -513,7 +513,7 @@ void PolygonUtilsTest::getNextParallelIntersectionAssert(std::optional<Point> pr
 
     constexpr bool draw_problem_scenario = false; // make this true if you are debugging the function getNextParallelIntersection(.)
 
-    auto draw = [this, predicted, start, line_to, dist, computed]()
+    auto draw = [this, predicted, start, line_to, dist, computed, draw_problem_scenario]()
         {
             if (!draw_problem_scenario)
             {

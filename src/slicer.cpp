@@ -930,7 +930,8 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
 
 #pragma omp parallel for default(none) shared(mesh, layers_ref)
-    for(unsigned int layer_nr = 0; layer_nr < layers_ref.size(); layer_nr++)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_nr = 0; layer_nr < static_cast<int>(layers_ref.size()); layer_nr++)
     {
         layers_ref[layer_nr].makePolygons(mesh, layer_nr == 0);
     }

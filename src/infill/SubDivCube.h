@@ -11,7 +11,7 @@
 namespace cura
 {
 
-class LayerIndex;
+struct LayerIndex;
 class Polygons;
 class SliceMeshStorage;
 

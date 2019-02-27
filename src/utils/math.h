@@ -13,7 +13,7 @@
 namespace cura
 {
 
-static const float sqrt2 = std::sqrt(2.0f);
+static constexpr float sqrt2 = 1.41421356237;
 
 template<typename T> inline T square(const T& a) { return a * a; }
 

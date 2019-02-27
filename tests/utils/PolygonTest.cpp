@@ -219,7 +219,7 @@ void PolygonTest::simplifyZigzag()
     Polygons zigzag_polygons;
     PolygonRef zigzag = zigzag_polygons.newPoly();
     constexpr coord_t segment_length = 1000;
-    constexpr coord_t y_increment = segment_length / sqrt(2);
+    const coord_t y_increment = segment_length / std::sqrt(2);
     coord_t x = y_increment / 2;
 
     for (size_t i = 0; i < 100; i++)
@@ -286,11 +286,11 @@ void PolygonTest::simplifyLimitedError()
     //We want it to not merge the lines 1400 and 1500 any more, but do merge all lines before it.
     //Take the area of the 1400 by 1500 and plug it into the formula for the height to get at the baseline height, which is our allowed error.
     constexpr coord_t area = 1400 * 1500 / 2;
-    constexpr coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
+    const coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
     //A = 0.5 * b * h. diagonal_length is the base line in this case.
     //2A = b * h
     //2A / b = h
-    constexpr coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
+    const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
     spiral_polygons.simplify(999999999, height - 10);
 
     CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1000 through 1400 and first with last."), spiral.size() == 11 - 5);

@@ -8,6 +8,8 @@
 #include "../src/ExtruderTrain.h"
 #include "../src/Slice.h"
 
+#include <array>
+
 namespace cura
 {
 
@@ -48,7 +50,7 @@ void loadTestSettings(const std::string& filename, T* p_settings, std::unordered
         {
             continue;
         }
-        
+
         const std::string key = line.substr(0, pos);
         const std::string value = line.substr(pos + 1, std::string::npos);
 
@@ -73,7 +75,7 @@ void ArcusCommunicationPrivateTest::readGlobalSettingsMessageTest()
 
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
-    
+
     // Check if they are equal in general:
     const auto& settings = Application::getInstance().current_slice->scene.settings;
     for (const auto& entry : raw_settings)
