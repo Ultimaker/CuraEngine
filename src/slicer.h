@@ -491,6 +491,10 @@ public:
 
     const Mesh* mesh = nullptr; //!< The sliced mesh
 
+    explicit Slicer(Mesh* mesh)
+        : mesh(mesh)
+    {}
+
     Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
 
     /*!

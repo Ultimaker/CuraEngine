@@ -7,6 +7,7 @@
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
 #include "slicer.h"
+#include "SliceData.pb.h"
 
 namespace cura
 {
@@ -70,8 +71,9 @@ public:
     std::string mesh_name;
     std::vector<SlicerLayer> layers;
     std::vector<Polygons> support;
-    std::vector<Polygons> support_roof;
-    std::vector<Polygons> support_bottom;
+    std::vector<Polygons> support_roofs;
+    std::vector<Polygons> support_bottoms;
+    bool predefined_support_slices = false;
 
     Mesh(Settings& parent);
     Mesh();
@@ -89,13 +91,9 @@ public:
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
      */
-    void offset(Point3 offset)
-    {
-        if (offset == Point3(0,0,0)) { return; }
-        for(MeshVertex& v : vertices)
-            v.p += offset;
-        aabb.offset(offset);
-    }
+    void offset(Point3 offset);
+
+    void addPath(ConstPolygonRef path, geometry::proto::Path_Type type, size_t layer);
 
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces

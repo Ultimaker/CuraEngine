@@ -5,8 +5,11 @@
 #include "../Slice.h"
 #include "../Scene.h"
 #include "../MeshGroup.h"
+#include "../settings/Settings.h"
 #include "../settings/EnumSettings.h"
 #include "../raft.h"
+#include "clipper/clipper.hpp"
+#include "polygon.h"
 
 namespace
 {
@@ -53,6 +56,20 @@ void serializeRaft(geometry::proto::Slices& slices, const cura::SliceDataStorage
     serializePolygons(slices.add_layers(), storage.raftOutline, "", geometry::proto::Path_Type_RAFT);
 }
 
+ClipperLib::Path transformPath(const geometry::proto::Path& path)
+{
+    assert(!(path.points_size() % 2));
+    ClipperLib::Path parsed_path;
+    parsed_path.reserve(path.points_size() / 2);
+
+    auto it = path.points().begin();
+    auto end = path.points().end();
+    for(;it != end; it += 2)
+        parsed_path.emplace_back(*it, *(it + 1));
+
+    return parsed_path;
+}
+
 }
 
 namespace cura
@@ -60,6 +77,63 @@ namespace cura
 
 namespace serialization_utils
 {
+
+bool parseSlicesFromStream(std::istream& stream, MeshGroup& meshgroup, std::vector<Mesh>& meshes, Settings& object_parent_settings, bool support_slices/* = false*/)
+{
+    geometry::proto::Slices slice;
+    if (!slice.ParseFromIstream(&stream))
+        return false;
+
+    size_t layers_count = static_cast<size_t>(slice.layers().size());
+    const size_t raft_layers = support_slices ? getRaftLayerCount() : 0;
+    if (layers_count <= raft_layers)
+        return false;
+
+    // Skip raft layers, those will be generated afterwards
+    layers_count -= raft_layers;
+
+    for (size_t layer_nr = 0; layer_nr < layers_count; ++layer_nr)
+    {
+        const geometry::proto::Layer& layer = slice.layers(layer_nr + raft_layers);
+        for (auto& path : layer.paths())
+        {
+            const std::string& mesh_name = path.meshname();
+            geometry::proto::Path_Type type = path.type();
+            ClipperLib::Path parsed_path = transformPath(path);
+
+            if (!support_slices)
+            {
+                auto mesh_it = std::find_if(meshes.begin(), meshes.end(), [&mesh_name](const Mesh& mesh) {
+                    return mesh.mesh_name == mesh_name;
+                });
+
+                if (mesh_it == meshes.end())
+                {
+                    Mesh mesh(object_parent_settings);
+                    mesh.mesh_name = mesh_name;
+                    mesh.layers.resize(layers_count);
+                    meshes.push_back(std::move(mesh));
+                    mesh_it = --meshes.end();
+                }
+
+                mesh_it->layers[layer_nr].z = slice.zvalues(layer_nr);
+                mesh_it->addPath(parsed_path, type, layer_nr);
+            }
+            else
+            {
+                for (auto& mesh : meshgroup.meshes)
+                {
+                    if (mesh.mesh_name == mesh_name)
+                    {
+                        mesh.addPath(parsed_path, type, layer_nr);
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
 
 geometry::proto::Slices getSlices(const SliceDataStorage& storage)
 {
@@ -105,8 +179,8 @@ geometry::proto::Slices getSupportSlices(const SliceDataStorage& storage)
         for (auto& mesh : Application::getInstance().current_slice->scene.current_mesh_group->meshes)
         {
             serializePolygons(layer, mesh.support[i], mesh.mesh_name, geometry::proto::Path_Type_SUPPORT);
-            serializePolygons(layer, mesh.support_roof[i], mesh.mesh_name, geometry::proto::Path_Type_SUPPORT_ROOF);
-            serializePolygons(layer, mesh.support_bottom[i], mesh.mesh_name, geometry::proto::Path_Type_SUPPORT_BOTTOM);
+            serializePolygons(layer, mesh.support_roofs[i], mesh.mesh_name, geometry::proto::Path_Type_SUPPORT_ROOF);
+            serializePolygons(layer, mesh.support_bottoms[i], mesh.mesh_name, geometry::proto::Path_Type_SUPPORT_BOTTOM);
         }
         slices.add_zvalues(storage.meshes.at(0).layers[i].printZ);
     }

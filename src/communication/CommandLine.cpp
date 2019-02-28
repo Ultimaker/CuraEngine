@@ -21,6 +21,7 @@
 #include "../utils/getpath.h"
 #include "../utils/floatpoint.h"
 #include "../utils/logoutput.h"
+#include "../SliceDataProcessor.h"
 
 namespace cura
 {
@@ -106,6 +107,7 @@ void CommandLine::sliceNext()
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
     ExtruderTrain& last_extruder = slice.scene.extruders[0];
 
+    bool slice_data = false;
     for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
     {
         std::string argument = arguments[argument_index];
@@ -224,6 +226,48 @@ void CommandLine::sliceNext()
                         }
                         break;
                     }
+                    case 'x':
+                    {
+                        slice_data = true;
+                        argument_index++;
+                        if (argument_index >= arguments.size())
+                        {
+                            logError("Missing input slice data file with -x argument.");
+                            exit(1);
+                        }
+                        argument = arguments[argument_index];
+                        if (!SliceDataProcessor::loadSlices(slice.scene.mesh_groups[mesh_group_index], argument, last_extruder.settings))
+                        {
+                            logError("Failed to load slice data: %s\n", argument.c_str());
+                            std::exit(1);
+                        }
+                        else
+                        {
+                            last_settings = &slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
+                        }
+                        break;
+                    }
+                    case 'u':
+                    {
+                        slice_data = true;
+                        argument_index++;
+                        if (argument_index >= arguments.size())
+                        {
+                            logError("Missing input slice data file with -u argument.");
+                            exit(1);
+                        }
+                        argument = arguments[argument_index];
+                        if (!SliceDataProcessor::loadSlices(slice.scene.mesh_groups[mesh_group_index], argument, last_extruder.settings, true))
+                        {
+                            logError("Failed to load slice data: %s\n", argument.c_str());
+                            std::exit(1);
+                        }
+                        else
+                        {
+                            last_settings = &slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
+                        }
+                        break;
+                    }
                     case 'o':
                     {
                         argument_index++;
@@ -297,7 +341,7 @@ void CommandLine::sliceNext()
     try
     {
 #endif //DEBUG
-        slice.scene.mesh_groups[mesh_group_index].finalize();
+        slice.scene.mesh_groups[mesh_group_index].finalize(slice_data);
         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
 
         //Start slicing.
