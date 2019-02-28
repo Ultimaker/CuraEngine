@@ -151,7 +151,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values);
+
+        Slicer* slicer;
+        if (mesh.layers.empty())
+        {
+            slicer = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values);
+            mesh.layers = slicer->layers;
+        }
 
         slicerList.push_back(slicer);
 

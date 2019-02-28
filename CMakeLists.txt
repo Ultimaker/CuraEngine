@@ -170,6 +170,7 @@ set(engine_SRCS # Except main.cpp.
     src/SupportInfillPart.cpp
     src/Slice.cpp
     src/sliceDataStorage.cpp
+    src/SliceDataProcessor.cpp
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
@@ -227,6 +228,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/ProximityPointLink.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
+    src/utils/serialization.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.

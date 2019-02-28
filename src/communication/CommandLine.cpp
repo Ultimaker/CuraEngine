@@ -132,6 +132,10 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                 }
+                else if (argument.find("--export") == 0)
+                {
+                    FffProcessor::getInstance()->enableSliceDataExport();
+                }
                 else
                 {
                     logError("Unknown option: %s\n", argument.c_str());
@@ -229,7 +233,11 @@ void CommandLine::sliceNext()
                             exit(1);
                         }
                         argument = arguments[argument_index];
-                        if (!FffProcessor::getInstance()->setTargetFile(argument.c_str()))
+                        if (arguments[argument_index-1].substr(2) == "1")
+                        {
+                            FffProcessor::getInstance()->setSliceFile(argument.c_str());
+                        }
+                        else if (!FffProcessor::getInstance()->setTargetFile(argument.c_str()))
                         {
                             logError("Failed to open %s for output.\n", argument.c_str());
                             exit(1);

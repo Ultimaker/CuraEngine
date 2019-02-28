@@ -6,6 +6,7 @@
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
+#include "slicer.h"
 
 namespace cura
 {
@@ -67,6 +68,10 @@ public:
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
     Settings settings;
     std::string mesh_name;
+    std::vector<SlicerLayer> layers;
+    std::vector<Polygons> support;
+    std::vector<Polygons> support_roof;
+    std::vector<Polygons> support_bottom;
 
     Mesh(Settings& parent);
     Mesh();

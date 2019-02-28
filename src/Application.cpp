@@ -115,7 +115,7 @@ void Application::printHelp() const
 #endif // _OPENMP
     logAlways("\n");
 #endif //ARCUS
-    logAlways("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
+    logAlways("CuraEngine slice [--export] [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     logAlways("  -v\n\tIncrease the verbose level (show log messages).\n");
 #ifdef _OPENMP
     logAlways("  -m<thread_count>\n\tSet the desired number of threads.\n");
@@ -127,7 +127,9 @@ void Application::printHelp() const
     logAlways("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
     logAlways("  -e<extruder_nr>\n\tSwitch setting focus to the extruder train with the given number.\n");
     logAlways("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
-    logAlways("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
+    logAlways("  -o <output_file>\n\tSpecify a file to which to write the generated gcode(or support slices if export mode was specified.\n");
+    logAlways("  -o1 <output_part_slices_file>\n\tSpecify a file to which to write the exported part slices(if export mode was specified).\n");
+    logAlways("  --export\n\tEnable exporting slices to <output_file> and/or <output_part_slices_file>.\n");
     logAlways("\n");
     logAlways("The settings are appended to the last supplied object:\n");
     logAlways("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");

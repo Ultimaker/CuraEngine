@@ -25,6 +25,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
+#include "FffProcessor.h"
 
 namespace cura
 {
@@ -678,7 +679,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
                 support_meshes_handled = true;
             }
         }
-        std::vector<Polygons> mesh_support_areas_per_layer;
+
+        Mesh& meshgroup_mesh = Application::getInstance().current_slice->scene.current_mesh_group->meshes[mesh_idx];
+        std::vector<Polygons>& mesh_support_areas_per_layer = meshgroup_mesh.support;
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
 
         generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
@@ -708,14 +711,25 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
             continue;
         }
 
+        Mesh& meshgroup_mesh = Application::getInstance().current_slice->scene.current_mesh_group->meshes[mesh_idx];
+        std::vector<Polygons>& support_roofs = meshgroup_mesh.support_roof;
+        std::vector<Polygons>& support_bottoms = meshgroup_mesh.support_bottom;
+        support_roofs.resize(storage.print_layer_count);
+        support_bottoms.resize(storage.print_layer_count);
+
         if (mesh.settings.get<bool>("support_roof_enable"))
         {
-            generateSupportRoof(storage, mesh, global_support_areas_per_layer);
+            generateSupportRoof(storage, mesh, global_support_areas_per_layer, support_roofs, meshgroup_mesh.support);
         }
         if (mesh.settings.get<bool>("support_bottom_enable"))
         {
-            generateSupportBottom(storage, mesh, global_support_areas_per_layer);
+            generateSupportBottom(storage, mesh, global_support_areas_per_layer, support_bottoms, meshgroup_mesh.support);
         }
+    }
+
+    if (FffProcessor::getInstance()->sliceDataExportEnabled())
+    { // support slices already computed, no need to compute supports infill
+        return;
     }
 
     // split the global support areas into parts for later gradual support infill generation
@@ -1380,7 +1394,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
     }
 }
 
-void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
+void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer, std::vector<Polygons>& support_bottoms, std::vector<Polygons>& support_areas)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -1410,10 +1424,12 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
         support_layers[layer_idx].support_bottom.add(bottoms);
+        support_bottoms[layer_idx] = bottoms;
+        support_areas[layer_idx] = support_areas[layer_idx].difference(bottoms);
     }
 }
 
-void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
+void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer, std::vector<Polygons>& support_roofs, std::vector<Polygons>& support_areas)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -1443,6 +1459,8 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
+        support_roofs[layer_idx] = roofs;
+        support_areas[layer_idx] = support_areas[layer_idx].difference(roofs);
     }
 }
 
