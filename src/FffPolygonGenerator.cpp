@@ -1027,6 +1027,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         should_brim_prime_tower = false;
         break;
     case EPlatformAdhesion::NONE:
+        if (mesh_group_settings.get<bool>("support_brim_enable"))
+        {
+            SkirtBrim::generate(storage, Polygons(), 0, 0);
+        }
         break;
     }
     // If brim for prime tower is used, add the brim for prime tower separately.
