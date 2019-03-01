@@ -152,113 +152,77 @@ TEST_F(GetNearbyTest, getNearbyLine)
     }
 }
 
-/*
-void SparseGridTest::getNearestChoiceTest()
+struct GetNearestParameters
 {
-    std::vector<Point> input;
-    input.emplace_back(95, 100);
-    input.emplace_back(103, 100);
-    input.emplace_back(200, 100);
-    getNearestAssert(input, Point(100, 100), 10, new Point(103, 100));
+    std::vector<Point> registered_points;
+    Point* result;
+    std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)> filter;
+
+    GetNearestParameters(const std::vector<Point> registered_points, Point* result, const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)>& filter = SparsePointGridInclusive<Point>::no_precondition)
+    : registered_points(registered_points)
+    , result(result)
+    , filter(filter)
+    {
+    }
+};
+
+class GetNearestTest : public testing::TestWithParam<GetNearestParameters>
+{
+};
+
+TEST_P(GetNearestTest, GetNearest)
+{
+    const GetNearestParameters parameters = GetParam();
+    constexpr coord_t grid_size = 10;
+    const Point target(100, 100);
+
+    SparsePointGridInclusive<Point> grid(grid_size);
+    for (Point point : parameters.registered_points)
+    {
+        grid.insert(point, point);
+    }
+
+    typename SparsePointGridInclusive<Point>::Elem result;
+    const bool success = grid.getNearest(target, grid_size, result, parameters.filter);
+
+    ASSERT_EQ(success, parameters.result != nullptr) << "getNearest returned " << success << " but should've returned " << (parameters.result != nullptr) << ".";
+    if (parameters.result)
+    {
+        ASSERT_EQ(result.val, *parameters.result) << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val) << "), but it was " << *parameters.result << " (distance " << vSize(target - *parameters.result) << ").";
+    }
 }
 
-void SparseGridTest::getNearestEqualTest()
+INSTANTIATE_TEST_SUITE_P(GetNearestInstantiation, GetNearestTest, testing::Values(
+    GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(103, 100), Point(200, 100) }), new Point(103, 100)), //Choose nearest out of 3 points.
+    GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(98, 100), Point(106, 100) }), new Point(106, 100), [](const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool { return elem.point.X > 100; }), //With a filter.
+    GetNearestParameters(std::vector<Point>(), nullptr), //No points, no answer.
+    GetNearestParameters(std::vector<Point>({ Point(100, 100) }), new Point(100, 100)) //Same point as target.
+));
+
+TEST_F(GetNearestTest, Equal)
 {
     std::vector<Point> registered_points;
     registered_points.emplace_back(95, 100);
     registered_points.emplace_back(105, 100);
-    Point target = Point(100, 100);
-    const coord_t grid_size = 10;
+    const Point target = Point(100, 100);
+    constexpr coord_t grid_size = 10;
     const Point expected1 = Point(95, 100);
     const Point expected2 = Point(105, 100);
 
     SparsePointGridInclusive<Point> grid(grid_size);
-    for (Point point : registered_points)
+    for (const Point point : registered_points)
     {
         grid.insert(point, point);
     }
 
     typename SparsePointGridInclusive<Point>::Elem result;
     //The actual call to test.
-    const bool success = grid.getNearest(target, grid_size,
-                                         result, SparsePointGridInclusive<Point>::no_precondition);
+    const bool success = grid.getNearest(target, grid_size, result, SparsePointGridInclusive<Point>::no_precondition);
 
-    {
-        std::stringstream ss;
-        ss << "getNearest returned " << success << " but should've returned true.";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), success);
-    }
-    {
-        std::stringstream ss;
-        ss << "getNearest reported the nearest point to be " << result.val <<
-            " (distance " << vSize(target - result.val) <<
-            "), but it should've been " << expected1 <<
-            " (distance " << vSize(expected1 - target) <<
-            ") or " << expected2 <<
-            " (distance " << vSize(expected2 - target) << ").";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), result.val == expected1 || result.val == expected2);
-    }
+    ASSERT_TRUE(success);
+    ASSERT_TRUE(result.val == expected1 || result.val == expected2) << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val) <<
+            "), but it should've been " << expected1 << "(distance " << vSize(expected1 - target) <<
+            ") or " << expected2 << " (distance " << vSize(expected2 - target) << ").";
 }
-
-void SparseGridTest::getNearestFilterTest()
-{
-    std::vector<Point> input;
-    input.emplace_back(95, 100);
-    input.emplace_back(98, 100);
-    input.emplace_back(106, 100);
-    std::function<bool(const typename SparsePointGridInclusive<Point>::Elem &)> filter =
-        [&] (const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool
-        {
-            return elem.point.X > 100;
-        };
-    getNearestAssert(input, Point(100, 100), 10, new Point(106, 100), filter);
-}
-
-void SparseGridTest::getNearestNoneTest()
-{
-    std::vector<Point> input;
-    getNearestAssert(input, Point(100, 100), 10, nullptr);
-}
-
-void SparseGridTest::getNearestSameTest()
-{
-    std::vector<Point> input;
-    input.emplace_back(100, 100);
-    getNearestAssert(input, Point(100, 100), 10, new Point(100, 100));
-}
-
-void SparseGridTest::getNearestAssert(
-    const std::vector<Point>& registered_points,
-    Point target, const coord_t grid_size,
-    Point* expected,
-    const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem& elem)> &precondition)
-{
-    SparsePointGridInclusive<Point> grid(grid_size);
-    for (Point point : registered_points)
-    {
-        grid.insert(point, point);
-    }
-
-    typename SparsePointGridInclusive<Point>::Elem result;
-    //The actual call to test.
-    const bool success = grid.getNearest(target, grid_size,
-                                         result, precondition);
-
-    {
-        std::stringstream ss;
-        ss << "getNearest returned " << success <<
-            " but should've returned " << (expected != nullptr) << ".";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), success == (expected != nullptr));
-    }
-    if (expected)
-    {
-        std::stringstream ss;
-        ss << "getNearest reported the nearest point to be " << result.val <<
-            " (distance " << vSize(target - result.val) <<
-            "), but it was " << *expected <<
-            " (distance " << vSize(*expected - target) << ").";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), result.val == *expected);
-    }
-}*/
 
 }
