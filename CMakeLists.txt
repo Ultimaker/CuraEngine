@@ -195,7 +195,7 @@ set(engine_TEST
 set(engine_TEST_INFILL
 )
 set(engine_TEST_SETTINGS
-    #SettingsTest
+    SettingsTest
 )
 if (ENABLE_ARCUS)
     set(engine_TEST_ARCUS
