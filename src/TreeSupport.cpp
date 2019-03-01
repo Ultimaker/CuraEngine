@@ -116,7 +116,8 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(storage, contact_nodes)
-    for (size_t layer_nr = 0; layer_nr < contact_nodes.size(); layer_nr++)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_nr = 0; layer_nr < static_cast<int>(contact_nodes.size()); layer_nr++)
     {
         Polygons support_layer;
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;

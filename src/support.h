@@ -7,7 +7,7 @@
 namespace cura
 {
 
-class LayerIndex;
+struct LayerIndex;
 class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;

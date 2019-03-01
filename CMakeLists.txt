@@ -9,6 +9,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 option (ENABLE_ARCUS
     "Enable support for ARCUS" ON)
 
+if (MSVC)
+    option(MSVC_STATIC_RUNTIME "Link the MSVC runtime statically" OFF)
+endif()
+
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
     # We want to have access to protobuf_generate_cpp and other FindProtobuf features.
@@ -43,7 +47,7 @@ endif()
 
 if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
     set(CMAKE_CXX_STANDARD 11)
-else()
+elseif(not MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
@@ -63,23 +67,50 @@ option(BUILD_TESTS OFF)
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG" OR CMAKE_BUILD_TYPE_UPPER MATCHES "RELWITHDEBINFO")
     message(STATUS "Building debug release of CuraEngine.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
+    if (NOT MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -O0 -g -fno-omit-frame-pointer")
+    endif()
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
     add_definitions(-DDEBUG)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:twoPhase- /EHsc /W3")
+    if (MSVC_STATIC_RUNTIME)
+        foreach(flag_var
+            CMAKE_CXX_FLAGS
+            CMAKE_CXX_FLAGS_DEBUG
+            CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL
+            CMAKE_CXX_FLAGS_RELWITHDEBINFO
+            )
+            if(${flag_var} MATCHES "/MD")
+                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+            endif()
+        endforeach()
+    endif()
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Add warnings
+endif()
 
 option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
     "Enable more optimization flags" ON)
 if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
     message (STATUS "Compile with more optimization flags")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
+    if (MSVC)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} /fp:fast")
+    else()
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -funroll-loops")
+    endif()
 endif ()
 
 if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
+endif()
+
+if (WIN32)
+    add_definitions(-DNOMINMAX)
 endif()
 
 option (ENABLE_OPENMP
@@ -172,6 +203,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
     src/utils/gettime.cpp
+    src/utils/getpath.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/ListPolyIt.cpp
     src/utils/logoutput.cpp
@@ -245,11 +277,13 @@ set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CU
 if(WIN32)
   message(STATUS "Using windres")
   set(RES_FILES "CuraEngine.rc")
-  set(CMAKE_RC_COMPILER_INIT windres)
   ENABLE_LANGUAGE(RC)
-  SET(CMAKE_RC_COMPILE_OBJECT
-      "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
-      )
+  if(NOT MSVC)
+    SET(CMAKE_RC_COMPILER_INIT windres)
+    SET(CMAKE_RC_COMPILE_OBJECT
+        "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
+        )
+ endif()
 endif(WIN32)
 
 if (UNIX)

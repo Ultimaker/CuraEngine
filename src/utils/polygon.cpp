@@ -7,7 +7,7 @@
 
 #include "ListPolyIt.h"
 
-namespace cura 
+namespace cura
 {
 
 size_t ConstPolygonRef::size() const
@@ -44,7 +44,7 @@ bool ConstPolygonRef::_inside(Point p, bool border_result) const
     {
         return false;
     }
-    
+
     int crossings = 0;
     Point p0 = back();
     for(unsigned int n=0; n<size(); n++)
@@ -152,7 +152,7 @@ bool Polygons::insideOld(Point p, bool border_result) const
     {
         return false;
     }
-    
+
     int crossings = 0;
     for (const ClipperLib::Path& poly : thiss)
     {
@@ -181,12 +181,11 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     {
         return false;
     }
-    
-    int64_t min_x[size()];
-    std::fill_n(min_x, size(), std::numeric_limits<int64_t>::max());  // initialize with int.max
-    int crossings[size()];
-    std::fill_n(crossings, size(), 0);  // initialize with zeros
-    
+
+    // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
+    std::vector<int64_t> min_x(size(), std::numeric_limits<int64_t>::max());
+    std::vector<int64_t> crossings(size());
+
     for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
     {
         PolygonRef poly = thiss[poly_idx];
@@ -202,7 +201,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
                 {
                     x = p0.X;
                 }
-                else 
+                else
                 {
                     x = p0.X + (p1.X-p0.X) * (p.Y-p0.Y) / (p1.Y-p0.Y);
                 }
@@ -218,7 +217,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
             p0 = p1;
         }
     }
-    
+
     int64_t min_x_uneven = std::numeric_limits<int64_t>::max();
     unsigned int ret = NO_INDEX;
     unsigned int n_unevens = 0;
@@ -490,7 +489,7 @@ void Polygons::addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node)
 bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
-    // - walk in both directions untill shortcut > shortcut_length 
+    // - walk in both directions untill shortcut > shortcut_length
     // - stop walking in one direction if it would otherwise cut off a corner in that direction
     // - same in the other direction
     // - stop if both are cut off
@@ -1133,8 +1132,8 @@ unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* b
         const std::vector<unsigned int>& partView = partsView[part_idx_now];
         if (partView.size() == 0) { continue; }
         std::vector<unsigned int>::const_iterator result = std::find(partView.begin(), partView.end(), poly_idx);
-        if (result != partView.end()) 
-        { 
+        if (result != partView.end())
+        {
             if (boundary_poly_idx) { *boundary_poly_idx = partView[0]; }
             return part_idx_now;
         }
@@ -1180,7 +1179,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
 
     splitIntoPartsView_processPolyTreeNode(partsView, reordered, &resultPolyTree);
-    
+
     (*this) = reordered;
     return partsView;
 }

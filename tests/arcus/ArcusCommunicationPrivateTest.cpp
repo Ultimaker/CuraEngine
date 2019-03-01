@@ -1,6 +1,7 @@
 //Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <array>
 #include <gtest/gtest.h>
 #include <fstream>
 
@@ -55,14 +56,11 @@ public:
         std::string line;
         while (std::getline(test_settings_file, line))
         {
-            size_t pos = line.find_first_of('=');
-            if (line.size() < 3 || pos == std::string::npos) // <<- Whitespace, etc.
-            {
-                continue;
-            }
+            continue;
+        }
 
-            const std::string key = line.substr(0, pos);
-            const std::string value = line.substr(pos + 1, std::string::npos);
+        const std::string key = line.substr(0, pos);
+        const std::string value = line.substr(pos + 1, std::string::npos);
 
             raw_settings.insert({key, value});
 
@@ -86,7 +84,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
-    
+
     // Check if they are equal in general:
     const auto& settings = Application::getInstance().current_slice->scene.settings;
     for (const auto& entry : raw_settings)

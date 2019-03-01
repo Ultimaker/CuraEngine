@@ -9,7 +9,7 @@
 namespace cura
 {
 
-class AABB3D;
+struct AABB3D;
 
 class UniformDensityProvider : public DensityProvider
 {
