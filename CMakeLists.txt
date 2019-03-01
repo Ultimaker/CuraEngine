@@ -200,7 +200,7 @@ set(engine_TEST_SETTINGS
 if (ENABLE_ARCUS)
     set(engine_TEST_ARCUS
         ArcusCommunicationTest
-        #ArcusCommunicationPrivateTest
+        ArcusCommunicationPrivateTest
     )
 endif ()
 set(engine_TEST_UTILS
