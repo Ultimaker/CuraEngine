@@ -56,11 +56,14 @@ public:
         std::string line;
         while (std::getline(test_settings_file, line))
         {
-            continue;
-        }
+            size_t pos = line.find_first_of('=');
+            if (line.size() < 3 || pos == std::string::npos) // <<- Whitespace, etc.
+            {
+                continue;
+            }
 
-        const std::string key = line.substr(0, pos);
-        const std::string value = line.substr(pos + 1, std::string::npos);
+            const std::string key = line.substr(0, pos);
+            const std::string value = line.substr(pos + 1, std::string::npos);
 
             raw_settings.insert({key, value});
 
