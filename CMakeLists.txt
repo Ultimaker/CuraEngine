@@ -211,7 +211,7 @@ set(engine_TEST_UTILS
     PolygonUtilsTest
     SparseGridTest
     StringTest
-    #UnionFindTest
+    UnionFindTest
 )
 
 # Helper classes for some tests.
