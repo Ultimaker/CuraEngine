@@ -210,7 +210,7 @@ set(engine_TEST_UTILS
     PolygonTest
     PolygonUtilsTest
     SparseGridTest
-    #StringTest
+    StringTest
     #UnionFindTest
 )
 
