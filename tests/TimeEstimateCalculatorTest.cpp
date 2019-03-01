@@ -2,11 +2,12 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath>
-
+#include <gtest/gtest.h>
 #include <numeric>
 
-#include "TimeEstimateCalculatorTest.h"
 #include "../src/PrintFeature.h" //We get time estimates per print feature.
+#include "../src/timeEstimate.h" //The unit under test.
+#include "../src/settings/Settings.h" //To set firmware settings.
 #include "../src/settings/types/Duration.h"
 
 namespace cura
@@ -15,103 +16,143 @@ namespace cura
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
 #define EPSILON 0.00001 //Allowed error in comparing floating point values.
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TimeEstimateCalculatorTest);
-
-void TimeEstimateCalculatorTest::setUp()
+/*
+ * Fixture with some default firmware configurations and a calculator to use.
+ */
+class TimeEstimateCalculatorTest : public testing::Test
 {
-    //Reset the calculator, but not by using its reset() function. That would be broken if the reset() function is broken.
-    calculator = TimeEstimateCalculator();
+public:
+    /*
+     * Fixture calculator that starts without any time or moves planned.
+     */
+    TimeEstimateCalculator calculator;
 
-    um3.add("machine_max_feedrate_x", "300");
-    um3.add("machine_max_feedrate_y", "300");
-    um3.add("machine_max_feedrate_z", "40");
-    um3.add("machine_max_feedrate_e", "45");
-    um3.add("machine_max_acceleration_x", "9000");
-    um3.add("machine_max_acceleration_y", "9000");
-    um3.add("machine_max_acceleration_z", "100");
-    um3.add("machine_max_acceleration_e", "10000");
-    um3.add("machine_max_jerk_xy", "20");
-    um3.add("machine_max_jerk_z", "0.4");
-    um3.add("machine_max_jerk_e", "5");
-    um3.add("machine_minimum_feedrate", "0");
-    um3.add("machine_acceleration", "3000");
+    /*
+     * Firmware settings that the Ultimaker 3 has in its Marlin version.
+     *
+     * This functions as a real-world case.
+     */
+    Settings um3;
 
-    always_50.add("machine_max_feedrate_x", "50");
-    always_50.add("machine_max_feedrate_y", "50");
-    always_50.add("machine_max_feedrate_z", "50");
-    always_50.add("machine_max_feedrate_e", "50");
-    always_50.add("machine_max_acceleration_x", "50");
-    always_50.add("machine_max_acceleration_y", "50");
-    always_50.add("machine_max_acceleration_z", "50");
-    always_50.add("machine_max_acceleration_e", "50");
-    always_50.add("machine_max_jerk_xy", "1000");
-    always_50.add("machine_max_jerk_z", "1000");
-    always_50.add("machine_max_jerk_e", "1000");
-    always_50.add("machine_minimum_feedrate", "0");
-    always_50.add("machine_acceleration", "50");
+    /*
+     * Firmware settings that have infinite jerk and max speed on 50, so it
+     * always runs at 50mm/s per axis.
+     *
+     * This is a simple case if you're only moving in the X direction, because
+     * then the time should be easy to calculate by dividing the distance by 50.
+     *
+     * In places where acceleration happens without using jerk it will still use
+     * the acceleration. Acceleration is also set to 50, so to accelerate from
+     * 0 to full speed should take 1 second (which also makes it easy to
+     * calculate).
+     */
+    Settings always_50;
 
-    jerkless.add("machine_max_feedrate_x", "50");
-    jerkless.add("machine_max_feedrate_y", "50");
-    jerkless.add("machine_max_feedrate_z", "50");
-    jerkless.add("machine_max_feedrate_e", "50");
-    jerkless.add("machine_max_acceleration_x", "50");
-    jerkless.add("machine_max_acceleration_y", "50");
-    jerkless.add("machine_max_acceleration_z", "50");
-    jerkless.add("machine_max_acceleration_e", "50");
-    jerkless.add("machine_max_jerk_xy", "0");
-    jerkless.add("machine_max_jerk_z", "0");
-    jerkless.add("machine_max_jerk_e", "0");
-    jerkless.add("machine_minimum_feedrate", "0");
-    jerkless.add("machine_acceleration", "50");
+    /*
+     * Firmware settings to print without any jerk. Only acceleration has any
+     * effect.
+     *
+     * Acceleration is set to accelerate at 50 mm/s², so it will take one second
+     * to reach the maximum velocity of 50 mm/s.
+     */
+    Settings jerkless;
 
-    calculator.setFirmwareDefaults(um3);
-    calculator.setPosition(TimeEstimateCalculator::Position(0, 0, 0, 0));
-}
+    void SetUp()
+    {
+        //Reset the calculator, but not by using its reset() function. That would be broken if the reset() function is broken.
+        calculator = TimeEstimateCalculator();
 
-void TimeEstimateCalculatorTest::addTime()
+        um3.add("machine_max_feedrate_x", "300");
+        um3.add("machine_max_feedrate_y", "300");
+        um3.add("machine_max_feedrate_z", "40");
+        um3.add("machine_max_feedrate_e", "45");
+        um3.add("machine_max_acceleration_x", "9000");
+        um3.add("machine_max_acceleration_y", "9000");
+        um3.add("machine_max_acceleration_z", "100");
+        um3.add("machine_max_acceleration_e", "10000");
+        um3.add("machine_max_jerk_xy", "20");
+        um3.add("machine_max_jerk_z", "0.4");
+        um3.add("machine_max_jerk_e", "5");
+        um3.add("machine_minimum_feedrate", "0");
+        um3.add("machine_acceleration", "3000");
+
+        always_50.add("machine_max_feedrate_x", "50");
+        always_50.add("machine_max_feedrate_y", "50");
+        always_50.add("machine_max_feedrate_z", "50");
+        always_50.add("machine_max_feedrate_e", "50");
+        always_50.add("machine_max_acceleration_x", "50");
+        always_50.add("machine_max_acceleration_y", "50");
+        always_50.add("machine_max_acceleration_z", "50");
+        always_50.add("machine_max_acceleration_e", "50");
+        always_50.add("machine_max_jerk_xy", "1000");
+        always_50.add("machine_max_jerk_z", "1000");
+        always_50.add("machine_max_jerk_e", "1000");
+        always_50.add("machine_minimum_feedrate", "0");
+        always_50.add("machine_acceleration", "50");
+
+        jerkless.add("machine_max_feedrate_x", "50");
+        jerkless.add("machine_max_feedrate_y", "50");
+        jerkless.add("machine_max_feedrate_z", "50");
+        jerkless.add("machine_max_feedrate_e", "50");
+        jerkless.add("machine_max_acceleration_x", "50");
+        jerkless.add("machine_max_acceleration_y", "50");
+        jerkless.add("machine_max_acceleration_z", "50");
+        jerkless.add("machine_max_acceleration_e", "50");
+        jerkless.add("machine_max_jerk_xy", "0");
+        jerkless.add("machine_max_jerk_z", "0");
+        jerkless.add("machine_max_jerk_e", "0");
+        jerkless.add("machine_minimum_feedrate", "0");
+        jerkless.add("machine_acceleration", "50");
+
+        calculator.setFirmwareDefaults(um3);
+        calculator.setPosition(TimeEstimateCalculator::Position(0, 0, 0, 0));
+    }
+};
+
+TEST_F(TimeEstimateCalculatorTest, AddTime)
 {
     calculator.addTime(2);
     std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Duration(2.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
+    EXPECT_NEAR(Duration(2.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
 
     calculator.addTime(3); //Has to add up, not replace.
     result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
+    EXPECT_NEAR(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
 
     calculator.addTime(-7);
     result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON); //Due to how Duration works, it can never go lower.
+    EXPECT_NEAR(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON) << "Due to how Duration works, it can never go lower.";
 }
 
-void TimeEstimateCalculatorTest::startWithZero()
+TEST_F(TimeEstimateCalculatorTest, StartWithZero)
 {
     const std::vector<Duration> result = calculator.calculate();
 
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes), result.size(), EPSILON);
+    EXPECT_EQ(static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes), result.size());
 
     for (const Duration estimate : result)
     {
-        CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("Time estimates must be zero before anything has been planned.", Duration(0.0), estimate, EPSILON);
+        EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "Time estimates must be zero before anything has been planned.";
     }
 }
 
-void TimeEstimateCalculatorTest::moveToCurrentLocation()
+TEST_F(TimeEstimateCalculatorTest, MoveToCurrentLocation)
 {
     const TimeEstimateCalculator::Position position(1000, 2000, 3000, 4000);
     calculator.setPosition(position);
 
     std::vector<Duration> result = calculator.calculate();
     Duration estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
-    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("setPosition should not add any time to the estimate.", Duration(0.0), estimate, EPSILON);
+    EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "setPosition should not add any time to the estimate.";
 
     calculator.plan(position, Velocity(10), PrintFeatureType::Infill);
 
     result = calculator.calculate();
     estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
-    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("Moving to the same location as where you already were should not cost any time.", Duration(0.0), estimate, EPSILON);
+    EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "Moving to the same location as where you already were should not cost any time.";
 }
 
-void TimeEstimateCalculatorTest::singleLineOnlyJerk()
+TEST_F(TimeEstimateCalculatorTest, SingleLineOnlyJerk)
 {
     calculator.setFirmwareDefaults(always_50);
 
@@ -131,14 +172,14 @@ void TimeEstimateCalculatorTest::singleLineOnlyJerk()
     const double cruise_distance = 1000.0 - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(cruise_distance / 50.0 + t), //1000mm at 50mm/s, then decelerate for almost one second.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::doubleLineOnlyJerk()
+TEST_F(TimeEstimateCalculatorTest, DoubleLineOnlyJerk)
 {
     calculator.setFirmwareDefaults(always_50);
 
@@ -161,14 +202,14 @@ void TimeEstimateCalculatorTest::doubleLineOnlyJerk()
     const double cruise_distance = 2000.0 - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(cruise_distance / 50.0 + t), //2000mm at 50mm/s, then decelerate for almost one second.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::singleLineNoJerk()
+TEST_F(TimeEstimateCalculatorTest, SingleLineNoJerk)
 {
     calculator.setFirmwareDefaults(jerkless);
 
@@ -188,14 +229,14 @@ void TimeEstimateCalculatorTest::singleLineNoJerk()
     const double cruise_distance = 1000.0 - accelerate_distance - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(1.0 + cruise_distance / 50.0 + decelerate_t), //Accelerate, cruise, decelerate.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::shortLine()
+TEST_F(TimeEstimateCalculatorTest, ShortLine)
 {
     calculator.setFirmwareDefaults(jerkless);
 
@@ -225,14 +266,14 @@ void TimeEstimateCalculatorTest::shortLine()
     const double decelerate_t = (max_speed - MINIMUM_PLANNER_SPEED) / 50.0;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(t_apex + decelerate_t),
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::doubleLineNoJerk()
+TEST_F(TimeEstimateCalculatorTest, DoubleLineNoJerk)
 {
     calculator.setFirmwareDefaults(jerkless);
 
@@ -255,14 +296,14 @@ void TimeEstimateCalculatorTest::doubleLineNoJerk()
     const double cruise_distance = 2000.0 - accelerate_distance - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(1.0 + cruise_distance / 50.0 + decelerate_t), //Accelerate, cruise, decelerate.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::diagonalLineNoJerk()
+TEST_F(TimeEstimateCalculatorTest, DiagonalLineNoJerk)
 {
     calculator.setFirmwareDefaults(jerkless);
 
@@ -283,14 +324,14 @@ void TimeEstimateCalculatorTest::diagonalLineNoJerk()
     const double cruise_distance = std::sqrt(2.0) * 1000.0 - accelerate_distance - decelerate_distance; //Thank you Mr. Pythagoras.
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(1.0 + cruise_distance / 50.0 + decelerate_t), //Accelerate, cruise, decelerate.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::straightAngleOnlyJerk()
+TEST_F(TimeEstimateCalculatorTest, StraightAngleOnlyJerk)
 {
     calculator.setFirmwareDefaults(always_50);
 
@@ -319,14 +360,14 @@ void TimeEstimateCalculatorTest::straightAngleOnlyJerk()
     const double second_cruise_time = cruise_distance / 50.0;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(first_cruise_time + second_cruise_time + t), //First line, second line cruise, and decelerate at the end.
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::straightAngleNoJerk()
+TEST_F(TimeEstimateCalculatorTest, StraightAngleNoJerk)
 {
     calculator.setFirmwareDefaults(jerkless);
 
@@ -357,14 +398,14 @@ void TimeEstimateCalculatorTest::straightAngleNoJerk()
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t),
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
     );
 }
 
-void TimeEstimateCalculatorTest::straightAnglePartialJerk()
+TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
 {
     //UM3 defaults have 20mm/s jerk in X/Y direction.
 
@@ -403,7 +444,7 @@ void TimeEstimateCalculatorTest::straightAnglePartialJerk()
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(
+    EXPECT_NEAR(
         Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t),
         result[static_cast<size_t>(PrintFeatureType::Infill)],
         EPSILON
