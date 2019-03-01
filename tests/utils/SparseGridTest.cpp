@@ -1,37 +1,68 @@
-//Copyright (c) 2015 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SparseGridTest.h"
-
-#include <algorithm>
+#include <gtest/gtest.h>
+#include <unordered_set>
 #include <vector>
+
+#include "../src/utils/SparseGrid.h"
+#include "../src/utils/SparsePointGridInclusive.h"
 
 namespace cura
 {
 
-CPPUNIT_TEST_SUITE_REGISTRATION(SparseGridTest);
-
-void SparseGridTest::setUp()
+struct GetNearbyParameters
 {
-    //Do nothing.
-}
+    std::vector<Point> registered_points;
+    std::unordered_set<Point> expected_near;
+    std::unordered_set<Point> expected_far;
 
-void SparseGridTest::tearDown()
-{
-    //Do nothing.
-}
+    GetNearbyParameters(const std::vector<Point> registered_points, const std::unordered_set<Point> expected_near, const std::unordered_set<Point> expected_far)
+    : registered_points(registered_points)
+    , expected_near(expected_near)
+    , expected_far(expected_far)
+    {
+    }
+};
 
-void SparseGridTest::getNearbyFarTest()
+class GetNearbyTest : public testing::TestWithParam<GetNearbyParameters>
 {
-    std::vector<Point> input;
-    input.emplace_back(0, 100);
+};
+
+TEST_P(GetNearbyTest, GetNearby)
+{
     const Point target(100, 100);
-    std::unordered_set<Point> near;
-    std::unordered_set<Point> far;
-    far.emplace(0, 100);
-    getNearbyAssert(input, target, 10, near, far);
+    constexpr coord_t grid_size = 10;
+    const GetNearbyParameters parameters = GetParam();
+    SparsePointGridInclusive<Point> grid(grid_size);
+    for (const Point point : parameters.registered_points)
+    {
+        grid.insert(point, point);
+    }
+
+    const std::vector<typename SparsePointGridInclusive<Point>::Elem> result = grid.getNearby(target, grid_size);
+
+    //Are all near points reported as near?
+    for (const Point point : parameters.expected_near)
+    {
+        EXPECT_NE(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem &elem) { return elem.val == point; }))
+            << "Point " << point << " is near " << target << " (distance " << vSize(point - target) << "), but getNearby didn't find it. Grid size: " << grid_size;
+    }
+    //Are all far points NOT reported as near?
+    for (const Point point : parameters.expected_far)
+    {
+        EXPECT_EQ(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem &elem) { return elem.val == point; }))
+            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target) << "), but getNearby thought it was near. Grid size: " << grid_size;
+    }
 }
 
+INSTANTIATE_TEST_SUITE_P(GetNearbyInstantiation, GetNearbyTest, testing::Values(
+    GetNearbyParameters({ Point(0,   100) }, std::unordered_set<Point>(), std::unordered_set<Point>({ Point(0,   100) })), //A far point.
+    GetNearbyParameters({ Point(95,  100) }, std::unordered_set<Point>({ Point(95,  100) }), std::unordered_set<Point>()), //A near point.
+    GetNearbyParameters({ Point(100, 100) }, std::unordered_set<Point>({ Point(100, 100) }), std::unordered_set<Point>())  //On top of the target.
+));
+
+/*
 void SparseGridTest::getNearbyLine2Test()
 {
     std::vector<Point> input;
@@ -82,28 +113,6 @@ void SparseGridTest::getNearbyLineTest()
         }
     }
     getNearbyAssert(input, target, grid_size, near, far);
-}
-
-void SparseGridTest::getNearbyNearTest()
-{
-    std::vector<Point> input;
-    input.emplace_back(95, 100);
-    const Point target(100, 100);
-    std::unordered_set<Point> near;
-    near.emplace(95, 100);
-    std::unordered_set<Point> far;
-    getNearbyAssert(input, target, 10, near, far);
-}
-
-void SparseGridTest::getNearbySameTest()
-{
-    std::vector<Point> input;
-    input.emplace_back(100, 100);
-    const Point target(100, 100);
-    std::unordered_set<Point> near;
-    near.emplace(100, 100);
-    std::unordered_set<Point> far;
-    getNearbyAssert(input, target, 10, near, far);
 }
 
 void SparseGridTest::getNearestChoiceTest()
@@ -265,6 +274,6 @@ void SparseGridTest::getNearestAssert(
             " (distance " << vSize(*expected - target) << ").";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), result.val == *expected);
     }
-}
+}*/
 
 }

@@ -209,7 +209,7 @@ set(engine_TEST_UTILS
     PolygonConnectorTest
     PolygonTest
     PolygonUtilsTest
-    #SparseGridTest
+    SparseGridTest
     #StringTest
     #UnionFindTest
 )
