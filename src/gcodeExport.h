@@ -45,6 +45,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, HeaderUltiGCode);
     FRIEND_TEST(GCodeExportTest, HeaderRepRap);
     FRIEND_TEST(GCodeExportTest, HeaderMarlin);
+    FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
 private:
     struct ExtruderTrainAttributes
     {

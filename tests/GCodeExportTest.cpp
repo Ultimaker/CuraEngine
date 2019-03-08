@@ -344,4 +344,18 @@ TEST_F(GCodeExportTest, HeaderMarlin)
     EXPECT_EQ(result, ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: 0.123\n");
 }
 
+TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
+{
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.123");
+    gcode.flavor = EGCodeFlavor::MARLIN_VOLUMATRIC;
+    constexpr size_t num_extruders = 2;
+    const std::vector<bool> extruder_is_used(num_extruders, true);
+    constexpr Duration print_time = 1337;
+    const std::vector<double> filament_used = {100, 200};
+
+    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+
+    EXPECT_EQ(result, ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: 0.123\n");
+}
+
 } //namespace cura
