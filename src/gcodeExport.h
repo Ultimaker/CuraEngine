@@ -43,6 +43,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, CommentLayerCount);
     FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormatNoExtruders);
     FRIEND_TEST(GCodeExportTest, HeaderUltiGCode);
+    FRIEND_TEST(GCodeExportTest, HeaderRepRap);
 private:
     struct ExtruderTrainAttributes
     {

@@ -57,7 +57,7 @@ public:
         gcode.machine_buildplate_type = "Your favourite build plate";
 
         //Set up a scene so that we may request settings.
-        Application::getInstance().current_slice = new Slice(0);
+        Application::getInstance().current_slice = new Slice(1);
     }
 
     void TearDown()
@@ -310,6 +310,22 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
     EXPECT_EQ(result, ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n");
+}
+
+TEST_F(GCodeExportTest, HeaderRepRap)
+{
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.123");
+    gcode.flavor = EGCodeFlavor::REPRAP;
+    gcode.extruder_attr[0].filament_area = 5.0;
+    gcode.extruder_attr[1].filament_area = 4.0;
+    constexpr size_t num_extruders = 2;
+    const std::vector<bool> extruder_is_used(num_extruders, true);
+    constexpr Duration print_time = 1337;
+    const std::vector<double> filament_used = {100, 200};
+
+    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+
+    EXPECT_EQ(result, ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: 0.123\n");
 }
 
 } //namespace cura
