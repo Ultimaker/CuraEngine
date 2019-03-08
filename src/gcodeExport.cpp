@@ -222,7 +222,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
             prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice->scene.extruders[0].settings.get<double>("machine_nozzle_size") << new_line;
         }
-        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN)
+        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
         {
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
@@ -233,7 +233,14 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                     {
                         prefix << ", ";
                     }
-                    prefix << filament_used[i] / (1000 * extruder_attr[i].filament_area) << "m";
+                    if (flavor != EGCodeFlavor::MARLIN_VOLUMATRIC)
+                    {
+                        prefix << filament_used[i] / (1000 * extruder_attr[i].filament_area) << "m";
+                    }
+                    else //Use volumetric filament used.
+                    {
+                        prefix << filament_used[i] << "mm3";
+                    }
                 }
             }
             else
