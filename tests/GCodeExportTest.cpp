@@ -290,4 +290,26 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
 
 INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
 
+/*
+ * Test the default header generation.
+ */
+TEST_F(GCodeExportTest, HeaderUltiGCode)
+{
+    gcode.flavor = EGCodeFlavor::ULTIGCODE;
+    constexpr size_t num_extruders = 2;
+    const std::vector<bool> extruder_is_used(num_extruders, true);
+    constexpr Duration print_time = 1337;
+    const std::vector<double> filament_used = {100, 200};
+    for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
+    {
+        Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
+        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
+        train.settings.add("machine_nozzle_size", "0.4");
+    }
+
+    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+
+    EXPECT_EQ(result, ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n");
+}
+
 } //namespace cura
