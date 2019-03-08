@@ -219,6 +219,13 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
     const size_t num_extruders = GetParam();
     gcode.flavor = EGCodeFlavor::GRIFFIN;
     gcode.extruder_count = num_extruders;
+    for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
+    {
+        Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
+        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
+        train.settings.add("machine_nozzle_size", "0.4");
+        train.settings.add("machine_nozzle_id", "TestNozzle");
+    }
 
     const std::vector<bool> extruder_is_used(num_extruders, true);
     std::istringstream result(gcode.getFileHeader(extruder_is_used));
@@ -251,11 +258,11 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
         EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".NOZZLE.DIAMETER:"), token.substr(17, 17)); //Actual nozzle diameter doesn't matter.
+        EXPECT_EQ(std::string(".NOZZLE.DIAMETER:0.4"), token.substr(17, 20)); //Nozzle size needs to be equal to the machine_nozzle_size setting.
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
         EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".NOZZLE.NAME:"), token.substr(17, 13)); //Actual nozzle name doesn't matter.
+        EXPECT_EQ(std::string(".NOZZLE.NAME:TestNozzle"), token.substr(17, 23)); //Nozzle name needs to be equal to the machine_nozzle_id setting.
     }
 
     std::getline(result, token, '\n');
