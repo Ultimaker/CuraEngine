@@ -1482,7 +1482,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         if (!infill_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
-            gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
+            // start the infill polygons at the nearest vertex to the current location
+            gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
             gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0]);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
