@@ -1355,7 +1355,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
-    const size_t wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
+    size_t wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (mesh.infill_angles.size() > 0)
     {
@@ -1402,6 +1402,61 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
+
+        // if infill walls are required below the boundaries of skin regions above, partition the infill along the boundary edge
+
+        size_t skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
+        if (skin_edge_support_layers > 0)
+        {
+            // determine those regions that have skin above them
+            Polygons skin_above;
+            for (size_t i = 1; i <= skin_edge_support_layers; ++i)
+            {
+                const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
+                if (skin_layer_nr < mesh.layers.size())
+                {
+                    for (const SliceLayerPart& part : mesh.layers[skin_layer_nr].parts)
+                    {
+                        for (const SkinPart& skin_part : part.skin_parts)
+                        {
+                            skin_above.add(skin_part.outline);
+                        }
+                    }
+                }
+            }
+
+            if (skin_above.size())
+            {
+                const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
+
+                Polygons infill_below_skin = in_outline.intersection(skin_above.unionPolygons());
+                const coord_t min_area = 400 * 400;
+
+                if (infill_below_skin.offset(-(infill_skin_overlap + 10)).area() > min_area)
+                {
+                    // there is infill below skin, is there also infill that isn't below skin?
+                    Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
+
+                    if (infill_not_below_skin.offset(-(infill_skin_overlap + 10)).area() > min_area)
+                    {
+                        // partition infill so that there is a boundary between the region that has skin above
+                        // and the region that does not have skin above
+
+                        in_outline = infill_not_below_skin;
+
+                        // slightly reduce size of infill region below skin so that it doesn't merge with the infill region that is not below skin
+                        in_outline.add(infill_below_skin.offset(-10));
+
+                        // ensure that at least one infill wall is printed along the boundary
+                        if(!wall_line_count)
+                        {
+                            wall_line_count = 1;
+                        }
+                    }
+                }
+            }
+        }
+
         constexpr double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
         
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
