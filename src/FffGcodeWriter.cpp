@@ -1410,6 +1410,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             // determine those regions that have skin above them
             Polygons skin_above;
+            Polygons skin_above_upper;
             for (size_t i = 1; i <= skin_edge_support_layers; ++i)
             {
                 const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
@@ -1419,17 +1420,23 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                     {
                         for (const SkinPart& skin_part : part.skin_parts)
                         {
-                            skin_above.add(skin_part.outline);
+                            if (i == 1)
+                                skin_above.add(skin_part.outline);
+                            else
+                                skin_above_upper.add(skin_part.outline);
                         }
                     }
                 }
             }
 
+            // combine the skin regions with a small gap between them
+            skin_above.add(skin_above_upper.unionPolygons().difference(skin_above.offset(10)));
+
             if (skin_above.size())
             {
                 const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
 
-                Polygons infill_below_skin = in_outline.intersection(skin_above.unionPolygons());
+                Polygons infill_below_skin = in_outline.intersection(skin_above);
                 const coord_t min_area = 400 * 400;
 
                 if (infill_below_skin.offset(-(infill_skin_overlap + 10)).area() > min_area)
