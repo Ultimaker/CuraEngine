@@ -20,6 +20,18 @@
 
 namespace cura {
 
+std::string transliterate(const std::string& text)
+{
+    // For now, just replace all non-ascii characters with '?'.
+    // This function can be expaned if we need more complex transliteration.
+    std::ostringstream stream;
+    for (const char& c : text)
+    {
+        stream << static_cast<char>((c >= 0 && c < 128) ? c : '?');
+    }
+    return stream.str();
+}
+
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
@@ -167,7 +179,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
-        prefix << ";TARGET_MACHINE.NAME:" << machine_name << new_line;
+        prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
 
         for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
@@ -454,8 +466,10 @@ void GCodeExport::updateTotalPrintTime()
     writeTimeComment(getSumTotalPrintTimes());
 }
 
-void GCodeExport::writeComment(const std::string& comment)
+void GCodeExport::writeComment(const std::string& unsanitized_comment)
 {
+    const std::string comment = transliterate(unsanitized_comment);
+
     *output_stream << ";";
     for (unsigned int i = 0; i < comment.length(); i++)
     {
