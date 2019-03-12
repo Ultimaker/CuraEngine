@@ -27,7 +27,7 @@ std::string transliterate(const std::string& text)
     std::ostringstream stream;
     for (const char& c : text)
     {
-        stream << static_cast<char>((c >= 0 && c < 128) ? c : '?');
+        stream << static_cast<char>((c >= 0) ? c : '?');
     }
     return stream.str();
 }
