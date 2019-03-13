@@ -1,69 +1,76 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PolygonTest.h"
+#include <gtest/gtest.h>
+
+#include <../src/utils/polygon.h> //The class under test.
 
 namespace cura
 {
-    CPPUNIT_TEST_SUITE_REGISTRATION(PolygonTest);
 
-void PolygonTest::setUp()
+class PolygonTest: public testing::Test
 {
-    test_square.emplace_back(0, 0);
-    test_square.emplace_back(100, 0);
-    test_square.emplace_back(100, 100);
-    test_square.emplace_back(0, 100);
+public:
+    Polygon test_square;
+    Polygon pointy_square;
+    Polygon triangle;
+    Polygon clipper_bug;
+    Polygon clockwise_large;
+    Polygon clockwise_small;
+    Polygons clockwise_donut;
+
+    void SetUp()
+    {
+        test_square.emplace_back(0, 0);
+        test_square.emplace_back(100, 0);
+        test_square.emplace_back(100, 100);
+        test_square.emplace_back(0, 100);
 
 
-    pointy_square.emplace_back(0, 0);
-    pointy_square.emplace_back(47, 0);
-    pointy_square.emplace_back(50, 80);
-    pointy_square.emplace_back(53, 0);
-    pointy_square.emplace_back(100, 0);
-    pointy_square.emplace_back(100, 100);
-    pointy_square.emplace_back(55, 100);
-    pointy_square.emplace_back(50, 180);
-    pointy_square.emplace_back(45, 100);
-    pointy_square.emplace_back(0, 100);
+        pointy_square.emplace_back(0, 0);
+        pointy_square.emplace_back(47, 0);
+        pointy_square.emplace_back(50, 80);
+        pointy_square.emplace_back(53, 0);
+        pointy_square.emplace_back(100, 0);
+        pointy_square.emplace_back(100, 100);
+        pointy_square.emplace_back(55, 100);
+        pointy_square.emplace_back(50, 180);
+        pointy_square.emplace_back(45, 100);
+        pointy_square.emplace_back(0, 100);
 
-    triangle.emplace_back(100, 0);
-    triangle.emplace_back(300, 0);
-    triangle.emplace_back(200, 100);
+        triangle.emplace_back(100, 0);
+        triangle.emplace_back(300, 0);
+        triangle.emplace_back(200, 100);
 
-    clipper_bug.emplace_back(107347, 120836);
-    clipper_bug.emplace_back(107309, 120910);
-    clipper_bug.emplace_back(107158, 120960);
-    clipper_bug.emplace_back(106760, 120839);
-    clipper_bug.emplace_back(106570, 120831);
+        clipper_bug.emplace_back(107347, 120836);
+        clipper_bug.emplace_back(107309, 120910);
+        clipper_bug.emplace_back(107158, 120960);
+        clipper_bug.emplace_back(106760, 120839);
+        clipper_bug.emplace_back(106570, 120831);
 
-    clockwise_large.emplace_back(-100, -100);
-    clockwise_large.emplace_back(-100, 100);
-    clockwise_large.emplace_back(100, 100);
-    clockwise_large.emplace_back(100, -100);
+        clockwise_large.emplace_back(-100, -100);
+        clockwise_large.emplace_back(-100, 100);
+        clockwise_large.emplace_back(100, 100);
+        clockwise_large.emplace_back(100, -100);
 
-    clockwise_small.emplace_back(-50, -50);
-    clockwise_small.emplace_back(-50, 50);
-    clockwise_small.emplace_back(50, 50);
-    clockwise_small.emplace_back(50, -50);
+        clockwise_small.emplace_back(-50, -50);
+        clockwise_small.emplace_back(-50, 50);
+        clockwise_small.emplace_back(50, 50);
+        clockwise_small.emplace_back(50, -50);
 
-    Polygons outer, inner;
-    outer.add(clockwise_large);
-    inner.add(clockwise_small);
-    clockwise_donut = outer.difference(inner);
-}
+        Polygons outer, inner;
+        outer.add(clockwise_large);
+        inner.add(clockwise_small);
+        clockwise_donut = outer.difference(inner);
+    }
+};
 
-void PolygonTest::tearDown()
-{
-    //Do nothing.
-}
-
-
-void PolygonTest::polygonOffsetTest()
+TEST_F(PolygonTest, polygonOffsetTest)
 {
     Polygons test_squares;
     test_squares.add(test_square);
-    Polygons expanded = test_squares.offset(25);
-    int64_t expanded_length = expanded.polygonLength();
+    const Polygons expanded = test_squares.offset(25);
+    const coord_t expanded_length = expanded.polygonLength();
 
     Polygons square_hole;
     PolygonRef square_inverted = square_hole.newPoly();
@@ -71,42 +78,41 @@ void PolygonTest::polygonOffsetTest()
     {
         square_inverted.add(test_square[i]);
     }
-    Polygons contracted = square_hole.offset(25);
-    int64_t contracted_length = contracted.polygonLength();
+    const Polygons contracted = square_hole.offset(25);
+    const coord_t contracted_length = contracted.polygonLength();
 
-    CPPUNIT_ASSERT_MESSAGE("Offset on outside poly is different from offset on inverted poly!", std::abs(expanded_length - contracted_length) < 5);
+    ASSERT_NEAR(expanded_length, contracted_length, 5) << "Offset on outside poly is different from offset on inverted poly!";
 }
 
-void PolygonTest::polygonOffsetBugTest()
+TEST_F(PolygonTest, polygonOffsetBugTest)
 {
     Polygons polys;
     polys.add(clipper_bug);
-    Polygons offsetted = polys.offset(-20);
+    const Polygons offsetted = polys.offset(-20);
 
-    for (PolygonRef poly : offsetted)
+    for (const ConstPolygonRef poly : offsetted)
     {
-        for (Point& p : poly)
+        for (const Point& p : poly)
         {
-            CPPUNIT_ASSERT_MESSAGE("Polygon offset moved point the wrong way!", polys.inside(p));
+            ASSERT_TRUE(polys.inside(p)) << "A negative offset should move the point towards the inside!";
         }
     }
 }
 
-
-void PolygonTest::isOutsideTest()
+TEST_F(PolygonTest, isOutsideTest)
 {
     Polygons test_triangle;
     test_triangle.add(triangle);
 
-    CPPUNIT_ASSERT_MESSAGE("Left point is calculated as inside while it's outside!", !test_triangle.inside(Point(0, 100)));
-    CPPUNIT_ASSERT_MESSAGE("Middle left point is calculated as inside while it's outside!", !test_triangle.inside(Point(100, 100)));
-    CPPUNIT_ASSERT_MESSAGE("Middle right point is calculated as inside while it's outside!", !test_triangle.inside(Point(300, 100)));
-    CPPUNIT_ASSERT_MESSAGE("Right point is calculated as inside while it's outside!", !test_triangle.inside(Point(500, 100)));
-    CPPUNIT_ASSERT_MESSAGE("Above point is calculated as inside while it's outside!", !test_triangle.inside(Point(100, 200)));
-    CPPUNIT_ASSERT_MESSAGE("Below point is calculated as inside while it's outside!", !test_triangle.inside(Point(100, -100)));
+    EXPECT_FALSE(test_triangle.inside(Point(0, 100))) << "Left point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(100, 100))) << "Middle left point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(300, 100))) << "Middle right point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(500, 100))) << "Right point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(100, 200))) << "Above point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(100, -100))) << "Below point should be outside the triangle.";
 }
 
-void PolygonTest::isInsideTest()
+TEST_F(PolygonTest, isInsideTest)
 {
     Polygons test_polys;
     PolygonRef poly = test_polys.newPoly();
@@ -123,31 +129,30 @@ void PolygonTest::isInsideTest()
     poly.add(Point(79747,98179));
     poly.add(Point(80960,98095));
 
-    CPPUNIT_ASSERT_MESSAGE("Inside point is calculated as being outside!", test_polys.inside(Point(78315, 98440)));
-
+    EXPECT_TRUE(test_polys.inside(Point(78315, 98440))) << "Point should be inside the polygons!";
 }
 
-void PolygonTest::splitIntoPartsWithHoleTest()
+TEST_F(PolygonTest, splitIntoPartsWithHoleTest)
 {
     const std::vector<PolygonsPart> parts = clockwise_donut.splitIntoParts();
 
-    CPPUNIT_ASSERT_MESSAGE("difference between two polygons is not one PolygonsPart!", parts.size() == 1);
+    EXPECT_EQ(parts.size(), 1) << "Difference between two polygons should be one PolygonsPart!";
 }
 
-void PolygonTest::differenceContainsOriginalPointTest()
+TEST_F(PolygonTest, differenceContainsOriginalPointTest)
 {
-    PolygonsPart part = clockwise_donut.splitIntoParts()[0];
-    PolygonRef outer = part.outerPolygon();
-    CPPUNIT_ASSERT_MESSAGE("Outer vertex cannot be found in polygons difference!", std::find(outer.begin(), outer.end(), clockwise_large[0]) != outer.end());
-    PolygonRef inner = part[1];
-    CPPUNIT_ASSERT_MESSAGE("Inner vertex cannot be found in polygons difference!", std::find(inner.begin(), inner.end(), clockwise_small[0]) != inner.end());
+    const PolygonsPart part = clockwise_donut.splitIntoParts()[0];
+    const ConstPolygonRef outer = part.outerPolygon();
+    EXPECT_NE(std::find(outer.begin(), outer.end(), clockwise_large[0]), outer.end()) << "Outer vertex must be in polygons difference.";
+    const ConstPolygonRef inner = part[1];
+    EXPECT_NE(std::find(inner.begin(), inner.end(), clockwise_small[0]), inner.end()) << "Inner vertex must be in polygons difference.";
 }
 
-void PolygonTest::differenceClockwiseTest()
+TEST_F(PolygonTest, differenceClockwiseTest)
 {
-    PolygonsPart part = clockwise_donut.splitIntoParts()[0];
+    const PolygonsPart part = clockwise_donut.splitIntoParts()[0];
 
-    PolygonRef outer = part.outerPolygon();
+    const ConstPolygonRef outer = part.outerPolygon();
     //Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
     coord_t area = 0;
     for (size_t point_index = 0; point_index < outer.size(); point_index++)
@@ -157,9 +162,9 @@ void PolygonTest::differenceClockwiseTest()
         const Point next = outer[next_index];
         area += (next.X - point.X) * (point.Y + next.Y);
     }
-    CPPUNIT_ASSERT_MESSAGE("Outer polygon is not counter-clockwise!", area < 0);
+    EXPECT_LT(area, 0) << "Outer polygon should be counter-clockwise.";
 
-    PolygonRef inner = part[1];
+    const ConstPolygonRef inner = part[1];
     area = 0;
     for (size_t point_index = 0; point_index < inner.size(); point_index++)
     {
@@ -168,22 +173,22 @@ void PolygonTest::differenceClockwiseTest()
         const Point next = inner[next_index];
         area += (next.X - point.X) * (point.Y + next.Y);
     }
-    CPPUNIT_ASSERT_MESSAGE("Inner polygon is not clockwise!", area > 0);
+    EXPECT_GT(area, 0) << "Inner polygon should be clockwise.";
 }
 
-void PolygonTest::getEmptyHolesTest()
+TEST_F(PolygonTest, getEmptyHolesTest)
 {
-    Polygons holes = clockwise_donut.getEmptyHoles();
+    const Polygons holes = clockwise_donut.getEmptyHoles();
 
-    CPPUNIT_ASSERT_MESSAGE("Not the correct number of holes!", holes.size() == 1);
-    CPPUNIT_ASSERT_MESSAGE("Empty hole doesn't have the correct amount of vertices!", holes[0].size() == clockwise_small.size());
+    ASSERT_EQ(holes.size(), 1);
+    ASSERT_EQ(holes[0].size(), clockwise_small.size()) << "Empty hole should have the same amount of vertices as the original polygon.";
     for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
     {
-        CPPUNIT_ASSERT_MESSAGE("Coordinates of empty hole are wrong!", holes[0][point_index] == clockwise_small[point_index]);
+        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index]) << "Coordinates of the empty hole must be the same as the original polygon.";
     }
 }
 
-void PolygonTest::simplifyCircle()
+TEST_F(PolygonTest, simplifyCircle)
 {
     Polygons circle_polygons;
     PolygonRef circle = circle_polygons.newPoly();
@@ -203,16 +208,12 @@ void PolygonTest::simplifyCircle()
     for (size_t point_index = 1; point_index < circle.size() - 1; point_index++) //Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
         coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
-        std::stringstream ss_short;
-        ss_short << "Segment " << (point_index - 1) << " - " << point_index << " is too short! " << segment_length << " < " << minimum_segment_length;
-        CPPUNIT_ASSERT_MESSAGE(ss_short.str(), segment_length >= minimum_segment_length);
-        std::stringstream ss_long;
-        ss_long << "Segment " << (point_index - 1) << " - " << point_index << " is too long! " << segment_length << " > " << maximum_segment_length;
-        CPPUNIT_ASSERT_MESSAGE(ss_long.str(), segment_length <= maximum_segment_length);
+        ASSERT_GE(segment_length, minimum_segment_length) << "Segment " << (point_index - 1) << " - " << point_index << " is too short!";
+        ASSERT_LE(segment_length, maximum_segment_length) << "Segment " << (point_index - 1) << " - " << point_index << " is too long!";
     }
 }
 
-void PolygonTest::simplifyZigzag()
+TEST_F(PolygonTest, simplifyZigzag)
 {
     //Tests a zigzag line: /\/\/\/\/\/\/
     //If all line segments are short, they can all be removed and turned into one long line: -------------------
@@ -231,12 +232,10 @@ void PolygonTest::simplifyZigzag()
     constexpr coord_t maximum_error = 2 * segment_length * segment_length + 100; //Squared offset from baseline (and some margin for rounding).
     zigzag_polygons.simplify(segment_length + 10, maximum_error);
 
-    std::stringstream ss;
-    ss << "Zigzag should be removed since the total error compensates with each zag, but size was " << zigzag.size() << ".";
-    CPPUNIT_ASSERT_MESSAGE(ss.str(), zigzag.size() <= 5);
+    ASSERT_LE(zigzag.size(), 5) << "Zigzag should be removed since the total error compensates with each zag.";
 }
 
-void PolygonTest::simplifyLimitedLength()
+TEST_F(PolygonTest, simplifyLimitedLength)
 {
     //Generate a spiral with segments that gradually increase in length.
     Polygons spiral_polygons;
@@ -259,10 +258,10 @@ void PolygonTest::simplifyLimitedLength()
 
     spiral_polygons.simplify(1550, 999999999); //Remove segments smaller than 1550 (infinite area error).
 
-    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1100 with 1200, 1300 with 1400 and first with last."), spiral.size() == 11 - 3);
+    ASSERT_EQ(spiral.size(), 11 - 3) << "Should merge segments of length 1100 with 1200, 1300 with 1400 and first with last.";
 }
 
-void PolygonTest::simplifyLimitedError()
+TEST_F(PolygonTest, simplifyLimitedError)
 {
     //Generate a square spiral with increasingly large corners until the area exceeds the limit.
     Polygons spiral_polygons;
@@ -293,7 +292,7 @@ void PolygonTest::simplifyLimitedError()
     const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
     spiral_polygons.simplify(999999999, height - 10);
 
-    CPPUNIT_ASSERT_MESSAGE(std::string("Should merge segments of length 1000 through 1400 and first with last."), spiral.size() == 11 - 5);
+    ASSERT_EQ(spiral.size(), 11 - 5) << "Should merge segments of length 1000 through 1400 and first with last.";
 }
 
 }

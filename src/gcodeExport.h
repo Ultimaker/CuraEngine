@@ -1,12 +1,13 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
-#include <stdio.h>
 #include <deque> // for extrusionAmountAtPreviousRetractions
+#include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #include <sstream> // for stream.str()
+#include <stdio.h>
 
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "timeEstimate.h"
@@ -28,6 +29,23 @@ class RetractionConfig;
 class GCodeExport : public NoCopy
 {
     friend class GCodeExportTest;
+    friend class GriffinHeaderTest;
+    FRIEND_TEST(GCodeExportTest, CommentEmpty);
+    FRIEND_TEST(GCodeExportTest, CommentSimple);
+    FRIEND_TEST(GCodeExportTest, CommentMultiLine);
+    FRIEND_TEST(GCodeExportTest, CommentMultiple);
+    FRIEND_TEST(GCodeExportTest, CommentTimeZero);
+    FRIEND_TEST(GCodeExportTest, CommentTimeInteger);
+    FRIEND_TEST(GCodeExportTest, CommentTimeFloatRoundingError);
+    FRIEND_TEST(GCodeExportTest, CommentTypeAllTypesCovered);
+    FRIEND_TEST(GCodeExportTest, CommentLayer);
+    FRIEND_TEST(GCodeExportTest, CommentLayerNegative);
+    FRIEND_TEST(GCodeExportTest, CommentLayerCount);
+    FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormatNoExtruders);
+    FRIEND_TEST(GCodeExportTest, HeaderUltiGCode);
+    FRIEND_TEST(GCodeExportTest, HeaderRepRap);
+    FRIEND_TEST(GCodeExportTest, HeaderMarlin);
+    FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
 private:
     struct ExtruderTrainAttributes
     {
