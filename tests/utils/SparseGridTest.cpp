@@ -56,7 +56,7 @@ TEST_P(GetNearbyTest, GetNearby)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(GetNearbyInstantiation, GetNearbyTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(GetNearbyInstantiation, GetNearbyTest, testing::Values(
     GetNearbyParameters({ Point(0,   100) }, std::unordered_set<Point>(), std::unordered_set<Point>({ Point(0,   100) })), //A far point.
     GetNearbyParameters({ Point(95,  100) }, std::unordered_set<Point>({ Point(95,  100) }), std::unordered_set<Point>()), //A near point.
     GetNearbyParameters({ Point(100, 100) }, std::unordered_set<Point>({ Point(100, 100) }), std::unordered_set<Point>())  //On top of the target.
@@ -192,7 +192,7 @@ TEST_P(GetNearestTest, GetNearest)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(GetNearestInstantiation, GetNearestTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(GetNearestInstantiation, GetNearestTest, testing::Values(
     GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(103, 100), Point(200, 100) }), new Point(103, 100)), //Choose nearest out of 3 points.
     GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(98, 100), Point(106, 100) }), new Point(106, 100), [](const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool { return elem.point.X > 100; }), //With a filter.
     GetNearestParameters(std::vector<Point>(), nullptr), //No points, no answer.

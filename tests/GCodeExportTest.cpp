@@ -288,7 +288,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
     EXPECT_EQ(std::string(";END_OF_HEADER"), token);
 }
 
-INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
+INSTANTIATE_TEST_CASE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
 
 /*
  * Test the default header generation.

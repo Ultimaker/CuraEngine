@@ -60,7 +60,7 @@ TEST_P(GetDist2FromLineSegmentTest, GetDist2FromLineSegment)
             << "Line [" << line_start.X << ", " << line_start.Y << "] -- [" << line_end.X << ", " << line_end.Y << "], point [" << point.X << ", " << point.Y << "], check whether it is beyond was " << static_cast<int>(supposed_is_beyond) << " rather than " << static_cast<int>(actual_is_beyond) << ".";
 }
 
-INSTANTIATE_TEST_SUITE_P(GetDist2FromLineSegmentInstantiation, GetDist2FromLineSegmentTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(GetDist2FromLineSegmentInstantiation, GetDist2FromLineSegmentTest, testing::Values(
     GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(25, 3), 9, 0), //Nearby a horizontal line.
     GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(25, 0), 0, 0), //On a horizontal line.
     GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(200, 0), 10000, 1), //Beyond a horizontal line.
@@ -132,7 +132,7 @@ TEST_P(GetAngleTest, GetAngle)
     ASSERT_LE(std::fabs(angle - supposed_angle), maximum_error) << "Corner in " << a << " - " << b << " - " << c << " was computed to have an angle of " << supposed_angle << " instead of " << angle << ".";
 }
 
-INSTANTIATE_TEST_SUITE_P(GetAngleInstantiation, GetAngleTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(GetAngleInstantiation, GetAngleTest, testing::Values(
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 1), 180), //Line.
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -100), 315), //-45 degrees.
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, -100), 270), //-90 degrees.
@@ -234,7 +234,7 @@ TEST_P(GetPointOnLineWithDistTest, GetPointOnLineWithDist)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(GetPointOnLineWithDistInstantiation, GetPointOnLineWithDistTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(GetPointOnLineWithDistInstantiation, GetPointOnLineWithDistTest, testing::Values(
     GetPointOnLineWithDistParameters(Point(110, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), true),
     GetPointOnLineWithDistParameters(Point(90, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true),
     GetPointOnLineWithDistParameters(Point(10, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true),
@@ -282,7 +282,7 @@ TEST_P(RotateAroundTest, RotateAround)
         << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle << " degrees resulted in " << supposed_result << " instead of expected " << actual_result << ".";
 }
 
-INSTANTIATE_TEST_SUITE_P(RotateAroundInstantiation, RotateAroundTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(RotateAroundInstantiation, RotateAroundTest, testing::Values(
     RotateAroundParameters(Point(25, 30), Point(10, 17), 90, Point(-3, 32)), //90 degrees rotation.
     RotateAroundParameters(Point(25, 30), Point(10, 17), -90, Point(23, 2)), //-90 degrees rotation.
     RotateAroundParameters(Point(-67, 14), Point(50, 50), 0, Point(-67, 14)), //No rotation at all.
