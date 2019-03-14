@@ -304,6 +304,7 @@ if (BUILD_TESTS)
     message(STATUS "Building tests...")
 
     find_package(GTest REQUIRED)
+    include_directories(${GTEST_INCLUDE_DIR})
 
     enable_testing()
     foreach (test ${engine_TEST})
