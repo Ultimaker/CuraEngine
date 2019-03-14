@@ -1,9 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_CONNECTOR_H
 #define UTILS_POLYGON_CONNECTOR_H
 
+#include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #include <vector>
 
 #include "IntPoint.h"
@@ -13,10 +14,8 @@
 namespace cura 
 {
 
-class PolygonConnectorTest; // fwd decl
-
 /*!
- * Class for connecting polygons together into less polygons.
+ * Class for connecting polygons together into fewer polygons.
  *                          /.                             .
  * \                       /                               .
  *  \                     /                                .
@@ -32,7 +31,8 @@ class PolygonConnectorTest; // fwd decl
  */
 class PolygonConnector
 {
-    friend class PolygonConnectorTest;
+    FRIEND_TEST(PolygonConnectorTest, getBridgeTest);
+    FRIEND_TEST(PolygonConnectorTest, connectionLengthTest);
 public:
     PolygonConnector(coord_t line_width, coord_t max_dist)
     : line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines
