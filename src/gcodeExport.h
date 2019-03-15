@@ -5,7 +5,9 @@
 #define GCODEEXPORT_H
 
 #include <deque> // for extrusionAmountAtPreviousRetractions
-#include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#endif
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
@@ -28,6 +30,7 @@ class RetractionConfig;
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport : public NoCopy
 {
+#ifdef BUILD_TESTS
     friend class GCodeExportTest;
     friend class GriffinHeaderTest;
     FRIEND_TEST(GCodeExportTest, CommentEmpty);
@@ -46,6 +49,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, HeaderRepRap);
     FRIEND_TEST(GCodeExportTest, HeaderMarlin);
     FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
+#endif
 private:
     struct ExtruderTrainAttributes
     {
