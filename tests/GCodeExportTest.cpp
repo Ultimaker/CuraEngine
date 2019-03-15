@@ -214,7 +214,7 @@ public:
     }
 };
 
-TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
+TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
     gcode.flavor = EGCodeFlavor::GRIFFIN;

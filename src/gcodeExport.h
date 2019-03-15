@@ -44,7 +44,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, CommentLayer);
     FRIEND_TEST(GCodeExportTest, CommentLayerNegative);
     FRIEND_TEST(GCodeExportTest, CommentLayerCount);
-    FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormatNoExtruders);
+    FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormat);
     FRIEND_TEST(GCodeExportTest, HeaderUltiGCode);
     FRIEND_TEST(GCodeExportTest, HeaderRepRap);
     FRIEND_TEST(GCodeExportTest, HeaderMarlin);
