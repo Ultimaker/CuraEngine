@@ -94,7 +94,6 @@ private:
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
-    size_t extruder_count;
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
     std::string machine_buildplate_type;
@@ -421,7 +420,7 @@ public:
 
     /*!
      * Switch to the new_extruder: 
-     * - perform neccesary retractions
+     * - perform neccessary retractions
      * - fiddle with E-values
      * - write extruder end gcode
      * - set new extruder

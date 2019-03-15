@@ -48,7 +48,6 @@ public:
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
-        gcode.extruder_count = 0;
         gcode.fan_number = 0;
         gcode.total_bounding_box = AABB3D();
 
@@ -196,7 +195,6 @@ public:
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
-        gcode.extruder_count = 0;
         gcode.fan_number = 0;
         gcode.total_bounding_box = AABB3D();
 
@@ -218,7 +216,6 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
     gcode.flavor = EGCodeFlavor::GRIFFIN;
-    gcode.extruder_count = num_extruders;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
         Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);

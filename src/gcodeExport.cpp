@@ -55,8 +55,6 @@ GCodeExport::GCodeExport()
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
 
-    extruder_count = 0;
-
     fan_number = 0;
 
     total_bounding_box = AABB3D();
@@ -74,7 +72,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
-    extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
 
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -118,6 +116,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
 void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
+    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
@@ -170,6 +169,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 {
     std::ostringstream prefix;
 
+    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     switch (flavor)
     {
     case EGCodeFlavor::GRIFFIN:
