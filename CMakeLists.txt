@@ -304,7 +304,8 @@ if (BUILD_TESTS)
     message(STATUS "Building tests...")
 
     find_package(GMock REQUIRED)
-    include_directories(${GTEST_INCLUDE_DIR})
+    include_directories(${GTEST_INCLUDE_DIRS})
+    include_directories(${GMOCK_INCLUDE_DIRS})
 
     target_compile_definitions(_CuraEngine PUBLIC BUILD_TESTS=1)
 
