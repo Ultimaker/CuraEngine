@@ -358,4 +358,20 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     EXPECT_EQ(result, ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: 0.123\n");
 }
 
+/*
+ * Test conversion from E values to millimetres and back in the case of a
+ * volumetric printer.
+ */
+TEST_F(GCodeExportTest, EVsMmVolumetric)
+{
+    constexpr double filament_area = 10.0;
+    gcode.extruder_attr[0].filament_area = filament_area;
+    gcode.is_volumetric = true;
+
+    constexpr double mm3_input = 15.0;
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input) << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
+
+    EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but Mm is linear, divide by the cross-sectional area of the filament to convert the volume to a length.";
+}
+
 } //namespace cura
