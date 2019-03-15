@@ -78,15 +78,6 @@ public:
     void expand(int dist);
 
     /*!
-     * Expand the bounding box to a round increment.
-     *
-     * The coordinates are rounded to the specified increment, but the AABB can
-     * never become smaller with this operation.
-     * \param increment The size of the grid cells to round the bounding box to.
-     */
-    void round(const coord_t increment);
-
-    /*!
      * Generate a square polygon which coincides with this aabb
      * \return the polygon of this aabb
      */
