@@ -374,4 +374,23 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
     EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but Mm is linear, divide by the cross-sectional area of the filament to convert the volume to a length.";
 }
 
+/*
+ * Test conversion from E values to millimetres and back in the case where the E
+ * value represents the linear position of the filament.
+ */
+TEST_F(GCodeExportTest, EVsMmLinear)
+{
+    constexpr double filament_area = 10.0;
+    gcode.extruder_attr[0].filament_area = filament_area;
+    gcode.is_volumetric = false;
+
+    EXPECT_EQ(gcode.mmToE(15.0), 15.0) << "Since the E is linear and the input mm is also linear, the output needs to be the same.";
+    EXPECT_EQ(gcode.eToMm(15.0), 15.0) << "Since the E is linear and the output mm is also linear, the output needs to be the same.";
+
+    for(double x = -1000.0; x < 1000.0; x += 16.0)
+    {
+        EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(x)), x) << "Converting back and forth should lead to the same number.";
+    }
+}
+
 } //namespace cura

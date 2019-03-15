@@ -50,6 +50,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, HeaderMarlin);
     FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
     FRIEND_TEST(GCodeExportTest, EVsMmVolumetric);
+    FRIEND_TEST(GCodeExportTest, EVsMmLinear);
 #endif
 private:
     struct ExtruderTrainAttributes
