@@ -318,11 +318,11 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     }
     if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
-        is_volumatric = true;
+        is_volumetric = true;
     }
     else
     {
-        is_volumatric = false;
+        is_volumetric = false;
     }
 }
 
@@ -377,7 +377,7 @@ double GCodeExport::getCurrentExtrudedVolume() const
         extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
         extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
     }
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return extrusion_amount;
     }
@@ -389,7 +389,7 @@ double GCodeExport::getCurrentExtrudedVolume() const
 
 double GCodeExport::eToMm(double e)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return e / extruder_attr[current_extruder].filament_area;
     }
@@ -401,7 +401,7 @@ double GCodeExport::eToMm(double e)
 
 double GCodeExport::mm3ToE(double mm3)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return mm3;
     }
@@ -413,7 +413,7 @@ double GCodeExport::mm3ToE(double mm3)
 
 double GCodeExport::mmToE(double mm)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return mm * extruder_attr[current_extruder].filament_area;
     }
