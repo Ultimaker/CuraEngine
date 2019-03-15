@@ -371,7 +371,10 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
     constexpr double mm3_input = 15.0;
     EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input) << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
 
-    EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but Mm is linear, divide by the cross-sectional area of the filament to convert the volume to a length.";
+    EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but mm is linear, divide by the cross-sectional area of the filament to convert the volume to a length.";
+
+    constexpr double mm_input = 33.0;
+    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert length to volume.";
 }
 
 /*
@@ -391,6 +394,9 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     {
         EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(x)), x) << "Converting back and forth should lead to the same number.";
     }
+
+    constexpr double mm3_input = 33.0;
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert volume to length.";
 }
 
 } //namespace cura
