@@ -91,13 +91,13 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     assert(newest_layer->extruder_plans.front().paths[0].points.size() == 1);
     assert(newest_layer->extruder_plans.front().paths[0].points[0] == first_location_new_layer);
 
-
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (!prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
     {
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr].settings;
         prev_layer->setIsInside(new_layer_destination_state->second);
-        const bool force_retract = mesh_group_settings.get<bool>("retract_at_layer_change") ||
+        const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change") ||
           (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
         prev_layer->addTravel(first_location_new_layer, force_retract);
     }
