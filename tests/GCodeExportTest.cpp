@@ -8,6 +8,8 @@
 #include "../src/Application.h" //To set up a slice with settings.
 #include "../src/gcodeExport.h" //The unit under test.
 #include "../src/Slice.h" //To set up a slice with settings.
+#include "../src/RetractionConfig.h" //For extruder switch tests.
+#include "arcus/MockCommunication.h" //To prevent calls to any missing Communication class.
 
 namespace cura
 {
@@ -27,6 +29,12 @@ public:
      * A stream to capture the output of the g-code export.
      */
     std::stringstream output;
+
+    /*
+     * Mock away the communication channel where layer data is output by this
+     * class.
+     */
+    MockCommunication* mock_communication;
 
     void SetUp()
     {
@@ -57,6 +65,8 @@ public:
 
         //Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(1);
+        mock_communication = new MockCommunication();
+        Application::getInstance().communication = mock_communication;
     }
 
     void TearDown()
@@ -394,6 +404,35 @@ TEST_F(GCodeExportTest, EVsMmLinear)
 
     constexpr double mm3_input = 33.0;
     EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert volume to length.";
+}
+
+/*
+ * Switch extruders, with the following special cases:
+ * - No retraction distance.
+ */
+TEST_F(GCodeExportTest, SwitchExtruderSimple)
+{
+    Scene& scene = Application::getInstance().current_slice->scene;
+
+    scene.extruders.emplace_back(0, nullptr);
+    ExtruderTrain& train1 = scene.extruders.back();
+    train1.settings.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
+    train1.settings.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
+    train1.settings.add("machine_firmware_retract", "True");
+    scene.extruders.emplace_back(1, nullptr);
+    ExtruderTrain& train2 = scene.extruders.back();
+    train2.settings.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
+    train2.settings.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
+    train2.settings.add("machine_firmware_retract", "True");
+
+    RetractionConfig no_retraction;
+    no_retraction.distance = 0;
+
+    EXPECT_CALL(*mock_communication, setExtruderForSend(testing::_));
+    EXPECT_CALL(*mock_communication, sendCurrentPosition(testing::_));
+    gcode.switchExtruder(1, no_retraction);
+
+    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
 }
 
 } //namespace cura

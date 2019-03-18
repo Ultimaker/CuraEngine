@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -507,7 +507,8 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             const auto pt = rotate(Point(x, y), rotate_angle) + centre;
             // Only add to grid points if we have a chance to collide with the
             // mesh
-            if (bounding_box.contains(pt)) {
+            if (bounding_box.contains(pt))
+            {
                 grid_points.push_back(pt);
             }
         }

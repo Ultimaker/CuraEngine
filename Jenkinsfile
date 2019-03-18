@@ -16,7 +16,7 @@ parallel_nodes(["linux && cura", "windows && cura"]) {
 
                     extra_cmake_args = ""
                     if(!isUnix()) {
-                        extra_cmake_args = "-DArcus_DIR=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/cmake/Arcus\" -DGTEST_LIBRARY=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/libgtest.a\" -DGTEST_MAIN_LIBRARY=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/libgtest_main.a\""
+                        extra_cmake_args = "-DArcus_DIR=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/cmake/Arcus\" -DGTEST_LIBRARY=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/libgtest.a\" -DGTEST_MAIN_LIBRARY=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/libgtest_main.a\" -DGMOCK_LIBRARY=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/libgmock.a\" -DGMOCK_MAIN_LIBRARY=\"${env.CURA_ENVIRONMENT_PATH}/${branch}/lib-mingw/libgmock_main.a\""
                     }
 
                     cmake '..', "-DCMAKE_PREFIX_PATH=\"${env.CURA_ENVIRONMENT_PATH}/${branch}\" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON ${extra_cmake_args}"
