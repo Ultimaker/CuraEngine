@@ -946,8 +946,13 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
         ;
     }
 
-    // while first layer is empty, remove it to shift all the layers down and so xy_offset_layer_0 will be effective
-    while (layers.size() > 0 && layers[0].polygons.size() == 0)
+    // if first printable layer is empty, remove it to shift all the layers down and so xy_offset_layer_0 will be effective
+
+    if (layers.size() > 0 && layers[0].polygons.size() == 0
+        && !mesh->settings.get<bool>("support_mesh")
+        && !mesh->settings.get<bool>("anti_overhang_mesh")
+        && !mesh->settings.get<bool>("cutting_mesh")
+        && !mesh->settings.get<bool>("infill_mesh"))
     {
         layers.erase(layers.begin());
     }
