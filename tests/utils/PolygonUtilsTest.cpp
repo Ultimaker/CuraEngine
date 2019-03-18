@@ -71,7 +71,7 @@ TEST_P(MoveInsideTest, MoveInside2)
     ASSERT_LE(vSize(result - parameters.supposed), 10) << parameters.close_to << " moved with " << parameters.distance << " micron inside to " << result << "rather than " << parameters.supposed << ".";
 }
 
-INSTANTIATE_TEST_SUITE_P(MoveInsideInstantiation, MoveInsideTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(MoveInsideInstantiation, MoveInsideTest, testing::Values(
     MoveInsideParameters(Point(110, 110), 28, Point(80, 80)), //Near a corner, moving inside.
     MoveInsideParameters(Point(50, 110), 20, Point(50, 80)), //Near an edge, moving inside.
     MoveInsideParameters(Point(110, 110), -28, Point(120, 120)), //Near a corner, moving outside.
@@ -270,7 +270,7 @@ std::function<int(Point)> testPenalty([](Point candidate)
    return -vSize2(candidate - Point(50, 100)); //The further from 50, 100, the lower the penalty.
 });
 
-INSTANTIATE_TEST_SUITE_P(FindCloseInstantiation, FindCloseTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(FindCloseInstantiation, FindCloseTest, testing::Values(
     FindCloseParameters(Point(110, 110), Point(100, 100), 15), //Near a corner.
     FindCloseParameters(Point(50, 110), Point(50, 100), 15), //Near a side.
     FindCloseParameters(Point(50, 50), Point(50, 0), 60, &testPenalty) //Using a penalty function.
@@ -378,7 +378,7 @@ TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(GetNextParallelIntersectionInstantiation, GetNextParallelIntersectionTest, testing::Values(
+INSTANTIATE_TEST_CASE_P(GetNextParallelIntersectionInstantiation, GetNextParallelIntersectionTest, testing::Values(
     GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
     GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
     GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),

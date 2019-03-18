@@ -4,7 +4,9 @@
 #ifndef UTILS_POLYGON_CONNECTOR_H
 #define UTILS_POLYGON_CONNECTOR_H
 
-#include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#endif
 #include <vector>
 
 #include "IntPoint.h"
@@ -31,8 +33,10 @@ namespace cura
  */
 class PolygonConnector
 {
+#ifdef BUILD_TESTS
     FRIEND_TEST(PolygonConnectorTest, getBridgeTest);
     FRIEND_TEST(PolygonConnectorTest, connectionLengthTest);
+#endif
 public:
     PolygonConnector(coord_t line_width, coord_t max_dist)
     : line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines

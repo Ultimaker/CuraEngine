@@ -5,7 +5,9 @@
 #define GCODEEXPORT_H
 
 #include <deque> // for extrusionAmountAtPreviousRetractions
-#include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#endif
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
@@ -28,6 +30,7 @@ class RetractionConfig;
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport : public NoCopy
 {
+#ifdef BUILD_TESTS
     friend class GCodeExportTest;
     friend class GriffinHeaderTest;
     FRIEND_TEST(GCodeExportTest, CommentEmpty);
@@ -41,11 +44,14 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, CommentLayer);
     FRIEND_TEST(GCodeExportTest, CommentLayerNegative);
     FRIEND_TEST(GCodeExportTest, CommentLayerCount);
-    FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormatNoExtruders);
+    FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormat);
     FRIEND_TEST(GCodeExportTest, HeaderUltiGCode);
     FRIEND_TEST(GCodeExportTest, HeaderRepRap);
     FRIEND_TEST(GCodeExportTest, HeaderMarlin);
     FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
+    FRIEND_TEST(GCodeExportTest, EVsMmVolumetric);
+    FRIEND_TEST(GCodeExportTest, EVsMmLinear);
+#endif
 private:
     struct ExtruderTrainAttributes
     {
@@ -88,7 +94,6 @@ private:
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
-    size_t extruder_count;
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
     std::string machine_buildplate_type;
@@ -130,7 +135,7 @@ private:
     std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
     
-    bool is_volumatric;
+    bool is_volumetric;
     bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
 
     unsigned int layer_nr; //!< for sending travel data
@@ -415,7 +420,7 @@ public:
 
     /*!
      * Switch to the new_extruder: 
-     * - perform neccesary retractions
+     * - perform neccessary retractions
      * - fiddle with E-values
      * - write extruder end gcode
      * - set new extruder

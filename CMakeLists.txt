@@ -304,6 +304,8 @@ if (BUILD_TESTS)
     message(STATUS "Building tests...")
 
     find_package(GTest REQUIRED)
+    include_directories(${GTEST_INCLUDE_DIR})
+    target_compile_definitions(_CuraEngine PUBLIC BUILD_TESTS=1)
 
     enable_testing()
 

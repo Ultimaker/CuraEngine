@@ -20,6 +20,18 @@
 
 namespace cura {
 
+std::string transliterate(const std::string& text)
+{
+    // For now, just replace all non-ascii characters with '?'.
+    // This function can be expaned if we need more complex transliteration.
+    std::ostringstream stream;
+    for (const char& c : text)
+    {
+        stream << static_cast<char>((c >= 0) ? c : '?');
+    }
+    return stream.str();
+}
+
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
@@ -43,8 +55,6 @@ GCodeExport::GCodeExport()
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
 
-    extruder_count = 0;
-
     fan_number = 0;
 
     total_bounding_box = AABB3D();
@@ -62,7 +72,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
-    extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
 
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -106,6 +116,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
 void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
+    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
@@ -158,6 +169,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 {
     std::ostringstream prefix;
 
+    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     switch (flavor)
     {
     case EGCodeFlavor::GRIFFIN:
@@ -167,7 +179,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
-        prefix << ";TARGET_MACHINE.NAME:" << machine_name << new_line;
+        prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
 
         for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
@@ -306,11 +318,11 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     }
     if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
-        is_volumatric = true;
+        is_volumetric = true;
     }
     else
     {
-        is_volumatric = false;
+        is_volumetric = false;
     }
 }
 
@@ -365,7 +377,7 @@ double GCodeExport::getCurrentExtrudedVolume() const
         extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
         extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
     }
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return extrusion_amount;
     }
@@ -377,7 +389,7 @@ double GCodeExport::getCurrentExtrudedVolume() const
 
 double GCodeExport::eToMm(double e)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return e / extruder_attr[current_extruder].filament_area;
     }
@@ -389,7 +401,7 @@ double GCodeExport::eToMm(double e)
 
 double GCodeExport::mm3ToE(double mm3)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return mm3;
     }
@@ -401,7 +413,7 @@ double GCodeExport::mm3ToE(double mm3)
 
 double GCodeExport::mmToE(double mm)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return mm * extruder_attr[current_extruder].filament_area;
     }
@@ -461,8 +473,10 @@ void GCodeExport::updateTotalPrintTime()
     writeTimeComment(getSumTotalPrintTimes());
 }
 
-void GCodeExport::writeComment(const std::string& comment)
+void GCodeExport::writeComment(const std::string& unsanitized_comment)
 {
+    const std::string comment = transliterate(unsanitized_comment);
+
     *output_stream << ";";
     for (unsigned int i = 0; i < comment.length(); i++)
     {

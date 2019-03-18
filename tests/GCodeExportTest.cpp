@@ -48,7 +48,6 @@ public:
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
-        gcode.extruder_count = 0;
         gcode.fan_number = 0;
         gcode.total_bounding_box = AABB3D();
 
@@ -196,7 +195,6 @@ public:
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
-        gcode.extruder_count = 0;
         gcode.fan_number = 0;
         gcode.total_bounding_box = AABB3D();
 
@@ -214,11 +212,10 @@ public:
     }
 };
 
-TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
+TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
     gcode.flavor = EGCodeFlavor::GRIFFIN;
-    gcode.extruder_count = num_extruders;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
         Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
@@ -288,7 +285,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormatNoExtruders)
     EXPECT_EQ(std::string(";END_OF_HEADER"), token);
 }
 
-INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
+INSTANTIATE_TEST_CASE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
 
 /*
  * Test the default header generation.
@@ -356,6 +353,47 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
     EXPECT_EQ(result, ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: 0.123\n");
+}
+
+/*
+ * Test conversion from E values to millimetres and back in the case of a
+ * volumetric printer.
+ */
+TEST_F(GCodeExportTest, EVsMmVolumetric)
+{
+    constexpr double filament_area = 10.0;
+    gcode.extruder_attr[0].filament_area = filament_area;
+    gcode.is_volumetric = true;
+
+    constexpr double mm3_input = 15.0;
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input) << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
+
+    EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but mm is linear, divide by the cross-sectional area of the filament to convert the volume to a length.";
+
+    constexpr double mm_input = 33.0;
+    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert length to volume.";
+}
+
+/*
+ * Test conversion from E values to millimetres and back in the case where the E
+ * value represents the linear position of the filament.
+ */
+TEST_F(GCodeExportTest, EVsMmLinear)
+{
+    constexpr double filament_area = 10.0;
+    gcode.extruder_attr[0].filament_area = filament_area;
+    gcode.is_volumetric = false;
+
+    EXPECT_EQ(gcode.mmToE(15.0), 15.0) << "Since the E is linear and the input mm is also linear, the output needs to be the same.";
+    EXPECT_EQ(gcode.eToMm(15.0), 15.0) << "Since the E is linear and the output mm is also linear, the output needs to be the same.";
+
+    for(double x = -1000.0; x < 1000.0; x += 16.0)
+    {
+        EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(x)), x) << "Converting back and forth should lead to the same number.";
+    }
+
+    constexpr double mm3_input = 33.0;
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert volume to length.";
 }
 
 } //namespace cura
