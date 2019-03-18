@@ -236,6 +236,7 @@ if (ENABLE_ARCUS)
     )
 endif ()
 set(engine_TEST_UTILS
+    AABBTest
     IntPointTest
     LinearAlg2DTest
     PolygonConnectorTest
