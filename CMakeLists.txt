@@ -302,10 +302,14 @@ set_target_properties(CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CUR
 # Compiling the test environment.
 if (BUILD_TESTS)
     message(STATUS "Building tests...")
-
+    set(GTEST_USE_STATIC_LIBS true)
+    set(GMOCK_ROOT "${CMAKE_CURRENT_BINARY_DIR}/gmock")
+    set(GMOCK_VER "1.8.0")
     find_package(GMock REQUIRED)
     include_directories(${GTEST_INCLUDE_DIRS})
     include_directories(${GMOCK_INCLUDE_DIRS})
+
+    add_dependencies(_CuraEngine gmock)
 
     target_compile_definitions(_CuraEngine PUBLIC BUILD_TESTS=1)
 
