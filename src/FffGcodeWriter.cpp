@@ -1175,24 +1175,20 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     gcode_layer.setMesh(mesh.mesh_name);
 
-    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-    const Point layer_start_position(train.settings.get<coord_t>("layer_start_x"), train.settings.get<coord_t>("layer_start_y"));
-    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_config);
-    for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
+    std::vector<SliceLayerPart> parts(layer.parts);
+    while (parts.size())
     {
-        const SliceLayerPart& part = layer.parts[part_idx];
-        ConstPolygonRef part_representative = (part.insets.size() > 0) ? part.insets[0][0] : part.outline[0];
-        part_order_optimizer.addPolygon(part_representative);
-    }
-    part_order_optimizer.optimize();
-
-    for (int part_idx : part_order_optimizer.polyOrder)
-    {
-        const SliceLayerPart& part = layer.parts[part_idx];
-        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer);
+        PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+        for (const SliceLayerPart& part : parts)
+        {
+            part_order_optimizer.addPolygon((part.insets.size() > 0) ? part.insets[0][0] : part.outline[0]);
+        }
+        part_order_optimizer.optimize();
+        const int nearest_part_index = part_order_optimizer.polyOrder[0];
+        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, parts[nearest_part_index], gcode_layer);
+        parts.erase(parts.begin() + nearest_part_index);
     }
     processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
