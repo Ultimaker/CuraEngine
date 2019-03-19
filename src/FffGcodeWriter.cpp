@@ -1177,17 +1177,23 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
     gcode_layer.setMesh(mesh.mesh_name);
 
-    std::vector<SliceLayerPart> parts(layer.parts);
+    std::vector<const SliceLayerPart*> parts; // use pointers to avoid recreating the SliceLayerPart objects
+
+    for(const SliceLayerPart& part_ref : layer.parts)
+    {
+        parts.emplace_back(&part_ref);
+    }
+
     while (parts.size())
     {
         PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-        for (const SliceLayerPart& part : parts)
+        for (auto part : parts)
         {
-            part_order_optimizer.addPolygon((part.insets.size() > 0) ? part.insets[0][0] : part.outline[0]);
+            part_order_optimizer.addPolygon((part->insets.size() > 0) ? part->insets[0][0] : part->outline[0]);
         }
         part_order_optimizer.optimize();
         const int nearest_part_index = part_order_optimizer.polyOrder[0];
-        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, parts[nearest_part_index], gcode_layer);
+        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *parts[nearest_part_index], gcode_layer);
         parts.erase(parts.begin() + nearest_part_index);
     }
     processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
