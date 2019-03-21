@@ -599,6 +599,9 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                         inner.add(skin_part.outline);
                     }
                     inner = inner.unionPolygons();
+                    // remove skin areas that are narrower than skin_line_width as they won't get printed unless
+                    // we print them as a perimeter gap
+                    inner = inner.offset(-skin_line_width / 2).offset(skin_line_width / 2);
                     part.perimeter_gaps.add(outer.difference(inner));
                 }
 
