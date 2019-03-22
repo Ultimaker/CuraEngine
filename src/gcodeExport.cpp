@@ -1006,14 +1006,17 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         return;
     }
 
-    constexpr bool force = true;
-    constexpr bool extruder_switch = true;
-    writeRetraction(retraction_config_old_extruder, force, extruder_switch);
+    const Settings& old_extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if(old_extruder_settings.get<bool>("retraction_enable"))
+    {
+        constexpr bool force = true;
+        constexpr bool extruder_switch = true;
+        writeRetraction(retraction_config_old_extruder, force, extruder_switch);
+    }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
-    const size_t old_extruder = current_extruder;
-    const std::string end_code = Application::getInstance().current_slice->scene.extruders[old_extruder].settings.get<std::string>("machine_extruder_end_code");
+    const std::string end_code = old_extruder_settings.get<std::string>("machine_extruder_end_code");
 
     if(!end_code.empty())
     {
