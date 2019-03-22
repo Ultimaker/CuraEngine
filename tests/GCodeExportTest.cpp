@@ -419,11 +419,13 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     train1.settings.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
     train1.settings.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
     train1.settings.add("machine_firmware_retract", "True");
+    train1.settings.add("retraction_enable", "True");
     scene.extruders.emplace_back(1, nullptr);
     ExtruderTrain& train2 = scene.extruders.back();
     train2.settings.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
     train2.settings.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
     train2.settings.add("machine_firmware_retract", "True");
+    train2.settings.add("retraction_enable", "True");
 
     RetractionConfig no_retraction;
     no_retraction.distance = 0;
