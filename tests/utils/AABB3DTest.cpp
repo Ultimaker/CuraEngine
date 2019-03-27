@@ -3,9 +3,10 @@
 
 #include <gtest/gtest.h>
 #include <clipper.hpp>
-#include <../src/utils/AABB.h>
-#include <../src/utils/AABB3D.h>
-#include <../src/utils/polygon.h>
+
+#include "../src/utils/AABB.h"
+#include "../src/utils/AABB3D.h"
+#include "../src/utils/polygon.h"
 
 namespace cura
 {
