@@ -37,7 +37,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
                 layer->polygons[i].reverse();
         }
     }
-    
+
     std::vector<PolygonsPart> result;
     const bool union_layers = settings.get<bool>("meshfix_union_all");
     result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
@@ -53,7 +53,8 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 #pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
-    for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_nr = 0; layer_nr < static_cast<int>(total_layers); layer_nr++)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
         SlicerLayer& slice_layer = slicer->layers[layer_nr];

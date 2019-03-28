@@ -2594,9 +2594,12 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
             // We always prime an extruder, but whether it will be a prime blob/poop depends on if prime blob is enabled.
             // This is decided in GCodeExport::writePrimeTrain().
-            bool prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
-            Point prime_pos = Point(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"));
-            gcode_layer.addTravel(prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
+            if (train.settings.get<bool>("prime_blob_enable")) // Don't travel to the prime-blob position if not enabled though.
+            {
+                bool prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
+                Point prime_pos = Point(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"));
+                gcode_layer.addTravel(prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
+            }
 
             gcode_layer.planPrime();
         }
