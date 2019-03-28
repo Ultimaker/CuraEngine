@@ -426,7 +426,7 @@ double GCodeExport::mmToE(double mm)
 
 double GCodeExport::eToMm3(double e, size_t extruder)
 {
-    if (is_volumatric)
+    if (is_volumetric)
     {
         return e;
     }

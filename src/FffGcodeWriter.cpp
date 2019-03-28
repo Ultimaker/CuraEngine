@@ -325,8 +325,8 @@ void FffGcodeWriter::setConfigWipe(SliceDataStorage& storage)
         wipe_config.retraction_config.primeSpeed = train.settings.get<Velocity>("wipe_retraction_prime_speed");
         wipe_config.retraction_config.prime_volume = train.settings.get<double>("wipe_retraction_extra_prime_amount");
         wipe_config.retraction_config.retraction_min_travel_distance = 0;
-        wipe_config.retraction_config.retraction_extrusion_window = 99999.9;
-        wipe_config.retraction_config.retraction_count_max = 9999999;
+        wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
+        wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
 
         wipe_config.pause = train.settings.get<Duration>("wipe_pause");
 
