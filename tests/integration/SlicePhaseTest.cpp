@@ -63,9 +63,9 @@ TEST_F(SlicePhaseTest, Cube)
     //Since a cube has the same slice at all heights, every layer must be the same square.
     Polygon square;
     square.emplace_back(0, 0);
-    square.emplace_back(0, 10000); //10mm cube.
+    square.emplace_back(10000, 0); //10mm cube.
     square.emplace_back(10000, 10000);
-    square.emplace_back(10000, 0);
+    square.emplace_back(0, 10000);
 
     for(size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {
