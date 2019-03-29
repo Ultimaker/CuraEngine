@@ -382,6 +382,10 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     {
         new_path.pop_back();
     }
+    if(new_path.size() >= 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 1)
+    {
+        new_path.erase(new_path.begin());
+    }
 
     *path = new_path;
 }
