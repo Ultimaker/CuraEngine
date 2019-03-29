@@ -24,17 +24,17 @@ namespace cura
         {
             pts =
             {
-                Point(-3, -4), //
-                Point( 3, -4), //
-                Point( 0, -3), // - 3
-                Point( 0,  0), // - 2
-                Point( 1,  1), // - 5
-                Point( 5,  1), //
-                Point(-1,  6), //
-                Point( 0,  5), // - 3
-                Point( 5,  7), // - 2
-                Point(12, 12), // - 2
-                Point(12, 13), //
+                Point(-3, -4),
+                Point( 3, -4),
+                Point( 0, -3),
+                Point( 0,  0),
+                Point( 1,  1),
+                Point( 5,  1),
+                Point(-1,  6),
+                Point( 0,  5),
+                Point( 5,  7),
+                Point(12, 12),
+                Point(12, 13),
             };
             std::unordered_set<Point> pts_set(pts.begin(), pts.end());
             p_mst = new MinimumSpanningTree(pts_set);
