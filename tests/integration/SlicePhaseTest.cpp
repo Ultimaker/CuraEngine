@@ -7,6 +7,7 @@
 #include "../src/Slice.h" //To set up a scene to slice.
 #include "../src/slicer.h" //Starts the slicing phase that we want to test.
 #include "../src/utils/floatpoint.h" //For FMatrix3x3 to load STL files.
+#include "../src/utils/polygon.h" //Creating polygons to compare to sliced layers.
 
 namespace cura
 {
@@ -58,6 +59,45 @@ TEST_F(SlicePhaseTest, Cube)
     Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
+
+    //Since a cube has the same slice at all heights, every layer must be the same square.
+    Polygon square;
+    square.emplace_back(0, 0);
+    square.emplace_back(0, 10000); //10mm cube.
+    square.emplace_back(10000, 10000);
+    square.emplace_back(10000, 0);
+
+    for(size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
+    {
+        const SlicerLayer& layer = slicer.layers[layer_nr];
+        EXPECT_EQ(layer.polygons.size(), 1);
+        if(layer.polygons.size() == 1)
+        {
+            Polygon sliced_polygon = layer.polygons[0];
+            EXPECT_EQ(sliced_polygon.size(), square.size());
+            if(sliced_polygon.size() == square.size())
+            {
+                int start_corner = -1;
+                for(size_t corner_idx = 0; corner_idx < square.size(); corner_idx++) //Find the starting corner in the sliced layer.
+                {
+                    if(square[corner_idx] == sliced_polygon[0])
+                    {
+                        start_corner = corner_idx;
+                        break;
+                    }
+                }
+                EXPECT_NE(start_corner, -1) << "The first vertex of the sliced polygon must be one of the vertices of the ground truth square.";
+
+                if(start_corner != -1)
+                {
+                    for(size_t corner_idx = 0; corner_idx < square.size(); corner_idx++) //Check if every subsequent corner is correct.
+                    {
+                        EXPECT_EQ(square[(corner_idx + start_corner) % square.size()], sliced_polygon[corner_idx]);
+                    }
+                }
+            }
+        }
+    }
 }
 
 } //namespace cura
