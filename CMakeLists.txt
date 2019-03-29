@@ -226,6 +226,9 @@ set(engine_TEST
 )
 set(engine_TEST_INFILL
 )
+set(engine_TEST_INTEGRATION
+    SlicePhaseTest
+)
 set(engine_TEST_SETTINGS
     SettingsTest
 )
@@ -328,6 +331,12 @@ if (BUILD_TESTS)
     endforeach()
     foreach (test ${engine_TEST_INFILL})
         add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
+    endforeach()
+    foreach (test ${engine_TEST_INTEGRATION})
+        add_executable(${test} tests/main.cpp tests/integration/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
         add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
