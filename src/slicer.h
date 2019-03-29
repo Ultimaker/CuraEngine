@@ -37,15 +37,15 @@ class ClosePolygonResult
     //The line on which the point lays is between pointIdx-1 and pointIdx
 public:
     int polygonIdx = -1;
-    unsigned int pointIdx = -1;
+    size_t pointIdx = -1;
 };
 class GapCloserResult
 {
 public:
-    int64_t len = -1;
+    coord_t len = -1;
     int polygonIdx = -1;
-    unsigned int pointIdxA = -1;
-    unsigned int pointIdxB = -1;
+    size_t pointIdxA = -1;
+    size_t pointIdxB = -1;
     bool AtoB = false;
 };
 
