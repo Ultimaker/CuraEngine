@@ -507,7 +507,7 @@ public:
      */
     coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const;
 
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
+    SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const
     {
         SlicerSegment seg;
 
