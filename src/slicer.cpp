@@ -969,4 +969,16 @@ coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1,
     return y0 + num / dx_01;
 }
 
+SlicerSegment Slicer::project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const
+{
+    SlicerSegment seg;
+
+    seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
+    seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
+    seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
+    seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
+
+    return seg;
+}
+
 }//namespace cura

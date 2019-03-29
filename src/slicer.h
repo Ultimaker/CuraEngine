@@ -507,17 +507,19 @@ public:
      */
     coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const;
 
-    SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const
-    {
-        SlicerSegment seg;
-
-        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
-        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
-        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
-        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-
-        return seg;
-    }
+    /*!
+     * \brief Project a triangle onto a 2D layer.
+     *
+     * The result is a SlicerSegment object, which is a line segment if the
+     * triangle properly intersects the layer, a point if it's an edge case, or
+     * nothing if the triangle doesn't intersect the layer.
+     * \param p0 A corner of the triangle.
+     * \param p1 A corner of the triangle.
+     * \param p2 A corner of the triangle.
+     * \param z The Z coordinate of the layer to intersect with.
+     * \return A slicer segment.
+     */
+    SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const;
 
     void dumpSegmentsToHTML(const char* filename);
 };
