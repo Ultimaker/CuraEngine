@@ -17,7 +17,34 @@ namespace cura
         return std::find(list.begin(), list.end(), pt) != list.end();
     }
 
-    TEST(MinimumSpanningTreeTest, TestConstructEmpty)
+    class MinimumSpanningTreeTest : public ::testing::Test
+    {
+    public:
+        void SetUp() override
+        {
+            pts =
+            {
+                Point(-3, -4), //
+                Point( 3, -4), //
+                Point( 0, -3), // - 3
+                Point( 0,  0), // - 2
+                Point( 1,  1), // - 5
+                Point( 5,  1), //
+                Point(-1,  6), //
+                Point( 0,  5), // - 3
+                Point( 5,  7), // - 2
+                Point(12, 12), // - 2
+                Point(12, 13), //
+            };
+            std::unordered_set<Point> pts_set(pts.begin(), pts.end());
+            p_mst = new MinimumSpanningTree(pts_set);
+        }
+
+        std::vector<Point> pts;
+        MinimumSpanningTree* p_mst; // Needs to be a pointer, beacuse SetUp isn't a constructor and the copy function is deleted.
+    };
+
+    TEST(SimpleMinimumSpanningTreeTest, TestConstructEmpty)
     {
         std::unordered_set<Point> vertices;
         MinimumSpanningTree tree(vertices);
@@ -25,7 +52,7 @@ namespace cura
         ASSERT_TRUE(tree.leaves().empty()) << "Empty tree should be empty.";
     }
 
-    TEST(MinimumSpanningTreeTest, TestConstructOne)
+    TEST(SimpleMinimumSpanningTreeTest, TestConstructOne)
     {
         const Point pt_a(1, 1);
         std::unordered_set<Point> vertices = { pt_a };
@@ -37,7 +64,7 @@ namespace cura
         EXPECT_EQ(points[0], pt_a) << "Tree with one point should have that point among its vertices.";
     }
 
-    TEST(MinimumSpanningTreeTest, TestSimpleAdjacent)
+    TEST(SimpleMinimumSpanningTreeTest, TestSimpleAdjacent)
     {
         const Point pt_a(1, 1);
         const Point pt_b(2, 2);
@@ -64,12 +91,12 @@ namespace cura
         EXPECT_EQ(adjacent.size(), 0) << "No points should be adjacent to point E.";;
     }
 
-    TEST(MinimumSpanningTreeTest, TestSimpleLeaves)
+    TEST(SimpleMinimumSpanningTreeTest, TestSimpleLeaves)
     {
-        Point pt_a(1, 1);
-        Point pt_b(5, 2);
-        Point pt_c(2, 5);
-        Point pt_d(3, 3);
+        const Point pt_a(1, 1);
+        const Point pt_b(5, 2);
+        const Point pt_c(2, 5);
+        const Point pt_d(3, 3);
         std::unordered_set<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
         MinimumSpanningTree tree(vertices);
 
@@ -79,5 +106,34 @@ namespace cura
         EXPECT_TRUE(has(pt_b, leaves)) << "Point B should be one of the leaves  (simple case).";
         EXPECT_TRUE(has(pt_c, leaves)) << "Point C should be one of the leaves  (simple case).";
         EXPECT_FALSE(has(pt_d, leaves)) << "Point D should not be a leave (simple case).";
+    }
+
+    TEST_F(MinimumSpanningTreeTest, TestAdjacent)
+    {
+        static const std::vector<size_t> expected_node_degree = { 1, 1, 3, 2, 3, 1, 1, 3, 2, 2, 1 };
+        // constexpr wont work here (yet) on Win.
+
+        MinimumSpanningTree& mst = *p_mst;
+
+        const size_t len = pts.size();
+        for (size_t i_pt = 0; i_pt < len; ++i_pt)
+        {
+            EXPECT_EQ(expected_node_degree[i_pt], mst.adjacentNodes(pts[i_pt]).size()) << "Degree of node #" << i_pt << " (start @0) should be the expected one.";
+        }
+    }
+
+    TEST_F(MinimumSpanningTreeTest, TestLeaves)
+    {
+        static const std::vector<bool> should_be_leave({ true, true, false, false, false, true, true, false, false, false, true });
+        // constexpr wont work here (yet) on Win.
+        
+        MinimumSpanningTree& mst = *p_mst;
+        const std::vector<Point> leaves = mst.leaves();
+
+        const size_t len = pts.size();
+        for (size_t i_pt = 0; i_pt < len; ++i_pt)
+        {
+            EXPECT_EQ(should_be_leave[i_pt], has(pts[i_pt], leaves)) << "Leaf-'status' of point #" << i_pt << " (start @0) should be the expected one.";
+        }
     }
 }
