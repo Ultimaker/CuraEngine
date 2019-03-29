@@ -56,6 +56,11 @@ GCodeExport::GCodeExport()
     initial_bed_temp = 0;
 
     fan_number = 0;
+    use_extruder_offset_to_offset_coords = false;
+    machine_name = "";
+    machine_buildplate_type = "";
+    relative_extrusion = false;
+    new_line = "\n";
 
     total_bounding_box = AABB3D();
 }
