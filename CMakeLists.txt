@@ -243,6 +243,7 @@ set(engine_TEST_UTILS
     AABB3DTest
     IntPointTest
     LinearAlg2DTest
+    MinimumSpanningTreeTest
     PolygonConnectorTest
     PolygonTest
     PolygonUtilsTest
