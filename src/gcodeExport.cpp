@@ -267,6 +267,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << new_line;
             prefix << ";Layer height: " << Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height") << new_line;
         }
+        prefix << ";MINX:" << INT2MM(total_bounding_box.min.x) << new_line;
+        prefix << ";MINY:" << INT2MM(total_bounding_box.min.y) << new_line;
+        prefix << ";MINZ:" << INT2MM(total_bounding_box.min.z) << new_line;
+        prefix << ";MAXX:" << INT2MM(total_bounding_box.max.x) << new_line;
+        prefix << ";MAXY:" << INT2MM(total_bounding_box.max.y) << new_line;
+        prefix << ";MAXZ:" << INT2MM(total_bounding_box.max.z) << new_line;
     }
 
     return prefix.str();
