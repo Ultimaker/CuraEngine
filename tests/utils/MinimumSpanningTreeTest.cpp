@@ -40,6 +40,12 @@ namespace cura
             p_mst = new MinimumSpanningTree(pts_set);
         }
 
+        void TearDown() override
+        {
+            delete p_mst;
+            p_mst = nullptr;
+        }
+
         std::vector<Point> pts;
         MinimumSpanningTree* p_mst; // Needs to be a pointer, beacuse SetUp isn't a constructor and the copy function is deleted.
     };
