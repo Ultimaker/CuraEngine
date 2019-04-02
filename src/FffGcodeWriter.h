@@ -264,12 +264,13 @@ private:
      * This function should be called for only one layer;
      * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      * 
-     * \param storage where the slice data is stored.
+     * \param for_support Whether or not this is brim specially made underneath support-infill.
+     * \param skirt_brim The outline of the polygons that'll be skirt/brim.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
+    void processSkirtBrim(const bool for_support, const Polygons& skirt_brim, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.

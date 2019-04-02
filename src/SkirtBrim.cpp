@@ -235,7 +235,7 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
     }
 
     const coord_t brim_width = brim_line_width * line_count;
-    Polygons& skirt_brim = storage.skirt_brim[support_infill_extruder.extruder_nr];
+    Polygons& skirt_brim = storage.support_brim[support_infill_extruder.extruder_nr];
 
     SupportLayer& support_layer = storage.support.supportLayers[0];
 

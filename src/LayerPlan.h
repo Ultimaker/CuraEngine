@@ -256,6 +256,7 @@ private:
      * for each extruder train.
      */
     bool skirt_brim_is_processed[MAX_EXTRUDERS];
+    bool support_brim_is_processed[MAX_EXTRUDERS];
 
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
@@ -380,14 +381,14 @@ public:
      */
     void setPrimeTowerIsPlanned(unsigned int extruder_nr);
 
-    bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const
+    bool getSkirtBrimIsPlanned(const bool for_support, const unsigned int extruder_nr) const
     {
-        return skirt_brim_is_processed[extruder_nr];
+        return (for_support ? support_brim_is_processed : skirt_brim_is_processed)[extruder_nr];
     }
 
-    void setSkirtBrimIsPlanned(unsigned int extruder_nr)
+    void setSkirtBrimIsPlanned(const bool for_support, const unsigned int extruder_nr)
     {
-        skirt_brim_is_processed[extruder_nr] = true;
+        (for_support ? support_brim_is_processed : skirt_brim_is_processed)[extruder_nr] = true;
     }
 
     /*!
