@@ -17,6 +17,7 @@
 #include "utils/Date.h"
 #include "utils/logoutput.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
+#include "WipeScriptConfig.h"
 
 namespace cura {
 
@@ -434,6 +435,17 @@ double GCodeExport::mmToE(double mm)
     }
 }
 
+double GCodeExport::eToMm3(double e, size_t extruder)
+{
+    if (is_volumetric)
+    {
+        return e;
+    }
+    else
+    {
+        return e * extruder_attr[extruder].filament_area;
+    }
+}
 
 double GCodeExport::getTotalFilamentUsed(size_t extruder_nr)
 {
@@ -776,6 +788,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
         *output_stream << ";FLOW_RATE_COMPENSATED_OFFSET = " << current_e_offset << new_line;
     }
 
+    extruder_attr[current_extruder].last_e_value_after_wipe += extrusion_per_mm * diff.vSizeMM();
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
 
     *output_stream << "G1";
@@ -940,26 +953,30 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 
 }
 
-void GCodeExport::writeZhopStart(const coord_t hop_height)
+void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/)
 {
     if (hop_height > 0)
     {
+        if (speed == 0)
+            speed = current_max_z_feedrate;
         is_z_hopped = hop_height;
-        currentSpeed = current_max_z_feedrate;
-        *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z + is_z_hopped} << new_line;
+        currentSpeed = speed;
+        *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z + is_z_hopped} << new_line;
         total_bounding_box.includeZ(current_layer_z + is_z_hopped);
         assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
     }
 }
 
-void GCodeExport::writeZhopEnd()
+void GCodeExport::writeZhopEnd(Velocity speed/*= 0*/)
 {
     if (is_z_hopped)
     {
+        if (speed == 0)
+            speed = current_max_z_feedrate;
         is_z_hopped = 0;
         currentPosition.z = current_layer_z;
-        currentSpeed = current_max_z_feedrate;
-        *output_stream << "G1 F" << PrecisionedDouble{1, current_max_z_feedrate * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
+        currentSpeed = speed;
+        *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
         assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
     }
 }
@@ -1324,6 +1341,58 @@ void GCodeExport::finalize(const char* endCode)
         if (getTotalFilamentUsed(n) > 0)
             log("Filament%d: %d\n", n + 1, int(getTotalFilamentUsed(n)));
     output_stream->flush();
+}
+
+double GCodeExport::getExtrudedVolumeAfterLastWipe(size_t extruder)
+{
+    return eToMm3(extruder_attr[extruder].last_e_value_after_wipe, extruder);
+}
+
+void GCodeExport::ResetLastEValueAfterWipe(size_t extruder)
+{
+    extruder_attr[extruder].last_e_value_after_wipe = 0;
+}
+
+void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
+{
+    Point3 prev_position = currentPosition;
+    writeComment("WIPE_SCRIPT_BEGIN");
+
+    if (wipe_config.retraction_enable)
+    {
+        writeRetraction(wipe_config.retraction_config);
+    }
+
+    if (wipe_config.hop_enable)
+    {
+        writeZhopStart(wipe_config.hop_amount, wipe_config.hop_speed);
+    }
+
+    writeTravel(Point(wipe_config.brush_pos_x, currentPosition.y), wipe_config.move_speed);
+    for (size_t i = 0; i < wipe_config.repeat_count; ++i)
+    {
+        coord_t x = currentPosition.x + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
+        writeTravel(Point(x, currentPosition.y), wipe_config.move_speed);
+    }
+
+    writeTravel(prev_position, wipe_config.move_speed);
+
+    if (wipe_config.hop_enable)
+    {
+        writeZhopEnd(wipe_config.hop_speed);
+    }
+
+    if (wipe_config.retraction_enable)
+    {
+        writeUnretractionAndPrime();
+    }
+
+    if (wipe_config.pause > 0)
+    {
+        writeDelay(wipe_config.pause);
+    }
+
+    writeComment("WIPE_SCRIPT_END");
 }
 
 }//namespace cura

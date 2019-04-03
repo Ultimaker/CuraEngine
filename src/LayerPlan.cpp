@@ -17,6 +17,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
+#include "WipeScriptConfig.h"
 
 namespace cura {
 
@@ -1362,6 +1363,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             int prev_extruder = extruder_nr;
             extruder_nr = extruder_plan.extruder_nr;
+
+            gcode.ResetLastEValueAfterWipe(prev_extruder);
+
             gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
@@ -1387,12 +1391,21 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
-        else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
+        else if (extruder_plan_idx == 0)
         {
-            // only do the retract if the paths are not spiralized
-            if (!mesh_group_settings.get<bool>("magic_spiralize"))
+            const WipeScriptConfig& wipe_config = storage.wipe_config_per_extruder[extruder_plan.extruder_nr];
+            if (wipe_config.clean_between_layers && gcode.getExtrudedVolumeAfterLastWipe(extruder_nr) > wipe_config.max_extrusion_mm3)
             {
-                gcode.writeRetraction(retraction_config);
+                gcode.insertWipeScript(wipe_config);
+                gcode.ResetLastEValueAfterWipe(extruder_nr);
+            }
+            else if (layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
+            {
+                // only do the retract if the paths are not spiralized
+                if (!mesh_group_settings.get<bool>("magic_spiralize"))
+                {
+                    gcode.writeRetraction(retraction_config);
+                }
             }
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());

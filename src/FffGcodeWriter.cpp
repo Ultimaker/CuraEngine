@@ -55,6 +55,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetraction(storage);
 
+    setConfigWipe(storage);
+
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
         processStartingCode(storage, start_extruder_nr);
@@ -306,6 +308,38 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
         switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
         switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
+    }
+}
+
+void FffGcodeWriter::setConfigWipe(SliceDataStorage& storage)
+{
+    Scene& scene = Application::getInstance().current_slice->scene;
+    for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
+    {
+        ExtruderTrain& train = scene.extruders[extruder_index];
+        WipeScriptConfig& wipe_config = storage.wipe_config_per_extruder[extruder_index];
+
+        wipe_config.retraction_enable = train.settings.get<bool>("wipe_retraction_enable");
+        wipe_config.retraction_config.distance = train.settings.get<double>("wipe_retraction_amount");
+        wipe_config.retraction_config.speed = train.settings.get<Velocity>("wipe_retraction_retract_speed");
+        wipe_config.retraction_config.primeSpeed = train.settings.get<Velocity>("wipe_retraction_prime_speed");
+        wipe_config.retraction_config.prime_volume = train.settings.get<double>("wipe_retraction_extra_prime_amount");
+        wipe_config.retraction_config.retraction_min_travel_distance = 0;
+        wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
+        wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
+
+        wipe_config.pause = train.settings.get<Duration>("wipe_pause");
+
+        wipe_config.hop_enable = train.settings.get<bool>("wipe_hop_enable");
+        wipe_config.hop_amount = train.settings.get<coord_t>("wipe_hop_amount");
+        wipe_config.hop_speed = train.settings.get<Velocity>("wipe_hop_speed");
+
+        wipe_config.brush_pos_x = train.settings.get<coord_t>("wipe_brush_pos_x");
+        wipe_config.repeat_count = train.settings.get<size_t>("wipe_repeat_count");
+        wipe_config.move_distance = train.settings.get<coord_t>("wipe_move_distance");
+        wipe_config.move_speed = train.settings.get<Velocity>("speed_travel");
+        wipe_config.max_extrusion_mm3 = train.settings.get<double>("max_extrusion_before_wipe");
+        wipe_config.clean_between_layers = train.settings.get<bool>("clean_between_layers");
     }
 }
 

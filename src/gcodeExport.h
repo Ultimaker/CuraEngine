@@ -25,6 +25,7 @@ namespace cura
 
 struct LayerIndex;
 class RetractionConfig;
+struct WipeScriptConfig;
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.
@@ -72,6 +73,8 @@ private:
 
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         Velocity last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
+
+        double last_e_value_after_wipe; //!< The current material amount extruded since last wipe
 
         unsigned fan_number; // nozzle print cooling fan number
 
@@ -174,6 +177,18 @@ protected:
      * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
      */
     double mmToE(double mm);
+
+    /*!
+     * Convert an E value to a value in mm3 (if it wasn't already in mm3) for the provided extruder.
+     *
+     * E values are either in mm or in mm^3
+     * The given extruder is used to determine the filament area to make the conversion.
+     *
+     * \param e the value to convert
+     * \param extruder Extruder number
+     * \return the value converted to mm3
+     */
+    double eToMm3(double e, size_t extruder);
 
 public:
     
@@ -399,14 +414,16 @@ public:
      * Start a z hop with the given \p hop_height
      * 
      * \param hop_height The height to move above the current layer
+     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
      */
-    void writeZhopStart(const coord_t hop_height);
+    void writeZhopStart(const coord_t hop_height, Velocity speed = 0);
 
     /*!
      * End a z hop: go back to the layer height
-     * 
+     *
+     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
      */
-    void writeZhopEnd();
+    void writeZhopEnd(Velocity speed = 0);
 
     /*!
      * Start the new_extruder: 
@@ -512,6 +529,26 @@ public:
      */
     void finalize(const char* endCode);
 
+    /*!
+     * Get amount of material extruded since last wipe script was inserted.
+     *
+     * \param extruder Extruder number to check.
+     */
+    double getExtrudedVolumeAfterLastWipe(size_t extruder);
+
+    /*!
+     *  Reset the last_e_value_after_wipe.
+     *
+     * \param extruder Extruder number which last_e_value_after_wipe value to reset.
+     */
+     void ResetLastEValueAfterWipe(size_t extruder);
+
+    /*!
+     *  Generate g-code for wiping current nozzle using provided config.
+     *
+     * \param wipe_config Config with wipe script settings.
+     */
+    void insertWipeScript(const WipeScriptConfig& wipe_config);
 };
 
 }
