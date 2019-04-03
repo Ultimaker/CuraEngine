@@ -270,7 +270,7 @@ private:
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
      */
-    void processSkirtBrim(const bool for_support, const Polygons& skirt_brim, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
+    void processSkirtBrim(const Polygons& skirt_brim, LayerPlan& gcodeLayer, unsigned int extruder_nr, bool for_support) const;
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.

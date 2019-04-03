@@ -381,12 +381,12 @@ public:
      */
     void setPrimeTowerIsPlanned(unsigned int extruder_nr);
 
-    bool getSkirtBrimIsPlanned(const bool for_support, const unsigned int extruder_nr) const
+    bool getSkirtBrimIsPlanned(const unsigned int extruder_nr, const bool for_support = false) const
     {
         return (for_support ? support_brim_is_processed : skirt_brim_is_processed)[extruder_nr];
     }
 
-    void setSkirtBrimIsPlanned(const bool for_support, const unsigned int extruder_nr)
+    void setSkirtBrimIsPlanned(const unsigned int extruder_nr, const bool for_support = false)
     {
         (for_support ? support_brim_is_processed : skirt_brim_is_processed)[extruder_nr] = true;
     }

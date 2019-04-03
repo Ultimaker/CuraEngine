@@ -818,8 +818,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
         const int extruder_nr = gcode_layer.getExtruder();
-        processSkirtBrim(false, storage.skirt_brim[extruder_nr], gcode_layer, extruder_nr);
-        processSkirtBrim(true, storage.support_brim[extruder_nr], gcode_layer, extruder_nr);
+        processSkirtBrim(storage.skirt_brim[extruder_nr], gcode_layer, extruder_nr, false);
+        processSkirtBrim(storage.support_brim[extruder_nr], gcode_layer, extruder_nr, true);
     }
     if (include_helper_parts)
     { // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
@@ -903,13 +903,13 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const bool for_support, const Polygons& skirt_brim, LayerPlan& gcode_layer, unsigned int extruder_nr) const
+void FffGcodeWriter::processSkirtBrim(const Polygons& skirt_brim, LayerPlan& gcode_layer, unsigned int extruder_nr, bool for_support = false) const
 {
-    if (gcode_layer.getSkirtBrimIsPlanned(for_support, extruder_nr))
+    if (gcode_layer.getSkirtBrimIsPlanned(extruder_nr, for_support))
     {
         return;
     }
-    gcode_layer.setSkirtBrimIsPlanned(for_support, extruder_nr);
+    gcode_layer.setSkirtBrimIsPlanned(extruder_nr, for_support);
     if (skirt_brim.size() == 0)
     {
         return;
@@ -2569,8 +2569,8 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
         if (gcode_layer.getLayerNr() == 0)
         {
-            processSkirtBrim(false, storage.skirt_brim[extruder_nr], gcode_layer, extruder_nr);
-            processSkirtBrim(true, storage.support_brim[extruder_nr], gcode_layer, extruder_nr);
+            processSkirtBrim(storage.skirt_brim[extruder_nr], gcode_layer, extruder_nr, false);
+            processSkirtBrim(storage.support_brim[extruder_nr], gcode_layer, extruder_nr, true);
         }
     }
 
