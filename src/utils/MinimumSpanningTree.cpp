@@ -63,9 +63,8 @@ auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> Adja
             const coord_t old_distance = point_and_distance.second;
             if (new_distance < old_distance) //New point is closer.
             {
-                const auto* pt =  point_and_distance.first;
-                smallest_distance[pt] = new_distance;
-                smallest_distance_to[pt] = closest_point;
+                smallest_distance[point_and_distance.first] = new_distance;
+                smallest_distance_to[point_and_distance.first] = closest_point;
             }
         }
     }
