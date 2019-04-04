@@ -52,6 +52,16 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
     FRIEND_TEST(GCodeExportTest, EVsMmVolumetric);
     FRIEND_TEST(GCodeExportTest, EVsMmLinear);
+    FRIEND_TEST(GCodeExportTest, WriteZHopStartDefaultSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopStartCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndZero);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndDefaultSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptSingleMove);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptMultipleMoves);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptOptionalDelay);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptRetractionEnable);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptHopEnable);
 #endif
 private:
     struct ExtruderTrainAttributes
