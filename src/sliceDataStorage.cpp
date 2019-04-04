@@ -182,6 +182,11 @@ SliceMeshStorage::~SliceMeshStorage()
 
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {
+    if (settings.get<bool>("anti_overhang_mesh")
+        || settings.get<bool>("support_mesh"))
+    { // object is not printed as object, but as support.
+        return false;
+    }
     if (settings.get<bool>("magic_spiralize"))
     {
         if (settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
