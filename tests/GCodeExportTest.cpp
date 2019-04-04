@@ -76,6 +76,8 @@ public:
     void TearDown()
     {
         delete Application::getInstance().current_slice;
+        delete Application::getInstance().communication;
+        Application::getInstance().communication = nullptr;
     }
 };
 
