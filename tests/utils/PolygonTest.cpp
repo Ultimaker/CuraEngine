@@ -135,6 +135,17 @@ TEST_F(PolygonTest, isInsideTest)
     EXPECT_TRUE(test_polys.inside(Point(78315, 98440))) << "Point should be inside the polygons!";
 }
 
+TEST_F(PolygonTest, isOnBorderTest)
+{
+    Polygons test_triangle;
+    test_triangle.add(triangle);
+
+    EXPECT_FALSE(test_triangle.inside(Point(200, 0), false)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point(200, 0), true)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(150, 50), false)) << "Point is on a diagonal side of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point(150, 50), true)) << "Point is on a diagonal side of the triangle.";
+}
+
 TEST_F(PolygonTest, isInsideLineTest)
 {
     Polygons polys;
