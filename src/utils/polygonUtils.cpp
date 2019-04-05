@@ -1313,11 +1313,11 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
 {
     const double area_a = std::abs(poly_a.area());
     const double area_b = std::abs(poly_b.area());
-    const double average_area = (area_a + area_b) / 2.0;
+    const double total_area = area_a + area_b;
 
-    //If the average area is 0.0, we'd get a division by zero. Instead, only return 0.0 if they are exactly equal.
+    //If the total area is 0.0, we'd get a division by zero. Instead, only return 0.0 if they are exactly equal.
     constexpr bool borders_allowed = true;
-    if(average_area == 0.0)
+    if(total_area == 0.0)
     {
         for(const ConstPolygonRef& polygon_a : poly_a)
         {
@@ -1325,7 +1325,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
             {
                 if(!poly_b.inside(point, borders_allowed))
                 {
-                    return 2.0;
+                    return 1.0;
                 }
             }
         }
@@ -1335,7 +1335,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
             {
                 if(!poly_a.inside(point, borders_allowed))
                 {
-                    return 2.0;
+                    return 1.0;
                 }
             }
         }
@@ -1344,7 +1344,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
 
     const Polygons symmetric_difference = poly_a.xorPolygons(poly_b);
     const double hamming_distance = symmetric_difference.area();
-    return hamming_distance / average_area;
+    return hamming_distance / total_area;
 }
 
 }//namespace cura

@@ -606,12 +606,12 @@ public:
      *
      * The Hamming Distance applied to polygons is interpreted as the area of
      * the symmetric difference between the polygons. In this case, we'll
-     * divide this area by the average area of the two polygons.
+     * divide this area by the total area of the two polygons.
      * \param poly_a One of the polygons to compute the distance between.
      * \param poly_b One of the polygons to compute the distance between.
-     * \return The Hamming Distance relative to the average surface area of the
+     * \return The Hamming Distance relative to the total surface area of the
      * two polygons. This will be between 0.0 (the polygons are exactly equal)
-     * and 2.0 (the polygons are completely disjunct).
+     * and 1.0 (the polygons are completely disjunct).
      */
     static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
 
