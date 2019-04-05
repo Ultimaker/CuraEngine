@@ -1309,4 +1309,42 @@ void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_ind
     }
 }
 
+double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b)
+{
+    const double area_a = std::abs(poly_a.area());
+    const double area_b = std::abs(poly_b.area());
+    const double average_area = (area_a + area_b) / 2.0;
+
+    //If the average area is 0.0, we'd get a division by zero. Instead, only return 0.0 if they are exactly equal.
+    constexpr bool borders_allowed = true;
+    if(average_area == 0.0)
+    {
+        for(const ConstPolygonRef& polygon_a : poly_a)
+        {
+            for(Point point : polygon_a)
+            {
+                if(!poly_b.inside(point, borders_allowed))
+                {
+                    return 2.0;
+                }
+            }
+        }
+        for(const ConstPolygonRef& polygon_b : poly_b)
+        {
+            for(Point point : polygon_b)
+            {
+                if(!poly_a.inside(point, borders_allowed))
+                {
+                    return 2.0;
+                }
+            }
+        }
+        return 0.0; //All points are inside the other polygon, regardless of where the vertices are along the edges.
+    }
+
+    const Polygons symmetric_difference = poly_a.xorPolygons(poly_b);
+    const double hamming_distance = symmetric_difference.area();
+    return hamming_distance / average_area;
+}
+
 }//namespace cura
