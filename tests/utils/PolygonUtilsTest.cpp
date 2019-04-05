@@ -412,4 +412,17 @@ TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
 }
 
+/*
+ * Extra test that is similar to RelativeHammingHalfOverlap, but also shifts in
+ * the Y direction to make sure that it's not just working when they are exactly
+ * axis-aligned.
+ */
+TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
+{
+    Polygons shifted_polys = test_squares; //Make a copy.
+    shifted_polys[0].translate(Point(50, 50));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.5);
+}
+
 }
