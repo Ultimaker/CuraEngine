@@ -391,4 +391,9 @@ INSTANTIATE_TEST_CASE_P(GetNextParallelIntersectionInstantiation, GetNextParalle
     GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)
 ));
 
+TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
+{
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_squares), 0);
+}
+
 }
