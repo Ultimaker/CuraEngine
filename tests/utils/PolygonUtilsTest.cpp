@@ -396,4 +396,20 @@ TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_squares), 0);
 }
 
+TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
+{
+    Polygons shifted_polys = test_squares; //Make a copy.
+    shifted_polys[0].translate(Point(200, 0));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 2.0);
+}
+
+TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
+{
+    Polygons shifted_polys = test_squares; //Make a copy.
+    shifted_polys[0].translate(Point(50, 0));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
+}
+
 }
