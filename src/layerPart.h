@@ -1,10 +1,8 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef LAYERPART_H
 #define LAYERPART_H
-
-#include "sliceDataStorage.h"
-#include "slicer.h"
-#include "commandSocket.h"
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -18,13 +16,30 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
-namespace cura {
+namespace cura
+{
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool union_layers, bool union_all_remove_holes);
+class Settings;
+class SliceLayer;
+class Slicer;
+class SlicerLayer;
+class SliceMeshStorage;
 
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers, bool union_all_remove_holes);
+/*!
+ * \brief Split a layer into parts.
+ * \param settings The settings to get the settings from (whether to union or
+ * not).
+ * \param storageLayer Where to store the parts.
+ * \param layer The layer to split.
+ */
+void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer);
 
-void layerparts2HTML(SliceDataStorage& mesh, const char* filename, bool all_layers = true, int layer_nr = -1);
+/*!
+ * \brief Split all layers into parts.
+ * \param mesh The mesh of which to split the layers into parts.
+ * \param slicer The slicer to get the layers from.
+ */
+void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
 }//namespace cura
 

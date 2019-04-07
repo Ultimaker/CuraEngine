@@ -3,6 +3,7 @@
 
 #include "infill.h"
 #include "LayerPlan.h"
+#include "sliceDataStorage.h"
 #include "TopSurface.h"
 
 namespace cura
@@ -32,20 +33,24 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         return false; //Nothing to do.
     }
     //Generate the lines to cover the surface.
-    const EFillMethod pattern = mesh.getSettingAsFillMethod("ironing_pattern");
+    const EFillMethod pattern = mesh.settings.get<EFillMethod>("ironing_pattern");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
-    const coord_t line_spacing = mesh.getSettingInMicrons("ironing_line_spacing");
-    const coord_t outline_offset = -mesh.getSettingInMicrons("ironing_inset");
+    constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
+    const coord_t line_spacing = mesh.settings.get<coord_t>("ironing_line_spacing");
+    const coord_t outline_offset = -mesh.settings.get<coord_t>("ironing_inset");
     const coord_t line_width = line_config.getLineWidth();
-    const std::vector<int>& top_most_skin_angles = (mesh.getSettingAsCount("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
+    const std::vector<AngleDegrees>& top_most_skin_angles = (mesh.settings.get<size_t>("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
-    const double direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + 90.0; //Always perpendicular to the skin lines.
+    const AngleDegrees direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + AngleDegrees(90.0); //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
+    constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
-    Infill infill_generator(pattern, zig_zaggify_infill, areas, outline_offset, line_width, line_spacing, infill_overlap, direction, layer.z - 10, shift);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);
+
+    layer.mode_skip_agressive_merge = true;
 
     if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
     {
@@ -69,7 +74,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
 
     //Add the lines as travel moves to the layer plan.
     bool added = false;
-    const float ironing_flow = mesh.getSettingAsRatio("ironing_flow");
+    const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
     if (!ironing_polygons.empty())
     {
         constexpr bool force_comb_retract = false;
@@ -82,6 +87,8 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines, false, 0, ironing_flow);
         added = true;
     }
+
+    layer.mode_skip_agressive_merge = false;
     return added;
 }
 

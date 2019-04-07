@@ -1,59 +1,30 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef WEAVER_H
 #define WEAVER_H
 
 #include "weaveDataStorage.h"
-#include "commandSocket.h"
-#include "settings/settings.h"
-
-#include "MeshGroup.h"
-#include "slicer.h"
-
 #include "utils/NoCopy.h"
-#include "utils/polygon.h"
-#include "utils/polygonUtils.h"
 
 namespace cura
 {
 
+class MeshGroup;
+class Polygons;
+
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
  */
-class Weaver : public SettingsMessenger, NoCopy
+class Weaver : public NoCopy
 {
     friend class Wireframe2gcode;
 private:
     static const int HIGHER_BEND_NO_STRAIGHTEN = 0;
     static const int MOVE_TO_STRAIGHTEN = 1;
     static const int RETRACT_TO_STRAIGHTEN = 2;
-    
-    int initial_layer_thickness;
-    int connectionHeight; 
-    int line_width;
-    
-    int roof_inset; 
-    
-    int nozzle_outer_diameter; 
-    double nozzle_expansion_angle; 
-    int nozzle_clearance; 
-    int nozzle_top_diameter;
-   
-    
-public:
-    Weaver(SettingsBase* settings_base) : SettingsMessenger(settings_base) 
-    {
-        
-        initial_layer_thickness = getSettingInMicrons("layer_height_0");
-        connectionHeight = getSettingInMicrons("wireframe_height"); 
-        
-        line_width = getSettingInMicrons("wall_line_width_x");
-        
-        roof_inset = getSettingInMicrons("wireframe_roof_inset"); 
-        nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter");      // ___       ___   .
-        nozzle_expansion_angle = getSettingInAngleRadians("machine_nozzle_expansion_angle");  //     \_U_/       .
-        nozzle_clearance = getSettingInMicrons("wireframe_nozzle_clearance");                // at least line width
-        nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
-    }
 
+public:
     /*!
      * This is the main function for Neith / Weaving / WirePrinting / Webbed printing.
      * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
@@ -61,7 +32,6 @@ public:
      * \param objects The objects for which to create a wireframe print
      */
     void weave(MeshGroup* objects);
-    
 
 private:
     WireFrame wireFrame;

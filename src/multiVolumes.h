@@ -1,17 +1,19 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef MULTIVOLUMES_H
 #define MULTIVOLUMES_H
 
-#include "sliceDataStorage.h"
-#include "slicer.h"
+#include <vector>
 
-/* This file contains code to help fixing up and changing layers that are build from multiple volumes. */
-namespace cura {
+/* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
+namespace cura
+{
 
-/*!
- * 
- * \param alternate_carve_order Whether to switch which model carves out of which with every layer
- */
-void carveMultipleVolumes(std::vector<Slicer*> &meshes, bool alternate_carve_order);
+class Mesh;
+class Slicer;
+
+void carveMultipleVolumes(std::vector<Slicer*> &meshes);
 
 /*!
  * Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.

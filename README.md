@@ -36,7 +36,15 @@ Project files generation:
 2. ```cmake . -G "CodeBlocks - Unix Makefiles"```
 3. (for a list of supported IDE's see http://www.cmake.org/Wiki/CMake_Generator_Specific_Information#Code::Blocks_Generator)
 
-Installing Protobuf
+Building with MSVC
+------------------
+Building CuraEngine with the MSVC toolchain is similar to the cmake instructions above with a couple of extra options.
+- If libArcus is not installed to a location on your PATH you will need to pass the install location of the library using ```-DCMAKE_PREFIX_PATH```.
+- If you wish to statically link the C runtime pass ```-DMSVC_STATIC_RUNTIME=ON``` when configuring using cmake.
+    - Note that libArcus should also be built with this option as well or you will get linker errors.
+- Vcpkg may be used to install protobuf and cppunit (only required if you would like to build the CuraEngine test suite).
+
+Installing Protobuf (Linux)
 -------------------
 1. Be sure to have libtool installed.
 2. Download protobuf from https://github.com/google/protobuf/releases (download ZIP and unZIP at desired location, or clone the repo). The protocol buffer is used for communication between the CuraEngine and the GUI.
@@ -70,7 +78,7 @@ CURA_ENGINE_SEARCH_PATH=/path/to/Cura/resources/definitions:/user/defined/path
 Internals
 =========
 
-The Cura Engine is structured as mainly .h files. This is not standard for a C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partialy a result of lazyness but comes in handy for optimalizations.
+The Cura Engine is structured as mainly .h files. This is not standard for a C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partialy a result of lazyness but comes in handy for optimizations.
 
 The .h files contain different steps called from the main.cpp file. The main.cpp file contains the global slicing logic.
 
@@ -100,7 +108,7 @@ These polygons are generated in a 2 step process. First all triangles are cut in
 Next all these line-segments are connected to eachother to make Polygons. The vertex<->face relations of the OptimizedModel help to make this process fast, as there is a huge chance that 2 connecting faces also make 2 connecting line-segments.
 This code also patches up small holes in the 3D model, so your model doesn't need to be a perfect Manifold. It also deals with incorrect normals, so it can flip around line-segments to fit end-to-end.
 
-After the Slicer we have closed Polygons which can be used in Clipper, as Clipper can only opperate on closed 2D polygons.
+After the Slicer we have closed Polygons which can be used in Clipper.
 
 LayerParts
 ==========

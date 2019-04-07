@@ -1,15 +1,15 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PROGRESS_H
 #define PROGRESS_H
 
 #include <string>
 
-#include "../utils/logoutput.h"
-#include "../utils/gettime.h"
+namespace cura
+{
 
-namespace cura {
-
-class CommandSocket;
+class TimeKeeper;
 
 #define N_PROGRESS_STAGES 7
 

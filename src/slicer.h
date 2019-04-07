@@ -1,18 +1,23 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SLICER_H
 #define SLICER_H
 
 #include <queue>
-
-#include "mesh.h"
+#include <unordered_map>
 #include "utils/polygon.h"
-#include "settings/AdaptiveLayerHeights.h"
+
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
 */
-namespace cura {
+namespace cura
+{
+
+class AdaptiveLayer;
+class Mesh;
+class MeshVertex;
 
 class SlicerSegment
 {
@@ -23,7 +28,7 @@ public:
     int endOtherFaceIdx = -1;
     // If end corresponds to a vertex of the mesh, then this is populated
     // with the vertex that it ended on.
-    const MeshVertex *endVertex = nullptr;
+    const MeshVertex* endVertex = nullptr;
     bool addedToPolygon = false;
 };
 
@@ -31,17 +36,16 @@ class ClosePolygonResult
 {   //The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
     //The line on which the point lays is between pointIdx-1 and pointIdx
 public:
-    Point intersectionPoint;
     int polygonIdx = -1;
-    unsigned int pointIdx = -1;
+    size_t pointIdx = -1;
 };
 class GapCloserResult
 {
 public:
-    int64_t len = -1;
+    coord_t len = -1;
     int polygonIdx = -1;
-    unsigned int pointIdxA = -1;
-    unsigned int pointIdxB = -1;
+    size_t pointIdxA = -1;
+    size_t pointIdxB = -1;
     bool AtoB = false;
 };
 
@@ -56,14 +60,12 @@ public:
     Polygons openPolylines;
 
     /*!
-     * Connect the segments into polygons for this layer of this \p mesh
-     *
-     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
-     * \param keep_none_closed Whether to throw away the data for segments which we couldn't stitch into a polygon
-     * \param extensive_stitching Whether to perform extra work to try and close polylines into polygons when there are large gaps
-     * \param is_initial_layer Whether this is the first layer of the mesh data
+     * \brief Connect the segments into polygons for this layer of this \p mesh.
+     * \param[in] mesh The mesh data for which we are connecting sliced
+     * segments. The face data is used.
+     * \param is_initial_layer Whether this is the first layer of the mesh data.
      */
-    void makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching, bool is_initial_layer);
+    void makePolygons(const Mesh* mesh, bool is_initial_layer);
 
 protected:
     /*!
@@ -489,34 +491,35 @@ public:
 
     const Mesh* mesh = nullptr; //!< The sliced mesh
 
-    Slicer(Mesh* mesh, const coord_t initial_layer_thickness, const coord_t thickness, const size_t slice_layer_count, bool keepNoneClosed,
-           bool extensiveStitching, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
+    Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
 
     /*!
-     * Linear interpolation
+     * \brief Linear interpolation between coordinates of a line.
      *
-     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
+     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and
+     * (\p x1, \p y1).
+     * \param x The X coordinate of the point to find.
+     * \param x0 The X coordinate of the first end point of the line segment.
+     * \param x1 The X coordinate of the second end point of the line segment.
+     * \param y0 The Y coordinate of the first end point of the line segment.
+     * \param y1 The Y coordinate of the second end point of the line segment.
+     * \return The Y coordinate of the point to find.
      */
-    int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
-    {
-        int64_t dx_01 = x1 - x0;
-        int64_t num = (y1 - y0) * (x - x0);
-        num += num > 0 ? dx_01/2 : -dx_01/2; // add in offset to round result
-        int64_t y = y0 + num / dx_01;
-        return y;
-    }
+    coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const;
 
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
-    {
-        SlicerSegment seg;
-
-        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
-        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
-        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
-        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-
-        return seg;
-    }
+    /*!
+     * \brief Project a triangle onto a 2D layer.
+     *
+     * The result is a SlicerSegment object, which is a line segment if the
+     * triangle properly intersects the layer, a point if it's an edge case, or
+     * nothing if the triangle doesn't intersect the layer.
+     * \param p0 A corner of the triangle.
+     * \param p1 A corner of the triangle.
+     * \param p2 A corner of the triangle.
+     * \param z The Z coordinate of the layer to intersect with.
+     * \return A slicer segment.
+     */
+    SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const;
 
     void dumpSegmentsToHTML(const char* filename);
 };

@@ -1,41 +1,28 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (C) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
-#include "utils/NoCopy.h"
 #include "mesh.h"
-#include "ExtruderTrain.h"
+#include "utils/NoCopy.h"
 
 namespace cura
 {
-    
+
+class FMatrix3x3;
+
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
  * 
  * One MeshGroup is a whole which is printed at once.
  * Generally there is one single MeshGroup, though when using one-at-a-time printing, multiple MeshGroups are processed consecutively.
  */
-class MeshGroup : public SettingsBase, NoCopy
+class MeshGroup : public NoCopy
 {
-    ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
-    mutable int extruder_count; //!< The number of extruders. (mutable because of lazy evaluation)
 public:
-    int getExtruderCount() const;
-
-    MeshGroup(SettingsBaseVirtual* settings_base);
-    
-    ~MeshGroup();
-    
-    /*!
-     * Create a new extruder train for the @p extruder_nr, or return the one which already exists.
-     */
-    ExtruderTrain* createExtruderTrain(unsigned int extruder_nr);
-
-    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr);
-
-    const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
-
     std::vector<Mesh> meshes;
+    Settings settings;
 
     Point3 min() const; //! minimal corner of bounding box
     Point3 max() const; //! maximal corner of bounding box
@@ -54,7 +41,8 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings = nullptr);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, Settings& object_parent_settings);
 
-}//namespace cura
-#endif//MESH_GROUP_H
+} //namespace cura
+
+#endif //MESH_GROUP_H

@@ -1,10 +1,14 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SubDivCube.h"
 
 #include <functional>
 
-#include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
+#include "../settings/types/AngleRadians.h" //For the infill angle.
 #include "../utils/math.h"
+#include "../utils/polygonUtils.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 //1 / sqrt(2)
 #define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 //1 / sqrt(3)
@@ -15,7 +19,7 @@ namespace cura
 {
 
 std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step;
-int32_t SubDivCube::radius_addition = 0;
+coord_t SubDivCube::radius_addition = 0;
 Point3Matrix SubDivCube::rotation_matrix;
 PointMatrix SubDivCube::infill_rotation_matrix;
 
@@ -32,17 +36,17 @@ SubDivCube::~SubDivCube()
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
-    radius_addition = mesh.getSettingInMicrons("sub_div_rad_add");
-    double infill_angle = M_PI / 4.0;
+    radius_addition = mesh.settings.get<coord_t>("sub_div_rad_add");
+    AngleRadians infill_angle = M_PI / 4.0;
 
-    coord_t furthest_dist_from_origin = std::sqrt(square(mesh.getSettingInMicrons("machine_height")) + square(mesh.getSettingInMicrons("machine_depth") / 2) + square(mesh.getSettingInMicrons("machine_width") / 2));
-    coord_t max_side_length = furthest_dist_from_origin * 2;
+    const coord_t furthest_dist_from_origin = std::sqrt(square(mesh.settings.get<coord_t>("machine_height")) + square(mesh.settings.get<coord_t>("machine_depth") / 2) + square(mesh.settings.get<coord_t>("machine_width") / 2));
+    const coord_t max_side_length = furthest_dist_from_origin * 2;
 
-    int curr_recursion_depth = 0;
-    const int64_t infill_line_distance = mesh.getSettingInMicrons("infill_line_distance");
+    size_t curr_recursion_depth = 0;
+    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance > 0)
     {
-        for (int64_t curr_side_length = infill_line_distance * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
+        for (coord_t curr_side_length = infill_line_distance * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
         {
             cube_properties_per_recursion_step.emplace_back();
             CubeProperties& cube_properties_here = cube_properties_per_recursion_step.back();
@@ -80,7 +84,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
 }
 
-void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result)
+void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result)
 {
     if (cube_properties_per_recursion_step.empty()) //Infill is set to 0%.
     {
@@ -100,11 +104,11 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result)
     }
 }
 
-void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons (&directional_line_groups)[3])
+void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result, Polygons (&directional_line_groups)[3])
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
 
-    int32_t z_diff = std::abs(z - center.z); //!< the difference between the cube center and the target layer.
+    const coord_t z_diff = std::abs(z - center.z); //!< the difference between the cube center and the target layer.
     if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;
@@ -142,7 +146,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons 
     }
 }
 
-SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int depth)
+SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth)
 {
     this->depth = depth;
     this->center = center;
@@ -181,20 +185,20 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
     }
 }
 
-bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius)
+bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coord_t radius)
 {
-    int64_t distance2 = 0;
+    coord_t distance2 = 0;
     coord_t sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
     int inside;
-    double part_dist;//what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
-    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
+    Ratio part_dist;//what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     int bottom_layer = (center.z - radius) / layer_height;
     int top_layer = (center.z + radius) / layer_height;
     for (int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
-        part_dist = (double)(test_layer * layer_height - center.z) / radius;
+        part_dist = static_cast<Ratio>(test_layer * layer_height - center.z) / radius;
         sphere_slice_radius2 = radius * radius * (1.0 - (part_dist * part_dist));
         Point loc(center.x, center.y);
 
@@ -219,15 +223,14 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     return false;
 }
 
-int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, int64_t* distance2)
+coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point& location, coord_t* distance2)
 {
     if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
         return 2;
         *distance2 = 0;
     }
-    Polygons collide;
-    mesh.layers[layer_nr].getSecondOrInnermostWalls(collide);
+    Polygons& collide = mesh.layers[layer_nr].getInnermostWalls(2, mesh);
     Point centerpoint = location;
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
@@ -248,10 +251,10 @@ void SubDivCube::rotatePointInitial(Point& target)
 
 void SubDivCube::rotatePoint120(Point& target)
 {
-    constexpr double sqrt_three_fourths = 0.8660254037844386467637231707529361834714026269051903; //!< sqrt(3.0 / 4.0) = sqrt(3) / 2
-    int64_t x;
-    x = (-0.5) * target.X - sqrt_three_fourths * target.Y;
-    target.Y = (-0.5)*target.Y + sqrt_three_fourths * target.X;
+    //constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0); //TODO: Reactivate once MacOS is upgraded to a more modern compiler.
+#define sqrt_three_fourths 0.86602540378443864676372317
+    const coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
+    target.Y = -0.5 * target.Y + sqrt_three_fourths * target.X;
     target.X = x;
 }
 

@@ -1,18 +1,21 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SETTINGS_PATH_CONFIGS_H
 #define SETTINGS_PATH_CONFIGS_H
 
 #include <vector>
 
-#include "../utils/intpoint.h" // coord_t
 #include "../GCodePathConfig.h"
+#include "../utils/Coord_t.h"
 
 namespace cura
 {
 
-class SliceDataStorage; // forward decl for SliceDataStorage
-class SliceMeshStorage; // forward decl for SliceDataStorage
-class ExtruderTrain; // forward decl for SliceDataStorage
+class ExtruderTrain;
+struct LayerIndex;
+class SliceDataStorage;
+class SliceMeshStorage;
 
 /*!
  * A class to represent all configurations for all features types of printed lines in a meshgroup.
@@ -20,17 +23,16 @@ class ExtruderTrain; // forward decl for SliceDataStorage
 class PathConfigStorage
 {
 private:
-    const unsigned int adhesion_extruder_nr;
-    const unsigned int support_infill_extruder_nr;
-    const unsigned int support_roof_extruder_nr;
-    const unsigned int support_bottom_extruder_nr;
-    const ExtruderTrain* adhesion_extruder_train;
-    const ExtruderTrain* support_infill_train;
-    const ExtruderTrain* support_roof_train;
-    const ExtruderTrain* support_bottom_train;
+    const size_t support_infill_extruder_nr;
+    const size_t support_roof_extruder_nr;
+    const size_t support_bottom_extruder_nr;
+    const ExtruderTrain& adhesion_extruder_train;
+    const ExtruderTrain& support_infill_train;
+    const ExtruderTrain& support_roof_train;
+    const ExtruderTrain& support_bottom_train;
 
-    const std::vector<double> line_width_factor_per_extruder;
-    static std::vector<double> getLineWidthFactorPerExtruder(const SliceDataStorage& storage, int layer_nr);
+    const std::vector<Ratio> line_width_factor_per_extruder;
+    static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);
 public:
     class MeshPathConfigs
     {
@@ -48,8 +50,8 @@ public:
         GCodePathConfig ironing_config;
         GCodePathConfig perimeter_gap_config;
 
-        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness, int layer_nr, const std::vector<double>& line_width_factor_per_extruder);
-        void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, int layer_nr, int max_speed_layer);
+        MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex& layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder);
+        void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer);
     };
 
     GCodePathConfig raft_base_config;
@@ -69,10 +71,10 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness);
+    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness);
 
 private:
-    void handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count);
+    void handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);
 };
 
 }; // namespace cura

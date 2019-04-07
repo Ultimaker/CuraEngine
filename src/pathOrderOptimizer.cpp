@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include <map>
 #include "pathOrderOptimizer.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
@@ -15,8 +18,8 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
-    bool picked[polygons.size()];
-    memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
+    std::vector<bool> picked(polygons.size(), false);
     loc_to_line = nullptr;
 
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
@@ -207,10 +210,10 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 */
 void LineOrderOptimizer::optimize(bool find_chains)
 {
-    int gridSize = 5000; // the size of the cells in the hash grid. TODO
-    SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
-    bool picked[polygons.size()];
-    memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    const int grid_size = 2000; // the size of the cells in the hash grid. TODO
+    SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
+    // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
+    std::vector<bool> picked(polygons.size(), false);
 
     loc_to_line = nullptr;
 
@@ -234,33 +237,111 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
         line_bucket_grid.insert(poly[0], poly_idx);
         line_bucket_grid.insert(poly[1], poly_idx);
-
     }
 
-    Point incoming_perpundicular_normal(0, 0);
+    // a map with an entry for each chain end discovered
+    //   keys are the indices of the lines (polys) that start/end a chain of lines
+    //   values indicate which of the line's points are at the end of the chain
+    std::map<unsigned, unsigned> chain_ends;
+
+    std::vector<unsigned> singletons; // indices of the line segments that don't join any other
+
+    if (find_chains)
+    {
+        // locate the chain ends by finding lines that join exactly one other line at one end and join either 0 or 2 or more lines at the other end
+
+        // we also consider lines that meet 2 or more lines at one end and nothing at the other end as chain ends
+
+        // finally, those lines that do not join any other are added to the collection of singletons
+
+        for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+        {
+            int num_joined_lines[2];
+            for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
+            {
+                std::set<int> joined_lines; // use a set because getNearbyVals() appears to return duplicates (?)
+                num_joined_lines[point_idx] = 0;
+                const Point& p = (*polygons[poly_idx])[point_idx];
+                // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
+                for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, 10))
+                {
+                    if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
+                    {
+                        joined_lines.insert(close_line_idx);
+                    }
+                }
+                num_joined_lines[point_idx] = joined_lines.size();
+            }
+            if (num_joined_lines[0] != 1 && num_joined_lines[1] == 1)
+            {
+                // point 0 of candidate line starts a chain of 2 or more lines
+                chain_ends[poly_idx] = 0;
+            }
+            else if (num_joined_lines[1] != 1 && num_joined_lines[0] == 1)
+            {
+                // point 1 of candidate line starts a chain of 2 or more lines
+                chain_ends[poly_idx] = 1;
+            }
+            else if (num_joined_lines[0] == 0 && num_joined_lines[1] > 1)
+            {
+                // point 0 is the free end of a line that meets 2 or more lines at a junction
+                chain_ends[poly_idx] = 0;
+            }
+            else if (num_joined_lines[1] == 0 && num_joined_lines[0] > 1)
+            {
+                // point 1 is the free end of a line that meets 2 or more lines at a junction
+                chain_ends[poly_idx] = 1;
+            }
+            else if (num_joined_lines[0] == 0 && num_joined_lines[1] == 0)
+            {
+                // line is not connected to anything but if there are chains we may want to print it
+                // before moving away to a different area so make it possible for it to be selected
+                // before all the chains have been printed
+                singletons.push_back(poly_idx);
+            }
+        }
+    }
+
     Point prev_point = startPoint;
-    bool have_chains = find_chains; // if find_chains is true, assume that line segments are chained together (i.e. zigzags) and set to false later if no chains exist
+
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
+        const int close_point_radius = 5000;
+
         // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
         // so we only consider the closest line when looking for the second line onwards
         if (order_idx > 0)
         {
-            /// check if single-line-polygon is close to last point
-            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, gridSize))
+            // first check if a line segment starts (really) close to last point
+            // this will find the next line segment in a chain
+            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx]
+                    || !(pointsAreCoincident(prev_point,(*polygons[close_line_idx])[0]) || pointsAreCoincident(prev_point, (*polygons[close_line_idx])[1])))
                 {
                     continue;
                 }
-                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
             }
         }
 
-        if (best_line_idx != -1 && best_score > (2 * gridSize * gridSize))
+        if (best_line_idx == -1)
+        {
+            // we didn't find a chained line segment so now look for any lines that start within close_point_radius
+            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, close_point_radius))
+            {
+                if (picked[close_line_idx])
+                {
+                    continue;
+                }
+                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
+            }
+        }
+
+        if (best_line_idx != -1 && best_score > (2 * close_point_radius * close_point_radius))
         {
             // we found a point that is close to prev_point as the crow flies but the score is high so it must have been
             // penalised due to the part boundary clashing with the straight line path so let's forget it and find something closer
@@ -268,53 +349,50 @@ void LineOrderOptimizer::optimize(bool find_chains)
             best_score = std::numeric_limits<float>::infinity();
         }
 
-        if (best_line_idx != -1 && have_chains && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
+        if (best_line_idx != -1 && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
         {
             // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
             // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
-            best_line_idx = -1;
-            best_score = std::numeric_limits<float>::infinity();
+            for (auto it = chain_ends.begin(); it != chain_ends.end(); ++it )
+            {
+                if (!picked[it->first])
+                {
+                    best_line_idx = -1;
+                    best_score = std::numeric_limits<float>::infinity();
+                    break;
+                }
+            }
         }
 
-        // if no line ends close to prev_point, see if we can find a point on a line that could be the start of a chain of lines
-        if (best_line_idx == -1 && have_chains)
+        if (best_line_idx == -1)
         {
-            have_chains = false; // now assume that we don't have any chains and change back to true below if we find any joined line segments
-            for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+            std::vector<std::map<unsigned, unsigned>::iterator> zombies; // chain end lines that have already been output
+
+            // no point is close to the previous point, consider the points on the chain end lines that have yet to be picked
+
+            for (auto it = chain_ends.begin(); it != chain_ends.end(); ++it )
             {
-                if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
+                if (picked[it->first])
                 {
-                    continue;
+                    zombies.push_back(it);
                 }
-                assert(polygons[poly_idx]->size() == 2);
-
-                // does this line either end in thin air (doesn't join another line) or join another line that has already been picked?
-                // check both of its ends and see if it's a possible candidate to be used to start the next sequence
-                for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
+                else
                 {
-                    int num_joined_lines = 0;
-                    const Point& p = (*polygons[poly_idx])[point_idx];
-                    // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
-                    for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, gridSize))
-                    {
-                        if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
-                        {
-                            have_chains = true; // we have found a joint between line segments so we have chains
+                    updateBestLine(it->first, best_line_idx, best_score, prev_point, it->second);
+                }
+            }
 
-                            ++num_joined_lines;
+            for (auto zombie : zombies)
+            {
+                chain_ends.erase(zombie);
+            }
 
-                            if (picked[close_line_idx])
-                            {
-                                // candidate line exactly meets a line that has already been picked so consider this vertex as a start point
-                                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
-                            }
-                        }
-                    }
-                    if (num_joined_lines == 0)
-                    {
-                        // candidate line ends in thin air so this vertex could possibly be located at the end of a sequence of lines
-                        updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal, point_idx);
-                    }
+            // if any singletons are not yet printed, consider them as well
+            for (auto poly_idx : singletons)
+            {
+                if (!picked[poly_idx])
+                {
+                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
                 }
             }
         }
@@ -324,13 +402,12 @@ void LineOrderOptimizer::optimize(bool find_chains)
         {
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
-                if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
+                if (picked[poly_idx])
                 {
                     continue;
                 }
-                assert(polygons[poly_idx]->size() == 2);
 
-                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+                updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
 
             }
         }
@@ -338,14 +415,11 @@ void LineOrderOptimizer::optimize(bool find_chains)
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
             ConstPolygonRef best_line = *polygons[best_line_idx];
-            assert(best_line.size() == 2);
 
             int line_start_point_idx = polyStart[best_line_idx];
             int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
-            const Point& line_start = best_line[line_start_point_idx];
             const Point& line_end = best_line[line_end_point_idx];
             prev_point = line_end;
-            incoming_perpundicular_normal = turn90CCW(normal(line_end - line_start, 1000));
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
@@ -387,18 +461,26 @@ float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
     return vSize2f(p1 - p0) * 10000;
 }
 
-inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal, int just_point)
+/*
+in:
+ poly_idx: candidate for best polygon index
+ prev_point
+ incoming_perpundicular_normal: incoming angle, turned 90 degrees CCW
+ just_point: default -1, 0, or 1
+out:
+ best, best_score
+*/
+inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, int just_point)
 {
-    // when looking for chains, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
-    // if just_point is -1, it means that we are not looking for chains and we will test both vertices to see if either is best
+    // when looking at a chain end, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
+    // if just_point is -1, it means that we are not looking at a chain end and we will test both vertices to see if either is best
 
     const Point& p0 = (*polygons[poly_idx])[0];
     const Point& p1 = (*polygons[poly_idx])[1];
-    float dot_score = (just_point >= 0) ? 0 : getAngleScore(incoming_perpundicular_normal, p0, p1);
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
-        float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
+        float score = vSize2f(p0 - prev_point);
         if (score < best_score
             && combing_boundary != nullptr
             && !pointsAreCoincident(p0, prev_point)
@@ -415,7 +497,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     }
     if (just_point != 0)
     { /// check distance to second point on line (1)
-        float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
+        float score = vSize2f(p1 - prev_point);
         if (score < best_score
             && combing_boundary != nullptr
             && !pointsAreCoincident(p1, prev_point)
@@ -431,11 +513,5 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         }
     }
 }
-
-float LineOrderOptimizer::getAngleScore(Point incoming_perpundicular_normal, Point p0, Point p1)
-{
-    return dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.0001f;
-}
-
 
 }//namespace cura
