@@ -18,6 +18,7 @@ public:
     Polygon clockwise_large;
     Polygon clockwise_small;
     Polygons clockwise_donut;
+    Polygon line;
 
     void SetUp()
     {
@@ -25,7 +26,6 @@ public:
         test_square.emplace_back(100, 0);
         test_square.emplace_back(100, 100);
         test_square.emplace_back(0, 100);
-
 
         pointy_square.emplace_back(0, 0);
         pointy_square.emplace_back(47, 0);
@@ -62,6 +62,9 @@ public:
         outer.add(clockwise_large);
         inner.add(clockwise_small);
         clockwise_donut = outer.difference(inner);
+
+        line.emplace_back(0, 0);
+        line.emplace_back(100, 0);
     }
 };
 
@@ -130,6 +133,26 @@ TEST_F(PolygonTest, isInsideTest)
     poly.add(Point(80960,98095));
 
     EXPECT_TRUE(test_polys.inside(Point(78315, 98440))) << "Point should be inside the polygons!";
+}
+
+TEST_F(PolygonTest, isOnBorderTest)
+{
+    Polygons test_triangle;
+    test_triangle.add(triangle);
+
+    EXPECT_FALSE(test_triangle.inside(Point(200, 0), false)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point(200, 0), true)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point(150, 50), false)) << "Point is on a diagonal side of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point(150, 50), true)) << "Point is on a diagonal side of the triangle.";
+}
+
+TEST_F(PolygonTest, DISABLED_isInsideLineTest) //Disabled because this fails due to a bug in Clipper.
+{
+    Polygons polys;
+    polys.add(line);
+
+    EXPECT_FALSE(polys.inside(Point(50, 0), false)) << "Should be outside since it is on the border and border is considered outside.";
+    EXPECT_TRUE(polys.inside(Point(50, 0), true)) << "Should be inside since it is on the border and border is considered inside.";
 }
 
 TEST_F(PolygonTest, splitIntoPartsWithHoleTest)

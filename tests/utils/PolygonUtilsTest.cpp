@@ -280,6 +280,8 @@ class PolygonUtilsTest : public testing::Test
 {
 public:
     Polygons test_squares;
+    Polygons test_line;
+    Polygons test_line_extra_vertices; //Line that has extra vertices along it that are technically unnecessary.
 
     PolygonUtilsTest()
     {
@@ -289,6 +291,18 @@ public:
         test_square.emplace_back(100, 100);
         test_square.emplace_back(0, 100);
         test_squares.add(test_square);
+
+        Polygon line;
+        line.emplace_back(0, 0);
+        line.emplace_back(100, 0);
+        test_line.add(line);
+
+        Polygon line_extra_vertices;
+        line_extra_vertices.emplace_back(100, 0);
+        line_extra_vertices.emplace_back(25, 0);
+        line_extra_vertices.emplace_back(0, 0);
+        line_extra_vertices.emplace_back(75, 0);
+        test_line_extra_vertices.add(line_extra_vertices);
     }
 };
 
@@ -390,5 +404,77 @@ INSTANTIATE_TEST_CASE_P(GetNextParallelIntersectionInstantiation, GetNextParalle
     GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
     GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)
 ));
+
+TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
+{
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_squares), 0);
+}
+
+TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
+{
+    Polygons shifted_polys = test_squares; //Make a copy.
+    shifted_polys[0].translate(Point(200, 0));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
+}
+
+TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
+{
+    Polygons shifted_polys = test_squares; //Make a copy.
+    shifted_polys[0].translate(Point(50, 0));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.5);
+}
+
+/*
+ * Extra test that is similar to RelativeHammingHalfOverlap, but also shifts in
+ * the Y direction to make sure that it's not just working when they are exactly
+ * axis-aligned.
+ */
+TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
+{
+    Polygons shifted_polys = test_squares; //Make a copy.
+    shifted_polys[0].translate(Point(50, 50));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.75);
+}
+
+/*
+ * Edge case where one of the polygons is a line but the other is not, and the
+ * line is contained within the polygon.
+ */
+TEST_F(PolygonUtilsTest, RelativeHammingLineSquare)
+{
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_line), 1.0) << "The difference between the polygons is 100% because the area of the difference encompasses the area of the one polygon that has area.";
+}
+
+/*
+ * Edge case where one of the polygons is the line but the other is not, and the
+ * polygons do not overlap.
+ */
+TEST_F(PolygonUtilsTest, RelativeHammingLineSquareDisjunct)
+{
+    test_line[0].translate(Point(0, 200));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_line), 1.0);
+}
+
+TEST_F(PolygonUtilsTest, DISABLED_RelativeHammingLineLine) //Disabled because this fails due to a bug in Clipper of testing points inside a line-polygon.
+{
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line), 0.0);
+}
+
+TEST_F(PolygonUtilsTest, RelativeHammingLineLineDisjunct)
+{
+    Polygons shifted_line = test_line; //Make a copy.
+    shifted_line[0].translate(Point(0, 1));
+
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line), 1.0);
+}
+
+TEST_F(PolygonUtilsTest, DISABLED_RelativeHammingLineLineDifferentVerts) //Disabled because this fails due to a bug in Clipper of testing points inside a line-polygon.
+{
+    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line_extra_vertices), 0.0) << "Even though the exact vertices are different, the actual outline is the same.";
+}
 
 }
