@@ -1,15 +1,17 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
-#include <stdio.h>
 
+#include <stdio.h>
 #include <algorithm> // remove_if
 
+#include "settings/AdaptiveLayerHeights.h"
+#include "Application.h"
+#include "Slice.h"
+#include "slicer.h"
+#include "settings/EnumSettings.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
-
-#include "slicer.h"
-#include "Application.h"
 
 
 namespace cura {
@@ -928,7 +930,8 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
 
 #pragma omp parallel for default(none) shared(mesh, layers_ref)
-    for(unsigned int layer_nr = 0; layer_nr < layers_ref.size(); layer_nr++)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_nr = 0; layer_nr < static_cast<int>(layers_ref.size()); layer_nr++)
     {
         layers_ref[layer_nr].makePolygons(mesh, layer_nr == 0);
     }
@@ -964,6 +967,18 @@ coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1,
     coord_t num = (y1 - y0) * (x - x0);
     num += num > 0 ? dx_01 / 2 : -dx_01 / 2; // add in offset to round result
     return y0 + num / dx_01;
+}
+
+SlicerSegment Slicer::project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const
+{
+    SlicerSegment seg;
+
+    seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
+    seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
+    seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
+    seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
+
+    return seg;
 }
 
 }//namespace cura

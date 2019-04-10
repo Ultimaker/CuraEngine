@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include <map>
 #include "pathOrderOptimizer.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
@@ -15,8 +18,8 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
-    bool picked[polygons.size()];
-    memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
+    std::vector<bool> picked(polygons.size(), false);
     loc_to_line = nullptr;
 
     for (unsigned poly_idx = 0; poly_idx < polygons.size(); ++poly_idx) /// find closest point to initial starting point within each polygon +initialize picked
@@ -209,7 +212,8 @@ void LineOrderOptimizer::optimize(bool find_chains)
 {
     const int grid_size = 2000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
-    bool picked[polygons.size()];
+    // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
+    std::vector<bool> picked(polygons.size(), false);
 
     loc_to_line = nullptr;
 
@@ -233,7 +237,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
         line_bucket_grid.insert(poly[0], poly_idx);
         line_bucket_grid.insert(poly[1], poly_idx);
-        picked[poly_idx] = false;
     }
 
     // a map with an entry for each chain end discovered
@@ -307,7 +310,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
         const int close_point_radius = 5000;
-        
+
         // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
         // so we only consider the closest line when looking for the second line onwards
         if (order_idx > 0)
@@ -316,20 +319,21 @@ void LineOrderOptimizer::optimize(bool find_chains)
             // this will find the next line segment in a chain
             for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx]
+                    || !(pointsAreCoincident(prev_point,(*polygons[close_line_idx])[0]) || pointsAreCoincident(prev_point, (*polygons[close_line_idx])[1])))
                 {
                     continue;
                 }
                 updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
             }
         }
-        
+
         if (best_line_idx == -1)
         {
             // we didn't find a chained line segment so now look for any lines that start within close_point_radius
             for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, close_point_radius))
             {
-                if (picked[close_line_idx] || polygons[close_line_idx]->size() < 1)
+                if (picked[close_line_idx])
                 {
                     continue;
                 }
@@ -398,11 +402,10 @@ void LineOrderOptimizer::optimize(bool find_chains)
         {
             for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
             {
-                if (picked[poly_idx] || polygons[poly_idx]->size() < 1) /// skip single-point-polygons
+                if (picked[poly_idx])
                 {
                     continue;
                 }
-                assert(polygons[poly_idx]->size() == 2);
 
                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
 
@@ -412,7 +415,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
             ConstPolygonRef best_line = *polygons[best_line_idx];
-            assert(best_line.size() == 2);
 
             int line_start_point_idx = polyStart[best_line_idx];
             int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1

@@ -1,12 +1,15 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_NO_ZIGZAG_CONNECTOR_PROCESSOR_H
 #define INFILL_NO_ZIGZAG_CONNECTOR_PROCESSOR_H
 
-#include "../utils/polygon.h"
 #include "ZigzagConnectorProcessor.h"
 
 namespace cura
 {
+
+class Polygons;
 
 /*!
  * This processor adds no connection. This is for line infill pattern.

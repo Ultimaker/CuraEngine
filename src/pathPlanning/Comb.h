@@ -7,20 +7,18 @@
 #include <memory> // shared_ptr
 #include <limits> //To find the maximum for coord_t.
 
-#include "LinePolygonsCrossings.h"
-#include "CombPath.h"
-#include "CombPaths.h"
-#include "../ExtruderTrain.h" //To get settings from an extruder.
 #include "../settings/types/LayerIndex.h" //To store the layer on which we comb.
 #include "../utils/optional.h"
 #include "../utils/polygon.h"
-#include "../utils/SparsePointGridInclusive.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/LazyInitialization.h"
 
 namespace cura 
 {
 
+class CombPath;
+class CombPaths;
+class ExtruderTrain;
 class SliceDataStorage;
 
 /*!
