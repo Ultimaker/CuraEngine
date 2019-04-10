@@ -1364,8 +1364,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             int prev_extruder = extruder_nr;
             extruder_nr = extruder_plan.extruder_nr;
-			
-			gcode.ResetLastEValueAfterWipe(prev_extruder);
+
+            gcode.ResetLastEValueAfterWipe(prev_extruder);
 
             const ExtruderTrain& prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
             if (prev_extruder_train.settings.get<bool>("retraction_hop_after_extruder_switch"))
