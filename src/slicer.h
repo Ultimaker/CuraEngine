@@ -63,9 +63,8 @@ public:
      * \brief Connect the segments into polygons for this layer of this \p mesh.
      * \param[in] mesh The mesh data for which we are connecting sliced
      * segments. The face data is used.
-     * \param is_initial_layer Whether this is the first layer of the mesh data.
      */
-    void makePolygons(const Mesh* mesh, bool is_initial_layer);
+    void makePolygons(const Mesh* mesh);
 
 protected:
     /*!
