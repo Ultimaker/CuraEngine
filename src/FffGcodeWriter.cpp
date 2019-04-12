@@ -733,8 +733,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         const coord_t maximum_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path.simplify(maximum_resolution); //Remove those micron-movements.
+        raft_outline_path.simplify(maximum_resolution, maximum_deviation); //Remove those micron-movements.
         constexpr coord_t infill_outline_width = 0;
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
