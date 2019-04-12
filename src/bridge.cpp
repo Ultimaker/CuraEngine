@@ -20,19 +20,30 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
 
     Polygons prev_layer_outline; // we also want the complete outline of the previous layer
 
+    const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
+
     // include parts from all meshes
     for (const SliceMeshStorage& mesh : storage.meshes)
     {
         if (mesh.isPrinted())
         {
+            const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
+            const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+            const bool part_has_sparse_infill = (infill_line_distance >= infill_line_width) ? ((float)infill_line_width / infill_line_distance) <= sparse_infill_max_density : false;
+
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
-                prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
+                Polygons solid_below(prev_layer_part.outline);
+                if (bridge_layer == 1 && part_has_sparse_infill)
+                {
+                    solid_below = solid_below.difference(prev_layer_part.getOwnInfillArea());
+                }
+                prev_layer_outline.add(solid_below); // not intersected with skin
 
                 if (!boundary_box.hit(prev_layer_part.boundaryBox))
                     continue;
 
-                islands.add(skin_outline.intersection(prev_layer_part.outline));
+                islands.add(skin_outline.intersection(solid_below));
             }
         }
     }
