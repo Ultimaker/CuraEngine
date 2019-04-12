@@ -10,7 +10,7 @@
 namespace cura
 {
 
-int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions)
+int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const unsigned bridge_layer, const SupportLayer* support_layer, Polygons& supported_regions)
 {
     AABB boundary_box(skin_outline);
 
@@ -25,7 +25,7 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
     {
         if (mesh.isPrinted())
         {
-            for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr].parts)
+            for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
                 prev_layer_outline.add(prev_layer_part.outline); // not intersected with skin
 
