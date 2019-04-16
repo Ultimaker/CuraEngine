@@ -1455,11 +1455,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (jerk_enabled)
             {
-                // RepRap firmware ignores jerk for travel moves so don't bother changing it when travelling
-                if (!path.config->isTravelPath() || gcode.getFlavor() != EGCodeFlavor::REPRAP)
-                {
-                    gcode.writeJerk(path.config->getJerk());
-                }
+                gcode.writeJerk(path.config->getJerk());
             }
 
             if (path.retract)
