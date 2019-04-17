@@ -114,6 +114,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
+    const coord_t resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
     size_t completed = 0; //To track progress in a multi-threaded environment.
 #pragma omp parallel for shared(storage, contact_nodes)
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
@@ -165,7 +166,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = (double)(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
-        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), line_width >> 2); //Deviate at most a quarter of a line so that the lines still stack properly.
+        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), resolution); //Don't deviate more than the collision resolution so that the lines still stack properly.
 
         //Subtract support floors.
         if (mesh_group_settings.get<bool>("support_bottom_enable"))
