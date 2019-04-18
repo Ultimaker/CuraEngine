@@ -947,7 +947,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
         ;
     }
 
-    coord_t layer_apply_initial_xy_offset = 0;
+    size_t layer_apply_initial_xy_offset = 0;
     if (layers.size() > 0 && layers[0].polygons.size() == 0
         && !mesh->settings.get<bool>("support_mesh")
         && !mesh->settings.get<bool>("anti_overhang_mesh")
