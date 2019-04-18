@@ -736,7 +736,7 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
     return ret;
 }
 
-void SlicerLayer::makePolygons(const Mesh* mesh, bool is_initial_layer)
+void SlicerLayer::makePolygons(const Mesh* mesh)
 {
     Polygons open_polylines;
 
@@ -780,20 +780,10 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool is_initial_layer)
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     const coord_t line_segment_resolution = mesh->settings.get<coord_t>("meshfix_maximum_resolution");
-    polygons.simplify(line_segment_resolution, line_segment_resolution / 2); //Maximum error is half of the resolution so it's only a limit when removing really sharp corners.
+    const coord_t line_segment_deviation = mesh->settings.get<coord_t>("meshfix_maximum_deviation");
+    polygons.simplify(line_segment_resolution, line_segment_deviation);
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
-
-    coord_t xy_offset = mesh->settings.get<coord_t>("xy_offset");
-    if (is_initial_layer)
-    {
-        xy_offset = mesh->settings.get<coord_t>("xy_offset_layer_0");
-    }
-
-    if (xy_offset != 0)
-    {
-        polygons = polygons.offset(xy_offset);
-    }
 }
 
 Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
@@ -933,7 +923,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_nr = 0; layer_nr < static_cast<int>(layers_ref.size()); layer_nr++)
     {
-        layers_ref[layer_nr].makePolygons(mesh, layer_nr == 0);
+        layers_ref[layer_nr].makePolygons(mesh);
     }
 
     switch(slicing_tolerance)
@@ -955,6 +945,29 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
     default:
         // do nothing
         ;
+    }
+
+    // if first printable layer is empty, remove it to shift all the layers down and so xy_offset_layer_0 will be effective
+
+    if (layers.size() > 0 && layers[0].polygons.size() == 0
+        && !mesh->settings.get<bool>("support_mesh")
+        && !mesh->settings.get<bool>("anti_overhang_mesh")
+        && !mesh->settings.get<bool>("cutting_mesh")
+        && !mesh->settings.get<bool>("infill_mesh"))
+    {
+        layers.erase(layers.begin());
+    }
+
+#pragma omp parallel for default(none) shared(mesh, layers_ref)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_nr = 0; layer_nr < static_cast<int>(layers_ref.size()); layer_nr++)
+    {
+        const coord_t xy_offset = mesh->settings.get<coord_t>((layer_nr == 0) ? "xy_offset_layer_0" : "xy_offset");
+
+        if (xy_offset != 0)
+        {
+            layers_ref[layer_nr].polygons = layers_ref[layer_nr].polygons.offset(xy_offset);
+        }
     }
 
     mesh->expandXY(mesh->settings.get<coord_t>("xy_offset"));
