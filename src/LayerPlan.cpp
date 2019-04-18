@@ -1474,7 +1474,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(z_hop_height);
-                    z_hop_height = retraction_config.zHop; // back to normal z hop
                 }
                 else
                 {
