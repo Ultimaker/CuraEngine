@@ -92,7 +92,7 @@ endif()
 
 option (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS
     "Enable more optimization flags" ON)
-if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS)
+if (ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS AND NOT (CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG"))
     message (STATUS "Compile with more optimization flags")
     if (MSVC)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} /fp:fast")
