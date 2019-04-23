@@ -1028,7 +1028,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     setExtruderFanNumber(new_extruder);
 }
 
-void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder)
+void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)
 {
     if (current_extruder == new_extruder)
     {
@@ -1041,6 +1041,11 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         constexpr bool force = true;
         constexpr bool extruder_switch = true;
         writeRetraction(retraction_config_old_extruder, force, extruder_switch);
+    }
+
+    if (perform_z_hop > 0)
+    {
+        writeZhopStart(perform_z_hop);
     }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
@@ -1085,7 +1090,8 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         Point3 prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"), extruder_settings.get<coord_t>("extruder_prime_pos_z"));
         if (!extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
-            prime_pos += currentPosition;
+            // currentPosition.z can be already z hopped
+            prime_pos += Point3(currentPosition.x, currentPosition.y, current_layer_z);
         }
         writeTravel(prime_pos, travel_speed);
     }
