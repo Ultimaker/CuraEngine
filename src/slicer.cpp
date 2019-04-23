@@ -947,22 +947,21 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
         ;
     }
 
-    // if first printable layer is empty, remove it to shift all the layers down and so xy_offset_layer_0 will be effective
-
+    size_t layer_apply_initial_xy_offset = 0;
     if (layers.size() > 0 && layers[0].polygons.size() == 0
         && !mesh->settings.get<bool>("support_mesh")
         && !mesh->settings.get<bool>("anti_overhang_mesh")
         && !mesh->settings.get<bool>("cutting_mesh")
         && !mesh->settings.get<bool>("infill_mesh"))
     {
-        layers.erase(layers.begin());
+        layer_apply_initial_xy_offset = 1;
     }
 
-#pragma omp parallel for default(none) shared(mesh, layers_ref)
+#pragma omp parallel for default(none) shared(mesh, layers_ref, layer_apply_initial_xy_offset)
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_nr = 0; layer_nr < static_cast<int>(layers_ref.size()); layer_nr++)
     {
-        const coord_t xy_offset = mesh->settings.get<coord_t>((layer_nr == 0) ? "xy_offset_layer_0" : "xy_offset");
+        const coord_t xy_offset = mesh->settings.get<coord_t>((layer_nr <= layer_apply_initial_xy_offset) ? "xy_offset_layer_0" : "xy_offset");
 
         if (xy_offset != 0)
         {
