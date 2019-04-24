@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -1437,7 +1437,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
-        constexpr double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
+        const coord_t circumference = in_outline.polygonLength();
+        //Originally an area of 0.4*0.4*2 (2 line width squares) was found to be a good threshold for removal.
+        //However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
+        //Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
+        const double minimum_small_area = 0.4 * 0.4 * circumference / 40000;
         
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
         // especially on vertical surfaces
