@@ -177,6 +177,13 @@ private:
     void setConfigRetraction(SliceDataStorage& storage);
 
     /*!
+     * Set the wipe config globally, per extruder.
+     *
+     * \param[out] storage The data storage to which to save the configurations
+     */
+    void setConfigWipe(SliceDataStorage& storage);
+
+    /*!
      * Get the extruder with which to start the print.
      * 
      * Generally this is the adhesion_extruder_nr, but in case the platform adhesion type is none,

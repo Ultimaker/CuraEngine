@@ -1,198 +1,73 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "StringTest.h"
+#include <gtest/gtest.h>
 
-#include <iomanip>
-#include <sstream> // ostringstream
 #include <../src/utils/IntPoint.h>
-#include <../src/utils/string.h>
+#include <../src/utils/string.h> //The file under test.
 
 namespace cura
 {
-    CPPUNIT_TEST_SUITE_REGISTRATION(StringTest);
 
-void StringTest::setUp()
+/*
+ * Fixture to allow parameterized tests for writeInt2mm.
+ */
+class WriteInt2mmTest : public testing::TestWithParam<int>
 {
-    //Do nothing.
-}
+};
 
-void StringTest::tearDown()
+/*
+ * Parameterized test that converts the integer to millimetres, and then
+ * converts it best to verify that the result was correct.
+ */
+TEST_P(WriteInt2mmTest, WriteInt2mm)
 {
-    //Do nothing.
-}
+    const int in = GetParam();
 
-void StringTest::writeInt2mmTest10000Negative()
-{
-    writeInt2mmAssert(-10000);
-}
-void StringTest::writeInt2mmTest1000Negative()
-{
-    writeInt2mmAssert(-1000);
-}
-void StringTest::writeInt2mmTest100Negative()
-{
-    writeInt2mmAssert(-100);
-}
-void StringTest::writeInt2mmTest10Negative()
-{
-    writeInt2mmAssert(-10);
-}
-void StringTest::writeInt2mmTest1Negative()
-{
-    writeInt2mmAssert(-1);
-}
-void StringTest::writeInt2mmTest0()
-{
-    writeInt2mmAssert(0);
-}
-void StringTest::writeInt2mmTest1()
-{
-    writeInt2mmAssert(1);
-}
-void StringTest::writeInt2mmTest10()
-{
-    writeInt2mmAssert(10);
-}
-void StringTest::writeInt2mmTest100()
-{
-    writeInt2mmAssert(100);
-}
-void StringTest::writeInt2mmTest1000()
-{
-    writeInt2mmAssert(1000);
-}
-void StringTest::writeInt2mmTest10000()
-{
-    writeInt2mmAssert(10000);
-}
-void StringTest::writeInt2mmTest123456789()
-{
-    writeInt2mmAssert(123456789);
-}
-void StringTest::writeInt2mmTestMax()
-{
-    writeInt2mmAssert(std::numeric_limits<int32_t>::max() / 1001); // divide by 1001, because MM2INT first converts to int and then multiplies by 1000, which causes overflow for the highest integer.
-}
-
-
-void StringTest::writeInt2mmAssert(int in)
-{
     std::ostringstream ss;
     writeInt2mm(in, ss);
 
     ss.flush();
-    std::string str = ss.str();
-    if (!ss.good())
-    {
-        char buffer[200];
-        sprintf(buffer, "The integer %d was printed as '%s' which was a bad string!", in, str.c_str());
-        CPPUNIT_ASSERT_MESSAGE(std::string(buffer), false);
-    }
-    int out = MM2INT(strtod(str.c_str(), nullptr));
+    const std::string str = ss.str();
+    ASSERT_TRUE(ss.good()) << "The integer " << in << " was printed as '" << str << "' which was a bad string!";
 
-    char buffer[200];
-    sprintf(buffer, "The integer %d was printed as '%s' which was interpreted as %d rather than %d!", in, str.c_str(), out, in);
-    CPPUNIT_ASSERT_MESSAGE(std::string(buffer), in == out);
+    const int out = MM2INT(strtod(str.c_str(), nullptr));
+    ASSERT_EQ(in, out) << "The integer " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than " << in << "!";
 }
 
+INSTANTIATE_TEST_CASE_P(WriteInt2mmTestInstantiation, WriteInt2mmTest,
+        testing::Values(-10000, -1000, -100, -10, -1, 0, 1, 10, 100, 1000, 10000, 123456789, std::numeric_limits<int32_t>::max() / 1001)); //For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
 
-void StringTest::writeDoubleToStreamTest10000Negative()
+/*
+ * Fixture to allow parameterized tests for writeDoubleToStream.
+ */
+class WriteDoubleToStreamTest : public testing::TestWithParam<double>
 {
-    writeDoubleToStreamAssert(-10.000);
-}
-void StringTest::writeDoubleToStreamTest1000Negative()
-{
-    writeDoubleToStreamAssert(-1.000);
-}
-void StringTest::writeDoubleToStreamTest100Negative()
-{
-    writeDoubleToStreamAssert(-.100);
-}
-void StringTest::writeDoubleToStreamTest10Negative()
-{
-    writeDoubleToStreamAssert(-.010);
-}
-void StringTest::writeDoubleToStreamTest1Negative()
-{
-    writeDoubleToStreamAssert(-.001);
-}
-void StringTest::writeDoubleToStreamTest0()
-{
-    writeDoubleToStreamAssert(0.000);
-}
-void StringTest::writeDoubleToStreamTest1()
-{
-    writeDoubleToStreamAssert(.001);
-}
-void StringTest::writeDoubleToStreamTest10()
-{
-    writeDoubleToStreamAssert(.010);
-}
-void StringTest::writeDoubleToStreamTest100()
-{
-    writeDoubleToStreamAssert(.100);
-}
-void StringTest::writeDoubleToStreamTest1000()
-{
-    writeDoubleToStreamAssert(1.000);
-}
-void StringTest::writeDoubleToStreamTest10000()
-{
-    writeDoubleToStreamAssert(10.000);
-}
-void StringTest::writeDoubleToStreamTest123456789()
-{
-    writeDoubleToStreamAssert(123456.789);
-}
+};
 
+TEST_P(WriteDoubleToStreamTest, WriteDoubleToStream)
+{
+    const double in = GetParam();
+    constexpr unsigned int precision = 4;
 
-void StringTest::writeDoubleToStreamTestMin()
-{
-    writeDoubleToStreamAssert(std::numeric_limits<double>::min());
-}
-void StringTest::writeDoubleToStreamTestMax()
-{
-    writeDoubleToStreamAssert(std::numeric_limits<double>::max());
-}
-void StringTest::writeDoubleToStreamTestLowest()
-{
-    writeDoubleToStreamAssert(std::numeric_limits<double>::lowest());
-}
-void StringTest::writeDoubleToStreamTestLowestNeg()
-{
-    writeDoubleToStreamAssert(-std::numeric_limits<double>::lowest());
-}
-void StringTest::writeDoubleToStreamTestLow()
-{
-    writeDoubleToStreamAssert(0.00000001);
-}
-
-
-void StringTest::writeDoubleToStreamAssert(double in, unsigned int precision)
-{
     std::ostringstream ss;
     writeDoubleToStream(precision, in, ss);
     ss.flush();
-    std::string str = ss.str();
-    if (!ss.good())
-    {
-        char buffer[8000];
-        sprintf(buffer, "The double %f was printed as '%s' which was a bad string!", in, str.c_str());
-        CPPUNIT_ASSERT_MESSAGE(std::string(buffer), false);
-    }
-    double out = strtod(str.c_str(), nullptr);
+    const std::string str = ss.str();
 
+    ASSERT_TRUE(ss.good()) << "The double " << in << " was printed as '" << str << " which was a bad string!";
+
+    const double out = strtod(str.c_str(), nullptr);
     std::ostringstream in_ss;
     in_ss << std::fixed << std::setprecision(precision) << in;
-    std::string in_str = in_ss.str();
-    double in_reinterpreted = strtod(in_str.c_str(), nullptr);
-    
-    char buffer[8000];
-    sprintf(buffer, "The double %f was printed as '%s' which was interpreted as %f rather than %f!", in, str.c_str(), out, in_reinterpreted);
-    if (in_reinterpreted != out) std::cerr << buffer << "\n";
-    CPPUNIT_ASSERT_MESSAGE(std::string(buffer), in_reinterpreted == out);
+    const std::string in_str = in_ss.str();
+    const double in_reinterpreted = strtod(in_str.c_str(), nullptr);
+
+    ASSERT_EQ(in_reinterpreted, out) << "The double " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than " << in_reinterpreted << "!";
 }
 
+INSTANTIATE_TEST_CASE_P(WriteDoubleToStreamTestInstantiation, WriteDoubleToStreamTest,
+        testing::Values(-10.000, -1.000, -0.100, -0.010, -0.001, 0.010, 0.100, 1.000, 10.000, 123456.789, 0.00000001d,
+        std::numeric_limits<double>::min(), std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest(), -std::numeric_limits<double>::lowest()));
 
 }

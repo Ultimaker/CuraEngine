@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "linearAlg2D.h"
@@ -182,12 +182,16 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
     //  :
     //  p
     // return px_size
-    assert(a != b);  // the line can't be a point
     const Point vab = b - a;
     const Point vap = p - a;
+    const coord_t ab_size2 = vSize2(vab);
+    const coord_t ap_size2 = vSize2(vap);
+    if(ab_size2 == 0) //Line of 0 length. Assume it's a line perpendicular to the direction to p.
+    {
+        return ap_size2;
+    }
     const coord_t dott = dot(vab, vap);
     const coord_t ax_size2 = dott * dott / vSize2(vab);
-    const coord_t ap_size2 = vSize2(vap);
     const coord_t px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
     return px_size2;
 }

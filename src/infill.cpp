@@ -352,6 +352,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
+    outline_offset += infill_overlap;
     if (zig_zaggify)
     {
         outline_offset += -infill_line_width / 2;
@@ -392,7 +393,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
-    ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
+    ClipperLib::PolyTree interior_segments_tree = in_outline.offset(infill_overlap).lineSegmentIntersection(input);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
     for (size_t idx = 0; idx < interior_segments.size(); idx++)

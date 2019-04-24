@@ -17,6 +17,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
+#include "WipeScriptConfig.h"
 
 namespace cura {
 
@@ -1357,12 +1358,25 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder_nr];
+        coord_t z_hop_height = retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr)
         {
             int prev_extruder = extruder_nr;
             extruder_nr = extruder_plan.extruder_nr;
-            gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+
+            gcode.ResetLastEValueAfterWipe(prev_extruder);
+
+            const ExtruderTrain& prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
+            if (prev_extruder_train.settings.get<bool>("retraction_hop_after_extruder_switch"))
+            {
+                z_hop_height = storage.extruder_switch_retraction_config_per_extruder[prev_extruder].zHop;
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], z_hop_height);
+            }
+            else
+            {
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+            }
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             if (extruder.settings.get<Velocity>("max_feedrate_z_override") > 0)
@@ -1387,12 +1401,21 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
-        else if (extruder_plan_idx == 0 && layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
+        else if (extruder_plan_idx == 0)
         {
-            // only do the retract if the paths are not spiralized
-            if (!mesh_group_settings.get<bool>("magic_spiralize"))
+            const WipeScriptConfig& wipe_config = storage.wipe_config_per_extruder[extruder_plan.extruder_nr];
+            if (wipe_config.clean_between_layers && gcode.getExtrudedVolumeAfterLastWipe(extruder_nr) > wipe_config.max_extrusion_mm3)
             {
-                gcode.writeRetraction(retraction_config);
+                gcode.insertWipeScript(wipe_config);
+                gcode.ResetLastEValueAfterWipe(extruder_nr);
+            }
+            else if (layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
+            {
+                // only do the retract if the paths are not spiralized
+                if (!mesh_group_settings.get<bool>("magic_spiralize"))
+                {
+                    gcode.writeRetraction(retraction_config);
+                }
             }
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
@@ -1450,7 +1473,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config);
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(retraction_config.zHop);
+                    gcode.writeZhopStart(z_hop_height);
+                    z_hop_height = retraction_config.zHop; // back to normal z hop
                 }
                 else
                 {
@@ -1647,7 +1671,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     coord_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
 
     
-    double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor(); // travel speed 
+    double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor() * path.speed_factor; // travel speed
     
     const coord_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
