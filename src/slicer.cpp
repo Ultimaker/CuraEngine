@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdio.h>
@@ -9,6 +9,7 @@
 #include "Slice.h"
 #include "slicer.h"
 #include "settings/EnumSettings.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
@@ -947,7 +948,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
         ;
     }
 
-    size_t layer_apply_initial_xy_offset = 0;
+    LayerIndex layer_apply_initial_xy_offset = 0;
     if (layers.size() > 0 && layers[0].polygons.size() == 0
         && !mesh->settings.get<bool>("support_mesh")
         && !mesh->settings.get<bool>("anti_overhang_mesh")
