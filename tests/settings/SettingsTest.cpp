@@ -120,13 +120,13 @@ TEST_F(SettingsTest, AddSettingAngleRadians)
     EXPECT_DOUBLE_EQ(AngleRadians(M_PI), settings.get<AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
 
     settings.add("test_setting", "810");
-    EXPECT_NEAR(AngleRadians(M_PI / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001d) << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
+    EXPECT_NEAR(AngleRadians(M_PI / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001) << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleDegrees)
 {
     settings.add("test_setting", "4442.4");
-    EXPECT_NEAR(AngleDegrees(122.4), settings.get<AngleDegrees>("test_setting"), 0.00000001d) << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
+    EXPECT_NEAR(AngleDegrees(122.4), settings.get<AngleDegrees>("test_setting"), 0.00000001) << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
 }
 
 TEST_F(SettingsTest, AddSettingTemperature)
