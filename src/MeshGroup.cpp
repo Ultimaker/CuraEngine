@@ -2,11 +2,11 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string.h>
-#include <strings.h>
 #include <stdio.h>
 #include <limits>
 
 #include "MeshGroup.h"
+#include "utils/floatpoint.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"

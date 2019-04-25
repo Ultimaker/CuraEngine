@@ -1,29 +1,68 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
-#include <stdio.h>
 #include <deque> // for extrusionAmountAtPreviousRetractions
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#endif
 #include <sstream> // for stream.str()
+#include <stdio.h>
 
+#include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "timeEstimate.h"
-#include "MeshGroup.h"
-#include "RetractionConfig.h"
-#include "settings/Settings.h"
-#include "settings/types/Ratio.h"
+#include "settings/EnumSettings.h"
+#include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 
-namespace cura {
+namespace cura
+{
+
+struct LayerIndex;
+class RetractionConfig;
+struct WipeScriptConfig;
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport : public NoCopy
 {
+#ifdef BUILD_TESTS
+    friend class GCodeExportTest;
+    friend class GriffinHeaderTest;
+    FRIEND_TEST(GCodeExportTest, CommentEmpty);
+    FRIEND_TEST(GCodeExportTest, CommentSimple);
+    FRIEND_TEST(GCodeExportTest, CommentMultiLine);
+    FRIEND_TEST(GCodeExportTest, CommentMultiple);
+    FRIEND_TEST(GCodeExportTest, CommentTimeZero);
+    FRIEND_TEST(GCodeExportTest, CommentTimeInteger);
+    FRIEND_TEST(GCodeExportTest, CommentTimeFloatRoundingError);
+    FRIEND_TEST(GCodeExportTest, CommentTypeAllTypesCovered);
+    FRIEND_TEST(GCodeExportTest, CommentLayer);
+    FRIEND_TEST(GCodeExportTest, CommentLayerNegative);
+    FRIEND_TEST(GCodeExportTest, CommentLayerCount);
+    FRIEND_TEST(GriffinHeaderTest, HeaderGriffinFormat);
+    FRIEND_TEST(GCodeExportTest, HeaderUltiGCode);
+    FRIEND_TEST(GCodeExportTest, HeaderRepRap);
+    FRIEND_TEST(GCodeExportTest, HeaderMarlin);
+    FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
+    FRIEND_TEST(GCodeExportTest, EVsMmVolumetric);
+    FRIEND_TEST(GCodeExportTest, EVsMmLinear);
+    FRIEND_TEST(GCodeExportTest, WriteZHopStartDefaultSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopStartCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndZero);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndDefaultSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptSingleMove);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptMultipleMoves);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptOptionalDelay);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptRetractionEnable);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptHopEnable);
+#endif
 private:
     struct ExtruderTrainAttributes
     {
@@ -44,6 +83,8 @@ private:
 
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         Velocity last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
+
+        double last_e_value_after_wipe; //!< The current material amount extruded since last wipe
 
         unsigned fan_number; // nozzle print cooling fan number
 
@@ -66,7 +107,6 @@ private:
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
-    size_t extruder_count;
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
     std::string machine_buildplate_type;
@@ -108,7 +148,7 @@ private:
     std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
     
-    bool is_volumatric;
+    bool is_volumetric;
     bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
 
     unsigned int layer_nr; //!< for sending travel data
@@ -147,6 +187,18 @@ protected:
      * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
      */
     double mmToE(double mm);
+
+    /*!
+     * Convert an E value to a value in mm3 (if it wasn't already in mm3) for the provided extruder.
+     *
+     * E values are either in mm or in mm^3
+     * The given extruder is used to determine the filament area to make the conversion.
+     *
+     * \param e the value to convert
+     * \param extruder Extruder number
+     * \return the value converted to mm3
+     */
+    double eToMm3(double e, size_t extruder);
 
 public:
     
@@ -244,9 +296,17 @@ public:
      * 
      * \param time The time passed up till this point
      */
-    void writeTimeComment(const double time);
-    void writeLayerComment(int layer_nr);
-    void writeLayerCountComment(int layer_count);
+    void writeTimeComment(const Duration time);
+
+    /*!
+     * Write a comment saying that we're starting a certain layer.
+     */
+    void writeLayerComment(const LayerIndex layer_nr);
+
+    /*!
+     * Write a comment saying that the print has a certain number of layers.
+     */
+    void writeLayerCountComment(const size_t layer_count);
     
     void writeLine(const char* line);
     
@@ -364,14 +424,16 @@ public:
      * Start a z hop with the given \p hop_height
      * 
      * \param hop_height The height to move above the current layer
+     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
      */
-    void writeZhopStart(const coord_t hop_height);
+    void writeZhopStart(const coord_t hop_height, Velocity speed = 0);
 
     /*!
      * End a z hop: go back to the layer height
-     * 
+     *
+     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
      */
-    void writeZhopEnd();
+    void writeZhopEnd(Velocity speed = 0);
 
     /*!
      * Start the new_extruder: 
@@ -385,7 +447,7 @@ public:
 
     /*!
      * Switch to the new_extruder: 
-     * - perform neccesary retractions
+     * - perform neccessary retractions
      * - fiddle with E-values
      * - write extruder end gcode
      * - set new extruder
@@ -393,8 +455,9 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
-    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
     void writeCode(const char* str);
     
@@ -447,7 +510,7 @@ public:
     /*!
      * Set member variables using the settings in \p settings.
      */
-    void preSetup();
+    void preSetup(const size_t start_extruder);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
@@ -477,6 +540,26 @@ public:
      */
     void finalize(const char* endCode);
 
+    /*!
+     * Get amount of material extruded since last wipe script was inserted.
+     *
+     * \param extruder Extruder number to check.
+     */
+    double getExtrudedVolumeAfterLastWipe(size_t extruder);
+
+    /*!
+     *  Reset the last_e_value_after_wipe.
+     *
+     * \param extruder Extruder number which last_e_value_after_wipe value to reset.
+     */
+     void ResetLastEValueAfterWipe(size_t extruder);
+
+    /*!
+     *  Generate g-code for wiping current nozzle using provided config.
+     *
+     * \param wipe_config Config with wipe script settings.
+     */
+    void insertWipeScript(const WipeScriptConfig& wipe_config);
 };
 
 }

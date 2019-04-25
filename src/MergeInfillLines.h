@@ -4,8 +4,6 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
-#include "pathPlanning/GCodePath.h" //To accept and generate g-code paths.
-
 namespace cura
 {
 
@@ -34,8 +32,16 @@ private:
      * we can use.
      */
     ExtruderPlan& extruder_plan;
+
+    /*
+     * The nozzle size that's printing these lines.
+     */
     const coord_t nozzle_size;
-    const coord_t maximum_resolution;
+
+    /*
+     * The allowed deviation in the line positioning.
+     */
+    const coord_t maximum_deviation;
 
     /*
      *

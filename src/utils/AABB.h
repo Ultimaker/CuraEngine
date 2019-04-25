@@ -4,15 +4,15 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-
 #include "IntPoint.h"
-#include "polygon.h"
-
 
 namespace cura
 {
-    
-    
+
+class ConstPolygonRef;
+class Polygon;
+class Polygons;
+
 /* Axis aligned boundary box */
 class AABB
 {
@@ -76,15 +76,6 @@ public:
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);
-
-    /*!
-     * Expand the bounding box to a round increment.
-     *
-     * The coordinates are rounded to the specified increment, but the AABB can
-     * never become smaller with this operation.
-     * \param increment The size of the grid cells to round the bounding box to.
-     */
-    void round(const coord_t increment);
 
     /*!
      * Generate a square polygon which coincides with this aabb

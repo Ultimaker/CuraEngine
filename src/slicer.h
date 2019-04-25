@@ -1,18 +1,23 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef SLICER_H
 #define SLICER_H
 
 #include <queue>
-
-#include "mesh.h"
+#include <unordered_map>
 #include "utils/polygon.h"
-#include "settings/AdaptiveLayerHeights.h"
+
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
 */
-namespace cura {
+namespace cura
+{
+
+class AdaptiveLayer;
+class Mesh;
+class MeshVertex;
 
 class SlicerSegment
 {
@@ -23,7 +28,7 @@ public:
     int endOtherFaceIdx = -1;
     // If end corresponds to a vertex of the mesh, then this is populated
     // with the vertex that it ended on.
-    const MeshVertex *endVertex = nullptr;
+    const MeshVertex* endVertex = nullptr;
     bool addedToPolygon = false;
 };
 
@@ -32,15 +37,15 @@ class ClosePolygonResult
     //The line on which the point lays is between pointIdx-1 and pointIdx
 public:
     int polygonIdx = -1;
-    unsigned int pointIdx = -1;
+    size_t pointIdx = -1;
 };
 class GapCloserResult
 {
 public:
-    int64_t len = -1;
+    coord_t len = -1;
     int polygonIdx = -1;
-    unsigned int pointIdxA = -1;
-    unsigned int pointIdxB = -1;
+    size_t pointIdxA = -1;
+    size_t pointIdxB = -1;
     bool AtoB = false;
 };
 
@@ -58,9 +63,8 @@ public:
      * \brief Connect the segments into polygons for this layer of this \p mesh.
      * \param[in] mesh The mesh data for which we are connecting sliced
      * segments. The face data is used.
-     * \param is_initial_layer Whether this is the first layer of the mesh data.
      */
-    void makePolygons(const Mesh* mesh, bool is_initial_layer);
+    void makePolygons(const Mesh* mesh);
 
 protected:
     /*!
@@ -502,17 +506,19 @@ public:
      */
     coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const;
 
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
-    {
-        SlicerSegment seg;
-
-        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
-        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
-        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
-        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-
-        return seg;
-    }
+    /*!
+     * \brief Project a triangle onto a 2D layer.
+     *
+     * The result is a SlicerSegment object, which is a line segment if the
+     * triangle properly intersects the layer, a point if it's an edge case, or
+     * nothing if the triangle doesn't intersect the layer.
+     * \param p0 A corner of the triangle.
+     * \param p1 A corner of the triangle.
+     * \param p2 A corner of the triangle.
+     * \param z The Z coordinate of the layer to intersect with.
+     * \return A slicer segment.
+     */
+    SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const;
 
     void dumpSegmentsToHTML(const char* filename);
 };

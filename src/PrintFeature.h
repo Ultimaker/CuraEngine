@@ -17,7 +17,8 @@ enum class PrintFeatureType: unsigned char
     MoveCombing = 8,
     MoveRetraction = 9,
     SupportInterface = 10,
-    NumPrintFeatureTypes = 11 // this number MUST be the last one because other modules will
+    PrimeTower = 11,
+    NumPrintFeatureTypes = 12 // this number MUST be the last one because other modules will
                               // use this symbol to get the total number of types, which can
                               // be used to create an array or so
 };
