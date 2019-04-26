@@ -56,6 +56,7 @@ GCodeExport::GCodeExport()
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
+    build_volume_temperature = 0;
 
     fan_number = 0;
     use_extruder_offset_to_offset_coords = false;
@@ -120,7 +121,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     estimateCalculator.setFirmwareDefaults(mesh_group->settings);
 }
 
-void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
+void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
@@ -135,6 +136,7 @@ void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
     }
 
     initial_bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    build_volume_temperature = scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -209,6 +211,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         }
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
+
+        // build volume temperature = 0 means it's disabled
+        if (build_volume_temperature != 0)
+        {
+            prefix << ";BUILD_VOLUME.TEMPERATURE:" << build_volume_temperature << new_line;
+        }
 
         if (print_time)
         {
