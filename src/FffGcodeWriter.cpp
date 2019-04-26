@@ -46,7 +46,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialTemps(start_extruder_nr);
+        gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
     }
 
     Application::getInstance().communication->beginGCode();
