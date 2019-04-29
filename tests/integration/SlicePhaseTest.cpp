@@ -8,6 +8,7 @@
 #include "../src/slicer.h" //Starts the slicing phase that we want to test.
 #include "../src/utils/floatpoint.h" //For FMatrix3x3 to load STL files.
 #include "../src/utils/polygon.h" //Creating polygons to compare to sliced layers.
+#include "../src/utils/polygonUtils.h" //Comparing similarity of polygons.
 
 namespace cura
 {
@@ -97,6 +98,54 @@ TEST_F(SlicePhaseTest, Cube)
                     }
                 }
             }
+        }
+    }
+}
+
+TEST_F(SlicePhaseTest, Cylinder1000)
+{
+    Scene& scene = Application::getInstance().current_slice->scene;
+    MeshGroup& mesh_group = scene.mesh_groups.back();
+
+    const FMatrix3x3 transformation;
+    //Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, "integration/resources/cylinder1000.stl", transformation, scene.settings));
+    EXPECT_EQ(mesh_group.meshes.size(), 1);
+    Mesh& cylinder_mesh = mesh_group.meshes[0];
+
+    const coord_t layer_thickness = scene.settings.get<coord_t>("layer_height");
+    const coord_t initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
+    constexpr bool variable_layer_height = false;
+    constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
+    const size_t num_layers = (cylinder_mesh.getAABB().max.z - initial_layer_thickness) / layer_thickness + 1;
+    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values);
+
+    ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
+
+    //Since a cylinder has the same slice at all heights, every layer must be the same circle.
+    constexpr size_t num_vertices = 1000; //Create a circle with this number of vertices (first vertex is in the +X direction).
+    constexpr coord_t radius = 10000; //10mm radius.
+    Polygon circle;
+    circle.reserve(num_vertices);
+    for(size_t i = 0; i < 1000; i++)
+    {
+        const coord_t x = std::cos(M_PI * 2 / num_vertices * i) * radius;
+        const coord_t y = std::sin(M_PI * 2 / num_vertices * i) * radius;
+        circle.emplace_back(x, y);
+    }
+    Polygons circles;
+    circles.add(circle);
+
+    for(size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
+    {
+        const SlicerLayer& layer = slicer.layers[layer_nr];
+        EXPECT_EQ(layer.polygons.size(), 1);
+        if(layer.polygons.size() == 1)
+        {
+            Polygon sliced_polygon = layer.polygons[0];
+            //Due to the reduction in resolution, the final slice will not have the same vertices as the input.
+            //Let's say that are allowed to be up to 1/500th of the surface area off.
+            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons, circles), 0.002);
         }
     }
 }
