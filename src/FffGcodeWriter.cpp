@@ -518,6 +518,9 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
 
+    Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
+    gcode.startExtruder(start_extruder_nr);
+
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
@@ -527,8 +530,6 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
-        Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
-        gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
         gcode.writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
