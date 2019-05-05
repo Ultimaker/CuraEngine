@@ -1424,11 +1424,74 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         bool update_extrusion_offset = true;
 
+        std::vector<std::pair<double, double>> fan_override_events;
+
+        const Duration cool_fan_lag = extruder.settings.get<Duration>("cool_fan_lag");
+
+        if (cool_fan_lag > 0)
+        {
+            double elapsed_time = 0;
+
+            double default_fan_speed = extruder_plan.getFanSpeed();
+
+            for (const GCodePath& path : extruder_plan.paths)
+            {
+                if (!path.config->isTravelPath())
+                {
+                    const double path_fan_speed = path.getFanSpeed();
+
+                    if (path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT)
+                    {
+                        if (path_fan_speed != default_fan_speed)
+                        {
+                            double lag = cool_fan_lag * std::abs(path_fan_speed - default_fan_speed) / 100;
+                            if (lag > 0.25)
+                            {
+                                fan_override_events.emplace_back(elapsed_time, path_fan_speed);
+                                default_fan_speed = path_fan_speed;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        default_fan_speed = extruder_plan.getFanSpeed();
+                    }
+                }
+                elapsed_time += path.estimates.getTotalTime();
+            }
+        }
+
+        double default_fan_speed = extruder_plan.getFanSpeed();
+
+        double elapsed_time = 0;
+
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
+
+            if (fan_override_events.size() && elapsed_time > fan_override_events[0].first)
+            {
+                // now past the fan event time, remove the event and restore the default fan speed
+                fan_override_events.erase(fan_override_events.begin());
+                default_fan_speed = extruder_plan.getFanSpeed();
+            }
+
+            double fan_speed_override_at = -1; // time offset within path when fan speed override should occur
+
+            if (fan_override_events.size())
+            {
+                double lag = cool_fan_lag * std::abs(fan_override_events[0].second - default_fan_speed) / 100;
+
+                if ((elapsed_time + path.estimates.getTotalTime()) >= (fan_override_events[0].first - lag))
+                {
+                    // path ends within the spool up/down period of the next fan event so schedule fan speed override
+                    fan_speed_override_at = std::max(fan_override_events[0].first - elapsed_time - lag, 0.0);
+                }
+            }
+
+            elapsed_time += path.estimates.getTotalTime();
 
             if (path.perform_prime)
             {
@@ -1515,19 +1578,46 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {
+                bool coasting = extruder.settings.get<bool>("coasting_enable");
                 // if path provides a valid (in range 0-100) fan speed, use it
                 const double path_fan_speed = path.getFanSpeed();
-                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
-
-                bool coasting = extruder.settings.get<bool>("coasting_enable");
                 if (coasting)
                 {
+                    if (fan_speed_override_at >= 0)
+                    {
+                        // start the override now
+                        default_fan_speed = fan_override_events[0].second;
+                        fan_speed_override_at = -1;
+                    }
+                    gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : default_fan_speed);
                     coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness);
                 }
                 if (!coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
+                    double path_time = 0;
+                    Point last_point = gcode.getPositionXY();
+                    if (fan_speed_override_at < 0)
+                    {
+                        gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : default_fan_speed);
+                    }
                     for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
+                        if (fan_speed_override_at >= 0)
+                        {
+                            path_time += vSizeMM(path.points[point_idx] - last_point) / speed;
+                            last_point = path.points[point_idx];
+                            if (path_time >= fan_speed_override_at)
+                            {
+                                // time for the fan override to kick in
+                                if (default_fan_speed != fan_override_events[0].second)
+                                {
+                                    gcode.writeComment("FAN OVERRIDE");
+                                    default_fan_speed = fan_override_events[0].second;
+                                    gcode.writeFanCommand(default_fan_speed);
+                                }
+                                fan_speed_override_at = -1;
+                            }
+                        }
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
                         gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
