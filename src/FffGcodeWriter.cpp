@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -46,7 +46,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialTemps(start_extruder_nr);
+        gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
     }
 
     Application::getInstance().communication->beginGCode();
@@ -304,7 +304,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         switch_retraction_config.prime_volume = 0.0;
         switch_retraction_config.speed = train.settings.get<Velocity>("switch_extruder_retraction_speed");
         switch_retraction_config.primeSpeed = train.settings.get<Velocity>("switch_extruder_prime_speed");
-        switch_retraction_config.zHop = retraction_config.zHop; // not used, because the last_retraction_config is used to govern how how high to zHop
+        switch_retraction_config.zHop = train.settings.get<coord_t>("retraction_hop_after_extruder_switch_height");
         switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
         switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
         switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
@@ -518,6 +518,9 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
 
+    Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
+    gcode.startExtruder(start_extruder_nr);
+
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
@@ -527,8 +530,6 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
-        Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
-        gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
         gcode.writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
@@ -1437,7 +1438,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
-        constexpr double minimum_small_area = 0.4 * 0.4 * 2; // MIN_AREA_SIZE * 2 - This value worked for most test cases
+        const coord_t circumference = in_outline.polygonLength();
+        //Originally an area of 0.4*0.4*2 (2 line width squares) was found to be a good threshold for removal.
+        //However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
+        //Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
+        const double minimum_small_area = 0.4 * 0.4 * circumference / 40000;
         
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
         // especially on vertical surfaces

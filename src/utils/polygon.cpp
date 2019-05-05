@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "polygon.h"
@@ -360,7 +360,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             continue; //Remove the vertex.
         }
         else if (length2 >= smallest_line_segment_squared && new_path.size() > 2 &&
-                (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 1)) //Almost exactly straight (barring micron rounding errors).
+                (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 25)) //Almost exactly straight (barring rounding errors).
         {
             new_path.pop_back(); //Remove the previous vertex but still add the new one.
         }
@@ -382,7 +382,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     {
         new_path.pop_back();
     }
-    if(new_path.size() >= 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 1)
+    if(new_path.size() >= 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
     {
         new_path.erase(new_path.begin());
     }
@@ -764,8 +764,8 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             Point a = p1 + normal(v10, a1_size);
             Point b = p1 + normal(v12, a1_size);
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(a) < 400000);
-            assert(vSize(b) < 400000);
+            assert(vSize(a) < 4000000);
+            assert(vSize(b) < 4000000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
@@ -789,7 +789,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(a) < 400000);
+                assert(vSize(a) < 4000000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             }
@@ -809,7 +809,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(b) < 400000);
+                assert(vSize(b) < 4000000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }

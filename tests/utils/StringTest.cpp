@@ -67,7 +67,7 @@ TEST_P(WriteDoubleToStreamTest, WriteDoubleToStream)
 }
 
 INSTANTIATE_TEST_CASE_P(WriteDoubleToStreamTestInstantiation, WriteDoubleToStreamTest,
-        testing::Values(-10.000, -1.000, -0.100, -0.010, -0.001, 0.010, 0.100, 1.000, 10.000, 123456.789, 0.00000001d,
+        testing::Values(-10.000, -1.000, -0.100, -0.010, -0.001, 0.010, 0.100, 1.000, 10.000, 123456.789, 0.00000001,
         std::numeric_limits<double>::min(), std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest(), -std::numeric_limits<double>::lowest()));
 
 }

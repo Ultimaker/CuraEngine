@@ -154,6 +154,7 @@ private:
     unsigned int layer_nr; //!< for sending travel data
 
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
+    Temperature build_volume_temperature;  //!< build volume temperature
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -455,8 +456,9 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
-    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
     void writeCode(const char* str);
     
@@ -518,7 +520,7 @@ public:
      * See FffGcodeWriter::processStartingCode
      * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialTemps(const unsigned int start_extruder_nr);
+    void setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps

@@ -37,6 +37,7 @@ GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
 , layer_nr(0)
+, relative_extrusion(false)
 {
     *output_stream << std::fixed;
 
@@ -55,6 +56,7 @@ GCodeExport::GCodeExport()
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
+    build_volume_temperature = 0;
 
     fan_number = 0;
     use_extruder_offset_to_offset_coords = false;
@@ -119,7 +121,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     estimateCalculator.setFirmwareDefaults(mesh_group->settings);
 }
 
-void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
+void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
@@ -134,6 +136,7 @@ void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
     }
 
     initial_bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    build_volume_temperature = scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -208,6 +211,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         }
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
+
+        // build volume temperature = 0 means it's disabled
+        if (build_volume_temperature != 0)
+        {
+            prefix << ";BUILD_VOLUME.TEMPERATURE:" << build_volume_temperature << new_line;
+        }
 
         if (print_time)
         {
@@ -1027,7 +1036,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     setExtruderFanNumber(new_extruder);
 }
 
-void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder)
+void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)
 {
     if (current_extruder == new_extruder)
     {
@@ -1040,6 +1049,11 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         constexpr bool force = true;
         constexpr bool extruder_switch = true;
         writeRetraction(retraction_config_old_extruder, force, extruder_switch);
+    }
+
+    if (perform_z_hop > 0)
+    {
+        writeZhopStart(perform_z_hop);
     }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
@@ -1084,7 +1098,8 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         Point3 prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"), extruder_settings.get<coord_t>("extruder_prime_pos_z"));
         if (!extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
-            prime_pos += currentPosition;
+            // currentPosition.z can be already z hopped
+            prime_pos += Point3(currentPosition.x, currentPosition.y, current_layer_z);
         }
         writeTravel(prime_pos, travel_speed);
     }
