@@ -1623,12 +1623,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             if (path_time >= fan_speed_override_at)
                             {
                                 // time for the fan override to kick in
-                                if (default_fan_speed != fan_override_events[0].second)
-                                {
-                                    gcode.writeComment("FAN OVERRIDE");
-                                    default_fan_speed = fan_override_events[0].second;
-                                    gcode.writeFanCommand(default_fan_speed);
-                                }
+                                default_fan_speed = fan_override_events[0].second;
+                                gcode.writeFanCommand(default_fan_speed);
                                 fan_speed_override_at = -1;
                             }
                         }
