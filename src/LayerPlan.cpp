@@ -1607,12 +1607,15 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 { // normal path to gcode algorithm
                     double path_time = 0;
                     Point last_point = gcode.getPositionXY();
-                    if (fan_speed_override_at < 0)
-                    {
-                        gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : default_fan_speed);
-                    }
                     for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
+                        // if this is the first extrusion in the path
+                        // and either there is no fan speed override scheduled or the fan speed override doesn't occur before the first extrusion,
+                        // update the fan speed
+                        if (point_idx == 0 && fan_speed_override_at != 0)
+                        {
+                            gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : default_fan_speed);
+                        }
                         if (fan_speed_override_at >= 0)
                         {
                             path_time += vSizeMM(path.points[point_idx] - last_point) / speed;
