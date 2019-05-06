@@ -1455,7 +1455,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         if (path_fan_speed != default_fan_speed)
                         {
                             double lag = cool_fan_lag * std::abs(path_fan_speed - default_fan_speed) / 100;
-                            if (lag > 0.25)
+                            if (lag >= 0.1)
                             {
                                 fan_override_events.emplace_back(elapsed_time, path_fan_speed);
                                 default_fan_speed = path_fan_speed;
