@@ -52,6 +52,16 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, HeaderMarlinVolumetric);
     FRIEND_TEST(GCodeExportTest, EVsMmVolumetric);
     FRIEND_TEST(GCodeExportTest, EVsMmLinear);
+    FRIEND_TEST(GCodeExportTest, WriteZHopStartDefaultSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopStartCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndZero);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndDefaultSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteZHopEndCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptSingleMove);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptMultipleMoves);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptOptionalDelay);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptRetractionEnable);
+    FRIEND_TEST(GCodeExportTest, insertWipeScriptHopEnable);
 #endif
 private:
     struct ExtruderTrainAttributes
@@ -445,8 +455,9 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
-    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
     void writeCode(const char* str);
     

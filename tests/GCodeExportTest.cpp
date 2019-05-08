@@ -9,6 +9,7 @@
 #include "../src/gcodeExport.h" //The unit under test.
 #include "../src/Slice.h" //To set up a slice with settings.
 #include "../src/RetractionConfig.h" //For extruder switch tests.
+#include "../src/WipeScriptConfig.h" //For wipe sciprt tests.
 #include "arcus/MockCommunication.h" //To prevent calls to any missing Communication class.
 
 namespace cura
@@ -45,6 +46,7 @@ public:
         gcode.currentPosition = Point3(0, 0, MM2INT(20));
         gcode.layer_nr = 0;
         gcode.current_e_value = 0;
+        gcode.current_e_offset = 0;
         gcode.current_extruder = 0;
         gcode.current_fan_speed = -1;
         gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
@@ -58,6 +60,8 @@ public:
         gcode.initial_bed_temp = 0;
         gcode.fan_number = 0;
         gcode.total_bounding_box = AABB3D();
+        gcode.current_layer_z = 0;
+        gcode.relative_extrusion = false;
 
         gcode.new_line = "\n"; //Not BFB flavour by default.
         gcode.machine_name = "Your favourite 3D printer";
@@ -72,6 +76,8 @@ public:
     void TearDown()
     {
         delete Application::getInstance().current_slice;
+        delete Application::getInstance().communication;
+        Application::getInstance().communication = nullptr;
     }
 };
 
@@ -386,6 +392,9 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
 
     constexpr double mm_input = 33.0;
     EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert length to volume.";
+
+    constexpr double e_input = 100.0;
+    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input) << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
 }
 
 /*
@@ -408,6 +417,9 @@ TEST_F(GCodeExportTest, EVsMmLinear)
 
     constexpr double mm3_input = 33.0;
     EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert volume to length.";
+
+    constexpr double e_input = 100.0;
+    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we need to multiply by cross-sectional area to convert length to volume.";
 }
 
 /*
@@ -439,6 +451,240 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     gcode.switchExtruder(1, no_retraction);
 
     EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
+}
+
+TEST_F(GCodeExportTest, WriteZHopStartZero)
+{
+    gcode.writeZhopStart(0);
+    EXPECT_EQ(std::string(""), output.str()) << "Zero length z hop shouldn't affect gcode output.";
+}
+
+TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
+{
+    gcode.current_max_z_feedrate = 1; // 60 mm/min.
+    gcode.current_layer_z = 2000;
+    constexpr coord_t hop_height = 3000;
+    gcode.writeZhopStart(hop_height);
+    EXPECT_EQ(std::string("G1 F60 Z5\n"), output.str());
+}
+
+TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
+{
+    gcode.current_max_z_feedrate = 1;
+    gcode.current_layer_z = 2000;
+    constexpr coord_t hop_height = 3000;
+    constexpr Velocity speed = 4; // 240 mm/min.
+    gcode.writeZhopStart(hop_height, speed);
+    EXPECT_EQ(std::string("G1 F240 Z5\n"), output.str()) << "Custom provided speed should be used.";
+}
+
+TEST_F(GCodeExportTest, WriteZHopEndZero)
+{
+    gcode.is_z_hopped = 0;
+    gcode.writeZhopEnd();
+    EXPECT_EQ(std::string(""), output.str()) << "Zero length z hop shouldn't affect gcode output.";
+}
+
+TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
+{
+    gcode.current_max_z_feedrate = 1; // 60 mm/min.
+    gcode.current_layer_z = 2000;
+    gcode.is_z_hopped = 3000;
+    gcode.writeZhopEnd();
+    EXPECT_EQ(std::string("G1 F60 Z2\n"), output.str());
+}
+
+TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
+{
+    gcode.current_max_z_feedrate = 1;
+    gcode.current_layer_z = 2000;
+    gcode.is_z_hopped = 3000;
+    constexpr Velocity speed = 4; // 240 mm/min.
+    gcode.writeZhopEnd(speed);
+    EXPECT_EQ(std::string("G1 F240 Z2\n"), output.str()) << "Custom provided speed should be used.";
+}
+
+TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
+{
+    gcode.currentPosition = Point3(1000, 1000, 1000);
+    gcode.current_layer_z = 1000;
+    gcode.use_extruder_offset_to_offset_coords = false;
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+
+    WipeScriptConfig config;
+    config.retraction_enable = false;
+    config.hop_enable = false;
+    config.brush_pos_x = 2000;
+    config.repeat_count = 1;
+    config.move_distance = 500;
+    config.move_speed = 10;
+    config.pause = 0;
+
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    gcode.insertWipeScript(config);
+
+    std::string token;
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 F600 X2 Y1"), token) << "Wipe script should go to its position.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X2.5 Y1"), token) << "There should be one wipe move.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X1 Y1"), token) << "Wipe script should return back to position before wipe.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
+}
+
+TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
+{
+    gcode.currentPosition = Point3(1000, 1000, 1000);
+    gcode.current_layer_z = 1000;
+    gcode.use_extruder_offset_to_offset_coords = false;
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+
+    WipeScriptConfig config;
+    config.retraction_enable = false;
+    config.hop_enable = false;
+    config.brush_pos_x = 2000;
+    config.repeat_count = 4;
+    config.move_distance = 500;
+    config.move_speed = 10;
+    config.pause = 0;
+
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(6);
+    gcode.insertWipeScript(config);
+
+    std::string token;
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 F600 X2 Y1"), token) << "Wipe script should go to its position.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X2.5 Y1"), token);
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X2 Y1"), token);
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X2.5 Y1"), token);
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X2 Y1"), token);
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G0 X1 Y1"), token) << "Wipe script should return back to position before wipe.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
+}
+
+TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
+{
+    gcode.currentPosition = Point3(1000, 1000, 1000);
+    gcode.current_layer_z = 1000;
+    gcode.use_extruder_offset_to_offset_coords = false;
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+
+    WipeScriptConfig config;
+    config.retraction_enable = false;
+    config.hop_enable = false;
+    config.brush_pos_x = 2000;
+    config.repeat_count = 1;
+    config.move_distance = 500;
+    config.move_speed = 10;
+    config.pause = 1.5; // 1.5 sec = 1500 ms.
+
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    gcode.insertWipeScript(config);
+
+    std::string token;
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
+    std::getline(output, token, '\n'); // go to wipe position
+    std::getline(output, token, '\n'); // make wipe move
+    std::getline(output, token, '\n'); // return back
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G4 P1500"), token) << "Wipe script should make a delay.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
+}
+
+TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
+{
+    gcode.currentPosition = Point3(1000, 1000, 1000);
+    gcode.current_layer_z = 1000;
+    gcode.current_e_value = 100;
+    gcode.use_extruder_offset_to_offset_coords = false;
+    gcode.is_volumetric = false;
+    gcode.current_extruder = 0;
+    gcode.extruder_attr[0].filament_area = 10.0;
+    gcode.relative_extrusion = false;
+    gcode.currentSpeed = 1;
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
+    Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
+
+    WipeScriptConfig config;
+    config.retraction_enable = true;
+    config.retraction_config.distance = 1;
+    config.retraction_config.speed = 2; // 120 mm/min.
+    config.retraction_config.primeSpeed = 3; // 180 mm/min.
+    config.retraction_config.prime_volume = gcode.extruder_attr[0].filament_area * 4; // 4mm in linear dimensions
+    config.hop_enable = false;
+    config.brush_pos_x = 2000;
+    config.repeat_count = 1;
+    config.move_distance = 500;
+    config.move_speed = 10;
+    config.pause = 0;
+
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    gcode.insertWipeScript(config);
+
+    std::string token;
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G1 F120 E99"), token) << "Wipe script should perform retraction with provided speed and retraction distance.";
+    std::getline(output, token, '\n'); // go to wipe position
+    std::getline(output, token, '\n'); // make wipe move
+    std::getline(output, token, '\n'); // return back
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G1 F180 E104"), token) << "Wipe script should make unretraction with provided speed and extra prime volume.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
+}
+
+TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
+{
+    gcode.currentPosition = Point3(1000, 1000, 1000);
+    gcode.current_layer_z = 1000;
+    gcode.use_extruder_offset_to_offset_coords = false;
+    gcode.currentSpeed = 1;
+    gcode.current_max_z_feedrate = 1;
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+
+    WipeScriptConfig config;
+    config.retraction_enable = false;
+    config.hop_enable = true;
+    config.hop_speed = 2; // 120 mm/min.
+    config.hop_amount = 300;
+    config.brush_pos_x = 2000;
+    config.repeat_count = 1;
+    config.move_distance = 500;
+    config.move_speed = 10;
+    config.pause = 0;
+
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    gcode.insertWipeScript(config);
+
+    std::string token;
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G1 F120 Z1.3"), token) << "Wipe script should perform z-hop.";
+    std::getline(output, token, '\n'); // go to wipe position
+    std::getline(output, token, '\n'); // make wipe move
+    std::getline(output, token, '\n'); // return back
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string("G1 F120 Z1"), token) << "Wipe script should return z position.";
+    std::getline(output, token, '\n');
+    EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
 
 } //namespace cura

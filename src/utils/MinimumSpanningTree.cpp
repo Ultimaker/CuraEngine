@@ -17,10 +17,18 @@ MinimumSpanningTree::MinimumSpanningTree(std::unordered_set<Point> vertices) : a
 auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> AdjacencyGraph_t
 {
     AdjacencyGraph_t result;
-    // If there's only one vertex, we can't go creating any edges.
-    if (vertices.size() < 2)
+    if (vertices.empty())
     {
         return result; //No vertices, so we can't create edges either.
+    }
+    // If there's only one vertex, we can't go creating any edges so just add the point to the adjacency list with no
+    // edges
+    if (vertices.size() == 1)
+    {
+        // unordered_map::operator[]() will construct an empty vector in place for us when we try and access an element
+        // that doesnt exist
+        result[*vertices.begin()];
+        return result;
     }
     result.reserve(vertices.size());
     std::vector<Point> vertices_list(vertices.begin(), vertices.end());
