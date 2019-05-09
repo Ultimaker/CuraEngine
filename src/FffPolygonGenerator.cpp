@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
+#include <limits> // for numeric_limits
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <fstream> // ifstream.good()
 
@@ -882,7 +883,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    max_print_height_per_extruder.resize(extruder_count, -1); //Initialize all as -1.
+    max_print_height_per_extruder.resize(extruder_count, std::numeric_limits<int>::lowest()); //Initialize all as lowest (-1 not enough because of raft).
     { // compute max_object_height_per_extruder
         //Height of the meshes themselves.
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -936,7 +937,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     }
     else
     {
-        storage.max_print_height_second_to_last_extruder = -1;
+        storage.max_print_height_second_to_last_extruder = std::numeric_limits<int>::lowest(); // -1 or the like not low enough becasue of raft
     }
 }
 
