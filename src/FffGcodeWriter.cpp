@@ -178,32 +178,27 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
         // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
 
-        int seam_vertex_idx = PolygonUtils::findClosest(last_wall_seam_vertex, wall).point_idx;
+        int seam_vertex_idx = PolygonUtils::findNearestVert(last_wall_seam_vertex, wall);
 
         // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
         // and if it isn't, we move forward
 
-        // get the inward normal of the last layer seam vertex
-        Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
-
-        // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
-        Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
-
-        // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
-        const int first_seam_vertex_idx = seam_vertex_idx;
-        float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
-
-        while (a <= 0 || a >= M_PI)
+        if (vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
-            // the vertex was not on the left of the vector so move the seam vertex on
-            seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
-            a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            // get the inward normal of the last layer seam vertex
+            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
 
-            if (seam_vertex_idx == first_seam_vertex_idx)
+            // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
+            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+
+            // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
+            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+
+            if (a <= 0 || a >= M_PI)
             {
-                logWarning("WARNING: findLayerSeamsForSpiralize() failed to find a suitable seam vertex on layer %d\n", layer_nr);
-                // this shouldn't happen very often - I have seen it occur when the seam moves into a very sharp corner
-                break;
+                // the vertex was not on the left of the vector so move the seam vertex on
+                seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
+                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
             }
         }
 
@@ -1539,9 +1534,19 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 added_something = true;
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
-                WallOverlapComputation* wall_overlap_computation(nullptr);
-                int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
+                if (part.insets[0].size() > 0)
+                {
+                    // start this first wall at the same vertex the spiral starts
+                    ConstPolygonRef spiral_inset = part.insets[0][0];
+                    const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[bottom_layers];
+                    if (spiral_start_vertex < spiral_inset.size())
+                    {
+                        gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+                    }
+                    WallOverlapComputation* wall_overlap_computation(nullptr);
+                    int wall_0_wipe_dist(0);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
+                }
             }
         }
         // for non-spiralized layers, determine the shape of the unsupported areas below this part
