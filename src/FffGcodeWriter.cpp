@@ -212,18 +212,14 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
 
     // we track the seam position for each layer and ensure that the seam position for next layer continues in the right direction
 
-    storage.spiralize_wall_outlines.reserve(total_layers);
-    storage.spiralize_seam_vertex_indices.reserve(total_layers);
+    storage.spiralize_wall_outlines.assign(total_layers, nullptr); // default is no information available
+    storage.spiralize_seam_vertex_indices.assign(total_layers, 0);
 
     int last_layer_nr = -1; // layer number of the last non-empty layer processed (for any extruder or mesh)
 
     for (unsigned layer_nr = 0; layer_nr < total_layers; ++layer_nr)
     {
         bool done_this_layer = false;
-
-        // default is no information available
-        storage.spiralize_wall_outlines[layer_nr] = nullptr;
-        storage.spiralize_seam_vertex_indices[layer_nr] = 0;
 
         // iterate through extruders until we find a mesh that has a part with insets
         const std::vector<size_t>& extruder_order = extruder_order_per_layer[layer_nr];
@@ -1499,7 +1495,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
         }
     }
     const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("bottom_layers"));
-    const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.capacity() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
+    const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     ConstPolygonRef wall_outline = part.insets[0][0]; // current layer outer wall outline
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
