@@ -508,7 +508,11 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 constexpr unsigned int circle_resolution = 50;
                 for (unsigned int i = 0; i < circle_resolution; i++)
                 {
-                    border_circle.emplace_back(storage.machine_size.getMiddle().x + cos(TAU * i / circle_resolution) * width / 2, storage.machine_size.getMiddle().y + sin(TAU * i / circle_resolution) * depth / 2);
+                    const AngleRadians angle = TAU * i / circle_resolution;
+                    const Point3 machine_middle = storage.machine_size.getMiddle();
+                    const coord_t x = machine_middle.x + cos(angle) * width / 2;
+                    const coord_t y = machine_middle.y * sin(angle) * depth / 2;
+                    border_circle.emplace_back(x, y);
                 }
                 machine_volume_border.add(border_circle);
                 break;
