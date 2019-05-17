@@ -198,6 +198,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.settings.get<bool>("anti_overhang_mesh") && !mesh.settings.get<bool>("infill_mesh") && !mesh.settings.get<bool>("cutting_mesh"))
         {
@@ -211,13 +212,18 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         Slicer* slicer = slicerList[meshIdx];
         Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+        // only create layer parts for normal meshes
+        const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings, slicer);
+        // Do not process helper meshes further so no layers will be created for them.
+        if (is_support_modifier || mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh"))
+        {
+            continue;
+        }
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
 
-        // only create layer parts for normal meshes
-        const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings, slicer);
         if (!is_support_modifier)
         {
             createLayerParts(meshStorage, slicer);
@@ -882,7 +888,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    max_print_height_per_extruder.resize(extruder_count, -1); //Initialize all as -1.
+    max_print_height_per_extruder.resize(extruder_count, -(Raft::getTotalExtraLayers() + 1)); //Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         //Height of the meshes themselves.
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -936,7 +942,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     }
     else
     {
-        storage.max_print_height_second_to_last_extruder = -1;
+        storage.max_print_height_second_to_last_extruder = -(Raft::getTotalExtraLayers() + 1);
     }
 }
 
