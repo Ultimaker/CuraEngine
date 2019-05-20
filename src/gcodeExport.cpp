@@ -1247,6 +1247,24 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
+void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
+{
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::GRIFFIN)
+    {
+        //Ultimaker printers don't support build volume temperature commands.
+        return;
+    }
+    if (wait)
+    {
+        *output_stream << "M191 S";
+    }
+    else
+    {
+        *output_stream << "M141 S";
+    }
+    *output_stream << PrecisionedDouble{1, temperature} << new_line;
+}
+
 void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())

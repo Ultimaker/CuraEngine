@@ -480,6 +480,7 @@ public:
     
     void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false);
     void writeBedTemperatureCommand(const Temperature& temperature, const bool wait = false);
+    void writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait = false);
 
     /*!
      * Write the command for setting the acceleration for print moves to a specific value
