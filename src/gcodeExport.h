@@ -250,9 +250,9 @@ public:
      *
      * \param extra_prime_distance Amount of material in mm.
      */
-    void addExtraPrimeDistance(double extra_prime_distance)
+    void addExtraPrimeAmount(double extra_prime_volume)
     {
-        extruder_attr[current_extruder].prime_volume += extra_prime_distance * extruder_attr[current_extruder].filament_area;
+        extruder_attr[current_extruder].prime_volume += extra_prime_volume;
     }
     
     Point3 getPosition() const;
