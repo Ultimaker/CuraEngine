@@ -223,6 +223,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             createLayerParts(meshStorage, slicer);
         }
 
+        // Do not add and process support modifier meshes further, and ONLY skip support modifiers. They have been
+        // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
+        // processed in a later stage.
+        if (is_support_modifier)
+        {
+            storage.meshes.pop_back();
+            continue;
+        }
+
         // check one if raft offset is needed
         const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
 
