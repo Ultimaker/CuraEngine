@@ -1,14 +1,16 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BRIDGE_H
 #define BRIDGE_H
 
-#include "sliceDataStorage.h"
+namespace cura
+{
 
-namespace cura {
-    class Polygons;
-    class SliceLayer;
+class Polygons;
+class Settings;
+class SliceDataStorage;
+class SupportLayer;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape

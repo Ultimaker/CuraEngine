@@ -1,66 +1,70 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "UnionFindTest.h"
+#include <gtest/gtest.h>
+
+#include "../src/utils/UnionFind.h"
 
 namespace cura
 {
 
-CPPUNIT_TEST_SUITE_REGISTRATION(UnionFindTest);
-
-void UnionFindTest::setUp()
+/*
+ * Fixture that contains an empty, pre-constructed union-find data structure of
+ * characters.
+ */
+class UnionFindTest : public testing::Test
 {
-    union_find = UnionFind<char>(); //Recreate the UnionFind data structure.
+public:
+    UnionFind<char> union_find;
+};
+
+TEST_F(UnionFindTest, FindSimple)
+{
+    const size_t original = union_find.add('A');
+    const size_t result = union_find.find('A');
+
+    EXPECT_NE(result, (size_t)-1) << "The set of the first element may not be -1.";
+    ASSERT_EQ(result, original) << "Find must return the original key that was returned when adding.";
 }
 
-void UnionFindTest::tearDown()
+TEST_F(UnionFindTest, FindMultiple)
 {
-    //Nothing to tear down.
+    const size_t original_a = union_find.add('A');
+    const size_t original_b = union_find.add('B');
+    const size_t original_c = union_find.add('C');
+    const size_t result_a = union_find.find('A');
+    const size_t result_b = union_find.find('B');
+    const size_t result_c = union_find.find('C');
+
+    EXPECT_EQ(original_a, result_a) << "A must be the same as when adding it.";
+    EXPECT_EQ(original_b, result_b) << "B must be the same as when adding it.";
+    EXPECT_EQ(original_c, result_c) << "C must be the same as when adding it.";
+    EXPECT_NE(result_a, result_b) << "A must not be in the same set as B.";
+    EXPECT_NE(result_a, result_c) << "A must not be in the same set as C.";
+    EXPECT_NE(result_b, result_c) << "B must not be in the same set as C.";
 }
 
-void UnionFindTest::findSimpleTest()
-{
-    size_t original = union_find.add('A');
-    size_t result = union_find.find('A');
-    CPPUNIT_ASSERT_MESSAGE("The set of the first element may not be -1.", result != (size_t)-1);
-    CPPUNIT_ASSERT_MESSAGE("Find must return the original key that was returned when adding.", result == original);
-}
-
-void UnionFindTest::findMultipleTest()
-{
-    size_t original_a = union_find.add('A');
-    size_t original_b = union_find.add('B');
-    size_t original_c = union_find.add('C');
-    size_t result_a = union_find.find('A');
-    size_t result_b = union_find.find('B');
-    size_t result_c = union_find.find('C');
-
-    CPPUNIT_ASSERT_MESSAGE("A must be the same as when adding it.", original_a == result_a);
-    CPPUNIT_ASSERT_MESSAGE("B must be the same as when adding it.", original_b == result_b);
-    CPPUNIT_ASSERT_MESSAGE("C must be the same as when adding it.", original_c == result_c);
-    CPPUNIT_ASSERT_MESSAGE("A must not be in the same set as B or C.", result_a != result_b && result_a != result_c);
-    CPPUNIT_ASSERT_MESSAGE("B must not be in the same set as C.", result_b != result_c);
-}
-
-void UnionFindTest::uniteTwoTest()
+TEST_F(UnionFindTest, UniteTwo)
 {
     size_t a = union_find.add('A');
     size_t b = union_find.add('B');
-    CPPUNIT_ASSERT_MESSAGE("A must not yet be in the same set as B.", a != b);
+    ASSERT_NE(a, b) << "A must not yet be in the same set as B.";
 
     union_find.unite(a, b);
 
     a = union_find.find('A');
     b = union_find.find('B');
-    CPPUNIT_ASSERT_MESSAGE("A must now be in the same set as B.", a == b);
+    ASSERT_EQ(a, b) << "A must now be in the same set as B.";
 }
 
-void UnionFindTest::uniteThreeTest()
+TEST_F(UnionFindTest, UniteThree)
 {
     size_t a = union_find.add('A');
     size_t b = union_find.add('B');
     size_t c = union_find.add('C');
-    CPPUNIT_ASSERT_MESSAGE("A, B and C must not yet be in the same set!", a != b && a != c && b != c);
+    ASSERT_NE(a, b) << "A and B must not yet be in the same set!";
+    ASSERT_NE(a, c) << "A and C must not yet be in the same set!";
+    ASSERT_NE(b, c) << "B and C must not yet be in the same set!";
 
     union_find.unite(a, b);
     union_find.unite(b, c);
@@ -68,16 +72,22 @@ void UnionFindTest::uniteThreeTest()
     a = union_find.find('A');
     b = union_find.find('B');
     c = union_find.find('C');
-    CPPUNIT_ASSERT_MESSAGE("A, B and C must now be in the same set.", a == b && b == c);
+    ASSERT_EQ(a, b) << "A and B must now be in the same set.";
+    ASSERT_EQ(b, c) << "B and C must now be in the same set.";
 }
 
-void UnionFindTest::uniteSetsTest()
+TEST_F(UnionFindTest, UniteSets)
 {
     size_t a = union_find.add('A');
     size_t b = union_find.add('B');
     size_t c = union_find.add('C');
     size_t d = union_find.add('D');
-    CPPUNIT_ASSERT_MESSAGE("A, B, C and D must not yet be in the same set!", a != b && a != c && a != d && b != c && b != d && c != d);
+    ASSERT_NE(a, b) << "A and B must not yet be in the same set!";
+    ASSERT_NE(a, c) << "A and C must not yet be in the same set!";
+    ASSERT_NE(a, d) << "A and D must not yet be in the same set!";
+    ASSERT_NE(b, c) << "B and C must not yet be in the same set!";
+    ASSERT_NE(b, d) << "B and D must not yet be in the same set!";
+    ASSERT_NE(c, d) << "C and D must not yet be in the same set!";
 
     union_find.unite(a, b);
     union_find.unite(c, d);
@@ -87,16 +97,18 @@ void UnionFindTest::uniteSetsTest()
     b = union_find.find('B');
     c = union_find.find('C');
     d = union_find.find('D');
-    CPPUNIT_ASSERT_MESSAGE("A and B must now be in the same set.", a == b);
-    CPPUNIT_ASSERT_MESSAGE("C and D must now be in the same set.", c == d);
-    CPPUNIT_ASSERT_MESSAGE("A+B and C+D must not yet be in the same set.", a != c);
+    ASSERT_EQ(a, b) << "A and B must now be in the same set.";
+    ASSERT_EQ(c, d) << "C and D must now be in the same set.";
+    ASSERT_NE(a, c) << "A+B and C+D must not yet be in the same set.";
 
     union_find.unite(a, c);
     a = union_find.find('A');
     b = union_find.find('B');
     c = union_find.find('C');
     d = union_find.find('D');
-    CPPUNIT_ASSERT_MESSAGE("A, B, C and D must now be in the same set.", a == b && b == c && c == d);
+    ASSERT_EQ(a, b) << "A and B must still be in the same set.";
+    ASSERT_EQ(c, d) << "C and D must still be in the same set.";
+    ASSERT_EQ(b, c) << "A+B and C+D must now be in the same set.";
 }
 
 }

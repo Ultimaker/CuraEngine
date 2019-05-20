@@ -4,8 +4,6 @@
 #ifndef SETTINGSBASEVIRTUAL_H
 #define SETTINGSBASEVIRTUAL_H
 
-#include "../utils/floatpoint.h" //For FMatrix3x3.
-
 namespace cura
 {
 
@@ -66,7 +64,8 @@ enum class EZSeamCornerPrefType
     Z_SEAM_CORNER_PREF_NONE,
     Z_SEAM_CORNER_PREF_INNER,
     Z_SEAM_CORNER_PREF_OUTER,
-    Z_SEAM_CORNER_PREF_ANY
+    Z_SEAM_CORNER_PREF_ANY,
+    Z_SEAM_CORNER_PREF_WEIGHTED
 };
 
 enum class ESurfaceMode

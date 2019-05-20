@@ -4,8 +4,12 @@
 #include <cmath> // std::ceil
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "skin.h"
+#include "sliceDataStorage.h"
+#include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/AngleRadians.h" //For the infill support angle.
+#include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 

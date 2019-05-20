@@ -1,12 +1,15 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> //For M_PI.
+#include <gtest/gtest.h>
 #include <memory> //For shared_ptr.
 
-#include "SettingsTest.h"
 #include "../src/Application.h" //To test extruder train settings.
+#include "../src/ExtruderTrain.h"
+#include "../src/Slice.h"
 #include "../src/settings/FlowTempGraph.h"
+#include "../src/settings/Settings.h" //The class under test.
 #include "../src/settings/types/LayerIndex.h"
 #include "../src/settings/types/AngleRadians.h"
 #include "../src/settings/types/AngleDegrees.h"
@@ -18,63 +21,65 @@
 
 namespace cura
 {
-    CPPUNIT_TEST_SUITE_REGISTRATION(SettingsTest);
 
-void SettingsTest::setUp()
+/*
+ * A test fixture with an empty settings object to test with.
+ */
+class SettingsTest : public testing::Test
 {
-    settings = Settings(); //New instance to test with.
-}
+public:
+    Settings settings;
+};
 
-void SettingsTest::addSettingStringTest()
+TEST_F(SettingsTest, AddSettingString)
 {
     const std::string setting_value("The human body contains enough bones to make an entire skeleton.");
     settings.add("test_setting", setting_value);
-    CPPUNIT_ASSERT_EQUAL(setting_value, settings.get<std::string>("test_setting"));
+    EXPECT_EQ(setting_value, settings.get<std::string>("test_setting"));
 }
 
-void SettingsTest::addSettingDoubleTest()
+TEST_F(SettingsTest, AddSettingDouble)
 {
     settings.add("test_setting", "1234567.890");
-    CPPUNIT_ASSERT_EQUAL(double(1234567.89), settings.get<double>("test_setting"));
+    EXPECT_DOUBLE_EQ(double(1234567.89), settings.get<double>("test_setting"));
 }
 
-void SettingsTest::addSettingSizeTTest()
+TEST_F(SettingsTest, AddSettingSizeT)
 {
     settings.add("test_setting", "666");
-    CPPUNIT_ASSERT_EQUAL(size_t(666), settings.get<size_t>("test_setting"));
+    EXPECT_EQ(size_t(666), settings.get<size_t>("test_setting"));
 }
 
-void SettingsTest::addSettingBoolTest()
+TEST_F(SettingsTest, AddSettingBool)
 {
     settings.add("test_setting", "true");
-    CPPUNIT_ASSERT_EQUAL(true, settings.get<bool>("test_setting"));
+    EXPECT_EQ(true, settings.get<bool>("test_setting"));
 
     settings.add("test_setting", "on");
-    CPPUNIT_ASSERT_EQUAL(true, settings.get<bool>("test_setting"));
+    EXPECT_EQ(true, settings.get<bool>("test_setting"));
 
     settings.add("test_setting", "yes");
-    CPPUNIT_ASSERT_EQUAL(true, settings.get<bool>("test_setting"));
+    EXPECT_EQ(true, settings.get<bool>("test_setting"));
 
     settings.add("test_setting", "True");
-    CPPUNIT_ASSERT_EQUAL(true, settings.get<bool>("test_setting"));
+    EXPECT_EQ(true, settings.get<bool>("test_setting"));
 
     settings.add("test_setting", "50");
-    CPPUNIT_ASSERT_EQUAL(true, settings.get<bool>("test_setting"));
+    EXPECT_EQ(true, settings.get<bool>("test_setting"));
 
     settings.add("test_setting", "0");
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("0 should cast to false.",
-                                 false, settings.get<bool>("test_setting"));
+    EXPECT_EQ(false, settings.get<bool>("test_setting")) << "0 should cast to false.";
 
     settings.add("test_setting", "false");
-    CPPUNIT_ASSERT_EQUAL(false, settings.get<bool>("test_setting"));
+    EXPECT_EQ(false, settings.get<bool>("test_setting"));
 
     settings.add("test_setting", "False");
-    CPPUNIT_ASSERT_EQUAL(false, settings.get<bool>("test_setting"));
+    EXPECT_EQ(false, settings.get<bool>("test_setting"));
 }
 
 class Slice; //Forward declaration to save some time compiling.
 
-void SettingsTest::addSettingExtruderTrainTest()
+TEST_F(SettingsTest, AddSettingExtruderTrain)
 {
     //Add a slice with some extruder trains.
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
@@ -84,158 +89,148 @@ void SettingsTest::addSettingExtruderTrainTest()
     current_slice->scene.extruders.emplace_back(2, nullptr);
 
     settings.add("test_setting", "2");
-    CPPUNIT_ASSERT_EQUAL(&current_slice->scene.extruders[2], &settings.get<ExtruderTrain&>("test_setting"));
+    EXPECT_EQ(&current_slice->scene.extruders[2], &settings.get<ExtruderTrain&>("test_setting"));
 
     settings.add("extruder_nr", "1");
     settings.add("test_setting", "-1"); //-1 should let it fall back to the current extruder_nr.
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("If the extruder is negative, it uses the extruder_nr setting.",
-                                 &current_slice->scene.extruders[1], &settings.get<ExtruderTrain&>("test_setting"));
+    EXPECT_EQ(&current_slice->scene.extruders[1], &settings.get<ExtruderTrain&>("test_setting")) << "If the extruder is negative, it uses the extruder_nr setting.";
 }
 
-void SettingsTest::addSettingLayerIndexTest()
+TEST_F(SettingsTest, AddSettingLayerIndex)
 {
     settings.add("test_setting", "4");
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("LayerIndex settings start counting from 0, so subtract one.",
-                                 LayerIndex(3), settings.get<LayerIndex>("test_setting"));
+    EXPECT_EQ(LayerIndex(3), settings.get<LayerIndex>("test_setting")) << "LayerIndex settings start counting from 0, so subtract one.";
 }
 
-void SettingsTest::addSettingLayerIndexNegativeTest()
+TEST_F(SettingsTest, AddSettingLayerIndexNegative)
 {
     settings.add("test_setting", "-10");
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("LayerIndex settings still subtract 1 even in negative layers.",
-                                 LayerIndex(-11), settings.get<LayerIndex>("test_setting"));
+    EXPECT_EQ(LayerIndex(-11), settings.get<LayerIndex>("test_setting")) << "LayerIndex settings still subtract 1 even in negative layers.";
 }
 
-void SettingsTest::addSettingCoordTTest()
+TEST_F(SettingsTest, AddSettingCoordT)
 {
     settings.add("test_setting", "8589934.592"); //2^33 microns, so this MUST be a 64-bit integer! (Or at least 33-bit, but those don't exist.)
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Coordinates must be entered in the setting as millimetres, but are converted to micrometres.",
-                                 coord_t(8589934592), settings.get<coord_t>("test_setting"));
+    EXPECT_EQ(coord_t(8589934592), settings.get<coord_t>("test_setting")) << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
 }
 
-void SettingsTest::addSettingAngleRadiansTest()
+TEST_F(SettingsTest, AddSettingAngleRadians)
 {
     settings.add("test_setting", "180");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("180 degrees is 1 pi radians.",
-                                         AngleRadians(M_PI), settings.get<AngleRadians>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(AngleRadians(M_PI), settings.get<AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
 
     settings.add("test_setting", "810");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.",
-                                 AngleRadians(M_PI / 2.0), settings.get<AngleRadians>("test_setting"), DELTA);
+    EXPECT_NEAR(AngleRadians(M_PI / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001) << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
 }
 
-void SettingsTest::addSettingAngleDegreesTest()
+TEST_F(SettingsTest, AddSettingAngleDegrees)
 {
     settings.add("test_setting", "4442.4");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("4442.4 in clock arithmetic is 360 degrees.",
-                                         AngleDegrees(122.4), settings.get<AngleDegrees>("test_setting"), DELTA);
+    EXPECT_NEAR(AngleDegrees(122.4), settings.get<AngleDegrees>("test_setting"), 0.00000001) << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
 }
 
-void SettingsTest::addSettingTemperatureTest()
+TEST_F(SettingsTest, AddSettingTemperature)
 {
     settings.add("test_setting", "245.5");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Temperature(245.5), settings.get<Temperature>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(Temperature(245.5), settings.get<Temperature>("test_setting"));
 }
 
-void SettingsTest::addSettingVelocityTest()
+TEST_F(SettingsTest, AddSettingVelocity)
 {
     settings.add("test_setting", "12.345");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Velocity(12.345), settings.get<Velocity>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(Velocity(12.345), settings.get<Velocity>("test_setting"));
 
     settings.add("test_setting", "-78");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Velocity(-78), settings.get<Velocity>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(Velocity(-78), settings.get<Velocity>("test_setting"));
 }
 
-void SettingsTest::addSettingRatioTest()
+TEST_F(SettingsTest, AddSettingRatio)
 {
     settings.add("test_setting", "1.618");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL_MESSAGE("With ratios, the input is interpreted in percentages.",
-                                         Ratio(0.01618), settings.get<Ratio>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(Ratio(0.01618), settings.get<Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
 }
 
-void SettingsTest::addSettingDurationTest()
+TEST_F(SettingsTest, AddSettingDuration)
 {
     settings.add("test_setting", "1234.5678");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Duration(1234.5678), settings.get<Duration>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(Duration(1234.5678), settings.get<Duration>("test_setting"));
 
     settings.add("test_setting", "-1234.5678");
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(Duration(0), settings.get<Duration>("test_setting"), DELTA);
+    EXPECT_DOUBLE_EQ(Duration(0), settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
 }
 
-void SettingsTest::addSettingFlowTempGraphTest()
+TEST_F(SettingsTest, AddSettingFlowTempGraph)
 {
     settings.add("test_setting", "[[1.50, 10.1],[ 25.1,40.4 ], [26.5,75], [50 , 100.10]]"); //Try various spacing and radixes.
     const FlowTempGraph flow_temp_graph = settings.get<FlowTempGraph>("test_setting");
 
     double stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, true);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(75.0 + (100.10 - 75.0) * (30.5 - 26.5) / (50.0 - 26.5), stored_temperature, DELTA);
+    EXPECT_DOUBLE_EQ(75.0 + (100.10 - 75.0) * (30.5 - 26.5) / (50.0 - 26.5), stored_temperature) << "Interpolate between low and high value.";
 
     stored_temperature = flow_temp_graph.getTemp(1, 200.0, true);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(10.1, stored_temperature, DELTA); //Flow too low - Return lower temperature in the graph.
+    EXPECT_DOUBLE_EQ(10.1, stored_temperature) << "Flow too low - Return lower temperature in the graph.";
 
     stored_temperature = flow_temp_graph.getTemp(80, 200.0, true);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(100.1, stored_temperature, DELTA); //Flow too high - Return higher temperature in the graph.
+    EXPECT_DOUBLE_EQ(100.1, stored_temperature) << "Flow too high - Return higher temperature in the graph.";
 
     stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, false);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(200.0, stored_temperature, DELTA);
+    EXPECT_DOUBLE_EQ(200.0, stored_temperature);
 }
 
-void SettingsTest::addSettingFMatrix3x3Test()
+TEST_F(SettingsTest, AddSettingFMatrix3x3)
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); //Try various spacing and radixes.
     FMatrix3x3 float_matrix = settings.get<FMatrix3x3>("test_setting");
 
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, float_matrix.m[0][0], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, float_matrix.m[1][0], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.3, float_matrix.m[2][0], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, float_matrix.m[0][1], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.0, float_matrix.m[1][1], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, float_matrix.m[2][1], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.0, float_matrix.m[0][2], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, float_matrix.m[1][2], DELTA);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.0, float_matrix.m[2][2], DELTA);
+    EXPECT_DOUBLE_EQ(1.0, float_matrix.m[0][0]);
+    EXPECT_DOUBLE_EQ(2.0, float_matrix.m[1][0]);
+    EXPECT_DOUBLE_EQ(3.3, float_matrix.m[2][0]);
+    EXPECT_DOUBLE_EQ(2.0, float_matrix.m[0][1]);
+    EXPECT_DOUBLE_EQ(3.0, float_matrix.m[1][1]);
+    EXPECT_DOUBLE_EQ(1.0, float_matrix.m[2][1]);
+    EXPECT_DOUBLE_EQ(3.0, float_matrix.m[0][2]);
+    EXPECT_DOUBLE_EQ(1.0, float_matrix.m[1][2]);
+    EXPECT_DOUBLE_EQ(2.0, float_matrix.m[2][2]);
 }
 
-void SettingsTest::addSettingVectorTest()
+TEST_F(SettingsTest, AddSettingVector)
 {
     settings.add("test_setting", "[0, 1, 1,2, 3 , 5,  8,13]");
-    std::vector<int> vector_int = settings.get<std::vector<int>>("test_setting");
-    std::vector<int> ground_truth = {0, 1, 1, 2, 3, 5, 8, 13};
-    CPPUNIT_ASSERT_EQUAL(ground_truth.size(), vector_int.size());
+    const std::vector<int> vector_int = settings.get<std::vector<int>>("test_setting");
+    const std::vector<int> ground_truth = {0, 1, 1, 2, 3, 5, 8, 13};
+    ASSERT_EQ(ground_truth.size(), vector_int.size());
     for (size_t i = 0; i < ground_truth.size(); i++)
     {
-        CPPUNIT_ASSERT_EQUAL(ground_truth[i], vector_int[i]);
+        EXPECT_EQ(ground_truth[i], vector_int[i]);
     }
 }
 
-void SettingsTest::overwriteSettingTest()
+TEST_F(SettingsTest, OverwriteSetting)
 {
     settings.add("test_setting", "P");
     settings.add("test_setting", "NP");
-    CPPUNIT_ASSERT_MESSAGE("When overriding a setting, the original value was not changed.",
-                           settings.get<std::string>("test_setting") != std::string("P"));
-    CPPUNIT_ASSERT_EQUAL(std::string("NP"), settings.get<std::string>("test_setting"));
+    ASSERT_NE(settings.get<std::string>("test_setting"), std::string("P")) << "When overriding a setting, the value must be changed.";
+    ASSERT_EQ(settings.get<std::string>("test_setting"), std::string("NP"));
 }
 
-void SettingsTest::inheritanceTest()
+TEST_F(SettingsTest, Inheritance)
 {
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
     Application::getInstance().current_slice = current_slice.get();
 
-    const std::string value = "A nuclear explosion would be a disaster.";
+    const std::string value = "To be frank, I'd have to change my name.";
     Settings parent;
     parent.add("test_setting", value);
     settings.setParent(&parent);
 
-    CPPUNIT_ASSERT_EQUAL(value, settings.get<std::string>("test_setting"));
+    EXPECT_EQ(value, settings.get<std::string>("test_setting"));
 
     const std::string override_value = "It's quick, it's easy and it's free: Pouring river water in your socks.";
     settings.add("test_setting", override_value);
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("The new value overrides the one from the parent.",
-                                 override_value, settings.get<std::string>("test_setting"));
+    EXPECT_EQ(override_value, settings.get<std::string>("test_setting")) << "The new value overrides the one from the parent.";
 }
 
-void SettingsTest::limitToExtruderTest()
+TEST_F(SettingsTest, LimitToExtruder)
 {
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
     Application::getInstance().current_slice = current_slice.get();
@@ -251,7 +246,7 @@ void SettingsTest::limitToExtruderTest()
     //Add a decoy setting to the main scene to make sure that we aren't getting the global setting instead.
     current_slice->scene.settings.add("test_setting", "Sting has been kidnapped. The Police have no lead.");
 
-    CPPUNIT_ASSERT_EQUAL(limit_extruder_value, settings.get<std::string>("test_setting"));
+    EXPECT_EQ(limit_extruder_value, settings.get<std::string>("test_setting"));
 }
 
 }

@@ -2,7 +2,7 @@
 #ifndef GETTIME_H
 #define GETTIME_H
 
-#ifdef __WIN32
+#ifdef _WIN32
     #include <windows.h>
 #else
     #ifdef USE_CPU_TIME
@@ -18,7 +18,7 @@ namespace cura
 {
 static inline double getTime()
 {
-#ifdef __WIN32
+#ifdef _WIN32
     return double(GetTickCount()) / 1000.0;
 #else // not __WIN32
  #if USE_CPU_TIME // Use cpu usage time if available, otherwise wall clock time

@@ -4,29 +4,29 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-
 #include <fstream>
-#include "utils/gettime.h"
-#include "utils/logoutput.h"
-#include "utils/NoCopy.h"
-#include "utils/polygonUtils.h"
-#include "sliceDataStorage.h"
-#include "raft.h"
-#include "infill.h"
-#include "bridge.h"
-#include "pathOrderOptimizer.h"
-#include "LayerPlan.h"
-#include "gcodeExport.h"
-#include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
-#include "PrintFeature.h"
-
-
+#include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
+#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
+#include "utils/NoCopy.h"
 
+namespace std
+{
+template<typename T> class optional;
+}
 
 namespace cura 
 {
+
+class AngleDegrees;
+class Polygons;
+class SkinPart;
+class SliceDataStorage;
+class SliceMeshStorage;
+class SliceLayer;
+class SliceLayerPart;
+class TimeKeeper;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -175,6 +175,13 @@ private:
      * \param[out] storage The data storage to which to save the configurations
      */
     void setConfigRetraction(SliceDataStorage& storage);
+
+    /*!
+     * Set the wipe config globally, per extruder.
+     *
+     * \param[out] storage The data storage to which to save the configurations
+     */
+    void setConfigWipe(SliceDataStorage& storage);
 
     /*!
      * Get the extruder with which to start the print.
@@ -431,8 +438,9 @@ private:
      * \param[out] gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const;
 
     /*!
      * Add the gcode of the outline gaps: the areas for thin parts in which a single perimter doesnt fit.
