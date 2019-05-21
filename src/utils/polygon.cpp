@@ -341,7 +341,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         }
         accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
-        const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
+        const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
         const coord_t base_length_2 = vSize2(next - previous);
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
         {
