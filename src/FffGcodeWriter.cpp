@@ -2656,6 +2656,10 @@ void FffGcodeWriter::finalize()
         gcode.writeBedTemperatureCommand(0); //Cool down the bed (M140).
         //Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
     }
+    if (mesh_group_settings.get<Temperature>("build_volume_temperature") != 0)
+    {
+        gcode.writeBuildVolumeTemperatureCommand(0); //Cool down the build volume.
+    }
 
     const Duration print_time = gcode.getSumTotalPrintTimes();
     std::vector<double> filament_used;
