@@ -317,7 +317,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
      * those vertices results in too much area being removed. So we accumulate
      * the area that is going to be removed by a streak of consecutive vertices
      * and don't allow that to exceed allowed_error_distance_squared. */
-    coord_t accumulated_area_removed = std::abs(previous.X * current.Y - previous.Y * current.X); //Shoelace formula for area of polygon per line segment.
+    coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; //Shoelace formula for area of polygon per line segment.
 
     for (size_t point_idx = 1; point_idx <= size(); point_idx++)
     {
@@ -339,9 +339,9 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
         }
-        accumulated_area_removed += std::abs(current.X * next.Y - current.Y * next.X); //Shoelace formula for area of polygon per line segment.
+        accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
-        const coord_t area_removed_so_far = accumulated_area_removed + std::abs(next.X * previous.Y - next.Y * previous.X); //Close the polygon.
+        const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
         const coord_t base_length_2 = vSize2(next - previous);
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
         {
@@ -366,7 +366,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         }
         //Don't remove the vertex.
 
-        accumulated_area_removed = std::abs(current.X * next.Y - current.Y * next.X);
+        accumulated_area_removed = current.X * next.Y - current.Y * next.X;
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
