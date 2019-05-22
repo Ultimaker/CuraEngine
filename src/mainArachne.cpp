@@ -328,11 +328,13 @@ int main() {
                  it != vd.cells().end(); ++it) {
             if (it->contains_point()) {
                 std::size_t index = it->source_index();
+                assert(index < points.size());
                 Point p = points[index];
                 printf("Cell #%ud contains a point: (%d, %d).\n",
                              cell_index, x(p), y(p));
             } else {
                 std::size_t index = it->source_index() - points.size();
+                assert(index < segments.size());
                 Point p0 = low(segments[index]);
                 Point p1 = high(segments[index]);
                 if (it->source_category() ==
