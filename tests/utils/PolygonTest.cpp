@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <../src/utils/polygon.h> //The class under test.
 
@@ -315,7 +316,8 @@ TEST_F(PolygonTest, simplifyLimitedError)
     const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
     spiral_polygons.simplify(999999999, height - 10);
 
-    ASSERT_EQ(spiral.size(), 11 - 5) << "Should merge segments of length 1000 through 1400 and first with last.";
+    using namespace testing;
+    EXPECT_THAT(spiral.size(), AllOf(Ge(11 - 5), Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
 }
 
 }

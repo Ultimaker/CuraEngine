@@ -341,7 +341,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         }
         accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
-        const coord_t area_removed_so_far = std::abs(accumulated_area_removed + next.X * previous.Y - next.Y * previous.X); //Close the polygon.
+        const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
         const coord_t base_length_2 = vSize2(next - previous);
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
         {
@@ -354,7 +354,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (2A / b)^2    [square it]
         //h^2 = (2A)^2 / b^2  [factor the divisor]
         //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
-        const coord_t height_2 = 4 * area_removed_so_far * area_removed_so_far / base_length_2;
+        const coord_t height_2 = (4 * area_removed_so_far * area_removed_so_far) / base_length_2;
         if (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared) //Line is small and removing it doesn't introduce too much error.
         {
             continue; //Remove the vertex.
@@ -378,11 +378,14 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     {
         new_path.push_back(path->at(0));
     }
-    if(new_path.size() >= 2 && (vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared || vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared))
+    if(new_path.size() > 2 && (vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared || vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared))
     {
-        new_path.pop_back();
+        if (LinearAlg2D::getDist2FromLine(new_path.back(), new_path[new_path.size() - 2], new_path[0]) < allowed_error_distance_squared)
+        {
+            new_path.pop_back();
+        }
     }
-    if(new_path.size() >= 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
+    if(new_path.size() > 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
     {
         new_path.erase(new_path.begin());
     }
