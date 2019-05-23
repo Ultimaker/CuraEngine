@@ -1184,9 +1184,33 @@ void GCodeExport::writeFanCommand(double speed)
 
 void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait)
 {
-    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
+    const ExtruderTrain& extruder_train = Application::getInstance().current_slice->scene.extruders[extruder];
+
+    if (!extruder_train.settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
+    }
+
+    if (extruder_train.settings.get<bool>("machine_extruders_share_heater"))
+    {
+        // extruders share a single heater
+        if (extruder != current_extruder)
+        {
+            // ignore all changes to the non-current extruder
+            return;
+        }
+
+        // sync all extruders with the change to the current extruder
+        const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            if (extruder_nr != extruder)
+            {
+                extruder_attr[extruder_nr].waited_for_temperature = wait;
+                extruder_attr[extruder_nr].currentTemperature = temperature;
+            }
+        }
     }
 
     if ((!wait || extruder_attr[extruder].waited_for_temperature) && extruder_attr[extruder].currentTemperature == temperature)
