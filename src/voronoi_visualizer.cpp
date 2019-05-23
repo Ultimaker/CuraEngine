@@ -1,3 +1,4 @@
+#ifdef AFSOIFSJFASPOFJASPOPOJAPJFASO{IHJFASPOUHFAS
 // Boost.Polygon library voronoi_visualizer.cpp file
 
 //          Copyright Andrii Sydorchuk 2010-2012.
@@ -508,3 +509,4 @@ int main(int argc, char* argv[]) {
 
 #include "voronoi_visualizer.moc"
 
+#endif

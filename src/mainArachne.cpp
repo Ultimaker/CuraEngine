@@ -13,6 +13,7 @@
 
 
 #include "utils/SVG.h"
+#include "utils/linearAlg2D.h"
 
 // Boost.Polygon library voronoi_basic_tutorial.cpp file
 
@@ -41,6 +42,7 @@ using boost::polygon::high;
 #include "utils/IntPoint.h"
 
 #include "utils/Coord_t.h"
+#include "utils/logoutput.h"
 
 using pos_t = double;
 using vd_t = voronoi_diagram<pos_t>;
@@ -191,13 +193,13 @@ void try1(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::vector<Se
     
     for (const Point& p : points)
     {
-        svg.writePoint(p);
+        svg.writePoint(p, true);
     }
     for (const Segment& s : segments)
     {
         svg.writeLine(s.p0, s.p1);
-        svg.writePoint(s.p0);
-        svg.writePoint(s.p1);
+        svg.writePoint(s.p0, true);
+        svg.writePoint(s.p1, true);
     }
     
     
@@ -208,8 +210,15 @@ void try1(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::vector<Se
     {
         const vd_t::vertex_type* from = edge.vertex0();
         const vd_t::vertex_type* to = edge.vertex1();
+        if (!to) continue; // only process half of the half-edges
         if (from && to)
         {
+            Point from_(edge.vertex0()->x(), edge.vertex0()->y());
+            Point to_(edge.vertex1()->x(), edge.vertex1()->y());
+            printf("(%lld,%lld)-(%lld,%lld)\n", from_.X, from_.Y, to_.X, to_.Y);
+            if (from_.X +from_.Y < to_.X + to_.Y) continue; // only process half of the half-edges
+            if (from_ == Point(900,500) || to_ == Point(900,500))
+                printf("_");
             if (edge.is_linear())
             {
                 svg.writeLine(Point(from->x(), from->y()), Point(to->x(), to->y()), SVG::Color::RED);
@@ -219,11 +228,18 @@ void try1(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::vector<Se
                 const vd_t::cell_type& left_cell = *edge.cell();
                 const vd_t::cell_type& right_cell = *edge.twin()->cell();
                 
-                const vd_t::cell_type& segment_cell = (boost::polygon::belongs(left_cell.source_category(), boost::polygon::GEOMETRY_CATEGORY_SEGMENT))? left_cell : right_cell;
-                const vd_t::cell_type& point_cell = (boost::polygon::belongs(left_cell.source_category(), boost::polygon::GEOMETRY_CATEGORY_POINT))? left_cell : right_cell;
+                auto cat = left_cell.source_category();
+                bool bel = belongs(cat, boost::polygon::GEOMETRY_CATEGORY_SEGMENT);
+                
+                assert(left_cell.contains_point() == right_cell.contains_segment());
+                const vd_t::cell_type& segment_cell = (left_cell.contains_segment())? left_cell : right_cell;
+                const vd_t::cell_type& point_cell = (left_cell.contains_point())? left_cell : right_cell;
                 
                 Point* point = nullptr;
-                Segment& segment = segments[segment_cell.source_index()];
+                int segment_idx = segment_cell.source_index() - points.size();
+//                 if (segment_idx >= segments.size()) continue;
+                assert(segment_idx < segments.size());
+                Segment& segment = segments[segment_idx];
                 
                 switch (point_cell.source_category())
                 {
@@ -231,12 +247,13 @@ void try1(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::vector<Se
                     point = &points[point_cell.source_index()];
                     break;
                 case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-                    point = &segments[point_cell.source_index()].p0;
+                    point = &segments[point_cell.source_index() - points.size()].p0;
                     break;
                 case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
-                    point = &segments[point_cell.source_index()].p1;
+                    point = &segments[point_cell.source_index() - points.size()].p1;
                     break;
                 default:
+                    printf("Point is no point?!\n");
                     break;
                 }
                 if (!point)
@@ -244,18 +261,50 @@ void try1(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::vector<Se
                     printf("Cannot make arc!\n");
                     continue;
                 }
-                Point mid = *point / 2 + (segment.p0 + segment.p1) / 4;
-                svg.writeLine(Point(from->x(), from->y()), mid, SVG::Color::BLUE);
-                svg.writeLine(mid, Point(to->x(), to->y()), SVG::Color::BLUE);
-                //std::vector<Point> discretization;
-                //boost::polygon::voronoi_visual_utils<pos_t>::discretize(*point, *segment, 10, &discretization)
+                Point mid;
+                Point s = segment.p1 - segment.p0;
+                if (dot(from_, s) < dot(*point, s) == dot(to_, s) < dot(*point, s))
+                {
+                    svg.writeLine(from_, to_, SVG::Color::BLUE);
+                    mid = (from_ + to_) / 2;
+                }
+                else
+                {
+                    Point projected = LinearAlg2D::getClosestOnLineSegment(*point, segment.p0, segment.p1);
+                    mid = (*point + projected) / 2;
+                    svg.writeLine(from_, mid, SVG::Color::BLUE);
+                    svg.writeLine(mid, to_, SVG::Color::BLUE);
+                    //std::vector<Point> discretization;
+                    //boost::polygon::voronoi_visual_utils<pos_t>::discretize(*point, *segment, 10, &discretization)
+                }
+                svg.writeLine(mid, *point, SVG::Color::GRAY);
+                svg.writeLine(mid, (segment.p0 + segment.p1) / 2, SVG::Color::GRAY);
+            }
+        }
+        else 
+        {
+            if (edge.is_infinite())
+            {
+                printf("Edge is infinite\n");
+            }
+            else
+            {
+                printf("Cannot draw edge\n");
+            }
+            if (edge.vertex0())
+            {
+                svg.writePoint(Point(edge.vertex0()->x(), edge.vertex0()->y()), false, 5, SVG::Color::RED);
+            }
+            if (edge.vertex1())
+            {
+                svg.writePoint(Point(edge.vertex1()->x(), edge.vertex1()->y()), false, 5, SVG::Color::RED);
             }
         }
     }
     
     for (const vd_t::vertex_type& vert : vd.vertices())
     {
-        svg.writePoint(Point(vert.x(), vert.y()), false, 3, SVG::Color::RED);
+        svg.writePoint(Point(vert.x(), vert.y()), true, 2, SVG::Color::BLACK);
     }
     
     for (const vd_t::cell_type& cell : vd.cells())
@@ -284,9 +333,10 @@ int main() {
     
     
 
+    arachne::logError("boost version: %s\n", BOOST_LIB_VERSION);
     
-    
-    
+    arachne::try1(vd, points, segments);
+    std::exit(0);
     
     
     
@@ -320,35 +370,42 @@ int main() {
         printf("\n");
         printf("\n");
     }
-
+    
     // Linking Voronoi cells with input geometries.
     {
         unsigned int cell_index = 0;
-        for (voronoi_diagram<pos_t>::const_cell_iterator it = vd.cells().begin();
+        for (voronoi_diagram<double>::const_cell_iterator it = vd.cells().begin();
                  it != vd.cells().end(); ++it) {
             if (it->contains_point()) {
-                std::size_t index = it->source_index();
-                assert(index < points.size());
-                Point p = points[index];
-                printf("Cell #%ud contains a point: (%d, %d).\n",
-                             cell_index, x(p), y(p));
+                if (it->source_category() ==
+                        boost::polygon::SOURCE_CATEGORY_SINGLE_POINT) {
+                    std::size_t index = it->source_index();
+                    assert(index < points.size());
+                    Point p = points[index];
+                    printf("Cell #%u contains a point: (%d, %d).\n",
+                                 cell_index, x(p), y(p));
+                } else if (it->source_category() ==
+                                     boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT) {
+                    std::size_t index = it->source_index() - points.size();
+                    assert(index < segments.size());
+                    Point p0 = low(segments[index]);
+                    printf("Cell #%u contains segment start point: (%d, %d).\n",
+                                 cell_index, x(p0), y(p0));
+                } else if (it->source_category() ==
+                                     boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT) {
+                    std::size_t index = it->source_index() - points.size();
+                    assert(index < segments.size());
+                    Point p1 = high(segments[index]);
+                    printf("Cell #%u contains segment end point: (%d, %d).\n",
+                                 cell_index, x(p1), y(p1));
+                }
             } else {
                 std::size_t index = it->source_index() - points.size();
                 assert(index < segments.size());
                 Point p0 = low(segments[index]);
                 Point p1 = high(segments[index]);
-                if (it->source_category() ==
-                        boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT) {
-                    printf("Cell #%ud contains segment start point: (%d, %d).\n",
-                                 cell_index, x(p0), y(p0));
-                } else if (it->source_category() ==
-                                     boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT) {
-                    printf("Cell #%ud contains segment end point: (%d, %d).\n",
-                                 cell_index, x(p0), y(p0));
-                } else {
-                    printf("Cell #%ud contains a segment: ((%d, %d), (%d, %d)). \n",
-                                 cell_index, x(p0), y(p0), x(p1), y(p1));
-                }
+                printf("Cell #%u contains a segment: ((%d, %d), (%d, %d)). \n",
+                             cell_index, x(p0), y(p0), x(p1), y(p1));
             }
             ++cell_index;
         }
