@@ -16,15 +16,7 @@
 #include "utils/polygon.h"
 #include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
-
-// Boost.Polygon library voronoi_basic_tutorial.cpp file
-
-//                    Copyright Andrii Sydorchuk 2010-2012.
-// Distributed under the Boost Software License, Version 1.0.
-//        (See accompanying file LICENSE_1_0.txt or copy at
-//                    http://www.boost.org/LICENSE_1_0.txt)
-
-// See http://www.boost.org for updates, documentation, and revision history.
+#include "utils/HalfEdgeGraph.h"
 
 
 #include <cstdio>
@@ -48,6 +40,7 @@ using boost::polygon::high;
 
 #include "utils/gettime.h"
 
+using coord_t = arachne::coord_t;
 using pos_t = double;
 using vd_t = voronoi_diagram<pos_t>;
 
@@ -64,7 +57,7 @@ struct Point {
 struct Segment {
     Point p0;
     Point p1;
-    Segment(int x1, int y1, int x2, int y2) : p0(x1, y1), p1(x2, y2) {}
+    Segment(coord_t x1, coord_t y1, coord_t x2, coord_t y2) : p0(x1, y1), p1(x2, y2) {}
 };
 
 namespace boost {
@@ -77,11 +70,11 @@ struct geometry_concept<Point> {
 
 template <>
 struct point_traits<Point> {
-    typedef int coordinate_type;
+    typedef coord_t coordinate_type;
 
     static inline coordinate_type get(
             const Point& point, orientation_2d orient) {
-        return (orient == HORIZONTAL) ? point.X : point.Y;
+        return static_cast<coordinate_type>((orient == HORIZONTAL) ? point.X : point.Y);
     }
 };
 
@@ -92,7 +85,7 @@ struct geometry_concept<Segment> {
 
 template <>
 struct segment_traits<Segment> {
-    typedef int coordinate_type;
+    typedef coord_t coordinate_type;
     typedef Point point_type;
 
     static inline point_type get(const Segment& segment, direction_1d dir) {
@@ -138,7 +131,7 @@ void debugOutput(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::ve
     }
     
     
-    
+    printf("%zu edges\n", vd.edges().size());
     
     for (const vd_t::edge_type& edge : vd.edges())
     {
@@ -236,15 +229,18 @@ void debugOutput(voronoi_diagram<pos_t>& vd, std::vector<Point>& points, std::ve
         }
     }
     
-//     for (const vd_t::vertex_type& vert : vd.vertices())
-//     {
-//         svg.writePoint(Point(vert.x(), vert.y()), show_coords, 2, SVG::Color::RED);
-//     }
-    
-    for (const vd_t::cell_type& cell : vd.cells())
+    if (show_coords)
     {
-        
+        for (const vd_t::vertex_type& vert : vd.vertices())
+        {
+            svg.writePoint(Point(vert.x(), vert.y()), show_coords, 2, SVG::Color::RED);
+        }
     }
+    
+//     for (const vd_t::cell_type& cell : vd.cells())
+//     {
+//         
+//     }
 }
 
 Polygons generateTestPoly(size_t size, Point border)
@@ -533,7 +529,7 @@ int main() {
         
         std::vector<Point> points;
         std::vector<Segment> segments;
-//         segments = preconfigured();
+        segments = preconfigured();
         if (false)
         {
             for (arachne::PolygonRef poly : polys)
@@ -541,9 +537,9 @@ int main() {
                 Point last = poly.back();
                 for (arachne::Point p : poly)
                 {
-                    float m = 100.0;
+                    float m = 1.0;
                     segments.emplace_back(last.X*m, last.Y*m, p.X*m, p.Y*m);
-                    printf("segments.emplace_back(%d, %d, %d, %d);\n", last.X, last.Y, p.X, p.Y);
+//                     printf("segments.emplace_back(%d, %d, %d, %d);\n", last.X, last.Y, p.X, p.Y);
                     last = p;
                 }
             }
