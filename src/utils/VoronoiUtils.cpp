@@ -2,16 +2,39 @@
 
 #include <optional>
 
+
 #include "VoronoiUtils.h"
 
 #include "linearAlg2D.h"
 #include "SVG.h"
 
+using boost::polygon::low;
+using boost::polygon::high;
 
 namespace arachne 
 {
 
 using vd_t = voronoi_diagram<VoronoiUtils::voronoi_data_t>;
+
+/*
+Point VoronoiUtils::retrieve_point(const vd_t::cell_type& cell, std::vector<Point>& points, std::vector<Segment>& segments) {
+    size_t index = cell.source_index();
+    source_category_type category = cell.source_category();
+    if (category == SOURCE_CATEGORY_SINGLE_POINT)
+    {
+        return points[index];
+    }
+    index -= points.size();
+    if (category == SOURCE_CATEGORY_SEGMENT_START_POINT)
+    {
+        return low(segments[index]);
+    }
+    else
+    {
+        return high(segments[index]);
+    }
+}
+*/
 
 void VoronoiUtils::debugOutput(std::string filename, voronoi_diagram<voronoi_data_t>& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points, bool show_coords, bool show_parabola_generators)
 {
@@ -64,7 +87,8 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
             if (from_.X +from_.Y < to_.X + to_.Y) continue; // only process half of the half-edges
             if (edge.is_linear())
             {
-                svg.writeLine(Point(from->x(), from->y()), Point(to->x(), to->y()), SVG::Color::RED);
+                SVG::Color clr = (edge.is_primary())? SVG::Color::RED : SVG::Color::GREEN;
+                svg.writeLine(Point(from->x(), from->y()), Point(to->x(), to->y()), clr);
             }
             else
             {
@@ -88,11 +112,11 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
                     break;
                 case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
                     assert(point_cell.source_index() - points.size() < segments.size());
-                    point = segments[point_cell.source_index() - points.size()].from();
+                    point = segments[point_cell.source_index() - points.size()].to();
                     break;
                 case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
                     assert(point_cell.source_index() - points.size() < segments.size());
-                    point = segments[point_cell.source_index() - points.size()].to();
+                    point = segments[point_cell.source_index() - points.size()].from();
                     break;
                 default:
                     printf("WTF! Point is no point?!\n");

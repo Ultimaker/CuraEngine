@@ -11,6 +11,7 @@
 #include "utils/logoutput.h"
 #include "utils/polygon.h"
 #include "utils/gettime.h"
+#include "utils/SVG.h"
 
 #include "VoronoiQuadrilateralization.h"
 
@@ -34,19 +35,20 @@ Polygons generateTestPoly(size_t size, Point border)
 //     polys = polys.offset(border.X*2, ClipperLib::jtRound);
 //     polys = polys.offset(-border.X*1.8, ClipperLib::jtRound);
     
-    polys = polys.offset(-5, ClipperLib::jtRound);
-//     polys = polys.offset(10, ClipperLib::jtRound);
-//     polys = polys.offset(-5, ClipperLib::jtRound);
+    polys = polys.offset(-10, ClipperLib::jtRound);
+    polys = polys.offset(20, ClipperLib::jtRound);
+    polys = polys.offset(-10, ClipperLib::jtRound);
 //     polys = polys.offset(-border.X/200, ClipperLib::jtRound);
 //     polys = polys.offset(border.X/100, ClipperLib::jtRound);
 //     polys = polys.offset(-border.X/200, ClipperLib::jtRound);
     polys = polys.unionPolygons();
     return polys;
 }
-} // namespace arachne
 
 
-int main() {
+void test()
+{
+    
     // Preparing Input Geometries.
     int r;
     r = 1558617038;
@@ -55,16 +57,29 @@ int main() {
     r = 1558692831;
     srand(r);
     printf("random seed: %d\n", r);
-    arachne::logError("boost version: %s\n", BOOST_LIB_VERSION);
+    logError("boost version: %s\n", BOOST_LIB_VERSION);
     
     
     
-    arachne::Polygons polys = arachne::generateTestPoly(20, Point(10000, 10000));
+    Polygons polys = generateTestPoly(20, Point(10000, 10000));
+    {
+        SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
+        svg.writePolygons(polys);
+    }
     
-    arachne::TimeKeeper tk;
     
-    arachne::VoronoiQuadrilateralization vq(polys);
+    TimeKeeper tk;
     
-    arachne::logError("Toal processing took %fs\n", tk.restart());
+    VoronoiQuadrilateralization vq(polys);
+    
+    logError("Toal processing took %fs\n", tk.restart());
+}
+
+
+} // namespace arachne
+
+
+int main() {
+    arachne::test();
     return 0;
 }
