@@ -391,6 +391,11 @@ public:
         return path->end();
     }
 
+    ClipperLib::Path::reference front()
+    {
+        return path->front();
+    }
+
     ClipperLib::Path::reference back()
     {
         return path->back();
