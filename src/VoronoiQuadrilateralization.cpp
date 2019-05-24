@@ -1,6 +1,7 @@
 
 #include "VoronoiQuadrilateralization.h"
 
+#include "utils/VoronoiUtils.h"
 
 #include "utils/IntPoint.h"
 
@@ -68,9 +69,7 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
                                         segments.begin(), segments.end(),
                                         &vd);
 
-    // find edge crossing a polygon
-    
-    vd.edges();
+    VoronoiUtils::debugOutput("output/vd.svg", vd, points, segments);
 }
 
 } // namespace arachne

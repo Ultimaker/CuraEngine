@@ -8,7 +8,7 @@
 
 #include "utils/HalfEdgeGraph.h"
 #include "utils/polygon.h"
-#include "utils/PolygonsPointIndex.h"
+#include "utils/PolygonsSegmentIndex.h"
 #include "VoronoiQuadrilateralizationEdge.h"
 #include "VoronoiQuadrilateralizationJoint.h"
 
@@ -20,7 +20,7 @@ class VoronoiQuadrilateralization
     using pos_t = double;
     using vd_t = boost::polygon::voronoi_diagram<pos_t>;
 public:
-    using Segment = PolygonsPointIndex;
+    using Segment = PolygonsSegmentIndex;
     VoronoiQuadrilateralization(const Polygons& polys);
     HalfEdgeGraph<VoronoiQuadrilateralizationJoint, VoronoiQuadrilateralizationEdge> graph;
 };
