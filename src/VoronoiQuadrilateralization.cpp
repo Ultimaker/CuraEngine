@@ -325,10 +325,6 @@ SVG::Color VoronoiQuadrilateralization::getColor(edge_t& edge)
 
 void VoronoiQuadrilateralization::debugOutput(SVG& svg)
 {
-//     for (node_t& node : nodes)
-//     {
-//         svg.writePoint(node.p);
-//     }
     coord_t offset_length = 10;
     for (edge_t& edge : graph.edges)
     {
@@ -339,6 +335,10 @@ void VoronoiQuadrilateralization::debugOutput(SVG& svg)
         Point d = normal(ab, 3 * offset_length);
         svg.writeLine(a + n + d, b + n - d, getColor(edge));
         svg.writeLine(b + n - d, b + 2 * n - 2 * d, getColor(edge));
+    }
+    for (node_t& node : graph.nodes)
+    {
+        svg.writeText(node.p, std::to_string(node.data.distance_to_boundary));
     }
 }
 
