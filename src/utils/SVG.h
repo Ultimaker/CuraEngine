@@ -116,6 +116,8 @@ public:
 
     void writeArrow(const Point& a, const Point& b, ColorObject color = Color::BLACK, float stroke_width = 1, int rel_head_size_divisor = 20, coord_t offset = 20);
 
+    void writeArrow(const Point& a, const Point& b, Color color = Color::BLACK, float stroke_width = 1, int rel_head_size_divisor = 20, coord_t offset = 20);
+
     void writeLineRGB(const Point& from, const Point& to, int r = 0, int g = 0, int b = 0, float stroke_width = 1);
 
     /*!
