@@ -97,6 +97,40 @@ VoronoiQuadrilateralization::edge_t& VoronoiQuadrilateralization::make_edge(Poin
     return edge;
 }
 
+VoronoiQuadrilateralization::edge_t* VoronoiQuadrilateralization::make_rib(edge_t* prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+{
+    Point p = LinearAlg2D::getClosestOnLineSegment(prev_edge->to->p, start_source_point, end_source_point);
+    prev_edge->to->data.distance_to_boundary = vSize(prev_edge->to->p - p);
+    if (start_source_point != end_source_point
+        && is_next_to_start_or_end
+        && (shorterThen(p - start_source_point, rib_snap_distance)
+        || shorterThen(p - end_source_point, rib_snap_distance)))
+        {
+            return nullptr;
+        }
+    graph.nodes.emplace_front(VoronoiQuadrilateralizationJoint(), p);
+    node_t* node = &graph.nodes.front();
+    node->data.distance_to_boundary = 0;
+    
+    graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
+    edge_t* forth_edge = &graph.edges.front();
+    graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
+    edge_t* back_edge = &graph.edges.front();
+    
+    prev_edge->next = forth_edge;
+    forth_edge->prev = prev_edge;
+    forth_edge->from = prev_edge->to;
+    forth_edge->to = node;
+    forth_edge->twin = back_edge;
+    back_edge->twin = forth_edge;
+    back_edge->from = node;
+    back_edge->to = prev_edge->to;
+    node->some_edge = back_edge;
+    
+    return back_edge;
+
+}
+
 VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
 {
     std::vector<Point> points; // remains empty
@@ -218,8 +252,10 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
         edge_t* starting_edge = &make_edge(start_source_point, VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge);
         // starting_edge->prev = nullptr;
         starting_edge->from->data.distance_to_boundary = 0;
-        
-        edge_t* prev_edge = starting_edge;
+
+        edge_t* rib = make_rib(starting_edge, start_source_point, end_source_point, true);
+
+        edge_t* prev_edge = rib? rib : starting_edge;
         for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != ending_vd_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
@@ -228,35 +264,12 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
             edge_t* edge = &make_edge(v1, v2, *vd_edge);
             edge->prev = prev_edge;
             prev_edge->next = edge;
-            prev_edge = edge;
-            if (vd_edge->next() != ending_vd_edge)
-            {
-                Point p = LinearAlg2D::getClosestOnLineSegment(v2, start_source_point, end_source_point);
-                graph.nodes.emplace_front(VoronoiQuadrilateralizationJoint(), p);
-                node_t* node = &graph.nodes.front();
-                node->data.distance_to_boundary = 0;
-                
-                graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
-                edge_t* forth_edge = &graph.edges.front();
-                graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
-                edge_t* back_edge = &graph.edges.front();
-                
-                edge->next = forth_edge;
-                forth_edge->prev = edge;
-                forth_edge->from = edge->to;
-                forth_edge->to = node;
-                forth_edge->twin = back_edge;
-//                 foth_edge->next = nullptr;
-                back_edge->twin = forth_edge;
-                back_edge->from = node;
-                back_edge->to = edge->to;
-//                 back_edge->prev = nullptr;
-                node->some_edge = back_edge;
-                
-                prev_edge = back_edge;
-            }
+
+            edge_t* rib = make_rib(edge, start_source_point, end_source_point, vd_edge->next() == ending_vd_edge);
+
+            prev_edge = rib? rib : edge;
         }
-        
+
         edge_t* ending_edge = &make_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge);
         ending_edge->prev = prev_edge;
         prev_edge->next = ending_edge;
