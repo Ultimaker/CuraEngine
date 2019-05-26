@@ -99,7 +99,7 @@ const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_typ
     return segments[cell.source_index() - points.size()];
 }
 
-void VoronoiUtils::debugOutput(std::string filename, voronoi_diagram<voronoi_data_t>& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points, bool show_coords, bool show_parabola_generators)
+void VoronoiUtils::debugOutput(std::string filename, voronoi_diagram<voronoi_data_t>& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points, bool show_coords, bool show_parabola_generators, bool draw_arrows)
 {
     AABB aabb;
 //     for (const voronoi_diagram<voronoi_data_t>::vertex_type& vert : vd.vertices())
@@ -117,10 +117,10 @@ void VoronoiUtils::debugOutput(std::string filename, voronoi_diagram<voronoi_dat
     }
     SVG svg(filename.c_str(), aabb);
     
-    debugOutput(svg, vd, points, segments, draw_points, show_coords, show_parabola_generators);
+    debugOutput(svg, vd, points, segments, draw_points, show_coords, show_parabola_generators, draw_arrows);
 }
 
-void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points, bool show_coords, bool show_parabola_generators)
+void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points, bool show_coords, bool show_parabola_generators, bool draw_arrows)
 {
     
     for (const Point& p : points)
@@ -141,17 +141,16 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
     {
         const vd_t::vertex_type* from = edge.vertex0();
         const vd_t::vertex_type* to = edge.vertex1();
-        if (!to) continue; // only process half of the half-edges
         if (from && to)
         {
             Point from_(edge.vertex0()->x(), edge.vertex0()->y());
             Point to_(edge.vertex1()->x(), edge.vertex1()->y());
 //             printf("(%lld,%lld)-(%lld,%lld)\n", from_.X, from_.Y, to_.X, to_.Y);
-            if (from_.X +from_.Y < to_.X + to_.Y) continue; // only process half of the half-edges
+//             if (from_.X +from_.Y < to_.X + to_.Y) continue; // only process half of the half-edges
             if (edge.is_linear())
             {
                 SVG::Color clr = (edge.is_primary())? SVG::Color::RED : SVG::Color::GREEN;
-                svg.writeLine(Point(from->x(), from->y()), Point(to->x(), to->y()), clr);
+                svg.writeArrow(Point(from->x(), from->y()), Point(to->x(), to->y()), clr, 1, draw_arrows? 20 : 1000, draw_arrows? 20 : 0);
             }
             else
             {
@@ -169,22 +168,22 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
                 Point s = segment.to() - segment.from();
                 if ((dot(from_, s) < dot(point, s)) == (dot(to_, s) < dot(point, s)))
                 {
-                    svg.writeLine(from_, to_, SVG::Color::BLUE);
+                    svg.writeArrow(from_, to_, SVG::Color::BLUE, 1, draw_arrows? 20 : 1000, draw_arrows? 20 : 0);
                     mid = (from_ + to_) / 2;
                 }
                 else
                 {
                     Point projected = LinearAlg2D::getClosestOnLineSegment(point, segment.from(), segment.to());
                     mid = (point + projected) / 2;
-                    svg.writeLine(from_, mid, SVG::Color::BLUE);
-                    svg.writeLine(mid, to_, SVG::Color::BLUE);
+                    svg.writeArrow(from_, mid, SVG::Color::BLUE, 1, draw_arrows? 20 : 1000, draw_arrows? 20 : 0);
+                    svg.writeArrow(mid, to_, SVG::Color::BLUE, 1, draw_arrows? 20 : 1000, draw_arrows? 20 : 0);
                     //std::vector<Point> discretization;
                     //boost::polygon::voronoi_visual_utils<voronoi_data_t>::discretize(point, *segment, 10, &discretization)
                 }
                 if (show_parabola_generators)
                 {
                     svg.writeLine(mid, point, SVG::Color::GRAY);
-                    svg.writeLine(mid, (segment.from() + segment.to()) / 2, SVG::Color::GRAY);
+                    svg.writeLine(mid, LinearAlg2D::getClosestOnLineSegment(mid, segment.from(), segment.to()), SVG::Color::GRAY);
                 }
             }
         }
