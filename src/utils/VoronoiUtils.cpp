@@ -14,26 +14,6 @@ using boost::polygon::high;
 namespace arachne 
 {
 
-/*
-Point VoronoiUtils::retrieve_point(const vd_t::cell_type& cell, std::vector<Point>& points, std::vector<Segment>& segments) {
-    size_t index = cell.source_index();
-    source_category_type category = cell.source_category();
-    if (category == SOURCE_CATEGORY_SINGLE_POINT)
-    {
-        return points[index];
-    }
-    index -= points.size();
-    if (category == SOURCE_CATEGORY_SEGMENT_START_POINT)
-    {
-        return low(segments[index]);
-    }
-    else
-    {
-        return high(segments[index]);
-    }
-}
-*/
-
 Point VoronoiUtils::p(const vd_t::vertex_type* node)
 {
     return Point(node->x(), node->y());
@@ -94,10 +74,6 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
     switch (cell.source_category())
     {
     case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-        assert(cell.source_index() - points.size() < segments.size());
-        return segments[cell.source_index() - points.size()];
-        break;
-    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
     {
         assert(cell.source_index() - points.size() < segments.size());
         PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
@@ -105,10 +81,16 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
         return ret;
         break;
     }
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+    {
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()];
+        break;
+    }
     default:
         assert(false && "getSourcePoint should only be called on point cells!\n");
         break;
-    }\
+    }
 }
 
 const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
