@@ -9,6 +9,7 @@
 
 #include "utils/logoutput.h"
 
+#include "utils/macros.h"
 
 namespace boost {
 namespace polygon {
@@ -74,7 +75,7 @@ VoronoiQuadrilateralization::edge_t& VoronoiQuadrilateralization::make_edge(Poin
 {
     if (vd_edge.cell()->contains_point() || vd_edge.twin()->cell()->contains_point())
     {
-        logError("Discretizing segment not implemented yet.\n");
+        RUN_ONCE(logError("Discretizing segment not implemented yet.\n"));
     }
     
     graph.edges.emplace_front(VoronoiQuadrilateralizationEdge());
@@ -242,7 +243,7 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
-        graph.debugOutput(svg);
+        debugOutput(svg);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
 }
@@ -266,5 +267,39 @@ void VoronoiQuadrilateralization::debugCheckGraphCompleteness()
         assert(edge.prev || edge.from->data.distance_to_boundary == 0);
     }
 }
+
+SVG::Color VoronoiQuadrilateralization::getColor(edge_t& edge)
+{
+    switch (edge.data.type)
+    {
+        case VoronoiQuadrilateralizationEdge::EXTRA_VD:
+            return SVG::Color::ORANGE;
+        case VoronoiQuadrilateralizationEdge::TRANSITION_END:
+            return SVG::Color::BLUE;
+        case VoronoiQuadrilateralizationEdge::NORMAL:
+        default:
+            return SVG::Color::RED;
+    }
+}
+
+void VoronoiQuadrilateralization::debugOutput(SVG& svg)
+{
+//     for (node_t& node : nodes)
+//     {
+//         svg.writePoint(node.p);
+//     }
+    coord_t offset_length = 10;
+    for (edge_t& edge : graph.edges)
+    {
+        Point a = edge.from->p;
+        Point b = edge.to->p;
+        Point ab = b - a;
+        Point n = normal(turn90CCW(ab), offset_length);
+        Point d = normal(ab, 3 * offset_length);
+        svg.writeLine(a + n + d, b + n - d, getColor(edge));
+        svg.writeLine(b + n - d, b + 2 * n - 2 * d, getColor(edge));
+    }
+}
+
 
 } // namespace arachne

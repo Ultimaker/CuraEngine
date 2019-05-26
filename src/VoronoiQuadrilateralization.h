@@ -35,6 +35,8 @@ protected:
     edge_t& make_edge(Point from, Point to, vd_t::edge_type& vd_edge);
     coord_t snap_dist = 10;
     void debugCheckGraphCompleteness();
+    void debugOutput(SVG& svg);
+    SVG::Color getColor(edge_t& edge);
 };
 
 
