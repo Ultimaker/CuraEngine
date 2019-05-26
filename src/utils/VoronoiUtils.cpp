@@ -14,8 +14,6 @@ using boost::polygon::high;
 namespace arachne 
 {
 
-using vd_t = voronoi_diagram<VoronoiUtils::voronoi_data_t>;
-
 /*
 Point VoronoiUtils::retrieve_point(const vd_t::cell_type& cell, std::vector<Point>& points, std::vector<Segment>& segments) {
     size_t index = cell.source_index();
@@ -35,6 +33,89 @@ Point VoronoiUtils::retrieve_point(const vd_t::cell_type& cell, std::vector<Poin
     }
 }
 */
+
+Point VoronoiUtils::p(const vd_t::vertex_type* node)
+{
+    return Point(node->x(), node->y());
+}
+
+bool VoronoiUtils::isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist)
+{
+    if (cell.contains_point())
+    {
+        return shorterThen(p - getSourcePoint(cell, points, segments), snap_dist);
+    }
+    else
+    {
+        const Segment& segment = getSourceSegment(cell, points, segments);
+        return shorterThen(p - segment.from(), snap_dist) || shorterThen(p - segment.to(), snap_dist);
+    }
+}
+
+coord_t VoronoiUtils::getDistance(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
+{
+    if (cell.contains_point())
+    {
+        return vSize(p - getSourcePoint(cell, points, segments));
+    }
+    else
+    {
+        const Segment& segment = getSourceSegment(cell, points, segments);
+        return sqrt(LinearAlg2D::getDist2FromLineSegment(segment.from(), p, segment.to()));
+    }
+}
+
+Point VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
+{
+    assert(cell.contains_point());
+    switch (cell.source_category())
+    {
+    case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
+        return points[cell.source_index()];
+        break;
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()].to();
+        break;
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()].from();
+        break;
+    default:
+        assert(false && "getSourcePoint should only be called on point cells!\n");
+        break;
+    }
+}
+
+PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
+{
+    assert(cell.contains_point());
+    assert(cell.source_category() != boost::polygon::SOURCE_CATEGORY_SINGLE_POINT);
+    switch (cell.source_category())
+    {
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()];
+        break;
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+    {
+        assert(cell.source_index() - points.size() < segments.size());
+        PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
+        ++ret;
+        return ret;
+        break;
+    }
+    default:
+        assert(false && "getSourcePoint should only be called on point cells!\n");
+        break;
+    }\
+}
+
+const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
+{
+    assert(cell.contains_segment());
+    return segments[cell.source_index() - points.size()];
+}
 
 void VoronoiUtils::debugOutput(std::string filename, voronoi_diagram<voronoi_data_t>& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points, bool show_coords, bool show_parabola_generators)
 {
@@ -99,53 +180,28 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
                 const vd_t::cell_type& segment_cell = (left_cell.contains_segment())? left_cell : right_cell;
                 const vd_t::cell_type& point_cell = (left_cell.contains_point())? left_cell : right_cell;
                 
-                std::optional<Point> point;
-                int segment_idx = segment_cell.source_index() - points.size();
-//                 if (segment_idx >= segments.size()) continue;
-                assert(segment_idx < segments.size());
-                Segment& segment = segments[segment_idx];
+                Point point = getSourcePoint(point_cell, points, segments);
+                const Segment& segment = getSourceSegment(segment_cell, points, segments);
                 
-                switch (point_cell.source_category())
-                {
-                case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
-                    point = points[point_cell.source_index()];
-                    break;
-                case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-                    assert(point_cell.source_index() - points.size() < segments.size());
-                    point = segments[point_cell.source_index() - points.size()].to();
-                    break;
-                case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
-                    assert(point_cell.source_index() - points.size() < segments.size());
-                    point = segments[point_cell.source_index() - points.size()].from();
-                    break;
-                default:
-                    printf("WTF! Point is no point?!\n");
-                    break;
-                }
-                if (!point)
-                {
-                    printf("WTF! Cannot make arc!\n");
-                    continue;
-                }
                 Point mid;
                 Point s = segment.to() - segment.from();
-                if ((dot(from_, s) < dot(*point, s)) == (dot(to_, s) < dot(*point, s)))
+                if ((dot(from_, s) < dot(point, s)) == (dot(to_, s) < dot(point, s)))
                 {
                     svg.writeLine(from_, to_, SVG::Color::BLUE);
                     mid = (from_ + to_) / 2;
                 }
                 else
                 {
-                    Point projected = LinearAlg2D::getClosestOnLineSegment(*point, segment.from(), segment.to());
-                    mid = (*point + projected) / 2;
+                    Point projected = LinearAlg2D::getClosestOnLineSegment(point, segment.from(), segment.to());
+                    mid = (point + projected) / 2;
                     svg.writeLine(from_, mid, SVG::Color::BLUE);
                     svg.writeLine(mid, to_, SVG::Color::BLUE);
                     //std::vector<Point> discretization;
-                    //boost::polygon::voronoi_visual_utils<voronoi_data_t>::discretize(*point, *segment, 10, &discretization)
+                    //boost::polygon::voronoi_visual_utils<voronoi_data_t>::discretize(point, *segment, 10, &discretization)
                 }
                 if (show_parabola_generators)
                 {
-                    svg.writeLine(mid, *point, SVG::Color::GRAY);
+                    svg.writeLine(mid, point, SVG::Color::GRAY);
                     svg.writeLine(mid, (segment.from() + segment.to()) / 2, SVG::Color::GRAY);
                 }
             }
