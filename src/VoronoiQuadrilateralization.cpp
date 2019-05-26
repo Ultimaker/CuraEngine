@@ -223,10 +223,38 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
         for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != ending_vd_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
-            edge_t* edge = &make_edge(VoronoiUtils::p(vd_edge->vertex0()), VoronoiUtils::p(vd_edge->vertex1()), *vd_edge);
+            Point v1 = VoronoiUtils::p(vd_edge->vertex0());
+            Point v2 = VoronoiUtils::p(vd_edge->vertex1());
+            edge_t* edge = &make_edge(v1, v2, *vd_edge);
             edge->prev = prev_edge;
             prev_edge->next = edge;
             prev_edge = edge;
+            if (vd_edge->next() != ending_vd_edge)
+            {
+                Point p = LinearAlg2D::getClosestOnLineSegment(v2, start_source_point, end_source_point);
+                graph.nodes.emplace_front(VoronoiQuadrilateralizationJoint(), p);
+                node_t* node = &graph.nodes.front();
+                node->data.distance_to_boundary = 0;
+                
+                graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
+                edge_t* forth_edge = &graph.edges.front();
+                graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
+                edge_t* back_edge = &graph.edges.front();
+                
+                edge->next = forth_edge;
+                forth_edge->prev = edge;
+                forth_edge->from = edge->to;
+                forth_edge->to = node;
+                forth_edge->twin = back_edge;
+//                 foth_edge->next = nullptr;
+                back_edge->twin = forth_edge;
+                back_edge->from = node;
+                back_edge->to = edge->to;
+//                 back_edge->prev = nullptr;
+                node->some_edge = back_edge;
+                
+                prev_edge = back_edge;
+            }
         }
         
         edge_t* ending_edge = &make_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge);
@@ -237,15 +265,15 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
         
         
     }
-    
-    debugCheckGraphCompleteness();
-    
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
         debugOutput(svg);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
+
+
+    debugCheckGraphCompleteness();
 }
 
 void VoronoiQuadrilateralization::debugCheckGraphCompleteness()
