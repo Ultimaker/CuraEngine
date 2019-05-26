@@ -83,11 +83,14 @@ VoronoiQuadrilateralization::edge_t& VoronoiQuadrilateralization::make_edge(Poin
     
     edge.from = &make_node(*vd_edge.vertex0(), from);
     edge.to = &make_node(*vd_edge.vertex1(), to);
+    edge.from->some_edge = &edge;
+    edge.to->some_edge = &edge;
     
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
     {
         edge.twin = he_edge_it->second;
+        he_edge_it->second->twin = &edge;
     }
     
     return edge;
@@ -118,14 +121,17 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
     
     for (vd_t::cell_type cell : vd.cells())
     {
+        Point start_source_point;
+        Point end_source_point;
+        vd_t::edge_type* starting_vd_edge = nullptr;
+        vd_t::edge_type* ending_vd_edge = nullptr;
+        
         if (cell.contains_segment())
         {
             const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
 //             printf("source segment: (%lld, %lld) - (%lld, %lld)\n", source_segment.from().X, source_segment.from().Y, source_segment.to().X, source_segment.to().Y);
             // find starting edge
             // find end edge
-            vd_t::edge_type* starting_vd_edge = nullptr;
-            vd_t::edge_type* ending_vd_edge = nullptr;
             bool first = true;
             for (vd_t::edge_type* edge = cell.incident_edge(); edge != cell.incident_edge() || first; edge = edge->next())
             {
@@ -137,6 +143,8 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
 //                 printf("edge: (%f, %f) - (%f, %f)\n", edge->vertex0()->x(), edge->vertex0()->y(), edge->vertex1()->x(), edge->vertex1()->y());
                 if (false && edge->is_secondary())
                 { // edge crosses source segment
+                    // TODO: handle the case where two consecutive line segments are collinear!
+                    // that's the only case where a voronoi segment doesn't end in a polygon vertex, but goes though it
                     if (LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex1()), source_segment.from(), source_segment.to()))
                     {
                         ending_vd_edge = edge;
@@ -162,30 +170,8 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
             assert(starting_vd_edge && ending_vd_edge);
             assert(starting_vd_edge != ending_vd_edge);
             
-            Point start_source_point = source_segment.to();
-            Point end_source_point = source_segment.from();
-            
-            
-            edge_t& starting_edge = make_edge(start_source_point, VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge);
-            starting_edge.prev = starting_edge.twin;
-            
-            edge_t* prev_edge = &starting_edge;
-            for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != ending_vd_edge; vd_edge = vd_edge->next())
-            {
-                assert(vd_edge->is_finite());
-                edge_t* edge = &make_edge(VoronoiUtils::p(vd_edge->vertex0()), VoronoiUtils::p(vd_edge->vertex1()), *vd_edge);
-                edge->prev = prev_edge;
-                prev_edge->next = edge;
-                prev_edge = edge;
-            }
-            
-            edge_t* ending_edge = &make_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge);
-            ending_edge->prev = prev_edge;
-            prev_edge->next = ending_edge;
-            ending_edge->next = ending_edge->twin;
-            
-            
-            // copy start to end edge to graph
+            start_source_point = source_segment.to();
+            end_source_point = source_segment.from();
         }
         else
         {
@@ -203,32 +189,81 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
             {
                 some_point = VoronoiUtils::p(cell.incident_edge()->vertex1());
             }
-            if (LinearAlg2D::isInsideCorner(source_point_index.prev().p(), source_point_index.p(), source_point_index.next().p(), some_point))
-            { // cell is inside polygon
-                
-                vd_t::edge_type* starting_vd_edge = cell.incident_edge();
-                edge_t& starting_edge = make_edge(VoronoiUtils::p(starting_vd_edge->vertex0()), VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge);
-                
-                edge_t* prev_edge = &starting_edge;
-                for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != starting_vd_edge; vd_edge = vd_edge->next())
-                {
-                    assert(vd_edge->is_finite());
-                    edge_t* edge = &make_edge(VoronoiUtils::p(vd_edge->vertex0()), VoronoiUtils::p(vd_edge->vertex1()), *vd_edge);
-                    edge->prev = prev_edge;
-                    prev_edge->next = edge;
-                    prev_edge = edge;
-                }
-                starting_edge.prev = prev_edge;
-                prev_edge->next = &starting_edge;
+            if (!LinearAlg2D::isInsideCorner(source_point_index.prev().p(), source_point_index.p(), source_point_index.next().p(), some_point))
+            { // cell is outside of polygon
+                continue; // don't copy any part of this cell
             }
+            bool first = true;
+            for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != starting_vd_edge || first; vd_edge = vd_edge->next())
+            {
+                assert(vd_edge->is_finite());
+                Point p1 = VoronoiUtils::p(vd_edge->vertex1());
+                if (shorterThen(p1 - source_point, snap_dist))
+                {
+                    start_source_point = source_point;
+                    end_source_point = source_point;
+                    starting_vd_edge = vd_edge->next();
+                    ending_vd_edge = vd_edge;
+                }
+                first = false;
+            }
+            assert(starting_vd_edge && ending_vd_edge);
+            assert(starting_vd_edge != ending_vd_edge);
         }
+        
+        // copy start to end edge to graph
+        
+        
+        edge_t* starting_edge = &make_edge(start_source_point, VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge);
+        // starting_edge->prev = nullptr;
+        starting_edge->from->data.distance_to_boundary = 0;
+        
+        edge_t* prev_edge = starting_edge;
+        for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != ending_vd_edge; vd_edge = vd_edge->next())
+        {
+            assert(vd_edge->is_finite());
+            edge_t* edge = &make_edge(VoronoiUtils::p(vd_edge->vertex0()), VoronoiUtils::p(vd_edge->vertex1()), *vd_edge);
+            edge->prev = prev_edge;
+            prev_edge->next = edge;
+            prev_edge = edge;
+        }
+        
+        edge_t* ending_edge = &make_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge);
+        ending_edge->prev = prev_edge;
+        prev_edge->next = ending_edge;
+        // ending_edge->next = nullptr;
+        ending_edge->to->data.distance_to_boundary = 0;
+        
+        
     }
+    
+    debugCheckGraphCompleteness();
     
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
         graph.debugOutput(svg);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
+    }
+}
+
+void VoronoiQuadrilateralization::debugCheckGraphCompleteness()
+{
+    for (const node_t& node : graph.nodes)
+    {
+        if (!node.some_edge)
+        {
+            assert(false);
+        }
+    }
+    for (const edge_t& edge : graph.edges)
+    {
+        if (!edge.twin || !edge.from || !edge.to)
+        {
+            assert(false);
+        }
+        assert(edge.next || edge.to->data.distance_to_boundary == 0);
+        assert(edge.prev || edge.from->data.distance_to_boundary == 0);
     }
 }
 

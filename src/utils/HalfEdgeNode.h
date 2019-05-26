@@ -22,7 +22,7 @@ class HalfEdgeNode
 public:
     node_data_t data;
     Point p;
-    edge_t* some_edge;
+    edge_t* some_edge = nullptr;
     HalfEdgeNode(node_data_t data, Point p)
     : data(data)
     , p(p)

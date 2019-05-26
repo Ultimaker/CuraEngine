@@ -15,6 +15,7 @@ public:
     coord_t distance_to_boundary;
     float bead_count;
     VoronoiQuadrilateralizationJoint()
+    : distance_to_boundary(-1)
     {}
 };
 

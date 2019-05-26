@@ -6,6 +6,7 @@
 
 
 #include <forward_list>
+#include <cassert>
 
 
 
@@ -27,6 +28,8 @@ public:
 
     void debugOutput(std::string filename);
     void debugOutput(SVG& svg);
+
+    bool bedugCheckDataCompleteness() const;
 };
 
 
@@ -55,6 +58,32 @@ void HalfEdgeGraph<node_data_t, edge_data_t>::debugOutput(SVG& svg)
     {
         svg.writeLine(edge.from->p, edge.to->p, SVG::Color::RED);
     }
+}
+
+
+template<class node_data_t, class edge_data_t>
+bool HalfEdgeGraph<node_data_t, edge_data_t>::bedugCheckDataCompleteness() const
+{
+    size_t problems = 0;
+    for (const node_t& node : nodes)
+    {
+        if (!node.some_edge)
+        {
+            problems++;
+            assert(false);
+        }
+    }
+    for (const edge_t& edge : edges)
+    {
+        if (!edge.twin || !edge.next || !edge.prev || !edge.from || !edge.to)
+        {
+            problems++;
+            assert(false);
+        }
+    }
+    
+    assert(problems == 0);
+    return problems == 0;
 }
 
 

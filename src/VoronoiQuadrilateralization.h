@@ -33,6 +33,8 @@ protected:
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
     node_t& make_node(vd_t::vertex_type& vd_node, Point p);
     edge_t& make_edge(Point from, Point to, vd_t::edge_type& vd_edge);
+    coord_t snap_dist = 10;
+    void debugCheckGraphCompleteness();
 };
 
 

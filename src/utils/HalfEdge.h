@@ -20,11 +20,11 @@ class HalfEdge
     using node_t = HalfEdgeNode<node_data_t, edge_data_t>;
 public:
     edge_data_t data;
-    edge_t* twin;
-    edge_t* next;
-    edge_t* prev;
-    node_t* from;
-    node_t* to;
+    edge_t* twin = nullptr;
+    edge_t* next = nullptr;
+    edge_t* prev = nullptr;
+    node_t* from = nullptr;
+    node_t* to = nullptr;
     HalfEdge(edge_data_t data)
     : data(data)
     {}
