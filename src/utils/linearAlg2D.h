@@ -355,6 +355,15 @@ public:
         Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
         return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
     }
+
+    /*!
+     * Test whether a point is inside a corner.
+     * Whether point \p query_point is left of the corner abc.
+     * Whether the \p query_point is in the circle half left of ab and left of bc, rather than to the right.
+     * 
+     * Test whether the \p query_point is inside of a polygon w.r.t a single corner.
+     */
+    static bool isInsideCorner(const Point a, const Point b, const Point c, const Point query_point);
 };
 
 

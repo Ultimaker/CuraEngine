@@ -210,4 +210,25 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
     return px_size2;
 }
 
+bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, const Point q)
+{
+    constexpr coord_t normal_length = 10000;
+    Point ba = normal(a - b, normal_length);
+    Point bc = normal(c - b, normal_length);
+    Point bq = q - b;
+    Point n = turn90CCW(bq);
+    coord_t anx = dot(ba, n);
+    coord_t cnx = dot(bc, n);
+    if ((anx > 0) != (cnx > 0))
+    {
+        return anx > 0;
+    }
+    else
+    {
+        coord_t ax = dot(ba, bq);
+        coord_t cx = dot(bc, bq);
+        return (cx < ax) == (anx > 0);
+    }
+}
+
 } // namespace cura
