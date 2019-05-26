@@ -9,22 +9,25 @@
 namespace arachne
 {
 
-template<typename node_t, typename edge_t>
+template<typename node_data_t, typename edge_data_t>
 class HalfEdgeNode;
 
 
-template<typename node_t, typename edge_t>
+template<typename node_data_t, typename edge_data_t>
 class HalfEdge
 {
-    using edge_it = typename std::forward_list<HalfEdge<node_t, edge_t>>::iterator;
-    using node_it = typename std::forward_list<HalfEdgeNode<node_t, edge_t>>::iterator;
+    using edge_t = HalfEdge<node_data_t, edge_data_t>;
+    using node_t = HalfEdgeNode<node_data_t, edge_data_t>;
 public:
-    edge_t data;
-    edge_it twin;
-    edge_it next;
-    edge_it prev;
-    node_it from;
-    node_it to;
+    edge_data_t data;
+    edge_t* twin;
+    edge_t* next;
+    edge_t* prev;
+    node_t* from;
+    node_t* to;
+    HalfEdge(edge_data_t data)
+    : data(data)
+    {}
 };
 
 

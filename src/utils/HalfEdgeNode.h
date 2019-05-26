@@ -6,19 +6,27 @@
 
 #include <list>
 
+#include "IntPoint.h"
+
 namespace arachne
 {
 
-template<typename node_t, typename edge_t>
+template<typename node_data_t, typename edge_data_t>
 class HalfEdge;
 
-template<typename node_t, typename edge_t>
+template<typename node_data_t, typename edge_data_t>
 class HalfEdgeNode
 {
-    using edge_it = typename std::forward_list<HalfEdge<node_t, edge_t>>::iterator;
+    using edge_t = HalfEdge<node_data_t, edge_data_t>;
+    using node_t = HalfEdgeNode<node_data_t, edge_data_t>;
 public:
-    node_t data;
-    edge_it some_edge;
+    node_data_t data;
+    Point p;
+    edge_t* some_edge;
+    HalfEdgeNode(node_data_t data, Point p)
+    : data(data)
+    , p(p)
+    {}
 };
 
 
