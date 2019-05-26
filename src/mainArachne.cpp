@@ -59,9 +59,9 @@ void generateTestPolys()
     poly.emplace_back(1000, 5000);
     poly.emplace_back(0, 3000);
     PolygonRef hole = test_poly_1.newPoly();
-    hole.emplace_back(500,500);
-    hole.emplace_back(600,500);
-    hole.emplace_back(650,450);
+    hole.emplace_back(1000,1000);
+    hole.emplace_back(1100,900);
+    hole.emplace_back(1000,900);
 }
 
 void test()
