@@ -1,6 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 
 #include <optional>
+#include <stack>
 
 
 #include "VoronoiUtils.h"
@@ -223,11 +224,115 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
 }
 
 
-std::vector<Point> VoronoiUtils::discretizeParabola(Point generator_point, Segment generator_segment, Point start, Point end, coord_t approximate_step_size)
+std::vector<Point> VoronoiUtils::discretizeParabola(const Point& point, const Segment& segment, Point start, Point end, coord_t approximate_step_size)
 {
     std::vector<Point> discretized;
     
+    discretized.emplace_back(start);
+    discretized.emplace_back(end);
+    
+    discretize(point, segment, approximate_step_size, &discretized);
+    
     return discretized;
 }
+
+
+// adapted from boost::polygon::voronoi_visual_utils.cpp
+void VoronoiUtils::discretize(
+        const Point& point,
+        const Segment& segment,
+        const coord_t max_dist,
+        std::vector<Point>* discretization) {
+    // Apply the linear transformation to move start point of the segment to
+    // the point with coordinates (0, 0) and the direction of the segment to
+    // coincide the positive direction of the x-axis.
+    coord_t segm_vec_x = cast(segment.to().X) - cast(segment.from().X);
+    coord_t segm_vec_y = cast(segment.to().Y) - cast(segment.from().Y);
+    coord_t sqr_segment_length = segm_vec_x * segm_vec_x + segm_vec_y * segm_vec_y;
+
+    // Compute x-coordinates of the endpoints of the edge
+    // in the transformed space.
+    coord_t projection_start = sqr_segment_length *
+            get_point_projection((*discretization)[0], segment);
+    coord_t projection_end = sqr_segment_length *
+            get_point_projection((*discretization)[1], segment);
+
+    // Compute parabola parameters in the transformed space.
+    // Parabola has next representation:
+    // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
+    coord_t point_vec_x = cast(point.X) - cast(segment.from().X);
+    coord_t point_vec_y = cast(point.Y) - cast(segment.from().Y);
+    coord_t rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
+    coord_t rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
+
+    // Save the last point.
+    Point last_point = (*discretization)[1];
+    discretization->pop_back();
+
+    // Use stack to avoid recursion.
+    std::stack<coord_t> point_stack;
+    point_stack.push(projection_end);
+    coord_t cur_x = projection_start;
+    coord_t cur_y = parabola_y(cur_x, rot_x, rot_y);
+
+    // Adjust max_dist parameter in the transformed space.
+    const coord_t max_dist_transformed = max_dist * max_dist * sqr_segment_length;
+    while (!point_stack.empty()) {
+        coord_t new_x = point_stack.top();
+        coord_t new_y = parabola_y(new_x, rot_x, rot_y);
+
+        // Compute coordinates of the point of the parabola that is
+        // furthest from the current line segment.
+        coord_t mid_x = (new_y - cur_y) / (new_x - cur_x) * rot_y + rot_x;
+        coord_t mid_y = parabola_y(mid_x, rot_x, rot_y);
+
+        // Compute maximum distance between the given parabolic arc
+        // and line segment that discretize it.
+        coord_t dist = (new_y - cur_y) * (mid_x - cur_x) -
+                (new_x - cur_x) * (mid_y - cur_y);
+        dist = dist * dist / ((new_y - cur_y) * (new_y - cur_y) +
+                (new_x - cur_x) * (new_x - cur_x));
+        if (dist <= max_dist_transformed) {
+            // Distance between parabola and line segment is less than max_dist.
+            point_stack.pop();
+            coord_t inter_x = (segm_vec_x * new_x - segm_vec_y * new_y) /
+                    sqr_segment_length + cast(segment.from().X);
+            coord_t inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) /
+                    sqr_segment_length + cast(segment.from().Y);
+            discretization->push_back(Point(inter_x, inter_y));
+            cur_x = new_x;
+            cur_y = new_y;
+        } else {
+            point_stack.push(mid_x);
+        }
+    }
+
+    // Update last point.
+    discretization->back() = last_point;
+}
+
+// adapted from boost::polygon::voronoi_visual_utils.cpp
+coord_t VoronoiUtils::parabola_y(coord_t x, coord_t a, coord_t b) {
+    return ((x - a) * (x - a) + b * b) / (b + b);
+}
+
+// adapted from boost::polygon::voronoi_visual_utils.cpp
+coord_t VoronoiUtils::get_point_projection(
+        const Point& point, const Segment& segment) {
+    coord_t segment_vec_x = cast(segment.to().X) - cast(segment.from().X);
+    coord_t segment_vec_y = cast(segment.to().Y) - cast(segment.from().Y);
+    coord_t point_vec_x = point.X - cast(segment.from().X);
+    coord_t point_vec_y = point.Y - cast(segment.from().Y);
+    coord_t sqr_segment_length =
+            segment_vec_x * segment_vec_x + segment_vec_y * segment_vec_y;
+    coord_t vec_dot = segment_vec_x * point_vec_x + segment_vec_y * point_vec_y;
+    return vec_dot / sqr_segment_length;
+}
+
+template <typename Incoord_t>
+coord_t VoronoiUtils::cast(const Incoord_t& value) {
+    return static_cast<coord_t>(value);
+}
+
 
 }//namespace arachne

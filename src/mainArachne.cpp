@@ -14,6 +14,7 @@
 #include "utils/SVG.h"
 
 #include "VoronoiQuadrangulation.h"
+#include "utils/VoronoiUtils.h"
 
 using arachne::Point;
 
@@ -46,6 +47,7 @@ Polygons generateTestPoly(size_t size, Point border)
 }
 
 static Polygons test_poly_1;
+static Polygons parabola_dip;
 
 void generateTestPolys()
 {
@@ -62,6 +64,31 @@ void generateTestPolys()
     hole.emplace_back(1000,1000);
     hole.emplace_back(1100,900);
     hole.emplace_back(1000,900);
+
+    PolygonRef parabola_dip_1 = parabola_dip.newPoly();
+    parabola_dip_1.emplace_back(0, 1000);
+    parabola_dip_1.emplace_back(0, 0);
+    parabola_dip_1.emplace_back(1000, 0);
+    parabola_dip_1.emplace_back(1000, 1000);
+    parabola_dip_1.emplace_back(550, 1000);
+    parabola_dip_1.emplace_back(500, 500);
+    parabola_dip_1.emplace_back(450, 1000);
+}
+
+void testUtils()
+{
+    coord_t step_size = 10;
+    std::vector<Point> discretization = VoronoiUtils::discretizeParabola(Point(500,500), VoronoiUtils::Segment(&parabola_dip, 0, 1), Point(0, 500), Point(1000, 500), step_size);
+    printf("discretization size: %zu", discretization.size());
+    
+    {
+        SVG svg("output/discretized.svg", AABB(parabola_dip));
+        svg.writePolygons(parabola_dip);
+        for (size_t point_idx = 1; point_idx < discretization.size(); point_idx++)
+        {
+            svg.writeLine(discretization[point_idx - 1], discretization[point_idx], SVG::Color::RED);
+        }
+    }
 }
 
 void test()
@@ -77,7 +104,6 @@ void test()
     printf("random seed: %d\n", r);
     logError("boost version: %s\n", BOOST_LIB_VERSION);
     
-    generateTestPolys();
     
     
 //     Polygons polys = generateTestPoly(20, Point(10000, 10000));
@@ -100,6 +126,8 @@ void test()
 
 
 int main() {
-    arachne::test();
+     arachne::generateTestPolys();
+//     arachne::test();
+    arachne::testUtils();
     return 0;
 }
