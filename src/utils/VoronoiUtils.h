@@ -25,7 +25,7 @@ public:
     using Segment = PolygonsSegmentIndex;
     using voronoi_data_t = double;
     using vd_t = voronoi_diagram<voronoi_data_t>;
-    static void debugOutput(std::string filename, vd_t& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points = false, bool show_coords = true, bool show_parabola_generators = true, bool draw_arrows = false);
+    static void debugOutput(std::string filename, vd_t& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points = false, bool show_coords = true, bool show_parabola_generators = false, bool draw_arrows = false);
     static void debugOutput(SVG& svg, vd_t& vd, std::vector<Point>& points, std::vector<Segment>& segments, bool draw_points = false, bool show_coords = false, bool show_parabola_generators = false, bool draw_arrows = false);
 
     static Point getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments);
