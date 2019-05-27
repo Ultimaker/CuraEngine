@@ -80,27 +80,6 @@ void generateTestPolys()
     }
 }
 
-void testUtils()
-{
-    coord_t step_size = 100;
-    coord_t start_x = 300;
-    coord_t end_x = 1500;
-    PointMatrix rot(25.0);
-    Point start = rot.apply(Point(start_x, (start_x - 500) * (start_x - 500) / 2 / 500 + 500 / 2));
-    Point end = rot.apply(Point(end_x, (end_x  - 500) * (end_x  - 500) / 2 / 500 + 500 / 2));
-    std::vector<Point> discretization = VoronoiUtils::discretizeParabola(parabola_dip[0][5], VoronoiUtils::Segment(&parabola_dip, 0, 1), start, end, step_size);
-    printf("discretization size: %zu", discretization.size());
-    
-    {
-        SVG svg("output/discretized.svg", AABB(parabola_dip));
-        svg.writePolygons(parabola_dip);
-        for (size_t point_idx = 1; point_idx < discretization.size(); point_idx++)
-        {
-            svg.writeArrow(discretization[point_idx - 1], discretization[point_idx], SVG::Color::RED);
-        }
-    }
-}
-
 void test()
 {
     
@@ -136,8 +115,7 @@ void test()
 
 
 int main() {
-     arachne::generateTestPolys();
-//     arachne::test();
-    arachne::testUtils();
+    arachne::generateTestPolys();
+    arachne::test();
     return 0;
 }
