@@ -25,9 +25,9 @@ class VoronoiQuadrangulation
     using edge_t = HalfEdge<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
     using node_t = HalfEdgeNode<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
 
-    coord_t snap_dist = 10; // generic arithmatic inaccuracy
+    coord_t snap_dist = 20; // generic arithmatic inaccuracy
     coord_t rib_snap_distance = 100; // smallest segment cut off of an outline segment by an introduced rib. smaller than this the rib is canceled because it lies too close to an existing edge
-    coord_t discretization_step_size = 300;
+    coord_t discretization_step_size = 400;
 public:
     using Segment = PolygonsSegmentIndex;
     VoronoiQuadrangulation(const Polygons& polys);

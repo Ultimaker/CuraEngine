@@ -36,18 +36,20 @@ Polygons generateTestPoly(size_t size, Point border)
 //     polys = polys.offset(border.X*2, ClipperLib::jtRound);
 //     polys = polys.offset(-border.X*1.8, ClipperLib::jtRound);
     
-    polys = polys.offset(-10, ClipperLib::jtRound);
-    polys = polys.offset(20, ClipperLib::jtRound);
-    polys = polys.offset(-10, ClipperLib::jtRound);
-//     polys = polys.offset(-border.X/200, ClipperLib::jtRound);
-//     polys = polys.offset(border.X/100, ClipperLib::jtRound);
-//     polys = polys.offset(-border.X/200, ClipperLib::jtRound);
+//     polys = polys.offset(-10, ClipperLib::jtRound);
+//     polys = polys.offset(20, ClipperLib::jtRound);
+//     polys = polys.offset(-10, ClipperLib::jtRound);
+    polys = polys.offset(-border.X/200, ClipperLib::jtRound);
+    polys = polys.offset(border.X/100, ClipperLib::jtRound);
+    polys = polys.offset(-border.X/200, ClipperLib::jtRound);
     polys = polys.unionPolygons();
     return polys;
 }
 
 static Polygons test_poly_1;
 static Polygons parabola_dip;
+static Polygons circle;
+static Polygons circle_flawed;
 
 void generateTestPolys()
 {
@@ -78,6 +80,23 @@ void generateTestPolys()
     {
         p = rot.apply(p);
     }
+    
+    PolygonRef circle_1 = circle.newPoly();
+    coord_t r = 10000;
+    for (float a = 0; a < 360; a += 10)
+    {
+        float rad = a / 180 * M_PI;
+        circle_1.emplace_back(r * cos(rad), r * sin(rad));
+    }
+    
+    PolygonRef circle_flawed_1 = circle_flawed.newPoly();
+    for (float a = 0; a < 360; a += 10)
+    {
+        r = 10000 + rand() % 5000;
+        a += (rand() % 100) / 50.0;
+        float rad = a / 180 * M_PI;
+        circle_flawed_1.emplace_back(r * cos(rad), r * sin(rad));
+    }
 }
 
 void test()
@@ -88,15 +107,21 @@ void test()
     r = 1558617038;
     r = time(0);
 //     r = 1558618076;
-    r = 1558692831;
+//     r = 1558692831;
+//     r = 1558983814;
+//     r = 1558985782;
     srand(r);
-    printf("random seed: %d\n", r);
+    logError("    r = %d;\n", r);
     logError("boost version: %s\n", BOOST_LIB_VERSION);
     
     
     
-//     Polygons polys = generateTestPoly(20, Point(10000, 10000));
-    Polygons polys = test_poly_1;
+    generateTestPolys();
+    Polygons polys = generateTestPoly(6, Point(10000, 10000));
+//     Polygons polys = test_poly_1;
+//     Polygons polys = parabola_dip;
+//     Polygons polys = circle;
+//     Polygons polys = circle_flawed;
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
         svg.writePolygons(polys);
@@ -115,7 +140,6 @@ void test()
 
 
 int main() {
-    arachne::generateTestPolys();
     arachne::test();
     return 0;
 }
