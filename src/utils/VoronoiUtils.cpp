@@ -242,7 +242,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     Point ap = p - a;
     coord_t px = dot(ap, ab) / ab_size;
     
-    Point pxx = LinearAlg2D::getClosestOnLineSegment(p, a, b);
+    Point pxx = LinearAlg2D::getClosestOnLine(p, a, b);
     Point ppxx = pxx - p;
     coord_t d = vSize(ppxx);
     PointMatrix rot = PointMatrix(turn90CCW(ppxx));

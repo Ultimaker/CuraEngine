@@ -94,7 +94,7 @@ public:
     }
 
     /*!
-    * Find the point closest to \p from on the line from \p p0 to \p p1
+    * Find the point closest to \p from on the line segment from \p p0 to \p p1
     */
     static Point getClosestOnLineSegment(const Point& from, const Point& p0, const Point& p1)
     {
@@ -127,6 +127,18 @@ public:
             //vSize(direction) * vSize(direction) == vSize2(direction) == x_p1.
             return p0 + projected_x * direction / x_p1;
         }
+    }
+
+    /*!
+    * Find the point closest to \p from on the line through \p p0 to \p p1
+    */
+    static Point getClosestOnLine(const Point& from, const Point& p0, const Point& p1)
+    {
+        const Point direction = p1 - p0;
+        const Point to_from = from - p0;
+        const coord_t projected_x = dot(to_from, direction);
+        Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
+        return ret;
     }
 
     /*!
