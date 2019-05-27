@@ -83,7 +83,7 @@ void generateTestPolys()
 void testUtils()
 {
     coord_t step_size = 100;
-    coord_t start_x = 330;
+    coord_t start_x = 300;
     coord_t end_x = 1500;
     PointMatrix rot(25.0);
     Point start = rot.apply(Point(start_x, (start_x - 500) * (start_x - 500) / 2 / 500 + 500 / 2));
@@ -96,7 +96,7 @@ void testUtils()
         svg.writePolygons(parabola_dip);
         for (size_t point_idx = 1; point_idx < discretization.size(); point_idx++)
         {
-            svg.writeLine(discretization[point_idx - 1], discretization[point_idx], SVG::Color::RED);
+            svg.writeArrow(discretization[point_idx - 1], discretization[point_idx], SVG::Color::RED);
         }
     }
 }
