@@ -224,18 +224,43 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
 }
 
 
-std::vector<Point> VoronoiUtils::discretizeParabola(const Point& point, const Segment& segment, Point start, Point end, coord_t approximate_step_size)
+std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segment& segment, Point s, Point e, coord_t approximate_step_size)
 {
     std::vector<Point> discretized;
+    // x is distance of point projected on the segment ab
+    // xx is point projected on the segment ab
+    Point a = segment.from();
+    Point b = segment.to();
+    Point ab = b - a;
+    Point as = s - a;
+    Point ae = e - a;
+    coord_t ab_size = vSize(ab);
+    coord_t sx = dot(as, ab) / ab_size;
+    coord_t ex = dot(ae, ab) / ab_size;
+    coord_t sxex = ex - sx;
     
-    discretized.emplace_back(start);
-    discretized.emplace_back(end);
+    Point ap = p - a;
+    coord_t px = dot(ap, ab) / ab_size;
     
-    discretize(point, segment, approximate_step_size, &discretized);
+    Point pxx = LinearAlg2D::getClosestOnLineSegment(p, a, b);
+    Point ppxx = pxx - p;
+    coord_t d = vSize(ppxx);
+    PointMatrix rot = PointMatrix(turn90CCW(ppxx));
     
+    
+    coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
+    
+    discretized.emplace_back(s);
+    for (coord_t step = 1; step < step_count; step++)
+    {
+        coord_t x = sx + sxex * step / step_count - px;
+        coord_t y = x * x / (2 * d) + d / 2;
+        Point result = rot.unapply(Point(x, y)) + pxx;
+        discretized.emplace_back(result);
+    }
+    discretized.emplace_back(e);
     return discretized;
 }
-
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
 void VoronoiUtils::discretize(

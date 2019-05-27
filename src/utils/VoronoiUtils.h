@@ -38,11 +38,16 @@ public:
     
     static coord_t getDistance(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments);
     
-    
+    /*!
+     * Discretize a parabola based on (approximate) step size.
+     * The \p approximate_step_size is measured parallel to the \p source_segment, not along the parabola.
+     */
     static std::vector<Point> discretizeParabola(const Point& source_point, const Segment& source_segment, Point start, Point end, coord_t approximate_step_size);
 
 protected:
     /*!
+     * Discretize parabola based on max absolute deviation from the parabola.
+     * 
      * adapted from boost::polygon::voronoi_visual_utils.cpp
      * 
      * Discretize parabolic Voronoi edge.
