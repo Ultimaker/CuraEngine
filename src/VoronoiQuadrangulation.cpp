@@ -1,5 +1,5 @@
 //Copyright (c) 2019 Ultimaker B.V.
-#include "VoronoiQuadrilateralization.h"
+#include "VoronoiQuadrangulation.h"
 
 
 #include "utils/VoronoiUtils.h"
@@ -33,17 +33,17 @@ struct point_traits<arachne::Point>
 };
 
 template <>
-struct geometry_concept<arachne::VoronoiQuadrilateralization::Segment>
+struct geometry_concept<arachne::VoronoiQuadrangulation::Segment>
 {
     typedef segment_concept type;
 };
 
 template <>
-struct segment_traits<arachne::VoronoiQuadrilateralization::Segment>
+struct segment_traits<arachne::VoronoiQuadrangulation::Segment>
 {
     typedef arachne::coord_t coordinate_type;
     typedef arachne::Point point_type;
-    static inline point_type get(const arachne::VoronoiQuadrilateralization::Segment& segment, direction_1d dir) {
+    static inline point_type get(const arachne::VoronoiQuadrangulation::Segment& segment, direction_1d dir) {
         return dir.to_int() ? segment.p() : segment.next().p();
     }
 };
@@ -55,12 +55,12 @@ struct segment_traits<arachne::VoronoiQuadrilateralization::Segment>
 namespace arachne
 {
 
-VoronoiQuadrilateralization::node_t& VoronoiQuadrilateralization::make_node(vd_t::vertex_type& vd_node, Point p)
+VoronoiQuadrangulation::node_t& VoronoiQuadrangulation::make_node(vd_t::vertex_type& vd_node, Point p)
 {
     auto he_node_it = vd_node_to_he_node.find(&vd_node);
     if (he_node_it == vd_node_to_he_node.end())
     {
-        graph.nodes.emplace_front(VoronoiQuadrilateralizationJoint(), p);
+        graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p);
         node_t& node = graph.nodes.front();
         vd_node_to_he_node.emplace(&vd_node, &node);
         return node;
@@ -71,14 +71,14 @@ VoronoiQuadrilateralization::node_t& VoronoiQuadrilateralization::make_node(vd_t
     }
 }
 
-VoronoiQuadrilateralization::edge_t& VoronoiQuadrilateralization::make_edge(Point from, Point to, vd_t::edge_type& vd_edge)
+VoronoiQuadrangulation::edge_t& VoronoiQuadrangulation::make_edge(Point from, Point to, vd_t::edge_type& vd_edge)
 {
     if (vd_edge.cell()->contains_point() || vd_edge.twin()->cell()->contains_point())
     {
         RUN_ONCE(logError("Discretizing segment not implemented yet.\n"));
     }
     
-    graph.edges.emplace_front(VoronoiQuadrilateralizationEdge());
+    graph.edges.emplace_front(VoronoiQuadrangulationEdge());
     edge_t& edge = graph.edges.front();
     vd_edge_to_he_edge.emplace(&vd_edge, &edge);
     
@@ -97,7 +97,7 @@ VoronoiQuadrilateralization::edge_t& VoronoiQuadrilateralization::make_edge(Poin
     return edge;
 }
 
-VoronoiQuadrilateralization::edge_t* VoronoiQuadrilateralization::make_rib(edge_t* prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::make_rib(edge_t* prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
 {
     Point p = LinearAlg2D::getClosestOnLineSegment(prev_edge->to->p, start_source_point, end_source_point);
     prev_edge->to->data.distance_to_boundary = vSize(prev_edge->to->p - p);
@@ -108,13 +108,13 @@ VoronoiQuadrilateralization::edge_t* VoronoiQuadrilateralization::make_rib(edge_
         {
             return nullptr;
         }
-    graph.nodes.emplace_front(VoronoiQuadrilateralizationJoint(), p);
+    graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p);
     node_t* node = &graph.nodes.front();
     node->data.distance_to_boundary = 0;
     
-    graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
+    graph.edges.emplace_front(VoronoiQuadrangulationEdge(VoronoiQuadrangulationEdge::EXTRA_VD));
     edge_t* forth_edge = &graph.edges.front();
-    graph.edges.emplace_front(VoronoiQuadrilateralizationEdge(VoronoiQuadrilateralizationEdge::EXTRA_VD));
+    graph.edges.emplace_front(VoronoiQuadrangulationEdge(VoronoiQuadrangulationEdge::EXTRA_VD));
     edge_t* back_edge = &graph.edges.front();
     
     prev_edge->next = forth_edge;
@@ -131,7 +131,7 @@ VoronoiQuadrilateralization::edge_t* VoronoiQuadrilateralization::make_rib(edge_
 
 }
 
-VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
+VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
 {
     std::vector<Point> points; // remains empty
 
@@ -289,7 +289,7 @@ VoronoiQuadrilateralization::VoronoiQuadrilateralization(const Polygons& polys)
     debugCheckGraphCompleteness();
 }
 
-void VoronoiQuadrilateralization::debugCheckGraphCompleteness()
+void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 {
     for (const node_t& node : graph.nodes)
     {
@@ -309,21 +309,21 @@ void VoronoiQuadrilateralization::debugCheckGraphCompleteness()
     }
 }
 
-SVG::Color VoronoiQuadrilateralization::getColor(edge_t& edge)
+SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
 {
     switch (edge.data.type)
     {
-        case VoronoiQuadrilateralizationEdge::EXTRA_VD:
+        case VoronoiQuadrangulationEdge::EXTRA_VD:
             return SVG::Color::ORANGE;
-        case VoronoiQuadrilateralizationEdge::TRANSITION_END:
+        case VoronoiQuadrangulationEdge::TRANSITION_END:
             return SVG::Color::BLUE;
-        case VoronoiQuadrilateralizationEdge::NORMAL:
+        case VoronoiQuadrangulationEdge::NORMAL:
         default:
             return SVG::Color::RED;
     }
 }
 
-void VoronoiQuadrilateralization::debugOutput(SVG& svg)
+void VoronoiQuadrangulation::debugOutput(SVG& svg)
 {
     coord_t offset_length = 10;
     for (edge_t& edge : graph.edges)

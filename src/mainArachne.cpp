@@ -13,7 +13,7 @@
 #include "utils/gettime.h"
 #include "utils/SVG.h"
 
-#include "VoronoiQuadrilateralization.h"
+#include "VoronoiQuadrangulation.h"
 
 using arachne::Point;
 
@@ -90,7 +90,7 @@ void test()
     
     TimeKeeper tk;
     
-    VoronoiQuadrilateralization vq(polys);
+    VoronoiQuadrangulation vq(polys);
     
     logError("Toal processing took %fs\n", tk.restart());
 }

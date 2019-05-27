@@ -9,12 +9,12 @@
 namespace arachne
 {
 
-class VoronoiQuadrilateralizationJoint
+class VoronoiQuadrangulationJoint
 {
 public:
     coord_t distance_to_boundary;
     float bead_count;
-    VoronoiQuadrilateralizationJoint()
+    VoronoiQuadrangulationJoint()
     : distance_to_boundary(-1)
     {}
 };

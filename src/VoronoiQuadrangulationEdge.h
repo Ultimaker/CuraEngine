@@ -8,7 +8,7 @@
 namespace arachne
 {
 
-class VoronoiQuadrilateralizationEdge
+class VoronoiQuadrangulationEdge
 {
     using type_t = int_least16_t;
 public:
@@ -16,10 +16,10 @@ public:
     static constexpr type_t NORMAL = 0; // from voronoi diagram
     static constexpr type_t EXTRA_VD = 1; // introduced to voronoi diagram in order to make the gMAT
     static constexpr type_t TRANSITION_END = 2; // introduced to voronoi diagram in order to make the gMAT
-    VoronoiQuadrilateralizationEdge()
-    : VoronoiQuadrilateralizationEdge(NORMAL)
+    VoronoiQuadrangulationEdge()
+    : VoronoiQuadrangulationEdge(NORMAL)
     {}
-    VoronoiQuadrilateralizationEdge(type_t type)
+    VoronoiQuadrangulationEdge(type_t type)
     : type(type)
     {}
 };
