@@ -37,6 +37,10 @@ protected:
     node_t& make_node(vd_t::vertex_type& vd_node, Point p);
     edge_t& make_edge(Point from, Point to, vd_t::edge_type& vd_edge);
     edge_t* make_rib(edge_t* prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end);
+    
+    bool computePointCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    void computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    
     void debugCheckGraphCompleteness();
     void debugOutput(SVG& svg);
     SVG::Color getColor(edge_t& edge);
