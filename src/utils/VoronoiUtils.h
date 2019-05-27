@@ -41,6 +41,7 @@ public:
     
     static std::vector<Point> discretizeParabola(const Point& source_point, const Segment& source_segment, Point start, Point end, coord_t approximate_step_size);
 
+protected:
     /*!
      * adapted from boost::polygon::voronoi_visual_utils.cpp
      * 
@@ -83,11 +84,8 @@ public:
      * transformed one and vice versa. The assumption is made that projection of
      * the point lies between the start-point and endpoint of the segment.
      */
-    static coord_t get_point_projection(const Point& point, const Segment& segment);
+    static double get_point_projection(const Point& point, const Segment& segment);
 
-private:
-    template <typename Incoord_t>
-    static coord_t cast(const Incoord_t& value);
 };
 
 
