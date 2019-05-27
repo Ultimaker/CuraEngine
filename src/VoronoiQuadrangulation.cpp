@@ -71,33 +71,99 @@ VoronoiQuadrangulation::node_t& VoronoiQuadrangulation::make_node(vd_t::vertex_t
     }
 }
 
-VoronoiQuadrangulation::edge_t& VoronoiQuadrangulation::make_edge(Point from, Point to, vd_t::edge_type& vd_edge)
+void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
-    if (vd_edge.cell()->contains_point() || vd_edge.twin()->cell()->contains_point())
-    {
-        RUN_ONCE(logError("Discretizing segment not implemented yet.\n"));
-    }
-    
-    graph.edges.emplace_front(VoronoiQuadrangulationEdge());
-    edge_t& edge = graph.edges.front();
-    vd_edge_to_he_edge.emplace(&vd_edge, &edge);
-    
-    edge.from = &make_node(*vd_edge.vertex0(), from);
-    edge.to = &make_node(*vd_edge.vertex1(), to);
-    edge.from->some_edge = &edge;
-    edge.to->some_edge = &edge;
-    
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
-    {
-        edge.twin = he_edge_it->second;
-        he_edge_it->second->twin = &edge;
+    { // twin segment(s) already made
+        edge_t* source_twin = he_edge_it->second;
+        assert(source_twin);
+        for (edge_t* twin = source_twin;
+            ; //  !twin;
+            twin = twin->prev->twin->prev)
+        {
+            assert(twin);
+            graph.edges.emplace_front(VoronoiQuadrangulationEdge());
+            edge_t* edge = &graph.edges.front();
+            edge->from = twin->to;
+            edge->to = twin->from;
+            edge->twin = twin;
+            twin->twin = edge;
+            edge->from->some_edge = edge;
+            
+            if (prev_edge)
+            {
+                edge->prev = prev_edge;
+                prev_edge->next = edge;
+            }
+            
+            prev_edge = edge;
+            
+            if (shorterThen(twin->from->p - to, snap_dist))
+            {
+                break;
+            }
+            
+            bool is_next_to_start_or_end = false; // TODO!
+            make_rib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
+//             if (!twin->prev || !twin->prev->twin || !twin->prev->twin->prev)
+//                 return;
+            assert(twin->prev);
+            assert(twin->prev->twin);
+            assert(twin->prev->twin->prev);
+        }
+        assert(prev_edge);
     }
-    
-    return edge;
+    else
+    {
+        std::vector<Point> discretized = discretize(vd_edge, points, segments);
+        assert(discretized.size() >= 2);
+        
+        node_t* v0 = &make_node(*vd_edge.vertex0(), from);
+        Point p0 = discretized.front();
+        for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
+        {
+            Point p1 = discretized[p1_idx];
+            node_t* v1;
+            if (p1_idx < discretized.size() - 1)
+            {
+                graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p1);
+                v1 = &graph.nodes.front();
+            }
+            else
+            {
+                v1 = &make_node(*vd_edge.vertex1(), to);
+            }
+
+            graph.edges.emplace_front(VoronoiQuadrangulationEdge());
+            edge_t* edge = &graph.edges.front();
+            edge->from = v0;
+            edge->to = v1;
+//             edge->twin = nullptr;
+            edge->from->some_edge = edge;
+            
+            if (prev_edge)
+            {
+                edge->prev = prev_edge;
+                prev_edge->next = edge;
+            }
+            
+            prev_edge = edge;
+            p0 = p1;
+            v0 = v1;
+            
+            if (p1_idx < discretized.size() - 1)
+            { // rib for last segment gets introduced outside this function!
+                bool is_next_to_start_or_end = p1_idx == 1;
+                make_rib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
+            }
+        }
+        assert(prev_edge);
+        vd_edge_to_he_edge.emplace(&vd_edge, prev_edge);
+    }
 }
 
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::make_rib(edge_t* prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+void VoronoiQuadrangulation::make_rib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
 {
     Point p = LinearAlg2D::getClosestOnLineSegment(prev_edge->to->p, start_source_point, end_source_point);
     prev_edge->to->data.distance_to_boundary = vSize(prev_edge->to->p - p);
@@ -106,7 +172,7 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::make_rib(edge_t* prev_ed
         && (shorterThen(p - start_source_point, rib_snap_distance)
         || shorterThen(p - end_source_point, rib_snap_distance)))
         {
-            return nullptr;
+            return;
         }
     graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p);
     node_t* node = &graph.nodes.front();
@@ -127,8 +193,52 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::make_rib(edge_t* prev_ed
     back_edge->to = prev_edge->to;
     node->some_edge = back_edge;
     
-    return back_edge;
+    prev_edge = back_edge;
+}
 
+std::vector<Point> VoronoiQuadrangulation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+{
+    const vd_t::cell_type* left_cell = vd_edge.cell();
+    const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
+    Point start = VoronoiUtils::p(vd_edge.vertex0());
+    Point end = VoronoiUtils::p(vd_edge.vertex1());
+    
+    bool point_left = left_cell->contains_point();
+    bool point_right = right_cell->contains_point();
+    if (!point_left && !point_right
+        || vd_edge.is_secondary() // source vert is directly connected to source segment
+    )
+    {
+        return std::vector<Point>({ start, end });
+    }
+    else if (point_left == !point_right)
+    {
+        const vd_t::cell_type* point_cell = left_cell;
+        const vd_t::cell_type* segment_cell = right_cell;
+        if (!point_left)
+        {
+            std::swap(point_cell, segment_cell);
+        }
+        Point p = VoronoiUtils::getSourcePoint(*point_cell, points, segments);
+        const Segment& s = VoronoiUtils::getSourceSegment(*segment_cell, points, segments);
+        return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size);
+    }
+    else
+    {
+        Point a = start;
+        Point b = end;
+        std::vector<Point> ret;
+        ret.emplace_back(a);
+        Point ab = b - a;
+        coord_t ab_size = vSize(ab);
+        coord_t step_count = (ab_size + discretization_step_size / 2) / discretization_step_size;
+        for (coord_t step = 1; step < step_count; step++)
+        {
+            ret.emplace_back(a + ab * step / step_count);
+        }
+        ret.emplace_back(b);
+        return ret;
+    }
 }
 
 
@@ -263,33 +373,27 @@ VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
         
         // copy start to end edge to graph
         
-        
-        edge_t* starting_edge = &make_edge(start_source_point, VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge);
+        edge_t* prev_edge = nullptr;
+        transfer_edge(start_source_point, VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        node_t* starting_node = vd_node_to_he_node[starting_vd_edge->vertex0()];
+        starting_node->data.distance_to_boundary = 0;
         // starting_edge->prev = nullptr;
-        starting_edge->from->data.distance_to_boundary = 0;
+//         starting_edge->from->data.distance_to_boundary = 0; // TODO
 
-        edge_t* rib = make_rib(starting_edge, start_source_point, end_source_point, true);
-
-        edge_t* prev_edge = rib? rib : starting_edge;
+        make_rib(prev_edge, start_source_point, end_source_point, true);
         for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != ending_vd_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
             Point v1 = VoronoiUtils::p(vd_edge->vertex0());
             Point v2 = VoronoiUtils::p(vd_edge->vertex1());
-            edge_t* edge = &make_edge(v1, v2, *vd_edge);
-            edge->prev = prev_edge;
-            prev_edge->next = edge;
+            transfer_edge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
-            edge_t* rib = make_rib(edge, start_source_point, end_source_point, vd_edge->next() == ending_vd_edge);
-
-            prev_edge = rib? rib : edge;
+            make_rib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vd_edge);
         }
 
-        edge_t* ending_edge = &make_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge);
-        ending_edge->prev = prev_edge;
-        prev_edge->next = ending_edge;
+        transfer_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
         // ending_edge->next = nullptr;
-        ending_edge->to->data.distance_to_boundary = 0;
+        prev_edge->to->data.distance_to_boundary = 0;
         
         
     }
