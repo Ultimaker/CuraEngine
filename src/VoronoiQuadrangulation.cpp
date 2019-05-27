@@ -73,6 +73,7 @@ VoronoiQuadrangulation::node_t& VoronoiQuadrangulation::make_node(vd_t::vertex_t
 
 void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
+    assert(from != to);
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
     { // twin segment(s) already made
@@ -99,18 +100,22 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
             
             prev_edge = edge;
             
-            if (shorterThen(twin->from->p - to, snap_dist))
+//             if (shorterThen(twin->from->p - to, snap_dist))
+            if (twin->from->p == to)
             {
                 break;
             }
             
-            bool is_next_to_start_or_end = false; // TODO!
+            if (!twin->prev || !twin->prev->twin || !twin->prev->twin->prev)
+            {
+                RUN_ONCE(logError("Discretized segment behaves oddly!\n"));
+                return;
+            }
+            assert(twin->prev); // forth rib
+            assert(twin->prev->twin); // back rib
+            assert(twin->prev->twin->prev); // prev segment along parabola
+            bool is_next_to_start_or_end = false; // only ribs at the end of a cell should be skipped
             make_rib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
-//             if (!twin->prev || !twin->prev->twin || !twin->prev->twin->prev)
-//                 return;
-            assert(twin->prev);
-            assert(twin->prev->twin);
-            assert(twin->prev->twin->prev);
         }
         assert(prev_edge);
     }
@@ -154,7 +159,7 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
             
             if (p1_idx < discretized.size() - 1)
             { // rib for last segment gets introduced outside this function!
-                bool is_next_to_start_or_end = p1_idx == 1;
+                bool is_next_to_start_or_end = false; // only ribs at the end of a cell should be skipped
                 make_rib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
             }
         }
@@ -166,7 +171,10 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
 void VoronoiQuadrangulation::make_rib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
 {
     Point p = LinearAlg2D::getClosestOnLineSegment(prev_edge->to->p, start_source_point, end_source_point);
-    prev_edge->to->data.distance_to_boundary = vSize(prev_edge->to->p - p);
+    coord_t dist = vSize(prev_edge->to->p - p);
+    prev_edge->to->data.distance_to_boundary = dist;
+    assert(dist > 0);
+
     if (start_source_point != end_source_point
         && is_next_to_start_or_end
         && (shorterThen(p - start_source_point, rib_snap_distance)
@@ -266,18 +274,21 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
     for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != starting_vd_edge || first; vd_edge = vd_edge->next())
     {
         assert(vd_edge->is_finite());
+        Point p0 = VoronoiUtils::p(vd_edge->vertex0());
         Point p1 = VoronoiUtils::p(vd_edge->vertex1());
-        if (shorterThen(p1 - source_point, snap_dist))
+        if (p1 == source_point)
         {
             start_source_point = source_point;
             end_source_point = source_point;
             starting_vd_edge = vd_edge->next();
             ending_vd_edge = vd_edge;
+            assert(p1 != VoronoiUtils::p(starting_vd_edge->vertex1()));
         }
         first = false;
     }
     assert(starting_vd_edge && ending_vd_edge);
     assert(starting_vd_edge != ending_vd_edge);
+    assert(start_source_point != VoronoiUtils::p(starting_vd_edge->vertex1()));
     return true;
 }
 void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
@@ -386,6 +397,10 @@ VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
             assert(vd_edge->is_finite());
             Point v1 = VoronoiUtils::p(vd_edge->vertex0());
             Point v2 = VoronoiUtils::p(vd_edge->vertex1());
+            if (v1 == v2)
+            {
+                continue;
+            }
             transfer_edge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
             make_rib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vd_edge);
