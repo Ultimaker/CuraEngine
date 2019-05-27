@@ -73,12 +73,22 @@ void generateTestPolys()
     parabola_dip_1.emplace_back(550, 1000);
     parabola_dip_1.emplace_back(500, 500);
     parabola_dip_1.emplace_back(450, 1000);
+    PointMatrix rot(25.0);
+    for (Point& p : parabola_dip_1)
+    {
+        p = rot.apply(p);
+    }
 }
 
 void testUtils()
 {
-    coord_t step_size = 10;
-    std::vector<Point> discretization = VoronoiUtils::discretizeParabola(Point(500,500), VoronoiUtils::Segment(&parabola_dip, 0, 1), Point(0, 500), Point(1000, 500), step_size);
+    coord_t step_size = 100;
+    coord_t start_x = 330;
+    coord_t end_x = 1500;
+    PointMatrix rot(25.0);
+    Point start = rot.apply(Point(start_x, (start_x - 500) * (start_x - 500) / 2 / 500 + 500 / 2));
+    Point end = rot.apply(Point(end_x, (end_x  - 500) * (end_x  - 500) / 2 / 500 + 500 / 2));
+    std::vector<Point> discretization = VoronoiUtils::discretizeParabola(parabola_dip[0][5], VoronoiUtils::Segment(&parabola_dip, 0, 1), start, end, step_size);
     printf("discretization size: %zu", discretization.size());
     
     {
