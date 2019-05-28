@@ -61,6 +61,7 @@ LayerPlan* LayerPlanBuffer::processBuffer()
 
 void LayerPlanBuffer::flush()
 {
+    Application::getInstance().communication->flushGCode(); //If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
     if (buffer.size() > 0)
     {
         insertTempCommands(); // insert preheat commands of the very last layer
