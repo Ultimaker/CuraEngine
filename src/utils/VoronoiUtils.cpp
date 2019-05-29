@@ -17,7 +17,7 @@ namespace arachne
 
 Point VoronoiUtils::p(const vd_t::vertex_type* node)
 {
-    return Point(node->x(), node->y());
+    return Point(node->x() + 0, node->y() + 0); // gets rid of negative zero
 }
 
 bool VoronoiUtils::isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist)
