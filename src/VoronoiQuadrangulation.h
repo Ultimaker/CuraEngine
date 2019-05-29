@@ -33,6 +33,9 @@ public:
     VoronoiQuadrangulation(const Polygons& polys);
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
 protected:
+
+    void init(const Polygons& polys);
+
     std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
     node_t& make_node(vd_t::vertex_type& vd_node, Point p);

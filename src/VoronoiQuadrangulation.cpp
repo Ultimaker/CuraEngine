@@ -339,6 +339,11 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
 
 VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
 {
+    init(polys);
+}
+
+void VoronoiQuadrangulation::init(const Polygons& polys)
+{
     std::vector<Point> points; // remains empty
 
     std::vector<Segment> segments;
