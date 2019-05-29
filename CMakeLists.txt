@@ -7,13 +7,13 @@ cmake_minimum_required(VERSION 3.6.0)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-option (ENABLE_ARCUS "Enable support for ARCUS" ON)
+option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 
 if (MSVC)
     option(MSVC_STATIC_RUNTIME "Link the MSVC runtime statically" OFF)
 endif()
 
-if (ENABLE_ARCUS)
+if(ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
     # We want to have access to protobuf_generate_cpp and other FindProtobuf features.
     # However, if ProtobufConfig is used instead, there is a CMake option that controls
@@ -22,7 +22,7 @@ if (ENABLE_ARCUS)
     find_package(Protobuf 3.0.0 REQUIRED)
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
-endif ()
+endif()
 
 #For reading image files.
 find_package(Stb REQUIRED)
