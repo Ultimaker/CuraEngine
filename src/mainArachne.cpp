@@ -173,6 +173,11 @@ void test()
     VoronoiQuadrangulation vq(polys);
 
     DistributedBeadingStrategy beading_strategy(300, 400, 600);
+    vq.generateToolpaths(beading_strategy);
+
+    SVG svg("output/after.svg", AABB(polys));
+    svg.writePolygons(polys, SVG::Color::GRAY, 2);
+    vq.debugOutput(svg, false, true);
     
     logError("Total processing took %fs\n", tk.restart());
 }

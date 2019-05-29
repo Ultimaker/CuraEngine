@@ -56,13 +56,37 @@ protected:
 
     void setMarking(); //! set the is_marked flag for each edge
     void generateTransitioningRibs(const BeadingStrategy& beading_strategy);
+
+    /*!
+     * Return the last edge of the edges replacing \p edge pointing to the same node
+     */
+    edge_t* generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy);
+
+    /*!
+     * \p start_rest and \p end_rest refer to gap distances at the start adn end pos.
+     * 
+     * \p end_pos_along_edge may be beyond this edge!
+     * In this case we need to interpolate the rest value at the locations in between
+     * 
+     * Return the last edge of the edges replacing \p edge pointing to the same node
+     */
+    edge_t* generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest);
+
+    /*!
+     * Return the last edge of the edges replacing \p edge pointing to the same node
+     */
+    VoronoiQuadrangulation::edge_t* insertRib(edge_t& edge, node_t* mid_node);
+
     std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge);
 
     // ^ transitioning | v helpers
 
+public:
     void debugCheckGraphCompleteness();
+    void debugCheckGraphConsistency();
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists);
+protected:
     SVG::Color getColor(edge_t& edge);
 
 };
