@@ -409,7 +409,26 @@ VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
         transfer_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
         // ending_edge->next = nullptr;
         prev_edge->to->data.distance_to_boundary = 0;
-        
+    }
+
+    // set the is_marked flag for each edge
+    for (edge_t& edge : graph.edges)
+    {
+        assert(edge.twin);
+        if (edge.twin->data.is_marked != -1)
+        {
+            edge.data.is_marked = edge.twin->data.is_marked;
+        }
+        else
+        {
+            Point a = edge.from->p;
+            Point b = edge.to->p;
+            Point ab = b - a;
+            coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
+            coord_t dD = vSize(ab);
+            edge.data.is_marked = dD > 2 * dR;
+    }
+
         
     }
     {
@@ -469,13 +488,9 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
     {
         Point a = edge.from->p;
         Point b = edge.to->p;
-        Point ab = b - a;
-
         SVG::Color clr = getColor(edge);
         float stroke_width = 1;
-        coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
-        coord_t dD = vSize(ab);
-        if (dD > 2 * dR)
+        if (edge.data.is_marked)
         {
             clr = SVG::Color::BLUE;
             stroke_width = 2;
