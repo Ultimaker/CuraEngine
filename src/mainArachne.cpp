@@ -14,6 +14,7 @@
 #include "utils/SVG.h"
 
 #include "VoronoiQuadrangulation.h"
+#include "DistributedBeadingStrategy.h"
 #include "utils/VoronoiUtils.h"
 
 using arachne::Point;
@@ -154,8 +155,10 @@ void test()
     TimeKeeper tk;
     
     VoronoiQuadrangulation vq(polys);
+
+    DistributedBeadingStrategy beading_strategy(300, 400, 600);
     
-    logError("Toal processing took %fs\n", tk.restart());
+    logError("Total processing took %fs\n", tk.restart());
 }
 
 
