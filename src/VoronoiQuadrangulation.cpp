@@ -416,7 +416,51 @@ void VoronoiQuadrangulation::init(const Polygons& polys)
         prev_edge->to->data.distance_to_boundary = 0;
     }
 
-    // set the is_marked flag for each edge
+    {
+        AABB aabb(polys);
+        SVG svg("output/graph.svg", aabb);
+        debugOutput(svg, true, true);
+        svg.writePolygons(polys, SVG::Color::BLACK, 2);
+    }
+    {
+        AABB aabb(polys);
+        SVG svg("output/graph2.svg", aabb);
+        debugOutput(svg, false, false);
+        svg.writePolygons(polys, SVG::Color::BLACK, 2);
+    }
+
+    
+
+    debugCheckGraphCompleteness();
+}
+
+//
+// ^^^^^^^^^^^^^^^^^^^^^
+//    INITIALIZATION
+// =====================
+//
+// =====================
+//    TRANSTISIONING
+// vvvvvvvvvvvvvvvvvvvvv
+//
+
+Polygons VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy)
+{
+    setMarking();
+
+    generateTransitioningRibs(beading_strategy);
+
+    // fix bead count at locally maximal R
+
+    // junctions = generateJunctions
+
+    Polygons ret;
+    // ret = connect(junctions)
+    return ret;
+}
+
+void VoronoiQuadrangulation::setMarking()
+{
     for (edge_t& edge : graph.edges)
     {
         assert(edge.twin);
@@ -432,26 +476,69 @@ void VoronoiQuadrangulation::init(const Polygons& polys)
             coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
             coord_t dD = vSize(ab);
             edge.data.is_marked = dD > 2 * dR;
+        }
     }
-
-        
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/graph.svg", aabb);
-        debugOutput(svg, true, true);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/graph2.svg", aabb);
-        debugOutput(svg, false, false);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
-    }
-
-
-    debugCheckGraphCompleteness();
 }
+
+void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
+{
+    for (edge_t& edge : graph.edges)
+    {
+        assert(edge.data.is_marked != -1);
+        if (!edge.data.is_marked)
+        { // only marked regions introduce transitions
+            continue;
+        }
+        coord_t start_R = edge.from->data.distance_to_boundary;
+        coord_t end_R = edge.to->data.distance_to_boundary;
+        if (start_R >= end_R)
+        { // only consider those half-edges which are going from a lower to a higher distance_to_boundary
+            // no transitions occur when both end points have the same distance_to_boundary
+            continue;
+        }
+
+        coord_t start_bead_count = beading_strategy.optimal_bead_count(start_R);
+    }
+}
+
+std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
+{
+    const edge_t* from_edge;
+    for (from_edge = &edge; from_edge->prev; from_edge = from_edge->prev) {}
+    const edge_t* to_edge;
+    for (to_edge = &edge; to_edge->next; to_edge = to_edge->next) {}
+    return std::make_pair(from_edge->from->p, to_edge->to->p);
+}
+
+bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to)
+{
+    if (!edge_to.next)
+    {
+        return false;
+    }
+    assert(edge_to.data.is_marked); // Don't know why this function would otherwise be called
+    for (const edge_t* edge = edge_to.next; edge != &edge_to; edge = edge->next->twin)
+    {
+        if (edge->data.is_marked)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
+//
+// ^^^^^^^^^^^^^^^^^^^^^
+//    TRANSTISIONING
+// =====================
+//
+// =====================
+//       HELPERS
+// vvvvvvvvvvvvvvvvvvvvv
+//
+
 
 void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 {
@@ -517,6 +604,5 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         }
     }
 }
-
 
 } // namespace arachne
