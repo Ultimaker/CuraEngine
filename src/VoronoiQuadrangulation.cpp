@@ -465,21 +465,28 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
 
 void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists)
 {
-    coord_t offset_length = 10;
     for (edge_t& edge : graph.edges)
     {
         Point a = edge.from->p;
         Point b = edge.to->p;
         Point ab = b - a;
-        Point n = normal(turn90CCW(ab), offset_length);
-        Point d = normal(ab, 3 * offset_length);
+
+        SVG::Color clr = getColor(edge);
+        float stroke_width = 1;
+        coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
+        coord_t dD = vSize(ab);
+        if (dD > 2 * dR)
+        {
+            clr = SVG::Color::BLUE;
+            stroke_width = 2;
+        }
         if (draw_arrows)
         {
-            svg.writeArrow(a, b, getColor(edge));
+            svg.writeArrow(a, b, clr, stroke_width);
         }
         else
         {
-            svg.writeLine(a, b, getColor(edge));
+            svg.writeLine(a, b, clr, stroke_width);
         }
     }
     if (draw_dists)
