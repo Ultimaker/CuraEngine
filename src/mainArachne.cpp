@@ -50,6 +50,7 @@ static Polygons test_poly_1;
 static Polygons parabola_dip;
 static Polygons circle;
 static Polygons circle_flawed;
+static Polygons gMAT_example;
 
 void generateTestPolys()
 {
@@ -97,6 +98,27 @@ void generateTestPolys()
         float rad = a / 180 * M_PI;
         circle_flawed_1.emplace_back(r * cos(rad), r * sin(rad));
     }
+
+    PolygonRef gMAT_example_outline = gMAT_example.newPoly();
+    gMAT_example_outline.emplace_back(0, 0);
+    gMAT_example_outline.emplace_back(8050, 0);
+    gMAT_example_outline.emplace_back(8050, 2000);
+    gMAT_example_outline.emplace_back(7000, 2000);
+    gMAT_example_outline.emplace_back(7000, 11500);
+    gMAT_example_outline.emplace_back(6500, 12000);
+    gMAT_example_outline.emplace_back(0, 12000);
+    PolygonRef gMAT_example_triangle = gMAT_example.newPoly();
+    gMAT_example_triangle.emplace_back(1000, 7000);
+    gMAT_example_triangle.emplace_back(1000, 11000);
+    gMAT_example_triangle.emplace_back(4000, 9000);
+    PolygonRef gMAT_example_round = gMAT_example.newPoly();
+    gMAT_example_round.emplace_back(1000, 3000);
+    gMAT_example_round.emplace_back(1000, 5000);
+    gMAT_example_round.emplace_back(2000, 6000);
+    gMAT_example_round.emplace_back(5000, 6000);
+    gMAT_example_round.emplace_back(5000, 3000);
+    gMAT_example_round.emplace_back(4000, 2000);
+    gMAT_example_round.emplace_back(2000, 2000);
 }
 
 void test()
@@ -117,11 +139,12 @@ void test()
     
     
     generateTestPolys();
-    Polygons polys = generateTestPoly(6, Point(10000, 10000));
+//     Polygons polys = generateTestPoly(6, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
+    Polygons polys = gMAT_example;
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
         svg.writePolygons(polys);
