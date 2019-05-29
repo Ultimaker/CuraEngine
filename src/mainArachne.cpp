@@ -48,10 +48,12 @@ Polygons generateTestPoly(size_t size, Point border)
 }
 
 static Polygons test_poly_1;
+static Polygons squares;
 static Polygons parabola_dip;
 static Polygons circle;
 static Polygons circle_flawed;
 static Polygons gMAT_example;
+static Polygons wedge;
 
 void generateTestPolys()
 {
@@ -69,6 +71,12 @@ void generateTestPolys()
     hole.emplace_back(1100,900);
     hole.emplace_back(1000,900);
 
+    PolygonRef square_1 = squares.newPoly();
+    square_1.emplace_back(0, 0);
+    square_1.emplace_back(0, 10000);
+    square_1.emplace_back(10000, 10000);
+    square_1.emplace_back(10000, 0);
+    
     PolygonRef parabola_dip_1 = parabola_dip.newPoly();
     parabola_dip_1.emplace_back(0, 1000);
     parabola_dip_1.emplace_back(0, 0);
@@ -120,6 +128,11 @@ void generateTestPolys()
     gMAT_example_round.emplace_back(5000, 3000);
     gMAT_example_round.emplace_back(4000, 2000);
     gMAT_example_round.emplace_back(2000, 2000);
+
+    PolygonRef wedge_1 = wedge.newPoly();
+    wedge_1.emplace_back(0, 0);
+    wedge_1.emplace_back(0, 4000);
+    wedge_1.emplace_back(40000, 2000);
 }
 
 void test()
@@ -143,9 +156,12 @@ void test()
 //     Polygons polys = generateTestPoly(6, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
+//     Polygons polys = squares;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
-    Polygons polys = gMAT_example;
+//     Polygons polys = gMAT_example;
+    Polygons polys = wedge;
+    polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
         svg.writePolygons(polys);
