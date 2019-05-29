@@ -34,6 +34,13 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
+    coord_t optimal_width; //! optimal bead width
+
+    BeadingStrategy(coord_t optimal_width)
+    : optimal_width(optimal_width)
+    {
+    }
+
     /*!
      * Retrieve the bead widths with which to cover a given thickness.
      * 
