@@ -837,12 +837,22 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency()
             if (!edge.to)
             {
                 assert(!edge.twin->from);
+                assert(edge.twin->from == edge.to);
             }
             if (!edge.from)
             {
                 assert(!edge.twin->to);
+                assert(edge.twin->to == edge.from);
             }
             assert(edge.twin->twin == &edge);
+        }
+        if (edge.next)
+        {
+            assert(edge.next->from == edge.to);
+        }
+        if (edge.prev)
+        {
+            assert(edge.prev->to == edge.from);
         }
     }
     for (const node_t& node : graph.nodes)
