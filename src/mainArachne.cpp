@@ -182,7 +182,9 @@ void test()
 //     r = 1558985782;
 //     r = 1559215562;
 //     r = 1559224125;
-    r = 1559224469;
+//     r = 1559224469;
+//     r = 68431;
+    r = 1559234570;
     srand(r);
     printf("r = %d;\n", r);
     fflush(stdout);
@@ -199,8 +201,8 @@ void test()
 //     Polygons polys = circle_flawed;
 //     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
-//     Polygons polys = flawed_wall;
-    Polygons polys = marked_local_opt;
+    Polygons polys = flawed_wall;
+//     Polygons polys = marked_local_opt;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));

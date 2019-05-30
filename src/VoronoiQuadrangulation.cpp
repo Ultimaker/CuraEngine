@@ -439,6 +439,12 @@ void VoronoiQuadrangulation::init(const Polygons& polys)
         debugOutput(svg, false, false);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
+    {
+        AABB aabb(polys);
+        SVG svg("output/graph3.svg", aabb);
+        debugOutput(svg, false, false, false, true);
+        svg.writePolygons(polys, SVG::Color::BLACK, 2);
+    }
 
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
