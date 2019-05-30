@@ -468,7 +468,7 @@ Polygons VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beadin
     {
         if (edge.data.is_marked)
         {
-            edge.to->data.bead_count = beading_strategy.optimal_bead_count(edge.to->data.distance_to_boundary);
+            edge.to->data.bead_count = beading_strategy.optimal_bead_count(edge.to->data.distance_to_boundary * 2);
         }
     }
 
@@ -521,8 +521,8 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
         }
         coord_t start_R = edge.from->data.distance_to_boundary;
         coord_t end_R = edge.to->data.distance_to_boundary;
-        coord_t start_bead_count = beading_strategy.optimal_bead_count(start_R);
-        coord_t end_bead_count = beading_strategy.optimal_bead_count(end_R);
+        coord_t start_bead_count = beading_strategy.optimal_bead_count(start_R * 2);
+        coord_t end_bead_count = beading_strategy.optimal_bead_count(end_R * 2);
         if (start_R == end_R)
         { // no transitions occur when both end points have the same distance_to_boundary
             continue;
@@ -536,7 +536,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
             )
             { // check for lower end transitions
                 isEndOfMarking(edge);
-                coord_t transition_R = beading_strategy.transition_thickness(end_bead_count - 1);
+                coord_t transition_R = beading_strategy.transition_thickness(end_bead_count - 1) / 2;
                 coord_t last_edge_size = vSize(edge.from->p - edge.to->p);
 
                 coord_t transition_length = beading_strategy.optimal_width; // TODO
@@ -567,7 +567,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
             coord_t last_edge_start_R = last_edge->from->data.distance_to_boundary;
             coord_t last_edge_end_R = last_edge->to->data.distance_to_boundary;
             coord_t last_edge_size = vSize(last_edge->from->p - last_edge->to->p);
-            coord_t mid_R = beading_strategy.transition_thickness(transition_lower_bead_count);
+            coord_t mid_R = beading_strategy.transition_thickness(transition_lower_bead_count) / 2;
             coord_t mid_pos = last_edge_size * (mid_R - last_edge_start_R) / (last_edge_end_R - last_edge_start_R);
             last_edge = generateTransition(*last_edge, mid_pos, beading_strategy, transition_lower_bead_count);
         }
@@ -580,7 +580,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
             coord_t last_edge_start_R = last_edge->from->data.distance_to_boundary;
             coord_t last_edge_end_R = last_edge->to->data.distance_to_boundary;
             assert(last_edge_end_R > last_edge_start_R);
-            coord_t transition_R = beading_strategy.transition_thickness(end_bead_count);
+            coord_t transition_R = beading_strategy.transition_thickness(end_bead_count) / 2;
             coord_t last_edge_size = vSize(last_edge->from->p - last_edge->to->p);
 
             coord_t transition_length = beading_strategy.optimal_width; // TODO
