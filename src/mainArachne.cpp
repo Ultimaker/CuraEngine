@@ -79,14 +79,14 @@ void generateTestPolys()
     square_1.emplace_back(10000, 0);
     
     PolygonRef parabola_dip_1 = parabola_dip.newPoly();
-    parabola_dip_1.emplace_back(0, 1000);
+    parabola_dip_1.emplace_back(0, 10000);
     parabola_dip_1.emplace_back(0, 0);
-    parabola_dip_1.emplace_back(1000, 0);
-    parabola_dip_1.emplace_back(1000, 1000);
-    parabola_dip_1.emplace_back(550, 1000);
-    parabola_dip_1.emplace_back(500, 500);
-    parabola_dip_1.emplace_back(450, 1000);
-    PointMatrix rot(25.0);
+    parabola_dip_1.emplace_back(10000, 0);
+    parabola_dip_1.emplace_back(10000, 10000);
+    parabola_dip_1.emplace_back(5500, 10000);
+    parabola_dip_1.emplace_back(5000, 5000);
+    parabola_dip_1.emplace_back(4500, 10000);
+    Point3Matrix rot = Point3Matrix(PointMatrix(25.0)).compose(PointMatrix::scale(.7));
     for (Point& p : parabola_dip_1)
     {
         p = rot.apply(p);
@@ -154,7 +154,7 @@ void test()
 //     r = 1558692831;
 //     r = 1558983814;
 //     r = 1558985782;
-    r = 1559215562;
+//     r = 1559215562;
     srand(r);
     logError("    r = %d;\n", r);
     logError("boost version: %s\n", BOOST_LIB_VERSION);
@@ -162,12 +162,12 @@ void test()
     
     
     generateTestPolys();
-//     Polygons polys = generateTestPoly(6, Point(10000, 10000));
+    Polygons polys = generateTestPoly(6, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
 //     Polygons polys = circle;
-    Polygons polys = circle_flawed;
+//     Polygons polys = circle_flawed;
 //     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = rounded_wedge;
