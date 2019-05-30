@@ -103,7 +103,7 @@ void generateTestPolys()
     PolygonRef circle_flawed_1 = circle_flawed.newPoly();
     for (float a = 0; a < 360; a += 10)
     {
-        r = 10000 + rand() % 5000;
+        r = 5000 + rand() % 2500;
         a += (rand() % 100) / 50.0;
         float rad = a / 180 * M_PI;
         circle_flawed_1.emplace_back(r * cos(rad), r * sin(rad));
@@ -154,6 +154,7 @@ void test()
 //     r = 1558692831;
 //     r = 1558983814;
 //     r = 1558985782;
+    r = 1559215562;
     srand(r);
     logError("    r = %d;\n", r);
     logError("boost version: %s\n", BOOST_LIB_VERSION);
@@ -166,10 +167,10 @@ void test()
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
 //     Polygons polys = circle;
-//     Polygons polys = circle_flawed;
+    Polygons polys = circle_flawed;
 //     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
-    Polygons polys = rounded_wedge;
+//     Polygons polys = rounded_wedge;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));

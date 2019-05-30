@@ -365,7 +365,14 @@ void VoronoiQuadrangulation::init(const Polygons& polys)
 
     VoronoiUtils::debugOutput("output/vd.svg", vd, points, segments);
     
-    
+    for (const vd_t::edge_type& edge : vd.edges())
+    {
+        assert(edge.vertex0() == edge.twin()->vertex1());
+        assert(edge.vertex1() == edge.twin()->vertex0());
+        assert(edge.vertex1() == edge.next()->vertex0());
+        assert(edge.vertex0() == edge.prev()->vertex1());
+    }
+
     
     for (vd_t::cell_type cell : vd.cells())
     {
@@ -846,41 +853,57 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 
 void VoronoiQuadrangulation::debugCheckGraphConsistency()
 {
+    auto vert_assert = [](const node_t* first, const node_t* second)
+    {
+        if (first != second)
+        {
+            if (first->p == second->p)
+            {
+                RUN_ONCE(logWarning("Unneccesary duplicatation of VoronoiQuadrangulation nodes!"));
+            }
+            else
+            {
+                assert(false && "connected edges don't refer to the same node!");
+            }
+        }
+    };
+    
     for (const edge_t& edge : graph.edges)
     {
+        const edge_t* edge_p = &edge;
         if (edge.twin)
         {
             if (!edge.to)
             {
                 assert(!edge.twin->from);
-                assert(edge.twin->from == edge.to);
+                vert_assert(edge.twin->from, edge.to);
             }
             if (!edge.from)
             {
                 assert(!edge.twin->to);
-                assert(edge.twin->to == edge.from);
+                vert_assert(edge.twin->to, edge.from);
             }
             assert(edge.twin->twin == &edge);
         }
         if (edge.next)
         {
-            assert(edge.next->from == edge.to);
+            vert_assert(edge.next->from, edge.to);
         }
         if (edge.prev)
         {
-            assert(edge.prev->to == edge.from);
+            vert_assert(edge.prev->to, edge.from);
         }
     }
     for (const node_t& node : graph.nodes)
     {
         if (node.some_edge)
         {
-            assert(node.some_edge->from == &node);
+            vert_assert(node.some_edge->from, &node);
             if (node.some_edge->twin)
             {
                 for (const edge_t* outgoing = node.some_edge->twin->next; outgoing && outgoing->twin && outgoing != node.some_edge; outgoing = outgoing->twin->next)
                 {
-                    assert(outgoing->from == &node);
+                    vert_assert(outgoing->from, &node);
                 }
             }
         }
