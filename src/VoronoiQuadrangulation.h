@@ -108,7 +108,7 @@ public:
     void debugCheckGraphCompleteness();
     void debugCheckGraphConsistency();
     void debugCheckDecorationConsistency();
-    void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false);
+    void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
 protected:
     SVG::Color getColor(edge_t& edge);
 

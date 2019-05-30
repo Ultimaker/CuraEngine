@@ -216,7 +216,7 @@ std::vector<Point> VoronoiQuadrangulation::discretize(const vd_t::edge_type& vd_
     
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
-    if (!point_left && !point_right
+    if ((!point_left && !point_right)
         || vd_edge.is_secondary() // source vert is directly connected to source segment
     )
     {
@@ -277,7 +277,6 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
     for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != starting_vd_edge || first; vd_edge = vd_edge->next())
     {
         assert(vd_edge->is_finite());
-        Point p0 = VoronoiUtils::p(vd_edge->vertex0());
         Point p1 = VoronoiUtils::p(vd_edge->vertex1());
         if (p1 == source_point)
         {
@@ -465,6 +464,7 @@ Polygons VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beadin
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
+    // set bead count in marked regions
     for (edge_t& edge : graph.edges)
     {
         if (edge.data.is_marked)
@@ -852,7 +852,7 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransitionEnd(ed
 //                 continue; // TODO 
             }
 
-            edge_t* last_edge_replacing_outgoing = generateTransitionEnd(*outgoing, 0, end_pos - ab_size, rest, end_rest, lower_bead_count);
+            generateTransitionEnd(*outgoing, 0, end_pos - ab_size, rest, end_rest, lower_bead_count);
             outgoing = next;
         }
         return last_edge_replacing_input; // [edge] was not altered; we altered other edges
@@ -1037,7 +1037,6 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency()
     
     for (const edge_t& edge : graph.edges)
     {
-        const edge_t* edge_p = &edge;
         if (edge.twin)
         {
             if (!edge.to)
@@ -1115,13 +1114,15 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
             return SVG::Color::ORANGE;
         case VoronoiQuadrangulationEdge::TRANSITION_END:
             return SVG::Color::MAGENTA;
+        case VoronoiQuadrangulationEdge::TRANSITION_MID:
+            return SVG::Color::MAGENTA;
         case VoronoiQuadrangulationEdge::NORMAL:
         default:
             return SVG::Color::RED;
     }
 }
 
-void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts)
+void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts, bool draw_locations)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -1159,6 +1160,10 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
             {
                 svg.writeText(node.p, std::to_string(node.data.bead_count));
             }
+        }
+        if (draw_locations)
+        {
+            svg.writePoint(node.p, true, 1);
         }
     }
 }
