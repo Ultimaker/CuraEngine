@@ -798,7 +798,7 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
     }
 }
 
-void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists)
+void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -820,11 +820,22 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
             svg.writeLine(a, b, clr, stroke_width);
         }
     }
-    if (draw_dists)
+    for (node_t& node : graph.nodes)
     {
-        for (node_t& node : graph.nodes)
+        if (draw_dists)
         {
             svg.writeText(node.p, std::to_string(node.data.distance_to_boundary));
+        }
+        if (draw_bead_counts && node.data.bead_count >= 0)
+        {
+            if (node.data.transition_rest != 0)
+            {
+                svg.writeText(node.p, std::to_string(float(node.data.transition_rest) / 400 + node.data.bead_count));
+            }
+            else
+            {
+                svg.writeText(node.p, std::to_string(node.data.bead_count));
+            }
         }
     }
 }
