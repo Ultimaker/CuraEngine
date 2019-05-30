@@ -433,6 +433,9 @@ void VoronoiQuadrangulation::init(const Polygons& polys)
 
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
+    
+    vd_edge_to_he_edge.clear();
+    vd_node_to_he_node.clear();
 }
 
 //
