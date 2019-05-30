@@ -470,6 +470,8 @@ Polygons VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beadin
 
     generateTransitioningRibs(beading_strategy);
 
+    debugCheckDecorationConsistency();
+
     // fix bead count at locally maximal R
     // also for marked regions!! See TODOs in generateTransitionEnd(.)
 
@@ -868,6 +870,36 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency()
                 {
                     assert(outgoing->from == &node);
                 }
+            }
+        }
+    }
+
+    for (const edge_t& edge : graph.edges)
+    {
+        int i = 0;
+        for (const edge_t* e = &edge; e; e = e->next) assert(++i < 10);
+        for (const edge_t* e = &edge; e; e = e->prev) assert(++i < 10);
+    }
+}
+
+void VoronoiQuadrangulation::debugCheckDecorationConsistency()
+{
+    for (const edge_t& edge : graph.edges)
+    {
+        assert(edge.data.type >= VoronoiQuadrangulationEdge::NORMAL && edge.data.type <= VoronoiQuadrangulationEdge::TRANSITION_END);
+        if (edge.data.type != VoronoiQuadrangulationEdge::NORMAL)
+        {
+            if (edge.from->data.distance_to_boundary != -1 && edge.to->data.distance_to_boundary != -1)
+            {
+                assert(edge.from->data.distance_to_boundary == 0 || edge.to->data.distance_to_boundary == 0);
+            }
+            assert(!edge.data.is_marked);
+        }
+        if (edge.data.is_marked)
+        {
+            if (edge.from->data.bead_count != -1 && edge.to->data.bead_count != -1)
+            {
+                assert(std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
             }
         }
     }
