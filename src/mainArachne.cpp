@@ -54,6 +54,7 @@ static Polygons circle;
 static Polygons circle_flawed;
 static Polygons gMAT_example;
 static Polygons wedge;
+static Polygons rounded_wedge;
 
 void generateTestPolys()
 {
@@ -130,9 +131,16 @@ void generateTestPolys()
     gMAT_example_round.emplace_back(2000, 2000);
 
     PolygonRef wedge_1 = wedge.newPoly();
-    wedge_1.emplace_back(0, 0);
-    wedge_1.emplace_back(0, 4000);
-    wedge_1.emplace_back(40000, 2000);
+    wedge_1.emplace_back(2500, 0);
+    wedge_1.emplace_back(0, 2500);
+    wedge_1.emplace_back(20000, 20000);
+    PointMatrix scaler = PointMatrix::scale(.846 / 2); // .846 causes a transition which is just beyond the marked skeleton
+    for (Point& p : wedge_1)
+        p = scaler.apply(p);
+
+    rounded_wedge = wedge.offset(-400, ClipperLib::jtRound).offset(400, ClipperLib::jtRound); // TODO: this offset gives problems!!
+    rounded_wedge = wedge.offset(-200, ClipperLib::jtRound).offset(200, ClipperLib::jtRound); // TODO: this offset also gives problems!!
+//     rounded_wedge = wedge.offset(-205, ClipperLib::jtRound).offset(205, ClipperLib::jtRound);
 }
 
 void test()
@@ -160,7 +168,8 @@ void test()
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
 //     Polygons polys = gMAT_example;
-    Polygons polys = wedge;
+//     Polygons polys = wedge;
+    Polygons polys = rounded_wedge;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
@@ -177,7 +186,7 @@ void test()
 
     SVG svg("output/after.svg", AABB(polys));
     svg.writePolygons(polys, SVG::Color::GRAY, 2);
-    vq.debugOutput(svg, false, true);
+    vq.debugOutput(svg, false, false, true);
     
     logError("Total processing took %fs\n", tk.restart());
 }
