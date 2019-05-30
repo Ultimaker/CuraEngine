@@ -55,6 +55,8 @@ static Polygons circle_flawed;
 static Polygons gMAT_example;
 static Polygons wedge;
 static Polygons rounded_wedge;
+static Polygons flawed_wall;
+static Polygons marked_local_opt;
 
 void generateTestPolys()
 {
@@ -87,10 +89,7 @@ void generateTestPolys()
     parabola_dip_1.emplace_back(5000, 5000);
     parabola_dip_1.emplace_back(4500, 10000);
     Point3Matrix rot = Point3Matrix(PointMatrix(25.0)).compose(PointMatrix::scale(.7));
-    for (Point& p : parabola_dip_1)
-    {
-        p = rot.apply(p);
-    }
+    parabola_dip_1.applyMatrix(rot);
     
     PolygonRef circle_1 = circle.newPoly();
     coord_t r = 10000;
@@ -135,12 +134,39 @@ void generateTestPolys()
     wedge_1.emplace_back(0, 2500);
     wedge_1.emplace_back(20000, 20000);
     PointMatrix scaler = PointMatrix::scale(.846 / 2); // .846 causes a transition which is just beyond the marked skeleton
-    for (Point& p : wedge_1)
-        p = scaler.apply(p);
+    wedge_1.applyMatrix(scaler);
 
     rounded_wedge = wedge.offset(-400, ClipperLib::jtRound).offset(400, ClipperLib::jtRound); // TODO: this offset gives problems!!
 //     rounded_wedge = wedge.offset(-200, ClipperLib::jtRound).offset(200, ClipperLib::jtRound); // TODO: this offset also gives problems!!
 //     rounded_wedge = wedge.offset(-205, ClipperLib::jtRound).offset(205, ClipperLib::jtRound);
+    
+    {
+        coord_t l = 10000;
+        coord_t h = 1000;
+        coord_t r = 100;
+        coord_t step = 2000;
+        PolygonRef flawed_wall_1 = flawed_wall.newPoly();
+        for (coord_t x = 0; x <= l; x += step)
+        {
+            flawed_wall_1.emplace_back(x, h + rand() % r - r/2);
+        }
+        for (coord_t x = l - step / 2; x >= 0; x -= 800)
+        {
+            flawed_wall_1.emplace_back(x, rand() % r - r/2);
+        }
+        
+        Point3Matrix rot = Point3Matrix(PointMatrix(60.0));
+        flawed_wall_1.applyMatrix(rot);
+    }
+    {
+        PolygonRef marked_local_opt_1 = marked_local_opt.newPoly();
+        marked_local_opt_1.emplace_back(5000, 0);
+        marked_local_opt_1.emplace_back(0, 400);
+        marked_local_opt_1.emplace_back(5000, 610);
+        marked_local_opt_1.emplace_back(10000, 400);
+        Point3Matrix rot = Point3Matrix(PointMatrix(60.0));
+        marked_local_opt_1.applyMatrix(rot);
+    }
 }
 
 void test()
@@ -155,14 +181,17 @@ void test()
 //     r = 1558983814;
 //     r = 1558985782;
 //     r = 1559215562;
+//     r = 1559224125;
+    r = 1559224469;
     srand(r);
-    logError("    r = %d;\n", r);
-    logError("boost version: %s\n", BOOST_LIB_VERSION);
+    printf("r = %d;\n", r);
+    fflush(stdout);
+    logDebug("boost version: %s\n", BOOST_LIB_VERSION);
     
     
     
     generateTestPolys();
-    Polygons polys = generateTestPoly(6, Point(10000, 10000));
+//     Polygons polys = generateTestPoly(6, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
@@ -170,7 +199,8 @@ void test()
 //     Polygons polys = circle_flawed;
 //     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
-//     Polygons polys = rounded_wedge;
+//     Polygons polys = flawed_wall;
+    Polygons polys = marked_local_opt;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
