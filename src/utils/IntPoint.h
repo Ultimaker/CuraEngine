@@ -199,6 +199,14 @@ public:
         matrix[3] = matrix[0];
     }
 
+    static PointMatrix scale(double s)
+    {
+        PointMatrix ret;
+        ret.matrix[0] = s;
+        ret.matrix[3] = s;
+        return ret;
+    }
+
     Point apply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);
