@@ -55,6 +55,28 @@ protected:
     // ^ init | v transitioning
 
     void setMarking(); //! set the is_marked flag for each edge
+
+    void filterMarkedLocalOptima(const BeadingStrategy& beading_strategy);
+    /*!
+     * \param edge_to edge pointing to the node to check
+     */
+    bool isMarkedLocalOptimum(edge_t* edge_to);
+
+    /*!
+     * check whether a marked region around a given node with a constant optimal bead count is too small for a transition_lower_bead_count
+     */
+    bool isSmallMarkedLocalOptimum(edge_t* edge_to, const BeadingStrategy& beading_strategy);
+
+    /*!
+     * Get the maximum distance traveled outward along which the optimum bead count has the same value
+     * 
+     * \param stop_distance Stop computing if the return value would be larger than this
+     * \param traveled_distance already traveled distance we did to get to \p outgoing.from
+     */
+    coord_t getLocalOptimumSize(edge_t* outgoing, coord_t bead_count, coord_t stop_distance, coord_t traveled_distance, const BeadingStrategy& beading_strategy);
+
+    void dissolveMarkedLocalOptimum(edge_t* edge_to);
+
     void generateTransitioningRibs(const BeadingStrategy& beading_strategy);
 
     /*!
