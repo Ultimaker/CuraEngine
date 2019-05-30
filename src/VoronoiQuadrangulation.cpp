@@ -124,7 +124,9 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
         std::vector<Point> discretized = discretize(vd_edge, points, segments);
         assert(discretized.size() >= 2);
         
-        node_t* v0 = &make_node(*vd_edge.vertex0(), from);
+        assert(!prev_edge || prev_edge->to);
+//         assert(!prev_edge || prev_edge->to == &make_node(*vd_edge.vertex0(), from)); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
+        node_t* v0 = (prev_edge)? prev_edge->to : &make_node(*vd_edge.vertex0(), from);
         Point p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
