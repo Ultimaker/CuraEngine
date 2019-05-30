@@ -614,12 +614,24 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransition(edge_
     
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
-        
+
+    // upper bead count transition end
     edge_t* replacing_last_edge = generateTransitionEnd(edge, mid_pos, mid_pos + (1.0 - transition_mid_position) * transition_length, mid_rest, end_rest, lower_bead_count);
         debugCheckGraphConsistency();
+    // lower bead count transition end
     edge_t* edge_at_mid_position = (replacing_last_edge == &edge)? &edge : replacing_last_edge->prev->twin->prev;
     coord_t start_pos = vSize(b - normal(ab, ab_size - mid_pos) - edge_at_mid_position->to->p);
-    generateTransitionEnd(*edge_at_mid_position->twin, start_pos, start_pos + transition_mid_position * transition_length, mid_rest, start_rest, lower_bead_count);
+    coord_t end_pos = start_pos + transition_mid_position * transition_length;
+    if (lower_bead_count == 0)
+    {
+        // put the transition end which trnsitions to 0 at the anchor point of the transition
+        // there won't be a physical transition, so it doesn't require a distance.
+        end_pos = start_pos;
+        lower_bead_count = 1;
+        // TODO: what about the upper end transition? I'm not sure we can leave it out.
+        // it can't really hurt to have it there, though
+    }
+    generateTransitionEnd(*edge_at_mid_position->twin, start_pos, end_pos, mid_rest, start_rest, lower_bead_count);
     
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
