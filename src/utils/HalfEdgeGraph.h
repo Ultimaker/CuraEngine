@@ -5,7 +5,7 @@
 #define UTILS_HALF_EDGE_GRAPH_H
 
 
-#include <forward_list>
+#include <list>
 #include <cassert>
 
 
@@ -23,8 +23,8 @@ class HalfEdgeGraph
 public:
     using edge_t = HalfEdge<node_data_t, edge_data_t>;
     using node_t = HalfEdgeNode<node_data_t, edge_data_t>;
-    std::forward_list<edge_t> edges;
-    std::forward_list<node_t> nodes;
+    std::list<edge_t> edges;
+    std::list<node_t> nodes;
 
     void debugOutput(std::string filename);
     void debugOutput(SVG& svg);

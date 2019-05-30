@@ -60,7 +60,7 @@ protected:
     /*!
      * Return the last edge of the edges replacing \p edge pointing to the same node
      */
-    edge_t* generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy);
+    edge_t* generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count);
 
     /*!
      * \p start_rest and \p end_rest refer to gap distances at the start adn end pos.
@@ -70,7 +70,7 @@ protected:
      * 
      * Return the last edge of the edges replacing \p edge pointing to the same node
      */
-    edge_t* generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest);
+    edge_t* generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t transition_lower_bead_count);
 
     /*!
      * Return the last edge of the edges replacing \p edge pointing to the same node
