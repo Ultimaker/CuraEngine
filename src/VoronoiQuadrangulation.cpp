@@ -377,6 +377,10 @@ void VoronoiQuadrangulation::init()
     
     for (vd_t::cell_type cell : vd.cells())
     {
+        if (!cell.incident_edge())
+        { // there is no spoon
+            continue;
+        }
         Point start_source_point;
         Point end_source_point;
         vd_t::edge_type* starting_vd_edge = nullptr;
