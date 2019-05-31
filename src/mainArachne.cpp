@@ -16,6 +16,7 @@
 #include "VoronoiQuadrangulation.h"
 #include "DistributedBeadingStrategy.h"
 #include "utils/VoronoiUtils.h"
+#include "NaiveBeadingStrategy.h"
 
 using arachne::Point;
 
@@ -133,7 +134,7 @@ void generateTestPolys()
     wedge_1.emplace_back(2500, 0);
     wedge_1.emplace_back(0, 2500);
     wedge_1.emplace_back(20000, 20000);
-    PointMatrix scaler = PointMatrix::scale(.846 / 2); // .846 causes a transition which is just beyond the marked skeleton
+    PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
     wedge_1.applyMatrix(scaler);
 
     rounded_wedge = wedge.offset(-400, ClipperLib::jtRound).offset(400, ClipperLib::jtRound); // TODO: this offset gives problems!!
@@ -214,14 +215,56 @@ void test()
     
     VoronoiQuadrangulation vq(polys);
 
-    DistributedBeadingStrategy beading_strategy(300, 400, 600);
-    Polygons paths = vq.generateToolpaths(beading_strategy);
+//     DistributedBeadingStrategy beading_strategy(300, 400, 600);
+    NaiveBeadingStrategy beading_strategy(400);
+    std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
+    Polygons paths;
+    for (ExtrusionSegment& segment : segments)
+    {
+        PolygonRef poly = paths.newPoly();
+        poly.emplace_back(segment.from);
+        poly.emplace_back(segment.to);
+    }
 
-    SVG svg("output/after.svg", AABB(polys));
-    svg.writePolygons(polys, SVG::Color::GRAY, 2);
-    vq.debugOutput(svg, false, false, true);
-    svg.writePolygons(paths, SVG::Color::BLACK, 2);
-    
+    {
+        SVG svg("output/after.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::GRAY, 2);
+        vq.debugOutput(svg, false, false, true);
+        svg.writePolygons(paths, SVG::Color::BLACK, 2);
+    }
+    {
+        SVG svg("output/toolpaths.svg", AABB(polys));
+        for (ExtrusionSegment& segment : segments)
+        {
+//             segment.from_width = segment.from_width * 4 / 5;
+//             segment.to_width = segment.to_width * 4 / 5;
+            svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);
+        }
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::WHITE, 2);
+    }
+    {
+        SVG svg("output/normal.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        Polygons insets;
+        Polygons last_inset = polys.offset(-200);
+        while (!last_inset.empty())
+        {
+            insets.add(last_inset);
+            last_inset = last_inset.offset(-400);
+        }
+        for (PolygonRef poly : insets)
+        {
+            Point prev = poly.back();
+            for (Point p : poly)
+            {
+                ExtrusionSegment segment(prev, 400, p, 400);
+                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
+                prev = p;
+            }
+        }
+        svg.writePolygons(insets, SVG::Color::WHITE, 2);
+    }
     logError("Total processing took %fs\n", tk.restart());
 }
 
