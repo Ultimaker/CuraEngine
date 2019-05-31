@@ -11,12 +11,19 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     Beading ret;
 
     ret.total_thickness = thickness;
-    ret.bead_widths.resize(bead_count, thickness / bead_count);
-    for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+    if (bead_count > 0)
     {
-        ret.toolpath_locations.emplace_back(thickness * (bead_idx * 2 + 1) / bead_count / 2);
+        ret.bead_widths.resize(bead_count, thickness / bead_count);
+        for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+        {
+            ret.toolpath_locations.emplace_back(thickness * (bead_idx * 2 + 1) / bead_count / 2);
+        }
+        ret.left_over = 0;
     }
-    ret.left_over = 0;
+    else
+    {
+        ret.left_over = thickness;
+    }
 
     return ret;
 }
