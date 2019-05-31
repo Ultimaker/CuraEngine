@@ -12,6 +12,7 @@
 #include "utils/HalfEdgeGraph.h"
 #include "utils/polygon.h"
 #include "utils/PolygonsSegmentIndex.h"
+#include "utils/ExtrusionSegment.h"
 #include "VoronoiQuadrangulationEdge.h"
 #include "VoronoiQuadrangulationJoint.h"
 #include "BeadingStrategy.h"
@@ -26,6 +27,7 @@ class VoronoiQuadrangulation
     using graph_t = HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
     using edge_t = HalfEdge<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
     using node_t = HalfEdgeNode<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
+    using Beading = BeadingStrategy::Beading;
 
     coord_t snap_dist = 20; // generic arithmatic inaccuracy
     coord_t rib_snap_distance = 100; // smallest segment cut off of an outline segment by an introduced rib. smaller than this the rib is canceled because it lies too close to an existing edge
@@ -35,9 +37,10 @@ public:
     VoronoiQuadrangulation(const Polygons& polys);
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
     Polygons generateToolpaths(const BeadingStrategy& beading_strategy);
+    const Polygons& polys;
 protected:
 
-    void init(const Polygons& polys);
+    void init();
 
     std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
@@ -102,7 +105,32 @@ protected:
     std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge);
 
-    // ^ transitioning | v helpers
+    // ^ transitioning | v toolpath generation
+
+    /*!
+     * \param segments maps segment start to segment end
+     */
+    void generateSegments(std::unordered_map<Point, ExtrusionSegment>& segments, const BeadingStrategy& beading_strategy);
+
+    coord_t getQuadMaxR(edge_t* quad_start_edge);
+    edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
+
+    struct Junction
+    {
+        Point p;
+        coord_t w;
+        Junction(Point p, coord_t w)
+        : p(p), w(w) {}
+    };
+
+    /*!
+     * \p edge is assumed to point upward to higher R; otherwise take its twin
+     * 
+     * \param include_odd_start_junction Whether to leave out the first junction if it coincides with \p edge.from->p
+     */
+    const std::vector<Junction>& getJunctions(edge_t* edge, std::unordered_map<node_t*, BeadingStrategy::Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
+
+    // ^ toolpath generation | v helpers
 
 public:
     void debugCheckGraphCompleteness();

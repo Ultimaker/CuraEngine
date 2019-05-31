@@ -10,6 +10,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
 {
     Beading ret;
 
+    ret.total_thickness = thickness;
     ret.bead_widths.resize(bead_count, thickness / bead_count);
     for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
     {

@@ -29,6 +29,7 @@ public:
      */
     struct Beading
     {
+        coord_t total_thickness;
         std::vector<coord_t> bead_widths; //! The line width of each bead from the outer inset inward
         std::vector<coord_t> toolpath_locations; //! The distance of the toolpath location of each bead from the outline
         coord_t left_over; //! The distance not covered by any bead; gap area.
