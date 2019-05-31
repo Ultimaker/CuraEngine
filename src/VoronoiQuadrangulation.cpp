@@ -1193,7 +1193,7 @@ VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node
     if (beading_it == node_to_beading.end())
     {
 //         assert(edge->to has some edge which is->data.is_marked);
-//         assert(node->data.bead_count != -1);
+        assert(node->data.bead_count != -1);
         beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2 - node->data.transition_rest, node->data.bead_count)).first;
     }
     return beading_it->second;
