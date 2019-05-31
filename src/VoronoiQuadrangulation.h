@@ -36,7 +36,7 @@ public:
     using Segment = PolygonsSegmentIndex;
     VoronoiQuadrangulation(const Polygons& polys);
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
-    Polygons generateToolpaths(const BeadingStrategy& beading_strategy);
+    std::vector<ExtrusionSegment> generateToolpaths(const BeadingStrategy& beading_strategy);
     const Polygons& polys;
 protected:
 
@@ -110,7 +110,7 @@ protected:
     /*!
      * \param segments maps segment start to segment end
      */
-    void generateSegments(std::unordered_map<Point, ExtrusionSegment>& segments, const BeadingStrategy& beading_strategy);
+    void generateSegments(std::vector<ExtrusionSegment>& segments, const BeadingStrategy& beading_strategy);
 
     coord_t getQuadMaxR(edge_t* quad_start_edge);
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
@@ -128,7 +128,9 @@ protected:
      * 
      * \param include_odd_start_junction Whether to leave out the first junction if it coincides with \p edge.from->p
      */
-    const std::vector<Junction>& getJunctions(edge_t* edge, std::unordered_map<node_t*, BeadingStrategy::Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
+    const std::vector<Junction>& getJunctions(edge_t* edge, std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
+    
+    Beading& getBeading(node_t* node, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
 
     // ^ toolpath generation | v helpers
 
