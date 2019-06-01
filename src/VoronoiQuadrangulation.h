@@ -59,6 +59,42 @@ protected:
 
     void setMarking(); //! set the is_marked flag for each edge
 
+    struct TransitionMiddle
+    {
+        coord_t pos; //! position along edge as measure from edge.from.p
+        coord_t lower_bead_count;
+        TransitionMiddle(coord_t pos, coord_t lower_bead_count)
+        : pos(pos), lower_bead_count(lower_bead_count)
+        {}
+    };
+
+    struct TransitionEnd
+    {
+        coord_t pos; //!< position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
+        coord_t lower_bead_count;
+        bool is_lower_end; //!< whether this is the ed of the transition with lower bead count
+        TransitionEnd(coord_t pos, coord_t lower_bead_count, bool is_lower_end)
+        : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
+        {}
+    };
+
+    void generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions);
+
+    void filterTransitionMids(std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions);
+
+    void generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+
+    /*!
+     * 
+     * Also set the rest values at the end of marking node
+     */
+    void generateEndOfMarkingTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+
+    /*!
+     * Also set the rest values at nodes in between the transition ends
+     */
+    void applyTransitions(std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+
     void filterMarkedLocalOptima(const BeadingStrategy& beading_strategy);
     /*!
      * \param edge_to edge pointing to the node to check
@@ -83,29 +119,31 @@ protected:
     void generateTransitioningRibs(const BeadingStrategy& beading_strategy);
 
     /*!
-     * Return the last edge of the edges replacing \p edge pointing to the same node
+     * 
      */
-    edge_t* generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count);
+    void generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * \p start_rest and \p end_rest refer to gap distances at the start adn end pos.
      * 
      * \p end_pos_along_edge may be beyond this edge!
      * In this case we need to interpolate the rest value at the locations in between
-     * 
-     * Return the last edge of the edges replacing \p edge pointing to the same node
      */
-    edge_t* generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t transition_lower_bead_count);
+    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
-     * Return the last edge of the edges replacing \p edge pointing to the same node
+     * Return the first and last edge of the edges replacing \p edge pointing to the same node
      */
-    VoronoiQuadrangulation::edge_t* insertRib(edge_t& edge, node_t* mid_node);
+    std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> insertRib(edge_t& edge, node_t* mid_node);
 
     std::pair<Point, Point> getSource(const edge_t& edge);
-    bool isEndOfMarking(const edge_t& edge);
+    bool isEndOfMarking(const edge_t& edge) const;
+
+
 
     // ^ transitioning | v toolpath generation
+
+
 
     /*!
      * \param segments maps segment start to segment end
@@ -138,6 +176,8 @@ public:
     void debugCheckGraphCompleteness();
     void debugCheckGraphConsistency();
     void debugCheckDecorationConsistency();
+    void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions) const;
+    void debugCheckTransitionEnds(const std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transitions) const;
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
 protected:
     SVG::Color getColor(edge_t& edge);

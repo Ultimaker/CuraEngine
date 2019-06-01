@@ -484,14 +484,6 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         }
     }
 
-//     filterMarkedLocalOptima(beading_strategy);
-    // TODO: also filter out small minima
-    // only if the minimum widths isnt violated!
-    
-
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
-
     generateTransitioningRibs(beading_strategy);
     // TODO: redo generateTransitioningRibs and filtering:
     // first generate all transition locations
@@ -553,6 +545,34 @@ void VoronoiQuadrangulation::setMarking()
             edge.data.is_marked = dD > 2 * dR;
         }
     }
+}
+
+
+
+void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
+{
+    std::unordered_map<edge_t*, std::vector<TransitionMiddle>> edge_to_transitions;
+    generateTransitionMids(beading_strategy, edge_to_transitions);
+
+        debugCheckGraphCompleteness();
+        debugCheckGraphConsistency();
+
+    filterTransitionMids(edge_to_transitions);
+
+    debugCheckTransitionMids(edge_to_transitions);
+
+    std::unordered_map<edge_t*, std::vector<TransitionEnd>> edge_to_transition_ends;
+    generateTransitionEnds(beading_strategy, edge_to_transitions, edge_to_transition_ends);
+
+    generateEndOfMarkingTransitionEnds(beading_strategy, edge_to_transition_ends);
+
+    applyTransitions(edge_to_transition_ends);
+}
+
+
+void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions)
+{
+    RUN_ONCE(logError("filterTransitionMids not implemented\n"));
 }
 
 
@@ -694,7 +714,152 @@ void VoronoiQuadrangulation::dissolveMarkedLocalOptimum(edge_t* edge_to)
     }
 }
 
+void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions)
+{
+    for (edge_t& edge : graph.edges)
+    {
+        assert(edge.data.is_marked != -1);
+        if (!edge.data.is_marked)
+        { // only marked regions introduce transitions
+            continue;
+        }
+        coord_t start_R = edge.from->data.distance_to_boundary;
+        coord_t end_R = edge.to->data.distance_to_boundary;
+        coord_t start_bead_count = edge.from->data.bead_count;
+        coord_t end_bead_count = edge.to->data.bead_count;
 
+        if (start_R == end_R)
+        { // no transitions occur when both end points have the same distance_to_boundary
+            // TODO: but what if star_R == transition_thickness?
+            continue;
+        }
+        else if (start_R > end_R)
+        { // only consider those half-edges which are going from a lower to a higher distance_to_boundary
+            continue;
+        }
+
+        if (start_bead_count > beading_strategy.optimal_bead_count(start_R * 2)
+            || end_bead_count > beading_strategy.optimal_bead_count(end_R * 2))
+        { // wasn't the case earlier in this function because of already introduced transitions
+            RUN_ONCE(logError("transitioning segment overlap! (?)\n"));
+        }
+        assert(start_R < end_R);
+        coord_t edge_size = vSize(edge.from->p - edge.to->p);
+        for (coord_t transition_lower_bead_count = start_bead_count; transition_lower_bead_count < end_bead_count; transition_lower_bead_count++)
+        {
+            coord_t mid_R = beading_strategy.transition_thickness(transition_lower_bead_count) / 2;
+            if (mid_R > end_R)
+            {
+                RUN_ONCE(logError("transition on segment lies outside of segment!\n"));
+                mid_R = end_R;
+            }
+            if (mid_R < start_R)
+            {
+                RUN_ONCE(logError("transition on segment lies outside of segment!\n"));
+                mid_R = start_R;
+            }
+            coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
+            assert(mid_pos >= 0);
+            assert(mid_pos <= edge_size);
+            edge_to_transitions[&edge].emplace_back(mid_pos, transition_lower_bead_count);
+        }
+    }
+}
+
+void VoronoiQuadrangulation::generateEndOfMarkingTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends)
+{
+    for (edge_t& edge : graph.edges)
+    {
+        assert(edge.data.is_marked != -1);
+        if (!edge.data.is_marked)
+        { // only marked regions introduce transitions
+            continue;
+        }
+        if (!isEndOfMarking(edge))
+        {
+            return;
+        }
+
+        coord_t start_R = edge.from->data.distance_to_boundary;
+        coord_t end_R = edge.to->data.distance_to_boundary;
+        coord_t end_bead_count = edge.to->data.bead_count;
+
+        // only check the edge.to for needing a transition end
+        // check the other end via the other half edge
+
+        if (start_R == end_R)
+        { // no transitions occur when both end points have the same distance_to_boundary
+            // TODO: check if the R distance is exactly the transitioning distance?
+            continue;
+        }
+        else if (start_R > end_R)
+        { // only consider those half-edges which are going from a lower to a higher distance_to_boundary
+            if (
+                isEndOfMarking(edge)
+                && end_bead_count > 0 // we cannot transition from -1 to 0 beads!
+                && edge.to->data.transition_rest != 0 // the end isn't already part of a transition
+            )
+            { // check for lower end transitions
+                coord_t transition_R = beading_strategy.transition_thickness(end_bead_count - 1) / 2;
+                coord_t last_edge_size = vSize(edge.from->p - edge.to->p);
+
+                coord_t transition_length = beading_strategy.optimal_width; // TODO
+                float transition_mid_position = 0.5; // TODO
+                coord_t inner_bead_width_after_transition = beading_strategy.optimal_width; // TODO
+
+                coord_t mid_pos = last_edge_size * (transition_R - start_R) / (end_R - start_R);
+                assert(mid_pos > last_edge_size);
+
+                coord_t transition_end_pos = mid_pos - transition_mid_position * transition_length;
+                if (transition_end_pos < last_edge_size)
+                {
+                    coord_t inv_transition_end_pos = last_edge_size - transition_end_pos;
+                    coord_t last_edge_end_rest = inner_bead_width_after_transition * inv_transition_end_pos / transition_length;
+                    edge.to->data.transition_rest = last_edge_end_rest;
+                    edge.to->data.bead_count = end_bead_count - 1;
+                    constexpr bool is_lower_end = false; // the transition goes from a higher bead count to a lower bead count beyond end_R
+                    std::vector<TransitionEnd>& edge_transitions = edge_to_transition_ends[edge.twin];
+                    edge_transitions.emplace(edge_transitions.begin(), inv_transition_end_pos, end_bead_count - 1, is_lower_end); // TODO: This is slow. Use list instead of vector?
+                }
+            }
+            continue;
+        }
+        else
+        {
+            assert(start_R < end_R);
+
+            edge_t* last_edge = &edge;
+            coord_t edge_size = vSize(last_edge->from->p - last_edge->to->p);
+            if (isEndOfMarking(*last_edge)
+                && end_bead_count >= 0 // we cannot transition from -1 to 0
+            )
+            {
+                coord_t transition_R = beading_strategy.transition_thickness(end_bead_count) / 2;
+
+                coord_t transition_length = beading_strategy.optimal_width; // TODO
+                float transition_mid_position = 0.5; // TODO
+                coord_t inner_bead_width_after_transition = beading_strategy.optimal_width; // TODO
+
+                coord_t mid_pos = edge_size * (transition_R - start_R) / (end_R - start_R);
+                assert(mid_pos > edge_size);
+
+                coord_t transition_end_pos = mid_pos - transition_mid_position * transition_length;
+                if (transition_end_pos < edge_size)
+                {
+                    coord_t inv_transition_end_pos = edge_size - transition_end_pos;
+                    coord_t last_edge_end_rest = inner_bead_width_after_transition * inv_transition_end_pos / transition_length;
+                    last_edge->to->data.transition_rest = last_edge_end_rest;
+                    last_edge->to->data.bead_count = end_bead_count;
+                    constexpr bool is_lower_end = true; // the higher end lies beyong end_R
+                    edge_to_transition_ends[&edge].emplace_back(transition_end_pos, end_bead_count, is_lower_end);
+//                     generateTransitionEnd(*last_edge->twin, 0, inv_transition_end_pos, last_edge_end_rest, 0, end_bead_count);
+                }
+            }
+        }
+    }
+}
+
+/*
 void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge : graph.edges)
@@ -805,8 +970,23 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
         }
     }
 }
+*/
 
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, const BeadingStrategy& beading_strategy, coord_t lower_bead_count)
+void VoronoiQuadrangulation::generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends)
+{
+    for (std::pair<edge_t*, std::vector<TransitionMiddle>> pair : edge_to_transitions)
+    {
+        edge_t* edge = pair.first;
+        std::vector<TransitionMiddle>& transition_positions = pair.second;
+        
+        for (TransitionMiddle& transition_middle : transition_positions)
+        {
+            generateTransition(*edge, transition_middle.pos, beading_strategy, transition_middle.lower_bead_count, edge_to_transition_ends);
+        }
+    }
+}
+
+void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, const BeadingStrategy& beading_strategy, coord_t lower_bead_count, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -825,31 +1005,31 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransition(edge_
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
-    // upper bead count transition end
-    edge_t* replacing_last_edge = generateTransitionEnd(edge, mid_pos, mid_pos + (1.0 - transition_mid_position) * transition_length, mid_rest, end_rest, lower_bead_count);
-        debugCheckGraphConsistency();
-    // lower bead count transition end
-    edge_t* edge_at_mid_position = (replacing_last_edge == &edge)? &edge : replacing_last_edge->prev->twin->prev;
-    coord_t start_pos = vSize(b - normal(ab, ab_size - mid_pos) - edge_at_mid_position->to->p);
-    coord_t end_pos = start_pos + transition_mid_position * transition_length;
-    if (lower_bead_count == 0)
-    {
-        // put the transition end which trnsitions to 0 at the anchor point of the transition
-        // there won't be a physical transition, so it doesn't require a distance.
-        end_pos = start_pos;
-        lower_bead_count = 1;
-        // TODO: what about the upper end transition? I'm not sure we can leave it out.
-        // it can't really hurt to have it there, though
+    { // lower bead count transition end
+        coord_t start_pos = ab_size - mid_pos;
+        coord_t end_pos = start_pos + transition_mid_position * transition_length;
+        generateTransitionEnd(*edge.twin, start_pos, end_pos, mid_rest, start_rest, lower_bead_count, edge_to_transition_ends);
     }
-    generateTransitionEnd(*edge_at_mid_position->twin, start_pos, end_pos, mid_rest, start_rest, lower_bead_count);
-    
+    debugCheckGraphConsistency();
+    { // upper bead count transition end
+        coord_t start_pos = mid_pos;
+        coord_t end_pos = mid_pos + (1.0 - transition_mid_position) * transition_length;
+        if (lower_bead_count == 0)
+        {
+            // there won't be a physical transition, so it doesn't require a distance.
+            // put the 1 bead end at the middle of the transition
+            // the 0 bead end position doesn't really matter
+            end_pos = start_pos;
+        }
+        generateTransitionEnd(edge, start_pos, end_pos, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
+    }
+
+        debugCheckTransitionEnds(edge_to_transition_ends);
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
-    
-    return replacing_last_edge;
 }
 
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t lower_bead_count)
+void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -858,15 +1038,16 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransitionEnd(ed
 
     assert(start_pos <= ab_size);
 
-    edge_t* last_edge_replacing_input = &edge;
-
+    /*
     if (shorterThen(end_pos - ab_size, snap_dist))
     {
         edge.to->data.transition_rest = 0; // the transition rest should be zero at both sides of the transition; the intermediate values should only occur in between
         edge.data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
         return last_edge_replacing_input;
     }
-    else if (end_pos > ab_size)
+    else 
+    */
+    if (end_pos > ab_size)
     { // recurse on all further edges
         edge.data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
         coord_t R = edge.to->data.distance_to_boundary;
@@ -874,7 +1055,7 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransitionEnd(ed
         assert(rest >= 0);
         assert(rest <= std::max(end_rest, start_rest));
         assert(rest >= std::min(end_rest, start_rest));
-        edge.to->data.transition_rest = rest;
+        edge.to->data.transition_rest = rest; // TODO: do this after all transitions have been calculated, so that we can take the actual inner bead width into account
         edge.to->data.bead_count = lower_bead_count;
         int i = 0;
         for (edge_t* outgoing = edge.next; outgoing != edge.twin;)
@@ -893,45 +1074,97 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::generateTransitionEnd(ed
 //                 continue; // TODO 
             }
 
-            generateTransitionEnd(*outgoing, 0, end_pos - ab_size, rest, end_rest, lower_bead_count);
+            generateTransitionEnd(*outgoing, 0, end_pos - ab_size, rest, end_rest, lower_bead_count, edge_to_transition_ends);
             outgoing = next;
         }
-        return last_edge_replacing_input; // [edge] was not altered; we altered other edges
     }
     else // end_pos < ab_size
-    { // split input edge
+    { // add transition end point here
         assert(edge.data.is_marked);
-        Point mid = a + normal(ab, end_pos);
         
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
-
-        graph.nodes.emplace_back(VoronoiQuadrangulationJoint(), mid);
-        node_t* mid_node = &graph.nodes.back();
-        mid_node->data.bead_count = (end_rest == 0)? lower_bead_count : lower_bead_count + 1;
-
-        edge_t& twin = *edge.twin;
-        last_edge_replacing_input = insertRib(edge, mid_node);
-        edge_t* last_edge_replacing_twin = insertRib(twin, mid_node);
-
-        edge_t* first_edge_replacing_input = last_edge_replacing_input->prev->twin->prev;
-        edge_t* first_edge_replacing_twin = last_edge_replacing_twin->prev->twin->prev;
-        first_edge_replacing_input->twin = last_edge_replacing_twin;
-        last_edge_replacing_twin->twin = first_edge_replacing_input;
-        last_edge_replacing_input->twin = first_edge_replacing_twin;
-        first_edge_replacing_twin->twin = last_edge_replacing_input;
-
-        first_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-        last_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
-        return last_edge_replacing_input;
+        bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
+        if (is_lower_end)
+        {
+            assert(edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary);
+            edge_to_transition_ends[edge.twin].emplace_back(ab_size - end_pos, lower_bead_count, is_lower_end);
+        }
+        else
+        {
+            assert(edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary);
+            edge_to_transition_ends[&edge].emplace_back(end_pos, lower_bead_count, is_lower_end);
+        }
     }
 }
 
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::insertRib(edge_t& edge, node_t* mid_node)
+
+void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends)
 {
+    for (std::pair<edge_t* const, std::vector<TransitionEnd>>& pair : edge_to_transition_ends)
+    {
+        edge_t* edge = pair.first;
+        std::vector<TransitionEnd>& transitions = pair.second;
+        
+        Point a = edge->from->p;
+        Point b = edge->to->p;
+        Point ab = b - a;
+
+        edge_t* last_edge_replacing_input = edge;
+        for (TransitionEnd& transition_end : transitions)
+        {
+            coord_t end_pos = transition_end.pos;
+            Point mid = a + normal(ab, end_pos);
+            
+            debugCheckGraphCompleteness();
+            debugCheckGraphConsistency();
+
+            graph.nodes.emplace_back(VoronoiQuadrangulationJoint(), mid);
+            node_t* mid_node = &graph.nodes.back();
+
+            edge_t* twin = last_edge_replacing_input->twin;
+            last_edge_replacing_input->twin = nullptr;
+            twin->twin = nullptr;
+            std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> left_pair
+                = insertRib(*last_edge_replacing_input, mid_node);
+            std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> right_pair
+                = insertRib(*twin, mid_node);
+            edge_t* first_edge_replacing_input = left_pair.first;
+            last_edge_replacing_input = left_pair.second;
+            edge_t* first_edge_replacing_twin = right_pair.first;
+            edge_t* last_edge_replacing_twin = right_pair.second;
+
+            first_edge_replacing_input->twin = last_edge_replacing_twin;
+            last_edge_replacing_twin->twin = first_edge_replacing_input;
+            last_edge_replacing_input->twin = first_edge_replacing_twin;
+            first_edge_replacing_twin->twin = last_edge_replacing_input;
+
+            mid_node->data.bead_count = transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1;
+
+            // TODO: check whether this is a transition start or end end dependong on that decide which edges should be labeled as TRANSITION_MID
+            if (transition_end.is_lower_end)
+            {
+                last_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
+                first_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
+                first_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::NORMAL;
+                last_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::NORMAL;
+            }
+            else
+            {
+                last_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::NORMAL;
+                first_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::NORMAL;
+                first_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
+                last_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
+            }
+
+            debugCheckGraphCompleteness();
+            debugCheckGraphConsistency();
+        }
+    }
+}
+
+
+std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> VoronoiQuadrangulation::insertRib(edge_t& edge, node_t* mid_node)
+{
+    debugCheckGraphConsistency();
     edge_t* edge_before = edge.prev;
     edge_t* edge_after = edge.next;
     node_t* node_before = edge.from;
@@ -998,7 +1231,9 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::insertRib(edge_t& edge, 
 
     assert(second->prev->from->data.distance_to_boundary == 0);
 
-    return second;
+    debugCheckGraphConsistency();
+
+    return std::make_pair(first, second);
 }
 std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
 {
@@ -1009,7 +1244,7 @@ std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
     return std::make_pair(from_edge->from->p, to_edge->to->p);
 }
 
-bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to)
+bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
 {
     if (!edge_to.next)
     {
@@ -1314,6 +1549,48 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency()
                 assert(std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
             }
         }
+    }
+}
+
+void VoronoiQuadrangulation::debugCheckTransitionMids(const std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions) const
+{
+    for (std::pair<edge_t*, std::vector<TransitionMiddle>> pair : edge_to_transitions)
+    {
+        const edge_t* edge = pair.first;
+        const std::vector<TransitionMiddle>& transition_positions = pair.second;
+        
+        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
+        
+        const TransitionMiddle* prev = &transition_positions.front();
+        for (size_t transition_idx = 1; transition_idx < transition_positions.size(); transition_idx++)
+        {
+            const TransitionMiddle* here = &transition_positions[transition_idx];
+            assert(here->pos > prev->pos);
+            assert(here->lower_bead_count > prev->lower_bead_count);
+            prev = here;
+        }
+        
+    }
+}
+
+void VoronoiQuadrangulation::debugCheckTransitionEnds(const std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transitions) const
+{
+    for (std::pair<edge_t*, std::vector<TransitionEnd>> pair : edge_to_transitions)
+    {
+        const edge_t* edge = pair.first;
+        const std::vector<TransitionEnd>& transition_positions = pair.second;
+        
+        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
+        
+        const TransitionEnd* prev = &transition_positions.front();
+        for (size_t transition_idx = 1; transition_idx < transition_positions.size(); transition_idx++)
+        {
+            const TransitionEnd* here = &transition_positions[transition_idx];
+            assert(here->pos > prev->pos);
+            assert(here->lower_bead_count >= prev->lower_bead_count);
+            prev = here;
+        }
+        
     }
 }
 
