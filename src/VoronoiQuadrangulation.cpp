@@ -1516,27 +1516,28 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency()
     
     for (const edge_t& edge : graph.edges)
     {
-        if (edge.twin)
+        const edge_t* edge_p = &edge;
+        if (edge_p->twin)
         {
-            if (!edge.to)
+            if (!edge_p->to)
             {
-                assert(!edge.twin->from);
-                vert_assert(edge.twin->from, edge.to);
+                assert(!edge_p->twin->from);
+                vert_assert(edge_p->twin->from, edge_p->to);
             }
-            if (!edge.from)
+            if (!edge_p->from)
             {
-                assert(!edge.twin->to);
-                vert_assert(edge.twin->to, edge.from);
+                assert(!edge_p->twin->to);
+                vert_assert(edge_p->twin->to, edge_p->from);
             }
-            assert(edge.twin->twin == &edge);
+            assert(edge_p->twin->twin == &edge);
         }
-        if (edge.next)
+        if (edge_p->next)
         {
-            vert_assert(edge.next->from, edge.to);
+            vert_assert(edge_p->next->from, edge_p->to);
         }
-        if (edge.prev)
+        if (edge_p->prev)
         {
-            vert_assert(edge.prev->to, edge.from);
+            vert_assert(edge_p->prev->to, edge_p->from);
         }
     }
     for (const node_t& node : graph.nodes)
