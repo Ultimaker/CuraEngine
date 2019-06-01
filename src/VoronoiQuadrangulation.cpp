@@ -432,6 +432,20 @@ void VoronoiQuadrangulation::init()
         debugCheckGraphConsistency();
     }
 
+    { // fix duplicate verts
+        for (auto node_it = graph.nodes.begin(); node_it != graph.nodes.end(); ++node_it)
+        {
+            for (edge_t* edge = node_it->some_edge; edge != node_it->some_edge; edge = edge->twin->next)
+            {
+                assert(edge);
+                if (edge->from != &*node_it)
+                {
+                    // TODO: delete node from list
+                    edge->from = &*node_it;
+                }
+            }
+        }
+    }
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
@@ -1427,7 +1441,26 @@ VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node
     auto beading_it = node_to_beading.find(node);
     if (beading_it == node_to_beading.end())
     {
-//         assert(edge->to has some edge which is->data.is_marked);
+        if (node->data.bead_count == -1)
+        { // TODO: where does this bug come from?
+            bool has_marked_edge = false;
+            bool first = true;
+            coord_t dist = std::numeric_limits<coord_t>::max();
+            for (edge_t* edge = node->some_edge; first || edge != node->some_edge; edge = edge->twin->next)
+            {
+                if (edge->data.is_marked)
+                {
+                    has_marked_edge = true;
+                }
+                assert(edge->to->data.distance_to_boundary >= 0);
+                dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
+                first = false;
+            }
+            RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
+//             assert(false);
+            assert(dist != std::numeric_limits<coord_t>::max());
+            node->data.bead_count = beading_strategy.optimal_bead_count(dist);
+        }
         assert(node->data.bead_count != -1);
         beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2 - node->data.transition_rest, node->data.bead_count)).first;
     }
