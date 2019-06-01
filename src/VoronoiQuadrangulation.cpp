@@ -455,7 +455,7 @@ void VoronoiQuadrangulation::init()
     {
         AABB aabb(polys);
         SVG svg("output/graph2.svg", aabb);
-        debugOutput(svg, false, false);
+        debugOutput(svg, false, false, true);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
@@ -517,7 +517,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     {
         AABB aabb(polys);
         SVG svg("output/graph2.svg", aabb);
-        debugOutput(svg, false, false);
+        debugOutput(svg, false, false, true);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
@@ -1505,7 +1505,7 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency()
         {
             if (first->p == second->p)
             {
-                RUN_ONCE(logWarning("Unneccesary duplicatation of VoronoiQuadrangulation nodes!"));
+                RUN_ONCE(logWarning("Unneccesary duplicatation of VoronoiQuadrangulation nodes!\n"));
             }
             else
             {
