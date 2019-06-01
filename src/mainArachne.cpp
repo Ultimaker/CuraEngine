@@ -55,6 +55,7 @@ static Polygons circle;
 static Polygons circle_flawed;
 static Polygons gMAT_example;
 static Polygons wedge;
+static Polygons flawed_wedge;
 static Polygons rounded_wedge;
 static Polygons flawed_wall;
 static Polygons marked_local_opt;
@@ -142,6 +143,24 @@ void generateTestPolys()
 //     rounded_wedge = wedge.offset(-200, ClipperLib::jtRound).offset(200, ClipperLib::jtRound); // TODO: this offset also gives problems!!
 //     rounded_wedge = wedge.offset(-205, ClipperLib::jtRound).offset(205, ClipperLib::jtRound);
     
+    {
+        coord_t l = 10000;
+        coord_t h = 2000;
+        coord_t r = 100;
+        coord_t step = 2000;
+        PolygonRef flawed_wedgel_1 = flawed_wedge.newPoly();
+        for (coord_t x = 0; x <= l; x += step)
+        {
+            flawed_wedgel_1.emplace_back(x, (h + rand() % r - r/2) * x / l);
+        }
+        for (coord_t x = l - step / 2; x >= 0; x -= 800)
+        {
+            flawed_wedgel_1.emplace_back(x, (rand() % r - r/2) * x / l);
+        }
+        
+        Point3Matrix rot = Point3Matrix(PointMatrix(60.0));
+        flawed_wedgel_1.applyMatrix(rot);
+    }
     {
         coord_t l = 10000;
         coord_t h = 1000;
@@ -400,9 +419,10 @@ void test()
 //     Polygons polys = circle_flawed;
 //     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
+    Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
-    Polygons polys = pikachu;
+//     Polygons polys = pikachu;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
@@ -414,8 +434,8 @@ void test()
     
     VoronoiQuadrangulation vq(polys);
 
-//     DistributedBeadingStrategy beading_strategy(300, 400, 600);
-    NaiveBeadingStrategy beading_strategy(400);
+    DistributedBeadingStrategy beading_strategy(300, 400, 600);
+//     NaiveBeadingStrategy beading_strategy(400);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
     Polygons paths;
     for (ExtrusionSegment& segment : segments)
