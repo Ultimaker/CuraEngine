@@ -45,6 +45,7 @@ public:
             to_circle.emplace_back(to + Point(to_width / 2 * cos(a/180.0 * M_PI), to_width / 2 * sin(a/180.0 * M_PI)));
         }
         ret = ret.approxConvexHull();
+        ret.makeConvex();
         return ret;
     }
 };
