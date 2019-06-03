@@ -178,7 +178,7 @@ void VoronoiQuadrangulation::make_rib(edge_t*& prev_edge, Point start_source_poi
     Point p = LinearAlg2D::getClosestOnLineSegment(prev_edge->to->p, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to->p - p);
     prev_edge->to->data.distance_to_boundary = dist;
-    assert(dist > 0);
+    assert(dist >= 0);
 
     if (start_source_point != end_source_point
         && is_next_to_start_or_end
@@ -493,8 +493,6 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 
     generateTransitioningRibs(beading_strategy);
 
-    debugCheckDecorationConsistency();
-
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
@@ -513,6 +511,8 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         debugOutput(svg, false, false, false, true);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
+
+    debugCheckDecorationConsistency();
     
     // fix bead count at locally maximal R
     // also for marked regions!! See TODOs in generateTransitionEnd(.)
@@ -956,8 +956,10 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
         edge_t* edge = pair.first;
         std::list<TransitionEnd>& transitions = pair.second;
         
-        Point a = edge->from->p;
-        Point b = edge->to->p;
+        node_t* from = edge->from;
+        node_t* to = edge->to;
+        Point a = from->p;
+        Point b = to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
 
@@ -968,11 +970,12 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
             if (end_pos < snap_dist || end_pos > ab_size - snap_dist)
             {
                 assert(end_pos <= ab_size);
-                node_t* mid_node = (end_pos < ab_size / 2)? edge->from : edge->to;
+                node_t* mid_node = (end_pos < ab_size / 2)? from : to;
                 mid_node->data.bead_count = transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1;
                 mid_node->data.transition_rest = 0;
                 if (!transition_end.is_lower_end)
                 {
+                    RUN_ONCE(logError("Transition_Mid labeling incorrect!\n"));
                     edge->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
                     edge->twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
                 }
