@@ -32,7 +32,7 @@ Polygons generateTestPoly(int size, Point border)
         poly.emplace_back(rand() % border.X, rand() % border.Y);
     }
     
-    polys = polys.unionPolygons(Polygons(), ClipperLib::pftNegative);
+    polys = polys.unionPolygons(Polygons(), ClipperLib::pftPositive);
 //     polys = polys.offset(border.X*1.2, ClipperLib::jtRound);
     
 //     polys = polys.offset(border.X*2, ClipperLib::jtRound);
@@ -384,6 +384,9 @@ void generateTestPolys()
         pika.emplace_back(pika.back() + Point(100 * 0.198152, 100 * 1.92659  ));
         pika.emplace_back(pika.back() + Point(100 * -0.08296, 100 * 1.91823  ));
         pika.emplace_back(pika.back() + Point(100 * -1.140304, 100 * 0.19548 ));
+
+        Point3Matrix rot = Point3Matrix(PointMatrix(150.0));
+        pika.applyMatrix(rot);
     }
 }
 
@@ -406,6 +409,8 @@ void test()
 //     r = 1559564752;
 //     r = 1559566333;
 //     r = 1559568483;
+//     r = 1559579388;
+//     r = 1559580888;
     srand(r);
     printf("r = %d;\n", r);
     fflush(stdout);
@@ -414,7 +419,7 @@ void test()
     
     
     generateTestPolys();
-    Polygons polys = generateTestPoly(20, Point(10000, 10000));
+    Polygons polys = generateTestPoly(40, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
@@ -431,29 +436,6 @@ void test()
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
         svg.writePolygons(polys);
     }
-    {
-        SVG svg("output/normal.svg", AABB(polys));
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        Polygons insets;
-        Polygons last_inset = polys.offset(-200);
-        while (!last_inset.empty())
-        {
-            insets.add(last_inset);
-            last_inset = last_inset.offset(-400);
-        }
-        for (PolygonRef poly : insets)
-        {
-            Point prev = poly.back();
-            for (Point p : poly)
-            {
-                ExtrusionSegment segment(prev, 400, p, 400);
-                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
-                prev = p;
-            }
-        }
-        svg.writePolygons(insets, SVG::Color::WHITE, 2);
-    }
-    
     
     TimeKeeper tk;
     
@@ -495,6 +477,30 @@ void test()
         svg.writePolygons(polys, SVG::Color::RED, 2);
         svg.writePolygons(paths, SVG::Color::WHITE, 2);
     }
+    
+    {
+        SVG svg("output/normal.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        Polygons insets;
+        Polygons last_inset = polys.offset(-200);
+        while (!last_inset.empty())
+        {
+            insets.add(last_inset);
+            last_inset = last_inset.offset(-400);
+        }
+        for (PolygonRef poly : insets)
+        {
+            Point prev = poly.back();
+            for (Point p : poly)
+            {
+                ExtrusionSegment segment(prev, 400, p, 400);
+                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
+                prev = p;
+            }
+        }
+        svg.writePolygons(insets, SVG::Color::WHITE, 2);
+    }
+    
     logError("Total processing took %fs\n", tk.restart());
 }
 
