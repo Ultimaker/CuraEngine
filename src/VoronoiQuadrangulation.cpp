@@ -570,7 +570,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
 
     debugCheckTransitionMids(edge_to_transitions);
 
-    std::unordered_map<edge_t*, std::list<TransitionEnd>> edge_to_transition_ends;
+    std::unordered_map<edge_t*, std::list<TransitionEnd>> edge_to_transition_ends; // we only map the half edge in the upward direction. mapped items are not sorted
     generateTransitionEnds(beading_strategy, edge_to_transitions, edge_to_transition_ends);
 
     generateEndOfMarkingTransitionEnds(beading_strategy, edge_to_transition_ends);
@@ -626,6 +626,7 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
             coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
             assert(mid_pos >= 0);
             assert(mid_pos <= edge_size);
+            assert(edge_to_transitions[&edge].empty() || mid_pos >= edge_to_transitions[&edge].back().pos);
             edge_to_transitions[&edge].emplace_back(mid_pos, transition_lower_bead_count);
         }
     }
@@ -817,6 +818,8 @@ void VoronoiQuadrangulation::generateTransitionEnds(const BeadingStrategy& beadi
         assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
         for (TransitionMiddle& transition_middle : transition_positions)
         {
+            assert(transition_positions.front().pos <= transition_middle.pos);
+            assert(transition_middle.pos <= transition_positions.back().pos);
             generateTransition(*edge, transition_middle.pos, beading_strategy, transition_middle.lower_bead_count, edge_to_transition_ends);
         }
     }
@@ -840,7 +843,6 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
     
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
-        debugCheckTransitionEnds(edge_to_transition_ends);
 
     { // lower bead count transition end
         coord_t start_pos = ab_size - mid_pos;
@@ -861,7 +863,6 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
         generateTransitionEnd(edge, start_pos, end_pos, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
     }
 
-        debugCheckTransitionEnds(edge_to_transition_ends);
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 }
@@ -875,7 +876,6 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
     assert(start_pos <= ab_size);
 
-        debugCheckTransitionEnds(edge_to_transition_ends);
     /*
     if (shorterThen(end_pos - ab_size, snap_dist))
     {
@@ -935,16 +935,13 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
             pos = ab_size - end_pos;
         }
         if (transitions->empty() || pos < transitions->front().pos)
-        {
+        { // preorder so that sorting later on is faster
             transitions->emplace_front(pos, lower_bead_count, is_lower_end);
         }
         else
         {
-            assert(transitions->empty() || pos >= transitions->back().pos);
             transitions->emplace_back(pos, lower_bead_count, is_lower_end);
         }
-        
-        debugCheckTransitionEnds(edge_to_transition_ends);
     }
 }
 
@@ -955,7 +952,9 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
     {
         edge_t* edge = pair.first;
         std::list<TransitionEnd>& transitions = pair.second;
-        
+
+        transitions.sort([](const TransitionEnd& a, const TransitionEnd& b) { return a.pos < b.pos; } );
+
         node_t* from = edge->from;
         node_t* to = edge->to;
         Point a = from->p;
@@ -1493,29 +1492,7 @@ void VoronoiQuadrangulation::debugCheckTransitionMids(const std::unordered_map<e
             {
                 assert(here.pos > prev->pos);
                 assert(here.lower_bead_count > prev->lower_bead_count);
-            }
-            prev = &here;
-        }
-        
-    }
-}
-
-void VoronoiQuadrangulation::debugCheckTransitionEnds(const std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transitions) const
-{
-    for (std::pair<edge_t*, std::list<TransitionEnd>> pair : edge_to_transitions)
-    {
-//         const edge_t* edge = pair.first;
-        const std::list<TransitionEnd>& transition_positions = pair.second;
-        
-//         assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary); // doesn't hold when R goes down from a local optimum and then up again a bit farther from the optimum
-        
-        const TransitionEnd* prev = nullptr;
-        for (const TransitionEnd& here : transition_positions)
-        {
-            if (prev)
-            {
-                assert(here.pos > prev->pos);
-                assert(here.lower_bead_count >= prev->lower_bead_count);
+                assert(std::abs(here.lower_bead_count - prev->lower_bead_count) == 1);
             }
             prev = &here;
         }

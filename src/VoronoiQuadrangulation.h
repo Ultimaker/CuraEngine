@@ -168,7 +168,6 @@ public:
     void debugCheckGraphConsistency();
     void debugCheckDecorationConsistency();
     void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const;
-    void debugCheckTransitionEnds(const std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transitions) const;
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
 protected:
     SVG::Color getColor(edge_t& edge);
