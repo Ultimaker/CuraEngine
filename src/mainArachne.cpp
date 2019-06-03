@@ -403,7 +403,9 @@ void test()
 //     r = 1559224469;
 //     r = 68431;
 //     r = 1559234570;
-    r = 1559564752;
+//     r = 1559564752;
+//     r = 1559566333;
+//     r = 1559568483;
     srand(r);
     printf("r = %d;\n", r);
     fflush(stdout);
@@ -412,7 +414,7 @@ void test()
     
     
     generateTestPolys();
-    Polygons polys = generateTestPoly(6, Point(10000, 10000));
+    Polygons polys = generateTestPoly(20, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;

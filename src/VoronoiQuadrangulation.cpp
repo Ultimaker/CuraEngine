@@ -687,7 +687,7 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
                 if (traveled_dist + pos < max_dist
                     && transition_it->lower_bead_count == origin_transition.lower_bead_count) // only dissolve local optima
                 {
-                    assert(going_up != is_aligned); // consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
+                    assert(going_up != is_aligned || transition_it->lower_bead_count == 0); // consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
                     transition_it = transitions.erase(transition_it);
                     should_dissolve = true;
                 }
