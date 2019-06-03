@@ -279,25 +279,26 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
     for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != starting_vd_edge || first; vd_edge = vd_edge->next())
     {
         assert(vd_edge->is_finite());
-        Point p1 = VoronoiUtils::p(vd_edge->vertex1());
-        if (p1 == source_point)
+        if (equals(source_point, vd_edge->vertex1()))
         {
             start_source_point = source_point;
             end_source_point = source_point;
             starting_vd_edge = vd_edge->next();
             ending_vd_edge = vd_edge;
-            assert(p1 != VoronoiUtils::p(starting_vd_edge->vertex1()));
+//             assert(p1 != VoronoiUtils::p(starting_vd_edge->vertex1())); // may be true if verts lie close to each other
         }
         first = false;
     }
     assert(starting_vd_edge && ending_vd_edge);
     assert(starting_vd_edge != ending_vd_edge);
-    assert(start_source_point != VoronoiUtils::p(starting_vd_edge->vertex1()));
+//     assert(start_source_point != VoronoiUtils::p(starting_vd_edge->vertex1())); // may be true if verts lie close to each other
     return true;
 }
 void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
+    const Point source_segment_from = source_segment.from();
+    const Point source_segment_to = source_segment.to();
     // find starting edge
     // find end edge
     bool first = true;
@@ -305,6 +306,7 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
     {
         if (edge->is_infinite())
         {
+            assert(!starting_vd_edge || ending_vd_edge);
             first = false;
             continue;
         }
@@ -312,7 +314,7 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
         { // edge crosses source segment
             // TODO: handle the case where two consecutive line segments are collinear!
             // that's the only case where a voronoi segment doesn't end in a polygon vertex, but goes though it
-            if (LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex1()), source_segment.from(), source_segment.to()))
+            if (LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex1()), source_segment_from, source_segment_to))
             {
                 ending_vd_edge = edge;
             }
@@ -323,22 +325,35 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             first = false;
             continue;
         }
-        if (VoronoiUtils::p(edge->vertex0()) == source_segment.to())
+        if (equals(source_segment_to, edge->vertex0())
+            && (!starting_vd_edge || !ending_vd_edge) // use the last valid starting_vd_edge
+        )
         {
             starting_vd_edge = edge;
         }
-        if (VoronoiUtils::p(edge->vertex1()) == source_segment.from())
+        if (equals(source_segment_from, edge->vertex1())
+            && (!ending_vd_edge || !starting_vd_edge) // use the first valid ending_vd_edge
+        )
         {
             ending_vd_edge = edge;
         }
+//         if (starting_vd_edge && ending_vd_edge)
+//         {
+//             break;
+//         }
         first = false;
     }
     
     assert(starting_vd_edge && ending_vd_edge);
-    assert(starting_vd_edge != ending_vd_edge);
+//     assert(starting_vd_edge != ending_vd_edge);
     
-    start_source_point = source_segment.to();
-    end_source_point = source_segment.from();
+    start_source_point = source_segment_to;
+    end_source_point = source_segment_from;
+}
+
+bool VoronoiQuadrangulation::equals(const Point a, const vd_t::vertex_type* vert) const
+{
+    return vert->x() - a.X < .001 && vert->y() - a.Y < .001;
 }
 
 VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
