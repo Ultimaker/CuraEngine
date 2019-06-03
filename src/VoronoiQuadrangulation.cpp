@@ -928,15 +928,14 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
             transitions = &edge_to_transition_ends[edge.twin];
             pos = ab_size - end_pos;
         }
-        if (is_lower_end != is_aligned)
+        if (transitions->empty() || pos < transitions->front().pos)
         {
-            assert(pos > transitions->back().pos);
-            transitions->emplace_back(pos, lower_bead_count, is_lower_end);
+            transitions->emplace_front(pos, lower_bead_count, is_lower_end);
         }
         else
         {
-            assert(pos < transitions->front().pos);
-            transitions->emplace_front(pos, lower_bead_count, is_lower_end);
+            assert(transitions->empty() || pos >= transitions->back().pos);
+            transitions->emplace_back(pos, lower_bead_count, is_lower_end);
         }
         
         debugCheckTransitionEnds(edge_to_transition_ends); // TODO: this fails when the transitions have not been filtered!
