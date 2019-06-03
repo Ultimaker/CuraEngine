@@ -642,7 +642,8 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         {
             continue;
         }
-        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary); // this is how stuff should be sstored in edge_to_transitions
+        assert(transitions.front().lower_bead_count <= transitions.back().lower_bead_count); // this is how stuff should be stored in edge_to_transitions
+        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary); // this is how stuff should be stored in edge_to_transitions
         Point a = edge->from->p;
         Point b = edge->to->p;
         Point ab = b - a;
@@ -689,7 +690,6 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
                     assert(going_up != is_aligned); // consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
                     transition_it = transitions.erase(transition_it);
                     should_dissolve = true;
-                    edge_to_start->to->data.bead_count = going_up? origin_transition.lower_bead_count : origin_transition.lower_bead_count + 1;
                 }
                 else
                 {
@@ -698,6 +698,10 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
             }
         }
         should_dissolve = should_dissolve || dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions);
+        if (should_dissolve)
+        {
+            edge->from->data.bead_count = going_up? origin_transition.lower_bead_count : origin_transition.lower_bead_count + 1;
+        }
     }
     return should_dissolve;
 }
