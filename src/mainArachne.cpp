@@ -23,7 +23,7 @@ using arachne::Point;
 namespace arachne
 {
 
-Polygons generateTestPoly(size_t size, Point border)
+Polygons generateTestPoly(int size, Point border)
 {
     Polygons polys;
     PolygonRef poly = polys.newPoly();
@@ -417,9 +417,9 @@ void test()
 //     Polygons polys = squares;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
-//     Polygons polys = gMAT_example;
+    Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
-    Polygons polys = flawed_wedge;
+//     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = pikachu;
@@ -427,6 +427,28 @@ void test()
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
         svg.writePolygons(polys);
+    }
+    {
+        SVG svg("output/normal.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        Polygons insets;
+        Polygons last_inset = polys.offset(-200);
+        while (!last_inset.empty())
+        {
+            insets.add(last_inset);
+            last_inset = last_inset.offset(-400);
+        }
+        for (PolygonRef poly : insets)
+        {
+            Point prev = poly.back();
+            for (Point p : poly)
+            {
+                ExtrusionSegment segment(prev, 400, p, 400);
+                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
+                prev = p;
+            }
+        }
+        svg.writePolygons(insets, SVG::Color::WHITE, 2);
     }
     
     
@@ -461,28 +483,6 @@ void test()
         }
         svg.writePolygons(polys, SVG::Color::RED, 2);
         svg.writePolygons(paths, SVG::Color::WHITE, 2);
-    }
-    {
-        SVG svg("output/normal.svg", AABB(polys));
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        Polygons insets;
-        Polygons last_inset = polys.offset(-200);
-        while (!last_inset.empty())
-        {
-            insets.add(last_inset);
-            last_inset = last_inset.offset(-400);
-        }
-        for (PolygonRef poly : insets)
-        {
-            Point prev = poly.back();
-            for (Point p : poly)
-            {
-                ExtrusionSegment segment(prev, 400, p, 400);
-                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
-                prev = p;
-            }
-        }
-        svg.writePolygons(insets, SVG::Color::WHITE, 2);
     }
     logError("Total processing took %fs\n", tk.restart());
 }
