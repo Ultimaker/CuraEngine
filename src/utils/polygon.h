@@ -851,6 +851,11 @@ public:
     Polygons approxConvexHull(int extra_outset = 0);
 
     /*!
+     * Make each of the polygons convex
+     */
+    void makeConvex();
+
+    /*!
      * Compute the area enclosed within the polygons (minus holes)
      * 
      * \return The area in square micron

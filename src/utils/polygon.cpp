@@ -100,6 +100,28 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
 }
 
+void Polygons::makeConvex()
+{
+    for (PolygonRef poly : *this)
+    {
+        Point a = poly.back();
+        for (int i = 0; i < poly.size();)
+        {
+            Point b = poly[i];
+            Point c = poly[(i + 1) % poly.size()];
+            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) > 0)
+            {
+                poly.remove(i);
+            }
+            else
+            {
+                a = b;
+                i++;
+            }
+        }
+    }
+}
+
 unsigned int Polygons::pointCount() const
 {
     unsigned int count = 0;
