@@ -737,7 +737,7 @@ void VoronoiQuadrangulation::generateEndOfMarkingTransitionEnds(const BeadingStr
                 coord_t transition_R = beading_strategy.transition_thickness(end_bead_count - 1) / 2;
                 coord_t last_edge_size = vSize(edge.from->p - edge.to->p);
 
-                coord_t transition_length = beading_strategy.optimal_width / 2; // TODO
+                coord_t transition_length = beading_strategy.getTransitioningLength(start_R - end_R, vSize(edge.to->p - edge.from->p));
                 float transition_mid_position = 0.5; // TODO
                 coord_t inner_bead_width_after_transition = beading_strategy.optimal_width; // TODO
 
@@ -823,7 +823,7 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
     Point ab = b - a;
     coord_t ab_size = vSize(ab);
 
-    coord_t transition_length = beading_strategy.optimal_width / 2; // TODO
+    coord_t transition_length = beading_strategy.getTransitioningLength(edge.from->data.distance_to_boundary - edge.to->data.distance_to_boundary, vSize(edge.to->p - edge.from->p));
     float transition_mid_position = 0.5; // TODO
     coord_t inner_bead_width_after_transition = beading_strategy.optimal_width; // TODO
 

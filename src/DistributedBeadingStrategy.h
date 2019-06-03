@@ -23,10 +23,11 @@ public:
     , max_width(max_width)
     {
     }
-    Beading compute(coord_t thickness, coord_t bead_count) const;
-    coord_t optimal_thickness(coord_t bead_count) const;
-    coord_t transition_thickness(coord_t lower_bead_count) const;
-    coord_t optimal_bead_count(coord_t thickness) const;
+    Beading compute(coord_t thickness, coord_t bead_count) const override;
+    coord_t optimal_thickness(coord_t bead_count) const override;
+    coord_t transition_thickness(coord_t lower_bead_count) const override;
+    coord_t optimal_bead_count(coord_t thickness) const override;
+    coord_t getTransitioningLength(coord_t dR, coord_t dd) const override;
 };
 
 

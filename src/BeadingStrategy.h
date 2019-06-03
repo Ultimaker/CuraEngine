@@ -65,6 +65,15 @@ public:
      * The number of beads should we ideally usefor a given model thickness
      */
     virtual coord_t optimal_bead_count(coord_t thickness) const = 0;
+
+    /*!
+     * \param dR the difference in radius between the two ends of the segment on which to put the middle of a transition
+     * \param dd the length of the segment on which to put the middle of the transition
+     */
+    virtual coord_t getTransitioningLength(coord_t dR, coord_t dd) const
+    {
+        return optimal_width / 2;
+    }
 };
 
 
