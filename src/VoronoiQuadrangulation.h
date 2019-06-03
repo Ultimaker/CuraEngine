@@ -115,12 +115,12 @@ protected:
     void generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
-     * \p start_rest and \p end_rest refer to gap distances at the start adn end pos.
+     * \p start_rest and \p end_rest refer to gap distances at the start and end pos in terms of ratios w.r.t. the inner bead width at the high end of the transition
      * 
      * \p end_pos_along_edge may be beyond this edge!
      * In this case we need to interpolate the rest value at the locations in between
      */
-    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, float start_rest, float end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node

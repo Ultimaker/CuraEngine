@@ -74,6 +74,14 @@ public:
     {
         return optimal_width / 2;
     }
+
+    virtual float getTransitionAnchorPos(coord_t lower_bead_count) const
+    {
+        coord_t lower_optimum = optimal_thickness(lower_bead_count);
+        coord_t transition_point = transition_thickness(lower_bead_count);
+        coord_t upper_optimum = optimal_thickness(lower_bead_count + 1);
+        return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
+    }
 };
 
 
