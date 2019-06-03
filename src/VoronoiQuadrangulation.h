@@ -31,7 +31,7 @@ class VoronoiQuadrangulation
 
     coord_t snap_dist = 20; // generic arithmatic inaccuracy
     coord_t rib_snap_distance = 100; // smallest segment cut off of an outline segment by an introduced rib. smaller than this the rib is canceled because it lies too close to an existing edge
-    coord_t discretization_step_size = 400;
+    coord_t discretization_step_size = 200;
 public:
     using Segment = PolygonsSegmentIndex;
     VoronoiQuadrangulation(const Polygons& polys);
@@ -78,50 +78,41 @@ protected:
         {}
     };
 
-    void generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions);
+    void generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
 
-    void filterTransitionMids(std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions);
+    void filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
 
-    void generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+    /*!
+     * 
+     * \param edge_to_start edge pointing to the node from which to start traveling in all directions except along \p edge_to_start
+     * \param origin_transition The transition for which we are checking nearby transitions
+     * \param traveled_dist the distance traveled before we came to \p edge_to_start.to
+     * \param going_up Whether we are traveling in the upward direction as seen from the \p origin_transition. If this doesn't align with the direction according to the R diff on a consecutive edge we know there was a local optimum
+     * \return whether the origin transition should be dissolved
+     */
+    bool dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
+
+    void generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * 
      * Also set the rest values at the end of marking node
      */
-    void generateEndOfMarkingTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+    void generateEndOfMarkingTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * Also set the rest values at nodes in between the transition ends
      */
-    void applyTransitions(std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+    void applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     void filterMarkedLocalOptima(const BeadingStrategy& beading_strategy);
-    /*!
-     * \param edge_to edge pointing to the node to check
-     */
-    bool isMarkedLocalOptimum(edge_t* edge_to);
-
-    /*!
-     * check whether a marked region around a given node with a constant optimal bead count is too small for a transition_lower_bead_count
-     */
-    bool isSmallMarkedLocalOptimum(edge_t* edge_to, const BeadingStrategy& beading_strategy);
-
-    /*!
-     * Get the maximum distance traveled outward along which the optimum bead count has the same value
-     * 
-     * \param stop_distance Stop computing if the return value would be larger than this
-     * \param traveled_distance already traveled distance we did to get to \p outgoing.from
-     */
-    coord_t getLocalOptimumSize(edge_t* outgoing, coord_t bead_count, coord_t stop_distance, coord_t traveled_distance, const BeadingStrategy& beading_strategy);
-
-    void dissolveMarkedLocalOptimum(edge_t* edge_to);
 
     void generateTransitioningRibs(const BeadingStrategy& beading_strategy);
 
     /*!
      * 
      */
-    void generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * \p start_rest and \p end_rest refer to gap distances at the start adn end pos.
@@ -129,7 +120,7 @@ protected:
      * \p end_pos_along_edge may be beyond this edge!
      * In this case we need to interpolate the rest value at the locations in between
      */
-    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t start_rest, coord_t end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node
@@ -176,8 +167,8 @@ public:
     void debugCheckGraphCompleteness();
     void debugCheckGraphConsistency();
     void debugCheckDecorationConsistency();
-    void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::vector<TransitionMiddle>>& edge_to_transitions) const;
-    void debugCheckTransitionEnds(const std::unordered_map<edge_t*, std::vector<TransitionEnd>>& edge_to_transitions) const;
+    void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const;
+    void debugCheckTransitionEnds(const std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transitions) const;
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
 protected:
     SVG::Color getColor(edge_t& edge);
