@@ -32,7 +32,7 @@ Polygons generateTestPoly(int size, Point border)
         poly.emplace_back(rand() % border.X, rand() % border.Y);
     }
     
-    polys = polys.unionPolygons();
+    polys = polys.unionPolygons(Polygons(), ClipperLib::pftNegative);
 //     polys = polys.offset(border.X*1.2, ClipperLib::jtRound);
     
 //     polys = polys.offset(border.X*2, ClipperLib::jtRound);
@@ -144,9 +144,9 @@ void generateTestPolys()
 //     rounded_wedge = wedge.offset(-205, ClipperLib::jtRound).offset(205, ClipperLib::jtRound);
     
     {
-        coord_t l = 10000;
+        coord_t l = 20000;
         coord_t h = 2000;
-        coord_t r = 100;
+        coord_t r = 200;
         coord_t step = 2000;
         PolygonRef flawed_wedgel_1 = flawed_wedge.newPoly();
         for (coord_t x = 0; x <= l; x += step)
@@ -402,7 +402,8 @@ void test()
 //     r = 1559224125;
 //     r = 1559224469;
 //     r = 68431;
-    r = 1559234570;
+//     r = 1559234570;
+    r = 1559564752;
     srand(r);
     printf("r = %d;\n", r);
     fflush(stdout);
@@ -411,13 +412,13 @@ void test()
     
     
     generateTestPolys();
-//     Polygons polys = generateTestPoly(6, Point(10000, 10000));
+    Polygons polys = generateTestPoly(6, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
-    Polygons polys = gMAT_example;
+//     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
@@ -472,6 +473,14 @@ void test()
         svg.writePolygons(polys, SVG::Color::GRAY, 2);
         vq.debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
+    }
+    {
+        SVG svg("output/toolpath_locations.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLACK, 2);
+        for (auto poly : paths)
+            for (Point p : poly)
+                svg.writePoint(p, true, 1);
     }
     {
         SVG svg("output/toolpaths.svg", AABB(polys));

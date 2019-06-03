@@ -727,13 +727,13 @@ public:
         clipper.Execute(ClipperLib::ctDifference, ret.paths);
         return ret;
     }
-    Polygons unionPolygons(const Polygons& other) const
+    Polygons unionPolygons(const Polygons& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, true);
-        clipper.Execute(ClipperLib::ctUnion, ret.paths, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+        clipper.Execute(ClipperLib::ctUnion, ret.paths, fill_type, fill_type);
         return ret;
     }
     /*!
