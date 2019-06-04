@@ -161,7 +161,7 @@ protected:
     void reset();
 
     /*!
-     * Add a line to the result bu unapplying the rotation rotation_matrix.
+     * Add a line to the result but not applying the rotation matrix.
      * 
      * \param from The one end of the line segment
      * \param to The other end of the line segment
