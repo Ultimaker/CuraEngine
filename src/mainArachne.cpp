@@ -60,6 +60,7 @@ static Polygons rounded_wedge;
 static Polygons flawed_wall;
 static Polygons marked_local_opt;
 static Polygons pikachu;
+static Polygons um;
 
 void generateTestPolys()
 {
@@ -111,33 +112,40 @@ void generateTestPolys()
         circle_flawed_1.emplace_back(r * cos(rad), r * sin(rad));
     }
 
-    PolygonRef gMAT_example_outline = gMAT_example.newPoly();
-    gMAT_example_outline.emplace_back(0, 0);
-    gMAT_example_outline.emplace_back(8050, 0);
-    gMAT_example_outline.emplace_back(8050, 2000);
-    gMAT_example_outline.emplace_back(7000, 2000);
-    gMAT_example_outline.emplace_back(7000, 11500);
-    gMAT_example_outline.emplace_back(6500, 12000);
-    gMAT_example_outline.emplace_back(0, 12000);
-    PolygonRef gMAT_example_triangle = gMAT_example.newPoly();
-    gMAT_example_triangle.emplace_back(1000, 7000);
-    gMAT_example_triangle.emplace_back(1000, 11000);
-    gMAT_example_triangle.emplace_back(4000, 9000);
-    PolygonRef gMAT_example_round = gMAT_example.newPoly();
-    gMAT_example_round.emplace_back(1000, 3000);
-    gMAT_example_round.emplace_back(1000, 5000);
-    gMAT_example_round.emplace_back(2000, 6000);
-    gMAT_example_round.emplace_back(5000, 6000);
-    gMAT_example_round.emplace_back(5000, 3000);
-    gMAT_example_round.emplace_back(4000, 2000);
-    gMAT_example_round.emplace_back(2000, 2000);
+    {
+        PolygonRef gMAT_example_outline = gMAT_example.newPoly();
+        gMAT_example_outline.emplace_back(0, 0);
+        gMAT_example_outline.emplace_back(8050, 0);
+        gMAT_example_outline.emplace_back(8050, 2000);
+        gMAT_example_outline.emplace_back(7000, 2000);
+        gMAT_example_outline.emplace_back(7000, 11500);
+        gMAT_example_outline.emplace_back(6500, 12000);
+        gMAT_example_outline.emplace_back(0, 12000);
+        PolygonRef gMAT_example_triangle = gMAT_example.newPoly();
+        gMAT_example_triangle.emplace_back(1000, 7000);
+        gMAT_example_triangle.emplace_back(1000, 11000);
+        gMAT_example_triangle.emplace_back(4000, 9000);
+        PolygonRef gMAT_example_round = gMAT_example.newPoly();
+        gMAT_example_round.emplace_back(1000, 3000);
+        gMAT_example_round.emplace_back(1000, 5000);
+        gMAT_example_round.emplace_back(2000, 6000);
+        gMAT_example_round.emplace_back(5000, 6000);
+        gMAT_example_round.emplace_back(5000, 3000);
+        gMAT_example_round.emplace_back(4000, 2000);
+        gMAT_example_round.emplace_back(2000, 2000);
+        gMAT_example.applyMatrix(PointMatrix::scale(.5));
+    }
 
-    PolygonRef wedge_1 = wedge.newPoly();
-    wedge_1.emplace_back(2500, 0);
-    wedge_1.emplace_back(0, 2500);
-    wedge_1.emplace_back(20000, 20000);
-    PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
-    wedge_1.applyMatrix(scaler);
+    {
+        PolygonRef wedge_1 = wedge.newPoly();
+        wedge_1.emplace_back(2500, 0);
+        wedge_1.emplace_back(0, 2500);
+        wedge_1.emplace_back(20000, 20000);
+        PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
+        wedge_1.applyMatrix(scaler);
+        PointMatrix rot(135);
+        wedge_1.applyMatrix(rot);
+    }
 
     rounded_wedge = wedge.offset(-400, ClipperLib::jtRound).offset(400, ClipperLib::jtRound); // TODO: this offset gives problems!!
 //     rounded_wedge = wedge.offset(-200, ClipperLib::jtRound).offset(200, ClipperLib::jtRound); // TODO: this offset also gives problems!!
@@ -385,8 +393,37 @@ void generateTestPolys()
         pika.emplace_back(pika.back() + Point(100 * -0.08296, 100 * 1.91823  ));
         pika.emplace_back(pika.back() + Point(100 * -1.140304, 100 * 0.19548 ));
 
-        Point3Matrix rot = Point3Matrix(PointMatrix(150.0));
+        Point3Matrix rot = Point3Matrix(PointMatrix(170.0));
         pika.applyMatrix(rot);
+    }
+
+    {
+        coord_t r = 3600;
+        coord_t inr = 2400;
+        coord_t b = 10000;
+        coord_t h = b;
+        PolygonRef um_1 = um.newPoly();
+        um_1.emplace_back(r, r);
+        um_1.emplace_back(r, h);
+        um_1.emplace_back(b - r, h);
+        um_1.emplace_back(b - r, r);
+        um = um.offset(r, ClipperLib::jtRound);
+        Polygon bb;
+        bb.emplace_back(inr, inr);
+        bb.emplace_back(inr, h + inr);
+        bb.emplace_back(b - inr, h + inr);
+        bb.emplace_back(b - inr, inr);
+        Polygons bs;
+        bs.add(bb);
+        um = um.difference(bs);
+        Polygon a;
+        a.emplace_back(-r, h);
+        a.emplace_back(-r, h + 2 * r);
+        a.emplace_back(b + r, h + 2 * r);
+        a.emplace_back(b + r, h);
+        Polygons as;
+        as.add(a);
+        um = um.difference(as);
     }
 }
 
@@ -444,6 +481,8 @@ void test()
     DistributedBeadingStrategy beading_strategy(300, 400, 600);
 //     NaiveBeadingStrategy beading_strategy(400);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
+    logError("Total processing took %fs\n", tk.restart());
+
     Polygons paths;
     for (ExtrusionSegment& segment : segments)
     {
@@ -486,7 +525,7 @@ void test()
         while (!last_inset.empty())
         {
             insets.add(last_inset);
-            last_inset = last_inset.offset(-400);
+            last_inset = last_inset.offset(-400, ClipperLib::jtRound);
         }
         for (PolygonRef poly : insets)
         {
@@ -500,8 +539,6 @@ void test()
         }
         svg.writePolygons(insets, SVG::Color::WHITE, 2);
     }
-    
-    logError("Total processing took %fs\n", tk.restart());
 }
 
 
