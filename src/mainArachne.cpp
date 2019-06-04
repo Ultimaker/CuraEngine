@@ -18,6 +18,7 @@
 
 #include "VoronoiQuadrangulation.h"
 #include "DistributedBeadingStrategy.h"
+#include "LimitedDistributedBeadingStrategy.h"
 #include "utils/VoronoiUtils.h"
 #include "NaiveBeadingStrategy.h"
 
@@ -482,7 +483,8 @@ void test()
     
     VoronoiQuadrangulation vq(polys);
 
-    DistributedBeadingStrategy beading_strategy(300, 400, 600);
+//     DistributedBeadingStrategy beading_strategy(300, 400, 600);
+    LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6);
 //     NaiveBeadingStrategy beading_strategy(400);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
     logError("Processing took %fs\n", tk.restart());
