@@ -1,10 +1,13 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef ARCUSCOMMUNICATION_H
 #define ARCUSCOMMUNICATION_H
 #ifdef ARCUS
 
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h>
+#endif
 #include <memory> //For unique_ptr and shared_ptr.
 
 #include "Communication.h" //The class we're implementing.
@@ -24,8 +27,14 @@ namespace cura
  */
 class ArcusCommunication : public Communication
 {
-    friend class ArcusCommunicationTest;  // For unit tests
+#ifdef BUILD_TESTS
+    friend class ArcusCommunicationTest;
+    FRIEND_TEST(ArcusCommunicationTest, FlushGCodeTest);
+    FRIEND_TEST(ArcusCommunicationTest, HasSlice);
+    FRIEND_TEST(ArcusCommunicationTest, SendLayerComplete);
+    FRIEND_TEST(ArcusCommunicationTest, SendProgress);
     friend class ArcusCommunicationPrivateTest;
+#endif
 public:
     /*
      * \brief Construct a new communicator that listens to libArcus messages via

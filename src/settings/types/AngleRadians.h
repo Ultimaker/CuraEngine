@@ -5,6 +5,7 @@
 #define ANGLERADIANS_H
 
 #include <cmath> //For fmod.
+#include "../../utils/math.h"
 
 #define TAU (2.0 * M_PI)
 

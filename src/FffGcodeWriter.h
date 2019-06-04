@@ -177,6 +177,13 @@ private:
     void setConfigRetraction(SliceDataStorage& storage);
 
     /*!
+     * Set the wipe config globally, per extruder.
+     *
+     * \param[out] storage The data storage to which to save the configurations
+     */
+    void setConfigWipe(SliceDataStorage& storage);
+
+    /*!
      * Get the extruder with which to start the print.
      * 
      * Generally this is the adhesion_extruder_nr, but in case the platform adhesion type is none,
@@ -431,8 +438,9 @@ private:
      * \param[out] gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const;
 
     /*!
      * Add the gcode of the outline gaps: the areas for thin parts in which a single perimter doesnt fit.

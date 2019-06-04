@@ -1,4 +1,6 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2019 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
@@ -597,6 +599,21 @@ public:
      * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      */
     static void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonPointer>& possible_adjacent_polys, const coord_t max_gap);
+
+    /*!
+     * Calculate the Hamming Distance between two polygons relative to their own
+     * surface areas.
+     *
+     * The Hamming Distance applied to polygons is interpreted as the area of
+     * the symmetric difference between the polygons. In this case, we'll
+     * divide this area by the total area of the two polygons.
+     * \param poly_a One of the polygons to compute the distance between.
+     * \param poly_b One of the polygons to compute the distance between.
+     * \return The Hamming Distance relative to the total surface area of the
+     * two polygons. This will be between 0.0 (the polygons are exactly equal)
+     * and 1.0 (the polygons are completely disjunct).
+     */
+    static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
 
 private:
     /*!

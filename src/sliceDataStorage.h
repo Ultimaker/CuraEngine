@@ -18,6 +18,7 @@
 #include "utils/NoCopy.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
+#include "WipeScriptConfig.h"
 
 namespace cura 
 {
@@ -295,6 +296,8 @@ public:
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<SliceMeshStorage> meshes;
 
+    std::vector<WipeScriptConfig> wipe_config_per_extruder; //!< Wipe configs per extruder.
+
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
@@ -375,6 +378,11 @@ private:
      * Construct the retraction_config_per_extruder
      */
     std::vector<RetractionConfig> initializeRetractionConfigs();
+
+    /*!
+     * Construct the wipe_config_per_extruder
+     */
+    std::vector<WipeScriptConfig> initializeWipeConfigs();
 };
 
 }//namespace cura

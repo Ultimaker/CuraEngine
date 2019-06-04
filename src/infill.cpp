@@ -253,7 +253,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, in_outline, z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
@@ -353,6 +353,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
+    outline_offset += infill_overlap;
     if (zig_zaggify)
     {
         outline_offset += -infill_line_width / 2;
@@ -393,7 +394,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
-    ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
+    ClipperLib::PolyTree interior_segments_tree = in_outline.offset(infill_overlap).lineSegmentIntersection(input);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
     for (size_t idx = 0; idx < interior_segments.size(); idx++)
@@ -468,7 +469,7 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
     const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
     PointMatrix rotation_matrix(infill_rotation);
-    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count, minimum_zag_line_length);
+    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
     generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
 
