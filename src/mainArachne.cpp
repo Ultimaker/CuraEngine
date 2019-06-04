@@ -484,7 +484,7 @@ void test()
     VoronoiQuadrangulation vq(polys);
 
 //     DistributedBeadingStrategy beading_strategy(300, 400, 600);
-    LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6);
+    LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6, M_PI / 6);
 //     NaiveBeadingStrategy beading_strategy(400);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
     logError("Processing took %fs\n", tk.restart());

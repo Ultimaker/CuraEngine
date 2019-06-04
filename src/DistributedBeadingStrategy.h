@@ -17,8 +17,8 @@ class DistributedBeadingStrategy : public BeadingStrategy
 public:
     const coord_t min_width;
     const coord_t max_width;
-    DistributedBeadingStrategy(const coord_t min_width, const coord_t optimal_width, const coord_t max_width)
-    : BeadingStrategy(optimal_width)
+    DistributedBeadingStrategy(const coord_t min_width, const coord_t optimal_width, const coord_t max_width, float transitioning_angle)
+    : BeadingStrategy(optimal_width, transitioning_angle)
     , min_width(min_width)
     , max_width(max_width)
     {

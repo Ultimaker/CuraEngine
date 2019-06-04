@@ -57,7 +57,7 @@ protected:
 
     // ^ init | v transitioning
 
-    void setMarking(); //! set the is_marked flag for each edge
+    void setMarking(const BeadingStrategy& beading_strategy); //! set the is_marked flag for each edge
 
     struct TransitionMiddle
     {

@@ -486,7 +486,7 @@ void VoronoiQuadrangulation::init()
 
 std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy)
 {
-    setMarking();
+    setMarking(beading_strategy);
 
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
@@ -526,8 +526,21 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     return segments;
 }
 
-void VoronoiQuadrangulation::setMarking()
+void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
 {
+    //                                            _.-'^`      .
+    //                                      _.-'^`            .
+    //                                _.-'^` \                .
+    //                          _.-'^`        \               .
+    //                    _.-'^`               \ R2           .
+    //              _.-'^` \              _.-'\`\             .
+    //        _.-'^`        \R1     _.-'^`     '`\ dR         .
+    //  _.-'^`a/2            \_.-'^`a             \           .
+    //  `^'-._````````````````A```````````v````````B```````   .
+    //        `^'-._                     dD = |AB|            .
+    //              `^'-._                                    .
+    //                             sin a = dR / dD            .
+    float cap = 1.0 / sin(beading_strategy.transitioning_angle * 0.5);
     for (edge_t& edge : graph.edges)
     {
         assert(edge.twin);
@@ -542,7 +555,7 @@ void VoronoiQuadrangulation::setMarking()
             Point ab = b - a;
             coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
             coord_t dD = vSize(ab);
-            edge.data.is_marked = dD > 2 * dR;
+            edge.data.is_marked = dD > cap * dR;
         }
     }
 }

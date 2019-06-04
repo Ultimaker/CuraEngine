@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "utils/IntPoint.h"
+#include "utils/logoutput.h"
 
 namespace arachne
 {
@@ -37,9 +38,16 @@ public:
 
     coord_t optimal_width; //! optimal bead width
 
-    BeadingStrategy(coord_t optimal_width)
+    float transitioning_angle; //!< The maximum angle between outline segments smaller than which we are going to add transitions
+
+    BeadingStrategy(coord_t optimal_width, float transitioning_angle = M_PI / 3)
     : optimal_width(optimal_width)
+    , transitioning_angle(transitioning_angle)
     {
+        if (transitioning_angle > M_PI / 3)
+        {
+            logWarning("Transitioning angle is so large that marked regions can have junctions instead of polylines only.\n");
+        }
     }
 
     /*!

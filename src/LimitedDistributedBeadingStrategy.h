@@ -18,8 +18,8 @@ class LimitedDistributedBeadingStrategy : public DistributedBeadingStrategy
 {
 public:
     const coord_t max_bead_count;
-    LimitedDistributedBeadingStrategy(const coord_t min_width, const coord_t optimal_width, const coord_t max_width, const coord_t max_bead_count)
-    : DistributedBeadingStrategy(min_width, optimal_width, max_width)
+    LimitedDistributedBeadingStrategy(const coord_t min_width, const coord_t optimal_width, const coord_t max_width, const coord_t max_bead_count, float transitioning_angle)
+    : DistributedBeadingStrategy(min_width, optimal_width, max_width, transitioning_angle)
     , max_bead_count(max_bead_count)
     {
         if (max_bead_count % 2 == 1)
