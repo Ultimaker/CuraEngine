@@ -8,6 +8,7 @@
 
 #include "utils/IntPoint.h"
 #include "utils/polygon.h"
+#include "utils/polygonUtils.h"
 
 namespace arachne
 {
@@ -18,6 +19,7 @@ namespace arachne
  */
 class ExtrusionSegment
 {
+    static constexpr float a_step = 15 / 180.0 * M_PI;
 public:
     Point from;
     coord_t from_width;
@@ -34,18 +36,17 @@ public:
     Polygons toPolygons()
     {
         Polygons ret;
-        PolygonRef from_circle = ret.newPoly();
-        for (float a = 0; a < 360; a += 30)
-        {
-            from_circle.emplace_back(from + Point(from_width / 2 * cos(a/180.0 * M_PI), from_width / 2 * sin(a/180.0 * M_PI)));
-        }
-        PolygonRef to_circle = ret.newPoly();
-        for (float a = 0; a < 360; a += 30)
-        {
-            to_circle.emplace_back(to + Point(to_width / 2 * cos(a/180.0 * M_PI), to_width / 2 * sin(a/180.0 * M_PI)));
-        }
-        ret = ret.approxConvexHull();
-        ret.makeConvex();
+        PolygonUtils::makeCircle(from, from_width / 2, ret, a_step);
+        PolygonUtils::makeCircle(to, to_width / 2, ret, a_step);
+        Polygons rect;
+        PolygonRef r = rect.newPoly();
+        Point n = normal(turn90CCW(to - from), from_width / 2);
+        r.add(from + n);
+        r.add(from - n);
+        n = normal(turn90CCW(to - from), to_width / 2);
+        r.add(to - n);
+        r.add(to + n);
+        ret = ret.unionPolygons(rect);
         return ret;
     }
 };

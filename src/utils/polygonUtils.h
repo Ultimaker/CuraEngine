@@ -615,6 +615,7 @@ public:
      */
     static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
 
+    static void makeCircle(Point mid, coord_t radius, Polygons& result, float a_step = M_PI / 8);
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.

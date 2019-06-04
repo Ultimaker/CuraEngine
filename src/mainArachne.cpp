@@ -8,6 +8,9 @@
 
 #include <boost/version.hpp>
 
+#include <unordered_set>
+#include <unordered_map>
+
 #include "utils/logoutput.h"
 #include "utils/polygon.h"
 #include "utils/gettime.h"
@@ -456,18 +459,19 @@ void test()
     
     
     generateTestPolys();
-    Polygons polys = generateTestPoly(40, Point(10000, 10000));
+//     Polygons polys = generateTestPoly(20, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
 //     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
-//     Polygons polys = gMAT_example;
+    Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = pikachu;
+//     Polygons polys = um;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
@@ -481,7 +485,7 @@ void test()
     DistributedBeadingStrategy beading_strategy(300, 400, 600);
 //     NaiveBeadingStrategy beading_strategy(400);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
-    logError("Total processing took %fs\n", tk.restart());
+    logError("Processing took %fs\n", tk.restart());
 
     Polygons paths;
     for (ExtrusionSegment& segment : segments)
@@ -513,16 +517,59 @@ void test()
             for (Point p : poly)
                 svg.writePoint(p, true, 1);
     }
+    Polygons area_covered;
+    Polygons overlaps;
+    std::unordered_set<Point> points_visited;
+    for (ExtrusionSegment& segment : segments)
+    {
+        if (segment.from == segment.to)
+        {
+            continue;
+        }
+//         segment.from_width = segment.from_width * 4 / 5;
+//         segment.to_width = segment.to_width * 4 / 5;
+        area_covered = area_covered.unionPolygons(segment.toPolygons());
+        Polygons extruded = segment.toPolygons();
+        Polygons reduction;
+        if (points_visited.count(segment.from) > 0)
+        {
+            PolygonUtils::makeCircle(segment.from, segment.from_width / 2, reduction);
+        }
+        if (points_visited.count(segment.to) > 0)
+        {
+            PolygonUtils::makeCircle(segment.to, segment.to_width / 2, reduction);
+        }
+        extruded = extruded.difference(reduction);
+        overlaps.add(extruded);
+        points_visited.emplace(segment.from);
+        points_visited.emplace(segment.to);
+    }
     {
         SVG svg("output/toolpaths.svg", AABB(polys));
-        for (ExtrusionSegment& segment : segments)
+        for (PolygonRef poly : overlaps)
         {
-//             segment.from_width = segment.from_width * 4 / 5;
-//             segment.to_width = segment.to_width * 4 / 5;
-            svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);
+            svg.writeAreas(poly, SVG::Color::GRAY);
         }
         svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::WHITE, 2);
+        svg.writePolygons(paths, SVG::Color::BLUE, 2);
+    }
+    {
+        SVG svg("output/overlaps.svg", AABB(polys));
+        svg.writeAreas(overlaps.xorPolygons(area_covered), SVG::Color::GRAY);
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLUE, 2);
+    }
+    {
+        SVG svg("output/overlaps2.svg", AABB(polys));
+        svg.writeAreas(overlaps.unionPolygons(), SVG::Color::GRAY);
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLUE, 2);
+    }
+    {
+        SVG svg("output/total_area.svg", AABB(polys));
+        svg.writeAreas(area_covered, SVG::Color::GRAY);
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLUE, 2);
     }
     
     {
@@ -545,8 +592,10 @@ void test()
                 prev = p;
             }
         }
-        svg.writePolygons(insets, SVG::Color::WHITE, 2);
+        svg.writePolygons(insets, SVG::Color::BLUE, 2);
     }
+
+    logError("Writing output files took %fs\n", tk.restart());
 }
 
 
