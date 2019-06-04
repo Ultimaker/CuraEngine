@@ -497,6 +497,14 @@ void test()
         vq.debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
     }
+    
+    {
+        std::ofstream csv("output/segments.csv", std::ofstream::out | std::ofstream::trunc);
+        csv << "from_x; from_y; from_width; to_x; to_y; to_width\n";
+        for (const ExtrusionSegment& segment : segments)
+            csv << segment.from.X << "; " << segment.from.Y << "; " << segment.from_width << "; " << segment.to.X << "; " << segment.to.Y << "; " << segment.to_width << '\n';
+        csv.close();
+    }
     {
         SVG svg("output/toolpath_locations.svg", AABB(polys));
         svg.writePolygons(polys, SVG::Color::RED, 2);
