@@ -1241,6 +1241,14 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         {
             Junction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
             Junction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
+            if (edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
+                && edge_to_peak->to->data.transition_rest == 0 && edge_to_peak->from->data.transition_rest == 0 && edge_from_peak->to->data.transition_rest == 0 // we're not in a transition
+                && junction_rev_idx == segment_count - 1 // is single bead segment
+                && (from.p.X < to.p.X || (from.p.X == to.p.X && from.p.Y < to.p.Y)) // choose one
+                )
+            {
+                continue; // prevent duplication of single bead segments
+            }
             
             segments.emplace_back(from.p, from.w, to.p, to.w);
         }
