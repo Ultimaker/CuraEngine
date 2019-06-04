@@ -65,6 +65,7 @@ static Polygons flawed_wall;
 static Polygons marked_local_opt;
 static Polygons pikachu;
 static Polygons um;
+static Polygons spikes;
 
 void generateTestPolys()
 {
@@ -137,7 +138,7 @@ void generateTestPolys()
         gMAT_example_round.emplace_back(5000, 3000);
         gMAT_example_round.emplace_back(4000, 2000);
         gMAT_example_round.emplace_back(2000, 2000);
-        gMAT_example.applyMatrix(PointMatrix::scale(.5));
+        gMAT_example.applyMatrix(PointMatrix::scale(1.0));
     }
 
     {
@@ -147,7 +148,7 @@ void generateTestPolys()
         wedge_1.emplace_back(20000, 20000);
         PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
         wedge_1.applyMatrix(scaler);
-        PointMatrix rot(135);
+        PointMatrix rot(0);
         wedge_1.applyMatrix(rot);
     }
 
@@ -429,6 +430,21 @@ void generateTestPolys()
         as.add(a);
         um = um.difference(as);
     }
+    {
+        coord_t min_r = 3000;
+        coord_t max_r = 8000;
+        Polygons circles;
+        PolygonUtils::makeCircle(Point(0,0), 1600, circles);
+        for (int a = 0; a < 360; a += 360 / 10)
+        {
+            Polygons dot;
+            coord_t r = min_r + (max_r - min_r) * a / 360;
+            PolygonUtils::makeCircle(Point(-r * cos(a /180.0 * M_PI), r * sin(a /180.0 * M_PI)), 10, dot);
+            dot = dot.unionPolygons(circles);
+            dot = dot.approxConvexHull();
+            spikes = spikes.unionPolygons(dot);
+        }
+    }
 }
 
 void test()
@@ -466,13 +482,14 @@ void test()
 //     Polygons polys = squares;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
-    Polygons polys = gMAT_example;
+//     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = pikachu;
 //     Polygons polys = um;
+    Polygons polys = spikes;
     polys = polys.unionPolygons();
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
