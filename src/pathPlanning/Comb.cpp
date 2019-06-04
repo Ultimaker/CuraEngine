@@ -260,7 +260,7 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
     return true;
 }
 
-//  Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comp_path_output
+// Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comb_path_output
 void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output)
 {
     const coord_t dist = move_inside_distance;
