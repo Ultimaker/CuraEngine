@@ -61,6 +61,7 @@ LayerPlan* LayerPlanBuffer::processBuffer()
 
 void LayerPlanBuffer::flush()
 {
+    Application::getInstance().communication->flushGCode(); //If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
     if (buffer.size() > 0)
     {
         insertTempCommands(); // insert preheat commands of the very last layer
@@ -80,7 +81,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
     if (!new_layer_destination_state)
     {
-        logWarning("There are empty layers (or layers with empty extruder plans) in the print! Temperature control and cross layer travel moves might suffer.\n");
+        logWarning("Layer %d is empty (or it has empty extruder plans). Temperature control and cross layer travel moves might suffer!\n", newest_layer->layer_nr);
         return;
     }
 

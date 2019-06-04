@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -121,7 +121,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             new_path_length += vSize(average_second_path - average_first_path);
         }
         double new_flow = ((first_path_length_flow + second_path_length_flow) / static_cast<double>(new_path_length));
-        if (new_flow > 2 * nozzle_size / line_width)  // line width becomes too wide.
+        if (new_flow > 3.0 * nozzle_size / line_width)  // line width becomes too wide.
         {
             return false;
         }
@@ -135,7 +135,9 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             {
                 first_path.points[first_path.points.size() - 1] = average_second_path;
                 error_area += new_error_area;
-            } else {
+            }
+            else
+            {
                 first_path.points.push_back(average_second_path);
                 error_area = 0;
             }
@@ -183,7 +185,9 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         if (first_is_already_merged)
         {
             first_path_leave_point = first_path.points.back();  // this is the point that's going to merge
-        } else {
+        }
+        else
+        {
             first_path_leave_point = (first_path_start + first_path_end) / 2;
         }
         const Point second_path_destination_point = (second_path_start + second_path_end) / 2;
@@ -206,12 +210,10 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             return false;  // returning true will not work for the gradual infill
         }
 
-        // Max 1 line width to the side of the merged_direction
-        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            //|| abs(dot(normal(merged_direction, 1000), normal(second_path_end - second_path_start, 1000))) > 866000    // 866000 angle of old second_path with new merged direction should not be too small (30 degrees), as it will introduce holes
-            )
+        // Max 1.5 line widths to the side of the merged_direction
+        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 2.25 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 2.25 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > 2.25 * line_width * line_width)
         {
             return false; //One of the lines is too far from the merged line. Lines would be too wide or too far off.
         }

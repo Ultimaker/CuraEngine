@@ -154,6 +154,7 @@ private:
     unsigned int layer_nr; //!< for sending travel data
 
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
+    Temperature build_volume_temperature;  //!< build volume temperature
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -242,6 +243,16 @@ public:
     void addLastCoastedVolume(double last_coasted_volume) 
     {
         extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
+    }
+
+    /*!
+     * Add extra amount of material to be primed after an unretraction.
+     *
+     * \param extra_prime_distance Amount of material in mm.
+     */
+    void addExtraPrimeAmount(double extra_prime_volume)
+    {
+        extruder_attr[current_extruder].prime_volume += extra_prime_volume;
     }
     
     Point3 getPosition() const;
@@ -479,6 +490,7 @@ public:
     
     void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false);
     void writeBedTemperatureCommand(const Temperature& temperature, const bool wait = false);
+    void writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait = false);
 
     /*!
      * Write the command for setting the acceleration for print moves to a specific value
@@ -519,7 +531,7 @@ public:
      * See FffGcodeWriter::processStartingCode
      * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialTemps(const unsigned int start_extruder_nr);
+    void setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps
