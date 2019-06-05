@@ -105,7 +105,7 @@ Slicer
 ======
 While usually the whole GCode generation process is called 'slicing', the Slicer in the CuraEngine is the piece of code that generates layers. Each layer contains closed 2D polygons.
 These polygons are generated in a 2 step process. First all triangles are cut into lines per layer, for each layer a "line segment" is added to that layer.
-Next all these line-segments are connected to eachother to make Polygons. The vertex<->face relations of the OptimizedModel help to make this process fast, as there is a huge chance that 2 connecting faces also make 2 connecting line-segments.
+Next all these line-segments are connected to each other to make Polygons. The vertex<->face relations of the OptimizedModel help to make this process fast, as there is a huge chance that 2 connecting faces also make 2 connecting line-segments.
 This code also patches up small holes in the 3D model, so your model doesn't need to be a perfect Manifold. It also deals with incorrect normals, so it can flip around line-segments to fit end-to-end.
 
 After the Slicer we have closed Polygons which can be used in Clipper.
