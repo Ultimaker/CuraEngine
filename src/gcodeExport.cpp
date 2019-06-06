@@ -967,7 +967,9 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/
     if (hop_height > 0)
     {
         if (speed == 0)
+        {
             speed = current_max_z_feedrate;
+        }
         is_z_hopped = hop_height;
         currentSpeed = speed;
         *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z + is_z_hopped} << new_line;
