@@ -78,6 +78,11 @@ template<> size_t Settings::get<size_t>(const std::string& key) const
     return std::stoul(get<std::string>(key).c_str());
 }
 
+template<> int Settings::get<int>(const std::string& key) const
+{
+    return atoi(get<std::string>(key).c_str());
+}
+
 template<> bool Settings::get<bool>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);

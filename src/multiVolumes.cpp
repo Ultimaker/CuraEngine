@@ -21,7 +21,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
     std::sort(ranked_volumes.begin(), ranked_volumes.end(),
               [](Slicer* volume_1, Slicer* volume_2)
                 {
-                    return volume_1->mesh->settings.get<size_t>("infill_mesh_order") < volume_2->mesh->settings.get<size_t>("infill_mesh_order");
+                    return volume_1->mesh->settings.get<int>("infill_mesh_order") < volume_2->mesh->settings.get<int>("infill_mesh_order");
                 } );
     for (unsigned int volume_1_idx = 1; volume_1_idx < volumes.size(); volume_1_idx++)
     {
@@ -53,7 +53,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
             {
                 SlicerLayer& layer1 = volume_1.layers[layerNr];
                 SlicerLayer& layer2 = volume_2.layers[layerNr];
-                if (alternate_carve_order && layerNr % 2 == 0 && volume_1.mesh->settings.get<size_t>("infill_mesh_order") == volume_2.mesh->settings.get<size_t>("infill_mesh_order"))
+                if (alternate_carve_order && layerNr % 2 == 0 && volume_1.mesh->settings.get<int>("infill_mesh_order") == volume_2.mesh->settings.get<int>("infill_mesh_order"))
                 {
                     layer2.polygons = layer2.polygons.difference(layer1.polygons);
                 }
