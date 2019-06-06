@@ -872,9 +872,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     constexpr bool no_prime_tower = false;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
-    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh, layer_count, \
-            is_support_mesh_place_holder, use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, \
-            xy_distance_overhang, layer_z_distance_top) schedule(dynamic)
+    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
     {
@@ -1071,7 +1069,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         const int max_checking_layer_idx = std::max(0,
                                                     std::min(static_cast<int>(storage.support.supportLayers.size()),
                                                              static_cast<int>(layer_count - (layer_z_distance_top - 1))));
-#pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
+#pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
         // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
         for (int layer_idx = 0; layer_idx < max_checking_layer_idx; layer_idx++)
         {
