@@ -432,17 +432,19 @@ public:
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
     /*!
-     * Start a z hop with the given \p hop_height
+     * Start a z hop with the given \p hop_height.
      * 
-     * \param hop_height The height to move above the current layer
-     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
+     * \param hop_height The height to move above the current layer.
+     * \param speed The speed used for moving. Default is 0, which means use
+     * ``current_max_z_feedrate``.
      */
     void writeZhopStart(const coord_t hop_height, Velocity speed = 0);
 
     /*!
      * End a z hop: go back to the layer height
      *
-     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
+     * \param speed The speed used for moving. Default is 0, which means use
+     * ``current_max_z_feedrate``.
      */
     void writeZhopEnd(Velocity speed = 0);
 
