@@ -377,8 +377,8 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         }
     }
     else
-    {
-        in_or_mid = dest_point; // mid-case
+    { // mid-case
+        in_or_mid = dest_point; 
     }
 };
 
