@@ -148,8 +148,9 @@ protected:
     {
         Point p;
         coord_t w;
-        Junction(Point p, coord_t w)
-        : p(p), w(w) {}
+        coord_t perimeter_index;
+        Junction(Point p, coord_t w, coord_t perimeter_index)
+        : p(p), w(w), perimeter_index(perimeter_index) {}
     };
 
     /*!

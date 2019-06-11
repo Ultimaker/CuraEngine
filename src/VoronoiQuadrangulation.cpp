@@ -1227,6 +1227,10 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         if (edge_to_peak->prev)
         {
             std::vector<Junction> from_prev_junctions = getJunctions(edge_to_peak->prev, node_to_beading, edge_to_junctions, beading_strategy);
+            if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
+            {
+                from_junctions.pop_back();
+            }
             from_junctions.reserve(from_junctions.size() + from_prev_junctions.size());
             from_junctions.insert(from_junctions.end(), from_prev_junctions.begin(), from_prev_junctions.end());
             assert(!edge_to_peak->prev->prev);
@@ -1234,6 +1238,10 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         if (edge_from_peak->next)
         {
             std::vector<Junction> to_next_junctions = getJunctions(edge_from_peak->next->twin, node_to_beading, edge_to_junctions, beading_strategy);
+            if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
+            {
+                to_junctions.pop_back();
+            }
             to_junctions.reserve(to_junctions.size() + to_next_junctions.size());
             to_junctions.insert(to_junctions.end(), to_next_junctions.begin(), to_next_junctions.end());
             assert(!edge_from_peak->next->next);
@@ -1340,7 +1348,7 @@ const std::vector<VoronoiQuadrangulation::Junction>& VoronoiQuadrangulation::get
             break;
         }
         Point junction(a + ab * (bead_R - start_R) / (end_R - start_R));
-        ret.emplace_back(junction, beading->bead_widths[junction_idx]);
+        ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
     }
 
     return ret;
