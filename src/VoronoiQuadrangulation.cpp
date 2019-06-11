@@ -1358,7 +1358,7 @@ const std::vector<VoronoiQuadrangulation::Junction>& VoronoiQuadrangulation::get
 
     coord_t junction_idx;
     // compute starting junction_idx for this segment
-    for (junction_idx = beading->toolpath_locations.size() / 2; junction_idx >= 0 && junction_idx < beading->toolpath_locations.size(); junction_idx--)
+    for (junction_idx = (beading->toolpath_locations.size() - 1) / 2; junction_idx >= 0 && junction_idx < beading->toolpath_locations.size(); junction_idx--)
     {
         coord_t bead_R = beading->toolpath_locations[junction_idx];
         if (bead_R <= start_R)
