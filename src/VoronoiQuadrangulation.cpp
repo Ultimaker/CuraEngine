@@ -491,6 +491,37 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
+    // fix bead count at locally maximal R
+    // also for marked regions!! See TODOs in generateTransitionEnd(.)
+    for (node_t& node : graph.nodes)
+    {
+        bool is_local_maximum = true;
+        bool first = true;
+        for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
+        {
+            if (edge->to->data.distance_to_boundary > node.data.distance_to_boundary)
+            {
+                is_local_maximum = false;
+                break;
+            }
+            first = false;
+        }
+        if (is_local_maximum)
+        {
+            if (node.data.distance_to_boundary < 0)
+            {
+                RUN_ONCE(logWarning("Distance to boundary not yet computed for local maximum!\n"));
+                node.data.distance_to_boundary = std::numeric_limits<coord_t>::max();
+                bool first = true;
+                for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
+                {
+                    node.data.distance_to_boundary = std::min(node.data.distance_to_boundary, edge->to->data.distance_to_boundary + vSize(edge->from->p - edge->to->p));
+                }
+            }
+            node.data.bead_count = beading_strategy.optimal_bead_count(node.data.distance_to_boundary * 2);
+        }
+    }
+
     generateTransitioningRibs(beading_strategy);
 
     {
@@ -513,9 +544,6 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     }
 
     debugCheckDecorationConsistency();
-    
-    // fix bead count at locally maximal R
-    // also for marked regions!! See TODOs in generateTransitionEnd(.)
 
     std::vector<ExtrusionSegment> segments;
     generateSegments(segments, beading_strategy);
