@@ -763,7 +763,7 @@ public:
      * \param other Input line segments to be cropped
      * \param segment_tree the resulting interior line segments
      */
-    ClipperLib::PolyTree lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
+    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
     {
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptClip, true);
