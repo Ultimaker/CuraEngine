@@ -967,12 +967,15 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/
     if (hop_height > 0)
     {
         if (speed == 0)
-            speed = current_max_z_feedrate;
+        {
+            const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[current_extruder];
+            speed = extruder.settings.get<Velocity>("speed_z_hop");
+        }
         is_z_hopped = hop_height;
         currentSpeed = speed;
         *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z + is_z_hopped} << new_line;
         total_bounding_box.includeZ(current_layer_z + is_z_hopped);
-        assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
+        assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
 
@@ -981,12 +984,15 @@ void GCodeExport::writeZhopEnd(Velocity speed/*= 0*/)
     if (is_z_hopped)
     {
         if (speed == 0)
-            speed = current_max_z_feedrate;
+        {
+            const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[current_extruder];
+            speed = extruder.settings.get<Velocity>("speed_z_hop");
+        }
         is_z_hopped = 0;
         currentPosition.z = current_layer_z;
         currentSpeed = speed;
         *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
-        assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
+        assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
 
