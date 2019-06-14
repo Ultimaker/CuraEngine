@@ -57,6 +57,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, WriteZHopEndZero);
     FRIEND_TEST(GCodeExportTest, WriteZHopEndDefaultSpeed);
     FRIEND_TEST(GCodeExportTest, WriteZHopEndCustomSpeed);
+    FRIEND_TEST(GCodeExportTest, WriteTravelSimple);
     FRIEND_TEST(GCodeExportTest, insertWipeScriptSingleMove);
     FRIEND_TEST(GCodeExportTest, insertWipeScriptMultipleMoves);
     FRIEND_TEST(GCodeExportTest, insertWipeScriptOptionalDelay);
