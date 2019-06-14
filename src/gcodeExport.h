@@ -407,7 +407,7 @@ private:
      * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature);
+    void writeFXYZE(const char* start_code, const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
