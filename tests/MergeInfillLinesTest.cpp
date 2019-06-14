@@ -144,4 +144,16 @@ TEST_F(MergeInfillLinesTest, MergeSingle)
     EXPECT_EQ(paths[0].points.size(), 1) << "The path should not be modified.";
 }
 
+TEST_F(MergeInfillLinesTest, MergeLenthwise)
+{
+    std::vector<GCodePath> paths;
+    paths.push_back(lengthwise_skin);
+
+    const bool result = merger->mergeInfillLines(paths, starting_position);
+
+    EXPECT_FALSE(result) << "Patterns like Gyroid infill with many (almost) lengthwise lines should not get merged, even if those lines are short.";
+    ASSERT_EQ(paths.size(), 1) << "The path should not get removed or split.";
+    EXPECT_EQ(paths[0].points.size(), 4) << "The path should not be modified.";
+}
+
 } //namespace cura
