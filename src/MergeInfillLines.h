@@ -16,6 +16,7 @@ class MergeInfillLines
 {
     FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthEmpty);
     FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthSingle);
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthMultiple);
 
 public:
     /*

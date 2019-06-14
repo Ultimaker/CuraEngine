@@ -50,14 +50,27 @@ public:
      */
     GCodePath single_skin;
 
+    /*
+     * A path of multiple skin lines that together form a straight line.
+     *
+     * This path should not get merged together to a single line.
+     */
+    GCodePath lengthwise_skin;
+
     MergeInfillLinesTest()
      : fan_speed_layer_time()
      , retraction_config()
      , skin_config(PrintFeatureType::Skin, 400, layer_thickness, 1, GCodePathConfig::SpeedDerivatives{50, 1000, 10})
      , empty_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::None, 1.0, false)
      , single_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
+     , lengthwise_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
     {
          single_skin.points.emplace_back(1000, 0);
+
+         lengthwise_skin.points = {Point(1000, 0),
+                                   Point(2000, 0),
+                                   Point(3000, 0),
+                                   Point(4000, 0)};
     }
 
     void SetUp()
@@ -83,14 +96,17 @@ public:
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthEmpty)
 {
-    const coord_t result = empty_plan_merger->calcPathLength(Point(0, 0), empty_skin);
-    EXPECT_EQ(result, 0);
+    EXPECT_EQ(0, empty_plan_merger->calcPathLength(Point(0, 0), empty_skin));
 }
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthSingle)
 {
-    const coord_t result = empty_plan_merger->calcPathLength(Point(0, 0), single_skin);
-    EXPECT_EQ(result, 1000);
+    EXPECT_EQ(1000, empty_plan_merger->calcPathLength(Point(0, 0), single_skin));
+}
+
+TEST_F(MergeInfillLinesTest, CalcPathLengthMultiple)
+{
+    EXPECT_EQ(4000, empty_plan_merger->calcPathLength(Point(0, 0), lengthwise_skin));
 }
 
 } //namespace cura
