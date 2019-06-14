@@ -126,4 +126,22 @@ TEST_F(MergeInfillLinesTest, MergeEmpty)
     EXPECT_EQ(paths.size(), 0) << "The number of paths should still be zero.";
 }
 
+/*
+ * Tries merging a single path of a single line.
+ *
+ * This changes nothing in the paths, since the line cannot be merged with
+ * anything else.
+ */
+TEST_F(MergeInfillLinesTest, MergeSingle)
+{
+    std::vector<GCodePath> paths;
+    paths.push_back(single_skin);
+
+    const bool result = merger->mergeInfillLines(paths, starting_position);
+
+    EXPECT_FALSE(result) << "There is only one line, so it can't be merged with other lines.";
+    ASSERT_EQ(paths.size(), 1) << "The path should not get removed.";
+    EXPECT_EQ(paths[0].points.size(), 1) << "The path should not be modified.";
+}
+
 } //namespace cura
