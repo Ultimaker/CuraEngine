@@ -45,12 +45,19 @@ public:
      */
     GCodePath empty_skin;
 
+    /*
+     * A path of a single skin line.
+     */
+    GCodePath single_skin;
+
     MergeInfillLinesTest()
      : fan_speed_layer_time()
      , retraction_config()
      , skin_config(PrintFeatureType::Skin, 400, layer_thickness, 1, GCodePathConfig::SpeedDerivatives{50, 1000, 10})
      , empty_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::None, 1.0, false)
+     , single_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
     {
+         single_skin.points.emplace_back(1000, 0);
     }
 
     void SetUp()
@@ -76,8 +83,14 @@ public:
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthEmpty)
 {
-    coord_t result = empty_plan_merger->calcPathLength(Point(0, 0), empty_skin);
+    const coord_t result = empty_plan_merger->calcPathLength(Point(0, 0), empty_skin);
     EXPECT_EQ(result, 0);
+}
+
+TEST_F(MergeInfillLinesTest, CalcPathLengthSingle)
+{
+    const coord_t result = empty_plan_merger->calcPathLength(Point(0, 0), single_skin);
+    EXPECT_EQ(result, 1000);
 }
 
 } //namespace cura

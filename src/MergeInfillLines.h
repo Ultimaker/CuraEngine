@@ -15,6 +15,7 @@ class GCodePath;
 class MergeInfillLines 
 {
     FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthEmpty);
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthSingle);
 
 public:
     /*
