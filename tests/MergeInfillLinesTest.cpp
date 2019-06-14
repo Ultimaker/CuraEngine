@@ -26,10 +26,10 @@ public:
     const coord_t layer_thickness = 100;
 
     /*
-     * A merger with a layer plan that contains no paths at all.
+     * A merger to test with.
      */
-    ExtruderPlan* empty_plan;
-    MergeInfillLines* empty_plan_merger;
+    ExtruderPlan* extruder_plan;
+    MergeInfillLines* merger;
 
     /*
      * These fields are required for constructing layer plans and must be held
@@ -82,31 +82,31 @@ public:
         train.settings.add("machine_nozzle_size", "0.4");
         train.settings.add("meshfix_maximum_deviation", "0.1");
 
-        empty_plan = new ExtruderPlan(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time, retraction_config);
-        empty_plan_merger = new MergeInfillLines(*empty_plan);
+        extruder_plan = new ExtruderPlan(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time, retraction_config);
+        merger = new MergeInfillLines(*extruder_plan);
     }
 
     void TearDown()
     {
-        delete empty_plan;
-        delete empty_plan_merger;
+        delete extruder_plan;
+        delete merger;
         delete Application::getInstance().current_slice;
     }
 };
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthEmpty)
 {
-    EXPECT_EQ(0, empty_plan_merger->calcPathLength(Point(0, 0), empty_skin));
+    EXPECT_EQ(0, merger->calcPathLength(Point(0, 0), empty_skin));
 }
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthSingle)
 {
-    EXPECT_EQ(1000, empty_plan_merger->calcPathLength(Point(0, 0), single_skin));
+    EXPECT_EQ(1000, merger->calcPathLength(Point(0, 0), single_skin));
 }
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthMultiple)
 {
-    EXPECT_EQ(4000, empty_plan_merger->calcPathLength(Point(0, 0), lengthwise_skin));
+    EXPECT_EQ(4000, merger->calcPathLength(Point(0, 0), lengthwise_skin));
 }
 
 } //namespace cura
