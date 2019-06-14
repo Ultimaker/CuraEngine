@@ -24,6 +24,7 @@ public:
     const bool is_initial_layer = false;
     const bool is_raft_layer = false;
     const coord_t layer_thickness = 100;
+    const Point starting_position; //All plans start at 0,0.
 
     /*
      * A merger to test with.
@@ -58,7 +59,8 @@ public:
     GCodePath lengthwise_skin;
 
     MergeInfillLinesTest()
-     : fan_speed_layer_time()
+     : starting_position(0, 0)
+     , fan_speed_layer_time()
      , retraction_config()
      , skin_config(PrintFeatureType::Skin, 400, layer_thickness, 1, GCodePathConfig::SpeedDerivatives{50, 1000, 10})
      , empty_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::None, 1.0, false)
@@ -96,28 +98,32 @@ public:
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthEmpty)
 {
-    EXPECT_EQ(0, merger->calcPathLength(Point(0, 0), empty_skin));
+    EXPECT_EQ(0, merger->calcPathLength(starting_position, empty_skin));
 }
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthSingle)
 {
-    EXPECT_EQ(1000, merger->calcPathLength(Point(0, 0), single_skin));
+    EXPECT_EQ(1000, merger->calcPathLength(starting_position, single_skin));
 }
 
 TEST_F(MergeInfillLinesTest, CalcPathLengthMultiple)
 {
-    EXPECT_EQ(4000, merger->calcPathLength(Point(0, 0), lengthwise_skin));
+    EXPECT_EQ(4000, merger->calcPathLength(starting_position, lengthwise_skin));
 }
 
+/*
+ * Tries merging an empty set of paths together.
+ *
+ * This changes nothing in the paths, since there is nothing to change.
+ */
 TEST_F(MergeInfillLinesTest, MergeEmpty)
 {
     std::vector<GCodePath> paths; //Empty. No paths to merge.
-    Point starting_position(0, 0);
 
     const bool result = merger->mergeInfillLines(paths, starting_position);
 
-    EXPECT_FALSE(result);
-    EXPECT_EQ(paths.size(), 0);
+    EXPECT_FALSE(result) << "There are no lines to merge.";
+    EXPECT_EQ(paths.size(), 0) << "The number of paths should still be zero.";
 }
 
 } //namespace cura
