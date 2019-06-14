@@ -109,4 +109,15 @@ TEST_F(MergeInfillLinesTest, CalcPathLengthMultiple)
     EXPECT_EQ(4000, merger->calcPathLength(Point(0, 0), lengthwise_skin));
 }
 
+TEST_F(MergeInfillLinesTest, MergeEmpty)
+{
+    std::vector<GCodePath> paths; //Empty. No paths to merge.
+    Point starting_position(0, 0);
+
+    const bool result = merger->mergeInfillLines(paths, starting_position);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(paths.size(), 0);
+}
+
 } //namespace cura
