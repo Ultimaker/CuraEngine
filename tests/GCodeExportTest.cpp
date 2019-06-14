@@ -683,6 +683,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string("G1 F120 Z1.3"), token) << "Wipe script should perform z-hop.";
     std::getline(output, token, '\n'); // go to wipe position
+    std::getline(output, token, '\n');
     std::getline(output, token, '\n'); // make wipe move
     std::getline(output, token, '\n'); // return back
     std::getline(output, token, '\n');
