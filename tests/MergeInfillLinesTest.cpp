@@ -144,6 +144,17 @@ TEST_F(MergeInfillLinesTest, MergeSingle)
     EXPECT_EQ(paths[0].points.size(), 1) << "The path should not be modified.";
 }
 
+/*
+ * Tries merging a single path that consists of multiple vertices in a straight
+ * line.
+ *
+ * This should not change anything in the paths, since the lines are in a single
+ * path without travel moves in between. It's just drawing a curve, and that
+ * curve should not get modified.
+ *
+ * This is basically the case that went wrong with the "Weird Fat Infill" bug
+ * (CURA-5776).
+ */
 TEST_F(MergeInfillLinesTest, MergeLenthwise)
 {
     std::vector<GCodePath> paths;
