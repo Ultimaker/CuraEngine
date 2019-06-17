@@ -583,6 +583,23 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
                 contact_nodes[layer_nr].insert(contact_node);
             }
         }
+        for (const ConstPolygonRef overhang_part : overhang)
+        {
+            if (overhang_part.area() < 0)
+            {
+                for (auto iter = contact_nodes[layer_nr].begin(); iter != contact_nodes[layer_nr].end(); )
+                {
+                    if (overhang_part.inside((*iter)->position))
+                    {
+                        iter = contact_nodes[layer_nr].erase(iter);
+                    }
+                    else
+                    {
+                        ++iter;
+                    }
+                }
+            }
+        }
     }
 }
 

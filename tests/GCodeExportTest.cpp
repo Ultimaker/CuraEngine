@@ -461,7 +461,8 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
-    gcode.current_max_z_feedrate = 1; // 60 mm/min.
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -470,7 +471,8 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
-    gcode.current_max_z_feedrate = 1;
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed = 4; // 240 mm/min.
@@ -487,7 +489,8 @@ TEST_F(GCodeExportTest, WriteZHopEndZero)
 
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
-    gcode.current_max_z_feedrate = 1; // 60 mm/min.
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     gcode.writeZhopEnd();
@@ -496,12 +499,24 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
-    gcode.current_max_z_feedrate = 1;
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1");
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     constexpr Velocity speed = 4; // 240 mm/min.
     gcode.writeZhopEnd(speed);
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output.str()) << "Custom provided speed should be used.";
+}
+
+TEST_F(GCodeExportTest, WriteTravelSimple)
+{
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    gcode.currentSpeed = -1;
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(2);
+    gcode.writeTravel(Point3(5000, 6000, 7000), 2);
+    gcode.writeTravel(Point3(9000, 4000, 7000), 2);
+    EXPECT_EQ(std::string("G0 F120 Z7\nG0 X5 Y6\nG0 X9 Y4\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
@@ -679,6 +694,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string("G1 F120 Z1.3"), token) << "Wipe script should perform z-hop.";
     std::getline(output, token, '\n'); // go to wipe position
+    std::getline(output, token, '\n');
     std::getline(output, token, '\n'); // make wipe move
     std::getline(output, token, '\n'); // return back
     std::getline(output, token, '\n');

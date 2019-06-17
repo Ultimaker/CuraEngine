@@ -761,16 +761,14 @@ public:
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
-     * \return the resulting interior line segments
+     * \param segment_tree the resulting interior line segments
      */
-    ClipperLib::PolyTree lineSegmentIntersection(const Polygons& other) const
+    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
     {
-        ClipperLib::PolyTree ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptClip, true);
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, ret);
-        return ret;
+        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
     }
     Polygons xorPolygons(const Polygons& other) const
     {

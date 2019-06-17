@@ -37,7 +37,7 @@ SubDivCube::~SubDivCube()
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
     radius_addition = mesh.settings.get<coord_t>("sub_div_rad_add");
-    AngleRadians infill_angle = M_PI / 4.0;
+    AngleRadians infill_angle = 45;
 
     const coord_t furthest_dist_from_origin = std::sqrt(square(mesh.settings.get<coord_t>("machine_height")) + square(mesh.settings.get<coord_t>("machine_depth") / 2) + square(mesh.settings.get<coord_t>("machine_width") / 2));
     const coord_t max_side_length = furthest_dist_from_origin * 2;

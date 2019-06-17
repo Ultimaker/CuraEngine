@@ -1046,7 +1046,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     // If brim for prime tower is used, add the brim for prime tower separately.
     if (should_brim_prime_tower)
     {
-        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"));
+        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), false);
     }
 }
 

@@ -215,9 +215,10 @@ set(engine_SRCS # Except main.cpp.
     src/utils/socket.cpp
 )
 
-# List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
+# List of tests. For each test there must be a file tests/${NAME}.cpp.
 set(engine_TEST
     GCodeExportTest
+    MergeInfillLinesTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
@@ -313,6 +314,7 @@ if (BUILD_TESTS)
     include_directories(${GTEST_INCLUDE_DIRS})
     include_directories(${GMOCK_INCLUDE_DIRS})
     add_dependencies(_CuraEngine GTest::GTest GTest::Main GMock::GMock GMock::Main)
+    add_definitions(-DBUILD_TESTS)
 
     target_compile_definitions(_CuraEngine PUBLIC BUILD_TESTS=1)
 

@@ -115,7 +115,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count)
+void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count, bool allow_helpers /*= true*/)
 {
     const bool is_skirt = start_distance > 0;
 
@@ -127,8 +127,8 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
 
-    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
-    const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
+    const bool has_ooze_shield = allow_helpers && storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
+    const bool has_draft_shield = allow_helpers && storage.draft_protection_shield.size() > 0;
 
     if (is_skirt && (has_ooze_shield || has_draft_shield))
     { // make sure we don't generate skirt through draft / ooze shield
@@ -145,7 +145,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
 
     // handle support-brim
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    if (support_infill_extruder.settings.get<bool>("support_brim_enable"))
+    if (allow_helpers && support_infill_extruder.settings.get<bool>("support_brim_enable"))
     {
         generateSupportBrim(storage);
     }
