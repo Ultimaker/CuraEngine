@@ -314,6 +314,7 @@ if (BUILD_TESTS)
     include_directories(${GTEST_INCLUDE_DIRS})
     include_directories(${GMOCK_INCLUDE_DIRS})
     add_dependencies(_CuraEngine GTest::GTest GTest::Main GMock::GMock GMock::Main)
+    add_definitions(-DBUILD_TESTS)
 
     target_compile_definitions(_CuraEngine PUBLIC BUILD_TESTS=1)
 
