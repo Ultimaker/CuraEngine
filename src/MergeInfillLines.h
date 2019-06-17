@@ -4,6 +4,8 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
+#include <gtest/gtest_prod.h>
+
 #include "utils/IntPoint.h" //For Point.
 
 namespace cura
