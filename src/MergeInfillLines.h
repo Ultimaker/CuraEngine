@@ -4,6 +4,10 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h>
+#endif //BUILD_TESTS
+
 #include "utils/IntPoint.h" //For Point.
 
 namespace cura
@@ -14,9 +18,11 @@ class GCodePath;
 
 class MergeInfillLines 
 {
+#ifdef BUILD_TESTS
     FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthEmpty);
     FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthSingle);
     FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthMultiple);
+#endif //BUILD_TESTS
 
 public:
     /*

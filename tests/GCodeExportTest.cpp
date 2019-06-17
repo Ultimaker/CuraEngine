@@ -508,6 +508,17 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output.str()) << "Custom provided speed should be used.";
 }
 
+TEST_F(GCodeExportTest, WriteTravelSimple)
+{
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    gcode.currentSpeed = -1;
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(2);
+    gcode.writeTravel(Point3(5000, 6000, 7000), 2);
+    gcode.writeTravel(Point3(9000, 4000, 7000), 2);
+    EXPECT_EQ(std::string("G0 F120 Z7\nG0 X5 Y6\nG0 X9 Y4\n"), output.str());
+}
+
 TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 {
     gcode.currentPosition = Point3(1000, 1000, 1000);
@@ -683,6 +694,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string("G1 F120 Z1.3"), token) << "Wipe script should perform z-hop.";
     std::getline(output, token, '\n'); // go to wipe position
+    std::getline(output, token, '\n');
     std::getline(output, token, '\n'); // make wipe move
     std::getline(output, token, '\n'); // return back
     std::getline(output, token, '\n');
