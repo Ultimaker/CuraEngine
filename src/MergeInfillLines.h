@@ -4,11 +4,20 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
+#include "utils/IntPoint.h" //For Point.
+
 namespace cura
 {
 
+class ExtruderPlan;
+class GCodePath;
+
 class MergeInfillLines 
 {
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthEmpty);
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthSingle);
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthMultiple);
+
 public:
     /*
      * Create a new merger instance.

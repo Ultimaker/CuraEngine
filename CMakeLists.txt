@@ -215,9 +215,10 @@ set(engine_SRCS # Except main.cpp.
     src/utils/socket.cpp
 )
 
-# List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
+# List of tests. For each test there must be a file tests/${NAME}.cpp.
 set(engine_TEST
     GCodeExportTest
+    MergeInfillLinesTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
