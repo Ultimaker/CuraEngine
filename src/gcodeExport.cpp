@@ -705,10 +705,8 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
             extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
-    // Always move Z separately/first (avoids collisions on some machines).
-    *output_stream << "G1 Z" << MMtoStream{ z };
-    *output_stream << " F" << PrecisionedDouble{ 1, fspeed } << new_line;
-    *output_stream << "G1 X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y} << new_line;
+    *output_stream << "G1 X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y} << " Z" << MMtoStream{z};
+    *output_stream << " F" << PrecisionedDouble{1, fspeed} << new_line;
     
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
@@ -733,7 +731,8 @@ void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t&
     const double layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height");
     Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
-    writeFXYZE("G0", speed, x, y, z, current_e_value, travel_move_type);
+    *output_stream << "G0";
+    writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
 }
 
 void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset)
@@ -801,30 +800,26 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     extruder_attr[current_extruder].last_e_value_after_wipe += extrusion_per_mm * diff.vSizeMM();
     double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
 
-    writeFXYZE("G1", speed, x, y, z, new_e_value, feature);
+    *output_stream << "G1";
+    writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
-void GCodeExport::writeFXYZE(const char* start_code, const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature)
+void GCodeExport::writeFXYZE(const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature)
 {
-    *output_stream << start_code;
-
     if (currentSpeed != speed)
     {
         *output_stream << " F" << PrecisionedDouble{1, speed * 60};
         currentSpeed = speed;
     }
 
-    // Always move Z separately/first (avoids collisions on some machines).
-    if (z != currentPosition.z)
-    {
-        *output_stream << " Z" << MMtoStream{ z } << new_line;
-        *output_stream << start_code;
-    }
-
     Point gcode_pos = getGcodePos(x, y, current_extruder);
     total_bounding_box.include(Point3(gcode_pos.X, gcode_pos.Y, z));
 
     *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
+    if (z != currentPosition.z)
+    {
+        *output_stream << " Z" << MMtoStream{z};
+    }
     if (e + current_e_offset != current_e_value)
     {
         const double output_e = (relative_extrusion)? e + current_e_offset - current_e_value : e + current_e_offset;
