@@ -223,10 +223,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             createLayerParts(meshStorage, slicer);
         }
 
-        // Do not add and process support modifier meshes further, and ONLY skip support modifiers. They have been
+        // Do not add and process support _modifier_ meshes further, and ONLY skip support _modifiers_. They have been
         // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
-        // processed in a later stage.
-        if (is_support_modifier)
+        // processed in a later stage, except for support mesh itself, so an exception is made for that.
+        if (is_support_modifier && ! mesh.settings.get<bool>("support_mesh"))
         {
             storage.meshes.pop_back();
             continue;
