@@ -53,7 +53,7 @@ Installing Protobuf (Linux)
 4. ```$ ./configure```
 5. ```$ make```
 6. ```# make install```  
-   (Please note the ```#```. It indicates the need of superuser, as known as root, priviliges.)
+   (Please note the ```#```. It indicates the need of superuser, as known as root, privileges.)
 7. (In case the shared library cannot be loaded, you can try ```sudo ldconfig``` on Linux systems)
 
 Running
@@ -78,7 +78,7 @@ CURA_ENGINE_SEARCH_PATH=/path/to/Cura/resources/definitions:/user/defined/path
 Internals
 =========
 
-The Cura Engine is structured as mainly .h files. This is not standard for a C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partialy a result of lazyness but comes in handy for optimizations.
+The Cura Engine is structured as mainly .h files. This is not standard for a C++ project. However, using less cpp files makes the optimizer work harder and removes linking error issues. It's partially a result of lazyness but comes in handy for optimizations.
 
 The .h files contain different steps called from the main.cpp file. The main.cpp file contains the global slicing logic.
 
@@ -134,6 +134,6 @@ GCode generation
 ================
 The GCode generation is quite a large bit of code. As a lot is going on here. Important bits here are:
 * PathOrderOptimizer: This piece of code needs to solve a TravelingSalesmanProblem. Given a list of polygons/lines it tries to find the best order in which to print them. It currently does this by finding the closest next polygon to print.
-* Infill: This code generates a group of lines from an area. This is the code that generates the actuall infill pattern. There is also a concentric infill function, which is currently not used.
+* Infill: This code generates a group of lines from an area. This is the code that generates the actual infill pattern. There is also a concentric infill function, which is currently not used.
 * Comb: The combing code is the code that tries to avoid holes when moving the head around without printing. This code also detects when it fails. The final GCode generator uses the combing code while generating the final GCode. So they interact closely.
 * GCodeExport: The GCode export is a 2 step process. First it collects all the paths for a layer that it needs to print, this includes all moves, prints, extrusion widths. And then it generates the final GCode. This is the only piece of code that has knowledge about GCode keywords and syntax to generate a different flavor of GCode it will be the only piece that needs adjustment. All volumatric calculations also happen here.
