@@ -287,6 +287,6 @@ TEST_P(MergeInfillLinesThinWallsTest, DISABLED_MergeThinWalls)
     EXPECT_LE(paths.size(), 5) << "Should get merged to 1 line, but give a bit of leeway.";
 }
 
-INSTANTIATE_TEST_SUITE_P(MergeThinWallsTest, MergeInfillLinesThinWallsTest, testing::Range(-45.0, 45.0, 5.0));
+INSTANTIATE_TEST_CASE_P(MergeThinWallsTest, MergeInfillLinesThinWallsTest, testing::Range(-45.0, 45.0, 5.0));
 
 } //namespace cura
