@@ -40,6 +40,7 @@ public:
     const FanSpeedLayerTimeSettings fan_speed_layer_time;
     const RetractionConfig retraction_config;
     const GCodePathConfig skin_config;
+    const GCodePathConfig travel_config;
 
     /*
      * A path of skin lines without any points.
@@ -63,6 +64,7 @@ public:
      , fan_speed_layer_time()
      , retraction_config()
      , skin_config(PrintFeatureType::Skin, 400, layer_thickness, 1, GCodePathConfig::SpeedDerivatives{50, 1000, 10})
+     , travel_config(PrintFeatureType::MoveCombing, 0, layer_thickness, 0, GCodePathConfig::SpeedDerivatives{100, 1000, 10})
      , empty_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::None, 1.0, false)
      , single_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
      , lengthwise_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
@@ -165,6 +167,37 @@ TEST_F(MergeInfillLinesTest, MergeLenthwise)
     EXPECT_FALSE(result) << "Patterns like Gyroid infill with many (almost) lengthwise lines should not get merged, even if those lines are short.";
     ASSERT_EQ(paths.size(), 1) << "The path should not get removed or split.";
     EXPECT_EQ(paths[0].points.size(), 4) << "The path should not be modified.";
+}
+
+/*
+ * Tries merging a bunch of parallel lines with travel moves in between.
+ *
+ * This is the basic use case for merging infill lines.
+ */
+TEST_F(MergeInfillLinesTest, MergeParallel)
+{
+    std::vector<GCodePath> paths;
+    constexpr Ratio normal_flow = 1.0;
+    constexpr bool no_spiralize = false;
+    constexpr size_t num_lines = 10; //How big the test is.
+    //Creates a zig-zag line with extrusion moves when moving in the Y direction and travel moves in between:
+    //  _   _   _
+    // | |_| |_| |_|
+    for(size_t i = 0; i < num_lines; i++)
+    {
+        paths.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
+        paths.back().points.emplace_back(400 * i, 100 * ((i + 1) % 2));
+        paths.emplace_back(travel_config, "merge_infill_lines_mesh", SpaceFillType::None, normal_flow, no_spiralize);
+        paths.back().points.emplace_back(400 * (i + 1), 100 * ((i + 1) % 2));
+    }
+    //End with an extrusion move, not a travel move.
+    paths.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
+    paths.back().points.emplace_back(400 * num_lines, 100 * ((num_lines + 1) % 2));
+
+    const bool result = merger->mergeInfillLines(paths, starting_position);
+
+    EXPECT_TRUE(result) << "The simple zig-zag pattern should get merged fine.";
+    EXPECT_LE(paths.size(), 5); //Some lenience. Ideally it'd be one.
 }
 
 } //namespace cura
