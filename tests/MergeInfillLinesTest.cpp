@@ -211,9 +211,8 @@ TEST_F(MergeInfillLinesTest, MergeParallel)
 /*
  * Tests if the total extruded volume is the same as the original lines.
  */
-TEST_F(MergeInfillLinesTest, ExtrudedVolume)
+TEST_F(MergeInfillLinesTest, DISABLED_ExtrudedVolume)
 {
-    GTEST_SKIP();
     coord_t original_volume = 0;
     Point position = starting_position;
     for(const GCodePath& path : zigzag)
