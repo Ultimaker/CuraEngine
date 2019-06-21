@@ -59,6 +59,14 @@ public:
      */
     GCodePath lengthwise_skin;
 
+    /*
+     * Basic zigzag of skin lines.
+     * There are 11 lines with travel moves in between them. The lines are 100
+     * microns long and 400 microns wide. They should get merged to one long
+     * line of 100 microns wide and 4400 microns long.
+     */
+    std::vector<GCodePath> zigzag;
+
     MergeInfillLinesTest()
      : starting_position(0, 0)
      , fan_speed_layer_time()
@@ -69,12 +77,30 @@ public:
      , single_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
      , lengthwise_skin(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, 1.0, false)
     {
-         single_skin.points.emplace_back(1000, 0);
+        single_skin.points.emplace_back(1000, 0);
 
-         lengthwise_skin.points = {Point(1000, 0),
-                                   Point(2000, 0),
-                                   Point(3000, 0),
-                                   Point(4000, 0)};
+        lengthwise_skin.points = {Point(1000, 0),
+                                  Point(2000, 0),
+                                  Point(3000, 0),
+                                  Point(4000, 0)};
+
+        //Create the zigzag.
+        constexpr Ratio normal_flow = 1.0;
+        constexpr bool no_spiralize = false;
+        constexpr size_t num_lines = 10;
+        //Creates a zig-zag line with extrusion moves when moving in the Y direction and travel moves in between:
+        //  _   _   _
+        // | |_| |_| |_|
+        for(size_t i = 0; i < num_lines; i++)
+        {
+            zigzag.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
+            zigzag.back().points.emplace_back(400 * i, 100 * ((i + 1) % 2));
+            zigzag.emplace_back(travel_config, "merge_infill_lines_mesh", SpaceFillType::None, normal_flow, no_spiralize);
+            zigzag.back().points.emplace_back(400 * (i + 1), 100 * ((i + 1) % 2));
+        }
+        //End with an extrusion move, not a travel move.
+        zigzag.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
+        zigzag.back().points.emplace_back(400 * num_lines, 100 * ((num_lines + 1) % 2));
     }
 
     void SetUp()
@@ -176,28 +202,10 @@ TEST_F(MergeInfillLinesTest, MergeLenthwise)
  */
 TEST_F(MergeInfillLinesTest, MergeParallel)
 {
-    std::vector<GCodePath> paths;
-    constexpr Ratio normal_flow = 1.0;
-    constexpr bool no_spiralize = false;
-    constexpr size_t num_lines = 10; //How big the test is.
-    //Creates a zig-zag line with extrusion moves when moving in the Y direction and travel moves in between:
-    //  _   _   _
-    // | |_| |_| |_|
-    for(size_t i = 0; i < num_lines; i++)
-    {
-        paths.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
-        paths.back().points.emplace_back(400 * i, 100 * ((i + 1) % 2));
-        paths.emplace_back(travel_config, "merge_infill_lines_mesh", SpaceFillType::None, normal_flow, no_spiralize);
-        paths.back().points.emplace_back(400 * (i + 1), 100 * ((i + 1) % 2));
-    }
-    //End with an extrusion move, not a travel move.
-    paths.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
-    paths.back().points.emplace_back(400 * num_lines, 100 * ((num_lines + 1) % 2));
-
-    const bool result = merger->mergeInfillLines(paths, starting_position);
+    const bool result = merger->mergeInfillLines(zigzag, starting_position);
 
     EXPECT_TRUE(result) << "The simple zig-zag pattern should get merged fine.";
-    EXPECT_LE(paths.size(), 5); //Some lenience. Ideally it'd be one.
+    EXPECT_LE(zigzag.size(), 5); //Some lenience. Ideally it'd be one.
 }
 
 } //namespace cura
