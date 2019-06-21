@@ -208,4 +208,43 @@ TEST_F(MergeInfillLinesTest, MergeParallel)
     EXPECT_LE(zigzag.size(), 5); //Some lenience. Ideally it'd be one.
 }
 
+/*
+ * Tests if the total extruded volume is the same as the original lines.
+ */
+TEST_F(MergeInfillLinesTest, ExtrudedVolume)
+{
+    GTEST_SKIP();
+    coord_t original_volume = 0;
+    Point position = starting_position;
+    for(const GCodePath& path : zigzag)
+    {
+        for(const Point& point : path.points)
+        {
+            const coord_t length = vSize(point - position);
+            original_volume += length * (path.getExtrusionMM3perMM() * 1000000);
+            position = point;
+        }
+    }
+
+    merger->mergeInfillLines(zigzag, starting_position);
+    /* If it fails to merge, other tests fail. This test depends on that, but we
+    don't necessarily want it to fail as a false negative if merging in general
+    fails, because we don't want to think that the volume is wrong then. So we
+    don't check the outcome of the merging itself, just the volume. */
+
+    coord_t new_volume = 0;
+    position = starting_position;
+    for(const GCodePath& path : zigzag)
+    {
+        for(const Point& point : path.points)
+        {
+            const coord_t length = vSize(point - position);
+            new_volume += length * (path.getExtrusionMM3perMM() * 1000000);
+            position = point;
+        }
+    }
+
+    EXPECT_EQ(original_volume, new_volume);
+}
+
 } //namespace cura
