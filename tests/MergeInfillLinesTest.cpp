@@ -246,4 +246,47 @@ TEST_F(MergeInfillLinesTest, DISABLED_ExtrudedVolume)
     EXPECT_EQ(original_volume, new_volume);
 }
 
+/*
+ * Parameterised test for merging infill lines inside thin walls.
+ *
+ * The thin walls are filled with lines of various rotations. This is the float
+ * parameter.
+ */
+class MergeInfillLinesThinWallsTest : public MergeInfillLinesTest, public testing::WithParamInterface<double>
+{
+public:
+    const coord_t wall_thickness = 200; //0.2mm wall.
+};
+
+TEST_P(MergeInfillLinesThinWallsTest, DISABLED_MergeThinWalls)
+{
+    const AngleRadians rotation = AngleRadians(GetParam()); //Converts degrees to radians!
+    constexpr Ratio normal_flow = 1.0;
+    constexpr bool no_spiralize = false;
+    constexpr size_t num_lines = 10;
+
+    //Construct parallel lines under a certain rotation. It looks like this: /////
+    //The perpendicular distance between the lines will be exactly one line width.
+    //The distance between the adjacent endpoints of the lines will be greater for steeper angles.
+    std::vector<GCodePath> paths;
+    const coord_t line_shift = wall_thickness / std::cos(rotation); //How far the top of the line is shifted from the bottom.
+    const coord_t line_horizontal_spacing = skin_config.getLineWidth() / std::sin(rotation); //Horizontal spacing between starting vertices.
+    for(size_t i = 0; i < num_lines; i++)
+    {
+        paths.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
+        paths.back().points.emplace_back(line_horizontal_spacing * i + line_shift * ((i + 1) % 2), wall_thickness * ((i + 1) % 2));
+        paths.emplace_back(travel_config, "merge_infill_lines_mesh", SpaceFillType::None, normal_flow, no_spiralize);
+        paths.back().points.emplace_back(line_horizontal_spacing * (i + 1) + line_shift * ((i + 1) % 2), wall_thickness * ((i + 1) % 2));
+    }
+    paths.emplace_back(skin_config, "merge_infill_lines_mesh", SpaceFillType::Lines, normal_flow, no_spiralize);
+    paths.back().points.emplace_back(line_horizontal_spacing * num_lines + line_shift * ((num_lines + 1) % 2), wall_thickness * ((num_lines + 1) % 2));
+
+    const bool merged = merger->mergeInfillLines(paths, starting_position);
+
+    EXPECT_TRUE(merged) << "These are the test cases where line segments should get merged.";
+    EXPECT_LE(paths.size(), 5);
+}
+
+INSTANTIATE_TEST_SUITE_P(MergeThinWallsTest, MergeInfillLinesThinWallsTest, testing::Range(-45.0, 45.0, 5.0));
+
 } //namespace cura
