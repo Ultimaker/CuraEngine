@@ -284,7 +284,7 @@ TEST_P(MergeInfillLinesThinWallsTest, DISABLED_MergeThinWalls)
     const bool merged = merger->mergeInfillLines(paths, starting_position);
 
     EXPECT_TRUE(merged) << "These are the test cases where line segments should get merged.";
-    EXPECT_LE(paths.size(), 5);
+    EXPECT_LE(paths.size(), 5) << "Should get merged to 1 line, but give a bit of leeway.";
 }
 
 INSTANTIATE_TEST_SUITE_P(MergeThinWallsTest, MergeInfillLinesThinWallsTest, testing::Range(-45.0, 45.0, 5.0));
