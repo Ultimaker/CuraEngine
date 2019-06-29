@@ -244,6 +244,30 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             {
                 meshStorage.layers[layer_nr].printZ = adaptive_layer_heights->getLayers()->at(layer_nr).z_position;
                 meshStorage.layers[layer_nr].thickness = adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
+
+                // compute the number of top layers required
+                const size_t top_layers = meshStorage.settings.get<size_t>("top_layers");
+                const coord_t min_top_thickness = top_layers * layer_thickness;
+                size_t required_top_layers = 0;
+                coord_t top_thickness = 0;
+                while (top_thickness < min_top_thickness && (layer_nr + required_top_layers) < meshStorage.layers.size())
+                {
+                    top_thickness += adaptive_layer_heights->getLayers()->at(layer_nr + required_top_layers).layer_height;
+                    ++required_top_layers;
+                }
+                meshStorage.layers[layer_nr].top_layers = std::max(top_layers, required_top_layers);
+
+                // compute the number of bottom layers required
+                const size_t bottom_layers = meshStorage.settings.get<size_t>("bottom_layers");
+                const coord_t min_bottom_thickness = bottom_layers * layer_thickness;
+                size_t required_bottom_layers = 0;
+                coord_t bottom_thickness = 0;
+                while (bottom_thickness < min_bottom_thickness && (layer_nr >= required_bottom_layers))
+                {
+                    bottom_thickness += adaptive_layer_heights->getLayers()->at(layer_nr - required_bottom_layers).layer_height;
+                    ++required_bottom_layers;
+                }
+                meshStorage.layers[layer_nr].bottom_layers = std::max(bottom_layers, required_bottom_layers);
             }
             else
             {
@@ -257,6 +281,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 {
                     meshStorage.layers[layer_nr].thickness = layer_thickness;
                 }
+
+                meshStorage.layers[layer_nr].top_layers = meshStorage.settings.get<size_t>("top_layers");
+                meshStorage.layers[layer_nr].bottom_layers = meshStorage.settings.get<size_t>("bottom_layers");
             }
 
             // add the raft offset to each layer
