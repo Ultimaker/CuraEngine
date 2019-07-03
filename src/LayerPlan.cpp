@@ -1457,10 +1457,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-            if (extruder.settings.get<Velocity>("max_feedrate_z_override") > 0)
-            {
-                gcode.writeMaxZFeedrate(extruder.settings.get<Velocity>("max_feedrate_z_override"));
-            }
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
@@ -1508,10 +1504,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             });
 
         const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        if (extruder.settings.get<Velocity>("max_feedrate_z_override") > 0)
-        {
-            gcode.writeMaxZFeedrate(extruder.settings.get<Velocity>("max_feedrate_z_override"));
-        }
 
         bool update_extrusion_offset = true;
 
