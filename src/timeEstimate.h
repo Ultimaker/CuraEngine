@@ -94,7 +94,6 @@ public:
     void addTime(const Duration& time);
     void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
-    void setMaxZFeedrate(const Velocity& max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
 
     void reset();
     
