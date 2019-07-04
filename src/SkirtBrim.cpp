@@ -206,6 +206,10 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
             {
                 continue;
             }
+            if (storage.skirt_brim[extruder_nr].polygonLength() == 0)
+            {
+                continue;
+            }
             const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             const coord_t width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
             const coord_t minimal_length = train.settings.get<coord_t>("skirt_brim_minimal_length");
