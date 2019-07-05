@@ -801,6 +801,8 @@ void VoronoiQuadrangulation::generateEndOfMarkingTransitionEnds(const BeadingStr
                     edge.to->data.bead_count = end_bead_count - 1;
                     constexpr bool is_lower_end = false; // the transition goes from a higher bead count to a lower bead count beyond end_R
                     std::list<TransitionEnd>& edge_transitions = edge_to_transition_ends[edge.twin];
+                    assert(inv_transition_end_pos < last_edge_size);
+                    assert(inv_transition_end_pos < vSize(edge.twin->from->p - edge.twin->to->p));
                     edge_transitions.emplace_front(inv_transition_end_pos, end_bead_count - 1, is_lower_end); // TODO: This is slow. Use list instead of vector?
                 }
                 else
@@ -975,6 +977,8 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
             transitions = &edge_to_transition_ends[edge.twin];
             pos = ab_size - end_pos;
         }
+        assert(ab_size == vSize(edge.twin->from->p - edge.twin->to->p));
+        assert(pos < ab_size);
         if (transitions->empty() || pos < transitions->front().pos)
         { // preorder so that sorting later on is faster
             transitions->emplace_front(pos, lower_bead_count, is_lower_end);
@@ -989,6 +993,20 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
 void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
 {
+    for (std::pair<edge_t* const, std::list<TransitionEnd>>& pair : edge_to_transition_ends)
+    {
+        edge_t* edge = pair.first;
+        auto twin_ends_it = edge_to_transition_ends.find(edge->twin);
+        if (twin_ends_it != edge_to_transition_ends.end())
+        {
+            coord_t length = vSize(edge->from->p - edge->to->p);
+            for (TransitionEnd& end : twin_ends_it->second)
+            {
+                pair.second.emplace_back(length - end.pos, end.lower_bead_count, end.is_lower_end);
+            }
+            edge_to_transition_ends.erase(twin_ends_it);
+        }
+    }
     for (std::pair<edge_t* const, std::list<TransitionEnd>>& pair : edge_to_transition_ends)
     {
         edge_t* edge = pair.first;
