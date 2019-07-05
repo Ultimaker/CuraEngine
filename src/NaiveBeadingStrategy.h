@@ -16,7 +16,7 @@ class NaiveBeadingStrategy : public BeadingStrategy
 {
 public:
     NaiveBeadingStrategy(const coord_t bead_width)
-    : BeadingStrategy(bead_width)
+    : BeadingStrategy(bead_width, 0)
     {
     }
     Beading compute(coord_t thickness, coord_t bead_count) const;

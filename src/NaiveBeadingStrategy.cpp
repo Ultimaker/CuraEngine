@@ -34,12 +34,12 @@ coord_t NaiveBeadingStrategy::optimal_thickness(coord_t bead_count) const
 
 coord_t NaiveBeadingStrategy::transition_thickness(coord_t lower_bead_count) const
 {
-    return (lower_bead_count + 1) * optimal_width - 1;
+    return (lower_bead_count + 1) * optimal_width - 1; // TODO: this might be incorrect, but it isn't used because the transition angle is set to zero
 }
 
 coord_t NaiveBeadingStrategy::optimal_bead_count(coord_t thickness) const
 {
-    return thickness / optimal_width;
+    return (thickness / 2 + optimal_width / 2) / optimal_width * 2;
 }
 
 
