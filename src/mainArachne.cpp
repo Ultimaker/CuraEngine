@@ -69,6 +69,7 @@ static Polygons pikachu;
 static Polygons jin;
 static Polygons um;
 static Polygons spikes;
+static Polygons enclosed_region;
 
 void generateTestPolys()
 {
@@ -789,6 +790,31 @@ void generateTestPolys()
             dot = dot.approxConvexHull();
             spikes = spikes.unionPolygons(dot);
         }
+    }
+    {
+        PolygonRef outline = enclosed_region.newPoly();
+        outline.emplace_back(0, 0);
+        outline.emplace_back(0, 10000);
+        outline.emplace_back(10000, 10000);
+        outline.emplace_back(10000, 0);
+        PolygonRef hole = enclosed_region.newPoly();
+        hole.emplace_back(1000, 1000);
+        hole.emplace_back(9000, 1000);
+        hole.emplace_back(9000, 9000);
+        hole.emplace_back(1000, 9000);
+        PolygonRef outline2 = enclosed_region.newPoly();
+        outline2.emplace_back(2000, 2000);
+        outline2.emplace_back(2000, 8000);
+        outline2.emplace_back(8000, 8000);
+        outline2.emplace_back(8000, 2000);
+        PolygonRef hole2 = enclosed_region.newPoly();
+        hole2.emplace_back(4000, 4000);
+        hole2.emplace_back(6000, 4000);
+        hole2.emplace_back(6000, 6000);
+        hole2.emplace_back(4000, 6000);
+
+        PointMatrix rot = PointMatrix(170.0);
+        enclosed_region.applyMatrix(rot);
     }
 }
 
