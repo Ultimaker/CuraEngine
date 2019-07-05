@@ -774,6 +774,7 @@ void generateTestPolys()
         as.add(a);
         um = um.difference(as);
     }
+    if (false)
     {
         coord_t min_r = 3000;
         coord_t max_r = 8000;
@@ -837,13 +838,16 @@ void test()
 //     Polygons polys = enclosed_region;
     Polygons polys = jin;
     polys = polys.unionPolygons();
+
+#ifdef DEBUG
     {
         SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
         svg.writePolygons(polys);
     }
-    
+#endif
+
     TimeKeeper tk;
-    
+
     VoronoiQuadrangulation vq(polys);
 
 //     DistributedBeadingStrategy beading_strategy(300, 400, 600, M_PI / 3);
@@ -854,6 +858,18 @@ void test()
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
     logError("Processing took %fs\n", tk.restart());
 
+
+    Polygons insets;
+    Polygons last_inset = polys.offset(-200);
+    while (!last_inset.empty())
+    {
+        insets.add(last_inset);
+        last_inset = last_inset.offset(-400, ClipperLib::jtRound);
+    }
+    logError("Naive processing took %fs\n", tk.restart());
+
+#ifdef DEBUG
+    logAlways("Generating SVGs...\n");
     Polygons paths;
     for (ExtrusionSegment& segment : segments)
     {
@@ -942,13 +958,6 @@ void test()
     {
         SVG svg("output/normal.svg", AABB(polys));
         svg.writePolygons(polys, SVG::Color::RED, 2);
-        Polygons insets;
-        Polygons last_inset = polys.offset(-200);
-        while (!last_inset.empty())
-        {
-            insets.add(last_inset);
-            last_inset = last_inset.offset(-400, ClipperLib::jtRound);
-        }
         for (PolygonRef poly : insets)
         {
             Point prev = poly.back();
@@ -963,6 +972,7 @@ void test()
     }
 
     logError("Writing output files took %fs\n", tk.restart());
+#endif // DEBUG
 }
 
 

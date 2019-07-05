@@ -366,8 +366,10 @@ void VoronoiQuadrangulation::init()
                                         segments.begin(), segments.end(),
                                         &vd);
 
+#ifdef DEBUG
     VoronoiUtils::debugOutput("output/vd.svg", vd, points, segments);
-    
+#endif
+
     for (const vd_t::edge_type& edge : vd.edges())
     {
         assert(edge.vertex0() == edge.twin()->vertex1());
@@ -448,6 +450,7 @@ void VoronoiQuadrangulation::init()
             }
         }
     }
+#ifdef DEBUG
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
@@ -466,10 +469,10 @@ void VoronoiQuadrangulation::init()
         debugOutput(svg, false, false, false, true);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
-
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
-    
+#endif
+
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
 }
@@ -524,6 +527,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 
     generateTransitioningRibs(beading_strategy);
 
+#ifdef DEBUG
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
@@ -542,6 +546,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         debugOutput(svg, false, false, false, true);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
+#endif // DEBUG
 
     debugCheckDecorationConsistency();
 
@@ -1444,6 +1449,7 @@ VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node
 
 void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 {
+#ifdef DEBUG
     for (const node_t& node : graph.nodes)
     {
         if (!node.some_edge)
@@ -1460,10 +1466,12 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
         assert(edge.next || edge.to->data.distance_to_boundary == 0);
         assert(edge.prev || edge.from->data.distance_to_boundary == 0);
     }
+#endif
 }
 
 void VoronoiQuadrangulation::debugCheckGraphConsistency()
 {
+#ifdef DEBUG
     auto vert_assert = [](const node_t* first, const node_t* second)
     {
         if (first != second)
@@ -1526,10 +1534,12 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency()
         for (const edge_t* e = &edge; e; e = e->next) assert(++i < 10);
         for (const edge_t* e = &edge; e; e = e->prev) assert(++i < 10);
     }
+#endif // DEBUG
 }
 
 void VoronoiQuadrangulation::debugCheckDecorationConsistency()
 {
+#ifdef DEBUG
     for (const edge_t& edge : graph.edges)
     {
         assert(edge.data.type >= VoronoiQuadrangulationEdge::NORMAL && edge.data.type <= VoronoiQuadrangulationEdge::TRANSITION_MID);
@@ -1549,10 +1559,12 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency()
             }
         }
     }
+#endif // DEBUG
 }
 
 void VoronoiQuadrangulation::debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const
 {
+#ifdef DEBUG
     for (std::pair<edge_t*, std::list<TransitionMiddle>> pair : edge_to_transitions)
     {
         const edge_t* edge = pair.first;
@@ -1573,6 +1585,7 @@ void VoronoiQuadrangulation::debugCheckTransitionMids(const std::unordered_map<e
         }
         
     }
+#endif // DEBUG
 }
 
 SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
