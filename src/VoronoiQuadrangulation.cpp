@@ -601,7 +601,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
-    filterTransitionMids(edge_to_transitions);
+    filterTransitionMids(edge_to_transitions, beading_strategy);
 
     debugCheckTransitionMids(edge_to_transitions);
 
@@ -667,9 +667,9 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
     }
 }
 
-void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
+void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
 {
-    coord_t max_dist = 600; // TODO make configurable
+    coord_t max_dist = 1000; // TODO make configurable
     for (std::pair<edge_t* const, std::list<TransitionMiddle>>& pair : edge_to_transitions)
     {
         edge_t* edge = pair.first;
@@ -684,12 +684,12 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         Point b = edge->to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
-        bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, max_dist, true, edge_to_transitions);
+        bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, max_dist, true, edge_to_transitions, beading_strategy);
         if (should_dissolve_back)
         {
             transitions.pop_back();
         }
-        bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, max_dist, false, edge_to_transitions);
+        bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, max_dist, false, edge_to_transitions, beading_strategy);
         if (should_dissolve_front)
         {
             transitions.pop_front();
@@ -697,7 +697,7 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
     }
 }
 
-bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
+bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
 {
     if (traveled_dist > max_dist)
     {
@@ -723,7 +723,10 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
                 if (traveled_dist + pos < max_dist
                     && transition_it->lower_bead_count == origin_transition.lower_bead_count) // only dissolve local optima
                 {
-                    assert(going_up != is_aligned || transition_it->lower_bead_count == 0); // consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
+                    if (traveled_dist + pos < beading_strategy.getTransitioningLength(transition_it->lower_bead_count))
+                    {
+                        assert(going_up != is_aligned || transition_it->lower_bead_count == 0); // consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
+                    }
                     transition_it = transitions.erase(transition_it);
                     should_dissolve = true;
                 }
@@ -733,7 +736,7 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
                 }
             }
         }
-        should_dissolve = should_dissolve || dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions);
+        should_dissolve = should_dissolve || dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
         if (should_dissolve)
         {
             edge->from->data.bead_count = going_up? origin_transition.lower_bead_count : origin_transition.lower_bead_count + 1;
