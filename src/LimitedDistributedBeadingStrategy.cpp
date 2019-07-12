@@ -63,10 +63,4 @@ coord_t LimitedDistributedBeadingStrategy::optimal_bead_count(coord_t thickness)
     return max_bead_count;
 }
 
-coord_t LimitedDistributedBeadingStrategy::getTransitioningLength(coord_t dR, coord_t dd) const
-{
-    return DistributedBeadingStrategy::getTransitioningLength(dR, dd);
-}
-
-
 } // namespace arachne

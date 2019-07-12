@@ -75,12 +75,11 @@ public:
     virtual coord_t optimal_bead_count(coord_t thickness) const = 0;
 
     /*!
-     * \param dR the difference in radius between the two ends of the segment on which to put the middle of a transition
-     * \param dd the length of the segment on which to put the middle of the transition
+     * The length of the transitioning region along the marked / significant regions of the skeleton
      */
-    virtual coord_t getTransitioningLength(coord_t dR, coord_t dd) const
+    virtual coord_t getTransitioningLength(coord_t lower_bead_count) const
     {
-        return optimal_width / 2;
+        return optimal_width;
     }
 
     virtual float getTransitionAnchorPos(coord_t lower_bead_count) const
