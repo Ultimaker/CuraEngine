@@ -498,18 +498,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     // also for marked regions!! See TODOs in generateTransitionEnd(.)
     for (node_t& node : graph.nodes)
     {
-        bool is_local_maximum = true;
-        bool first = true;
-        for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
-        {
-            if (edge->to->data.distance_to_boundary > node.data.distance_to_boundary)
-            {
-                is_local_maximum = false;
-                break;
-            }
-            first = false;
-        }
-        if (is_local_maximum)
+        if (isLocalMaximum(node))
         {
             if (node.data.distance_to_boundary < 0)
             {
@@ -1192,7 +1181,19 @@ bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
     return true;
 }
 
-
+bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
+{
+    bool first = true;
+    for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
+    {
+        if (edge->to->data.distance_to_boundary > node.data.distance_to_boundary)
+        {
+            return false;
+        }
+        first = false;
+    }
+    return true;
+}
 
 //
 // ^^^^^^^^^^^^^^^^^^^^^

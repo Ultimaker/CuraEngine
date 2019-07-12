@@ -130,6 +130,7 @@ protected:
     std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge) const;
 
+    bool isLocalMaximum(const node_t& node) const;
 
 
     // ^ transitioning | v toolpath generation
