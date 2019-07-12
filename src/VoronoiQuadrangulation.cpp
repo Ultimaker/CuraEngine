@@ -1223,30 +1223,24 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     
     std::unordered_map<node_t*, Beading> node_to_beading;
     std::unordered_map<edge_t*, std::vector<Junction>> edge_to_junctions; // junctions ordered high R to low R
-    { // store beading at all marked verts
-        std::unordered_set<node_t*> marked_nodes;
-        for (edge_t& edge : graph.edges)
+    { // store beading
+        for (node_t& node : graph.nodes)
         {
-            if (edge.data.is_marked
-                && edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary) // only consider half the halfedges
+            if (node.data.bead_count <= 0)
             {
-                marked_nodes.emplace(edge.from);
-                marked_nodes.emplace(edge.to);
+                continue;
             }
-        }
-        for (node_t* node : marked_nodes)
-        {
-            if (node->data.transition_rest == 0)
+            if (node.data.transition_rest == 0)
             {
-                node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2, node->data.bead_count));
+                node_to_beading.emplace(&node, beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count));
             }
             else
             {
-                coord_t upper_bead_count = node->data.bead_count + 1;
-                Beading alternative_high_count_beading = beading_strategy.compute(node->data.distance_to_boundary * 2, upper_bead_count);
-                coord_t inner_bead_width = alternative_high_count_beading.bead_widths[node->data.bead_count / 2]; // TODO: get the actual bead width used at the upper end of the transition
-                coord_t transition_rest = node->data.transition_rest * inner_bead_width;
-                node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2 - transition_rest, node->data.bead_count));
+                coord_t upper_bead_count = node.data.bead_count + 1;
+                Beading alternative_high_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, upper_bead_count);
+                coord_t inner_bead_width = alternative_high_count_beading.bead_widths[node.data.bead_count / 2]; // TODO: get the actual bead width used at the upper end of the transition
+                coord_t transition_rest = node.data.transition_rest * inner_bead_width;
+                node_to_beading.emplace(&node, beading_strategy.compute(node.data.distance_to_boundary * 2 - transition_rest, node.data.bead_count));
             }
         }
     }
