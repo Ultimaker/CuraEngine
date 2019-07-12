@@ -454,7 +454,7 @@ void VoronoiQuadrangulation::init()
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
-        debugOutput(svg, true, true);
+        debugOutput(svg, false, true); 
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
@@ -531,7 +531,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     {
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
-        debugOutput(svg, true, true);
+        debugOutput(svg, false, true);
         svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
@@ -1623,7 +1623,11 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         }
         else
         {
-            svg.writeLine(a, b, clr, stroke_width);
+            if (edge.to->p.X > edge.from->p.X
+                || (edge.to->p.X == edge.from->p.X && edge.to->p.Y > edge.from->p.Y))
+            {
+                svg.writeLine(a, b, clr, stroke_width);
+            }
         }
     }
     for (node_t& node : graph.nodes)
