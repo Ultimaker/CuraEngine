@@ -1258,15 +1258,45 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         }
     }
     
+    propagateBeadings(quad_starts, node_to_beading, beading_strategy);
+    
+    generateJunctions(node_to_beading, edge_to_junctions, beading_strategy);
+    
+    connectJunctions(edge_to_junctions, segments);
+    
+}
+
+coord_t VoronoiQuadrangulation::getQuadMaxR(edge_t* quad_start_edge)
+{
+    return getQuadMaxRedgeTo(quad_start_edge)->to->data.distance_to_boundary;
+}
+
+VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
+{
+    assert(quad_start_edge->prev == nullptr);
+    assert(quad_start_edge->from->data.distance_to_boundary == 0);
+    coord_t max_R = -1;
+    edge_t* ret = nullptr;
+    for (edge_t* edge = quad_start_edge; edge; edge = edge->next)
+    {
+        coord_t r = edge->to->data.distance_to_boundary;
+        if (r > max_R)
+        {
+            max_R = r;
+            ret = edge;
+        }
+    }
+    assert(ret->next);
+    assert(ret);
+    return ret;
+}
+
+void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
+{
+    
     for (edge_t* quad_start : quad_starts)
     {
         edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
-        // walk down on both sides and connect junctions
-        edge_t* edge_from_peak = edge_to_peak->next; assert(edge_from_peak);
-        
-        
-        
-
         // transfer beading information to lower nodes
         if (quad_start->next->next && !quad_start->next->data.is_marked)
         {
@@ -1282,13 +1312,123 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
                 node_to_beading[quad_start->next->to] = beading;
             }
         }
+    }
+}
+
+void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
+{
+    for (edge_t& edge_ : graph.edges)
+    {
+        edge_t* edge = &edge_;
+        if (edge->from->data.distance_to_boundary > edge->to->data.distance_to_boundary)
+        { // only consider the upward half-edges
+            continue;
+        }
+
+        Beading* beading = &getBeading(edge->to, node_to_beading, beading_strategy);
+        std::vector<VoronoiQuadrangulation::Junction>& ret = edge_to_junctions[edge]; // emplace a new vector
+        if (edge->to->data.bead_count == 0 && edge->from->data.bead_count == 0)
+        {
+            continue;
+        }
+
+        Point a = edge->to->p;
+        Point b = edge->from->p;
+        Point ab = b - a;
+
+        coord_t start_R = edge->to->data.distance_to_boundary; // higher R
+        coord_t end_R = edge->from->data.distance_to_boundary; // lower R
+        if (end_R == start_R)
+        {
+            continue;
+        }
+        assert(end_R <= start_R);
+
+        coord_t junction_idx;
+        // compute starting junction_idx for this segment
+        for (junction_idx = (beading->toolpath_locations.size() - 1) / 2; junction_idx >= 0 && junction_idx < beading->toolpath_locations.size(); junction_idx--)
+        {
+            coord_t bead_R = beading->toolpath_locations[junction_idx];
+            if (bead_R <= start_R)
+            { // junction coinciding with start node is used in this function call
+                break;
+            }
+        }
+
+        for (; junction_idx >= 0 && junction_idx < coord_t(beading->toolpath_locations.size()); junction_idx--)
+        {
+            coord_t bead_R = beading->toolpath_locations[junction_idx];
+            assert(bead_R > 0);
+            if (bead_R < end_R)
+            { // junction coinciding with a node is handled by the next segment
+                break;
+            }
+            Point junction(a + ab * (bead_R - start_R) / (end_R - start_R));
+            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
+        }
+    }
+}
+
+const std::vector<VoronoiQuadrangulation::Junction>& VoronoiQuadrangulation::getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions)
+{
+    assert(edge->to->data.distance_to_boundary >= edge->from->data.distance_to_boundary);
+    auto ret_it = edge_to_junctions.find(edge);
+    assert(ret_it != edge_to_junctions.end());
+    return ret_it->second;
+}
+
+
+VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingStrategy::Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
+{
+    auto beading_it = node_to_beading.find(node);
+    if (beading_it == node_to_beading.end())
+    {
+        if (node->data.bead_count == -1)
+        { // TODO: where does this bug come from?
+            bool has_marked_edge = false;
+            bool first = true;
+            coord_t dist = std::numeric_limits<coord_t>::max();
+            for (edge_t* edge = node->some_edge; edge && (first || edge != node->some_edge); edge = edge->twin->next)
+            {
+                if (edge->data.is_marked)
+                {
+                    has_marked_edge = true;
+                }
+                assert(edge->to->data.distance_to_boundary >= 0);
+                dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
+                first = false;
+            }
+            RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
+//             assert(false);
+            assert(dist != std::numeric_limits<coord_t>::max());
+            node->data.bead_count = beading_strategy.optimal_bead_count(dist);
+        }
+        assert(node->data.bead_count != -1);
+        beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2, node->data.bead_count)).first;
+    }
+    return beading_it->second;
+}
+
+
+void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<Junction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments)
+{
+    // TODO: walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.prev) continue;
+        edge_t* quad_start = &edge;
+        edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
+        // walk down on both sides and connect junctions
+        edge_t* edge_from_peak = edge_to_peak->next; assert(edge_from_peak);
         
         
-        std::vector<Junction> from_junctions = getJunctions(edge_to_peak, node_to_beading, edge_to_junctions, beading_strategy);
-        std::vector<Junction> to_junctions = getJunctions(edge_from_peak->twin, node_to_beading, edge_to_junctions, beading_strategy);
+        
+        
+        std::vector<Junction> from_junctions = getJunctions(edge_to_peak, edge_to_junctions);
+        std::vector<Junction> to_junctions = getJunctions(edge_from_peak->twin, edge_to_junctions);
         if (edge_to_peak->prev)
         {
-            std::vector<Junction> from_prev_junctions = getJunctions(edge_to_peak->prev, node_to_beading, edge_to_junctions, beading_strategy);
+            std::vector<Junction> from_prev_junctions = getJunctions(edge_to_peak->prev, edge_to_junctions);
             if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
             {
                 from_junctions.pop_back();
@@ -1299,7 +1439,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         }
         if (edge_from_peak->next)
         {
-            std::vector<Junction> to_next_junctions = getJunctions(edge_from_peak->next->twin, node_to_beading, edge_to_junctions, beading_strategy);
+            std::vector<Junction> to_next_junctions = getJunctions(edge_from_peak->next->twin, edge_to_junctions);
             if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
             {
                 to_junctions.pop_back();
@@ -1338,115 +1478,6 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     }
 }
 
-coord_t VoronoiQuadrangulation::getQuadMaxR(edge_t* quad_start_edge)
-{
-    return getQuadMaxRedgeTo(quad_start_edge)->to->data.distance_to_boundary;
-}
-
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
-{
-    assert(quad_start_edge->prev == nullptr);
-    assert(quad_start_edge->from->data.distance_to_boundary == 0);
-    coord_t max_R = -1;
-    edge_t* ret = nullptr;
-    for (edge_t* edge = quad_start_edge; edge; edge = edge->next)
-    {
-        coord_t r = edge->to->data.distance_to_boundary;
-        if (r > max_R)
-        {
-            max_R = r;
-            ret = edge;
-        }
-    }
-    assert(ret->next);
-    assert(ret);
-    return ret;
-}
-
-const std::vector<VoronoiQuadrangulation::Junction>& VoronoiQuadrangulation::getJunctions(edge_t* edge, std::unordered_map<node_t*, BeadingStrategy::Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
-{
-    assert(edge->to->data.distance_to_boundary >= edge->from->data.distance_to_boundary);
-    auto ret_it = edge_to_junctions.find(edge);
-    if (ret_it != edge_to_junctions.end())
-    {
-        return ret_it->second;
-    }
-    Beading* beading = &getBeading(edge->to, node_to_beading, beading_strategy);
-    std::vector<VoronoiQuadrangulation::Junction>& ret = edge_to_junctions[edge]; // emplace a new vector
-    if (edge->to->data.bead_count == 0 && edge->from->data.bead_count == 0)
-    {
-        return ret;
-    }
-
-    Point a = edge->to->p;
-    Point b = edge->from->p;
-    Point ab = b - a;
-
-    coord_t start_R = edge->to->data.distance_to_boundary; // higher R
-    coord_t end_R = edge->from->data.distance_to_boundary; // lower R
-    if (end_R == start_R)
-    {
-        return ret;
-    }
-    assert(end_R <= start_R);
-
-    coord_t junction_idx;
-    // compute starting junction_idx for this segment
-    for (junction_idx = (beading->toolpath_locations.size() - 1) / 2; junction_idx >= 0 && junction_idx < beading->toolpath_locations.size(); junction_idx--)
-    {
-        coord_t bead_R = beading->toolpath_locations[junction_idx];
-        if (bead_R <= start_R)
-        { // junction coinciding with start node is used in this function call
-            break;
-        }
-    }
-
-    for (; junction_idx >= 0 && junction_idx < coord_t(beading->toolpath_locations.size()); junction_idx--)
-    {
-        coord_t bead_R = beading->toolpath_locations[junction_idx];
-        assert(bead_R > 0);
-        if (bead_R < end_R)
-        { // junction coinciding with a node is handled by the next segment
-            break;
-        }
-        Point junction(a + ab * (bead_R - start_R) / (end_R - start_R));
-        ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
-    }
-
-    return ret;
-}
-
-
-VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingStrategy::Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
-{
-    auto beading_it = node_to_beading.find(node);
-    if (beading_it == node_to_beading.end())
-    {
-        if (node->data.bead_count == -1)
-        { // TODO: where does this bug come from?
-            bool has_marked_edge = false;
-            bool first = true;
-            coord_t dist = std::numeric_limits<coord_t>::max();
-            for (edge_t* edge = node->some_edge; first || edge != node->some_edge; edge = edge->twin->next)
-            {
-                if (edge->data.is_marked)
-                {
-                    has_marked_edge = true;
-                }
-                assert(edge->to->data.distance_to_boundary >= 0);
-                dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
-                first = false;
-            }
-            RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
-//             assert(false);
-            assert(dist != std::numeric_limits<coord_t>::max());
-            node->data.bead_count = beading_strategy.optimal_bead_count(dist);
-        }
-        assert(node->data.bead_count != -1);
-        beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2 - node->data.transition_rest, node->data.bead_count)).first;
-    }
-    return beading_it->second;
-}
 //
 // ^^^^^^^^^^^^^^^^^^^^^
 //  TOOLPATH GENERATION
