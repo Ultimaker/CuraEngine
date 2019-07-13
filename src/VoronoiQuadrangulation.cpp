@@ -489,10 +489,88 @@ void VoronoiQuadrangulation::init()
 
 void VoronoiQuadrangulation::separatePointyQuadEndNodes()
 {
+    auto isPointyQuadStart = [](edge_t* edge)
+        {
+            return !edge->prev && edge->next && edge->next->next && !edge->next->next->next // edge is the quad_start of a quad with 3 skeleton bones
+                && edge->from->p == edge->next->next->to->p; // there is no polygon segment in the quad
+        };
+    auto getNextNode = [this](std::unordered_set<node_t*> source_nodes, std::unordered_set<node_t*>::iterator& source_nodes_it, node_t* prototype)
+        {
+            if (source_nodes_it == source_nodes.end())
+            {
+                graph.nodes.emplace_back(*prototype);
+                return &graph.nodes.back();
+            }
+            else
+            {
+                node_t* ret = *source_nodes_it;
+                source_nodes_it++;
+                return ret;
+            }
+        };
+    std::vector<edge_t*> temp_quad_starts;
     for (edge_t& edge : graph.edges)
     {
-        if (!edge.prev && edge.next && edge.next->next && !edge.next->next->next // edge is the quad_start of a quad with 3 skeleton bones
-            && edge.from == edge.next->next->to) // there is no polygon segment in the quad
+        if (edge.from->p == Point(7000, 2000))
+            std::cerr <<"Xbcbcx\n";
+        if (!isPointyQuadStart(&edge))
+        {
+            continue;
+        }
+        // update a whole range of pointy quads with the same vertex altogether
+        edge_t* start_quad_start = &edge;
+        while (isPointyQuadStart(start_quad_start))
+        { // find the starting quad of the range
+            std::cerr<< start_quad_start->to->p << "\n";
+            edge_t* prev_quad_start = start_quad_start->twin; while (prev_quad_start->prev) prev_quad_start = prev_quad_start->prev;
+            if (!isPointyQuadStart(prev_quad_start))
+            {
+                break;
+            }
+            start_quad_start = prev_quad_start;
+            if (start_quad_start == &edge)
+            { // we're going aroundin circles.
+                break;
+            }
+        }
+        std::unordered_set<node_t*> source_nodes;
+        for (edge_t* quad_start = start_quad_start; isPointyQuadStart(quad_start); quad_start = quad_start->next->next->twin)
+        {
+            if (quad_start->from->p == Point(7000, 2000) && quad_start->to->p == Point(5757,2000))
+                std::cerr << "dssgddg\n";
+            if (quad_start->from->p == Point(7000, 2000) && quad_start->to->p == Point(6800,1010))
+                std::cerr << "dssgddg\n";
+            source_nodes.emplace(quad_start->from);
+            temp_quad_starts.emplace_back(quad_start);
+        }
+        edge_t* end_quad_end = temp_quad_starts.back()->next->next;
+        source_nodes.emplace(end_quad_end->to);
+//         if (source_nodes.size() == temp_quad_starts.size() + 1)
+//         { // there already is a node for each quad!
+//             temp_quad_starts.clear();
+//             continue;
+//         }
+        auto source_nodes_it = source_nodes.begin();
+        if (!temp_quad_starts.empty())
+        {
+    debugCheckGraphConsistency();
+            for (edge_t* quad_start : temp_quad_starts)
+            {
+                std::cerr<< quad_start->to->p << "\n";
+                node_t* new_node = getNextNode(source_nodes, source_nodes_it, start_quad_start->from);
+                new_node->some_edge = quad_start;
+                quad_start->from = new_node;
+                quad_start->twin->to = new_node;
+            }
+            node_t* new_node = getNextNode(source_nodes, source_nodes_it, start_quad_start->from);
+            new_node->some_edge = end_quad_end->twin;
+            end_quad_end->to = new_node;
+            end_quad_end->twin->from = new_node;
+    debugCheckGraphConsistency();
+
+            temp_quad_starts.clear();
+        }
+    }
         {
             edge_t* quad_start = &edge;
             edge_t* quad_end = edge.next->next;
