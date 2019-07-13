@@ -539,7 +539,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
                 graph.edges.remove(*to_be_removed);
             }
         };
-    
+
     for (auto edge_it = graph.edges.begin(); edge_it != graph.edges.end();)
     {
         if (edge_it->prev)
@@ -552,7 +552,6 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
         edge_t* quad_mid = (quad_start->next == quad_end)? nullptr : quad_start->next;
 
         bool edge_it_is_updated = false;
-        
         bool quad_mid_is_removed = false;
         if (quad_mid && quad_mid->from->p == quad_mid->to->p)
         {
@@ -560,7 +559,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
             quad_mid->next->prev = quad_mid->prev;
             quad_mid->twin->next->prev = quad_mid->twin->prev;
             quad_mid->twin->prev->next = quad_mid->twin->next;
-            
+
             for (edge_t* edge_from_3 = quad_end; edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
             {
                 edge_from_3->from = quad_mid->from;
@@ -581,19 +580,19 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
 //                 quad_mid->twin->from->some_edge = quad_mid->next;
 //             }
             graph.nodes.remove(*quad_mid->to);
-            
+
             safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated);
             quad_mid_is_removed = true;
         }
-        
+
         if (quad_start->from->p == quad_end->to->p
             && quad_start->to->p == quad_end->from->p)
         { // collapse start and end edges and remove whole cell
             assert(!quad_mid || quad_mid_is_removed);
-            quad_start->twin->twin = quad_end->twin;
-            quad_end->twin->twin = quad_start->twin;
-            
+
+            quad_start->twin->to = quad_end->to;
+            quad_end->to->some_edge = quad_start->twin;
             if (quad_end->from->some_edge == quad_end)
             {
                 if (quad_end->twin->next)
@@ -605,10 +604,12 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
                     quad_end->from->some_edge = quad_end->prev->twin;
                 }
             }
-            
+            graph.nodes.remove(*quad_start->from);
+
+            quad_start->twin->twin = quad_end->twin;
+            quad_end->twin->twin = quad_start->twin;
             safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
-            graph.nodes.remove(*quad_start->from);
         }
         else
         {
@@ -616,7 +617,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
             {
                 quad_start->next->prev = nullptr; assert(quad_start->prev == nullptr);
                 quad_start->twin->prev->next = nullptr; assert(quad_start->twin->next == nullptr);
-                
+
                 safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
                 safelyRemoveEdge(quad_start->twin, edge_it, edge_it_is_updated);
                 graph.nodes.remove(*quad_start->from);
@@ -625,7 +626,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
             {
                 quad_end->prev->next = nullptr; assert(quad_end->next == nullptr);
                 quad_end->twin->next->prev = nullptr; assert(quad_end->twin->prev == nullptr);
-                
+
                 safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
                 safelyRemoveEdge(quad_end->twin, edge_it, edge_it_is_updated);
                 graph.nodes.remove(*quad_end->to);
