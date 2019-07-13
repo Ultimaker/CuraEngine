@@ -285,13 +285,11 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
             end_source_point = source_point;
             starting_vd_edge = vd_edge->next();
             ending_vd_edge = vd_edge;
-            assert(p1 != VoronoiUtils::p(starting_vd_edge->vertex1()));
         }
         first = false;
     }
     assert(starting_vd_edge && ending_vd_edge);
     assert(starting_vd_edge != ending_vd_edge);
-    assert(start_source_point != VoronoiUtils::p(starting_vd_edge->vertex1()));
     return true;
 }
 void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
