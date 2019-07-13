@@ -432,6 +432,25 @@ void VoronoiQuadrangulation::init()
         debugCheckGraphConsistency(true);
     }
 
+    
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
+    debugCheckGraphExistance();
+
+    separatePointyQuadEndNodes();
+
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
+    debugCheckGraphExistance();
+    debugCheckEndpointUniqueness();
+    
+    removeZeroLengthSegments();
+
+    debugCheckGraphExistance();
+    
+
+    debugCheckGraphExistance();
+
     { // set [some_edge] the the first possible edge
         // that way we can iterate over all reachable edges from node.some_edge without needing to iterate backward
         for (edge_t& edge : graph.edges)
@@ -443,15 +462,9 @@ void VoronoiQuadrangulation::init()
         }
     }
 
-    separatePointyQuadEndNodes();
-    
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
-
-    removeZeroLengthSegments();
-
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
+    debugCheckGraphExistance();
 
     fixNodeDuplication();
 
@@ -459,6 +472,7 @@ void VoronoiQuadrangulation::init()
     debugCheckGraphConsistency();
     debugCheckGraphStructure();
     debugCheckGraphReachability();
+    debugCheckGraphExistance();
     
 #ifdef DEBUG
     {
@@ -507,6 +521,8 @@ void VoronoiQuadrangulation::separatePointyQuadEndNodes()
             quad_start->twin->to = new_node;
         }
     }
+
+    debugCheckEndpointUniqueness();
 }
 
 void VoronoiQuadrangulation::removeZeroLengthSegments()
@@ -1691,6 +1707,49 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 #endif
 }
 
+void VoronoiQuadrangulation::debugCheckEndpointUniqueness()
+{
+#ifdef DEBUG
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.prev) continue;
+        for (edge_t& e2 : graph.edges)
+        {
+            assert(e2.from != edge.from || edge == e2);
+        }
+    }
+#endif
+}
+
+void VoronoiQuadrangulation::debugCheckGraphExistance()
+{
+#ifdef DEBUG
+    auto edge_exists = [this](edge_t* edge)
+        {
+            assert(edge == nullptr ||
+                std::find(graph.edges.begin(), graph.edges.end(), *edge) != graph.edges.end());
+        };
+    auto node_exists = [this](node_t* node)
+        {
+            assert(node == nullptr ||
+                std::find(graph.nodes.begin(), graph.nodes.end(), *node) != graph.nodes.end());
+        };
+    for (node_t& node : graph.nodes)
+    {
+        edge_exists(node.some_edge);
+    }
+    for (edge_t& edge : graph.edges)
+    {
+        edge_t* edge_ = &edge;
+        edge_exists(edge.prev);
+        edge_exists(edge.next);
+        edge_exists(edge.twin);
+        node_exists(edge.from);
+        node_exists(edge.to);
+    }
+#endif
+}
+
 void VoronoiQuadrangulation::debugCheckGraphStructure()
 {
 #ifdef DEBUG
@@ -1739,6 +1798,25 @@ void VoronoiQuadrangulation::debugCheckGraphReachability()
     }
     for (edge_t& edge : graph.edges)
     {
+        edge_t* edge_ = &edge;
+        if (reachable_edges.find(&edge) == reachable_edges.end())
+        {
+            std::cerr << "Cannot find " << edge.from->p << " - " << edge.to->p << " among edges around former!\n";
+            bool seen = false;
+            bool first = true;
+            for (edge_t* outgoing = edge.from->some_edge; outgoing && (first || outgoing != edge.from->some_edge); outgoing = outgoing->twin->next)
+            {
+                std::cerr << outgoing->to->p << "\n";
+                if (outgoing == edge_)
+                {
+                    seen = true;
+                }
+                first = false;
+                if (!outgoing->twin) break;
+            }
+            assert(seen);
+            assert(std::find(graph.nodes.begin(), graph.nodes.end(), *edge.from) != graph.nodes.end());
+        }
         assert(reachable_edges.find(&edge) != reachable_edges.end());
     }
 #endif
@@ -1793,6 +1871,7 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
     {
         if (node.some_edge)
         {
+            const node_t* node_ = &node;
             vert_assert(node.some_edge->from, &node);
             if (node.some_edge->twin)
             {

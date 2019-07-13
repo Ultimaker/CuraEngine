@@ -60,7 +60,7 @@ protected:
      * That way we can reach both the quad_start and the quad_end from the [some_edge] of the two new nodes
      * Otherwise if node.some_edge = quad_start you couldnt reach quad_end.twin by normal iteration (i.e. it = it.twin.next)
      */
-    void separateQuadEndNodes();
+    void separatePointyQuadEndNodes();
     void removeZeroLengthSegments();
     void fixNodeDuplication();
 
@@ -199,10 +199,12 @@ protected:
     // ^ toolpath generation | v helpers
 
 public:
-    void debugCheckGraphCompleteness();
-    void debugCheckGraphStructure();
-    void debugCheckGraphReachability();
-    void debugCheckGraphConsistency(bool ignore_duplication = false);
+    void debugCheckGraphCompleteness(); //!< Checks whether all member fields of edges and nodes are filled
+    void debugCheckEndpointUniqueness(); //!< Checks whether the end points of qauds have unique verts
+    void debugCheckGraphExistance(); //!< Checks whether all member fields of edges and nodes are existing nodes/edges recorded in graph.nodes and graph.edges
+    void debugCheckGraphStructure(); //!< Checks whether iterating around a node (using it = it.twin.next) ends up where it started
+    void debugCheckGraphReachability(); //!< Checks whether an edge is reachable from iterating around its from node
+    void debugCheckGraphConsistency(bool ignore_duplication = false); //!< Checks whether edge and node relations fit with each other
     void debugCheckDecorationConsistency();
     void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const;
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
