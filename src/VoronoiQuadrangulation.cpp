@@ -436,17 +436,49 @@ void VoronoiQuadrangulation::init()
         debugCheckGraphConsistency(true);
     }
 
-    { // fix duplicate verts
-        for (auto node_it = graph.nodes.begin(); node_it != graph.nodes.end(); ++node_it)
+    // TODO: separate merged nodes from pointy cells
+    
+    // TODO: remove zero-length edges / cells
+    
+    { // set [some_edge] the the first possible edge
+        // that way we can iterate over all reachable edges from node.some_edge without needing to iterate backward
+        for (edge_t& edge : graph.edges)
         {
-            for (edge_t* edge = node_it->some_edge; edge != node_it->some_edge; edge = edge->twin->next)
+            if (!edge.prev)
             {
-                assert(edge);
-                if (edge->from != &*node_it)
+                edge.from->some_edge = &edge;
+            }
+        }
+    }
+
+    { // fix duplicate verts
+        for (auto node_it = graph.nodes.begin(); node_it != graph.nodes.end();)
+        {
+            node_t* replacing_node = nullptr;
+            for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
+            {
+                assert(outgoing);
+                if (outgoing->from != &*node_it)
                 {
-                    // TODO: delete node from list
-                    edge->from = &*node_it;
+                    replacing_node = outgoing->from;
                 }
+                if (outgoing->twin->to != &*node_it)
+                {
+                    replacing_node = outgoing->twin->to;
+                }
+            }
+            if (replacing_node)
+            {
+                for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
+                {
+                    outgoing->twin->to = replacing_node;
+                    outgoing->from = replacing_node;
+                }
+                node_it = graph.nodes.erase(node_it);
+            }
+            else
+            {
+                ++node_it;
             }
         }
     }
