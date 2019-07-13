@@ -433,7 +433,7 @@ void VoronoiQuadrangulation::init()
         // ending_edge->next = nullptr;
         prev_edge->to->data.distance_to_boundary = 0;
 
-        debugCheckGraphConsistency();
+        debugCheckGraphConsistency(true);
     }
 
     { // fix duplicate verts
@@ -1511,16 +1511,17 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 #endif
 }
 
-void VoronoiQuadrangulation::debugCheckGraphConsistency()
+void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
 {
 #ifdef DEBUG
-    auto vert_assert = [](const node_t* first, const node_t* second)
+    auto vert_assert = [ignore_duplication](const node_t* first, const node_t* second)
     {
         if (first != second)
         {
             if (first->p == second->p)
             {
                 RUN_ONCE(logWarning("Unneccesary duplicatation of VoronoiQuadrangulation nodes!\n"));
+                assert(ignore_duplication);
             }
             else
             {

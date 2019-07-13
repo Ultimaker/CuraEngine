@@ -191,7 +191,7 @@ protected:
 
 public:
     void debugCheckGraphCompleteness();
-    void debugCheckGraphConsistency();
+    void debugCheckGraphConsistency(bool ignore_duplication = false);
     void debugCheckDecorationConsistency();
     void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const;
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
