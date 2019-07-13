@@ -482,6 +482,13 @@ void VoronoiQuadrangulation::init()
             }
         }
     }
+    
+    
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
+    debugCheckGraphStructure();
+    debugCheckGraphReachability();
+    
 #ifdef DEBUG
     {
         AABB aabb(polys);
@@ -1539,6 +1546,58 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
         }
         assert(edge.next || edge.to->data.distance_to_boundary == 0);
         assert(edge.prev || edge.from->data.distance_to_boundary == 0);
+    }
+#endif
+}
+
+void VoronoiQuadrangulation::debugCheckGraphStructure()
+{
+#ifdef DEBUG
+    for (edge_t& edge : graph.edges)
+    {
+        node_t* node = edge.from;
+        bool first = true;
+        coord_t count = 0;
+        bool seen_edge = false;
+        for (const edge_t* outgoing = node->some_edge; outgoing && (first || outgoing != node->some_edge); outgoing = outgoing->twin->next)
+        {
+            assert(++count < 100);
+            if (outgoing == &edge) seen_edge = true;
+            first = false;
+            if (!outgoing->twin) break;
+        }
+        assert(seen_edge);
+    }
+#endif
+}
+
+void VoronoiQuadrangulation::debugCheckGraphReachability()
+{
+#ifdef DEBUG
+    std::unordered_set<node_t*> reachable_nodes;
+    for (edge_t& edge : graph.edges)
+    {
+        reachable_nodes.emplace(edge.from);
+        reachable_nodes.emplace(edge.to);
+    }
+    for (node_t& node : graph.nodes)
+    {
+        assert(reachable_nodes.find(&node) != reachable_nodes.end());
+    }
+
+    std::unordered_set<edge_t*> reachable_edges;
+    for (node_t& node : graph.nodes)
+    {
+        bool first = true;
+        for (edge_t* outgoing = node.some_edge; outgoing && outgoing->twin && (first || outgoing != node.some_edge); outgoing = outgoing->twin->next)
+        {
+            reachable_edges.emplace(outgoing);
+            first = false;
+        }
+    }
+    for (edge_t& edge : graph.edges)
+    {
+        assert(reachable_edges.find(&edge) != reachable_edges.end());
     }
 #endif
 }

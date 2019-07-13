@@ -191,6 +191,8 @@ protected:
 
 public:
     void debugCheckGraphCompleteness();
+    void debugCheckGraphStructure();
+    void debugCheckGraphReachability();
     void debugCheckGraphConsistency(bool ignore_duplication = false);
     void debugCheckDecorationConsistency();
     void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const;
