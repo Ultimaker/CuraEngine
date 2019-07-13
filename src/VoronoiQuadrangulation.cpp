@@ -449,9 +449,9 @@ void VoronoiQuadrangulation::init()
     
     removeZeroLengthSegments();
 
-    debugCheckGraphExistance();
-    
 
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
     debugCheckGraphExistance();
 
     { // set [some_edge] the the first possible edge
