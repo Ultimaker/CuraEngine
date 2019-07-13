@@ -736,6 +736,8 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         }
     }
 
+    debugCheckDecorationConsistency();
+
     generateTransitioningRibs(beading_strategy);
 
 #ifdef DEBUG
@@ -791,6 +793,10 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
         if (edge.twin->data.is_marked != -1)
         {
             edge.data.is_marked = edge.twin->data.is_marked;
+        }
+        else if (edge.data.type == VoronoiQuadrangulationEdge::EXTRA_VD)
+        {
+            edge.data.is_marked = 0;
         }
         else
         {
@@ -1410,6 +1416,10 @@ bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
 
 bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
 {
+    if (node.data.distance_to_boundary == 0)
+    {
+        return false;
+    }
     bool first = true;
     for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
     {
@@ -1418,6 +1428,11 @@ bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
             return false;
         }
         first = false;
+        assert(edge->twin); if (!edge->twin) return false;
+        if (!edge->twin->next)
+        { // This point is on the boundary
+            return false;
+        }
     }
     return true;
 }
@@ -1497,8 +1512,12 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t
             ret = edge;
         }
     }
-    assert(ret->next);
+    if (!ret->next && ret->to->data.distance_to_boundary - 5 < ret->from->data.distance_to_boundary)
+    {
+        ret = ret->prev;
+    }
     assert(ret);
+    assert(ret->next);
     return ret;
 }
 
@@ -1919,7 +1938,7 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency()
             {
                 assert(edge.from->data.distance_to_boundary == 0 || edge.to->data.distance_to_boundary == 0);
             }
-            assert(!edge.data.is_marked);
+            assert(edge.data.is_marked != 1);
         }
         if (edge.data.is_marked)
         {
