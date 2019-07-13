@@ -27,6 +27,10 @@ public:
     : data(data)
     , p(p)
     {}
+    bool operator==(const HalfEdgeNode& other)
+    {
+        return this == &other;
+    }
 };
 
 

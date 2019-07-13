@@ -28,6 +28,10 @@ public:
     HalfEdge(edge_data_t data)
     : data(data)
     {}
+    bool operator==(const HalfEdge& other)
+    {
+        return this == &other;
+    }
 };
 
 
