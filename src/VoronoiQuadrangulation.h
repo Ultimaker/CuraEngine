@@ -55,7 +55,15 @@ protected:
     bool computePointCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
     void computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
 
+    /*!
+     * For VD cells associated with an input polygon vertex, we need to separate the node at the end and start of the cell into two
+     * That way we can reach both the quad_start and the quad_end from the [some_edge] of the two new nodes
+     * Otherwise if node.some_edge = quad_start you couldnt reach quad_end.twin by normal iteration (i.e. it = it.twin.next)
+     */
+    void separateQuadEndNodes();
+    void removeZeroLengthSegments();
     void fixNodeDuplication();
+
     // ^ init | v transitioning
 
     void setMarking(const BeadingStrategy& beading_strategy); //! set the is_marked flag for each edge

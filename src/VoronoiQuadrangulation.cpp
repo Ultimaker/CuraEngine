@@ -420,10 +420,6 @@ void VoronoiQuadrangulation::init()
             assert(vd_edge->is_finite());
             Point v1 = VoronoiUtils::p(vd_edge->vertex0());
             Point v2 = VoronoiUtils::p(vd_edge->vertex1());
-            if (v1 == v2)
-            {
-                continue;
-            }
             transfer_edge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
             make_rib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vd_edge);
@@ -436,10 +432,6 @@ void VoronoiQuadrangulation::init()
         debugCheckGraphConsistency(true);
     }
 
-    // TODO: separate merged nodes from pointy cells
-    
-    // TODO: remove zero-length edges / cells
-    
     { // set [some_edge] the the first possible edge
         // that way we can iterate over all reachable edges from node.some_edge without needing to iterate backward
         for (edge_t& edge : graph.edges)
@@ -451,14 +443,18 @@ void VoronoiQuadrangulation::init()
         }
     }
 
-    // TODO: separate merged nodes from pointy cells
+    separatePointyQuadEndNodes();
     
-    { // remove zero-length edges / cells
-        
-    }
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
+
+    removeZeroLengthSegments();
+
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
 
     fixNodeDuplication();
-    
+
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
     debugCheckGraphStructure();
@@ -489,6 +485,138 @@ void VoronoiQuadrangulation::init()
 
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
+}
+
+void VoronoiQuadrangulation::separatePointyQuadEndNodes()
+{
+    for (edge_t& edge : graph.edges)
+    {
+        if (!edge.prev && edge.next && edge.next->next && !edge.next->next->next // edge is the quad_start of a quad with 3 skeleton bones
+            && edge.from == edge.next->next->to) // there is no polygon segment in the quad
+        {
+            edge_t* quad_start = &edge;
+            edge_t* quad_end = edge.next->next;
+            graph.nodes.emplace_back(*quad_start->from);
+            node_t* new_node = &graph.nodes.back();
+            new_node->some_edge = quad_end->twin;
+            quad_end->to = new_node;
+            quad_end->twin->from = new_node;
+            quad_start->from->some_edge = quad_start;
+        }
+    }
+}
+
+void VoronoiQuadrangulation::removeZeroLengthSegments()
+{
+    auto safelyRemoveEdge = [this](edge_t* to_be_removed, std::list<edge_t>::iterator& current_edge_it, bool& edge_it_is_updated)
+        {
+            if (to_be_removed == &*current_edge_it)
+            {
+                current_edge_it = graph.edges.erase(current_edge_it);
+                edge_it_is_updated = true;
+            }
+            else
+            {
+                graph.edges.remove(*to_be_removed);
+            }
+        };
+    
+    for (auto edge_it = graph.edges.begin(); edge_it != graph.edges.end();)
+    {
+        if (edge_it->prev)
+        {
+            edge_it++;
+            continue;
+        }
+        edge_t* quad_start = &*edge_it;
+        edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
+        edge_t* quad_mid = (quad_start->next == quad_end)? nullptr : quad_start->next;
+
+        bool edge_it_is_updated = false;
+        
+        bool quad_mid_is_removed = false;
+        if (quad_mid && quad_mid->from->p == quad_mid->to->p)
+        {
+            quad_mid->prev->next = quad_mid->next;
+            quad_mid->next->prev = quad_mid->prev;
+            quad_mid->twin->next->prev = quad_mid->twin->prev;
+            quad_mid->twin->prev->next = quad_mid->twin->next;
+            
+            for (edge_t* edge_from_3 = quad_end; edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
+            {
+                edge_from_3->from = quad_mid->from;
+            }
+            if (quad_mid->from->some_edge == quad_mid)
+            {
+                if (quad_mid->twin->next)
+                {
+                    quad_mid->from->some_edge = quad_mid->twin->next;
+                }
+                else
+                {
+                    quad_mid->from->some_edge = quad_mid->prev->twin;
+                }
+            }
+//             if (quad_mid->twin->from->some_edge == quad_mid->twin)
+//             {
+//                 quad_mid->twin->from->some_edge = quad_mid->next;
+//             }
+            graph.nodes.remove(*quad_mid->to);
+            
+            safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
+            safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated);
+            quad_mid_is_removed = true;
+        }
+        
+        if (quad_start->from->p == quad_end->to->p
+            && quad_start->to->p == quad_end->from->p)
+        { // collapse start and end edges and remove whole cell
+            assert(!quad_mid || quad_mid_is_removed);
+            quad_start->twin->twin = quad_end->twin;
+            quad_end->twin->twin = quad_start->twin;
+            
+            if (quad_end->from->some_edge == quad_end)
+            {
+                if (quad_end->twin->next)
+                {
+                    quad_end->from->some_edge = quad_end->twin->next;
+                }
+                else
+                {
+                    quad_end->from->some_edge = quad_end->prev->twin;
+                }
+            }
+            
+            safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
+            safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
+            graph.nodes.remove(*quad_start->from);
+        }
+        else
+        {
+            if (quad_start->from->p == quad_start->to->p)
+            {
+                quad_start->next->prev = nullptr; assert(quad_start->prev == nullptr);
+                quad_start->twin->prev->next = nullptr; assert(quad_start->twin->next == nullptr);
+                
+                safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
+                safelyRemoveEdge(quad_start->twin, edge_it, edge_it_is_updated);
+                graph.nodes.remove(*quad_start->from);
+            }
+            if (quad_end->from->p == quad_end->to->p)
+            {
+                quad_end->prev->next = nullptr; assert(quad_end->next == nullptr);
+                quad_end->twin->next->prev = nullptr; assert(quad_end->twin->prev == nullptr);
+                
+                safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
+                safelyRemoveEdge(quad_end->twin, edge_it, edge_it_is_updated);
+                graph.nodes.remove(*quad_end->to);
+            }
+        }
+        if (!edge_it_is_updated)
+        {
+            edge_it++;
+        }
+    }
 }
 
 void VoronoiQuadrangulation::fixNodeDuplication()
@@ -654,6 +782,8 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
             edge.to->data.bead_count = beading_strategy.optimal_bead_count(edge.to->data.distance_to_boundary * 2);
         }
     }
+
+        debugCheckGraphCompleteness();
 
     std::unordered_map<edge_t*, std::list<TransitionMiddle>> edge_to_transitions; // maps the upward edge to the transitions. WE only map the halfedge for which the distance_to_boundary is higher at the end than at the beginning
     generateTransitionMids(beading_strategy, edge_to_transitions);
