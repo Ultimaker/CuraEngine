@@ -1727,10 +1727,11 @@ void VoronoiQuadrangulation::debugCheckGraphReachability()
     for (node_t& node : graph.nodes)
     {
         bool first = true;
-        for (edge_t* outgoing = node.some_edge; outgoing && outgoing->twin && (first || outgoing != node.some_edge); outgoing = outgoing->twin->next)
+        for (edge_t* outgoing = node.some_edge; outgoing && (first || outgoing != node.some_edge); outgoing = outgoing->twin->next)
         {
             reachable_edges.emplace(outgoing);
             first = false;
+            if (!outgoing->twin) break;
         }
     }
     for (edge_t& edge : graph.edges)
