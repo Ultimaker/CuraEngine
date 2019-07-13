@@ -315,8 +315,9 @@ void test()
     
     // Preparing Input Geometries.
     int r;
-    r = 1558617038;
     r = time(0);
+    r = 1562934206;
+//     r = 1558617038;
 //     r = 1558618076;
 //     r = 1558692831;
 //     r = 1558983814;
@@ -356,8 +357,8 @@ void test()
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
-//     Polygons polys = moessen_circles;
-    Polygons polys = moessen_triangles;
+    Polygons polys = moessen_circles;
+//     Polygons polys = moessen_triangles;
     polys = polys.unionPolygons();
 
 #ifdef DEBUG
@@ -371,11 +372,11 @@ void test()
 
     VoronoiQuadrangulation vq(polys);
 
-//     DistributedBeadingStrategy beading_strategy(300, 400, 600, M_PI / 3);
+    DistributedBeadingStrategy beading_strategy(300, 400, 600, M_PI / 4);
 //     LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6, M_PI / 6);
 //     NaiveBeadingStrategy beading_strategy(400);
 //     ConstantBeadingStrategy beading_strategy(400, 4);
-    CenterDeviationBeadingStrategy beading_strategy(400, .5, 1.7);
+//     CenterDeviationBeadingStrategy beading_strategy(400, .5, 1.7);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
     logError("Processing took %fs\n", tk.restart());
 
