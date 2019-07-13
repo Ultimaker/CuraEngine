@@ -555,14 +555,17 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
         bool quad_mid_is_removed = false;
         if (quad_mid && quad_mid->from->p == quad_mid->to->p)
         {
-            quad_mid->prev->next = quad_mid->next;
-            quad_mid->next->prev = quad_mid->prev;
-            quad_mid->twin->next->prev = quad_mid->twin->prev;
-            quad_mid->twin->prev->next = quad_mid->twin->next;
-
-            for (edge_t* edge_from_3 = quad_end; edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
+            int count = 0;
+            for (edge_t* edge_from_3 = quad_end; edge_from_3 && edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
             {
                 edge_from_3->from = quad_mid->from;
+                edge_from_3->twin->to = quad_mid->from;
+                if (count > 50)
+                {
+                    std::cerr << edge_from_3->from->p << " - " << edge_from_3->to->p << '\n';
+                }
+                assert(++count < 100);
+                if (count > 1000) break;
             }
             if (quad_mid->from->some_edge == quad_mid)
             {
@@ -580,6 +583,11 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
 //                 quad_mid->twin->from->some_edge = quad_mid->next;
 //             }
             graph.nodes.remove(*quad_mid->to);
+
+            quad_mid->prev->next = quad_mid->next;
+            quad_mid->next->prev = quad_mid->prev;
+            quad_mid->twin->next->prev = quad_mid->twin->prev;
+            quad_mid->twin->prev->next = quad_mid->twin->next;
 
             safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated);
