@@ -4,7 +4,7 @@
 
 #define STBI_FAILURE_USERMSG // enable user friendly bug messages for STB lib
 #define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
-#include <stb/stb_image.h>
+#include <stb_image.h>
 
 #include "ImageBasedDensityProvider.h"
 #include "SierpinskiFill.h"
