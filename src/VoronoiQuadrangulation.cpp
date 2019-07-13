@@ -451,38 +451,13 @@ void VoronoiQuadrangulation::init()
         }
     }
 
-    { // fix duplicate verts
-        for (auto node_it = graph.nodes.begin(); node_it != graph.nodes.end();)
-        {
-            node_t* replacing_node = nullptr;
-            for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
-            {
-                assert(outgoing);
-                if (outgoing->from != &*node_it)
-                {
-                    replacing_node = outgoing->from;
-                }
-                if (outgoing->twin->to != &*node_it)
-                {
-                    replacing_node = outgoing->twin->to;
-                }
-            }
-            if (replacing_node)
-            {
-                for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
-                {
-                    outgoing->twin->to = replacing_node;
-                    outgoing->from = replacing_node;
-                }
-                node_it = graph.nodes.erase(node_it);
-            }
-            else
-            {
-                ++node_it;
-            }
-        }
-    }
+    // TODO: separate merged nodes from pointy cells
     
+    { // remove zero-length edges / cells
+        
+    }
+
+    fixNodeDuplication();
     
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
@@ -514,6 +489,39 @@ void VoronoiQuadrangulation::init()
 
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
+}
+
+void VoronoiQuadrangulation::fixNodeDuplication()
+{ // fix duplicate verts
+    for (auto node_it = graph.nodes.begin(); node_it != graph.nodes.end();)
+    {
+        node_t* replacing_node = nullptr;
+        for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
+        {
+            assert(outgoing);
+            if (outgoing->from != &*node_it)
+            {
+                replacing_node = outgoing->from;
+            }
+            if (outgoing->twin->to != &*node_it)
+            {
+                replacing_node = outgoing->twin->to;
+            }
+        }
+        if (replacing_node)
+        {
+            for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
+            {
+                outgoing->twin->to = replacing_node;
+                outgoing->from = replacing_node;
+            }
+            node_it = graph.nodes.erase(node_it);
+        }
+        else
+        {
+            ++node_it;
+        }
+    }
 }
 
 //
