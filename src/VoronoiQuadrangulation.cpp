@@ -76,7 +76,6 @@ VoronoiQuadrangulation::node_t& VoronoiQuadrangulation::make_node(vd_t::vertex_t
 
 void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
-    assert(from != to);
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
     { // twin segment(s) already made
@@ -442,6 +441,12 @@ void VoronoiQuadrangulation::init()
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
     debugCheckGraphExistance();
+
+    fixNodeDuplication();
+
+    debugCheckGraphCompleteness();
+    debugCheckGraphConsistency();
+    debugCheckGraphExistance();
     debugCheckEndpointUniqueness();
     
     removeZeroLengthSegments();
@@ -462,11 +467,6 @@ void VoronoiQuadrangulation::init()
         }
     }
 
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-    debugCheckGraphExistance();
-
-    fixNodeDuplication();
 
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
@@ -1185,7 +1185,7 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
             pos = ab_size - end_pos;
         }
         assert(ab_size == vSize(edge.twin->from->p - edge.twin->to->p));
-        assert(pos < ab_size);
+        assert(pos <= ab_size);
         if (transitions->empty() || pos < transitions->front().pos)
         { // preorder so that sorting later on is faster
             transitions->emplace_front(pos, lower_bead_count, is_lower_end);
