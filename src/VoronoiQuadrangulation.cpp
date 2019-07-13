@@ -598,7 +598,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
             assert(!quad_mid || quad_mid_is_removed);
 
             quad_start->twin->to = quad_end->to;
-            quad_end->to->some_edge = quad_start->twin;
+            quad_end->to->some_edge = quad_end->twin;
             if (quad_end->from->some_edge == quad_end)
             {
                 if (quad_end->twin->next)
@@ -621,12 +621,19 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
         {
             if (quad_start->from->p == quad_start->to->p)
             {
-                quad_start->next->prev = nullptr; assert(quad_start->prev == nullptr);
-                quad_start->twin->prev->next = nullptr; assert(quad_start->twin->next == nullptr);
+                if (quad_start->next)
+                {
+                    quad_start->next->prev = nullptr; assert(quad_start->prev == nullptr);
+                }
+                if (quad_start->twin && quad_start->twin->prev)
+                {
+                    quad_start->twin->prev->next = nullptr; assert(quad_start->twin->next == nullptr);
+                }
 
                 safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
                 safelyRemoveEdge(quad_start->twin, edge_it, edge_it_is_updated);
                 graph.nodes.remove(*quad_start->from);
+                quad_start->to->data.distance_to_boundary = 0; // might be slightly higher due to rounding errors
             }
             if (quad_end->from->p == quad_end->to->p)
             {
@@ -636,6 +643,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
                 safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
                 safelyRemoveEdge(quad_end->twin, edge_it, edge_it_is_updated);
                 graph.nodes.remove(*quad_end->to);
+                quad_end->from->data.distance_to_boundary = 0; // might be slightly higher due to rounding errors
             }
         }
         if (!edge_it_is_updated)
