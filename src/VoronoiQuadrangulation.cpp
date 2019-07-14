@@ -1427,17 +1427,18 @@ std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
 
 bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
 {
+    assert(edge_to.data.is_marked); // Don't know why this function would otherwise be called
     if (!edge_to.next)
     {
-        return false;
+        return true;
     }
-    assert(edge_to.data.is_marked); // Don't know why this function would otherwise be called
-    for (const edge_t* edge = edge_to.next; edge && edge->twin && edge != &edge_to; edge = edge->twin->next)
+    for (const edge_t* edge = edge_to.next; edge && edge != edge_to.twin; edge = edge->twin->next)
     {
         if (edge->data.is_marked)
         {
             return false;
         }
+        assert(edge->twin);
     }
     return true;
 }
