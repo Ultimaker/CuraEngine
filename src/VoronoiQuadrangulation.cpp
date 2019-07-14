@@ -943,11 +943,17 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
         bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, filter_dist, true, edge_to_transitions, beading_strategy);
+        should_dissolve_back |= filterEndOfMarkingTransition(edge, ab_size - transitions.back().pos, beading_strategy.getTransitioningLength(transitions.back().lower_bead_count), transitions.back().lower_bead_count, beading_strategy);
         if (should_dissolve_back)
         {
             transitions.pop_back();
         }
+        if (transitions.empty())
+        { // filterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
+            continue;
+        }
         bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, filter_dist, false, edge_to_transitions, beading_strategy);
+        should_dissolve_front |= filterEndOfMarkingTransition(edge->twin, transitions.front().pos, beading_strategy.getTransitioningLength(transitions.front().lower_bead_count), transitions.front().lower_bead_count + 1, beading_strategy);
         if (should_dissolve_front)
         {
             transitions.pop_front();
@@ -999,6 +1005,35 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
         {
             edge->from->data.bead_count = going_up? origin_transition.lower_bead_count : origin_transition.lower_bead_count + 1;
         }
+    }
+    return should_dissolve;
+}
+
+
+bool VoronoiQuadrangulation::filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count, const BeadingStrategy& beading_strategy)
+{
+    if (traveled_dist > max_dist)
+    {
+        return false;
+    }
+    bool is_end_of_marking = true;
+    bool should_dissolve = false;
+    for (edge_t* next_edge = edge_to_start->next; next_edge && next_edge != edge_to_start->twin; next_edge = next_edge->twin->next)
+    {
+        if (next_edge->data.is_marked == 1)
+        {
+            coord_t length = vSize(next_edge->to->p - next_edge->from->p);
+            should_dissolve |= filterEndOfMarkingTransition(next_edge, traveled_dist + length, max_dist, replacing_bead_count, beading_strategy);
+            is_end_of_marking = false;
+        }
+    }
+    if (is_end_of_marking && traveled_dist < max_dist)
+    {
+        should_dissolve = true;
+    }
+    if (should_dissolve)
+    {
+        edge_to_start->to->data.bead_count = replacing_bead_count;
     }
     return should_dissolve;
 }
