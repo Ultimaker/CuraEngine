@@ -815,14 +815,14 @@ void VoronoiQuadrangulation::filterMarking(coord_t max_length)
     {
         if (isEndOfMarking(edge))
         {
-            filterMarking(&edge, 0, max_length);
+            filterMarking(edge.twin, 0, max_length);
         }
     }
 }
 
 bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
 {
-    coord_t length = vSize2(starting_edge->from->p - starting_edge->to->p);
+    coord_t length = vSize(starting_edge->from->p - starting_edge->to->p);
     if (traveled_dist + length > max_length)
     {
         return false;
