@@ -1514,6 +1514,10 @@ void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts
             { // only override if there is no beading associatied with the node already
                 node_to_beading[quad_start->to] = beading;
             }
+            else if (quad_start->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary)
+            {
+                // dont override beading info
+            }
             else if (!it->second.is_finished)
             {
                 generateEndOfMarkingBeadings(quad_start->to, it->second, beading, node_to_beading, beading_strategy);
@@ -1522,6 +1526,10 @@ void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts
             if (it2 == node_to_beading.end())
             { // only override if there is no beading associatied with the node already
                 node_to_beading[quad_start->next->to] = beading;
+            }
+            else if (quad_start->next->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary)
+            {
+                // dont override beading info
             }
             else if (!it2->second.is_finished)
             {
