@@ -1713,6 +1713,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
     {
         if (edge.prev) continue;
         edge_t* quad_start = &edge;
+        edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
         edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
         // walk down on both sides and connect junctions
         edge_t* edge_from_peak = edge_to_peak->next; assert(edge_from_peak);
@@ -1763,6 +1764,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
             if (edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
                 && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // we're not in a transition
                 && junction_rev_idx == segment_count - 1 // is single bead segment
+                && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5)
                 && (from.p.X < to.p.X || (from.p.X == to.p.X && from.p.Y < to.p.Y)) // choose one
                 )
             {
