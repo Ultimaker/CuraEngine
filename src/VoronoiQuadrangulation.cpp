@@ -81,6 +81,9 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
     { // twin segment(s) already made
         edge_t* source_twin = he_edge_it->second;
         assert(source_twin);
+        auto end_node_it = vd_node_to_he_node.find(vd_edge.vertex1());
+        assert(end_node_it != vd_node_to_he_node.end());
+        node_t* end_node = end_node_it->second;
         for (edge_t* twin = source_twin;
             ; //  !twin;
             twin = twin->prev->twin->prev)
@@ -99,13 +102,12 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
                 edge->prev = prev_edge;
                 prev_edge->next = edge;
             }
-            
+
             prev_edge = edge;
-            
-//             if (shorterThen(twin->from->p - to, snap_dist))
-            if (twin->from->p == to)
+
+            if (prev_edge->to == end_node)
             {
-                break;
+                return;
             }
             
             if (!twin->prev || !twin->prev->twin || !twin->prev->twin->prev)
