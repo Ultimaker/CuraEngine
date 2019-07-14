@@ -995,7 +995,7 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
             }
         }
         should_dissolve = should_dissolve || dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
-        if (should_dissolve)
+        if (should_dissolve && edge->data.is_marked == 1)
         {
             edge->from->data.bead_count = going_up? origin_transition.lower_bead_count : origin_transition.lower_bead_count + 1;
         }
