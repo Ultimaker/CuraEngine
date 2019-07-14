@@ -522,7 +522,8 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
 {
     auto safelyRemoveEdge = [this](edge_t* to_be_removed, std::list<edge_t>::iterator& current_edge_it, bool& edge_it_is_updated)
         {
-            if (to_be_removed == &*current_edge_it)
+            if (current_edge_it != graph.edges.end()
+                && to_be_removed == &*current_edge_it)
             {
                 current_edge_it = graph.edges.erase(current_edge_it);
                 edge_it_is_updated = true;
