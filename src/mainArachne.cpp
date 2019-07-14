@@ -75,8 +75,6 @@ static Polygons jin;
 static Polygons um;
 static Polygons spikes;
 static Polygons enclosed_region;
-static Polygons moessen_circles;
-static Polygons moessen_triangles;
 
 void generateTestPolys()
 {
@@ -236,9 +234,6 @@ void generateTestPolys()
     
     jin = generateJin();
     
-    moessen_circles = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 32);
-    moessen_triangles = MoessenTests::generateTriangles(Point(6, 3), 100, 400, 500);
-
     {
         coord_t r = 3600;
         coord_t inr = 2400;
@@ -316,7 +311,10 @@ void test()
     // Preparing Input Geometries.
     int r;
     r = time(0);
-    r = 1562934206;
+    r = 123;
+//     r = 1563034632; // problem with generateTestPoly(20, Point(10000, 10000));
+//     r = 1563020645;
+//     r = 1562934206;
 //     r = 1558617038;
 //     r = 1558618076;
 //     r = 1558692831;
@@ -357,8 +355,9 @@ void test()
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
-    Polygons polys = moessen_circles;
-//     Polygons polys = moessen_triangles;
+    Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 8);
+//     Polygons polys = MoessenTests::generateTriangles(Point(6, 3), 100, 400, 500);
+
     polys = polys.unionPolygons();
 
 #ifdef DEBUG
@@ -502,6 +501,12 @@ void test()
 
 
 int main() {
-    arachne::test();
+    long n = 1;
+    for (int i = 0; i < n; i++)
+    {
+        arachne::test();
+        if (++i % std::max(1l, n / 100) == 0)
+            std::cerr << (i / 100) << "%\n";
+    }
     return 0;
 }
