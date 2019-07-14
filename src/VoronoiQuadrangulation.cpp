@@ -1334,28 +1334,9 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
             debugCheckGraphCompleteness();
             debugCheckGraphConsistency();
 
-            graph.nodes.emplace_back(VoronoiQuadrangulationJoint(), mid);
-            node_t* mid_node = &graph.nodes.back();
+            last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1);
 
-            edge_t* twin = last_edge_replacing_input->twin;
-            last_edge_replacing_input->twin = nullptr;
-            twin->twin = nullptr;
-            std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> left_pair
-                = insertRib(*last_edge_replacing_input, mid_node);
-            std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> right_pair
-                = insertRib(*twin, mid_node);
-            edge_t* first_edge_replacing_input = left_pair.first;
-            last_edge_replacing_input = left_pair.second;
-            edge_t* first_edge_replacing_twin = right_pair.first;
-            edge_t* last_edge_replacing_twin = right_pair.second;
-
-            first_edge_replacing_input->twin = last_edge_replacing_twin;
-            last_edge_replacing_twin->twin = first_edge_replacing_input;
-            last_edge_replacing_input->twin = first_edge_replacing_twin;
-            first_edge_replacing_twin->twin = last_edge_replacing_input;
-
-            mid_node->data.bead_count = transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1;
-
+            /*
             if (transition_end.is_lower_end)
             {
                 last_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
@@ -1370,6 +1351,7 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
                 first_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
                 last_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
             }
+            */
 
             debugCheckGraphCompleteness();
             debugCheckGraphConsistency();
@@ -1377,6 +1359,34 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
     }
 }
 
+VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count)
+{
+    edge_t* last_edge_replacing_input = edge;
+
+    graph.nodes.emplace_back(VoronoiQuadrangulationJoint(), mid);
+    node_t* mid_node = &graph.nodes.back();
+
+    edge_t* twin = last_edge_replacing_input->twin;
+    last_edge_replacing_input->twin = nullptr;
+    twin->twin = nullptr;
+    std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> left_pair
+        = insertRib(*last_edge_replacing_input, mid_node);
+    std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> right_pair
+        = insertRib(*twin, mid_node);
+    edge_t* first_edge_replacing_input = left_pair.first;
+    last_edge_replacing_input = left_pair.second;
+    edge_t* first_edge_replacing_twin = right_pair.first;
+    edge_t* last_edge_replacing_twin = right_pair.second;
+
+    first_edge_replacing_input->twin = last_edge_replacing_twin;
+    last_edge_replacing_twin->twin = first_edge_replacing_input;
+    last_edge_replacing_input->twin = first_edge_replacing_twin;
+    first_edge_replacing_twin->twin = last_edge_replacing_input;
+
+    mid_node->data.bead_count = mide_node_bead_count;
+
+    return last_edge_replacing_input;
+}
 
 std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> VoronoiQuadrangulation::insertRib(edge_t& edge, node_t* mid_node)
 {

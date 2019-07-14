@@ -129,6 +129,13 @@ protected:
      */
     void applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
+    /*!
+     * Insert a node into the graph and connect it to the input polygon using ribs
+     * 
+     * \return the last edge which replaced [edge], which points to the same [to] node
+     */
+    edge_t* insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count);
+
     void filterMarkedLocalOptima(const BeadingStrategy& beading_strategy);
 
     void generateTransitioningRibs(const BeadingStrategy& beading_strategy);
