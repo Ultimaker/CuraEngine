@@ -549,6 +549,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
         bool quad_mid_is_removed = false;
         if (quad_mid && quad_mid->from->p == quad_mid->to->p)
         {
+            assert(quad_mid->twin);
             int count = 0;
             for (edge_t* edge_from_3 = quad_end; edge_from_3 && edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
             {
@@ -1556,6 +1557,10 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, Beading&
         first = false;
     }
     assert(start_of_marking && "beading propagated to a node which already has a beading is only possible if the latter is a marked node");
+    if (!start_of_marking)
+    {
+        return;
+    }
 
     float propagated_bead_count = 0.0;
     if (false)
@@ -1610,13 +1615,16 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(edge_t* continuation_e
     else
     {
         // recurse
+        bool has_recursed = false;
         for (edge_t* next_edge = continuation_edge->next; next_edge && next_edge != continuation_edge->twin; next_edge = next_edge->twin->next)
         {
             if (next_edge->data.is_marked == 1)
             {
                 generateEndOfMarkingBeadings(next_edge, traveled_dist + length, transition_length, beading_here, propagated_beading, node_to_beading, beading_strategy);
+                has_recursed = true;
             }
         }
+        assert(has_recursed && "marked regions should alwyas be big enough to support such transitions!");
     }
 }
 
@@ -1972,6 +1980,7 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
             assert((edge_p->from == nullptr) == (edge_p->twin->to == nullptr));
             assert((edge_p->to == nullptr) == (edge_p->twin->from == nullptr));
             assert(edge_p->twin->twin == &edge);
+            assert(edge_p->twin != edge_p);
         }
         if (edge_p->next)
         {
@@ -2021,6 +2030,7 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency()
             }
             assert(edge.data.is_marked != 1);
         }
+        assert(edge.data.is_marked == edge.twin->data.is_marked);
         if (edge.data.is_marked)
         {
             if (edge.from->data.bead_count != -1 && edge.to->data.bead_count != -1)
