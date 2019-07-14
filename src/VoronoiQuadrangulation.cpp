@@ -701,6 +701,15 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
+    // set bead count in marked regions
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.data.is_marked)
+        {
+            edge.to->data.bead_count = beading_strategy.optimal_bead_count(edge.to->data.distance_to_boundary * 2);
+        }
+    }
+
     // fix bead count at locally maximal R
     // also for marked regions!! See TODOs in generateTransitionEnd(.)
     for (node_t& node : graph.nodes)
@@ -838,21 +847,13 @@ bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t travel
     if (should_dissolve)
     {
         starting_edge->data.is_marked = 0;
+        starting_edge->twin->data.is_marked = 0;
     }
     return should_dissolve;
 }
 
 void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
 {
-    // set bead count in marked regions
-    for (edge_t& edge : graph.edges)
-    {
-        if (edge.data.is_marked)
-        {
-            edge.to->data.bead_count = beading_strategy.optimal_bead_count(edge.to->data.distance_to_boundary * 2);
-        }
-    }
-
         debugCheckGraphCompleteness();
 
     std::unordered_map<edge_t*, std::list<TransitionMiddle>> edge_to_transitions; // maps the upward edge to the transitions. WE only map the halfedge for which the distance_to_boundary is higher at the end than at the beginning
