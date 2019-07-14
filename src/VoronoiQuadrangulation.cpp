@@ -1737,6 +1737,8 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
         {
             assert(false);
         }
+        assert((edge.next == nullptr) == (edge.twin->prev == nullptr));
+        assert((edge.prev == nullptr) == (edge.twin->next == nullptr));
         assert(edge.next || edge.to->data.distance_to_boundary == 0);
         assert(edge.prev || edge.from->data.distance_to_boundary == 0);
     }
@@ -1892,6 +1894,8 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
                 assert(!edge_p->twin->to);
                 vert_assert(edge_p->twin->to, edge_p->from);
             }
+            assert((edge_p->from == nullptr) == (edge_p->twin->to == nullptr));
+            assert((edge_p->to == nullptr) == (edge_p->twin->from == nullptr));
             assert(edge_p->twin->twin == &edge);
         }
         if (edge_p->next)
