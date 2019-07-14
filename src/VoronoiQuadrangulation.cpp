@@ -970,6 +970,10 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
     bool should_dissolve = false;
     for (edge_t* edge = edge_to_start->next; edge && edge != edge_to_start->twin; edge = edge->twin->next)
     {
+        if (edge->data.is_marked != 1)
+        {
+            continue;
+        }
         Point a = edge->from->p;
         Point b = edge->to->p;
         Point ab = b - a;
