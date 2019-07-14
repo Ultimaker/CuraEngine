@@ -31,6 +31,7 @@ class VoronoiQuadrangulation
 
     coord_t snap_dist = 20; // generic arithmatic inaccuracy
     coord_t discretization_step_size = 200;
+    coord_t filter_dist = 1000; // filter distance
 public:
     using Segment = PolygonsSegmentIndex;
     VoronoiQuadrangulation(const Polygons& polys);
@@ -70,6 +71,15 @@ protected:
     // ^ init | v transitioning
 
     void setMarking(const BeadingStrategy& beading_strategy); //! set the is_marked flag for each edge
+
+    void filterMarking(coord_t max_length); //! Filter out small marked areas
+
+    /*!
+     * Filter markings connected to starting_edge recursively.
+     * 
+     * \return Whether we should unmark this marked section
+     */
+    bool filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length);
 
     struct TransitionMiddle
     {

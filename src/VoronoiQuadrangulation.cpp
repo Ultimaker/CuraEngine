@@ -695,6 +695,8 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 {
     setMarking(beading_strategy);
 
+    filterMarking(filter_dist);
+
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
@@ -806,6 +808,38 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
 }
 
 
+void VoronoiQuadrangulation::filterMarking(coord_t max_length)
+{
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.data.is_marked == 1 && isEndOfMarking(edge))
+        {
+            filterMarking(&edge, 0, max_length);
+        }
+    }
+}
+
+bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
+{
+    coord_t length = vSize2(starting_edge->from->p - starting_edge->to->p);
+    if (traveled_dist + length > max_length)
+    {
+        return false;
+    }
+    bool should_dissolve = true;
+    for (edge_t* next_edge = starting_edge->next; next_edge && next_edge != starting_edge->twin; next_edge = next_edge->twin->next)
+    {
+        if (next_edge->data.is_marked == 1)
+        {
+            should_dissolve &= filterMarking(next_edge, traveled_dist + length, max_length);
+        }
+    }
+    if (should_dissolve)
+    {
+        starting_edge->data.is_marked = 0;
+    }
+    return should_dissolve;
+}
 
 void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
 {
@@ -894,7 +928,6 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
 
 void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
 {
-    coord_t max_dist = 1000; // TODO make configurable
     for (std::pair<edge_t* const, std::list<TransitionMiddle>>& pair : edge_to_transitions)
     {
         edge_t* edge = pair.first;
@@ -909,12 +942,12 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         Point b = edge->to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
-        bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, max_dist, true, edge_to_transitions, beading_strategy);
+        bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, filter_dist, true, edge_to_transitions, beading_strategy);
         if (should_dissolve_back)
         {
             transitions.pop_back();
         }
-        bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, max_dist, false, edge_to_transitions, beading_strategy);
+        bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, filter_dist, false, edge_to_transitions, beading_strategy);
         if (should_dissolve_front)
         {
             transitions.pop_front();
