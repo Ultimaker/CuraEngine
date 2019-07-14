@@ -181,13 +181,6 @@ void VoronoiQuadrangulation::make_rib(edge_t*& prev_edge, Point start_source_poi
     prev_edge->to->data.distance_to_boundary = dist;
     assert(dist >= 0);
 
-    if (start_source_point != end_source_point
-        && is_next_to_start_or_end
-        && (shorterThen(p - start_source_point, rib_snap_distance)
-        || shorterThen(p - end_source_point, rib_snap_distance)))
-        {
-            return;
-        }
     graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p);
     node_t* node = &graph.nodes.front();
     node->data.distance_to_boundary = 0;

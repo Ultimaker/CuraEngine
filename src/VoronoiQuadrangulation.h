@@ -30,7 +30,6 @@ class VoronoiQuadrangulation
     using Beading = BeadingStrategy::Beading;
 
     coord_t snap_dist = 20; // generic arithmatic inaccuracy
-    coord_t rib_snap_distance = 100; // smallest segment cut off of an outline segment by an introduced rib. smaller than this the rib is canceled because it lies too close to an existing edge
     coord_t discretization_step_size = 200;
 public:
     using Segment = PolygonsSegmentIndex;
