@@ -812,7 +812,7 @@ void VoronoiQuadrangulation::filterMarking(coord_t max_length)
 {
     for (edge_t& edge : graph.edges)
     {
-        if (edge.data.is_marked == 1 && isEndOfMarking(edge))
+        if (isEndOfMarking(edge))
         {
             filterMarking(&edge, 0, max_length);
         }
@@ -1427,7 +1427,10 @@ std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
 
 bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
 {
-    assert(edge_to.data.is_marked); // Don't know why this function would otherwise be called
+    if (!edge_to.data.is_marked)
+    {
+        return false;
+    }
     if (!edge_to.next)
     {
         return true;
@@ -1552,7 +1555,6 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t
 
 void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
-    
     for (edge_t* quad_start : quad_starts)
     {
         edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
