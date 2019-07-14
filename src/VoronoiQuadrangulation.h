@@ -189,6 +189,10 @@ protected:
 
     Beading& getBeading(node_t* node, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
 
+    void generateEndOfMarkingBeadings(node_t* node, Beading& local_beading, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
+
+    void generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, Beading& local_beading, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
+
     struct Junction
     {
         Point p;
