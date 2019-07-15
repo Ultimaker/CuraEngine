@@ -23,6 +23,7 @@
 #include "NaiveBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
 #include "ConstantBeadingStrategy.h"
+#include "BeadingOrderOptimizer.h"
 
 #include "TestGeometry/Pika.h"
 #include "TestGeometry/Jin.h"
@@ -360,8 +361,28 @@ void test()
 //     ConstantBeadingStrategy beading_strategy(400, 4);
 //     CenterDeviationBeadingStrategy beading_strategy(400, .5, 1.7);
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
+
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+    BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
     logError("Processing took %fs\n", tk.restart());
 
+    Polygons result_polygons;
+    Polygons result_polylines;
+    for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
+        for (std::vector<ExtrusionJunction>& polygon : polygons)
+        {
+            PolygonRef poly = result_polygons.newPoly();
+            for (ExtrusionJunction& junction : polygon)
+                poly.add(junction.p);
+        }
+    for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
+        for (std::vector<ExtrusionJunction>& polyline : polylines)
+        {
+            PolygonRef poly = result_polylines.newPoly();
+            for (ExtrusionJunction& junction : polyline)
+                poly.add(junction.p);
+        }
 
     Polygons insets;
     Polygons last_inset = polys.offset(-200);
@@ -387,6 +408,19 @@ void test()
         svg.writePolygons(polys, SVG::Color::GRAY, 2);
         vq.debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
+    }
+
+    {
+        SVG svg("output/optimized.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::GRAY, 2);
+//         vq.debugOutput(svg, false, false, false);
+        svg.writePolygons(result_polygons, SVG::Color::BLACK);
+        svg.writePolylines(result_polylines, SVG::Color::ORANGE);
+        for (PolygonRef line : result_polylines)
+        {
+            svg.writePoint(line.front());
+            svg.writePoint(line.back());
+        }
     }
     
     {
