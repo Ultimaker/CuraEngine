@@ -744,7 +744,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         }
     }
 
-    debugCheckDecorationConsistency();
+    debugCheckDecorationConsistency(false);
 
     generateTransitioningRibs(beading_strategy);
 
@@ -769,7 +769,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     }
 #endif // DEBUG
 
-    debugCheckDecorationConsistency();
+    debugCheckDecorationConsistency(true);
 
     std::vector<ExtrusionSegment> segments;
     generateSegments(segments, beading_strategy);
@@ -2016,7 +2016,7 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
 #endif // DEBUG
 }
 
-void VoronoiQuadrangulation::debugCheckDecorationConsistency()
+void VoronoiQuadrangulation::debugCheckDecorationConsistency(bool transitioned)
 {
 #ifdef DEBUG
     for (const edge_t& edge : graph.edges)
@@ -2033,9 +2033,9 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency()
         assert(edge.data.is_marked == edge.twin->data.is_marked);
         if (edge.data.is_marked)
         {
-            if (edge.from->data.bead_count != -1 && edge.to->data.bead_count != -1)
+            if (transitioned && edge.from->data.bead_count != -1 && edge.to->data.bead_count != -1)
             {
-                assert(std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
+                assert(edge.data.is_marked != 1 || std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
             }
         }
     }

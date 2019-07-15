@@ -225,7 +225,7 @@ public:
     void debugCheckGraphStructure(); //!< Checks whether iterating around a node (using it = it.twin.next) ends up where it started. Should be true after init.
     void debugCheckGraphReachability(); //!< Checks whether an edge is reachable from iterating around its from node. Should be true after init.
     void debugCheckGraphConsistency(bool ignore_duplication = false); //!< Checks whether edge and node relations fit with each other. Should be true after any graph update.
-    void debugCheckDecorationConsistency(); //!< Check logical relationships relting to distance_to_boundary and is_marked etc. Should be true anywhere after setMarking(.)
+    void debugCheckDecorationConsistency(bool transitioned); //!< Check logical relationships relting to distance_to_boundary and is_marked etc. Should be true anywhere after setMarking(.)
     void debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const;
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
 protected:
